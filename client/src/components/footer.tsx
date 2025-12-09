@@ -67,6 +67,11 @@ export function Footer() {
                   Terms of Service
                 </Link>
               </li>
+              <li>
+                <Link href="/cookies" className="hover:text-foreground transition-colors">
+                  Cookie Policy
+                </Link>
+              </li>
             </ul>
           </div>
 

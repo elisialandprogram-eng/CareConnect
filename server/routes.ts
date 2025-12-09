@@ -248,6 +248,30 @@ export async function registerRoutes(
     }
   });
 
+  // Update user profile
+  app.patch("/api/auth/profile", authenticateToken, async (req: AuthRequest, res: Response) => {
+    try {
+      const { firstName, lastName, phone, address } = req.body;
+      
+      const user = await storage.updateUser(req.user!.id, {
+        firstName,
+        lastName,
+        phone,
+        address,
+      });
+
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      const { password: _, ...userWithoutPassword } = user;
+      res.json({ user: userWithoutPassword });
+    } catch (error) {
+      console.error("Profile update error:", error);
+      res.status(500).json({ message: "Failed to update profile" });
+    }
+  });
+
   // ============ PROVIDER ROUTES ============
 
   // Get all providers
@@ -337,44 +361,45 @@ export async function registerRoutes(
   // Create appointment
   app.post("/api/appointments", authenticateToken, async (req: AuthRequest, res: Response) => {
     try {
-      const { providerId, serviceId, appointmentDate, appointmentTime, appointmentType, paymentMethod, notes } = req.body;
+      const { providerId, serviceId, date, startTime, endTime, visitType, paymentMethod, notes, patientAddress, totalAmount } = req.body;
       const userId = req.user?.id;
 
       if (!userId) {
         return res.status(401).json({ message: "User not authenticated" });
       }
 
-      // Get provider to calculate fee
+      // Get provider to calculate fee if not provided
       const provider = await storage.getProvider(providerId);
       if (!provider) {
         return res.status(404).json({ message: "Provider not found" });
       }
 
-      const fee = appointmentType === "home" && provider.homeVisitFee
+      const fee = totalAmount || (visitType === "home" && provider.homeVisitFee
         ? provider.homeVisitFee
-        : provider.consultationFee;
+        : provider.consultationFee);
 
       // Create appointment
       const appointment = await storage.createAppointment({
-        id: crypto.randomUUID(),
-        userId,
+        patientId: userId,
         providerId,
-        serviceId,
-        appointmentDate: new Date(appointmentDate),
-        appointmentTime,
-        appointmentType,
+        serviceId: serviceId || null,
+        date,
+        startTime,
+        endTime,
+        visitType: visitType || "online",
         status: "pending",
         notes: notes || null,
+        patientAddress: patientAddress || null,
+        totalAmount: fee.toString(),
       });
 
       // Create payment record with payment method
       await storage.createPayment({
-        id: crypto.randomUUID(),
         appointmentId: appointment.id,
-        amount: fee,
+        patientId: userId,
+        amount: fee.toString(),
         paymentMethod: paymentMethod || "card",
         status: paymentMethod === "cash" ? "pending" : "pending",
-        transactionId: null,
       });
 
       res.status(201).json(appointment);

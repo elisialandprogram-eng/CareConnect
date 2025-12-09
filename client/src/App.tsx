@@ -22,6 +22,7 @@ import BecomeProvider from "@/pages/become-provider";
 import Appointments from "@/pages/appointments";
 import Profile from "@/pages/profile";
 import Settings from "@/pages/settings";
+import CookiePolicy from "@/pages/cookie-policy";
 
 function Router() {
   return (
@@ -38,6 +39,7 @@ function Router() {
       <Route path="/admin" component={AdminDashboard} />
       <Route path="/terms" component={Terms} />
       <Route path="/privacy" component={Privacy} />
+      <Route path="/cookies" component={CookiePolicy} />
       <Route path="/about" component={About} />
       <Route path="/become-provider" component={BecomeProvider} />
       <Route path="/appointments" component={Appointments} />
