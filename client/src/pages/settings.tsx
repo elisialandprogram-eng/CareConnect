@@ -305,8 +305,12 @@ export default function Settings() {
               </p>
               <p className="text-sm text-muted-foreground">
                 For data access, correction, or deletion requests, please contact us at{" "}
-                <a href="mailto:info@goldenlife.health" className="text-primary hover:underline">
-                  info@goldenlife.health
+                <a href="mailto:Info@GoldenLife.Health" className="text-primary hover:underline">
+                  Info@GoldenLife.Health
+                </a>
+                {" "}or{" "}
+                <a href="mailto:Admin@GoldenLife.Health" className="text-primary hover:underline">
+                  Admin@GoldenLife.Health
                 </a>
               </p>
             </CardContent>

@@ -100,18 +100,23 @@ export default function About() {
                   <div className="space-y-4">
                     <div className="flex items-center gap-3">
                       <MapPin className="h-5 w-5 text-primary" />
-                      <span className="text-muted-foreground">Hungary, 3060 Pásztó, Semmelweis utca 10.</span>
+                      <span className="text-muted-foreground">Hungary, 3060 Pásztó, Semmelweis utca 10</span>
                     </div>
                     <div className="flex items-center gap-3">
                       <Mail className="h-5 w-5 text-primary" />
-                      <a href="mailto:info@goldenlife.health" className="text-primary hover:underline">
-                        info@goldenlife.health
-                      </a>
+                      <div className="flex flex-col gap-1">
+                        <a href="mailto:Info@GoldenLife.Health" className="text-primary hover:underline">
+                          Info@GoldenLife.Health
+                        </a>
+                        <a href="mailto:Admin@GoldenLife.Health" className="text-primary hover:underline">
+                          Admin@GoldenLife.Health
+                        </a>
+                      </div>
                     </div>
                     <div className="flex items-center gap-3">
                       <Phone className="h-5 w-5 text-primary" />
                       <a href="tel:+36702370103" className="text-primary hover:underline">
-                        +36 70 237 0103
+                        +36702370103
                       </a>
                     </div>
                   </div>

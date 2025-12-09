@@ -20,9 +20,9 @@ export default function Terms() {
               <h2 className="text-xl font-semibold mb-4">1. Service Provider</h2>
               <div className="space-y-2 text-muted-foreground">
                 <p><strong>Company name:</strong> Golden Life</p>
-                <p><strong>Address:</strong> Hungary, 3060 Pásztó, Semmelweis utca 10.</p>
-                <p><strong>Email:</strong> info@goldenlife.health</p>
-                <p><strong>Phone:</strong> +36 70 237 0103</p>
+                <p><strong>Address:</strong> Hungary, 3060 Pásztó, Semmelweis utca 10</p>
+                <p><strong>Email:</strong> Info@GoldenLife.Health, Admin@GoldenLife.Health</p>
+                <p><strong>Phone:</strong> +36702370103</p>
               </div>
               <p className="mt-4 text-muted-foreground">
                 Golden Life ("Service Provider") operates an online appointment-booking system ("Service") available through its website and digital interfaces.
@@ -123,9 +123,9 @@ export default function Terms() {
               <p className="text-muted-foreground mb-2">Complaints may be submitted by email, phone, or in writing to:</p>
               <div className="text-muted-foreground space-y-1">
                 <p><strong>Golden Life</strong></p>
-                <p>Hungary, 3060 Pásztó, Semmelweis utca 10.</p>
-                <p>Email: info@goldenlife.health</p>
-                <p>Phone: +36 70 237 0103</p>
+                <p>Hungary, 3060 Pásztó, Semmelweis utca 10</p>
+                <p>Email: Info@GoldenLife.Health, Admin@GoldenLife.Health</p>
+                <p>Phone: +36702370103</p>
               </div>
             </section>
 

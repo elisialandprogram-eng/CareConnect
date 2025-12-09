@@ -21,9 +21,9 @@ export default function Privacy() {
               <h2 className="text-xl font-semibold mb-4">1. Data Controller</h2>
               <div className="space-y-1 text-muted-foreground">
                 <p><strong>Golden Life</strong></p>
-                <p>Hungary, 3060 Pásztó, Semmelweis utca 10.</p>
-                <p>Email: info@goldenlife.health</p>
-                <p>Phone: +36 70 237 0103</p>
+                <p>Hungary, 3060 Pásztó, Semmelweis utca 10</p>
+                <p>Email: Info@GoldenLife.Health, Admin@GoldenLife.Health</p>
+                <p>Phone: +36702370103</p>
               </div>
             </section>
 
@@ -136,7 +136,7 @@ export default function Privacy() {
                 <li>consent withdrawal (especially for health data & marketing).</li>
               </ul>
               <p className="mt-4 text-muted-foreground">
-                Requests: info@goldenlife.health
+                Requests: Info@GoldenLife.Health or Admin@GoldenLife.Health
               </p>
             </section>
 
@@ -165,7 +165,7 @@ export default function Privacy() {
                 Users may receive promotional or marketing emails only if they give consent.
               </p>
               <p className="text-muted-foreground">
-                Users may unsubscribe at any time via email link or by sending a request to info@goldenlife.health
+                Users may unsubscribe at any time via email link or by sending a request to Info@GoldenLife.Health or Admin@GoldenLife.Health
               </p>
             </section>
 

@@ -73,21 +73,26 @@ export function Footer() {
           <div>
             <h3 className="font-semibold mb-4">Contact</h3>
             <ul className="space-y-3 text-sm text-muted-foreground">
-              <li className="flex items-center gap-2">
-                <Mail className="h-4 w-4" />
-                <a href="mailto:info@goldenlife.health" className="hover:text-foreground transition-colors">
-                  info@goldenlife.health
-                </a>
+              <li className="flex items-start gap-2">
+                <Mail className="h-4 w-4 mt-0.5" />
+                <div className="flex flex-col gap-1">
+                  <a href="mailto:Info@GoldenLife.Health" className="hover:text-foreground transition-colors">
+                    Info@GoldenLife.Health
+                  </a>
+                  <a href="mailto:Admin@GoldenLife.Health" className="hover:text-foreground transition-colors">
+                    Admin@GoldenLife.Health
+                  </a>
+                </div>
               </li>
               <li className="flex items-center gap-2">
                 <Phone className="h-4 w-4" />
                 <a href="tel:+36702370103" className="hover:text-foreground transition-colors">
-                  +36 70 237 0103
+                  +36702370103
                 </a>
               </li>
               <li className="flex items-start gap-2">
                 <MapPin className="h-4 w-4 mt-0.5" />
-                <span>Hungary, 3060 Pásztó, Semmelweis utca 10.</span>
+                <span>Hungary, 3060 Pásztó, Semmelweis utca 10</span>
               </li>
             </ul>
           </div>
