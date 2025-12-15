@@ -9,6 +9,19 @@ import {
   refreshTokens,
   promoCodes,
   providerPricingOverrides,
+  auditLogs,
+  supportTickets,
+  ticketMessages,
+  contentBlocks,
+  faqs,
+  blogPosts,
+  announcements,
+  emailTemplates,
+  notificationQueue,
+  platformSettings,
+  serviceCategories,
+  locations,
+  dailyMetrics,
 } from "@shared/schema";
 import type {
   User,
@@ -35,9 +48,35 @@ import type {
   InsertPromoCode,
   ProviderPricingOverride,
   InsertProviderPricingOverride,
+  AuditLog,
+  InsertAuditLog,
+  SupportTicket,
+  InsertSupportTicket,
+  TicketMessage,
+  InsertTicketMessage,
+  ContentBlock,
+  InsertContentBlock,
+  Faq,
+  InsertFaq,
+  BlogPost,
+  InsertBlogPost,
+  Announcement,
+  InsertAnnouncement,
+  EmailTemplate,
+  InsertEmailTemplate,
+  Notification,
+  InsertNotification,
+  PlatformSetting,
+  InsertPlatformSetting,
+  ServiceCategory,
+  InsertServiceCategory,
+  Location,
+  InsertLocation,
+  DailyMetric,
+  InsertDailyMetric,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, desc, gte, lte, or, sql } from "drizzle-orm";
+import { eq, and, desc, gte, lte, or, sql, count } from "drizzle-orm";
 
 export interface IStorage {
   // Users
@@ -108,6 +147,116 @@ export interface IStorage {
   getAllPricingOverrides(): Promise<ProviderPricingOverride[]>;
   updateProviderPricingOverride(id: string, data: Partial<ProviderPricingOverride>): Promise<ProviderPricingOverride | undefined>;
   deleteProviderPricingOverride(id: string): Promise<void>;
+
+  // ========== ADMIN DASHBOARD METHODS ==========
+
+  // Analytics
+  getAllAppointments(): Promise<AppointmentWithDetails[]>;
+  getAllPayments(): Promise<Payment[]>;
+  getAnalyticsStats(): Promise<{
+    totalUsers: number;
+    totalProviders: number;
+    totalBookings: number;
+    totalRevenue: string;
+    pendingBookings: number;
+    completedBookings: number;
+  }>;
+
+  // Audit Logs
+  createAuditLog(data: InsertAuditLog): Promise<AuditLog>;
+  getAllAuditLogs(): Promise<AuditLog[]>;
+  getAuditLogsByUser(userId: string): Promise<AuditLog[]>;
+
+  // Support Tickets
+  createSupportTicket(data: InsertSupportTicket): Promise<SupportTicket>;
+  getSupportTicket(id: string): Promise<SupportTicket | undefined>;
+  getAllSupportTickets(): Promise<SupportTicket[]>;
+  updateSupportTicket(id: string, data: Partial<SupportTicket>): Promise<SupportTicket | undefined>;
+  deleteSupportTicket(id: string): Promise<void>;
+
+  // Ticket Messages
+  createTicketMessage(data: InsertTicketMessage): Promise<TicketMessage>;
+  getTicketMessages(ticketId: string): Promise<TicketMessage[]>;
+
+  // Content Blocks
+  createContentBlock(data: InsertContentBlock): Promise<ContentBlock>;
+  getContentBlock(id: string): Promise<ContentBlock | undefined>;
+  getContentBlockByKey(key: string): Promise<ContentBlock | undefined>;
+  getAllContentBlocks(): Promise<ContentBlock[]>;
+  updateContentBlock(id: string, data: Partial<ContentBlock>): Promise<ContentBlock | undefined>;
+  deleteContentBlock(id: string): Promise<void>;
+
+  // FAQs
+  createFaq(data: InsertFaq): Promise<Faq>;
+  getFaq(id: string): Promise<Faq | undefined>;
+  getAllFaqs(): Promise<Faq[]>;
+  updateFaq(id: string, data: Partial<Faq>): Promise<Faq | undefined>;
+  deleteFaq(id: string): Promise<void>;
+
+  // Blog Posts
+  createBlogPost(data: InsertBlogPost): Promise<BlogPost>;
+  getBlogPost(id: string): Promise<BlogPost | undefined>;
+  getBlogPostBySlug(slug: string): Promise<BlogPost | undefined>;
+  getAllBlogPosts(): Promise<BlogPost[]>;
+  updateBlogPost(id: string, data: Partial<BlogPost>): Promise<BlogPost | undefined>;
+  deleteBlogPost(id: string): Promise<void>;
+
+  // Announcements
+  createAnnouncement(data: InsertAnnouncement): Promise<Announcement>;
+  getAnnouncement(id: string): Promise<Announcement | undefined>;
+  getAllAnnouncements(): Promise<Announcement[]>;
+  getActiveAnnouncements(): Promise<Announcement[]>;
+  updateAnnouncement(id: string, data: Partial<Announcement>): Promise<Announcement | undefined>;
+  deleteAnnouncement(id: string): Promise<void>;
+
+  // Email Templates
+  createEmailTemplate(data: InsertEmailTemplate): Promise<EmailTemplate>;
+  getEmailTemplate(id: string): Promise<EmailTemplate | undefined>;
+  getEmailTemplateByName(name: string): Promise<EmailTemplate | undefined>;
+  getAllEmailTemplates(): Promise<EmailTemplate[]>;
+  updateEmailTemplate(id: string, data: Partial<EmailTemplate>): Promise<EmailTemplate | undefined>;
+  deleteEmailTemplate(id: string): Promise<void>;
+
+  // Notifications
+  createNotification(data: InsertNotification): Promise<Notification>;
+  getNotification(id: string): Promise<Notification | undefined>;
+  getAllNotifications(): Promise<Notification[]>;
+  getPendingNotifications(): Promise<Notification[]>;
+  updateNotification(id: string, data: Partial<Notification>): Promise<Notification | undefined>;
+
+  // Platform Settings
+  createPlatformSetting(data: InsertPlatformSetting): Promise<PlatformSetting>;
+  getPlatformSetting(key: string): Promise<PlatformSetting | undefined>;
+  getAllPlatformSettings(): Promise<PlatformSetting[]>;
+  getPlatformSettingsByCategory(category: string): Promise<PlatformSetting[]>;
+  updatePlatformSetting(key: string, value: string): Promise<PlatformSetting | undefined>;
+  deletePlatformSetting(id: string): Promise<void>;
+
+  // Service Categories
+  createServiceCategory(data: InsertServiceCategory): Promise<ServiceCategory>;
+  getServiceCategory(id: string): Promise<ServiceCategory | undefined>;
+  getAllServiceCategories(): Promise<ServiceCategory[]>;
+  updateServiceCategory(id: string, data: Partial<ServiceCategory>): Promise<ServiceCategory | undefined>;
+  deleteServiceCategory(id: string): Promise<void>;
+
+  // Locations
+  createLocation(data: InsertLocation): Promise<Location>;
+  getLocation(id: string): Promise<Location | undefined>;
+  getAllLocations(): Promise<Location[]>;
+  updateLocation(id: string, data: Partial<Location>): Promise<Location | undefined>;
+  deleteLocation(id: string): Promise<void>;
+
+  // Daily Metrics
+  createDailyMetric(data: InsertDailyMetric): Promise<DailyMetric>;
+  getDailyMetricByDate(date: string): Promise<DailyMetric | undefined>;
+  getDailyMetrics(startDate: string, endDate: string): Promise<DailyMetric[]>;
+  updateDailyMetric(id: string, data: Partial<DailyMetric>): Promise<DailyMetric | undefined>;
+
+  // User management enhancements
+  deleteUser(id: string): Promise<void>;
+  
+  // Provider management enhancements  
+  deleteProvider(id: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -478,6 +627,385 @@ export class DatabaseStorage implements IStorage {
 
   async deleteProviderPricingOverride(id: string): Promise<void> {
     await db.delete(providerPricingOverrides).where(eq(providerPricingOverrides.id, id));
+  }
+
+  // ========== ADMIN DASHBOARD IMPLEMENTATIONS ==========
+
+  // Analytics
+  async getAllAppointments(): Promise<AppointmentWithDetails[]> {
+    const result = await db
+      .select()
+      .from(appointments)
+      .innerJoin(users, eq(appointments.patientId, users.id))
+      .innerJoin(providers, eq(appointments.providerId, providers.id))
+      .leftJoin(services, eq(appointments.serviceId, services.id))
+      .orderBy(desc(appointments.createdAt));
+
+    const appointmentsWithDetails: AppointmentWithDetails[] = [];
+    for (const row of result) {
+      const providerUser = await this.getUser(row.providers.userId);
+      appointmentsWithDetails.push({
+        ...row.appointments,
+        patient: row.users,
+        provider: { ...row.providers, user: providerUser! },
+        service: row.services,
+      });
+    }
+    return appointmentsWithDetails;
+  }
+
+  async getAllPayments(): Promise<Payment[]> {
+    return db.select().from(payments).orderBy(desc(payments.createdAt));
+  }
+
+  async getAnalyticsStats(): Promise<{
+    totalUsers: number;
+    totalProviders: number;
+    totalBookings: number;
+    totalRevenue: string;
+    pendingBookings: number;
+    completedBookings: number;
+  }> {
+    const [userCount] = await db.select({ count: count() }).from(users);
+    const [providerCount] = await db.select({ count: count() }).from(providers);
+    const [bookingCount] = await db.select({ count: count() }).from(appointments);
+    const [pendingCount] = await db.select({ count: count() }).from(appointments).where(eq(appointments.status, "pending"));
+    const [completedCount] = await db.select({ count: count() }).from(appointments).where(eq(appointments.status, "completed"));
+    
+    const allPayments = await db.select().from(payments).where(eq(payments.status, "completed"));
+    const totalRevenue = allPayments.reduce((sum, p) => sum + parseFloat(p.amount || "0"), 0);
+
+    return {
+      totalUsers: userCount?.count || 0,
+      totalProviders: providerCount?.count || 0,
+      totalBookings: bookingCount?.count || 0,
+      totalRevenue: totalRevenue.toFixed(2),
+      pendingBookings: pendingCount?.count || 0,
+      completedBookings: completedCount?.count || 0,
+    };
+  }
+
+  // Audit Logs
+  async createAuditLog(data: InsertAuditLog): Promise<AuditLog> {
+    const [log] = await db.insert(auditLogs).values(data).returning();
+    return log;
+  }
+
+  async getAllAuditLogs(): Promise<AuditLog[]> {
+    return db.select().from(auditLogs).orderBy(desc(auditLogs.createdAt));
+  }
+
+  async getAuditLogsByUser(userId: string): Promise<AuditLog[]> {
+    return db.select().from(auditLogs).where(eq(auditLogs.userId, userId)).orderBy(desc(auditLogs.createdAt));
+  }
+
+  // Support Tickets
+  async createSupportTicket(data: InsertSupportTicket): Promise<SupportTicket> {
+    const [ticket] = await db.insert(supportTickets).values(data).returning();
+    return ticket;
+  }
+
+  async getSupportTicket(id: string): Promise<SupportTicket | undefined> {
+    const [ticket] = await db.select().from(supportTickets).where(eq(supportTickets.id, id));
+    return ticket;
+  }
+
+  async getAllSupportTickets(): Promise<SupportTicket[]> {
+    return db.select().from(supportTickets).orderBy(desc(supportTickets.createdAt));
+  }
+
+  async updateSupportTicket(id: string, data: Partial<SupportTicket>): Promise<SupportTicket | undefined> {
+    const [ticket] = await db.update(supportTickets).set({ ...data, updatedAt: new Date() }).where(eq(supportTickets.id, id)).returning();
+    return ticket;
+  }
+
+  async deleteSupportTicket(id: string): Promise<void> {
+    await db.delete(ticketMessages).where(eq(ticketMessages.ticketId, id));
+    await db.delete(supportTickets).where(eq(supportTickets.id, id));
+  }
+
+  // Ticket Messages
+  async createTicketMessage(data: InsertTicketMessage): Promise<TicketMessage> {
+    const [message] = await db.insert(ticketMessages).values(data).returning();
+    return message;
+  }
+
+  async getTicketMessages(ticketId: string): Promise<TicketMessage[]> {
+    return db.select().from(ticketMessages).where(eq(ticketMessages.ticketId, ticketId)).orderBy(ticketMessages.createdAt);
+  }
+
+  // Content Blocks
+  async createContentBlock(data: InsertContentBlock): Promise<ContentBlock> {
+    const [block] = await db.insert(contentBlocks).values(data).returning();
+    return block;
+  }
+
+  async getContentBlock(id: string): Promise<ContentBlock | undefined> {
+    const [block] = await db.select().from(contentBlocks).where(eq(contentBlocks.id, id));
+    return block;
+  }
+
+  async getContentBlockByKey(key: string): Promise<ContentBlock | undefined> {
+    const [block] = await db.select().from(contentBlocks).where(eq(contentBlocks.key, key));
+    return block;
+  }
+
+  async getAllContentBlocks(): Promise<ContentBlock[]> {
+    return db.select().from(contentBlocks).orderBy(contentBlocks.key);
+  }
+
+  async updateContentBlock(id: string, data: Partial<ContentBlock>): Promise<ContentBlock | undefined> {
+    const [block] = await db.update(contentBlocks).set({ ...data, updatedAt: new Date() }).where(eq(contentBlocks.id, id)).returning();
+    return block;
+  }
+
+  async deleteContentBlock(id: string): Promise<void> {
+    await db.delete(contentBlocks).where(eq(contentBlocks.id, id));
+  }
+
+  // FAQs
+  async createFaq(data: InsertFaq): Promise<Faq> {
+    const [faq] = await db.insert(faqs).values(data).returning();
+    return faq;
+  }
+
+  async getFaq(id: string): Promise<Faq | undefined> {
+    const [faq] = await db.select().from(faqs).where(eq(faqs.id, id));
+    return faq;
+  }
+
+  async getAllFaqs(): Promise<Faq[]> {
+    return db.select().from(faqs).orderBy(faqs.sortOrder);
+  }
+
+  async updateFaq(id: string, data: Partial<Faq>): Promise<Faq | undefined> {
+    const [faq] = await db.update(faqs).set({ ...data, updatedAt: new Date() }).where(eq(faqs.id, id)).returning();
+    return faq;
+  }
+
+  async deleteFaq(id: string): Promise<void> {
+    await db.delete(faqs).where(eq(faqs.id, id));
+  }
+
+  // Blog Posts
+  async createBlogPost(data: InsertBlogPost): Promise<BlogPost> {
+    const [post] = await db.insert(blogPosts).values(data).returning();
+    return post;
+  }
+
+  async getBlogPost(id: string): Promise<BlogPost | undefined> {
+    const [post] = await db.select().from(blogPosts).where(eq(blogPosts.id, id));
+    return post;
+  }
+
+  async getBlogPostBySlug(slug: string): Promise<BlogPost | undefined> {
+    const [post] = await db.select().from(blogPosts).where(eq(blogPosts.slug, slug));
+    return post;
+  }
+
+  async getAllBlogPosts(): Promise<BlogPost[]> {
+    return db.select().from(blogPosts).orderBy(desc(blogPosts.createdAt));
+  }
+
+  async updateBlogPost(id: string, data: Partial<BlogPost>): Promise<BlogPost | undefined> {
+    const [post] = await db.update(blogPosts).set({ ...data, updatedAt: new Date() }).where(eq(blogPosts.id, id)).returning();
+    return post;
+  }
+
+  async deleteBlogPost(id: string): Promise<void> {
+    await db.delete(blogPosts).where(eq(blogPosts.id, id));
+  }
+
+  // Announcements
+  async createAnnouncement(data: InsertAnnouncement): Promise<Announcement> {
+    const [announcement] = await db.insert(announcements).values(data).returning();
+    return announcement;
+  }
+
+  async getAnnouncement(id: string): Promise<Announcement | undefined> {
+    const [announcement] = await db.select().from(announcements).where(eq(announcements.id, id));
+    return announcement;
+  }
+
+  async getAllAnnouncements(): Promise<Announcement[]> {
+    return db.select().from(announcements).orderBy(desc(announcements.createdAt));
+  }
+
+  async getActiveAnnouncements(): Promise<Announcement[]> {
+    const now = new Date();
+    return db.select().from(announcements).where(
+      and(eq(announcements.isActive, true), lte(announcements.startDate, now))
+    ).orderBy(desc(announcements.createdAt));
+  }
+
+  async updateAnnouncement(id: string, data: Partial<Announcement>): Promise<Announcement | undefined> {
+    const [announcement] = await db.update(announcements).set(data).where(eq(announcements.id, id)).returning();
+    return announcement;
+  }
+
+  async deleteAnnouncement(id: string): Promise<void> {
+    await db.delete(announcements).where(eq(announcements.id, id));
+  }
+
+  // Email Templates
+  async createEmailTemplate(data: InsertEmailTemplate): Promise<EmailTemplate> {
+    const [template] = await db.insert(emailTemplates).values(data).returning();
+    return template;
+  }
+
+  async getEmailTemplate(id: string): Promise<EmailTemplate | undefined> {
+    const [template] = await db.select().from(emailTemplates).where(eq(emailTemplates.id, id));
+    return template;
+  }
+
+  async getEmailTemplateByName(name: string): Promise<EmailTemplate | undefined> {
+    const [template] = await db.select().from(emailTemplates).where(eq(emailTemplates.name, name));
+    return template;
+  }
+
+  async getAllEmailTemplates(): Promise<EmailTemplate[]> {
+    return db.select().from(emailTemplates).orderBy(emailTemplates.name);
+  }
+
+  async updateEmailTemplate(id: string, data: Partial<EmailTemplate>): Promise<EmailTemplate | undefined> {
+    const [template] = await db.update(emailTemplates).set({ ...data, updatedAt: new Date() }).where(eq(emailTemplates.id, id)).returning();
+    return template;
+  }
+
+  async deleteEmailTemplate(id: string): Promise<void> {
+    await db.delete(emailTemplates).where(eq(emailTemplates.id, id));
+  }
+
+  // Notifications
+  async createNotification(data: InsertNotification): Promise<Notification> {
+    const [notification] = await db.insert(notificationQueue).values(data).returning();
+    return notification;
+  }
+
+  async getNotification(id: string): Promise<Notification | undefined> {
+    const [notification] = await db.select().from(notificationQueue).where(eq(notificationQueue.id, id));
+    return notification;
+  }
+
+  async getAllNotifications(): Promise<Notification[]> {
+    return db.select().from(notificationQueue).orderBy(desc(notificationQueue.createdAt));
+  }
+
+  async getPendingNotifications(): Promise<Notification[]> {
+    return db.select().from(notificationQueue).where(eq(notificationQueue.status, "pending")).orderBy(notificationQueue.createdAt);
+  }
+
+  async updateNotification(id: string, data: Partial<Notification>): Promise<Notification | undefined> {
+    const [notification] = await db.update(notificationQueue).set(data).where(eq(notificationQueue.id, id)).returning();
+    return notification;
+  }
+
+  // Platform Settings
+  async createPlatformSetting(data: InsertPlatformSetting): Promise<PlatformSetting> {
+    const [setting] = await db.insert(platformSettings).values(data).returning();
+    return setting;
+  }
+
+  async getPlatformSetting(key: string): Promise<PlatformSetting | undefined> {
+    const [setting] = await db.select().from(platformSettings).where(eq(platformSettings.key, key));
+    return setting;
+  }
+
+  async getAllPlatformSettings(): Promise<PlatformSetting[]> {
+    return db.select().from(platformSettings).orderBy(platformSettings.category, platformSettings.key);
+  }
+
+  async getPlatformSettingsByCategory(category: string): Promise<PlatformSetting[]> {
+    return db.select().from(platformSettings).where(eq(platformSettings.category, category)).orderBy(platformSettings.key);
+  }
+
+  async updatePlatformSetting(key: string, value: string): Promise<PlatformSetting | undefined> {
+    const [setting] = await db.update(platformSettings).set({ value, updatedAt: new Date() }).where(eq(platformSettings.key, key)).returning();
+    return setting;
+  }
+
+  async deletePlatformSetting(id: string): Promise<void> {
+    await db.delete(platformSettings).where(eq(platformSettings.id, id));
+  }
+
+  // Service Categories
+  async createServiceCategory(data: InsertServiceCategory): Promise<ServiceCategory> {
+    const [category] = await db.insert(serviceCategories).values(data).returning();
+    return category;
+  }
+
+  async getServiceCategory(id: string): Promise<ServiceCategory | undefined> {
+    const [category] = await db.select().from(serviceCategories).where(eq(serviceCategories.id, id));
+    return category;
+  }
+
+  async getAllServiceCategories(): Promise<ServiceCategory[]> {
+    return db.select().from(serviceCategories).orderBy(serviceCategories.sortOrder);
+  }
+
+  async updateServiceCategory(id: string, data: Partial<ServiceCategory>): Promise<ServiceCategory | undefined> {
+    const [category] = await db.update(serviceCategories).set(data).where(eq(serviceCategories.id, id)).returning();
+    return category;
+  }
+
+  async deleteServiceCategory(id: string): Promise<void> {
+    await db.delete(serviceCategories).where(eq(serviceCategories.id, id));
+  }
+
+  // Locations
+  async createLocation(data: InsertLocation): Promise<Location> {
+    const [location] = await db.insert(locations).values(data).returning();
+    return location;
+  }
+
+  async getLocation(id: string): Promise<Location | undefined> {
+    const [location] = await db.select().from(locations).where(eq(locations.id, id));
+    return location;
+  }
+
+  async getAllLocations(): Promise<Location[]> {
+    return db.select().from(locations).orderBy(locations.name);
+  }
+
+  async updateLocation(id: string, data: Partial<Location>): Promise<Location | undefined> {
+    const [location] = await db.update(locations).set(data).where(eq(locations.id, id)).returning();
+    return location;
+  }
+
+  async deleteLocation(id: string): Promise<void> {
+    await db.delete(locations).where(eq(locations.id, id));
+  }
+
+  // Daily Metrics
+  async createDailyMetric(data: InsertDailyMetric): Promise<DailyMetric> {
+    const [metric] = await db.insert(dailyMetrics).values(data).returning();
+    return metric;
+  }
+
+  async getDailyMetricByDate(date: string): Promise<DailyMetric | undefined> {
+    const [metric] = await db.select().from(dailyMetrics).where(eq(dailyMetrics.date, date));
+    return metric;
+  }
+
+  async getDailyMetrics(startDate: string, endDate: string): Promise<DailyMetric[]> {
+    return db.select().from(dailyMetrics).where(
+      and(gte(dailyMetrics.date, startDate), lte(dailyMetrics.date, endDate))
+    ).orderBy(dailyMetrics.date);
+  }
+
+  async updateDailyMetric(id: string, data: Partial<DailyMetric>): Promise<DailyMetric | undefined> {
+    const [metric] = await db.update(dailyMetrics).set(data).where(eq(dailyMetrics.id, id)).returning();
+    return metric;
+  }
+
+  // User management enhancements
+  async deleteUser(id: string): Promise<void> {
+    await db.delete(users).where(eq(users.id, id));
+  }
+
+  // Provider management enhancements
+  async deleteProvider(id: string): Promise<void> {
+    await db.update(providers).set({ isActive: false }).where(eq(providers.id, id));
   }
 }
 
