@@ -3,6 +3,7 @@ import { Link, useLocation, useSearch } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { motion } from "framer-motion";
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
 import { Button } from "@/components/ui/button";
@@ -69,17 +70,39 @@ export default function Login() {
     <div className="min-h-screen flex flex-col">
       <Header />
 
-      <main className="flex-1 flex items-center justify-center py-12 px-4">
-        <Card className="w-full max-w-md">
-          <CardHeader className="text-center">
-            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary">
-              <Stethoscope className="h-6 w-6 text-primary-foreground" />
-            </div>
-            <CardTitle className="text-2xl">Welcome Back</CardTitle>
-            <CardDescription>
-              Sign in to your Golden Life account
-            </CardDescription>
-          </CardHeader>
+      <main className="flex-1 flex items-center justify-center py-12 px-4 relative overflow-hidden">
+        <div className="absolute inset-0 animated-gradient -z-10" />
+        <motion.div
+          className="absolute top-20 right-10 w-72 h-72 bg-primary/20 rounded-full blur-3xl -z-10"
+          animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.5, 0.3] }}
+          transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+        />
+        <motion.div
+          className="absolute bottom-10 left-10 w-96 h-96 bg-primary/10 rounded-full blur-3xl -z-10"
+          animate={{ scale: [1.2, 1, 1.2], opacity: [0.2, 0.4, 0.2] }}
+          transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
+        />
+        
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+        >
+          <Card className="w-full max-w-md backdrop-blur-sm bg-card/95 shadow-xl border-2">
+            <CardHeader className="text-center">
+              <motion.div 
+                className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary/70 shadow-lg"
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
+              >
+                <Stethoscope className="h-7 w-7 text-primary-foreground" />
+              </motion.div>
+              <CardTitle className="text-2xl font-bold">Welcome Back</CardTitle>
+              <CardDescription>
+                Sign in to your Golden Life account
+              </CardDescription>
+            </CardHeader>
 
           <CardContent>
             <Form {...form}>
@@ -150,7 +173,8 @@ export default function Login() {
               </Link>
             </div>
           </CardFooter>
-        </Card>
+          </Card>
+        </motion.div>
       </main>
 
       <Footer />
