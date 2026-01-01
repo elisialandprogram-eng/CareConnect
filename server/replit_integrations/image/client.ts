@@ -35,15 +35,13 @@ export async function editImages(
 ): Promise<Buffer> {
   const images = await Promise.all(
     imageFiles.map((file) =>
-      toFile(fs.createReadStream(file), file, {
-        type: "image/png",
-      })
+      toFile(fs.createReadStream(file), file)
     )
   );
 
   const response = await openai.images.edit({
     model: "gpt-image-1",
-    image: images,
+    image: images[0],
     prompt,
   });
 

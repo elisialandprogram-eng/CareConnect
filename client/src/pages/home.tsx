@@ -116,7 +116,7 @@ function AIChatBox() {
               </Button>
             </div>
 
-            <ScrollArea className="flex-1 p-4" viewportRef={scrollRef}>
+            <ScrollArea className="flex-1 p-4">
               <div className="space-y-4">
                 <div className="flex gap-2">
                   <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
@@ -150,6 +150,7 @@ function AIChatBox() {
                     </div>
                   </div>
                 ))}
+                <div ref={scrollRef} />
               </div>
             </ScrollArea>
 

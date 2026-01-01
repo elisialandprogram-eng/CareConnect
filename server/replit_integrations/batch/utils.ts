@@ -98,10 +98,10 @@ export async function batchProcess<T, R>(
       pRetry(
         async () => {
           try {
-            const result = await processor(item, index);
+            const res = await processor(item, index);
             completed++;
             onProgress?.(completed, items.length, item);
-            return result;
+            return res;
           } catch (error: unknown) {
             if (isRateLimitError(error)) {
               throw error; // Rethrow to trigger p-retry
