@@ -7,6 +7,8 @@ import jwt from "jsonwebtoken";
 import { randomBytes } from "crypto";
 import { loginSchema, registerSchema, insertProviderSchema, insertAppointmentSchema, insertReviewSchema } from "@shared/schema";
 import crypto from 'crypto'; // Import crypto module for randomUUID
+import { registerChatRoutes } from "./replit_integrations/chat";
+import { registerImageRoutes } from "./replit_integrations/image";
 
 const JWT_SECRET = process.env.SESSION_SECRET || "careconnect-jwt-secret-key";
 const JWT_EXPIRES_IN = "15m";
@@ -60,6 +62,10 @@ export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
+  // Register AI integrations routes
+  registerChatRoutes(app);
+  registerImageRoutes(app);
+
   // Cookie parser middleware
   const cookieParser = await import("cookie-parser");
   app.use(cookieParser.default());

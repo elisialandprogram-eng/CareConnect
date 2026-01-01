@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, integer, decimal, boolean, timestamp, pgEnum } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, integer, decimal, boolean, timestamp, pgEnum, serial } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -122,6 +122,22 @@ export const payments = pgTable("payments", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// AI Chat Integration Tables
+export const conversations = pgTable("conversations", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").references(() => users.id),
+  title: text("title").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const messages = pgTable("messages", {
+  id: serial("id").primaryKey(),
+  conversationId: integer("conversation_id").notNull().references(() => conversations.id, { onDelete: "cascade" }),
+  role: text("role").notNull(),
+  content: text("content").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // Refresh tokens for JWT
 export const refreshTokens = pgTable("refresh_tokens", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -160,8 +176,6 @@ export const providerPricingOverrides = pgTable("provider_pricing_overrides", {
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
-
-// ========== ADMIN DASHBOARD TABLES ==========
 
 // Audit logs for tracking admin actions
 export const auditLogs = pgTable("audit_logs", {
@@ -338,6 +352,7 @@ export const usersRelations = relations(users, ({ one, many }) => ({
   reviews: many(reviews),
   payments: many(payments),
   refreshTokens: many(refreshTokens),
+  conversations: many(conversations),
 }));
 
 export const providersRelations = relations(providers, ({ one, many }) => ({
@@ -413,6 +428,21 @@ export const paymentsRelations = relations(payments, ({ one }) => ({
   }),
 }));
 
+export const conversationsRelations = relations(conversations, ({ one, many }) => ({
+  user: one(users, {
+    fields: [conversations.userId],
+    references: [users.id],
+  }),
+  messages: many(messages),
+}));
+
+export const messagesRelations = relations(messages, ({ one }) => ({
+  conversation: one(conversations, {
+    fields: [messages.conversationId],
+    references: [conversations.id],
+  }),
+}));
+
 export const refreshTokensRelations = relations(refreshTokens, ({ one }) => ({
   user: one(users, {
     fields: [refreshTokens.userId],
@@ -464,6 +494,16 @@ export const insertReviewSchema = createInsertSchema(reviews).omit({
 });
 
 export const insertPaymentSchema = createInsertSchema(payments).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertConversationSchema = createInsertSchema(conversations).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertMessageSchema = createInsertSchema(messages).omit({
   id: true,
   createdAt: true,
 });
@@ -529,6 +569,10 @@ export type Review = typeof reviews.$inferSelect;
 export type InsertReview = z.infer<typeof insertReviewSchema>;
 export type Payment = typeof payments.$inferSelect;
 export type InsertPayment = z.infer<typeof insertPaymentSchema>;
+export type Conversation = typeof conversations.$inferSelect;
+export type InsertConversation = z.infer<typeof insertConversationSchema>;
+export type Message = typeof messages.$inferSelect;
+export type InsertMessage = z.infer<typeof insertMessageSchema>;
 export type RefreshToken = typeof refreshTokens.$inferSelect;
 export type InsertRefreshToken = z.infer<typeof insertRefreshTokenSchema>;
 export type PromoCode = typeof promoCodes.$inferSelect;
@@ -564,12 +608,12 @@ export type InsertLocation = z.infer<typeof insertLocationSchema>;
 export type DailyMetric = typeof dailyMetrics.$inferSelect;
 export type InsertDailyMetric = z.infer<typeof insertDailyMetricSchema>;
 
-// Extended types for frontend
+// Complex types for relations
 export type ProviderWithUser = Provider & { user: User };
-export type ProviderWithServices = Provider & { user: User; services: Service[] };
-export type AppointmentWithDetails = Appointment & { 
-  patient: User; 
-  provider: Provider & { user: User }; 
+export type ProviderWithServices = ProviderWithUser & { services: Service[] };
+export type AppointmentWithDetails = Appointment & {
+  patient: User;
+  provider: Provider & { user: User };
   service: Service | null;
 };
 export type ReviewWithPatient = Review & { patient: User };

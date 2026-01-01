@@ -9,10 +9,15 @@ import { Testimonials } from "@/components/testimonials";
 import { CTASection } from "@/components/cta-section";
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
-import { Shield, Clock, Award, Sparkles, CreditCard, Wallet, Banknote } from "lucide-react";
+import { Shield, Clock, Award, Sparkles, CreditCard, Wallet, Banknote, MessageCircle, Send, X, Bot, User as UserIcon } from "lucide-react";
 import { SiVisa, SiMastercard, SiGooglepay, SiApplepay } from "react-icons/si";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/lib/auth"; // Assuming useAuth is imported from here
+import { useState, useRef, useEffect } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Input } from "@/components/ui/input";
 
 const fadeInUp = {
   initial: { opacity: 0, y: 20 },
@@ -39,6 +44,152 @@ const floatingAnimation = {
   }
 };
 
+function AIChatBox() {
+  const [isOpen, setIsOpen] = useState(false);
+  const [message, setMessage] = useState("");
+  const [conversationId, setConversationId] = useState<number | null>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  const { data: conversation } = useQuery({
+    queryKey: ["/api/conversations", conversationId],
+    enabled: !!conversationId,
+  });
+
+  const createConversation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/conversations", { title: "New Chat" });
+      return res.json();
+    },
+    onSuccess: (data) => {
+      setConversationId(data.id);
+    },
+  });
+
+  const sendMessage = useMutation({
+    mutationFn: async (content: string) => {
+      if (!conversationId) {
+        const conv = await createConversation.mutateAsync();
+        await apiRequest("POST", `/api/conversations/${conv.id}/messages`, { content });
+      } else {
+        await apiRequest("POST", `/api/conversations/${conversationId}/messages`, { content });
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/conversations", conversationId] });
+      setMessage("");
+    },
+  });
+
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [conversation?.messages]);
+
+  return (
+    <div className="fixed bottom-6 right-6 z-50">
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.8, y: 20 }}
+            className="mb-4 w-80 md:w-96 h-[500px] bg-card border rounded-2xl shadow-2xl flex flex-col overflow-hidden"
+          >
+            <div className="p-4 bg-primary text-primary-foreground flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="p-2 bg-white/20 rounded-lg">
+                  <Bot className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-sm">AI Health Assistant</h3>
+                  <p className="text-[10px] opacity-80">Always active • Verified Info</p>
+                </div>
+              </div>
+              <Button
+                size="icon"
+                variant="ghost"
+                className="hover:bg-white/10 text-primary-foreground"
+                onClick={() => setIsOpen(false)}
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+
+            <ScrollArea className="flex-1 p-4" viewportRef={scrollRef}>
+              <div className="space-y-4">
+                <div className="flex gap-2">
+                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                    <Bot className="w-4 h-4 text-primary" />
+                  </div>
+                  <div className="p-3 rounded-2xl rounded-tl-none bg-muted text-sm max-w-[85%]">
+                    Hello! I'm your AI health assistant. How can I help you book an appointment or find the right care today?
+                  </div>
+                </div>
+
+                {conversation?.messages?.map((msg: any) => (
+                  <div
+                    key={msg.id}
+                    className={`flex gap-2 ${msg.role === "user" ? "flex-row-reverse" : ""}`}
+                  >
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
+                      msg.role === "user" ? "bg-primary" : "bg-primary/10"
+                    }`}>
+                      {msg.role === "user" ? (
+                        <UserIcon className="w-4 h-4 text-primary-foreground" />
+                      ) : (
+                        <Bot className="w-4 h-4 text-primary" />
+                      )}
+                    </div>
+                    <div className={`p-3 rounded-2xl text-sm max-w-[85%] ${
+                      msg.role === "user"
+                        ? "bg-primary text-primary-foreground rounded-tr-none"
+                        : "bg-muted rounded-tl-none"
+                    }`}>
+                      {msg.content}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </ScrollArea>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (message.trim()) sendMessage.mutate(message);
+              }}
+              className="p-4 border-t flex gap-2"
+            >
+              <Input
+                placeholder="Type your message..."
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                className="flex-1"
+                disabled={sendMessage.isPending}
+              />
+              <Button size="icon" type="submit" disabled={sendMessage.isPending || !message.trim()}>
+                <Send className="w-4 h-4" />
+              </Button>
+            </form>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <Button
+        size="icon"
+        className="w-14 h-14 rounded-full shadow-lg hover:scale-110 transition-transform duration-300"
+        onClick={() => {
+          setIsOpen(!isOpen);
+          if (!conversationId && !isOpen) createConversation.mutate();
+        }}
+        data-testid="button-ai-chat"
+      >
+        <MessageCircle className="w-6 h-6" />
+      </Button>
+    </div>
+  );
+}
+
 export default function Home() {
   console.log("Home page rendering");
   const { user } = useAuth();
@@ -48,6 +199,7 @@ export default function Home() {
       <Header />
 
       <main className="flex-1">
+        <AIChatBox />
         <section className="relative py-20 lg:py-32 overflow-hidden">
           <div className="absolute inset-0 animated-gradient -z-10" />
           <motion.div
