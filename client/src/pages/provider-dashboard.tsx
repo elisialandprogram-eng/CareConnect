@@ -11,6 +11,16 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Calendar } from "@/components/ui/calendar";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -32,6 +42,7 @@ import {
   X,
   Settings,
   TrendingUp,
+  FileText,
 } from "lucide-react";
 import type { AppointmentWithDetails, Provider } from "@shared/schema";
 
@@ -39,6 +50,19 @@ export default function ProviderDashboard() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
+  const [selectedAppointmentForPrescription, setSelectedAppointmentForPrescription] = useState<AppointmentWithDetails | null>(null);
+
+  const prescriptionMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const res = await apiRequest("POST", "/api/prescriptions", data);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/prescriptions/patient"] });
+      toast({ title: "Prescription issued successfully" });
+      setSelectedAppointmentForPrescription(null);
+    },
+  });
 
   const { data: providerData } = useQuery<Provider>({
     queryKey: ["/api/provider/me"],
@@ -175,13 +199,22 @@ export default function ProviderDashboard() {
           </div>
         )}
         {appointment.status === "confirmed" && (
-          <Button
-            size="sm"
-            onClick={() => updateStatusMutation.mutate({ id: appointment.id, status: "completed" })}
-            data-testid={`complete-${appointment.id}`}
-          >
-            Complete
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setSelectedAppointmentForPrescription(appointment)}
+            >
+              Prescribe
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => updateStatusMutation.mutate({ id: appointment.id, status: "completed" })}
+              data-testid={`complete-${appointment.id}`}
+            >
+              Complete
+            </Button>
+          </div>
         )}
       </div>
     </div>

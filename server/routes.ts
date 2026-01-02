@@ -415,7 +415,6 @@ export async function registerRoutes(
     }
   });
 
-  // Get patient appointments
   app.get("/api/appointments/patient", authenticateToken, async (req: AuthRequest, res: Response) => {
     try {
       const appointments = await storage.getAppointmentsByPatient(req.user!.id);

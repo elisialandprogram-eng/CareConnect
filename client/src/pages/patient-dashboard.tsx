@@ -34,7 +34,51 @@ import {
   X,
   MessageSquare,
 } from "lucide-react";
-import type { AppointmentWithDetails } from "@shared/schema";
+import type { AppointmentWithDetails, Prescription, MedicalHistory } from "@shared/schema";
+
+const PrescriptionList = ({ patientId }: { patientId?: string }) => {
+  const { data: prescriptions, isLoading } = useQuery<Prescription[]>({
+    queryKey: [`/api/prescriptions/patient/${patientId}`],
+    enabled: !!patientId,
+  });
+
+  if (isLoading) return <Skeleton className="h-32 w-full" />;
+  if (!prescriptions?.length) return <p className="text-muted-foreground text-center py-4">No prescriptions found.</p>;
+
+  return (
+    <div className="space-y-4">
+      {prescriptions.map((p) => (
+        <div key={p.id} className="border-b pb-2 last:border-0">
+          <p className="font-medium">{p.medicationName} - {p.dosage}</p>
+          <p className="text-sm text-muted-foreground">{p.frequency} for {p.duration}</p>
+          {p.instructions && <p className="text-xs mt-1 italic">{p.instructions}</p>}
+        </div>
+      ))}
+    </div>
+  );
+};
+
+const HistoryList = ({ patientId }: { patientId?: string }) => {
+  const { data: history, isLoading } = useQuery<MedicalHistory[]>({
+    queryKey: [`/api/medical-history/patient/${patientId}`],
+    enabled: !!patientId,
+  });
+
+  if (isLoading) return <Skeleton className="h-32 w-full" />;
+  if (!history?.length) return <p className="text-muted-foreground text-center py-4">No medical history found.</p>;
+
+  return (
+    <div className="space-y-4">
+      {history.map((h) => (
+        <div key={h.id} className="border-b pb-2 last:border-0">
+          <p className="font-medium">{h.title} ({h.type})</p>
+          <p className="text-sm text-muted-foreground">{h.description}</p>
+          <p className="text-xs text-muted-foreground mt-1">{new Date(h.date).toLocaleDateString()}</p>
+        </div>
+      ))}
+    </div>
+  );
+};
 
 export default function PatientDashboard() {
   const [, navigate] = useLocation();
@@ -325,6 +369,9 @@ export default function PatientDashboard() {
               </TabsTrigger>
               <TabsTrigger value="past" data-testid="tab-past">
                 Past ({pastAppointments.length})
+              </TabsTrigger>
+              <TabsTrigger value="medical" data-testid="tab-medical">
+                Medical Records
               </TabsTrigger>
               <TabsTrigger value="invoices" data-testid="tab-invoices">
                 Invoices
