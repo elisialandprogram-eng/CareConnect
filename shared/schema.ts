@@ -15,6 +15,38 @@ export const ticketPriorityEnum = pgEnum("ticket_priority", ["low", "medium", "h
 export const auditActionEnum = pgEnum("audit_action", ["create", "update", "delete", "login", "logout", "view", "export"]);
 export const contentTypeEnum = pgEnum("content_type", ["homepage", "about", "terms", "privacy", "faq", "blog"]);
 export const announcementTypeEnum = pgEnum("announcement_type", ["info", "warning", "success", "error"]);
+export const medicalHistoryTypeEnum = pgEnum("medical_history_type", ["diagnosis", "procedure", "lab_result", "vaccination", "allergy"]);
+
+// ... (rest of the enums)
+
+// Prescriptions
+export const prescriptions = pgTable("prescriptions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  appointmentId: varchar("appointment_id").notNull().references(() => appointments.id),
+  patientId: varchar("patient_id").notNull().references(() => users.id),
+  providerId: varchar("provider_id").notNull().references(() => providers.id),
+  medicationName: text("medication_name").notNull(),
+  dosage: text("dosage").notNull(),
+  frequency: text("frequency").notNull(),
+  duration: text("duration").notNull(),
+  instructions: text("instructions"),
+  issuedAt: timestamp("issued_at").defaultNow(),
+  expiresAt: timestamp("expires_at"),
+  isActive: boolean("is_active").default(true),
+});
+
+// Medical History
+export const medicalHistory = pgTable("medical_history", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  patientId: varchar("patient_id").notNull().references(() => users.id),
+  providerId: varchar("provider_id").references(() => providers.id),
+  type: medicalHistoryTypeEnum("type").notNull(),
+  title: text("title").notNull(),
+  description: text("description"),
+  date: timestamp("date").notNull(),
+  attachments: text("attachments").array(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
 
 // Users table
 export const users = pgTable("users", {
@@ -443,6 +475,32 @@ export const messagesRelations = relations(messages, ({ one }) => ({
   }),
 }));
 
+export const prescriptionsRelations = relations(prescriptions, ({ one }) => ({
+  appointment: one(appointments, {
+    fields: [prescriptions.appointmentId],
+    references: [appointments.id],
+  }),
+  patient: one(users, {
+    fields: [prescriptions.patientId],
+    references: [users.id],
+  }),
+  provider: one(providers, {
+    fields: [prescriptions.providerId],
+    references: [providers.id],
+  }),
+}));
+
+export const medicalHistoryRelations = relations(medicalHistory, ({ one }) => ({
+  patient: one(users, {
+    fields: [medicalHistory.patientId],
+    references: [users.id],
+  }),
+  provider: one(providers, {
+    fields: [medicalHistory.providerId],
+    references: [providers.id],
+  }),
+}));
+
 export const refreshTokensRelations = relations(refreshTokens, ({ one }) => ({
   user: one(users, {
     fields: [refreshTokens.userId],
@@ -539,6 +597,8 @@ export const insertPlatformSettingSchema = createInsertSchema(platformSettings).
 export const insertServiceCategorySchema = createInsertSchema(serviceCategories).omit({ id: true, createdAt: true });
 export const insertLocationSchema = createInsertSchema(locations).omit({ id: true, createdAt: true });
 export const insertDailyMetricSchema = createInsertSchema(dailyMetrics).omit({ id: true, createdAt: true });
+export const insertPrescriptionSchema = createInsertSchema(prescriptions).omit({ id: true, issuedAt: true });
+export const insertMedicalHistorySchema = createInsertSchema(medicalHistory).omit({ id: true, createdAt: true });
 
 // Auth schemas
 export const loginSchema = z.object({
@@ -607,6 +667,10 @@ export type Location = typeof locations.$inferSelect;
 export type InsertLocation = z.infer<typeof insertLocationSchema>;
 export type DailyMetric = typeof dailyMetrics.$inferSelect;
 export type InsertDailyMetric = z.infer<typeof insertDailyMetricSchema>;
+export type Prescription = typeof prescriptions.$inferSelect;
+export type InsertPrescription = z.infer<typeof insertPrescriptionSchema>;
+export type MedicalHistory = typeof medicalHistory.$inferSelect;
+export type InsertMedicalHistory = z.infer<typeof insertMedicalHistorySchema>;
 
 // Complex types for relations
 export type ProviderWithUser = Provider & { user: User };

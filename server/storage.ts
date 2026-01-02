@@ -21,64 +21,212 @@ import {
   platformSettings,
   serviceCategories,
   locations,
-  dailyMetrics,
-} from "@shared/schema";
-import type {
-  User,
-  InsertUser,
-  Provider,
-  InsertProvider,
-  Service,
-  InsertService,
-  TimeSlot,
-  InsertTimeSlot,
-  Appointment,
-  InsertAppointment,
-  Review,
-  InsertReview,
-  Payment,
-  InsertPayment,
-  RefreshToken,
-  InsertRefreshToken,
-  ProviderWithUser,
-  ProviderWithServices,
-  AppointmentWithDetails,
-  ReviewWithPatient,
-  PromoCode,
-  InsertPromoCode,
-  ProviderPricingOverride,
-  InsertProviderPricingOverride,
-  AuditLog,
-  InsertAuditLog,
-  SupportTicket,
-  InsertSupportTicket,
-  TicketMessage,
-  InsertTicketMessage,
-  ContentBlock,
-  InsertContentBlock,
-  Faq,
-  InsertFaq,
-  BlogPost,
-  InsertBlogPost,
-  Announcement,
-  InsertAnnouncement,
-  EmailTemplate,
-  InsertEmailTemplate,
-  Notification,
-  InsertNotification,
-  PlatformSetting,
-  InsertPlatformSetting,
-  ServiceCategory,
-  InsertServiceCategory,
-  Location,
-  InsertLocation,
-  DailyMetric,
   InsertDailyMetric,
+  Prescription,
+  InsertPrescription,
+  MedicalHistory,
+  InsertMedicalHistory,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, gte, lte, or, sql, count } from "drizzle-orm";
 
 export interface IStorage {
+  // Users
+  getUser(id: string): Promise<User | undefined>;
+  getUserByEmail(email: string): Promise<User | undefined>;
+  getAllUsers(): Promise<User[]>;
+  createUser(user: InsertUser): Promise<User>;
+  updateUser(id: string, data: Partial<InsertUser>): Promise<User | undefined>;
+
+  // Providers
+  getProvider(id: string): Promise<Provider | undefined>;
+  getProviderByUserId(userId: string): Promise<Provider | undefined>;
+  getProviderWithUser(id: string): Promise<ProviderWithUser | undefined>;
+  getProviderWithServices(id: string): Promise<ProviderWithServices | undefined>;
+  getAllProviders(): Promise<ProviderWithUser[]>;
+  createProvider(provider: InsertProvider): Promise<Provider>;
+  updateProvider(id: string, data: Partial<InsertProvider>): Promise<Provider | undefined>;
+
+  // Services
+  getService(id: string): Promise<Service | undefined>;
+  getServicesByProvider(providerId: string): Promise<Service[]>;
+  createService(service: InsertService): Promise<Service>;
+  updateService(id: string, data: Partial<InsertService>): Promise<Service | undefined>;
+  deleteService(id: string): Promise<void>;
+
+  // Time Slots
+  getTimeSlot(id: string): Promise<TimeSlot | undefined>;
+  getTimeSlotsByProvider(providerId: string, date?: string): Promise<TimeSlot[]>;
+  createTimeSlot(slot: InsertTimeSlot): Promise<TimeSlot>;
+  updateTimeSlot(id: string, data: Partial<InsertTimeSlot>): Promise<TimeSlot | undefined>;
+  deleteTimeSlot(id: string): Promise<void>;
+
+  // Appointments
+  getAppointment(id: string): Promise<Appointment | undefined>;
+  getAppointmentWithDetails(id: string): Promise<AppointmentWithDetails | undefined>;
+  getAppointmentsByPatient(patientId: string): Promise<AppointmentWithDetails[]>;
+  getAppointmentsByProvider(providerId: string): Promise<AppointmentWithDetails[]>;
+  createAppointment(appointment: InsertAppointment): Promise<Appointment>;
+  updateAppointment(id: string, data: Partial<InsertAppointment>): Promise<Appointment | undefined>;
+
+  // Reviews
+  getReview(id: string): Promise<Review | undefined>;
+  getReviewsByProvider(providerId: string): Promise<ReviewWithPatient[]>;
+  createReview(review: InsertReview): Promise<Review>;
+
+  // Payments
+  getPayment(id: string): Promise<Payment | undefined>;
+  getPaymentByAppointment(appointmentId: string): Promise<Payment | undefined>;
+  createPayment(payment: InsertPayment): Promise<Payment>;
+  updatePayment(id: string, data: Partial<InsertPayment>): Promise<Payment | undefined>;
+
+  // Refresh Tokens
+  getRefreshToken(token: string): Promise<RefreshToken | undefined>;
+  createRefreshToken(refreshToken: InsertRefreshToken): Promise<RefreshToken>;
+  deleteRefreshToken(token: string): Promise<void>;
+  deleteRefreshTokensByUser(userId: string): Promise<void>;
+
+  // Promo Codes
+  createPromoCode(data: InsertPromoCode): Promise<PromoCode>;
+  getAllPromoCodes(): Promise<PromoCode[]>;
+  getPromoCodeByCode(code: string): Promise<PromoCode | undefined>;
+  updatePromoCode(id: string, data: Partial<PromoCode>): Promise<PromoCode | undefined>;
+  deletePromoCode(id: string): Promise<void>;
+
+  // Provider Pricing Overrides
+  createProviderPricingOverride(data: InsertProviderPricingOverride): Promise<ProviderPricingOverride>;
+  getProviderPricingOverride(providerId: string): Promise<ProviderPricingOverride | undefined>;
+  getAllPricingOverrides(): Promise<ProviderPricingOverride[]>;
+  updateProviderPricingOverride(id: string, data: Partial<ProviderPricingOverride>): Promise<ProviderPricingOverride | undefined>;
+  deleteProviderPricingOverride(id: string): Promise<void>;
+
+  // ========== ADMIN DASHBOARD METHODS ==========
+
+  // Analytics
+  getAllAppointments(): Promise<AppointmentWithDetails[]>;
+  getAllPayments(): Promise<Payment[]>;
+  getAnalyticsStats(): Promise<{
+    totalUsers: number;
+    totalProviders: number;
+    totalBookings: number;
+    totalRevenue: string;
+    pendingBookings: number;
+    completedBookings: number;
+  }>;
+
+  // Audit Logs
+  createAuditLog(data: InsertAuditLog): Promise<AuditLog>;
+  getAllAuditLogs(): Promise<AuditLog[]>;
+  getAuditLogsByUser(userId: string): Promise<AuditLog[]>;
+
+  // Support Tickets
+  createSupportTicket(data: InsertSupportTicket): Promise<SupportTicket>;
+  getSupportTicket(id: string): Promise<SupportTicket | undefined>;
+  getAllSupportTickets(): Promise<SupportTicket[]>;
+  updateSupportTicket(id: string, data: Partial<SupportTicket>): Promise<SupportTicket | undefined>;
+  deleteSupportTicket(id: string): Promise<void>;
+
+  // Ticket Messages
+  createTicketMessage(data: InsertTicketMessage): Promise<TicketMessage>;
+  getTicketMessages(ticketId: string): Promise<TicketMessage[]>;
+
+  // Content Blocks
+  createContentBlock(data: InsertContentBlock): Promise<ContentBlock>;
+  getContentBlock(id: string): Promise<ContentBlock | undefined>;
+  getContentBlockByKey(key: string): Promise<ContentBlock | undefined>;
+  getAllContentBlocks(): Promise<ContentBlock[]>;
+  updateContentBlock(id: string, data: Partial<ContentBlock>): Promise<ContentBlock | undefined>;
+  deleteContentBlock(id: string): Promise<void>;
+
+  // FAQs
+  createFaq(data: InsertFaq): Promise<Faq>;
+  getFaq(id: string): Promise<Faq | undefined>;
+  getAllFaqs(): Promise<Faq[]>;
+  updateFaq(id: string, data: Partial<Faq>): Promise<Faq | undefined>;
+  deleteFaq(id: string): Promise<void>;
+
+  // Blog Posts
+  createBlogPost(data: InsertBlogPost): Promise<BlogPost>;
+  getBlogPost(id: string): Promise<BlogPost | undefined>;
+  getBlogPostBySlug(slug: string): Promise<BlogPost | undefined>;
+  getAllBlogPosts(): Promise<BlogPost[]>;
+  updateBlogPost(id: string, data: Partial<BlogPost>): Promise<BlogPost | undefined>;
+  deleteBlogPost(id: string): Promise<void>;
+
+  // Announcements
+  createAnnouncement(data: InsertAnnouncement): Promise<Announcement>;
+  getAnnouncement(id: string): Promise<Announcement | undefined>;
+  getAllAnnouncements(): Promise<Announcement[]>;
+  getActiveAnnouncements(): Promise<Announcement[]>;
+  updateAnnouncement(id: string, data: Partial<Announcement>): Promise<Announcement | undefined>;
+  deleteAnnouncement(id: string): Promise<void>;
+
+  // Email Templates
+  createEmailTemplate(data: InsertEmailTemplate): Promise<EmailTemplate>;
+  getEmailTemplate(id: string): Promise<EmailTemplate | undefined>;
+  getEmailTemplateByName(name: string): Promise<EmailTemplate | undefined>;
+  getAllEmailTemplates(): Promise<EmailTemplate[]>;
+  updateEmailTemplate(id: string, data: Partial<EmailTemplate>): Promise<EmailTemplate | undefined>;
+  deleteEmailTemplate(id: string): Promise<void>;
+
+  // Notifications
+  createNotification(data: InsertNotification): Promise<Notification>;
+  getNotification(id: string): Promise<Notification | undefined>;
+  getAllNotifications(): Promise<Notification[]>;
+  getPendingNotifications(): Promise<Notification[]>;
+  updateNotification(id: string, data: Partial<Notification>): Promise<Notification | undefined>;
+
+  // Platform Settings
+  createPlatformSetting(data: InsertPlatformSetting): Promise<PlatformSetting>;
+  getPlatformSetting(key: string): Promise<PlatformSetting | undefined>;
+  getAllPlatformSettings(): Promise<PlatformSetting[]>;
+  getPlatformSettingsByCategory(category: string): Promise<PlatformSetting[]>;
+  updatePlatformSetting(key: string, value: string): Promise<PlatformSetting | undefined>;
+  deletePlatformSetting(id: string): Promise<void>;
+
+  // Service Categories
+  createServiceCategory(data: InsertServiceCategory): Promise<ServiceCategory>;
+  getServiceCategory(id: string): Promise<ServiceCategory | undefined>;
+  getAllServiceCategories(): Promise<ServiceCategory[]>;
+  updateServiceCategory(id: string, data: Partial<ServiceCategory>): Promise<ServiceCategory | undefined>;
+  deleteServiceCategory(id: string): Promise<void>;
+
+  // Locations
+  createLocation(data: InsertLocation): Promise<Location>;
+  getLocation(id: string): Promise<Location | undefined>;
+  getAllLocations(): Promise<Location[]>;
+  updateLocation(id: string, data: Partial<Location>): Promise<Location | undefined>;
+  deleteLocation(id: string): Promise<void>;
+
+  // Daily Metrics
+  createDailyMetric(data: InsertDailyMetric): Promise<DailyMetric>;
+  getDailyMetricByDate(date: string): Promise<DailyMetric | undefined>;
+  getDailyMetrics(startDate: string, endDate: string): Promise<DailyMetric[]>;
+  updateDailyMetric(id: string, data: Partial<DailyMetric>): Promise<DailyMetric | undefined>;
+
+  // AI Chat Integration Methods
+  getConversation(id: number): Promise<Conversation | undefined>;
+  getAllConversations(): Promise<Conversation[]>;
+  createConversation(title: string): Promise<Conversation>;
+  deleteConversation(id: number): Promise<void>;
+  getMessagesByConversation(conversationId: number): Promise<Message[]>;
+  createMessage(conversationId: number, role: string, content: string): Promise<Message>;
+
+  // Prescriptions
+  getPrescription(id: string): Promise<Prescription | undefined>;
+  getPrescriptionsByPatient(patientId: string): Promise<Prescription[]>;
+  createPrescription(prescription: InsertPrescription): Promise<Prescription>;
+
+  // Medical History
+  getMedicalHistoryByPatient(patientId: string): Promise<MedicalHistory[]>;
+  createMedicalHistory(history: InsertMedicalHistory): Promise<MedicalHistory>;
+
+  // User management enhancements
+  deleteUser(id: string): Promise<void>;
+  
+  // Provider management enhancements  
+  deleteProvider(id: string): Promise<void>;
+}
   // Users
   getUser(id: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
@@ -623,6 +771,31 @@ export class DatabaseStorage implements IStorage {
       .where(eq(providerPricingOverrides.id, id))
       .returning();
     return updated;
+  }
+
+  // Prescriptions
+  async getPrescription(id: string): Promise<Prescription | undefined> {
+    const [prescription] = await db.select().from(prescriptions).where(eq(prescriptions.id, id));
+    return prescription || undefined;
+  }
+
+  async getPrescriptionsByPatient(patientId: string): Promise<Prescription[]> {
+    return db.select().from(prescriptions).where(eq(prescriptions.patientId, patientId)).orderBy(desc(prescriptions.issuedAt));
+  }
+
+  async createPrescription(data: InsertPrescription): Promise<Prescription> {
+    const [prescription] = await db.insert(prescriptions).values(data).returning();
+    return prescription;
+  }
+
+  // Medical History
+  async getMedicalHistoryByPatient(patientId: string): Promise<MedicalHistory[]> {
+    return db.select().from(medicalHistory).where(eq(medicalHistory.patientId, patientId)).orderBy(desc(medicalHistory.date));
+  }
+
+  async createMedicalHistory(data: InsertMedicalHistory): Promise<MedicalHistory> {
+    const [history] = await db.insert(medicalHistory).values(data).returning();
+    return history;
   }
 
   async deleteProviderPricingOverride(id: string): Promise<void> {
