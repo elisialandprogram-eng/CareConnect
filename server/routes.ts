@@ -684,8 +684,68 @@ export async function registerRoutes(
     }
   });
 
-  // Admin: Get all bookings
-  app.get("/api/admin/bookings", authenticateToken, requireAdmin, async (req: AuthRequest, res: Response) => {
+  // User Notifications
+  app.get("/api/notifications", authenticateToken, async (req: AuthRequest, res: Response) => {
+    try {
+      const notifications = await storage.getUserNotifications(req.user!.id);
+      res.json(notifications);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get notifications" });
+    }
+  });
+
+  app.patch("/api/notifications/:id/read", authenticateToken, async (req: AuthRequest, res: Response) => {
+    try {
+      await storage.markNotificationRead(req.params.id);
+      res.json({ message: "Notification marked as read" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to mark notification as read" });
+    }
+  });
+
+  // Messaging
+  app.get("/api/chat/conversations", authenticateToken, async (req: AuthRequest, res: Response) => {
+    try {
+      const conversations = await storage.getChatConversations(req.user!.id, req.user!.role);
+      res.json(conversations);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get conversations" });
+    }
+  });
+
+  app.get("/api/chat/messages/:conversationId", authenticateToken, async (req: AuthRequest, res: Response) => {
+    try {
+      const messages = await storage.getChatMessages(req.params.conversationId);
+      res.json(messages);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get messages" });
+    }
+  });
+
+  app.post("/api/chat/messages", authenticateToken, async (req: AuthRequest, res: Response) => {
+    try {
+      const { conversationId, content } = req.body;
+      const message = await storage.createChatMessage({
+        conversationId,
+        senderId: req.user!.id,
+        content,
+        isRead: false
+      });
+      res.status(201).json(message);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to send message" });
+    }
+  });
+
+  app.post("/api/chat/conversations", authenticateToken, async (req: AuthRequest, res: Response) => {
+    try {
+      const { providerId } = req.body;
+      const conversation = await storage.getOrCreateConversation(req.user!.id, providerId);
+      res.status(201).json(conversation);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to start conversation" });
+    }
+  });
     try {
       const bookings = await storage.getAllAppointments();
       res.json(bookings);
