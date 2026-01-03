@@ -738,15 +738,8 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/chat/conversations", authenticateToken, async (req: AuthRequest, res: Response) => {
-    try {
-      const { providerId } = req.body;
-      const conversation = await storage.getOrCreateConversation(req.user!.id, providerId);
-      res.status(201).json(conversation);
-    } catch (error) {
-      res.status(500).json({ message: "Failed to start conversation" });
-    }
-  });
+  app.get("/api/admin/bookings", authenticateToken, async (req: AuthRequest, res: Response) => {
+    if (req.user!.role !== "admin") return res.sendStatus(403);
     try {
       const bookings = await storage.getAllAppointments();
       res.json(bookings);
