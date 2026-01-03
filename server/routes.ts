@@ -709,6 +709,7 @@ export async function registerRoutes(
       const conversations = await storage.getChatConversations(req.user!.id, req.user!.role);
       res.json(conversations);
     } catch (error) {
+      console.error("Get conversations error:", error);
       res.status(500).json({ message: "Failed to get conversations" });
     }
   });

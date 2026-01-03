@@ -23,6 +23,8 @@ import Appointments from "@/pages/appointments";
 import Profile from "@/pages/profile";
 import Settings from "@/pages/settings";
 import CookiePolicy from "@/pages/cookie-policy";
+import Messages from "@/pages/messages";
+import Notifications from "@/pages/notifications";
 
 function Router() {
   return (
@@ -37,6 +39,8 @@ function Router() {
       <Route path="/provider/dashboard" component={ProviderDashboard} />
       <Route path="/provider/setup" component={ProviderSetup} />
       <Route path="/admin" component={AdminDashboard} />
+      <Route path="/messages" component={Messages} />
+      <Route path="/notifications" component={Notifications} />
       <Route path="/terms" component={Terms} />
       <Route path="/privacy" component={Privacy} />
       <Route path="/cookies" component={CookiePolicy} />
