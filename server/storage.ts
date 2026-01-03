@@ -408,6 +408,17 @@ export interface IStorage {
   getDailyMetrics(startDate: string, endDate: string): Promise<DailyMetric[]>;
   updateDailyMetric(id: string, data: Partial<DailyMetric>): Promise<DailyMetric | undefined>;
 
+  // User Notifications
+  getUserNotifications(userId: string): Promise<UserNotification[]>;
+  createUserNotification(data: InsertUserNotification): Promise<UserNotification>;
+  markNotificationRead(id: string): Promise<void>;
+
+  // Messaging
+  getChatConversations(userId: string, role: string): Promise<any[]>;
+  getChatMessages(conversationId: string): Promise<ChatMessage[]>;
+  createChatMessage(data: InsertChatMessage): Promise<ChatMessage>;
+  getOrCreateConversation(patientId: string, providerId: string): Promise<ChatConversation>;
+
   // User management enhancements
   deleteUser(id: string): Promise<void>;
   
