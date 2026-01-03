@@ -427,6 +427,33 @@ export default function PatientDashboard() {
               )}
             </TabsContent>
 
+            <TabsContent value="medical" className="mt-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <FileText className="h-5 w-5 text-primary" />
+                      Prescriptions
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <PrescriptionList patientId={user?.id} />
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <Clock className="h-5 w-5 text-primary" />
+                      Medical History
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <HistoryList patientId={user?.id} />
+                  </CardContent>
+                </Card>
+              </div>
+            </TabsContent>
+
             <TabsContent value="invoices" className="mt-6">
               <Card>
                 <CardContent className="p-12 text-center">

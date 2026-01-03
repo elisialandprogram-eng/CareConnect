@@ -429,9 +429,78 @@ export default function ProviderDashboard() {
                   </Button>
                 </CardContent>
               </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <FileText className="h-5 w-5 text-primary" />
+                    Medical Records
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Manage patient medical records and issue new prescriptions during consultations.
+                  </p>
+                  <Button variant="outline" className="w-full" asChild>
+                    <Link href="/provider/patients">View Patients</Link>
+                  </Button>
+                </CardContent>
+              </Card>
             </div>
           </div>
         </div>
+
+        <Dialog 
+          open={!!selectedAppointmentForPrescription} 
+          onOpenChange={(open) => !open && setSelectedAppointmentForPrescription(null)}
+        >
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>Issue Prescription</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              const formData = new FormData(e.currentTarget);
+              prescriptionMutation.mutate({
+                appointmentId: selectedAppointmentForPrescription?.id,
+                patientId: selectedAppointmentForPrescription?.patientId,
+                providerId: providerData?.id,
+                medicationName: formData.get("medicationName"),
+                dosage: formData.get("dosage"),
+                frequency: formData.get("frequency"),
+                duration: formData.get("duration"),
+                instructions: formData.get("instructions"),
+              });
+            }} className="space-y-4">
+              <div className="space-y-2">
+                <Label>Medication Name</Label>
+                <Input name="medicationName" required />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Dosage</Label>
+                  <Input name="dosage" placeholder="e.g. 500mg" required />
+                </div>
+                <div className="space-y-2">
+                  <Label>Frequency</Label>
+                  <Input name="frequency" placeholder="e.g. Twice a day" required />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Duration</Label>
+                <Input name="duration" placeholder="e.g. 7 days" required />
+              </div>
+              <div className="space-y-2">
+                <Label>Instructions</Label>
+                <Textarea name="instructions" />
+              </div>
+              <DialogFooter>
+                <Button type="button" variant="ghost" onClick={() => setSelectedAppointmentForPrescription(null)}>Cancel</Button>
+                <Button type="submit" disabled={prescriptionMutation.isPending}>Issue Prescription</Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
       </main>
 
       <Footer />

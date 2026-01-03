@@ -226,7 +226,15 @@ export interface IStorage {
   
   // Provider management enhancements  
   deleteProvider(id: string): Promise<void>;
-}
+
+  // AI Chat Integration Methods
+  getConversation(id: number): Promise<Conversation | undefined>;
+  getAllConversations(): Promise<Conversation[]>;
+  createConversation(title: string): Promise<Conversation>;
+  deleteConversation(id: number): Promise<void>;
+  getMessagesByConversation(conversationId: number): Promise<Message[]>;
+  createMessage(conversationId: number, role: string, content: string): Promise<Message>;
+
   // Users
   getUser(id: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
