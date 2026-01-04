@@ -731,5 +731,6 @@ export type AppointmentWithDetails = Appointment & {
   patient: User;
   provider: Provider & { user: User };
   service: Service | null;
+  payment?: Payment | null;
 };
 export type ReviewWithPatient = Review & { patient: User };
