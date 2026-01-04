@@ -10,7 +10,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { User, Calendar, LogOut, Settings, LayoutDashboard, Menu, X, Stethoscope } from "lucide-react";
+import { User, Calendar, LogOut, Settings, LayoutDashboard, Menu, X, Stethoscope, MessageSquare, Bell } from "lucide-react";
 import { useState } from "react";
 
 export function Header() {
@@ -122,6 +122,18 @@ export function Header() {
                   <Link href="/appointments" className="cursor-pointer" data-testid="link-appointments">
                     <Calendar className="mr-2 h-4 w-4" />
                     My Appointments
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/messages" className="cursor-pointer" data-testid="link-messages">
+                    <MessageSquare className="mr-2 h-4 w-4" />
+                    Messages
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/notifications" className="cursor-pointer" data-testid="link-notifications">
+                    <Bell className="mr-2 h-4 w-4" />
+                    Notifications
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
