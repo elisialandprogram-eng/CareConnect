@@ -104,11 +104,11 @@ export function Header() {
                 </div>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
-                  {user.role === "admin" ? (
+                  {user?.role === "admin" ? (
                     <Button asChild variant="ghost" size="sm">
                       <Link href="/admin/dashboard">Admin</Link>
                     </Button>
-                  ) : user.role === "provider" ? (
+                  ) : user?.role === "provider" ? (
                     <Button asChild variant="ghost" size="sm">
                       <Link href="/provider/dashboard">Dashboard</Link>
                     </Button>
