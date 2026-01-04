@@ -33,6 +33,10 @@ import {
   ChevronRight,
   X,
   MessageSquare,
+  Bitcoin,
+  CreditCard,
+  Building2,
+  Banknote,
 } from "lucide-react";
 import type { AppointmentWithDetails, Prescription, MedicalHistory } from "@shared/schema";
 
@@ -456,12 +460,59 @@ export default function PatientDashboard() {
 
             <TabsContent value="invoices" className="mt-6">
               <Card>
-                <CardContent className="p-12 text-center">
-                  <FileText className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                  <h3 className="font-semibold text-lg mb-2">No invoices yet</h3>
-                  <p className="text-muted-foreground">
-                    Your payment invoices will appear here after completed appointments
-                  </p>
+                <CardHeader>
+                  <CardTitle>Payment History</CardTitle>
+                  <CardDescription>View your past payment transactions</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {isLoading ? (
+                    <Skeleton className="h-32 w-full" />
+                  ) : appointments?.filter(a => a.payment).length ? (
+                    <div className="space-y-4">
+                      {appointments
+                        .filter(a => a.payment)
+                        .map((a) => {
+                          const payment = a.payment!;
+                          return (
+                            <div key={payment.id} className="flex items-center justify-between py-4 border-b last:border-0" data-testid={`row-payment-${payment.id}`}>
+                              <div className="flex items-center gap-4">
+                                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                                  {payment.paymentMethod === 'crypto' ? <Bitcoin className="h-5 w-5" /> : 
+                                   payment.paymentMethod === 'card' ? <CreditCard className="h-5 w-5" /> :
+                                   payment.paymentMethod === 'bank_transfer' ? <Building2 className="h-5 w-5" /> :
+                                   <Banknote className="h-5 w-5" />}
+                                </div>
+                                <div>
+                                  <p className="font-medium">Payment #{String(payment.id).slice(0, 8)}</p>
+                                  <p className="text-sm text-muted-foreground">
+                                    {new Date(payment.createdAt).toLocaleDateString()} • {
+                                      payment.paymentMethod === 'crypto' ? 'Cryptocurrency' : 
+                                      payment.paymentMethod === 'card' ? 'Credit Card' :
+                                      payment.paymentMethod === 'bank_transfer' ? 'Bank Transfer' :
+                                      'Cash'
+                                    }
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="text-right">
+                                <p className="font-semibold">${Number(payment.amount).toFixed(2)}</p>
+                                <Badge variant={payment.status === 'completed' ? 'default' : 'outline'}>
+                                  {payment.status}
+                                </Badge>
+                              </div>
+                            </div>
+                          );
+                        })}
+                    </div>
+                  ) : (
+                    <div className="py-12 text-center">
+                      <FileText className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                      <h3 className="font-semibold text-lg mb-2">No invoices yet</h3>
+                      <p className="text-muted-foreground">
+                        Your payment invoices will appear here after completed appointments
+                      </p>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>
