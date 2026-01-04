@@ -27,6 +27,7 @@ import {
   Wallet,
   Banknote,
   Building2,
+  Bitcoin,
 } from "lucide-react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import type { ProviderWithServices, Service } from "@shared/schema";
@@ -44,10 +45,12 @@ export default function Booking() {
   const time = params.get("time");
   const visitType = params.get("visitType") as "online" | "home";
 
-  const [notes, setNotes] = useState("");
-  const [address, setAddress] = useState(user?.address || "");
-  const [step, setStep] = useState<"review" | "payment" | "confirmed">("review");
-  const [paymentMethod, setPaymentMethod] = useState<"card" | "crypto" | "cash" | "bank_transfer">("card");
+  const paymentMethods = [
+    { id: "card", label: "Credit/Debit Card", icon: CreditCard },
+    { id: "crypto", label: "Cryptocurrency", icon: Bitcoin },
+    { id: "bank_transfer", label: "Bank Transfer", icon: Building2 },
+    { id: "cash", label: "Cash After Visit", icon: Banknote },
+  ];
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -74,9 +77,10 @@ export default function Booking() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/appointments"] });
+      const methodLabel = paymentMethods.find(m => m.id === paymentMethod)?.label || paymentMethod;
       toast({
         title: "Success",
-        description: `Your appointment has been booked successfully! Payment method: ${paymentMethod === 'crypto' ? 'Cryptocurrency' : paymentMethod === 'card' ? 'Credit/Debit Card' : paymentMethod === 'bank_transfer' ? 'Bank Transfer' : 'Cash'}`,
+        description: `Your appointment has been booked successfully! Payment method: ${methodLabel}`,
       });
       navigate("/appointments");
     },
@@ -339,7 +343,9 @@ export default function Booking() {
                           }`}
                         >
                           <RadioGroupItem value="crypto" id="crypto" />
-                          <Wallet className="h-5 w-5 text-primary" />
+                          <div className="flex items-center gap-1 text-primary">
+                            <Bitcoin className="h-5 w-5" />
+                          </div>
                           <div className="flex-1">
                             <p className="font-medium">Crypto</p>
                             <p className="text-xs text-muted-foreground">BTC, ETH, USDT</p>

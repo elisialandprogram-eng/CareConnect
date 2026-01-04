@@ -10,6 +10,7 @@ export const providerTypeEnum = pgEnum("provider_type", ["physiotherapist", "doc
 export const appointmentStatusEnum = pgEnum("appointment_status", ["pending", "confirmed", "completed", "cancelled", "rescheduled"]);
 export const visitTypeEnum = pgEnum("visit_type", ["online", "home", "clinic"]);
 export const paymentStatusEnum = pgEnum("payment_status", ["pending", "completed", "refunded", "failed"]);
+export const paymentMethodEnum = pgEnum("payment_method", ["card", "crypto", "cash", "bank_transfer"]);
 export const ticketStatusEnum = pgEnum("ticket_status", ["open", "in_progress", "resolved", "closed"]);
 export const ticketPriorityEnum = pgEnum("ticket_priority", ["low", "medium", "high", "urgent"]);
 export const auditActionEnum = pgEnum("audit_action", ["create", "update", "delete", "login", "logout", "view", "export"]);
