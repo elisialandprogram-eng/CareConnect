@@ -583,10 +583,14 @@ export const insertPromoCodeSchema = createInsertSchema(promoCodes).omit({
   usedCount: true,
 });
 
-export const insertProviderPricingOverrideSchema = createInsertSchema(providerPricingOverrides).omit({
+export const insertAuditLogSchema = createInsertSchema(auditLogs).omit({
   id: true,
   createdAt: true,
-  updatedAt: true,
+});
+
+export const insertUserNotificationSchema = createInsertSchema(userNotifications).omit({
+  id: true,
+  createdAt: true,
 });
 
 // User Notifications
