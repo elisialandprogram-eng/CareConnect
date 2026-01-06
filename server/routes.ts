@@ -4,9 +4,23 @@ import { storage } from "./storage";
 import { z } from "zod";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-import { randomBytes } from "crypto";
+import { randomBytes, createHash } from "crypto";
 import { loginSchema, registerSchema, insertProviderSchema, insertAppointmentSchema, insertReviewSchema } from "@shared/schema";
 import crypto from 'crypto'; // Import crypto module for randomUUID
+import { Resend } from 'resend';
+
+const resend = new Resend(process.env.RESEND_API_KEY);
+const FROM_EMAIL = "GoldenLife <no-reply@goldenlife.health>";
+
+// Helper to hash OTP
+const hashOtp = (otp: string) => createHash('sha256').update(otp).digest('hex');
+
+// Helper to generate 6-digit OTP
+const generateOtp = () => Math.floor(100000 + Math.random() * 900000).toString();
+
+// Rate limiting map (simple in-memory)
+const otpRateLimit = new Map<string, number>();
+const OTP_COOLDOWN = 60 * 1000; // 60 seconds
 import { registerChatRoutes } from "./replit_integrations/chat";
 import { registerImageRoutes } from "./replit_integrations/image";
 
@@ -94,7 +108,32 @@ export async function registerRoutes(
         lastName,
         phone,
         role: role || "patient",
+        isEmailVerified: false,
       });
+
+      // Generate OTP
+      const otp = generateOtp();
+      const otpHash = hashOtp(otp);
+      const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
+
+      await storage.updateUserOtp(user.id, {
+        emailOtpHash: otpHash,
+        emailOtpExpiresAt: expiresAt,
+        otpAttempts: 0,
+        lastOtpSentAt: new Date(),
+      });
+
+      // Send verification email
+      try {
+        await resend.emails.send({
+          from: FROM_EMAIL,
+          to: user.email,
+          subject: "Your GoldenLife verification code",
+          text: `Your verification code is: ${otp}. This code expires in 5 minutes.`,
+        });
+      } catch (emailError) {
+        console.error("Failed to send verification email:", emailError);
+      }
 
       // Generate tokens
       const accessToken = jwt.sign(
@@ -146,6 +185,14 @@ export async function registerRoutes(
       const validPassword = await bcrypt.compare(password, user.password);
       if (!validPassword) {
         return res.status(401).json({ message: "Invalid email or password" });
+      }
+
+      if (!user.isEmailVerified) {
+        return res.status(403).json({ 
+          message: "Please verify your email before logging in",
+          isEmailVerified: false,
+          userId: user.id 
+        });
       }
 
       // Generate tokens
@@ -251,6 +298,90 @@ export async function registerRoutes(
       res.json({ user: userWithoutPassword });
     } catch (error) {
       res.status(500).json({ message: "Failed to get user" });
+    }
+  });
+
+  // Verify Email OTP
+  app.post("/api/auth/verify-email", async (req: Request, res: Response) => {
+    try {
+      const { userId, otp } = req.body;
+      if (!userId || !otp) return res.status(400).json({ message: "Missing data" });
+
+      const user = await storage.getUser(userId);
+      if (!user) return res.status(404).json({ message: "User not found" });
+      if (user.isEmailVerified) return res.status(400).json({ message: "Email already verified" });
+
+      // Check expiry and attempts
+      if (!user.emailOtpExpiresAt || new Date(user.emailOtpExpiresAt) < new Date()) {
+        return res.status(400).json({ message: "OTP expired" });
+      }
+      if (user.otpAttempts >= 5) {
+        return res.status(400).json({ message: "Too many attempts. Please resend." });
+      }
+
+      // Verify OTP
+      if (user.emailOtpHash !== hashOtp(otp)) {
+        await storage.updateUserOtp(userId, {
+          emailOtpHash: user.emailOtpHash,
+          emailOtpExpiresAt: user.emailOtpExpiresAt,
+          otpAttempts: user.otpAttempts + 1
+        });
+        return res.status(400).json({ message: "Invalid OTP" });
+      }
+
+      // Success
+      await storage.verifyUserEmail(userId);
+
+      // Send confirmation email
+      try {
+        await resend.emails.send({
+          from: FROM_EMAIL,
+          to: user.email,
+          subject: "Your email is verified 🎉",
+          text: "Congratulations! Your GoldenLife account is now fully verified.",
+        });
+      } catch (e) { console.error("Verify confirmation email error", e); }
+
+      res.json({ message: "Email verified successfully" });
+    } catch (error) {
+      res.status(500).json({ message: "Verification failed" });
+    }
+  });
+
+  // Resend Email OTP
+  app.post("/api/auth/resend-email-otp", async (req: Request, res: Response) => {
+    try {
+      const { userId } = req.body;
+      if (!userId) return res.status(400).json({ message: "User ID required" });
+
+      const user = await storage.getUser(userId);
+      if (!user) return res.status(404).json({ message: "User not found" });
+      if (user.isEmailVerified) return res.status(400).json({ message: "Email already verified" });
+
+      // Rate limit check
+      const lastSent = user.lastOtpSentAt ? new Date(user.lastOtpSentAt).getTime() : 0;
+      if (Date.now() - lastSent < OTP_COOLDOWN) {
+        return res.status(429).json({ message: "Please wait 60s before resending" });
+      }
+
+      const otp = generateOtp();
+      await storage.updateUserOtp(userId, {
+        emailOtpHash: hashOtp(otp),
+        emailOtpExpiresAt: new Date(Date.now() + 5 * 60 * 1000),
+        otpAttempts: 0,
+        lastOtpSentAt: new Date()
+      });
+
+      await resend.emails.send({
+        from: FROM_EMAIL,
+        to: user.email,
+        subject: "Your GoldenLife verification code",
+        text: `Your new verification code is: ${otp}. It expires in 5 minutes.`,
+      });
+
+      res.json({ message: "OTP sent successfully" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to resend OTP" });
     }
   });
 
@@ -372,6 +503,11 @@ export async function registerRoutes(
 
       if (!userId) {
         return res.status(401).json({ message: "User not authenticated" });
+      }
+
+      const user = await storage.getUser(userId);
+      if (!user?.isEmailVerified) {
+        return res.status(403).json({ message: "Email verification required to book" });
       }
 
       // Get provider to calculate fee if not provided

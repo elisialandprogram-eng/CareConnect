@@ -7,6 +7,8 @@ interface AuthContextType {
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (data: RegisterData) => Promise<void>;
+  verifyEmail: (userId: string, otp: string) => Promise<void>;
+  resendOtp: (userId: string) => Promise<void>;
   logout: () => Promise<void>;
   isAuthenticated: boolean;
 }
@@ -71,6 +73,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(result.user);
   };
 
+  const verifyEmail = async (userId: string, otp: string) => {
+    const response = await apiRequest("POST", "/api/auth/verify-email", { userId, otp });
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.message || "Verification failed");
+    }
+  };
+
+  const resendOtp = async (userId: string) => {
+    const response = await apiRequest("POST", "/api/auth/resend-email-otp", { userId });
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.message || "Failed to resend OTP");
+    }
+  };
+
   const logout = async () => {
     await apiRequest("POST", "/api/auth/logout", {});
     setUser(null);
@@ -83,6 +101,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isLoading,
         login,
         register,
+        verifyEmail,
+        resendOtp,
         logout,
         isAuthenticated: !!user,
       }}
