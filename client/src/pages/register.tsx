@@ -69,23 +69,12 @@ export default function Register() {
   const onSubmit = async (data: RegisterFormData) => {
     setIsLoading(true);
     try {
-      await register({
-        email: data.email,
-        password: data.password,
-        firstName: data.firstName,
-        lastName: data.lastName,
-        phone: data.phone,
-        role: data.role,
-      });
+      const user = await register(data);
       toast({
         title: "Account created!",
-        description: "Welcome to Golden Life. You can now book appointments.",
+        description: "Please check your email for the verification code.",
       });
-      if (data.role === "provider") {
-        navigate("/provider/setup");
-      } else {
-        navigate("/providers");
-      }
+      navigate(`/verify-email?userId=${user.id}`);
     } catch (error: any) {
       toast({
         title: "Registration failed",

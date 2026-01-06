@@ -25,6 +25,7 @@ import Settings from "@/pages/settings";
 import CookiePolicy from "@/pages/cookie-policy";
 import Messages from "@/pages/messages";
 import Notifications from "@/pages/notifications";
+import VerifyEmail from "@/pages/verify-email";
 
 function Router() {
   return (
@@ -34,6 +35,7 @@ function Router() {
       <Route path="/provider/:id" component={ProviderProfile} />
       <Route path="/login" component={Login} />
       <Route path="/register" component={Register} />
+      <Route path="/verify-email" component={VerifyEmail} />
       <Route path="/booking" component={Booking} />
       <Route path="/patient/dashboard" component={PatientDashboard} />
       <Route path="/provider/dashboard" component={ProviderDashboard} />

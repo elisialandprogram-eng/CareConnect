@@ -1,0 +1,151 @@
+import { useState, useEffect } from "react";
+import { useAuth } from "@/lib/auth";
+import { useLocation } from "wouter";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
+import { Mail, RefreshCw } from "lucide-react";
+
+export default function VerifyEmail() {
+  const { user, verifyEmail, resendOtp } = useAuth();
+  const [, setLocation] = useLocation();
+  const { toast } = useToast();
+  const [otp, setOtp] = useState("");
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [isResending, setIsResending] = useState(false);
+  const [cooldown, setCooldown] = useState(0);
+
+  // Get userId from URL or user object
+  const searchParams = new URLSearchParams(window.location.search);
+  const userId = searchParams.get("userId") || user?.id;
+
+  useEffect(() => {
+    if (user?.isEmailVerified) {
+      setLocation("/");
+    }
+  }, [user, setLocation]);
+
+  useEffect(() => {
+    if (cooldown > 0) {
+      const timer = setTimeout(() => setCooldown(cooldown - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [cooldown]);
+
+  const handleVerify = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!userId) return;
+    
+    setIsVerifying(true);
+    try {
+      await verifyEmail(userId, otp);
+      toast({
+        title: "Success",
+        description: "Your email has been verified. You can now log in.",
+      });
+      setLocation("/login");
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Verification failed",
+        description: error.message,
+      });
+    } finally {
+      setIsVerifying(false);
+    }
+  };
+
+  const handleResend = async () => {
+    if (!userId || cooldown > 0) return;
+    
+    setIsResending(true);
+    try {
+      await resendOtp(userId);
+      toast({
+        title: "OTP Resent",
+        description: "A new verification code has been sent to your email.",
+      });
+      setCooldown(60);
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Failed to resend OTP",
+        description: error.message,
+      });
+    } finally {
+      setIsResending(false);
+    }
+  };
+
+  if (!userId) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <CardTitle>Invalid Link</CardTitle>
+            <CardDescription>The verification link is invalid or expired.</CardDescription>
+          </CardHeader>
+          <CardFooter>
+            <Button className="w-full" onClick={() => setLocation("/login")}>Go to Login</Button>
+          </CardFooter>
+        </Card>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-background p-4">
+      <Card className="w-full max-w-md">
+        <CardHeader className="text-center">
+          <div className="mx-auto w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mb-4">
+            <Mail className="h-6 w-6 text-primary" />
+          </div>
+          <CardTitle>Verify your email</CardTitle>
+          <CardDescription>
+            We've sent a 6-digit code to your email address.
+            Please enter it below to verify your account.
+          </CardDescription>
+        </CardHeader>
+        <form onSubmit={handleVerify}>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="otp">Verification Code</Label>
+              <Input
+                id="otp"
+                placeholder="000000"
+                className="text-center text-2xl tracking-[0.5em] font-mono"
+                maxLength={6}
+                value={otp}
+                onChange={(e) => setOtp(e.target.value.replace(/[^0-9]/g, ""))}
+                required
+              />
+            </div>
+          </CardContent>
+          <CardFooter className="flex flex-col gap-4">
+            <Button 
+              type="submit" 
+              className="w-full" 
+              disabled={otp.length !== 6 || isVerifying}
+            >
+              {isVerifying ? "Verifying..." : "Verify Account"}
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              className="w-full"
+              disabled={cooldown > 0 || isResending}
+              onClick={handleResend}
+            >
+              {isResending ? (
+                <RefreshCw className="h-4 w-4 animate-spin mr-2" />
+              ) : null}
+              {cooldown > 0 ? `Resend in ${cooldown}s` : "Resend Code"}
+            </Button>
+          </CardFooter>
+        </form>
+      </Card>
+    </div>
+  );
+}

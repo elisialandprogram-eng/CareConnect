@@ -71,6 +71,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       throw new Error(result.message || "Registration failed");
     }
     setUser(result.user);
+    return result.user;
   };
 
   const verifyEmail = async (userId: string, otp: string) => {

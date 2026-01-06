@@ -342,6 +342,9 @@ export async function registerRoutes(
         });
       } catch (e) { console.error("Verify confirmation email error", e); }
 
+      // Clear OTP cooldown/attempts on success
+      otpRateLimit.delete(user.email);
+
       res.json({ message: "Email verified successfully" });
     } catch (error) {
       res.status(500).json({ message: "Verification failed" });

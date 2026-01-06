@@ -56,11 +56,22 @@ export default function Login() {
       });
       navigate(redirectUrl);
     } catch (error: any) {
-      toast({
-        title: "Login failed",
-        description: error.message || "Invalid email or password. Please try again.",
-        variant: "destructive",
-      });
+      if (error.message.includes("verify your email")) {
+        toast({
+          title: "Verification required",
+          description: error.message,
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          navigate("/verify-email");
+        }, 2000);
+      } else {
+        toast({
+          title: "Login failed",
+          description: error.message || "Invalid email or password. Please try again.",
+          variant: "destructive",
+        });
+      }
     } finally {
       setIsLoading(false);
     }
