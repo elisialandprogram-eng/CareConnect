@@ -36,7 +36,16 @@ export interface IStorage {
   getUserByEmail(email: string): Promise<User | undefined>;
   getAllUsers(): Promise<User[]>;
   createUser(user: InsertUser): Promise<User>;
-  updateUser(id: string, data: Partial<InsertUser>): Promise<User | undefined>;
+  updateUser(id: string, data: Partial<User>): Promise<User | undefined>;
+
+  // OTP and Email Verification
+  updateUserOtp(id: string, data: { 
+    emailOtpHash: string | null; 
+    emailOtpExpiresAt: Date | null; 
+    otpAttempts: number; 
+    lastOtpSentAt?: Date;
+  }): Promise<void>;
+  verifyUserEmail(id: string): Promise<void>;
 
   // Providers
   getProvider(id: string): Promise<Provider | undefined>;
@@ -260,9 +269,27 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
-  async updateUser(id: string, data: Partial<InsertUser>): Promise<User | undefined> {
+  async updateUser(id: string, data: Partial<User>): Promise<User | undefined> {
     const [user] = await db.update(users).set(data).where(eq(users.id, id)).returning();
     return user || undefined;
+  }
+
+  async updateUserOtp(id: string, data: { 
+    emailOtpHash: string | null; 
+    emailOtpExpiresAt: Date | null; 
+    otpAttempts: number; 
+    lastOtpSentAt?: Date;
+  }): Promise<void> {
+    await db.update(users).set(data).where(eq(users.id, id));
+  }
+
+  async verifyUserEmail(id: string): Promise<void> {
+    await db.update(users).set({ 
+      isEmailVerified: true,
+      emailOtpHash: null,
+      emailOtpExpiresAt: null,
+      otpAttempts: 0
+    }).where(eq(users.id, id));
   }
 
   // Providers

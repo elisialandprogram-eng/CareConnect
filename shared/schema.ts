@@ -61,6 +61,11 @@ export const users = pgTable("users", {
   avatarUrl: text("avatar_url"),
   address: text("address"),
   city: text("city"),
+  isEmailVerified: boolean("is_email_verified").notNull().default(false),
+  emailOtpHash: text("email_otp_hash"),
+  emailOtpExpiresAt: timestamp("email_otp_expires_at"),
+  otpAttempts: integer("otp_attempts").notNull().default(0),
+  lastOtpSentAt: timestamp("last_otp_sent_at"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
