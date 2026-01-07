@@ -55,15 +55,23 @@ export default function ProviderProfile() {
       navigate("/login?redirect=/provider/" + id);
       return;
     }
-    if (!selectedService || !selectedDate || !selectedTime) return;
+    // If no service selected, default to the first one if available, 
+    // or allow booking without service if provider has general consultation fee
+    const effectiveService = selectedService || (provider.services && provider.services.length > 0 ? provider.services[0] : null);
+    
+    if (!selectedDate || !selectedTime) return;
     
     const params = new URLSearchParams({
       providerId: id!,
-      serviceId: selectedService.id,
       date: selectedDate.toISOString().split("T")[0],
       time: selectedTime,
       visitType,
     });
+    
+    if (effectiveService) {
+      params.append("serviceId", effectiveService.id);
+    }
+    
     navigate(`/booking?${params.toString()}`);
   };
 

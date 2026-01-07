@@ -115,13 +115,18 @@ export default function Booking() {
       ? provider.homeVisitFee
       : provider.consultationFee;
 
+    const visitTypeLabel = visitType === "online" ? "Online Consultation" : "Home Visit";
+    const serviceName = selectedService?.name || "General Consultation";
+
     console.log("Mutating booking with data:", {
       providerId: provider.id,
       serviceId: serviceId || null,
+      serviceName,
       date,
       startTime: time,
       endTime: endTimeStr,
       visitType,
+      visitTypeLabel,
       paymentMethod,
       notes,
       patientAddress: visitType === "home" ? address : null,
