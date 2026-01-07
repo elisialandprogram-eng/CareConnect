@@ -101,7 +101,11 @@ export default function Booking() {
   });
 
   const handleConfirmBooking = () => {
-    if (!provider || !date || !time) return;
+    console.log("handleConfirmBooking called");
+    if (!provider || !date || !time) {
+      console.log("Missing provider, date, or time", { provider, date, time });
+      return;
+    }
 
     const endTime = new Date(`2024-01-01T${time}`);
     endTime.setMinutes(endTime.getMinutes() + (selectedService?.duration || 60));
@@ -110,6 +114,19 @@ export default function Booking() {
     const fee = visitType === "home" && provider.homeVisitFee
       ? provider.homeVisitFee
       : provider.consultationFee;
+
+    console.log("Mutating booking with data:", {
+      providerId: provider.id,
+      serviceId: serviceId || null,
+      date,
+      startTime: time,
+      endTime: endTimeStr,
+      visitType,
+      paymentMethod,
+      notes,
+      patientAddress: visitType === "home" ? address : null,
+      totalAmount: fee.toString(),
+    });
 
     bookingMutation.mutate({
       providerId: provider.id,

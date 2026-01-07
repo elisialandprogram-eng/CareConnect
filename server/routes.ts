@@ -507,21 +507,25 @@ export async function registerRoutes(
   // Create appointment
   app.post("/api/appointments", authenticateToken, async (req: AuthRequest, res: Response) => {
     try {
+      console.log("Received appointment request body:", req.body);
       const { providerId, serviceId, date, startTime, endTime, visitType, paymentMethod, notes, patientAddress, totalAmount } = req.body;
       const userId = req.user?.id;
 
       if (!userId) {
+        console.log("Booking failed: User not authenticated");
         return res.status(401).json({ message: "User not authenticated" });
       }
 
       const user = await storage.getUser(userId);
       if (!user?.isEmailVerified) {
+        console.log("Booking failed: Email not verified for user", userId);
         return res.status(403).json({ message: "Email verification required to book" });
       }
 
       // Get provider to calculate fee if not provided
       const provider = await storage.getProvider(providerId);
       if (!provider) {
+        console.log("Booking failed: Provider not found", providerId);
         return res.status(404).json({ message: "Provider not found" });
       }
 
