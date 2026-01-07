@@ -552,12 +552,14 @@ export async function registerRoutes(
         const providerWithUser = await storage.getProviderWithUser(providerId);
         const service = serviceId ? await storage.getService(serviceId) : null;
         
-        await resend.emails.send({
+        console.log(`Attempting to send booking confirmation to ${user.email}`);
+        
+        const emailResult = await resend.emails.send({
           from: FROM_EMAIL,
           to: user.email,
           subject: "Booking Confirmation - GoldenLife",
           html: `
-            <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; rounded-md;">
+            <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;">
               <h2 style="color: #0f172a;">Booking Confirmed!</h2>
               <p>Hello ${user.firstName},</p>
               <p>Your appointment with <strong>${providerWithUser?.user.firstName} ${providerWithUser?.user.lastName}</strong> has been successfully booked.</p>
@@ -579,6 +581,7 @@ export async function registerRoutes(
             </div>
           `,
         });
+        console.log("Email send result:", emailResult);
       } catch (emailError) {
         console.error("Failed to send booking confirmation email:", emailError);
       }

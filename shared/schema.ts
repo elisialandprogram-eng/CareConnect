@@ -18,8 +18,6 @@ export const contentTypeEnum = pgEnum("content_type", ["homepage", "about", "ter
 export const announcementTypeEnum = pgEnum("announcement_type", ["info", "warning", "success", "error"]);
 export const medicalHistoryTypeEnum = pgEnum("medical_history_type", ["diagnosis", "procedure", "lab_result", "vaccination", "allergy"]);
 
-// ... (rest of the enums)
-
 // Prescriptions
 export const prescriptions = pgTable("prescriptions", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -380,6 +378,36 @@ export const dailyMetrics = pgTable("daily_metrics", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// User Notifications
+export const userNotifications = pgTable("user_notifications", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  title: text("title").notNull(),
+  message: text("message").notNull(),
+  type: text("type").notNull().default("info"), // "info", "appointment", "system"
+  isRead: boolean("is_read").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Conversations (Enhanced for Patient-Provider)
+export const chatConversations = pgTable("chat_conversations", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  patientId: varchar("patient_id").notNull().references(() => users.id),
+  providerId: varchar("provider_id").notNull().references(() => providers.id),
+  lastMessage: text("last_message"),
+  updatedAt: timestamp("updated_at").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const chatMessages = pgTable("chat_messages", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  conversationId: varchar("conversation_id").notNull().references(() => chatConversations.id),
+  senderId: varchar("sender_id").notNull().references(() => users.id),
+  content: text("content").notNull(),
+  isRead: boolean("is_read").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ one, many }) => ({
   provider: one(providers, {
@@ -525,6 +553,17 @@ export const providerPricingOverridesRelations = relations(providerPricingOverri
   }),
 }));
 
+export const chatConversationsRelations = relations(chatConversations, ({ one, many }) => ({
+  patient: one(users, { fields: [chatConversations.patientId], references: [users.id] }),
+  provider: one(providers, { fields: [chatConversations.providerId], references: [providers.id] }),
+  messages: many(chatMessages),
+}));
+
+export const chatMessagesRelations = relations(chatMessages, ({ one }) => ({
+  conversation: one(chatConversations, { fields: [chatMessages.conversationId], references: [chatConversations.id] }),
+  sender: one(users, { fields: [chatMessages.senderId], references: [users.id] }),
+}));
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -588,59 +627,15 @@ export const insertAuditLogSchema = createInsertSchema(auditLogs).omit({
   createdAt: true,
 });
 
-// User Notifications
-export const userNotifications = pgTable("user_notifications", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar("user_id").notNull().references(() => users.id),
-  title: text("title").notNull(),
-  message: text("message").notNull(),
-  type: text("type").notNull().default("info"), // "info", "appointment", "system"
-  isRead: boolean("is_read").default(false),
-  createdAt: timestamp("created_at").defaultNow(),
+export const insertProviderPricingOverrideSchema = createInsertSchema(providerPricingOverrides).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
 });
 
-// Conversations (Enhanced for Patient-Provider)
-export const chatConversations = pgTable("chat_conversations", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  patientId: varchar("patient_id").notNull().references(() => users.id),
-  providerId: varchar("provider_id").notNull().references(() => providers.id),
-  lastMessage: text("last_message"),
-  updatedAt: timestamp("updated_at").defaultNow(),
-  createdAt: timestamp("created_at").defaultNow(),
-});
-
-export const chatMessages = pgTable("chat_messages", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  conversationId: varchar("conversation_id").notNull().references(() => chatConversations.id),
-  senderId: varchar("sender_id").notNull().references(() => users.id),
-  content: text("content").notNull(),
-  isRead: boolean("is_read").default(false),
-  createdAt: timestamp("created_at").defaultNow(),
-});
-
-// Relations
-export const chatConversationsRelations = relations(chatConversations, ({ one, many }) => ({
-  patient: one(users, { fields: [chatConversations.patientId], references: [users.id] }),
-  provider: one(providers, { fields: [chatConversations.providerId], references: [providers.id] }),
-  messages: many(chatMessages),
-}));
-
-export const chatMessagesRelations = relations(chatMessages, ({ one }) => ({
-  conversation: one(chatConversations, { fields: [chatMessages.conversationId], references: [chatConversations.id] }),
-  sender: one(users, { fields: [chatMessages.senderId], references: [users.id] }),
-}));
-
-// Insert schemas
 export const insertUserNotificationSchema = createInsertSchema(userNotifications).omit({ id: true, createdAt: true });
 export const insertChatConversationSchema = createInsertSchema(chatConversations).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertChatMessageSchema = createInsertSchema(chatMessages).omit({ id: true, createdAt: true });
-
-export type UserNotification = typeof userNotifications.$inferSelect;
-export type ChatConversation = typeof chatConversations.$inferSelect;
-export type ChatMessage = typeof chatMessages.$inferSelect;
-export type InsertUserNotification = z.infer<typeof insertUserNotificationSchema>;
-export type InsertChatConversation = z.infer<typeof insertChatConversationSchema>;
-export type InsertChatMessage = z.infer<typeof insertChatMessageSchema>;
 export const insertSupportTicketSchema = createInsertSchema(supportTickets).omit({ id: true, createdAt: true, updatedAt: true, resolvedAt: true });
 export const insertTicketMessageSchema = createInsertSchema(ticketMessages).omit({ id: true, createdAt: true });
 export const insertContentBlockSchema = createInsertSchema(contentBlocks).omit({ id: true, createdAt: true, updatedAt: true });
@@ -702,39 +697,19 @@ export type InsertAuditLog = z.infer<typeof insertAuditLogSchema>;
 export type SupportTicket = typeof supportTickets.$inferSelect;
 export type InsertSupportTicket = z.infer<typeof insertSupportTicketSchema>;
 export type TicketMessage = typeof ticketMessages.$inferSelect;
-export type InsertTicketMessage = z.infer<typeof insertTicketMessageSchema>;
-export type ContentBlock = typeof contentBlocks.$inferSelect;
-export type InsertContentBlock = z.infer<typeof insertContentBlockSchema>;
-export type Faq = typeof faqs.$inferSelect;
-export type InsertFaq = z.infer<typeof insertFaqSchema>;
-export type BlogPost = typeof blogPosts.$inferSelect;
-export type InsertBlogPost = z.infer<typeof insertBlogPostSchema>;
-export type Announcement = typeof announcements.$inferSelect;
-export type InsertAnnouncement = z.infer<typeof insertAnnouncementSchema>;
-export type EmailTemplate = typeof emailTemplates.$inferSelect;
-export type InsertEmailTemplate = z.infer<typeof insertEmailTemplateSchema>;
-export type Notification = typeof notificationQueue.$inferSelect;
-export type InsertNotification = z.infer<typeof insertNotificationSchema>;
-export type PlatformSetting = typeof platformSettings.$inferSelect;
-export type InsertPlatformSetting = z.infer<typeof insertPlatformSettingSchema>;
-export type ServiceCategory = typeof serviceCategories.$inferSelect;
-export type InsertServiceCategory = z.infer<typeof insertServiceCategorySchema>;
-export type Location = typeof locations.$inferSelect;
-export type InsertLocation = z.infer<typeof insertLocationSchema>;
-export type DailyMetric = typeof dailyMetrics.$inferSelect;
-export type InsertDailyMetric = z.infer<typeof insertDailyMetricSchema>;
-export type Prescription = typeof prescriptions.$inferSelect;
-export type InsertPrescription = z.infer<typeof insertPrescriptionSchema>;
-export type MedicalHistory = typeof medicalHistory.$inferSelect;
-export type InsertMedicalHistory = z.infer<typeof insertMedicalHistorySchema>;
+export type UserNotification = typeof userNotifications.$inferSelect;
+export type ChatConversation = typeof chatConversations.$inferSelect;
+export type ChatMessage = typeof chatMessages.$inferSelect;
+export type InsertUserNotification = z.infer<typeof insertUserNotificationSchema>;
+export type InsertChatConversation = z.infer<typeof insertChatConversationSchema>;
+export type InsertChatMessage = z.infer<typeof insertChatMessageSchema>;
 
-// Complex types for relations
 export type ProviderWithUser = Provider & { user: User };
-export type ProviderWithServices = ProviderWithUser & { services: Service[] };
-export type AppointmentWithDetails = Appointment & {
-  patient: User;
-  provider: Provider & { user: User };
+export type ProviderWithServices = Provider & { user: User; services: Service[] };
+export type AppointmentWithDetails = Appointment & { 
+  patient: User; 
+  provider: Provider & { user: User }; 
   service: Service | null;
-  payment?: Payment | null;
+  payment?: Payment;
 };
 export type ReviewWithPatient = Review & { patient: User };

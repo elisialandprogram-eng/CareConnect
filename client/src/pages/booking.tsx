@@ -45,6 +45,11 @@ export default function Booking() {
   const time = params.get("time");
   const visitType = params.get("visitType") as "online" | "home";
 
+  const [paymentMethod, setPaymentMethod] = useState("card");
+  const [address, setAddress] = useState("");
+  const [notes, setNotes] = useState("");
+  const [step, setStep] = useState<"details" | "confirmed">("details");
+
   const paymentMethods = [
     { id: "card", label: "Credit/Debit Card", icon: CreditCard },
     { id: "crypto", label: "Cryptocurrency", icon: Bitcoin },
