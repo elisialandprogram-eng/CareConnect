@@ -530,6 +530,17 @@ export async function registerRoutes(
         : provider.consultationFee);
 
       // Create appointment
+      console.log("Creating appointment with data:", {
+        patientId: userId,
+        providerId,
+        serviceId,
+        date,
+        startTime,
+        endTime,
+        visitType,
+        totalAmount: fee.toString()
+      });
+
       const appointment = await storage.createAppointment({
         patientId: userId,
         providerId,
@@ -544,14 +555,18 @@ export async function registerRoutes(
         totalAmount: fee.toString(),
       });
 
+      console.log("Appointment created:", appointment.id);
+
       // Create payment record with payment method
-      await storage.createPayment({
+      const payment = await storage.createPayment({
         appointmentId: appointment.id,
         patientId: userId,
         amount: fee.toString(),
         paymentMethod: paymentMethod || "card",
-        status: paymentMethod === "cash" ? "pending" : "pending",
+        status: "pending",
       });
+
+      console.log("Payment record created:", payment.id);
 
       // Send booking confirmation email
       if (resend) {

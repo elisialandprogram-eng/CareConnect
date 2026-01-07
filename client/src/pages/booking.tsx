@@ -80,19 +80,21 @@ export default function Booking() {
       const appointment = await response.json();
       return appointment;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/appointments"] });
       const methodLabel = paymentMethods.find(m => m.id === paymentMethod)?.label || paymentMethod;
       toast({
         title: "Success",
         description: `Your appointment has been booked successfully! Payment method: ${methodLabel}`,
       });
-      navigate("/appointments");
+      // Set step to confirmed to show confirmation UI
+      setStep("confirmed");
     },
-    onError: () => {
+    onError: (error: Error) => {
+      console.error("Booking error:", error);
       toast({
         title: "Error",
-        description: "Failed to book appointment. Please try again.",
+        description: error.message || "Failed to book appointment. Please try again.",
         variant: "destructive",
       });
     },
@@ -119,7 +121,7 @@ export default function Booking() {
       paymentMethod,
       notes,
       patientAddress: visitType === "home" ? address : null,
-      totalAmount: fee,
+      totalAmount: fee.toString(),
     });
   };
 
