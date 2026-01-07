@@ -588,11 +588,6 @@ export const insertAuditLogSchema = createInsertSchema(auditLogs).omit({
   createdAt: true,
 });
 
-export const insertUserNotificationSchema = createInsertSchema(userNotifications).omit({
-  id: true,
-  createdAt: true,
-});
-
 // User Notifications
 export const userNotifications = pgTable("user_notifications", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
