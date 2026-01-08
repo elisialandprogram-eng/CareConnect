@@ -29,6 +29,7 @@ export const prescriptions = pgTable("prescriptions", {
   frequency: text("frequency").notNull(),
   duration: text("duration").notNull(),
   instructions: text("instructions"),
+  attachments: text("attachments").array(),
   issuedAt: timestamp("issued_at").defaultNow(),
   expiresAt: timestamp("expires_at"),
   isActive: boolean("is_active").default(true),

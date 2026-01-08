@@ -56,6 +56,18 @@ const PrescriptionList = ({ patientId }: { patientId?: string }) => {
           <p className="font-medium">{p.medicationName} - {p.dosage}</p>
           <p className="text-sm text-muted-foreground">{p.frequency} for {p.duration}</p>
           {p.instructions && <p className="text-xs mt-1 italic">{p.instructions}</p>}
+          {p.attachments && p.attachments.length > 0 && (
+            <div className="flex gap-2 mt-2">
+              {p.attachments.map((url, idx) => (
+                <Button key={idx} variant="outline" size="sm" className="h-7 text-xs" asChild>
+                  <a href={url} target="_blank" rel="noopener noreferrer">
+                    <FileText className="h-3 w-3 mr-1" />
+                    View Document
+                  </a>
+                </Button>
+              ))}
+            </div>
+          )}
         </div>
       ))}
     </div>
@@ -74,10 +86,28 @@ const HistoryList = ({ patientId }: { patientId?: string }) => {
   return (
     <div className="space-y-4">
       {history.map((h) => (
-        <div key={h.id} className="border-b pb-2 last:border-0">
-          <p className="font-medium">{h.title} ({h.type})</p>
-          <p className="text-sm text-muted-foreground">{h.description}</p>
-          <p className="text-xs text-muted-foreground mt-1">{new Date(h.date).toLocaleDateString()}</p>
+        <div key={h.id} className="border-b pb-4 last:border-0">
+          <div className="flex justify-between items-start gap-2">
+            <div>
+              <p className="font-medium">{h.title} ({h.type})</p>
+              <p className="text-sm text-muted-foreground">{h.description}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-4 mt-2">
+            <p className="text-xs text-muted-foreground">{new Date(h.date).toLocaleDateString()}</p>
+            {h.attachments && h.attachments.length > 0 && (
+              <div className="flex gap-2">
+                {h.attachments.map((url, idx) => (
+                  <Button key={idx} variant="outline" size="sm" className="h-7 text-xs" asChild>
+                    <a href={url} target="_blank" rel="noopener noreferrer">
+                      <FileText className="h-3 w-3 mr-1" />
+                      View Lab Result
+                    </a>
+                  </Button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       ))}
     </div>
