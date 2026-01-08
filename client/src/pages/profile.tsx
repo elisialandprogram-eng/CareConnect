@@ -24,7 +24,15 @@ export default function Profile() {
     firstName: "",
     lastName: "",
     phone: "",
+    mobileNumber: "",
     address: "",
+    city: "",
+    state: "",
+    zipCode: "",
+    gender: "",
+    socialNumber: "",
+    emergencyContactName: "",
+    emergencyContactPhone: "",
   });
 
   const [passwordData, setPasswordData] = useState({
@@ -50,7 +58,15 @@ export default function Profile() {
         firstName: user.firstName || "",
         lastName: user.lastName || "",
         phone: user.phone || "",
+        mobileNumber: user.mobileNumber || "",
         address: user.address || "",
+        city: user.city || "",
+        state: user.state || "",
+        zipCode: user.zipCode || "",
+        gender: user.gender || "",
+        socialNumber: user.socialNumber || "",
+        emergencyContactName: user.emergencyContactName || "",
+        emergencyContactPhone: user.emergencyContactPhone || "",
       });
     }
   }, [user]);
@@ -205,18 +221,34 @@ export default function Profile() {
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="phone">Phone Number</Label>
-                <div className="relative">
-                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="phone"
-                    type="tel"
-                    value={formData.phone}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    className="pl-10"
-                    placeholder="Phone number"
-                  />
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="phone">Phone Number</Label>
+                  <div className="relative">
+                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="phone"
+                      type="tel"
+                      value={formData.phone}
+                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                      className="pl-10"
+                      placeholder="Phone number"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="mobileNumber">Mobile Number</Label>
+                  <div className="relative">
+                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="mobileNumber"
+                      type="tel"
+                      value={formData.mobileNumber}
+                      onChange={(e) => setFormData({ ...formData, mobileNumber: e.target.value })}
+                      className="pl-10"
+                      placeholder="Mobile number"
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -231,6 +263,81 @@ export default function Profile() {
                     className="pl-10"
                     placeholder="Your address"
                   />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="city">City</Label>
+                  <Input
+                    id="city"
+                    value={formData.city}
+                    onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                    placeholder="City"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="state">State</Label>
+                  <Input
+                    id="state"
+                    value={formData.state}
+                    onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+                    placeholder="State"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="zipCode">Zip Code</Label>
+                  <Input
+                    id="zipCode"
+                    value={formData.zipCode}
+                    onChange={(e) => setFormData({ ...formData, zipCode: e.target.value })}
+                    placeholder="Zip"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="gender">Gender</Label>
+                  <Input
+                    id="gender"
+                    value={formData.gender}
+                    onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
+                    placeholder="Gender"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="socialNumber">Social Security / ID Number</Label>
+                  <Input
+                    id="socialNumber"
+                    value={formData.socialNumber}
+                    onChange={(e) => setFormData({ ...formData, socialNumber: e.target.value })}
+                    placeholder="ID Number"
+                  />
+                </div>
+              </div>
+
+              <div className="pt-4 border-t">
+                <h3 className="text-sm font-medium mb-4">Emergency Contact</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="emergencyContactName">Contact Name</Label>
+                    <Input
+                      id="emergencyContactName"
+                      value={formData.emergencyContactName}
+                      onChange={(e) => setFormData({ ...formData, emergencyContactName: e.target.value })}
+                      placeholder="Contact name"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="emergencyContactPhone">Contact Phone</Label>
+                    <Input
+                      id="emergencyContactPhone"
+                      value={formData.emergencyContactPhone}
+                      onChange={(e) => setFormData({ ...formData, emergencyContactPhone: e.target.value })}
+                      placeholder="Contact phone"
+                    />
+                  </div>
                 </div>
               </div>
 
