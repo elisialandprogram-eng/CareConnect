@@ -507,7 +507,7 @@ export class DatabaseStorage implements IStorage {
       .innerJoin(providers, eq(appointments.providerId, providers.id))
       .leftJoin(services, eq(appointments.serviceId, services.id))
       .where(eq(appointments.patientId, patientId))
-      .orderBy(desc(appointments.date));
+      .orderBy(desc(appointments.date), desc(appointments.startTime));
 
     const appointmentsWithDetails: AppointmentWithDetails[] = [];
 

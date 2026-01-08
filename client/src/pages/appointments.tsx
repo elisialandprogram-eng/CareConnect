@@ -6,7 +6,7 @@ import { useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
-import { Calendar, Clock, User, MapPin, Video } from "lucide-react";
+import { Calendar, Clock, User, MapPin, Video, Building } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -28,9 +28,10 @@ interface Appointment {
     };
   };
   service: {
+    id: string;
     name: string;
     price: string;
-  };
+  } | null;
 }
 
 export default function Appointments() {
@@ -84,7 +85,19 @@ export default function Appointments() {
     if (visitType === "online") {
       return <Video className="h-4 w-4" />;
     }
+    if (visitType === "clinic") {
+      return <Building className="h-4 w-4" />;
+    }
     return <MapPin className="h-4 w-4" />;
+  };
+
+  const getVisitTypeLabel = (visitType: string) => {
+    switch (visitType) {
+      case "online": return "Online";
+      case "clinic": return "Clinic Visit";
+      case "home": return "Home Visit";
+      default: return "In-person";
+    }
   };
 
   return (
@@ -112,7 +125,7 @@ export default function Appointments() {
                   <div className="flex justify-between items-start">
                     <div>
                       <CardTitle className="text-lg">
-                        {appointment.service.name}
+                        {appointment.service?.name || "Consultation"}
                       </CardTitle>
                       <CardDescription className="flex items-center gap-2 mt-1">
                         <User className="h-4 w-4" />
@@ -134,7 +147,7 @@ export default function Appointments() {
                     </div>
                     <div className="flex items-center gap-1">
                       {getVisitTypeIcon(appointment.visitType)}
-                      {appointment.visitType === "online" ? "Online" : "In-person"}
+                      {getVisitTypeLabel(appointment.visitType)}
                     </div>
                   </div>
                 </CardContent>
