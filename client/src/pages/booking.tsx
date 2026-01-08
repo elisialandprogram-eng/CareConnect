@@ -43,7 +43,7 @@ export default function Booking() {
   const serviceId = params.get("serviceId");
   const date = params.get("date");
   const time = params.get("time");
-  const visitType = params.get("visitType") as "online" | "home";
+  const visitType = params.get("visitType") as "online" | "home" | "clinic";
 
   const [paymentMethod, setPaymentMethod] = useState("card");
   const [address, setAddress] = useState("");
@@ -115,7 +115,7 @@ export default function Booking() {
       ? provider.homeVisitFee
       : provider.consultationFee;
 
-    const visitTypeLabel = visitType === "online" ? "Online Consultation" : "Home Visit";
+    const visitTypeLabel = visitType === "online" ? "Online Consultation" : visitType === "clinic" ? "Clinic Visit" : "Home Visit";
     const serviceName = selectedService?.name || "General Consultation";
 
     console.log("Mutating booking with data:", {
@@ -155,6 +155,24 @@ export default function Booking() {
       month: "long",
       day: "numeric",
     });
+  };
+
+  const getVisitTypeIcon = (type: string) => {
+    switch (type) {
+      case "online": return <Video className="h-4 w-4 text-muted-foreground" />;
+      case "clinic": return <Building2 className="h-4 w-4 text-muted-foreground" />;
+      case "home": return <Home className="h-4 w-4 text-muted-foreground" />;
+      default: return null;
+    }
+  };
+
+  const getVisitTypeLabel = (type: string) => {
+    switch (type) {
+      case "online": return "Online Consultation";
+      case "clinic": return "Clinic Visit";
+      case "home": return "Home Visit";
+      default: return "In-person";
+    }
   };
 
   if (isLoading) {
@@ -228,15 +246,12 @@ export default function Booking() {
                   <span>{time}</span>
                 </div>
                 <div className="flex items-center gap-2 text-sm">
-                  {visitType === "online" ? (
-                    <Video className="h-4 w-4 text-muted-foreground" />
-                  ) : (
-                    <Home className="h-4 w-4 text-muted-foreground" />
-                  )}
-                  <span>{visitType === "online" ? "Online Consultation" : "Home Visit"}</span>
+                  {getVisitTypeIcon(visitType)}
+                  <span>{getVisitTypeLabel(visitType)}</span>
                 </div>
               </CardContent>
             </Card>
+
 
             <div className="flex flex-col gap-3">
               <Button onClick={() => navigate("/patient/dashboard")} data-testid="button-go-to-dashboard">
@@ -307,15 +322,11 @@ export default function Booking() {
                       </div>
                     </div>
                     <div className="flex items-center gap-3 p-4 rounded-lg bg-muted/50">
-                      {visitType === "online" ? (
-                        <Video className="h-5 w-5 text-primary" />
-                      ) : (
-                        <Home className="h-5 w-5 text-primary" />
-                      )}
+                      {getVisitTypeIcon(visitType)}
                       <div>
                         <p className="text-sm text-muted-foreground">Visit Type</p>
                         <p className="font-medium">
-                          {visitType === "online" ? "Online Consultation" : "Home Visit"}
+                          {getVisitTypeLabel(visitType)}
                         </p>
                       </div>
                     </div>

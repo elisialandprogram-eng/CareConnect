@@ -22,6 +22,7 @@ import {
   Languages,
   Calendar as CalendarIcon,
   ChevronRight,
+  Building2,
 } from "lucide-react";
 import type { ProviderWithServices, Service, ReviewWithPatient } from "@shared/schema";
 import { useAuth } from "@/lib/auth";
@@ -33,7 +34,7 @@ export default function ProviderProfile() {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [selectedService, setSelectedService] = useState<Service | null>(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
-  const [visitType, setVisitType] = useState<"online" | "home">("online");
+  const [visitType, setVisitType] = useState<"online" | "home" | "clinic">("online");
 
   const { data: provider, isLoading: providerLoading } = useQuery<ProviderWithServices>({
     queryKey: ["/api/providers", id],
@@ -65,7 +66,7 @@ export default function ProviderProfile() {
       providerId: id!,
       date: selectedDate.toISOString().split("T")[0],
       time: selectedTime,
-      visitType,
+      visitType: visitType,
     });
     
     if (effectiveService) {
@@ -393,6 +394,15 @@ export default function ProviderProfile() {
                       >
                         <Video className="h-4 w-4 mr-2" />
                         Online
+                      </Button>
+                      <Button
+                        variant={visitType === "clinic" ? "default" : "outline"}
+                        className="w-full"
+                        onClick={() => setVisitType("clinic")}
+                        data-testid="button-visit-clinic"
+                      >
+                        <Building2 className="h-4 w-4 mr-2" />
+                        Clinic
                       </Button>
                       {provider.homeVisitFee && (
                         <Button
