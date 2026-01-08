@@ -415,6 +415,37 @@ export async function registerRoutes(
     }
   });
 
+  // Forgot password
+  app.post("/api/auth/forgot-password", async (req: Request, res: Response) => {
+    try {
+      const { email } = req.body;
+      const user = await storage.getUserByEmail(email);
+      
+      // We don't want to reveal if a user exists or not for security
+      if (!user) {
+        return res.json({ message: "If an account exists with this email, you will receive a reset link." });
+      }
+
+      // Generate a simple token (in a real app, this should be a secure random token stored in DB)
+      const token = Math.random().toString(36).substring(2, 15);
+      
+      if (resend) {
+        await resend.emails.send({
+          from: FROM_EMAIL,
+          to: user.email,
+          subject: "Reset your GoldenLife password",
+          text: `You requested a password reset. Use this code to reset your password: ${token}. (Note: This is a demo implementation)`,
+        });
+      } else {
+        console.log(`Password reset token for ${user.email}: ${token}`);
+      }
+
+      res.json({ message: "If an account exists with this email, you will receive a reset link." });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to process forgot password request" });
+    }
+  });
+
   // Update user profile
   app.patch("/api/auth/profile", authenticateToken, async (req: AuthRequest, res: Response) => {
     try {
