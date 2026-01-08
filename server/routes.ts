@@ -711,6 +711,30 @@ export async function registerRoutes(
   });
 
   // Auto-cancel past appointments
+  // ============ MEDICAL RECORDS ROUTES ============
+
+  // Get prescriptions for a patient
+  app.get("/api/prescriptions/patient/:id", authenticateToken, async (req: AuthRequest, res: Response) => {
+    try {
+      const prescriptions = await storage.getPrescriptionsByPatient(req.params.id);
+      res.json(prescriptions);
+    } catch (error) {
+      console.error("Get prescriptions error:", error);
+      res.status(500).json({ message: "Failed to get prescriptions" });
+    }
+  });
+
+  // Get medical history for a patient
+  app.get("/api/medical-history/patient/:id", authenticateToken, async (req: AuthRequest, res: Response) => {
+    try {
+      const history = await storage.getMedicalHistoryByPatient(req.params.id);
+      res.json(history);
+    } catch (error) {
+      console.error("Get medical history error:", error);
+      res.status(500).json({ message: "Failed to get medical history" });
+    }
+  });
+
   app.post("/api/appointments/cleanup", authenticateToken, async (req: AuthRequest, res: Response) => {
     try {
       const appointments = await storage.getAppointmentsByPatient(req.user!.id);

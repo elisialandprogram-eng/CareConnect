@@ -365,8 +365,8 @@ export default function PatientDashboard() {
                     <MessageSquare className="h-6 w-6 text-blue-600 dark:text-blue-400" />
                   </div>
                   <div>
-                    <p className="text-2xl font-bold">0</p>
-                    <p className="text-sm text-muted-foreground">Messages</p>
+                    <p className="text-2xl font-bold">{upcomingAppointments.filter(a => a.status === 'confirmed').length}</p>
+                    <p className="text-sm text-muted-foreground">Active</p>
                   </div>
                 </div>
               </CardContent>
