@@ -1,9 +1,22 @@
 import type { Express, Request, Response } from "express";
-import { openai } from "./client";
+import OpenAI from "openai";
+
+let openai: OpenAI | null = null;
+
+if (process.env.AI_INTEGRATIONS_OPENAI_API_KEY) {
+  openai = new OpenAI({
+    apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
+    baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
+  });
+}
 
 export function registerImageRoutes(app: Express): void {
   app.post("/api/generate-image", async (req: Request, res: Response) => {
     try {
+      if (!openai) {
+        return res.status(503).json({ error: "Image generation is not configured. Please set up the OpenAI integration." });
+      }
+
       const { prompt, size = "1024x1024" } = req.body;
 
       if (!prompt) {
@@ -19,8 +32,8 @@ export function registerImageRoutes(app: Express): void {
 
       const imageData = response.data[0];
       res.json({
-        url: imageData.url,
-        b64_json: (imageData as any).b64_json,
+        url: imageData?.url,
+        b64_json: (imageData as any)?.b64_json,
       });
     } catch (error) {
       console.error("Error generating image:", error);
@@ -28,4 +41,3 @@ export function registerImageRoutes(app: Express): void {
     }
   });
 }
-
