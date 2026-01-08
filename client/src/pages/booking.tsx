@@ -354,13 +354,11 @@ export default function Booking() {
                       onValueChange={(value: any) => setPaymentMethod(value)}
                       className="grid grid-cols-2 gap-3"
                     >
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="card" id="card" className="sr-only" />
+                      <div className="relative">
+                        <RadioGroupItem value="card" id="card" className="peer sr-only" />
                         <Label
                           htmlFor="card"
-                          className={`flex items-center gap-3 p-4 rounded-lg border-2 cursor-pointer transition-all w-full ${
-                            paymentMethod === "card" ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"
-                          }`}
+                          className="flex items-center gap-3 p-4 rounded-lg border-2 cursor-pointer transition-all w-full peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5 border-border hover:border-primary/50"
                         >
                           <CreditCard className="h-5 w-5 text-primary" />
                           <div className="flex-1">
@@ -370,13 +368,11 @@ export default function Booking() {
                         </Label>
                       </div>
 
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="crypto" id="crypto" className="sr-only" />
+                      <div className="relative">
+                        <RadioGroupItem value="crypto" id="crypto" className="peer sr-only" />
                         <Label
                           htmlFor="crypto"
-                          className={`flex items-center gap-3 p-4 rounded-lg border-2 cursor-pointer transition-all w-full ${
-                            paymentMethod === "crypto" ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"
-                          }`}
+                          className="flex items-center gap-3 p-4 rounded-lg border-2 cursor-pointer transition-all w-full peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5 border-border hover:border-primary/50"
                         >
                           <Bitcoin className="h-5 w-5 text-primary" />
                           <div className="flex-1">
@@ -386,13 +382,11 @@ export default function Booking() {
                         </Label>
                       </div>
 
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="bank_transfer" id="bank_transfer" className="sr-only" />
+                      <div className="relative">
+                        <RadioGroupItem value="bank_transfer" id="bank_transfer" className="peer sr-only" />
                         <Label
                           htmlFor="bank_transfer"
-                          className={`flex items-center gap-3 p-4 rounded-lg border-2 cursor-pointer transition-all w-full ${
-                            paymentMethod === "bank_transfer" ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"
-                          }`}
+                          className="flex items-center gap-3 p-4 rounded-lg border-2 cursor-pointer transition-all w-full peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5 border-border hover:border-primary/50"
                         >
                           <Building2 className="h-5 w-5 text-primary" />
                           <div className="flex-1">
@@ -402,13 +396,11 @@ export default function Booking() {
                         </Label>
                       </div>
 
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="cash" id="cash" className="sr-only" />
+                      <div className="relative">
+                        <RadioGroupItem value="cash" id="cash" className="peer sr-only" />
                         <Label
                           htmlFor="cash"
-                          className={`flex items-center gap-3 p-4 rounded-lg border-2 cursor-pointer transition-all w-full ${
-                            paymentMethod === "cash" ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"
-                          }`}
+                          className="flex items-center gap-3 p-4 rounded-lg border-2 cursor-pointer transition-all w-full peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5 border-border hover:border-primary/50"
                         >
                           <Banknote className="h-5 w-5 text-primary" />
                           <div className="flex-1">

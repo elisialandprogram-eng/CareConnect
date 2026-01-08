@@ -100,6 +100,10 @@ export default function ProviderDashboard() {
     (a) => a.status === "completed"
   ) || [];
 
+  const cancelledAppointments = appointments?.filter(
+    (a) => a.status === "cancelled" || a.status === "rescheduled"
+  ) || [];
+
   const totalEarnings = completedAppointments.reduce(
     (sum, a) => sum + Number(a.totalAmount || 0),
     0
@@ -314,6 +318,9 @@ export default function ProviderDashboard() {
                   <TabsTrigger value="completed" data-testid="tab-completed">
                     Completed
                   </TabsTrigger>
+                  <TabsTrigger value="cancelled" data-testid="tab-cancelled">
+                    Cancelled ({cancelledAppointments.length})
+                  </TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="today" className="mt-6 space-y-3">
@@ -360,6 +367,21 @@ export default function ProviderDashboard() {
                       <CardContent className="p-12 text-center">
                         <CheckCircle className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
                         <p className="text-muted-foreground">No completed appointments yet</p>
+                      </CardContent>
+                    </Card>
+                  )}
+                </TabsContent>
+
+                <TabsContent value="cancelled" className="mt-6 space-y-3">
+                  {cancelledAppointments.length > 0 ? (
+                    cancelledAppointments.map((appointment) => (
+                      <AppointmentRow key={appointment.id} appointment={appointment} />
+                    ))
+                  ) : (
+                    <Card>
+                      <CardContent className="p-12 text-center">
+                        <X className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                        <p className="text-muted-foreground">No cancelled appointments</p>
                       </CardContent>
                     </Card>
                   )}
