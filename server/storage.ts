@@ -1101,7 +1101,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createConversation(title: string): Promise<ChatConversation> {
-    const [conversation] = await db.insert(chatConversations).values({ title, patientId: 'system', providerId: 'system' } as any).returning();
+    const [conversation] = await db.insert(chatConversations).values({ title, patientId: "system", providerId: "system" } as any).returning();
     return (conversation as any);
   }
 
@@ -1115,7 +1115,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createMessage(conversationId: number, role: string, content: string): Promise<ChatMessage> {
-    const [message] = await db.insert(chatMessages).values({ conversationId: String(conversationId), senderId: 'system', content } as any).returning();
+    const [message] = await db.insert(chatMessages).values({ conversationId: String(conversationId), senderId: "system", content } as any).returning();
     return (message as any);
   }
 
@@ -1160,7 +1160,7 @@ export class DatabaseStorage implements IStorage {
 
   // Messaging
   async getChatConversations(userId: string, role: string): Promise<any[]> {
-    const filter = role === 'provider' ? eq(chatConversations.providerId, userId) : eq(chatConversations.patientId, userId);
+    const filter = role === "provider" ? eq(chatConversations.providerId, userId) : eq(chatConversations.patientId, userId);
     return db.select().from(chatConversations).where(filter).orderBy(desc(chatConversations.updatedAt));
   }
 

@@ -492,7 +492,7 @@ export default function PatientDashboard() {
                               <div>
                                 <p className="font-medium">Payment #{String(payment.id).slice(0, 8)}</p>
                                 <p className="text-sm text-muted-foreground">
-                                  {new Date(payment.createdAt).toLocaleDateString()} • {
+                                  {payment.createdAt ? new Date(payment.createdAt).toLocaleDateString() : 'N/A'} • {
                                     (payment as any).paymentMethod === 'crypto' ? 'Cryptocurrency' : 
                                     (payment as any).paymentMethod === 'card' ? 'Credit Card' :
                                     (payment as any).paymentMethod === 'bank_transfer' ? 'Bank Transfer' :
