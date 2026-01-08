@@ -1012,7 +1012,14 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updatePlatformSetting(key: string, value: string): Promise<PlatformSetting | undefined> {
-    const [setting] = await db.update(platformSettings).set({ value, updatedAt: new Date() }).where(eq(platformSettings.key, key)).returning();
+    const [setting] = await db
+      .insert(platformSettings)
+      .values({ key, value, category: "general" })
+      .onConflictDoUpdate({
+        target: platformSettings.key,
+        set: { value, updatedAt: new Date() },
+      })
+      .returning();
     return setting;
   }
 

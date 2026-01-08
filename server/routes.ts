@@ -554,7 +554,32 @@ export async function registerRoutes(
     }
   });
 
-  // ============ APPOINTMENT ROUTES ============
+  // Get platform settings
+  app.get("/api/admin/settings", authenticateToken, async (req: AuthRequest, res: Response) => {
+    try {
+      if (req.user!.role !== "admin") {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+      const settings = await storage.getAllPlatformSettings();
+      res.json(settings);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get platform settings" });
+    }
+  });
+
+  // Update platform settings
+  app.post("/api/admin/settings", authenticateToken, async (req: AuthRequest, res: Response) => {
+    try {
+      if (req.user!.role !== "admin") {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+      const { key, value } = req.body;
+      const setting = await storage.updatePlatformSetting(key, value);
+      res.json(setting);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update platform setting" });
+    }
+  });
 
   // Create appointment
   app.post("/api/appointments", authenticateToken, async (req: AuthRequest, res: Response) => {
