@@ -70,10 +70,16 @@ export function registerChatRoutes(app: Express): void {
 
       // Get conversation history for context
       const messages = await chatStorage.getMessagesByConversation(conversationId);
-      const chatMessages = messages.map((m) => ({
-        role: m.role as "user" | "assistant",
-        content: m.content,
-      }));
+      const chatMessages: OpenAI.Chat.ChatCompletionMessageParam[] = [
+        {
+          role: "system",
+          content: "You are a helpful assistant for CareConnect (GoldenLife), a healthcare booking platform. Your goal is to help users with information about healthcare services (physiotherapy, doctors, home care nurses), booking appointments, and platform navigation. Only answer questions related to CareConnect's services, healthcare providers on the platform, and the booking process. If a user asks a general or out-of-context question not related to these topics, politely decline and steer the conversation back to CareConnect's services."
+        },
+        ...messages.map((m) => ({
+          role: m.role as "user" | "assistant",
+          content: m.content,
+        }))
+      ];
 
       // Set up SSE
       res.setHeader("Content-Type", "text/event-stream");
@@ -82,7 +88,7 @@ export function registerChatRoutes(app: Express): void {
 
       // Stream response from OpenAI
       const stream = await openai.chat.completions.create({
-        model: "gpt-5.1",
+        model: "gpt-4o",
         messages: chatMessages,
         stream: true,
         max_completion_tokens: 2048,
