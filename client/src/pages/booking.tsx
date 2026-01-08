@@ -349,59 +349,67 @@ export default function Booking() {
 
                   <div className="space-y-3">
                     <Label>Payment Method</Label>
-                    <RadioGroup value={paymentMethod} onValueChange={(value: any) => setPaymentMethod(value)}>
-                      <div className="grid grid-cols-2 gap-3">
+                    <RadioGroup 
+                      value={paymentMethod} 
+                      onValueChange={(value: any) => setPaymentMethod(value)}
+                      className="grid grid-cols-2 gap-3"
+                    >
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="card" id="card" className="sr-only" />
                         <Label
                           htmlFor="card"
-                          className={`flex items-center gap-3 p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                          className={`flex items-center gap-3 p-4 rounded-lg border-2 cursor-pointer transition-all w-full ${
                             paymentMethod === "card" ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"
                           }`}
                         >
-                          <RadioGroupItem value="card" id="card" />
                           <CreditCard className="h-5 w-5 text-primary" />
                           <div className="flex-1">
                             <p className="font-medium">Card</p>
                             <p className="text-xs text-muted-foreground">Credit/Debit</p>
                           </div>
                         </Label>
+                      </div>
 
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="crypto" id="crypto" className="sr-only" />
                         <Label
                           htmlFor="crypto"
-                          className={`flex items-center gap-3 p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                          className={`flex items-center gap-3 p-4 rounded-lg border-2 cursor-pointer transition-all w-full ${
                             paymentMethod === "crypto" ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"
                           }`}
                         >
-                          <RadioGroupItem value="crypto" id="crypto" />
-                          <div className="flex items-center gap-1 text-primary">
-                            <Bitcoin className="h-5 w-5" />
-                          </div>
+                          <Bitcoin className="h-5 w-5 text-primary" />
                           <div className="flex-1">
                             <p className="font-medium">Crypto</p>
                             <p className="text-xs text-muted-foreground">BTC, ETH, USDT</p>
                           </div>
                         </Label>
+                      </div>
 
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="bank_transfer" id="bank_transfer" className="sr-only" />
                         <Label
                           htmlFor="bank_transfer"
-                          className={`flex items-center gap-3 p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                          className={`flex items-center gap-3 p-4 rounded-lg border-2 cursor-pointer transition-all w-full ${
                             paymentMethod === "bank_transfer" ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"
                           }`}
                         >
-                          <RadioGroupItem value="bank_transfer" id="bank_transfer" />
                           <Building2 className="h-5 w-5 text-primary" />
                           <div className="flex-1">
                             <p className="font-medium">Bank Transfer</p>
                             <p className="text-xs text-muted-foreground">Direct</p>
                           </div>
                         </Label>
+                      </div>
 
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="cash" id="cash" className="sr-only" />
                         <Label
                           htmlFor="cash"
-                          className={`flex items-center gap-3 p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                          className={`flex items-center gap-3 p-4 rounded-lg border-2 cursor-pointer transition-all w-full ${
                             paymentMethod === "cash" ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"
                           }`}
                         >
-                          <RadioGroupItem value="cash" id="cash" />
                           <Banknote className="h-5 w-5 text-primary" />
                           <div className="flex-1">
                             <p className="font-medium">Cash</p>
