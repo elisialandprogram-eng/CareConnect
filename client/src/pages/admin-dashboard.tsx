@@ -427,6 +427,51 @@ function FinancialReports() {
 // Provider Management Component
 function ProvidersManagement() {
   const { toast } = useToast();
+  const [, navigate] = useLocation();
+  const form = useForm<AdminProviderData>({
+    resolver: zodResolver(adminProviderSchema),
+    defaultValues: {
+      email: "",
+      password: "",
+      firstName: "",
+      lastName: "",
+      phone: "",
+      city: "",
+      type: "physiotherapist",
+      specialization: "",
+      bio: "",
+      yearsExperience: 0,
+      education: "",
+      consultationFee: 0,
+      homeVisitFee: undefined,
+      languages: ["english"],
+      availableDays: ["monday", "tuesday", "wednesday", "thursday", "friday"],
+    },
+  });
+
+  const createProviderMutation = useMutation({
+    mutationFn: async (data: AdminProviderData) => {
+      const response = await apiRequest("POST", "/api/admin/providers", data);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to create provider");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Provider created successfully" });
+      form.reset();
+      refetch();
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error creating provider",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   const { data: providers, isLoading, refetch } = useQuery<any[]>({
     queryKey: ["/api/admin/providers"],
   });
@@ -454,6 +499,285 @@ function ProvidersManagement() {
 
   return (
     <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle>Create New Provider</CardTitle>
+          <CardDescription>Add a new healthcare provider to the platform</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit((data) => createProviderMutation.mutate(data))} className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email</FormLabel>
+                      <FormControl>
+                        <Input {...field} type="email" data-testid="input-provider-email" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Password</FormLabel>
+                      <FormControl>
+                        <Input {...field} type="password" data-testid="input-provider-password" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="firstName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>First Name</Label>
+                      <FormControl>
+                        <Input {...field} data-testid="input-provider-firstname" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="lastName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Last Name</Label>
+                      <FormControl>
+                        <Input {...field} data-testid="input-provider-lastname" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="phone"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Phone</FormLabel>
+                      <FormControl>
+                        <Input {...field} data-testid="input-provider-phone" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="city"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>City</FormLabel>
+                      <FormControl>
+                        <Input {...field} data-testid="input-provider-city" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="type"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Provider Type</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger data-testid="select-provider-type">
+                            <SelectValue />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="physiotherapist">Physiotherapist</SelectItem>
+                          <SelectItem value="doctor">Doctor</SelectItem>
+                          <SelectItem value="nurse">Nurse</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="specialization"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Specialization</FormLabel>
+                      <FormControl>
+                        <Input {...field} data-testid="input-provider-specialization" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="yearsExperience"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Years of Experience</FormLabel>
+                      <FormControl>
+                        <Input type="number" {...field} data-testid="input-provider-experience" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="education"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Education</FormLabel>
+                      <FormControl>
+                        <Input {...field} data-testid="input-provider-education" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="consultationFee"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Consultation Fee ($)</FormLabel>
+                      <FormControl>
+                        <Input type="number" step="0.01" {...field} data-testid="input-provider-fee" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="homeVisitFee"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Home Visit Fee ($)</FormLabel>
+                      <FormControl>
+                        <Input type="number" step="0.01" {...field} value={field.value || ""} onChange={e => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)} data-testid="input-provider-homevisit-fee" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <FormField
+                control={form.control}
+                name="bio"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Bio</Label>
+                    <FormControl>
+                      <Textarea {...field} rows={4} data-testid="input-provider-bio" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="languages"
+                render={() => (
+                  <FormItem>
+                    <FormLabel>Languages</FormLabel>
+                    <div className="flex flex-wrap gap-4">
+                      {languageOptions.map((lang) => (
+                        <FormField
+                          key={lang.value}
+                          control={form.control}
+                          name="languages"
+                          render={({ field }) => (
+                            <FormItem className="flex items-center gap-2">
+                              <FormControl>
+                                <Checkbox
+                                  checked={field.value?.includes(lang.value)}
+                                  onCheckedChange={(checked) => {
+                                    const updated = checked
+                                      ? [...(field.value || []), lang.value]
+                                      : (field.value || []).filter((v) => v !== lang.value);
+                                    field.onChange(updated);
+                                  }}
+                                  data-testid={`checkbox-lang-${lang.value}`}
+                                />
+                              </FormControl>
+                              <FormLabel className="font-normal cursor-pointer">{lang.label}</FormLabel>
+                            </FormItem>
+                          )}
+                        />
+                      ))}
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="availableDays"
+                render={() => (
+                  <FormItem>
+                    <FormLabel>Available Days</FormLabel>
+                    <div className="flex flex-wrap gap-4">
+                      {dayOptions.map((day) => (
+                        <FormField
+                          key={day.value}
+                          control={form.control}
+                          name="availableDays"
+                          render={({ field }) => (
+                            <FormItem className="flex items-center gap-2">
+                              <FormControl>
+                                <Checkbox
+                                  checked={field.value?.includes(day.value)}
+                                  onCheckedChange={(checked) => {
+                                    const updated = checked
+                                      ? [...(field.value || []), day.value]
+                                      : (field.value || []).filter((v) => v !== day.value);
+                                    field.onChange(updated);
+                                  }}
+                                  data-testid={`checkbox-day-${day.value}`}
+                                />
+                              </FormControl>
+                              <FormLabel className="font-normal cursor-pointer">{day.label}</FormLabel>
+                            </FormItem>
+                          )}
+                        />
+                      ))}
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <Button type="submit" size="lg" disabled={createProviderMutation.isPending} className="w-full" data-testid="button-create-provider">
+                {createProviderMutation.isPending ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Creating...
+                  </>
+                ) : (
+                  "Create Provider"
+                )}
+              </Button>
+            </form>
+          </Form>
+        </CardContent>
+      </Card>
+
       <Card>
         <CardHeader>
           <CardTitle>Manage Providers</CardTitle>
