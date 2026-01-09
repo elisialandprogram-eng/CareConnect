@@ -229,8 +229,9 @@ function BookingsManagement() {
   const updateBookingMutation = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: string }) => {
       const response = await apiRequest("PATCH", `/api/admin/bookings/${id}`, { status });
-      if (!response.ok) throw new Error("Failed to update booking");
-      return response.json();
+      const resData = await response.json();
+      if (!response.ok) throw new Error(resData.message || "Failed to update booking");
+      return resData;
     },
     onSuccess: () => {
       toast({ title: "Booking updated successfully" });
@@ -471,8 +472,9 @@ function ContentManagement() {
   const deleteFaqMutation = useMutation({
     mutationFn: async (id: string) => {
       const response = await apiRequest("DELETE", `/api/admin/faqs/${id}`);
-      if (!response.ok) throw new Error("Failed to delete");
-      return response.json();
+      const resData = await response.json();
+      if (!response.ok) throw new Error(resData.message || "Failed to delete");
+      return resData;
     },
     onSuccess: () => {
       toast({ title: "FAQ deleted" });
@@ -515,8 +517,9 @@ function ContentManagement() {
   const deleteAnnouncementMutation = useMutation({
     mutationFn: async (id: string) => {
       const response = await apiRequest("DELETE", `/api/admin/announcements/${id}`);
-      if (!response.ok) throw new Error("Failed to delete");
-      return response.json();
+      const resData = await response.json();
+      if (!response.ok) throw new Error(resData.message || "Failed to delete");
+      return resData;
     },
     onSuccess: () => {
       toast({ title: "Announcement deleted" });
@@ -761,25 +764,33 @@ function PlatformSettings() {
   const createSettingMutation = useMutation({
     mutationFn: async (data: any) => {
       const response = await apiRequest("POST", "/api/admin/settings", data);
-      if (!response.ok) throw new Error("Failed to save setting");
-      return response.json();
+      const resData = await response.json();
+      if (!response.ok) throw new Error(resData.message || "Failed to save setting");
+      return resData;
     },
     onSuccess: () => {
       toast({ title: "Setting saved!" });
       settingsForm.reset();
       refetch();
     },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
   });
 
   const updateSettingMutation = useMutation({
     mutationFn: async ({ key, value }: { key: string; value: string }) => {
-      const response = await apiRequest("PATCH", `/api/admin/settings/${key}`, { value });
-      if (!response.ok) throw new Error("Failed to update setting");
-      return response.json();
+      const response = await apiRequest("POST", "/api/admin/settings", { key, value });
+      const resData = await response.json();
+      if (!response.ok) throw new Error(resData.message || "Failed to update setting");
+      return resData;
     },
     onSuccess: () => {
       toast({ title: "Setting updated!" });
       refetch();
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
     },
   });
 
@@ -1209,8 +1220,9 @@ function PricingManagement({ providers }: { providers: ProviderWithUser[] }) {
   const deletePricingMutation = useMutation({
     mutationFn: async (id: string) => {
       const response = await apiRequest("DELETE", `/api/admin/pricing-overrides/${id}`);
-      if (!response.ok) throw new Error("Failed to delete");
-      return response.json();
+      const resData = await response.json();
+      if (!response.ok) throw new Error(resData.message || "Failed to delete");
+      return resData;
     },
     onSuccess: () => {
       toast({ title: "Pricing override deleted" });
@@ -1429,8 +1441,9 @@ function PromoCodeManagement({ providers }: { providers: ProviderWithUser[] }) {
   const deletePromoMutation = useMutation({
     mutationFn: async (id: string) => {
       const response = await apiRequest("DELETE", `/api/admin/promo-codes/${id}`);
-      if (!response.ok) throw new Error("Failed to delete");
-      return response.json();
+      const resData = await response.json();
+      if (!response.ok) throw new Error(resData.message || "Failed to delete");
+      return resData;
     },
     onSuccess: () => {
       toast({ title: "Promo code deleted" });
