@@ -100,33 +100,7 @@ export const users = pgTable("users", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-// Provider profiles table
-export const providers = pgTable("providers", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar("user_id").notNull().references(() => users.id),
-  type: providerTypeEnum("type").notNull(),
-  specialization: text("specialization").notNull(),
-  bio: text("bio"),
-  yearsExperience: integer("years_experience").default(0),
-  education: text("education"),
-  certifications: text("certifications").array(),
-  languages: text("languages").array(),
-  consultationFee: decimal("consultation_fee", { precision: 10, scale: 2 }).notNull(),
-  homeVisitFee: decimal("home_visit_fee", { precision: 10, scale: 2 }),
-  isVerified: boolean("is_verified").default(false),
-  isActive: boolean("is_active").default(true),
-  rating: decimal("rating", { precision: 2, scale: 1 }).default("0"),
-  totalReviews: integer("total_reviews").default(0),
-  latitude: decimal("latitude", { precision: 10, scale: 8 }),
-  longitude: decimal("longitude", { precision: 11, scale: 8 }),
-  availableDays: text("available_days").array(),
-  workingHoursStart: text("working_hours_start").default("09:00"),
-  workingHoursEnd: text("working_hours_end").default("18:00"),
-  createdAt: timestamp("created_at").defaultNow(),
-});
 
-// Services offered by providers
-export const services = pgTable("services", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   providerId: varchar("provider_id").notNull().references(() => providers.id),
   name: text("name").notNull(),
