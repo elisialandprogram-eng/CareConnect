@@ -332,18 +332,9 @@ function BookingsManagement() {
 
 // Financial Reports Component
 function FinancialReports() {
-  const { data: financial, isLoading } = useQuery<any>({
-    queryKey: ["/api/admin/financial"],
+  const { data: analytics, isLoading } = useQuery<any>({
+    queryKey: ["/api/admin/analytics"],
   });
-
-  const revenueData = [
-    { name: 'Jan', revenue: 4000 },
-    { name: 'Feb', revenue: 3000 },
-    { name: 'Mar', revenue: 5000 },
-    { name: 'Apr', revenue: 4500 },
-    { name: 'May', revenue: 6000 },
-    { name: 'Jun', revenue: 5500 },
-  ];
 
   if (isLoading) {
     return (
@@ -353,8 +344,8 @@ function FinancialReports() {
     );
   }
 
-  const payments = financial?.payments || [];
-  const totalRevenue = payments.reduce((sum: number, p: any) => sum + Number(p.amount || 0), 0);
+  const payments = analytics?.recentPayments || [];
+  const totalRevenue = parseFloat(analytics?.totalRevenue || "0");
 
   return (
     <div className="space-y-6">
@@ -370,71 +361,137 @@ function FinancialReports() {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Transactions</CardTitle>
-            <Activity className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Completed Bookings</CardTitle>
+            <CheckCircle className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold" data-testid="text-financial-transactions">{payments.length}</div>
+            <div className="text-2xl font-bold" data-testid="text-financial-completed">{analytics?.completedBookings || 0}</div>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Avg. Transaction</CardTitle>
-            <BarChart3 className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Total Users</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              ${payments.length > 0 ? (totalRevenue / payments.length).toFixed(2) : '0.00'}
-            </div>
+            <div className="text-2xl font-bold" data-testid="text-financial-users">{analytics?.totalUsers || 0}</div>
           </CardContent>
         </Card>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Revenue Over Time</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={revenueData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="name" />
-              <YAxis />
-              <Tooltip />
-              <Bar dataKey="revenue" fill="hsl(var(--primary))" />
-            </BarChart>
-          </ResponsiveContainer>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
           <CardTitle>Recent Payments</CardTitle>
         </CardHeader>
         <CardContent>
-          <ScrollArea className="h-[300px]">
-            <div className="divide-y">
-              {payments.slice(0, 20).map((payment: any) => (
-                <div key={payment.id} className="py-3 flex items-center justify-between gap-4" data-testid={`row-payment-${payment.id}`}>
-                  <div>
-                    <p className="font-medium">Payment #{String(payment.id).slice(0, 8)}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {new Date(payment.createdAt).toLocaleDateString()}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Badge variant={payment.status === 'completed' ? 'default' : 'outline'}>
-                      {payment.status}
-                    </Badge>
-                    <span className="font-medium">${Number(payment.amount).toFixed(2)}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </ScrollArea>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Date</TableHead>
+                <TableHead>Amount</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Method</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {payments.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={4} className="text-center py-4 text-muted-foreground">
+                    No recent payments
+                  </TableCell>
+                </TableRow>
+              ) : (
+                payments.map((payment: any) => (
+                  <TableRow key={payment.id}>
+                    <TableCell>{new Date(payment.createdAt).toLocaleDateString()}</TableCell>
+                    <TableCell>${Number(payment.amount).toFixed(2)}</TableCell>
+                    <TableCell>
+                      <Badge variant={payment.status === "completed" ? "default" : "secondary"}>
+                        {payment.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="capitalize">{payment.paymentMethod}</TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+// Provider Management Component
+function ProvidersManagement() {
+  const { toast } = useToast();
+  const { data: providers, isLoading, refetch } = useQuery<any[]>({
+    queryKey: ["/api/admin/providers"],
+  });
+
+  const updateStatusMutation = useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: string }) => {
+      const response = await apiRequest("PATCH", `/api/admin/providers/${id}/status`, { status });
+      if (!response.ok) throw new Error("Failed to update status");
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Provider status updated" });
+      refetch();
+    },
+  });
+
+  if (isLoading) return <div className="flex justify-center p-12"><Loader2 className="h-8 w-8 animate-spin" /></div>;
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Manage Providers</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Provider</TableHead>
+              <TableHead>Specialization</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {providers?.map((provider: any) => (
+              <TableRow key={provider.id}>
+                <TableCell>
+                  <div className="font-medium">{provider.user?.firstName} {provider.user?.lastName}</div>
+                  <div className="text-sm text-muted-foreground">{provider.user?.email}</div>
+                </TableCell>
+                <TableCell>{provider.specialization}</TableCell>
+                <TableCell>
+                  <Badge variant={provider.status === 'active' ? 'default' : 'secondary'}>
+                    {provider.status}
+                  </Badge>
+                </TableCell>
+                <TableCell>
+                  <Select
+                    value={provider.status}
+                    onValueChange={(status) => updateStatusMutation.mutate({ id: provider.id, status })}
+                  >
+                    <SelectTrigger className="w-32">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="active">Active</SelectItem>
+                      <SelectItem value="suspended">Suspended</SelectItem>
+                      <SelectItem value="pending">Pending</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -1665,6 +1722,81 @@ function PromoCodeManagement({ providers }: { providers: ProviderWithUser[] }) {
   );
 }
 
+// Provider Management Component
+function ProvidersManagement() {
+  const { toast } = useToast();
+  const { data: providers, isLoading, refetch } = useQuery<any[]>({
+    queryKey: ["/api/admin/providers"],
+  });
+
+  const updateStatusMutation = useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: string }) => {
+      const response = await apiRequest("PATCH", `/api/admin/providers/${id}/status`, { status });
+      if (!response.ok) throw new Error("Failed to update status");
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Provider status updated" });
+      refetch();
+    },
+  });
+
+  if (isLoading) return <div className="flex justify-center p-12"><Loader2 className="h-8 w-8 animate-spin" /></div>;
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Manage Providers</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="rounded-md border">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b bg-muted/50">
+                <th className="h-10 px-4 text-left font-medium">Provider</th>
+                <th className="h-10 px-4 text-left font-medium">Specialization</th>
+                <th className="h-10 px-4 text-left font-medium">Status</th>
+                <th className="h-10 px-4 text-left font-medium">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {providers?.map((provider: any) => (
+                <tr key={provider.id} className="border-b">
+                  <td className="p-4">
+                    <div className="font-medium">{provider.user?.firstName} {provider.user?.lastName}</div>
+                    <div className="text-sm text-muted-foreground">{provider.user?.email}</div>
+                  </td>
+                  <td className="p-4">{provider.specialization}</td>
+                  <td className="p-4">
+                    <Badge variant={provider.status === 'active' ? 'default' : 'secondary'}>
+                      {provider.status}
+                    </Badge>
+                  </td>
+                  <td className="p-4">
+                    <Select
+                      value={provider.status}
+                      onValueChange={(status) => updateStatusMutation.mutate({ id: provider.id, status })}
+                    >
+                      <SelectTrigger className="w-32">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="active">Active</SelectItem>
+                        <SelectItem value="suspended">Suspended</SelectItem>
+                        <SelectItem value="pending">Pending</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function AdminDashboard() {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -1785,6 +1917,10 @@ export default function AdminDashboard() {
             <TabsTrigger value="financial" data-testid="tab-financial">
               <DollarSign className="h-4 w-4 mr-2" />
               Financial
+            </TabsTrigger>
+            <TabsTrigger value="providers-list" data-testid="tab-providers-list">
+              <Building className="h-4 w-4 mr-2" />
+              Providers List
             </TabsTrigger>
             <TabsTrigger value="content" data-testid="tab-content">
               <FileText className="h-4 w-4 mr-2" />
@@ -2160,6 +2296,10 @@ export default function AdminDashboard() {
 
           <TabsContent value="financial">
             <FinancialReports />
+          </TabsContent>
+
+          <TabsContent value="providers-list">
+            <ProvidersManagement />
           </TabsContent>
 
           <TabsContent value="content">
