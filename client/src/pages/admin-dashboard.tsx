@@ -1202,9 +1202,17 @@ function PricingManagement({ providers }: { providers: ProviderWithUser[] }) {
         editingId ? `/api/admin/pricing-overrides/${editingId}` : "/api/admin/pricing-overrides", 
         data
       );
-      const resData = await response.json();
-      if (!response.ok) throw new Error(resData.message || "Failed to save pricing override");
-      return resData;
+      
+      const contentType = response.headers.get("content-type");
+      if (contentType && contentType.includes("application/json")) {
+        const resData = await response.json();
+        if (!response.ok) throw new Error(resData.message || "Failed to save pricing override");
+        return resData;
+      } else {
+        const text = await response.text();
+        console.error("Non-JSON response:", text);
+        throw new Error("Server returned an unexpected response format");
+      }
     },
     onSuccess: () => {
       toast({ title: editingId ? "Pricing updated!" : "Pricing override created!" });

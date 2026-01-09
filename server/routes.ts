@@ -917,61 +917,228 @@ export async function registerRoutes(
     next();
   };
 
-  // Admin: Create provider directly
-  app.post("/api/admin/providers", authenticateToken, requireAdmin, async (req: AuthRequest, res: Response) => {
+  // FAQs
+  app.get("/api/admin/faqs", authenticateToken, requireAdmin, async (req: AuthRequest, res: Response) => {
     try {
-      const {
-        email, password, firstName, lastName, phone, city,
-        type, specialization, bio, yearsExperience, education,
-        consultationFee, homeVisitFee, languages, availableDays
-      } = req.body;
-
-      // Check if user exists
-      let user = await storage.getUserByEmail(email);
-
-      if (!user) {
-        // Create user account
-        const hashedPassword = await bcrypt.hash(password, 10);
-        user = await storage.createUser({
-          email,
-          password: hashedPassword,
-          firstName,
-          lastName,
-          phone: phone || "",
-          role: "provider",
-          city,
-        });
-      } else {
-        // Update existing user to provider role
-        await storage.updateUser(user.id, { role: "provider", city });
-      }
-
-      // Check if provider profile already exists
-      const existingProvider = await storage.getProviderByUserId(user.id);
-      if (existingProvider) {
-        return res.status(400).json({ message: "Provider profile already exists for this user" });
-      }
-
-      // Create provider profile
-      const provider = await storage.createProvider({
-        userId: user.id,
-        type,
-        specialization,
-        bio,
-        yearsExperience,
-        education,
-        consultationFee: consultationFee.toString(),
-        homeVisitFee: homeVisitFee ? homeVisitFee.toString() : null,
-        languages,
-        availableDays,
-        isVerified: true, // Admin-created providers are auto-verified
-        isActive: true,
-      });
-
-      res.status(201).json(provider);
+      const faqs = await storage.getAllFaqs();
+      res.json(faqs);
     } catch (error) {
-      console.error("Admin provider creation error:", error);
-      res.status(500).json({ message: "Failed to create provider" });
+      res.status(500).json({ message: "Failed to get FAQs" });
+    }
+  });
+
+  app.post("/api/admin/faqs", authenticateToken, requireAdmin, async (req: AuthRequest, res: Response) => {
+    try {
+      const faq = await storage.createFaq(req.body);
+      res.status(201).json(faq);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to create FAQ" });
+    }
+  });
+
+  app.delete("/api/admin/faqs/:id", authenticateToken, requireAdmin, async (req: AuthRequest, res: Response) => {
+    try {
+      await storage.deleteFaq(req.params.id);
+      res.json({ message: "FAQ deleted successfully" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete FAQ" });
+    }
+  });
+
+  // Announcements
+  app.get("/api/admin/announcements", authenticateToken, requireAdmin, async (req: AuthRequest, res: Response) => {
+    try {
+      const announcements = await storage.getAllAnnouncements();
+      res.json(announcements);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get announcements" });
+    }
+  });
+
+  app.post("/api/admin/announcements", authenticateToken, requireAdmin, async (req: AuthRequest, res: Response) => {
+    try {
+      const announcement = await storage.createAnnouncement(req.body);
+      res.status(201).json(announcement);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to create announcement" });
+    }
+  });
+
+  app.delete("/api/admin/announcements/:id", authenticateToken, requireAdmin, async (req: AuthRequest, res: Response) => {
+    try {
+      await storage.deleteAnnouncement(req.params.id);
+      res.json({ message: "Announcement deleted successfully" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete announcement" });
+    }
+  });
+
+  // Support Tickets
+  app.get("/api/admin/support-tickets", authenticateToken, requireAdmin, async (req: AuthRequest, res: Response) => {
+    try {
+      const tickets = await storage.getAllSupportTickets();
+      res.json(tickets);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get support tickets" });
+    }
+  });
+
+  app.get("/api/admin/support-tickets/:id/messages", authenticateToken, requireAdmin, async (req: AuthRequest, res: Response) => {
+    try {
+      const messages = await storage.getTicketMessages(req.params.id);
+      res.json(messages);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get ticket messages" });
+    }
+  });
+
+  app.patch("/api/admin/support-tickets/:id", authenticateToken, requireAdmin, async (req: AuthRequest, res: Response) => {
+    try {
+      const ticket = await storage.updateSupportTicket(req.params.id, req.body);
+      if (!ticket) return res.status(404).json({ message: "Ticket not found" });
+      res.json(ticket);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update ticket" });
+    }
+  });
+
+  app.post("/api/admin/support-tickets/:id/messages", authenticateToken, requireAdmin, async (req: AuthRequest, res: Response) => {
+    try {
+      const message = await storage.createTicketMessage({
+        ticketId: req.params.id,
+        senderId: req.user!.id,
+        message: req.body.message,
+        isStaffReply: true,
+      });
+      res.status(201).json(message);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to send message" });
+    }
+  });
+
+  // Analytics
+  app.get("/api/admin/analytics", authenticateToken, requireAdmin, async (req: AuthRequest, res: Response) => {
+    try {
+      const stats = await storage.getAnalyticsStats();
+      res.json(stats);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get analytics" });
+    }
+  });
+
+  // Bookings/Appointments
+  app.get("/api/admin/bookings", authenticateToken, requireAdmin, async (req: AuthRequest, res: Response) => {
+    try {
+      const appointments = await storage.getAllAppointments();
+      res.json(appointments);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get bookings" });
+    }
+  });
+
+  app.patch("/api/admin/bookings/:id", authenticateToken, requireAdmin, async (req: AuthRequest, res: Response) => {
+    try {
+      const appointment = await storage.updateAppointment(req.params.id, req.body);
+      if (!appointment) return res.status(404).json({ message: "Booking not found" });
+      res.json(appointment);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update booking" });
+    }
+  });
+
+  // Audit Logs
+  app.get("/api/admin/audit-logs", authenticateToken, requireAdmin, async (req: AuthRequest, res: Response) => {
+    try {
+      const logs = await storage.getAllAuditLogs();
+      res.json(logs);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get audit logs" });
+    }
+  });
+
+  // Users
+  app.get("/api/admin/users", authenticateToken, requireAdmin, async (req: AuthRequest, res: Response) => {
+    try {
+      const users = await storage.getAllUsers();
+      res.json(users);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get users" });
+    }
+  });
+
+  // Pricing Overrides
+  app.get("/api/admin/pricing-overrides", authenticateToken, requireAdmin, async (req: AuthRequest, res: Response) => {
+    try {
+      const overrides = await storage.getAllPricingOverrides();
+      res.json(overrides);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get pricing overrides" });
+    }
+  });
+
+  app.post("/api/admin/pricing-overrides", authenticateToken, requireAdmin, async (req: AuthRequest, res: Response) => {
+    try {
+      const override = await storage.createProviderPricingOverride(req.body);
+      res.status(201).json(override);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to create pricing override" });
+    }
+  });
+
+  app.patch("/api/admin/pricing-overrides/:id", authenticateToken, requireAdmin, async (req: AuthRequest, res: Response) => {
+    try {
+      const override = await storage.updateProviderPricingOverride(req.params.id, req.body);
+      if (!override) return res.status(404).json({ message: "Override not found" });
+      res.json(override);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update pricing override" });
+    }
+  });
+
+  app.delete("/api/admin/pricing-overrides/:id", authenticateToken, requireAdmin, async (req: AuthRequest, res: Response) => {
+    try {
+      await storage.deleteProviderPricingOverride(req.params.id);
+      res.json({ message: "Override deleted successfully" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete pricing override" });
+    }
+  });
+
+  // Promo Codes
+  app.get("/api/admin/promo-codes", authenticateToken, requireAdmin, async (req: AuthRequest, res: Response) => {
+    try {
+      const codes = await storage.getAllPromoCodes();
+      res.json(codes);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get promo codes" });
+    }
+  });
+
+  app.post("/api/admin/promo-codes", authenticateToken, requireAdmin, async (req: AuthRequest, res: Response) => {
+    try {
+      const code = await storage.createPromoCode(req.body);
+      res.status(201).json(code);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to create promo code" });
+    }
+  });
+
+  app.patch("/api/admin/promo-codes/:id", authenticateToken, requireAdmin, async (req: AuthRequest, res: Response) => {
+    try {
+      const code = await storage.updatePromoCode(req.params.id, req.body);
+      if (!code) return res.status(404).json({ message: "Promo code not found" });
+      res.json(code);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update promo code" });
+    }
+  });
+
+  app.delete("/api/admin/promo-codes/:id", authenticateToken, requireAdmin, async (req: AuthRequest, res: Response) => {
+    try {
+      await storage.deletePromoCode(req.params.id);
+      res.json({ message: "Promo code deleted successfully" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete promo code" });
     }
   });
 
