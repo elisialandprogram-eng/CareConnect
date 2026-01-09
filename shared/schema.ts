@@ -265,8 +265,11 @@ export const auditLogs = pgTable("audit_logs", {
 // Support tickets
 export const supportTickets = pgTable("support_tickets", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar("user_id").notNull().references(() => users.id),
+  userId: varchar("user_id").references(() => users.id),
   assignedTo: varchar("assigned_to").references(() => users.id),
+  name: text("name"),
+  mobileNumber: text("mobile_number"),
+  location: text("location"),
   subject: text("subject").notNull(),
   description: text("description").notNull(),
   status: ticketStatusEnum("status").notNull().default("open"),
@@ -276,6 +279,10 @@ export const supportTickets = pgTable("support_tickets", {
   updatedAt: timestamp("updated_at").defaultNow(),
   resolvedAt: timestamp("resolved_at"),
 });
+
+export const insertSupportTicketSchema = createInsertSchema(supportTickets).omit({ id: true, createdAt: true, updatedAt: true, resolvedAt: true });
+export type InsertSupportTicket = z.infer<typeof insertSupportTicketSchema>;
+export type SupportTicket = typeof supportTickets.$inferSelect;
 
 // Ticket messages
 export const ticketMessages = pgTable("ticket_messages", {

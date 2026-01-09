@@ -17,6 +17,9 @@ export function ContactForm() {
   const form = useForm({
     resolver: zodResolver(insertSupportTicketSchema),
     defaultValues: {
+      name: "",
+      mobileNumber: "",
+      location: "",
       subject: "",
       description: "",
       priority: "medium",
@@ -100,6 +103,47 @@ export function ContactForm() {
                 <CardContent className="pt-6">
                   <Form {...form}>
                     <form onSubmit={form.handleSubmit((data) => mutation.mutate(data))} className="space-y-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <FormField
+                          control={form.control}
+                          name="name"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Full Name</FormLabel>
+                              <FormControl>
+                                <Input placeholder="John Doe" {...field} data-testid="input-contact-name" />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name="mobileNumber"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Mobile Number</FormLabel>
+                              <FormControl>
+                                <Input placeholder="+1 234 567 890" {...field} data-testid="input-contact-mobile" />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                      <FormField
+                        control={form.control}
+                        name="location"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Location</FormLabel>
+                            <FormControl>
+                              <Input placeholder="City, Country" {...field} data-testid="input-contact-location" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
                       <FormField
                         control={form.control}
                         name="subject"
