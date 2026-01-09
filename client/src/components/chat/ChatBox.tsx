@@ -81,7 +81,7 @@ export function ChatBox() {
     <div className="fixed bottom-4 left-4 z-50 flex flex-col items-start gap-2">
       {!isOpen ? (
         <Button
-          className="rounded-full h-14 w-14 shadow-lg"
+          className="rounded-full h-14 w-14 shadow-lg bg-primary hover:bg-primary/90 text-primary-foreground flex items-center justify-center"
           onClick={() => setIsOpen(true)}
           data-testid="button-chat-open"
         >
