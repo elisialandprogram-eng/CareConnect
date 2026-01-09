@@ -454,13 +454,17 @@ function ContentManagement() {
   const createFaqMutation = useMutation({
     mutationFn: async (data: any) => {
       const response = await apiRequest("POST", "/api/admin/faqs", data);
-      if (!response.ok) throw new Error("Failed to create FAQ");
-      return response.json();
+      const resData = await response.json();
+      if (!response.ok) throw new Error(resData.message || "Failed to create FAQ");
+      return resData;
     },
     onSuccess: () => {
       toast({ title: "FAQ created!" });
       faqForm.reset();
       refetchFaqs();
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
     },
   });
 
@@ -494,13 +498,17 @@ function ContentManagement() {
   const createAnnouncementMutation = useMutation({
     mutationFn: async (data: any) => {
       const response = await apiRequest("POST", "/api/admin/announcements", data);
-      if (!response.ok) throw new Error("Failed to create announcement");
-      return response.json();
+      const resData = await response.json();
+      if (!response.ok) throw new Error(resData.message || "Failed to create announcement");
+      return resData;
     },
     onSuccess: () => {
       toast({ title: "Announcement created!" });
       announcementForm.reset();
       refetchAnnouncements();
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
     },
   });
 
@@ -976,25 +984,33 @@ function SupportTickets() {
   const updateTicketMutation = useMutation({
     mutationFn: async ({ id, status, priority }: { id: string; status?: string; priority?: string }) => {
       const response = await apiRequest("PATCH", `/api/admin/support-tickets/${id}`, { status, priority });
-      if (!response.ok) throw new Error("Failed to update ticket");
-      return response.json();
+      const resData = await response.json();
+      if (!response.ok) throw new Error(resData.message || "Failed to update ticket");
+      return resData;
     },
     onSuccess: () => {
       toast({ title: "Ticket updated!" });
       refetch();
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
     },
   });
 
   const sendMessageMutation = useMutation({
     mutationFn: async ({ ticketId, message }: { ticketId: string; message: string }) => {
       const response = await apiRequest("POST", `/api/admin/support-tickets/${ticketId}/messages`, { message });
-      if (!response.ok) throw new Error("Failed to send message");
-      return response.json();
+      const resData = await response.json();
+      if (!response.ok) throw new Error(resData.message || "Failed to send message");
+      return resData;
     },
     onSuccess: () => {
       toast({ title: "Message sent!" });
       messageForm.reset();
       refetchMessages();
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
     },
   });
 
@@ -1175,8 +1191,9 @@ function PricingManagement({ providers }: { providers: ProviderWithUser[] }) {
         editingId ? `/api/admin/pricing-overrides/${editingId}` : "/api/admin/pricing-overrides", 
         data
       );
-      if (!response.ok) throw new Error("Failed to save pricing override");
-      return response.json();
+      const resData = await response.json();
+      if (!response.ok) throw new Error(resData.message || "Failed to save pricing override");
+      return resData;
     },
     onSuccess: () => {
       toast({ title: editingId ? "Pricing updated!" : "Pricing override created!" });
@@ -1394,8 +1411,9 @@ function PromoCodeManagement({ providers }: { providers: ProviderWithUser[] }) {
         editingId ? `/api/admin/promo-codes/${editingId}` : "/api/admin/promo-codes",
         data
       );
-      if (!response.ok) throw new Error("Failed to save promo code");
-      return response.json();
+      const resData = await response.json();
+      if (!response.ok) throw new Error(resData.message || "Failed to save promo code");
+      return resData;
     },
     onSuccess: () => {
       toast({ title: editingId ? "Promo code updated!" : "Promo code created!" });

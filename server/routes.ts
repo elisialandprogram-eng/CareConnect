@@ -660,9 +660,16 @@ export async function registerRoutes(
         return res.status(403).json({ message: "Admin access required" });
       }
       const { key, value } = req.body;
-      const setting = await storage.updatePlatformSetting(key, value);
+      if (key === undefined || value === undefined) {
+        return res.status(400).json({ message: "Key and value are required" });
+      }
+      const setting = await storage.updatePlatformSetting(key, String(value));
+      if (!setting) {
+        return res.status(404).json({ message: "Setting not found" });
+      }
       res.json(setting);
     } catch (error) {
+      console.error("Update settings error:", error);
       res.status(500).json({ message: "Failed to update platform setting" });
     }
   });
