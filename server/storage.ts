@@ -1097,7 +1097,6 @@ export class DatabaseStorage implements IStorage {
     return metric;
   }
 
-  // AI Chat Integration Methods
   async getConversation(id: number): Promise<ChatConversation | undefined> {
     const [conversation] = await db.select().from(chatConversations).where(eq(chatConversations.id, String(id)));
     return (conversation as any) || undefined;
@@ -1126,30 +1125,7 @@ export class DatabaseStorage implements IStorage {
     return (message as any);
   }
 
-  // Prescriptions
-  async getPrescription(id: string): Promise<Prescription | undefined> {
-    const [result] = await db.select().from(prescriptions).where(eq(prescriptions.id, id));
-    return result || undefined;
-  }
-
-  async getPrescriptionsByPatient(patientId: string): Promise<Prescription[]> {
-    return db.select().from(prescriptions).where(eq(prescriptions.patientId, patientId)).orderBy(desc(prescriptions.issuedAt));
-  }
-
-  async createPrescription(insertPrescription: InsertPrescription): Promise<Prescription> {
-    const [result] = await db.insert(prescriptions).values(insertPrescription).returning();
-    return result;
-  }
-
-  // Medical History
-  async getMedicalHistoryByPatient(patientId: string): Promise<MedicalHistory[]> {
-    return db.select().from(medicalHistory).where(eq(medicalHistory.patientId, patientId)).orderBy(desc(medicalHistory.date));
-  }
-
-  async createMedicalHistory(insertHistory: InsertMedicalHistory): Promise<MedicalHistory> {
-    const [result] = await db.insert(medicalHistory).values(insertHistory).returning();
-    return result;
-  }
+  // Duplicate implementation removed (using lines 1129-1152)
 
   // User Notifications
   async getUserNotifications(userId: string): Promise<UserNotification[]> {
