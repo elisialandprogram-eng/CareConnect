@@ -782,7 +782,7 @@ export class DatabaseStorage implements IStorage {
     const [pendingCount] = await db.select({ count: count() }).from(appointments).where(eq(appointments.status, "pending"));
     const [completedCount] = await db.select({ count: count() }).from(appointments).where(eq(appointments.status, "completed"));
     
-    const allPayments = await db.select().from(payments).where(eq(payments.status, "completed"));
+    const allPayments = await db.select().from(payments);
     const totalRevenue = allPayments.reduce((sum, p) => sum + parseFloat(p.amount || "0"), 0);
 
     return {
