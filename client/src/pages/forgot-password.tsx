@@ -120,7 +120,7 @@ export default function ForgotPassword() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <FormLabel>Reset Code</FormLabel>
+                <Label>Reset Code</Label>
                 <Input 
                   placeholder="Enter 6-digit code" 
                   value={resetCode}
@@ -130,7 +130,7 @@ export default function ForgotPassword() {
                 />
               </div>
               <div className="space-y-2">
-                <FormLabel>New Password</FormLabel>
+                <Label>New Password</Label>
                 <Input 
                   type="password"
                   placeholder="Enter new password" 
