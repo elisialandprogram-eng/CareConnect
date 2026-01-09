@@ -768,7 +768,38 @@ export class DatabaseStorage implements IStorage {
     return db.select().from(payments).orderBy(desc(payments.createdAt));
   }
 
+  async getAnalyticsStats(): Promise<{
+    totalUsers: number;
+    totalProviders: number;
+    totalBookings: number;
+    totalRevenue: string;
+    pendingBookings: number;
+    completedBookings: number;
+    recentPayments: any[];
+  }> {
+    const [userCount] = await db.select({ count: count() }).from(users);
+    const [providerCount] = await db.select({ count: count() }).from(providers);
+    const [bookingCount] = await db.select({ count: count() }).from(appointments);
+    const [pendingCount] = await db.select({ count: count() }).from(appointments).where(eq(appointments.status, "pending"));
+    const [completedCount] = await db.select({ count: count() }).from(appointments).where(eq(appointments.status, "completed"));
+    
+    const allPayments = await db.select().from(payments).orderBy(desc(payments.createdAt)).limit(10);
+    const totalPayments = await db.select().from(payments);
+    const totalRevenue = totalPayments.reduce((sum, p) => sum + parseFloat(p.amount || "0"), 0);
 
+    return {
+      totalUsers: userCount?.count || 0,
+      totalProviders: providerCount?.count || 0,
+      totalBookings: bookingCount?.count || 0,
+      totalRevenue: totalRevenue.toFixed(2),
+      pendingBookings: pendingCount?.count || 0,
+      completedBookings: completedCount?.count || 0,
+      recentPayments: allPayments,
+    };
+  }
+
+  // Audit Logs
+  async createAuditLog(data: InsertAuditLog): Promise<AuditLog> {
     const [log] = await db.insert(auditLogs).values(data).returning();
     return log;
   }

@@ -1142,6 +1142,38 @@ export async function registerRoutes(
     }
   });
 
+  // Providers Management
+  app.get("/api/admin/providers", authenticateToken, requireAdmin, async (req: AuthRequest, res: Response) => {
+    try {
+      const providers = await storage.getAllProviders();
+      res.json(providers);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get providers" });
+    }
+  });
+
+  app.patch("/api/admin/providers/:id/status", authenticateToken, requireAdmin, async (req: AuthRequest, res: Response) => {
+    try {
+      const { status } = req.body;
+      const provider = await storage.updateProvider(req.params.id, { status });
+      res.json(provider);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update provider status" });
+    }
+  });
+
+  app.get("/api/admin/providers/:id/revenue", authenticateToken, requireAdmin, async (req: AuthRequest, res: Response) => {
+    try {
+      const appointments = await storage.getAppointmentsByProvider(req.params.id);
+      const totalRevenue = appointments
+        .filter(a => a.status === 'completed')
+        .reduce((sum, a) => sum + parseFloat(a.totalAmount), 0);
+      res.json({ totalRevenue: totalRevenue.toFixed(2) });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to calculate revenue" });
+    }
+  });
+
   // Default return
   return httpServer;
 }
