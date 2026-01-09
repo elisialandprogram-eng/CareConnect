@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { useAuth } from "@/hooks/use-auth";
+import { useAuth } from "@/lib/auth";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
@@ -37,7 +37,7 @@ export function ChatBox() {
     socketRef.current = socket;
 
     socket.onopen = () => {
-      socket.send(JSON.stringify({ type: "auth", token: localStorage.getItem("accessToken") }));
+      socket.send(JSON.stringify({ type: "auth", token: document.cookie.split('; ').find(row => row.startsWith('accessToken='))?.split('=')[1] }));
     };
 
     socket.onmessage = (event) => {

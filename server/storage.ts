@@ -106,7 +106,15 @@ export interface IStorage {
   getRealtimeConversations(userId: string): Promise<RealtimeConversation[]>;
   getRealtimeMessages(conversationId: string): Promise<RealtimeMessage[]>;
   createRealtimeMessage(message: any): Promise<RealtimeMessage>;
-  getOrCreateConversation(p1: string, p2: string): Promise<RealtimeConversation>;
+  getOrCreateRealtimeConversation(p1: string, p2: string): Promise<RealtimeConversation>;
+
+  // AI Chat Integration Methods
+  getConversation(id: string): Promise<ChatConversation | undefined>;
+  getAllConversations(): Promise<ChatConversation[]>;
+  createConversation(title: string): Promise<ChatConversation>;
+  deleteConversation(id: string): Promise<void>;
+  getMessagesByConversation(conversationId: string): Promise<ChatMessage[]>;
+  createMessage(conversationId: string, role: string, content: string): Promise<ChatMessage>;
 
   // OTP and Email Verification
   updateUserOtp(id: string, data: { 
@@ -1107,9 +1115,8 @@ export class DatabaseStorage implements IStorage {
     return metric;
   }
 
-  // AI Chat Integration Methods
-  async getConversation(id: number): Promise<ChatConversation | undefined> {
-    const [conversation] = await db.select().from(chatConversations).where(eq(chatConversations.id, String(id)));
+  async getConversation(id: string): Promise<ChatConversation | undefined> {
+    const [conversation] = await db.select().from(chatConversations).where(eq(chatConversations.id, id));
     return (conversation as any) || undefined;
   }
 
@@ -1122,9 +1129,9 @@ export class DatabaseStorage implements IStorage {
     return (conversation as any);
   }
 
-  async deleteConversation(id: number): Promise<void> {
-    await db.delete(chatMessages).where(eq(chatMessages.conversationId, String(id)));
-    await db.delete(chatConversations).where(eq(chatConversations.id, String(id)));
+  async deleteConversation(id: string): Promise<void> {
+    await db.delete(chatMessages).where(eq(chatMessages.conversationId, id));
+    await db.delete(chatConversations).where(eq(chatConversations.id, id));
   }
 
   async getMessage(id: string): Promise<ChatMessage | undefined> {
@@ -1155,7 +1162,7 @@ export class DatabaseStorage implements IStorage {
     return newMessage as any;
   }
 
-  async getOrCreateConversation(p1: string, p2: string): Promise<RealtimeConversation> {
+  async getOrCreateRealtimeConversation(p1: string, p2: string): Promise<RealtimeConversation> {
     const [existing] = await db.select()
       .from(realtimeConversations)
       .where(or(
@@ -1171,7 +1178,14 @@ export class DatabaseStorage implements IStorage {
     return created as any;
   }
 
-  // Duplicate implementation removed (using lines 1129-1152)
+  async createMessage(conversationId: string, role: string, content: string): Promise<ChatMessage> {
+    const [message] = await db.insert(chatMessages).values({ conversationId, senderId: "system", content } as any).returning();
+    return (message as any);
+  }
+
+  async getMessagesByConversation(conversationId: string): Promise<ChatMessage[]> {
+    return (db.select().from(chatMessages).where(eq(chatMessages.conversationId, conversationId)).orderBy(chatMessages.createdAt) as any);
+  }
 
   // User Notifications
   async getUserNotifications(userId: string): Promise<UserNotification[]> {

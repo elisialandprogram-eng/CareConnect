@@ -28,33 +28,38 @@ import Notifications from "@/pages/notifications";
 import VerifyEmail from "@/pages/verify-email";
 import ForgotPassword from "@/pages/forgot-password";
 
+import { ChatBox } from "@/components/chat/ChatBox";
+
 function Router() {
   return (
-    <Switch>
-      <Route path="/" component={Home} />
-      <Route path="/providers" component={Providers} />
-      <Route path="/provider/:id" component={ProviderProfile} />
-      <Route path="/login" component={Login} />
-      <Route path="/register" component={Register} />
-      <Route path="/forgot-password" component={ForgotPassword} />
-      <Route path="/verify-email" component={VerifyEmail} />
-      <Route path="/booking" component={Booking} />
-      <Route path="/patient/dashboard" component={PatientDashboard} />
-      <Route path="/provider/dashboard" component={ProviderDashboard} />
-      <Route path="/provider/setup" component={ProviderSetup} />
-      <Route path="/admin" component={AdminDashboard} />
-      <Route path="/messages" component={Messages} />
-      <Route path="/notifications" component={Notifications} />
-      <Route path="/terms" component={Terms} />
-      <Route path="/privacy" component={Privacy} />
-      <Route path="/cookies" component={CookiePolicy} />
-      <Route path="/about" component={About} />
-      <Route path="/become-provider" component={BecomeProvider} />
-      <Route path="/appointments" component={Appointments} />
-      <Route path="/profile" component={Profile} />
-      <Route path="/settings" component={Settings} />
-      <Route component={NotFound} />
-    </Switch>
+    <>
+      <Switch>
+        <Route path="/" component={Home} />
+        <Route path="/providers" component={Providers} />
+        <Route path="/provider/:id" component={ProviderProfile} />
+        <Route path="/login" component={Login} />
+        <Route path="/register" component={Register} />
+        <Route path="/forgot-password" component={ForgotPassword} />
+        <Route path="/verify-email" component={VerifyEmail} />
+        <Route path="/booking" component={Booking} />
+        <Route path="/patient/dashboard" component={PatientDashboard} />
+        <Route path="/provider/dashboard" component={ProviderDashboard} />
+        <Route path="/provider/setup" component={ProviderSetup} />
+        <Route path="/admin" component={AdminDashboard} />
+        <Route path="/messages" component={Messages} />
+        <Route path="/notifications" component={Notifications} />
+        <Route path="/terms" component={Terms} />
+        <Route path="/privacy" component={Privacy} />
+        <Route path="/cookies" component={CookiePolicy} />
+        <Route path="/about" component={About} />
+        <Route path="/become-provider" component={BecomeProvider} />
+        <Route path="/appointments" component={Appointments} />
+        <Route path="/profile" component={Profile} />
+        <Route path="/settings" component={Settings} />
+        <Route component={NotFound} />
+      </Switch>
+      <ChatBox />
+    </>
   );
 }
 
