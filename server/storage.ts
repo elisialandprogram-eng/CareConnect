@@ -1097,6 +1097,7 @@ export class DatabaseStorage implements IStorage {
     return metric;
   }
 
+  // AI Chat Integration Methods
   async getConversation(id: number): Promise<ChatConversation | undefined> {
     const [conversation] = await db.select().from(chatConversations).where(eq(chatConversations.id, String(id)));
     return (conversation as any) || undefined;
