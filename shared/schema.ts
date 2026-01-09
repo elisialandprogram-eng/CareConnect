@@ -18,6 +18,31 @@ export const contentTypeEnum = pgEnum("content_type", ["homepage", "about", "ter
 export const announcementTypeEnum = pgEnum("announcement_type", ["info", "warning", "success", "error"]);
 export const medicalHistoryTypeEnum = pgEnum("medical_history_type", ["diagnosis", "procedure", "lab_result", "vaccination", "allergy"]);
 
+// Real-time Chat Tables
+export const realtimeConversations = pgTable("realtime_conversations", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  participant1Id: varchar("participant1_id").notNull().references(() => users.id),
+  participant2Id: varchar("participant2_id").notNull().references(() => users.id),
+  lastMessage: text("last_message"),
+  lastMessageAt: timestamp("last_message_at").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const realtimeMessages = pgTable("realtime_messages", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  conversationId: varchar("conversation_id").notNull().references(() => realtimeConversations.id),
+  senderId: varchar("sender_id").notNull().references(() => users.id),
+  content: text("content").notNull(),
+  isRead: boolean("is_read").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertRealtimeConversationSchema = createInsertSchema(realtimeConversations).omit({ id: true, createdAt: true });
+export const insertRealtimeMessageSchema = createInsertSchema(realtimeMessages).omit({ id: true, createdAt: true });
+
+export type RealtimeConversation = typeof realtimeConversations.$inferSelect;
+export type RealtimeMessage = typeof realtimeMessages.$inferSelect;
+
 // Prescriptions
 export const prescriptions = pgTable("prescriptions", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),

@@ -27,6 +27,8 @@ import {
   userNotifications,
   chatConversations,
   chatMessages,
+  realtimeConversations,
+  realtimeMessages,
   type User,
   type InsertUser,
   type Provider,
@@ -82,13 +84,15 @@ import {
   type ChatConversation,
   type ChatMessage,
   type InsertChatMessage,
+  type RealtimeConversation,
+  type RealtimeMessage,
   type ProviderWithUser,
   type ProviderWithServices,
   type AppointmentWithDetails,
   type ReviewWithPatient,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, desc, gte, lte, or, sql, count } from "drizzle-orm";
+import { eq, and, desc, gte, lte, or, sql, count, asc } from "drizzle-orm";
 
 export interface IStorage {
   // Users
@@ -97,6 +101,12 @@ export interface IStorage {
   getAllUsers(): Promise<User[]>;
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: string, data: Partial<User>): Promise<User | undefined>;
+
+  // Real-time Chat Methods
+  getRealtimeConversations(userId: string): Promise<RealtimeConversation[]>;
+  getRealtimeMessages(conversationId: string): Promise<RealtimeMessage[]>;
+  createRealtimeMessage(message: any): Promise<RealtimeMessage>;
+  getOrCreateConversation(p1: string, p2: string): Promise<RealtimeConversation>;
 
   // OTP and Email Verification
   updateUserOtp(id: string, data: { 
@@ -1117,13 +1127,48 @@ export class DatabaseStorage implements IStorage {
     await db.delete(chatConversations).where(eq(chatConversations.id, String(id)));
   }
 
-  async getMessagesByConversation(conversationId: number): Promise<ChatMessage[]> {
-    return (db.select().from(chatMessages).where(eq(chatMessages.conversationId, String(conversationId))).orderBy(chatMessages.createdAt) as any);
+  async getMessage(id: string): Promise<ChatMessage | undefined> {
+    const [message] = await db.select().from(chatMessages).where(eq(chatMessages.id, id));
+    return (message as any) || undefined;
   }
 
-  async createMessage(conversationId: number, role: string, content: string): Promise<ChatMessage> {
-    const [message] = await db.insert(chatMessages).values({ conversationId: String(conversationId), senderId: "system", content } as any).returning();
-    return (message as any);
+  // Real-time Chat Methods
+  async getRealtimeConversations(userId: string): Promise<RealtimeConversation[]> {
+    return db.select()
+      .from(realtimeConversations)
+      .where(or(eq(realtimeConversations.participant1Id, userId), eq(realtimeConversations.participant2Id, userId)))
+      .orderBy(desc(realtimeConversations.lastMessageAt)) as any;
+  }
+
+  async getRealtimeMessages(conversationId: string): Promise<RealtimeMessage[]> {
+    return db.select()
+      .from(realtimeMessages)
+      .where(eq(realtimeMessages.conversationId, conversationId))
+      .orderBy(asc(realtimeMessages.createdAt)) as any;
+  }
+
+  async createRealtimeMessage(message: any): Promise<RealtimeMessage> {
+    const [newMessage] = await db.insert(realtimeMessages).values(message).returning();
+    await db.update(realtimeConversations)
+      .set({ lastMessage: message.content, lastMessageAt: new Date() })
+      .where(eq(realtimeConversations.id, message.conversationId));
+    return newMessage as any;
+  }
+
+  async getOrCreateConversation(p1: string, p2: string): Promise<RealtimeConversation> {
+    const [existing] = await db.select()
+      .from(realtimeConversations)
+      .where(or(
+        and(eq(realtimeConversations.participant1Id, p1), eq(realtimeConversations.participant2Id, p2)),
+        and(eq(realtimeConversations.participant1Id, p2), eq(realtimeConversations.participant2Id, p1))
+      ));
+    
+    if (existing) return existing as any;
+    
+    const [created] = await db.insert(realtimeConversations)
+      .values({ participant1Id: p1, participant2Id: p2 })
+      .returning();
+    return created as any;
   }
 
   // Duplicate implementation removed (using lines 1129-1152)

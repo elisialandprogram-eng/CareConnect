@@ -2,9 +2,11 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
+import { setupChatWS } from "./chat/ws";
 
 const app = express();
 const httpServer = createServer(app);
+setupChatWS(httpServer);
 
 declare module "http" {
   interface IncomingMessage {

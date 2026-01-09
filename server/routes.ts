@@ -529,7 +529,34 @@ export async function registerRoutes(
     }
   });
 
-  // ============ PROVIDER ROUTES ============
+  // ============ REAL-TIME CHAT ROUTES ============
+  app.get("/api/chat/conversations", authenticateToken, async (req: AuthRequest, res: Response) => {
+    try {
+      const convs = await storage.getRealtimeConversations(req.user!.id);
+      res.json(convs);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get conversations" });
+    }
+  });
+
+  app.get("/api/chat/messages/:conversationId", authenticateToken, async (req: AuthRequest, res: Response) => {
+    try {
+      const msgs = await storage.getRealtimeMessages(req.params.conversationId);
+      res.json(msgs);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get messages" });
+    }
+  });
+
+  app.post("/api/chat/conversations", authenticateToken, async (req: AuthRequest, res: Response) => {
+    try {
+      const { participantId } = req.body;
+      const conv = await storage.getOrCreateConversation(req.user!.id, participantId);
+      res.json(conv);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to create conversation" });
+    }
+  });
 
   // Get all providers
   app.get("/api/providers", async (req: Request, res: Response) => {
