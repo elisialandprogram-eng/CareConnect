@@ -593,6 +593,26 @@ export async function registerRoutes(
     }
   });
 
+  // Create support ticket
+  app.post("/api/support/tickets", optionalAuth, async (req: AuthRequest, res: Response) => {
+    try {
+      const result = insertSupportTicketSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ message: "Invalid ticket data", errors: result.error.errors });
+      }
+
+      const ticket = await storage.createSupportTicket({
+        ...result.data,
+        userId: req.user?.id || null,
+        status: "open",
+      });
+      res.status(201).json(ticket);
+    } catch (error) {
+      console.error("Create ticket error:", error);
+      res.status(500).json({ message: "Failed to create support ticket" });
+    }
+  });
+
   // Get current provider (for logged in provider)
   app.get("/api/provider/me", authenticateToken, async (req: AuthRequest, res: Response) => {
     try {

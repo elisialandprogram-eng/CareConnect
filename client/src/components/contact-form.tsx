@@ -29,6 +29,10 @@ export function ContactForm() {
   const mutation = useMutation({
     mutationFn: async (values: any) => {
       const res = await apiRequest("POST", "/api/support/tickets", values);
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({ message: "Unknown error occurred" }));
+        throw new Error(errorData.message || "Failed to send message");
+      }
       return res.json();
     },
     onSuccess: () => {
