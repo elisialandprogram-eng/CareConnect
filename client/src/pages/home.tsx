@@ -196,7 +196,7 @@ function AIChatBox() {
   const [conversationId, setConversationId] = useState<number | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  const { data: conversation } = useQuery({
+  const { data: conversation } = useQuery<any>({
     queryKey: ["/api/conversations", conversationId],
     enabled: !!conversationId,
   });
