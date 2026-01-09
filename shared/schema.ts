@@ -280,10 +280,6 @@ export const supportTickets = pgTable("support_tickets", {
   resolvedAt: timestamp("resolved_at"),
 });
 
-export const insertSupportTicketSchema = createInsertSchema(supportTickets).omit({ id: true, createdAt: true, updatedAt: true, resolvedAt: true });
-export type InsertSupportTicket = z.infer<typeof insertSupportTicketSchema>;
-export type SupportTicket = typeof supportTickets.$inferSelect;
-
 // Ticket messages
 export const ticketMessages = pgTable("ticket_messages", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
