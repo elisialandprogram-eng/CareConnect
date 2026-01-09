@@ -1144,14 +1144,14 @@ export class DatabaseStorage implements IStorage {
     return db.select()
       .from(realtimeConversations)
       .where(or(eq(realtimeConversations.participant1Id, userId), eq(realtimeConversations.participant2Id, userId)))
-      .orderBy(desc(realtimeConversations.lastMessageAt)) as any;
+      .orderBy(desc(realtimeConversations.lastMessageAt));
   }
 
   async getRealtimeMessages(conversationId: string): Promise<RealtimeMessage[]> {
     return db.select()
       .from(realtimeMessages)
       .where(eq(realtimeMessages.conversationId, conversationId))
-      .orderBy(asc(realtimeMessages.createdAt)) as any;
+      .orderBy(asc(realtimeMessages.createdAt));
   }
 
   async createRealtimeMessage(message: any): Promise<RealtimeMessage> {
@@ -1159,7 +1159,7 @@ export class DatabaseStorage implements IStorage {
     await db.update(realtimeConversations)
       .set({ lastMessage: message.content, lastMessageAt: new Date() })
       .where(eq(realtimeConversations.id, message.conversationId));
-    return newMessage as any;
+    return newMessage;
   }
 
   async getOrCreateRealtimeConversation(p1: string, p2: string): Promise<RealtimeConversation> {
@@ -1170,59 +1170,49 @@ export class DatabaseStorage implements IStorage {
         and(eq(realtimeConversations.participant1Id, p2), eq(realtimeConversations.participant2Id, p1))
       ));
     
-    if (existing) return existing as any;
+    if (existing) return existing;
     
     const [created] = await db.insert(realtimeConversations)
       .values({ participant1Id: p1, participant2Id: p2 })
       .returning();
-    return created as any;
+    return created;
   }
 
-  async getMessagesByConversation(conversationId: string): Promise<ChatMessage[]> {
-    return (db.select().from(chatMessages).where(eq(chatMessages.conversationId, conversationId)).orderBy(chatMessages.createdAt) as any);
+  // AI Chat Integration Methods
+  async getConversation(id: string): Promise<ChatConversation | undefined> {
+    const [conversation] = await db.select().from(chatConversations).where(eq(chatConversations.id, id));
+    return conversation || undefined;
+  }
+
+  async getAllConversations(): Promise<ChatConversation[]> {
+    return db.select().from(chatConversations).orderBy(desc(chatConversations.createdAt));
+  }
+
+  async createConversation(title: string): Promise<ChatConversation> {
+    const [conversation] = await db.insert(chatConversations).values({ title, patientId: "system", providerId: "system" } as any).returning();
+    return conversation;
+  }
+
+  async deleteConversation(id: string): Promise<void> {
+    await db.delete(chatMessages).where(eq(chatMessages.conversationId, id));
+    await db.delete(chatConversations).where(eq(chatConversations.id, id));
+  }
+
+  async getMessage(id: string): Promise<ChatMessage | undefined> {
+    const [message] = await db.select().from(chatMessages).where(eq(chatMessages.id, id));
+    return message || undefined;
   }
 
   async createMessage(conversationId: string, role: string, content: string): Promise<ChatMessage> {
     const [message] = await db.insert(chatMessages).values({ conversationId, senderId: "system", content } as any).returning();
-    return (message as any);
-  }
-
-  // User Notifications
-  async getUserNotifications(userId: string): Promise<UserNotification[]> {
-    return db.select().from(userNotifications).where(eq(userNotifications.userId, userId)).orderBy(desc(userNotifications.createdAt));
-  }
-
-  async createUserNotification(data: InsertUserNotification): Promise<UserNotification> {
-    const [notification] = await db.insert(userNotifications).values(data).returning();
-    return notification;
-  }
-
-  async markNotificationRead(id: string): Promise<void> {
-    await db.update(userNotifications).set({ isRead: true }).where(eq(userNotifications.id, id));
-  }
-
-  // Messaging
-  async getChatConversations(userId: string, role: string): Promise<any[]> {
-    const filter = role === "provider" ? eq(chatConversations.providerId, userId) : eq(chatConversations.patientId, userId);
-    return db.select().from(chatConversations).where(filter).orderBy(desc(chatConversations.updatedAt));
-  }
-
-  async getChatMessages(conversationId: string): Promise<ChatMessage[]> {
-    return db.select().from(chatMessages).where(eq(chatMessages.conversationId, conversationId)).orderBy(chatMessages.createdAt);
-  }
-
-  async createChatMessage(data: any): Promise<ChatMessage> {
-    const [message] = await db.insert(chatMessages).values(data).returning();
-    await db.update(chatConversations).set({ lastMessage: data.content, updatedAt: new Date() }).where(eq(chatConversations.id, data.conversationId));
     return message;
   }
 
-  async getOrCreateConversation(patientId: string, providerId: string): Promise<ChatConversation> {
-    const [existing] = await db.select().from(chatConversations).where(and(eq(chatConversations.patientId, patientId), eq(chatConversations.providerId, providerId)));
-    if (existing) return existing;
-    const [created] = await db.insert(chatConversations).values({ patientId, providerId }).returning();
-    return created;
+  async getMessagesByConversation(conversationId: string): Promise<ChatMessage[]> {
+    return db.select().from(chatMessages).where(eq(chatMessages.conversationId, conversationId)).orderBy(chatMessages.createdAt);
   }
+
+  // User Notifications
 
   // User management enhancements
   async deleteUser(id: string): Promise<void> {

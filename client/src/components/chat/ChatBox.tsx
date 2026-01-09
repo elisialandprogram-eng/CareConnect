@@ -37,7 +37,13 @@ export function ChatBox() {
     socketRef.current = socket;
 
     socket.onopen = () => {
-      socket.send(JSON.stringify({ type: "auth", token: document.cookie.split('; ').find(row => row.startsWith('accessToken='))?.split('=')[1] }));
+      // Use the helper to get cookie value
+      const token = document.cookie
+        .split('; ')
+        .find(row => row.startsWith('accessToken='))
+        ?.split('=')[1];
+      
+      socket.send(JSON.stringify({ type: "auth", token }));
     };
 
     socket.onmessage = (event) => {
