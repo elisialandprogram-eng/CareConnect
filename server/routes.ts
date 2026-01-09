@@ -394,7 +394,7 @@ export async function registerRoutes(
     }
   });
 
-  // Reset password
+  // Reset password (authenticated - change password)
   app.post("/api/auth/reset-password", authenticateToken, async (req: AuthRequest, res: Response) => {
     try {
       const { currentPassword, newPassword } = req.body;
@@ -409,9 +409,9 @@ export async function registerRoutes(
       const hashedPassword = await bcrypt.hash(newPassword, 10);
       await storage.updateUser(user.id, { password: hashedPassword });
 
-      res.json({ message: "Password reset successfully" });
+      res.json({ message: "Password updated successfully" });
     } catch (error) {
-      res.status(500).json({ message: "Failed to reset password" });
+      res.status(500).json({ message: "Failed to update password" });
     }
   });
 
@@ -421,28 +421,87 @@ export async function registerRoutes(
       const { email } = req.body;
       const user = await storage.getUserByEmail(email);
       
-      // We don't want to reveal if a user exists or not for security
       if (!user) {
         return res.json({ message: "If an account exists with this email, you will receive a reset link." });
       }
 
-      // Generate a simple token (in a real app, this should be a secure random token stored in DB)
-      const token = Math.random().toString(36).substring(2, 15);
+      // Generate a secure 6-digit code for reset
+      const resetCode = Math.floor(100000 + Math.random() * 900000).toString();
+      const resetHash = hashOtp(resetCode);
+      const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
+
+      await storage.updateUserOtp(user.id, {
+        emailOtpHash: resetHash,
+        emailOtpExpiresAt: expiresAt,
+        otpAttempts: 0,
+        lastOtpSentAt: new Date(),
+      });
       
       if (resend) {
-        await resend.emails.send({
-          from: FROM_EMAIL,
-          to: user.email,
-          subject: "Reset your GoldenLife password",
-          text: `You requested a password reset. Use this code to reset your password: ${token}. (Note: This is a demo implementation)`,
-        });
+        try {
+          await resend.emails.send({
+            from: FROM_EMAIL,
+            to: user.email,
+            subject: "Reset your GoldenLife password",
+            text: `You requested a password reset. Use this code to reset your password: ${resetCode}. This code expires in 15 minutes.`,
+          });
+        } catch (emailError) {
+          console.error("Failed to send reset email:", emailError);
+        }
       } else {
-        console.log(`Password reset token for ${user.email}: ${token}`);
+        console.log(`Password reset code for ${user.email}: ${resetCode}`);
       }
 
       res.json({ message: "If an account exists with this email, you will receive a reset link." });
     } catch (error) {
       res.status(500).json({ message: "Failed to process forgot password request" });
+    }
+  });
+
+  // Complete Password Reset (Verify Code & New Password)
+  app.post("/api/auth/complete-reset-password", async (req: Request, res: Response) => {
+    try {
+      const { email, code, newPassword } = req.body;
+      if (!email || !code || !newPassword) {
+        return res.status(400).json({ message: "Missing required fields" });
+      }
+
+      const user = await storage.getUserByEmail(email);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Check expiry and attempts
+      if (!user.emailOtpExpiresAt || new Date(user.emailOtpExpiresAt) < new Date()) {
+        return res.status(400).json({ message: "Reset code expired" });
+      }
+      if (user.otpAttempts >= 5) {
+        return res.status(400).json({ message: "Too many attempts. Please request a new code." });
+      }
+
+      // Verify Code
+      if (user.emailOtpHash !== hashOtp(code)) {
+        await storage.updateUserOtp(user.id, {
+          emailOtpHash: user.emailOtpHash,
+          emailOtpExpiresAt: user.emailOtpExpiresAt,
+          otpAttempts: user.otpAttempts + 1
+        });
+        return res.status(400).json({ message: "Invalid reset code" });
+      }
+
+      // Success - Hash and update password
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+      await storage.updateUser(user.id, { 
+        password: hashedPassword,
+        emailOtpHash: null,
+        emailOtpExpiresAt: null,
+        otpAttempts: 0
+      });
+
+      res.json({ message: "Password reset successfully. You can now login with your new password." });
+    } catch (error) {
+      console.error("Complete password reset error:", error);
+      res.status(500).json({ message: "Failed to reset password" });
     }
   });
 

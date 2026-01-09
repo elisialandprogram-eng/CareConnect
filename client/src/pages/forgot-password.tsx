@@ -32,6 +32,9 @@ export default function ForgotPassword() {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [isSent, setIsSent] = useState(false);
+  const [resetCode, setResetCode] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [isResetting, setIsResetting] = useState(false);
 
   const form = useForm<ForgotPasswordFormData>({
     resolver: zodResolver(forgotPasswordSchema),
@@ -50,8 +53,8 @@ export default function ForgotPassword() {
       }
       setIsSent(true);
       toast({
-        title: "Email sent",
-        description: "If an account exists with this email, you will receive a reset link.",
+        title: "Code sent",
+        description: "If an account exists with this email, you will receive a 6-digit reset code.",
       });
     } catch (error: any) {
       toast({
@@ -64,24 +67,91 @@ export default function ForgotPassword() {
     }
   };
 
+  const handleCompleteReset = async () => {
+    if (!resetCode || !newPassword) {
+      toast({ title: "Error", description: "Please fill in all fields", variant: "destructive" });
+      return;
+    }
+
+    setIsResetting(true);
+    try {
+      const response = await apiRequest("POST", "/api/auth/complete-reset-password", {
+        email: form.getValues("email"),
+        code: resetCode,
+        newPassword
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to reset password");
+      }
+
+      toast({
+        title: "Success",
+        description: "Password reset successfully. You can now login.",
+      });
+      navigate("/login");
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to reset password. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsResetting(false);
+    }
+  };
+
   if (isSent) {
     return (
       <div className="min-h-screen flex flex-col">
         <Header />
-        <main className="flex-1 flex items-center justify-center py-12 px-4">
-          <Card className="w-full max-w-md text-center">
-            <CardHeader>
-              <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-green-100 dark:bg-green-900">
+        <main className="flex-1 flex items-center justify-center py-12 px-4 relative overflow-hidden">
+          <div className="absolute inset-0 animated-gradient -z-10" />
+          <Card className="w-full max-w-md backdrop-blur-sm bg-card/95 shadow-xl border-2">
+            <CardHeader className="text-center">
+              <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-green-100 dark:bg-green-900 shadow-lg">
                 <CheckCircle className="h-7 w-7 text-green-600 dark:text-green-400" />
               </div>
               <CardTitle className="text-2xl font-bold">Check Your Email</CardTitle>
               <CardDescription>
-                We've sent a password reset link to your email address.
+                We've sent a 6-digit reset code to {form.getValues("email")}.
               </CardDescription>
             </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <FormLabel>Reset Code</FormLabel>
+                <Input 
+                  placeholder="Enter 6-digit code" 
+                  value={resetCode}
+                  onChange={(e) => setResetCode(e.target.value)}
+                  maxLength={6}
+                  data-testid="input-reset-code"
+                />
+              </div>
+              <div className="space-y-2">
+                <FormLabel>New Password</FormLabel>
+                <Input 
+                  type="password"
+                  placeholder="Enter new password" 
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  data-testid="input-new-password"
+                />
+              </div>
+              <Button 
+                onClick={handleCompleteReset} 
+                className="w-full"
+                disabled={isResetting}
+                data-testid="button-complete-reset"
+              >
+                {isResetting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                Reset Password
+              </Button>
+            </CardContent>
             <CardFooter className="flex flex-col space-y-4">
-              <Button onClick={() => navigate("/login")} className="w-full">
-                Back to Login
+              <Button variant="ghost" onClick={() => setIsSent(false)} className="w-full">
+                Back to Forgot Password
               </Button>
             </CardFooter>
           </Card>
