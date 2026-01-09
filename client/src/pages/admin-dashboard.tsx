@@ -479,9 +479,31 @@ function ProvidersManagement() {
                     </td>
                     <td className="p-4">{provider.specialization}</td>
                     <td className="p-4">
-                      <div className="text-xs">
-                        Start: {provider.startDate ? new Date(provider.startDate).toLocaleDateString() : 'N/A'}<br/>
-                        End: {provider.endDate ? new Date(provider.endDate).toLocaleDateString() : 'Active'}
+                      <div className="flex flex-col gap-1">
+                        <div className="flex items-center gap-1 text-xs">
+                          <span className="w-10 text-muted-foreground">Start:</span>
+                          <Input 
+                            type="date" 
+                            className="h-7 py-0 px-1 w-28 text-[10px]" 
+                            defaultValue={provider.startDate ? new Date(provider.startDate).toISOString().split('T')[0] : ""}
+                            onBlur={(e) => {
+                              if (e.target.value) {
+                                updateProviderMutation.mutate({ id: provider.id, startDate: new Date(e.target.value) });
+                              }
+                            }}
+                          />
+                        </div>
+                        <div className="flex items-center gap-1 text-xs">
+                          <span className="w-10 text-muted-foreground">End:</span>
+                          <Input 
+                            type="date" 
+                            className="h-7 py-0 px-1 w-28 text-[10px]" 
+                            defaultValue={provider.endDate ? new Date(provider.endDate).toISOString().split('T')[0] : ""}
+                            onBlur={(e) => {
+                              updateProviderMutation.mutate({ id: provider.id, endDate: e.target.value ? new Date(e.target.value) : null });
+                            }}
+                          />
+                        </div>
                       </div>
                     </td>
                     <td className="p-4">

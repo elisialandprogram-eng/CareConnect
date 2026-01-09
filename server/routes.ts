@@ -1055,9 +1055,9 @@ export async function registerRoutes(
     try {
       const message = await storage.createTicketMessage({
         ticketId: req.params.id,
-        senderId: req.user!.id,
+        userId: req.user!.id,
         message: req.body.message,
-        isStaffReply: true,
+        isInternal: true,
       });
       res.status(201).json(message);
     } catch (error) {

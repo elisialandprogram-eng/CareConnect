@@ -291,23 +291,6 @@ export interface IStorage {
   getDailyMetrics(startDate: string, endDate: string): Promise<DailyMetric[]>;
   updateDailyMetric(id: string, data: Partial<DailyMetric>): Promise<DailyMetric | undefined>;
 
-  // AI Chat Integration Methods
-  getConversation(id: number): Promise<Conversation | undefined>;
-  getAllConversations(): Promise<Conversation[]>;
-  createConversation(title: string): Promise<Conversation>;
-  deleteConversation(id: number): Promise<void>;
-  getMessagesByConversation(conversationId: number): Promise<Message[]>;
-  createMessage(conversationId: number, role: string, content: string): Promise<Message>;
-
-  // Prescriptions
-  getPrescription(id: string): Promise<Prescription | undefined>;
-  getPrescriptionsByPatient(patientId: string): Promise<Prescription[]>;
-  createPrescription(prescription: InsertPrescription): Promise<Prescription>;
-
-  // Medical History
-  getMedicalHistoryByPatient(patientId: string): Promise<MedicalHistory[]>;
-  createMedicalHistory(history: InsertMedicalHistory): Promise<MedicalHistory>;
-
   // User Notifications
   getUserNotifications(userId: string): Promise<UserNotification[]>;
   createUserNotification(data: InsertUserNotification): Promise<UserNotification>;
@@ -318,6 +301,14 @@ export interface IStorage {
   getChatMessages(conversationId: string): Promise<ChatMessage[]>;
   createChatMessage(data: InsertChatMessage): Promise<ChatMessage>;
   getOrCreateConversation(patientId: string, providerId: string): Promise<ChatConversation>;
+
+  // AI Chat Integration Methods
+  getConversation(id: string): Promise<ChatConversation | undefined>;
+  getAllConversations(): Promise<ChatConversation[]>;
+  createConversation(title: string): Promise<ChatConversation>;
+  deleteConversation(id: string): Promise<void>;
+  getMessagesByConversation(conversationId: string): Promise<ChatMessage[]>;
+  createMessage(conversationId: string, role: string, content: string): Promise<ChatMessage>;
 
   // User management enhancements
   deleteUser(id: string): Promise<void>;
@@ -1118,30 +1109,6 @@ export class DatabaseStorage implements IStorage {
     return metric;
   }
 
-  async getConversation(id: string): Promise<ChatConversation | undefined> {
-    const [conversation] = await db.select().from(chatConversations).where(eq(chatConversations.id, id));
-    return (conversation as any) || undefined;
-  }
-
-  async getAllConversations(): Promise<ChatConversation[]> {
-    return (db.select().from(chatConversations).orderBy(desc(chatConversations.createdAt)) as any);
-  }
-
-  async createConversation(title: string): Promise<ChatConversation> {
-    const [conversation] = await db.insert(chatConversations).values({ title, patientId: "system", providerId: "system" } as any).returning();
-    return (conversation as any);
-  }
-
-  async deleteConversation(id: string): Promise<void> {
-    await db.delete(chatMessages).where(eq(chatMessages.conversationId, id));
-    await db.delete(chatConversations).where(eq(chatConversations.id, id));
-  }
-
-  async getMessage(id: string): Promise<ChatMessage | undefined> {
-    const [message] = await db.select().from(chatMessages).where(eq(chatMessages.id, id));
-    return (message as any) || undefined;
-  }
-
   // Real-time Chat Methods
   async getRealtimeConversations(userId: string): Promise<RealtimeConversation[]> {
     return db.select()
@@ -1181,24 +1148,33 @@ export class DatabaseStorage implements IStorage {
     return created;
   }
 
-  // AI Chat Integration Methods
-  async getConversation(id: string): Promise<ChatConversation | undefined> {
-    const [conversation] = await db.select().from(chatConversations).where(eq(chatConversations.id, id));
-    return conversation || undefined;
+  // Messaging
+  async getChatConversations(userId: string, role: string): Promise<any[]> {
+    const filter = role === "patient" ? eq(chatConversations.patientId, userId) : eq(chatConversations.providerId, userId);
+    return db.select().from(chatConversations).where(filter).orderBy(desc(chatConversations.updatedAt));
   }
 
-  async getAllConversations(): Promise<ChatConversation[]> {
-    return db.select().from(chatConversations).orderBy(desc(chatConversations.createdAt));
+  async getChatMessages(conversationId: string): Promise<ChatMessage[]> {
+    return db.select().from(chatMessages).where(eq(chatMessages.conversationId, conversationId)).orderBy(chatMessages.createdAt);
   }
 
-  async createConversation(title: string): Promise<ChatConversation> {
-    const [conversation] = await db.insert(chatConversations).values({ title, patientId: "system", providerId: "system" } as any).returning();
-    return conversation;
+  async createChatMessage(data: InsertChatMessage): Promise<ChatMessage> {
+    const [message] = await db.insert(chatMessages).values(data).returning();
+    await db.update(chatConversations).set({ lastMessage: data.content, updatedAt: new Date() }).where(eq(chatConversations.id, data.conversationId));
+    return message;
   }
 
-  async deleteConversation(id: string): Promise<void> {
-    await db.delete(chatMessages).where(eq(chatMessages.conversationId, id));
-    await db.delete(chatConversations).where(eq(chatConversations.id, id));
+  async getOrCreateConversation(patientId: string, providerId: string): Promise<ChatConversation> {
+    const [existing] = await db.select()
+      .from(chatConversations)
+      .where(and(eq(chatConversations.patientId, patientId), eq(chatConversations.providerId, providerId)));
+    
+    if (existing) return existing;
+    
+    const [created] = await db.insert(chatConversations)
+      .values({ patientId, providerId, updatedAt: new Date() })
+      .returning();
+    return created;
   }
 
   async getMessage(id: string): Promise<ChatMessage | undefined> {
@@ -1206,16 +1182,44 @@ export class DatabaseStorage implements IStorage {
     return message || undefined;
   }
 
-  async createMessage(conversationId: string, role: string, content: string): Promise<ChatMessage> {
-    const [message] = await db.insert(chatMessages).values({ conversationId, senderId: "system", content } as any).returning();
-    return message;
+  // Prescriptions
+  async getPrescription(id: string): Promise<Prescription | undefined> {
+    const [prescription] = await db.select().from(prescriptions).where(eq(prescriptions.id, id));
+    return prescription || undefined;
   }
 
-  async getMessagesByConversation(conversationId: string): Promise<ChatMessage[]> {
-    return db.select().from(chatMessages).where(eq(chatMessages.conversationId, conversationId)).orderBy(chatMessages.createdAt);
+  async getPrescriptionsByPatient(patientId: string): Promise<Prescription[]> {
+    return db.select().from(prescriptions).where(eq(prescriptions.patientId, patientId)).orderBy(desc(prescriptions.issuedAt));
+  }
+
+  async createPrescription(prescription: InsertPrescription): Promise<Prescription> {
+    const [created] = await db.insert(prescriptions).values(prescription).returning();
+    return created;
+  }
+
+  // Medical History
+  async getMedicalHistoryByPatient(patientId: string): Promise<MedicalHistory[]> {
+    return db.select().from(medicalHistory).where(eq(medicalHistory.patientId, patientId)).orderBy(desc(medicalHistory.date));
+  }
+
+  async createMedicalHistory(history: InsertMedicalHistory): Promise<MedicalHistory> {
+    const [created] = await db.insert(medicalHistory).values(history).returning();
+    return created;
   }
 
   // User Notifications
+  async getUserNotifications(userId: string): Promise<UserNotification[]> {
+    return db.select().from(userNotifications).where(eq(userNotifications.userId, userId)).orderBy(desc(userNotifications.createdAt));
+  }
+
+  async createUserNotification(data: InsertUserNotification): Promise<UserNotification> {
+    const [notification] = await db.insert(userNotifications).values(data).returning();
+    return notification;
+  }
+
+  async markNotificationRead(id: string): Promise<void> {
+    await db.update(userNotifications).set({ isRead: true }).where(eq(userNotifications.id, id));
+  }
 
   // User management enhancements
   async deleteUser(id: string): Promise<void> {
