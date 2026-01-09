@@ -539,7 +539,7 @@ function ProvidersManagement() {
                   name="firstName"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>First Name</Label>
+                      <FormLabel>First Name</FormLabel>
                       <FormControl>
                         <Input {...field} data-testid="input-provider-firstname" />
                       </FormControl>
@@ -552,7 +552,7 @@ function ProvidersManagement() {
                   name="lastName"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Last Name</Label>
+                      <FormLabel>Last Name</FormLabel>
                       <FormControl>
                         <Input {...field} data-testid="input-provider-lastname" />
                       </FormControl>
@@ -680,7 +680,7 @@ function ProvidersManagement() {
                 name="bio"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Bio</Label>
+                    <FormLabel>Bio</FormLabel>
                     <FormControl>
                       <Textarea {...field} rows={4} data-testid="input-provider-bio" />
                     </FormControl>
