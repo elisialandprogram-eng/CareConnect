@@ -384,38 +384,40 @@ function FinancialReports() {
           <CardTitle>Recent Payments</CardTitle>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Date</TableHead>
-                <TableHead>Amount</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Method</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {payments.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={4} className="text-center py-4 text-muted-foreground">
-                    No recent payments
-                  </TableCell>
-                </TableRow>
-              ) : (
-                payments.map((payment: any) => (
-                  <TableRow key={payment.id}>
-                    <TableCell>{new Date(payment.createdAt).toLocaleDateString()}</TableCell>
-                    <TableCell>${Number(payment.amount).toFixed(2)}</TableCell>
-                    <TableCell>
-                      <Badge variant={payment.status === "completed" ? "default" : "secondary"}>
-                        {payment.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="capitalize">{payment.paymentMethod}</TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+          <div className="rounded-md border overflow-hidden">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b bg-muted/50">
+                  <th className="h-10 px-4 text-left font-medium">Date</th>
+                  <th className="h-10 px-4 text-left font-medium">Amount</th>
+                  <th className="h-10 px-4 text-left font-medium">Status</th>
+                  <th className="h-10 px-4 text-left font-medium">Method</th>
+                </tr>
+              </thead>
+              <tbody>
+                {payments.length === 0 ? (
+                  <tr>
+                    <td colSpan={4} className="p-4 text-center text-muted-foreground">
+                      No recent payments
+                    </td>
+                  </tr>
+                ) : (
+                  payments.map((payment: any) => (
+                    <tr key={payment.id} className="border-b last:border-0">
+                      <td className="p-4">{new Date(payment.createdAt).toLocaleDateString()}</td>
+                      <td className="p-4">${Number(payment.amount).toFixed(2)}</td>
+                      <td className="p-4">
+                        <Badge variant={payment.status === "completed" ? "default" : "secondary"}>
+                          {payment.status}
+                        </Badge>
+                      </td>
+                      <td className="p-4 capitalize">{payment.paymentMethod}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </CardContent>
       </Card>
     </div>
@@ -449,47 +451,49 @@ function ProvidersManagement() {
         <CardTitle>Manage Providers</CardTitle>
       </CardHeader>
       <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Provider</TableHead>
-              <TableHead>Specialization</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {providers?.map((provider: any) => (
-              <TableRow key={provider.id}>
-                <TableCell>
-                  <div className="font-medium">{provider.user?.firstName} {provider.user?.lastName}</div>
-                  <div className="text-sm text-muted-foreground">{provider.user?.email}</div>
-                </TableCell>
-                <TableCell>{provider.specialization}</TableCell>
-                <TableCell>
-                  <Badge variant={provider.status === 'active' ? 'default' : 'secondary'}>
-                    {provider.status}
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  <Select
-                    value={provider.status}
-                    onValueChange={(status) => updateStatusMutation.mutate({ id: provider.id, status })}
-                  >
-                    <SelectTrigger className="w-32">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="active">Active</SelectItem>
-                      <SelectItem value="suspended">Suspended</SelectItem>
-                      <SelectItem value="pending">Pending</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+        <div className="rounded-md border overflow-hidden">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b bg-muted/50">
+                <th className="h-10 px-4 text-left font-medium">Provider</th>
+                <th className="h-10 px-4 text-left font-medium">Specialization</th>
+                <th className="h-10 px-4 text-left font-medium">Status</th>
+                <th className="h-10 px-4 text-left font-medium">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {providers?.map((provider: any) => (
+                <tr key={provider.id} className="border-b last:border-0">
+                  <td className="p-4">
+                    <div className="font-medium">{provider.user?.firstName} {provider.user?.lastName}</div>
+                    <div className="text-sm text-muted-foreground">{provider.user?.email}</div>
+                  </td>
+                  <td className="p-4">{provider.specialization}</td>
+                  <td className="p-4">
+                    <Badge variant={provider.status === 'active' ? 'default' : 'secondary'}>
+                      {provider.status}
+                    </Badge>
+                  </td>
+                  <td className="p-4">
+                    <Select
+                      value={provider.status}
+                      onValueChange={(status) => updateStatusMutation.mutate({ id: provider.id, status })}
+                    >
+                      <SelectTrigger className="w-32">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="active">Active</SelectItem>
+                        <SelectItem value="suspended">Suspended</SelectItem>
+                        <SelectItem value="pending">Pending</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </CardContent>
     </Card>
   );
@@ -1922,6 +1926,10 @@ export default function AdminDashboard() {
               <Building className="h-4 w-4 mr-2" />
               Providers List
             </TabsTrigger>
+            <TabsTrigger value="providers-list" data-testid="tab-providers-list">
+              <Building className="h-4 w-4 mr-2" />
+              Providers List
+            </TabsTrigger>
             <TabsTrigger value="content" data-testid="tab-content">
               <FileText className="h-4 w-4 mr-2" />
               Content
@@ -2296,6 +2304,10 @@ export default function AdminDashboard() {
 
           <TabsContent value="financial">
             <FinancialReports />
+          </TabsContent>
+
+          <TabsContent value="providers-list">
+            <ProvidersManagement />
           </TabsContent>
 
           <TabsContent value="providers-list">
