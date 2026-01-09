@@ -69,6 +69,7 @@ export function ChatBox() {
   const sendMessage = () => {
     if (!message.trim() || !activeConversation || !socketRef.current) return;
 
+    // Use regular socket for all real-time conversations
     socketRef.current.send(JSON.stringify({
       type: "message",
       conversationId: activeConversation.id,
@@ -143,17 +144,16 @@ export function ChatBox() {
                       <Button
                         variant="outline"
                         className="w-full justify-start text-left h-auto py-2 px-3 text-xs hover-elevate"
-                        onClick={() => {
-                          // Support chat is currently AI-powered via the support route
-                          // But we can link it to the existing conversations
-                          setActiveConversation({
-                            id: "support-" + user.id,
-                            participant1Id: user.id,
-                            participant2Id: "support",
-                            createdAt: new Date(),
-                            lastMessage: null,
-                            lastMessageAt: new Date()
-                          } as any);
+                        onClick={async () => {
+                          try {
+                            const convResponse = await apiRequest("POST", "/api/chat/conversations", {
+                              participantId: "support",
+                            });
+                            setActiveConversation(convResponse as any);
+                            queryClient.invalidateQueries({ queryKey: ["/api/chat/conversations"] });
+                          } catch (error) {
+                            console.error("Failed to start support chat", error);
+                          }
                           setShowNewChatOptions(false);
                         }}
                       >
@@ -169,30 +169,26 @@ export function ChatBox() {
                         className="w-full justify-start text-left h-auto py-2 px-3 text-xs hover-elevate"
                         onClick={async () => {
                           try {
-                            // Find the first booked provider
                             const response = await fetch('/api/appointments');
-                            if (response.ok) {
-                              const appointments = await response.json();
-                              // Filter for confirmed appointments with this user as patient
-                              const bookedProvider = appointments.find((a: any) => 
-                                (a.status === 'confirmed' || a.status === 'pending') && 
-                                a.patientId === user.id
-                              );
-                              
-                              if (bookedProvider) {
-                                const convResponse = await apiRequest("POST", "/api/chat/conversations", {
-                                  providerId: bookedProvider.providerId,
-                                  patientId: user.id
-                                });
-                                setActiveConversation(convResponse as any);
-                                queryClient.invalidateQueries({ queryKey: ["/api/chat/conversations"] });
-                              } else {
-                                toast({
-                                  title: "No appointments",
-                                  description: "You need a confirmed appointment to chat with a provider.",
-                                  variant: "destructive"
-                                });
-                              }
+                            if (!response.ok) throw new Error('Failed to fetch appointments');
+                            const appointments = await response.json();
+                            const bookedProvider = appointments.find((a: any) => 
+                              (a.status === 'confirmed' || a.status === 'pending') && 
+                              a.patientId === user.id
+                            );
+                            
+                            if (bookedProvider) {
+                              const convResponse = await apiRequest("POST", "/api/chat/conversations", {
+                                participantId: bookedProvider.providerId
+                              });
+                              setActiveConversation(convResponse as any);
+                              queryClient.invalidateQueries({ queryKey: ["/api/chat/conversations"] });
+                            } else {
+                              toast({
+                                title: "No appointments",
+                                description: "You need a confirmed appointment to chat with a provider.",
+                                variant: "destructive"
+                              });
                             }
                           } catch (error) {
                             console.error("Failed to start provider chat", error);

@@ -42,8 +42,8 @@ export function registerChatRoutes(app: Express): void {
   // Create new conversation
   app.post("/api/conversations", async (req: Request, res: Response) => {
     try {
-      const { title } = req.body;
-      const conversation = await chatStorage.createConversation(title || "New Chat");
+      const { title, userId } = req.body;
+      const conversation = await chatStorage.createConversation(title || "New Chat", userId);
       res.status(201).json(conversation);
     } catch (error) {
       console.error("Error creating conversation:", error);
@@ -72,6 +72,17 @@ export function registerChatRoutes(app: Express): void {
       // Check if OpenAI is configured
       if (!openai) {
         return res.status(503).json({ error: "AI chat is not configured. Please set up the OpenAI integration." });
+      }
+
+      // Handle support chat that isn't in DB yet
+      if (req.params.id.startsWith("support-")) {
+        // Just stream the response for support chats
+        const assistantContent = "I'm the GoldenLife AI Assistant. How can I help you today?";
+        res.setHeader("Content-Type", "text/event-stream");
+        res.write(`data: ${JSON.stringify({ content: assistantContent })}\n\n`);
+        res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
+        res.end();
+        return;
       }
 
       // Save user message

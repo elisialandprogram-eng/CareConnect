@@ -6,7 +6,7 @@ import type { Conversation, Message } from "@shared/schema";
 export interface IChatStorage {
   getConversation(id: number): Promise<Conversation | undefined>;
   getAllConversations(): Promise<Conversation[]>;
-  createConversation(title: string): Promise<Conversation>;
+  createConversation(title: string, userId?: string): Promise<Conversation>;
   deleteConversation(id: number): Promise<void>;
   getMessagesByConversation(conversationId: number): Promise<Message[]>;
   createMessage(conversationId: number, role: string, content: string): Promise<Message>;
@@ -22,8 +22,8 @@ export const chatStorage: IChatStorage = {
     return db.select().from(conversations).orderBy(desc(conversations.createdAt));
   },
 
-  async createConversation(title: string) {
-    const [conversation] = await db.insert(conversations).values({ title }).returning();
+  async createConversation(title: string, userId?: string) {
+    const [conversation] = await db.insert(conversations).values({ title, userId } as any).returning();
     return conversation;
   },
 
