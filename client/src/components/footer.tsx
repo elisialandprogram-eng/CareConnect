@@ -1,6 +1,8 @@
 import { Link } from "wouter";
 import { Stethoscope, Mail, Phone, MapPin } from "lucide-react";
 
+import logoImg from "@assets/G16_1767974671445.jpg";
+
 export function Footer() {
   return (
     <footer className="border-t bg-card">
@@ -8,10 +10,8 @@ export function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           <div className="space-y-4">
             <Link href="/" className="flex items-center gap-2">
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary">
-                <Stethoscope className="h-5 w-5 text-primary-foreground" />
-              </div>
-              <span className="text-xl font-semibold">Golden Life</span>
+              <img src={logoImg} alt="Golden Life Logo" className="h-12 w-auto object-contain" />
+              <span className="text-xl font-semibold sr-only">Golden Life</span>
             </Link>
             <p className="text-sm text-muted-foreground">
               Connecting patients with trusted healthcare professionals. Quality care delivered to your doorstep.
