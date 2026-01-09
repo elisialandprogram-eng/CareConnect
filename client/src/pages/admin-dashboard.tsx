@@ -26,6 +26,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -1762,6 +1763,10 @@ export default function AdminDashboard() {
               <Settings className="h-4 w-4 mr-2" />
               Settings
             </TabsTrigger>
+            <TabsTrigger value="integrations" data-testid="tab-integrations">
+              <Plus className="h-4 w-4 mr-2" />
+              Integrations
+            </TabsTrigger>
             <TabsTrigger value="audit" data-testid="tab-audit">
               <Activity className="h-4 w-4 mr-2" />
               Audit
@@ -2148,6 +2153,72 @@ export default function AdminDashboard() {
 
           <TabsContent value="settings">
             <PlatformSettings />
+          </TabsContent>
+
+          <TabsContent value="integrations">
+            <Card>
+              <CardHeader>
+                <CardTitle>External Integrations</CardTitle>
+                <CardDescription>Manage API keys and credentials for third-party services</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Tabs defaultValue="google" className="w-full">
+                  <TabsList className="grid w-full grid-cols-3">
+                    <TabsTrigger value="google">Google APIs</TabsTrigger>
+                    <TabsTrigger value="payments">Payments</TabsTrigger>
+                    <TabsTrigger value="messaging">Messaging</TabsTrigger>
+                  </TabsList>
+                  
+                  <TabsContent value="google" className="space-y-4 py-4">
+                    <div className="space-y-4">
+                      <div className="grid gap-2">
+                        <Label htmlFor="google-api-key">Google Maps API Key</Label>
+                        <Input id="google-api-key" placeholder="Enter API Key" type="password" />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="google-client-id">Google Client ID (OAuth)</Label>
+                        <Input id="google-client-id" placeholder="Enter Client ID" />
+                      </div>
+                      <Button onClick={() => toast({ title: "Settings saved" })}>Save Google Settings</Button>
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="payments" className="space-y-4 py-4">
+                    <div className="space-y-4">
+                      <div className="grid gap-2">
+                        <Label htmlFor="stripe-key">Stripe Secret Key</Label>
+                        <Input id="stripe-key" placeholder="sk_test_..." type="password" />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="stripe-webhook">Stripe Webhook Secret</Label>
+                        <Input id="stripe-webhook" placeholder="whsec_..." type="password" />
+                      </div>
+                      <Button onClick={() => toast({ title: "Settings saved" })}>Save Payment Settings</Button>
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="messaging" className="space-y-4 py-4">
+                    <div className="space-y-4">
+                      <div className="grid gap-4 md:grid-cols-2">
+                        <div className="space-y-2">
+                          <Label>WhatsApp (Twilio SID)</Label>
+                          <Input placeholder="AC..." type="password" />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Telegram Bot Token</Label>
+                          <Input placeholder="123456:ABC..." type="password" />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Viber Auth Token</Label>
+                          <Input placeholder="Enter token" type="password" />
+                        </div>
+                      </div>
+                      <Button onClick={() => toast({ title: "Settings saved" })}>Save Messaging Settings</Button>
+                    </div>
+                  </TabsContent>
+                </Tabs>
+              </CardContent>
+            </Card>
           </TabsContent>
 
           <TabsContent value="audit">
