@@ -995,14 +995,36 @@ export async function registerRoutes(
 
   app.post("/api/admin/providers", authenticateToken, requireAdmin, async (req: AuthRequest, res: Response) => {
     try {
-      const result = insertProviderSchema.safeParse(req.body);
-      if (!result.success) {
-        return res.status(400).json({ message: "Invalid provider data", errors: result.error.errors });
-      }
-      const provider = await storage.createProvider(result.data);
+      const { email, password, firstName, lastName, phone, ...providerData } = req.body;
+      
+      // Hash password
+      const hashedPassword = await bcrypt.hash(password, 10);
+
+      // Create user first
+      const user = await storage.createUser({
+        email,
+        password: hashedPassword,
+        firstName,
+        lastName,
+        phone: phone || "",
+        role: "provider",
+        isEmailVerified: true,
+      });
+
+      // Then create provider profile
+      const provider = await storage.createProvider({
+        ...providerData,
+        userId: user.id,
+        consultationFee: providerData.consultationFee.toString(),
+        homeVisitFee: providerData.homeVisitFee ? providerData.homeVisitFee.toString() : null,
+        isVerified: true,
+        isActive: true,
+      });
+
       res.status(201).json(provider);
-    } catch (error) {
-      res.status(500).json({ message: "Failed to create provider" });
+    } catch (error: any) {
+      console.error("Admin provider creation error:", error);
+      res.status(500).json({ message: error.message || "Failed to create provider" });
     }
   });
 
