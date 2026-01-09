@@ -9,9 +9,9 @@ export function Footer() {
       <div className="container mx-auto px-4 py-12">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           <div className="space-y-4">
-            <Link href="/" className="flex items-center gap-2">
+            <Link href="/" className="flex items-center gap-3">
               <img src={logoImg} alt="Golden Life Logo" className="h-12 w-auto object-contain" />
-              <span className="text-xl font-semibold sr-only">Golden Life</span>
+              <span className="text-xl font-semibold">Golden Life</span>
             </Link>
             <p className="text-sm text-muted-foreground">
               Connecting patients with trusted healthcare professionals. Quality care delivered to your doorstep.

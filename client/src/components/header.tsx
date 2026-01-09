@@ -38,9 +38,9 @@ export function Header() {
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto flex h-16 items-center justify-between gap-4 px-4">
-        <Link href="/" className="flex items-center gap-2" data-testid="link-home">
+        <Link href="/" className="flex items-center gap-3" data-testid="link-home">
           <img src={logoImg} alt="Golden Life Logo" className="h-10 w-auto object-contain" />
-          <span className="text-xl font-semibold tracking-tight sr-only">Golden Life</span>
+          <span className="text-xl font-semibold tracking-tight">Golden Life</span>
         </Link>
 
         <nav className="hidden md:flex items-center gap-6">
