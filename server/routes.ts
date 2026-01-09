@@ -5,7 +5,14 @@ import { z } from "zod";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { randomBytes, createHash } from "crypto";
-import { loginSchema, registerSchema, insertProviderSchema, insertAppointmentSchema, insertReviewSchema } from "@shared/schema";
+import { 
+  loginSchema, 
+  registerSchema, 
+  insertProviderSchema, 
+  insertAppointmentSchema, 
+  insertReviewSchema,
+  insertSupportTicketSchema 
+} from "@shared/schema";
 import crypto from 'crypto'; // Import crypto module for randomUUID
 import { Resend } from 'resend';
 
