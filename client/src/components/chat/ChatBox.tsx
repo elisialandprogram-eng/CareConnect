@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { MessageSquare, Send, X, Minimize2, Maximize2, ArrowLeft } from "lucide-react";
+import { MessageSquare, Send, X, Minimize2, Maximize2, ArrowLeft, User as UserIcon } from "lucide-react";
 import { RealtimeMessage, RealtimeConversation } from "@shared/schema";
 import { clsx } from "clsx";
 import { format } from "date-fns";
@@ -148,7 +148,7 @@ export function ChatBox() {
                       >
                         <div className="flex items-center gap-2">
                           <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center">
-                            <User className="h-3 w-3 text-primary" />
+                            <UserIcon className="h-3 w-3 text-primary" />
                           </div>
                           <span>GoldenLife Support</span>
                         </div>
@@ -167,7 +167,7 @@ export function ChatBox() {
                                 const convResponse = await apiRequest("POST", "/api/chat/conversations", {
                                   providerId: bookedProvider.providerId
                                 });
-                                setActiveConversation(convResponse);
+                                setActiveConversation(convResponse as any);
                               }
                             }
                           } catch (error) {
@@ -178,7 +178,7 @@ export function ChatBox() {
                       >
                         <div className="flex items-center gap-2">
                           <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center">
-                            <User className="h-3 w-3 text-primary" />
+                            <UserIcon className="h-3 w-3 text-primary" />
                           </div>
                           <span>Booked Provider</span>
                         </div>
