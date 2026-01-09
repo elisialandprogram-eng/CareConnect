@@ -653,6 +653,55 @@ export async function registerRoutes(
     }
   });
 
+  // Get provider with booking statistics for admin
+  app.get("/api/admin/providers/:id/stats", authenticateToken, async (req: AuthRequest, res: Response) => {
+    try {
+      if (req.user!.role !== "admin") {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+      
+      const providerId = req.params.id;
+      const appointments = await storage.getAppointmentsByProvider(providerId);
+      
+      const stats = {
+        total: appointments.length,
+        pending: appointments.filter(a => a.status === "pending").length,
+        confirmed: appointments.filter(a => a.status === "confirmed").length,
+        completed: appointments.filter(a => a.status === "completed").length,
+        cancelled: appointments.filter(a => a.status === "cancelled").length,
+        bookings: appointments.map(a => ({
+          id: a.id,
+          date: a.date,
+          startTime: a.startTime,
+          status: a.status,
+          patientName: `${a.patient.firstName} ${a.patient.lastName}`,
+          amount: a.totalAmount
+        }))
+      };
+      
+      res.json(stats);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get provider statistics" });
+    }
+  });
+
+  // Update provider detail (including dates and status)
+  app.patch("/api/admin/providers/:id", authenticateToken, async (req: AuthRequest, res: Response) => {
+    try {
+      if (req.user!.role !== "admin") {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+      
+      const provider = await storage.updateProvider(req.params.id, req.body);
+      if (!provider) {
+        return res.status(404).json({ message: "Provider not found" });
+      }
+      res.json(provider);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update provider" });
+    }
+  });
+
   // Update platform settings
   app.post("/api/admin/settings", authenticateToken, async (req: AuthRequest, res: Response) => {
     try {

@@ -431,14 +431,21 @@ function ProvidersManagement() {
     queryKey: ["/api/admin/providers"],
   });
 
-  const updateStatusMutation = useMutation({
-    mutationFn: async ({ id, status }: { id: string; status: string }) => {
-      const response = await apiRequest("PATCH", `/api/admin/providers/${id}/status`, { status });
-      if (!response.ok) throw new Error("Failed to update status");
+  const [selectedProviderId, setSelectedProviderId] = useState<string | null>(null);
+
+  const { data: providerStats, isLoading: isLoadingStats } = useQuery<any>({
+    queryKey: ["/api/admin/providers", selectedProviderId, "stats"],
+    enabled: !!selectedProviderId,
+  });
+
+  const updateProviderMutation = useMutation({
+    mutationFn: async ({ id, ...data }: any) => {
+      const response = await apiRequest("PATCH", `/api/admin/providers/${id}`, data);
+      if (!response.ok) throw new Error("Failed to update provider");
       return response.json();
     },
     onSuccess: () => {
-      toast({ title: "Provider status updated" });
+      toast({ title: "Provider updated successfully" });
       refetch();
     },
   });
@@ -446,56 +453,147 @@ function ProvidersManagement() {
   if (isLoading) return <div className="flex justify-center p-12"><Loader2 className="h-8 w-8 animate-spin" /></div>;
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Manage Providers</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="rounded-md border overflow-hidden">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b bg-muted/50">
-                <th className="h-10 px-4 text-left font-medium">Provider</th>
-                <th className="h-10 px-4 text-left font-medium">Specialization</th>
-                <th className="h-10 px-4 text-left font-medium">Status</th>
-                <th className="h-10 px-4 text-left font-medium">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {providers?.map((provider: any) => (
-                <tr key={provider.id} className="border-b last:border-0">
-                  <td className="p-4">
-                    <div className="font-medium">{provider.user?.firstName} {provider.user?.lastName}</div>
-                    <div className="text-sm text-muted-foreground">{provider.user?.email}</div>
-                  </td>
-                  <td className="p-4">{provider.specialization}</td>
-                  <td className="p-4">
-                    <Badge variant={provider.status === 'active' ? 'default' : 'secondary'}>
-                      {provider.status}
-                    </Badge>
-                  </td>
-                  <td className="p-4">
-                    <Select
-                      value={provider.status}
-                      onValueChange={(status) => updateStatusMutation.mutate({ id: provider.id, status })}
-                    >
-                      <SelectTrigger className="w-32">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="active">Active</SelectItem>
-                        <SelectItem value="suspended">Suspended</SelectItem>
-                        <SelectItem value="pending">Pending</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </td>
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle>Manage Providers</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="rounded-md border overflow-hidden">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b bg-muted/50">
+                  <th className="h-10 px-4 text-left font-medium">Provider</th>
+                  <th className="h-10 px-4 text-left font-medium">Specialization</th>
+                  <th className="h-10 px-4 text-left font-medium">Dates</th>
+                  <th className="h-10 px-4 text-left font-medium">Status</th>
+                  <th className="h-10 px-4 text-left font-medium">Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </CardContent>
-    </Card>
+              </thead>
+              <tbody>
+                {providers?.map((provider: any) => (
+                  <tr key={provider.id} className="border-b last:border-0">
+                    <td className="p-4">
+                      <div className="font-medium">{provider.user?.firstName} {provider.user?.lastName}</div>
+                      <div className="text-sm text-muted-foreground">{provider.user?.email}</div>
+                    </td>
+                    <td className="p-4">{provider.specialization}</td>
+                    <td className="p-4">
+                      <div className="text-xs">
+                        Start: {provider.startDate ? new Date(provider.startDate).toLocaleDateString() : 'N/A'}<br/>
+                        End: {provider.endDate ? new Date(provider.endDate).toLocaleDateString() : 'Active'}
+                      </div>
+                    </td>
+                    <td className="p-4">
+                      <Badge variant={provider.status === 'active' ? 'default' : provider.status === 'suspended' ? 'destructive' : 'secondary'}>
+                        {provider.status}
+                      </Badge>
+                    </td>
+                    <td className="p-4">
+                      <div className="flex items-center gap-2">
+                        <Select
+                          value={provider.status}
+                          onValueChange={(status) => updateProviderMutation.mutate({ id: provider.id, status })}
+                        >
+                          <SelectTrigger className="w-28">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="active">Active</SelectItem>
+                            <SelectItem value="suspended">Suspended</SelectItem>
+                            <SelectItem value="pending">Pending</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={() => setSelectedProviderId(provider.id)}
+                        >
+                          <Eye className="h-4 w-4 mr-1" /> View Stats
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
+
+      {selectedProviderId && (
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+              <CardTitle>Booking Statistics</CardTitle>
+              <CardDescription>Detailed overview for the selected provider</CardDescription>
+            </div>
+            <Button variant="ghost" size="sm" onClick={() => setSelectedProviderId(null)}>Close</Button>
+          </CardHeader>
+          <CardContent>
+            {isLoadingStats ? (
+              <div className="flex justify-center p-8"><Loader2 className="h-6 w-6 animate-spin" /></div>
+            ) : (
+              <div className="space-y-6">
+                <div className="grid gap-4 md:grid-cols-4">
+                  <div className="p-4 rounded-lg bg-muted/50 border">
+                    <div className="text-sm font-medium text-muted-foreground">Total Bookings</div>
+                    <div className="text-2xl font-bold">{providerStats?.total || 0}</div>
+                  </div>
+                  <div className="p-4 rounded-lg bg-orange-100 border border-orange-200 dark:bg-orange-950/20 dark:border-orange-900/50">
+                    <div className="text-sm font-medium text-orange-600 dark:text-orange-400">Pending</div>
+                    <div className="text-2xl font-bold">{providerStats?.pending || 0}</div>
+                  </div>
+                  <div className="p-4 rounded-lg bg-green-100 border border-green-200 dark:bg-green-950/20 dark:border-green-900/50">
+                    <div className="text-sm font-medium text-green-600 dark:text-green-400">Completed</div>
+                    <div className="text-2xl font-bold">{providerStats?.completed || 0}</div>
+                  </div>
+                  <div className="p-4 rounded-lg bg-red-100 border border-red-200 dark:bg-red-950/20 dark:border-red-900/50">
+                    <div className="text-sm font-medium text-red-600 dark:text-red-400">Cancelled</div>
+                    <div className="text-2xl font-bold">{providerStats?.cancelled || 0}</div>
+                  </div>
+                </div>
+
+                <div className="rounded-md border overflow-hidden">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b bg-muted/50">
+                        <th className="h-10 px-4 text-left font-medium">Patient</th>
+                        <th className="h-10 px-4 text-left font-medium">Date</th>
+                        <th className="h-10 px-4 text-left font-medium">Amount</th>
+                        <th className="h-10 px-4 text-left font-medium">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {providerStats?.bookings.length === 0 ? (
+                        <tr><td colSpan={4} className="p-8 text-center text-muted-foreground">No bookings found</td></tr>
+                      ) : (
+                        providerStats?.bookings.map((booking: any) => (
+                          <tr key={booking.id} className="border-b last:border-0">
+                            <td className="p-4 font-medium">{booking.patientName}</td>
+                            <td className="p-4">{new Date(booking.date).toLocaleDateString()} at {booking.startTime}</td>
+                            <td className="p-4">${Number(booking.amount).toFixed(2)}</td>
+                            <td className="p-4">
+                              <Badge variant={
+                                booking.status === 'completed' ? 'default' :
+                                booking.status === 'pending' ? 'outline' :
+                                booking.status === 'cancelled' ? 'destructive' : 'secondary'
+                              }>
+                                {booking.status}
+                              </Badge>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+    </div>
   );
 }
 
