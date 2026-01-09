@@ -993,6 +993,19 @@ export async function registerRoutes(
     next();
   };
 
+  app.post("/api/admin/providers", authenticateToken, requireAdmin, async (req: AuthRequest, res: Response) => {
+    try {
+      const result = insertProviderSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ message: "Invalid provider data", errors: result.error.errors });
+      }
+      const provider = await storage.createProvider(result.data);
+      res.status(201).json(provider);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to create provider" });
+    }
+  });
+
   // FAQs
   app.get("/api/admin/faqs", authenticateToken, requireAdmin, async (req: AuthRequest, res: Response) => {
     try {
