@@ -17,6 +17,7 @@ export function ChatBox() {
   const [isMinimized, setIsMinimized] = useState(false);
   const [activeConversation, setActiveConversation] = useState<RealtimeConversation | null>(null);
   const [message, setMessage] = useState("");
+  const [showNewChatOptions, setShowNewChatOptions] = useState(false);
   const socketRef = useRef<WebSocket | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -77,7 +78,7 @@ export function ChatBox() {
   if (!user) return null;
 
   return (
-    <div className="fixed bottom-4 right-4 z-50 flex flex-col items-end gap-2">
+    <div className="fixed bottom-4 left-4 z-50 flex flex-col items-start gap-2">
       {!isOpen ? (
         <Button
           className="rounded-full h-14 w-14 shadow-lg"
@@ -109,7 +110,10 @@ export function ChatBox() {
                 size="icon" 
                 variant="ghost" 
                 className="h-7 w-7 text-primary-foreground hover:bg-primary-foreground/20" 
-                onClick={() => setIsOpen(false)}
+                onClick={() => {
+                  setIsOpen(false);
+                  setShowNewChatOptions(false);
+                }}
               >
                 <X className="h-3 w-3" />
               </Button>
@@ -119,7 +123,69 @@ export function ChatBox() {
             <CardContent className="p-0 flex flex-col h-[calc(500px-57px)]">
               {!activeConversation ? (
                 <ScrollArea className="flex-1 p-4">
-                  <p className="text-xs text-muted-foreground mb-4">Select a conversation to start</p>
+                  <div className="flex justify-between items-center mb-4">
+                    <p className="text-xs text-muted-foreground">Recent Conversations</p>
+                    <Button 
+                      size="sm" 
+                      variant="ghost" 
+                      className="h-7 text-[10px]"
+                      onClick={() => setShowNewChatOptions(!showNewChatOptions)}
+                    >
+                      {showNewChatOptions ? "Cancel" : "New Chat"}
+                    </Button>
+                  </div>
+
+                  {showNewChatOptions ? (
+                    <div className="space-y-2 mb-4 p-2 bg-muted/30 rounded-lg border border-primary/5">
+                      <p className="text-[10px] font-semibold uppercase text-muted-foreground px-1">Start New Chat with:</p>
+                      <Button
+                        variant="outline"
+                        className="w-full justify-start text-left h-auto py-2 px-3 text-xs hover-elevate"
+                        onClick={() => {
+                          // Handle support chat creation logic here
+                          setShowNewChatOptions(false);
+                        }}
+                      >
+                        <div className="flex items-center gap-2">
+                          <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center">
+                            <User className="h-3 w-3 text-primary" />
+                          </div>
+                          <span>GoldenLife Support</span>
+                        </div>
+                      </Button>
+                      <Button
+                        variant="outline"
+                        className="w-full justify-start text-left h-auto py-2 px-3 text-xs hover-elevate"
+                        onClick={async () => {
+                          try {
+                            // Find the first booked provider
+                            const response = await fetch('/api/appointments');
+                            if (response.ok) {
+                              const appointments = await response.json();
+                              const bookedProvider = appointments.find((a: any) => a.status === 'confirmed' || a.status === 'pending');
+                              if (bookedProvider) {
+                                const convResponse = await apiRequest("POST", "/api/chat/conversations", {
+                                  providerId: bookedProvider.providerId
+                                });
+                                setActiveConversation(convResponse);
+                              }
+                            }
+                          } catch (error) {
+                            console.error("Failed to start provider chat", error);
+                          }
+                          setShowNewChatOptions(false);
+                        }}
+                      >
+                        <div className="flex items-center gap-2">
+                          <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center">
+                            <User className="h-3 w-3 text-primary" />
+                          </div>
+                          <span>Booked Provider</span>
+                        </div>
+                      </Button>
+                    </div>
+                  ) : null}
+
                   <div className="space-y-2">
                     {conversations?.map((conv) => (
                       <Button
