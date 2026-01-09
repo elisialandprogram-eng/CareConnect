@@ -10,9 +10,11 @@ import { MessageSquare, Send, X, Minimize2, Maximize2, ArrowLeft, User as UserIc
 import { RealtimeMessage, RealtimeConversation } from "@shared/schema";
 import { clsx } from "clsx";
 import { format } from "date-fns";
+import { useToast } from "@/hooks/use-toast";
 
 export function ChatBox() {
   const { user } = useAuth();
+  const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
   const [activeConversation, setActiveConversation] = useState<RealtimeConversation | null>(null);
@@ -142,7 +144,16 @@ export function ChatBox() {
                         variant="outline"
                         className="w-full justify-start text-left h-auto py-2 px-3 text-xs hover-elevate"
                         onClick={() => {
-                          // Handle support chat creation logic here
+                          // Support chat is currently AI-powered via the support route
+                          // But we can link it to the existing conversations
+                          setActiveConversation({
+                            id: "support-" + user.id,
+                            participant1Id: user.id,
+                            participant2Id: "support",
+                            createdAt: new Date(),
+                            lastMessage: null,
+                            lastMessageAt: new Date()
+                          } as any);
                           setShowNewChatOptions(false);
                         }}
                       >
@@ -162,12 +173,25 @@ export function ChatBox() {
                             const response = await fetch('/api/appointments');
                             if (response.ok) {
                               const appointments = await response.json();
-                              const bookedProvider = appointments.find((a: any) => a.status === 'confirmed' || a.status === 'pending');
+                              // Filter for confirmed appointments with this user as patient
+                              const bookedProvider = appointments.find((a: any) => 
+                                (a.status === 'confirmed' || a.status === 'pending') && 
+                                a.patientId === user.id
+                              );
+                              
                               if (bookedProvider) {
                                 const convResponse = await apiRequest("POST", "/api/chat/conversations", {
-                                  providerId: bookedProvider.providerId
+                                  providerId: bookedProvider.providerId,
+                                  patientId: user.id
                                 });
                                 setActiveConversation(convResponse as any);
+                                queryClient.invalidateQueries({ queryKey: ["/api/chat/conversations"] });
+                              } else {
+                                toast({
+                                  title: "No appointments",
+                                  description: "You need a confirmed appointment to chat with a provider.",
+                                  variant: "destructive"
+                                });
                               }
                             }
                           } catch (error) {
