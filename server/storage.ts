@@ -1178,13 +1178,13 @@ export class DatabaseStorage implements IStorage {
     return created as any;
   }
 
+  async getMessagesByConversation(conversationId: string): Promise<ChatMessage[]> {
+    return (db.select().from(chatMessages).where(eq(chatMessages.conversationId, conversationId)).orderBy(chatMessages.createdAt) as any);
+  }
+
   async createMessage(conversationId: string, role: string, content: string): Promise<ChatMessage> {
     const [message] = await db.insert(chatMessages).values({ conversationId, senderId: "system", content } as any).returning();
     return (message as any);
-  }
-
-  async getMessagesByConversation(conversationId: string): Promise<ChatMessage[]> {
-    return (db.select().from(chatMessages).where(eq(chatMessages.conversationId, conversationId)).orderBy(chatMessages.createdAt) as any);
   }
 
   // User Notifications
