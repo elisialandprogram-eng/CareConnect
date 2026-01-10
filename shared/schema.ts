@@ -26,7 +26,9 @@ export const subServices = pgTable("sub_services", {
   description: text("description"),
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow(),
-});
+}, (table) => ({
+  unq: sql`UNIQUE(${table.name}, ${table.category})`
+}));
 
 export const insertSubServiceSchema = createInsertSchema(subServices).omit({ id: true, createdAt: true });
 export type SubService = typeof subServices.$inferSelect;
