@@ -1038,7 +1038,12 @@ function ContentManagement() {
         <TabsList>
           <TabsTrigger value="faqs" data-testid="tab-content-faqs">FAQs</TabsTrigger>
           <TabsTrigger value="announcements" data-testid="tab-content-announcements">Announcements</TabsTrigger>
+          <TabsTrigger value="sub-services" data-testid="tab-sub-services">Sub-Services</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="sub-services">
+          <SubServicesManagement />
+        </TabsContent>
 
         <TabsContent value="faqs" className="space-y-4">
           <Card>

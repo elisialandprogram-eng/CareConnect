@@ -584,10 +584,6 @@ export async function registerRoutes(
       const { image } = req.body; // Expecting base64
       if (!image) return res.status(400).json({ message: "No image provided" });
       
-      // In a real app, we'd save to S3/Cloudinary. 
-      // For now, we'll return the base64 as the "url" for immediate feedback 
-      // or save to a local folder if permissions allow.
-      // Since it's a demo environment, base64 is safer for persistence across restarts if DB is shared.
       res.json({ url: image });
     } catch (error) {
       res.status(500).json({ message: "Upload failed" });
