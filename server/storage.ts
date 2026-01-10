@@ -526,31 +526,36 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getAppointmentsByPatient(patientId: string): Promise<AppointmentWithDetails[]> {
-    const result = await db
-      .select()
-      .from(appointments)
-      .innerJoin(users, eq(appointments.patientId, users.id))
-      .innerJoin(providers, eq(appointments.providerId, providers.id))
-      .leftJoin(services, eq(appointments.serviceId, services.id))
-      .where(eq(appointments.patientId, patientId))
-      .orderBy(desc(appointments.date), desc(appointments.startTime));
+    try {
+      const result = await db
+        .select()
+        .from(appointments)
+        .innerJoin(users, eq(appointments.patientId, users.id))
+        .innerJoin(providers, eq(appointments.providerId, providers.id))
+        .leftJoin(services, eq(appointments.serviceId, services.id))
+        .where(eq(appointments.patientId, patientId))
+        .orderBy(desc(appointments.date), desc(appointments.startTime));
 
-    const appointmentsWithDetails: AppointmentWithDetails[] = [];
+      const appointmentsWithDetails: AppointmentWithDetails[] = [];
 
-    for (const row of result) {
-      const providerUser = await this.getUser(row.providers.userId);
-      appointmentsWithDetails.push({
-        ...row.appointments,
-        patient: row.users,
-        provider: {
-          ...row.providers,
-          user: providerUser!,
-        },
-        service: row.services,
-      });
+      for (const row of result) {
+        const providerUser = await this.getUser(row.providers.userId);
+        appointmentsWithDetails.push({
+          ...row.appointments,
+          patient: row.users,
+          provider: {
+            ...row.providers,
+            user: providerUser!,
+          },
+          service: row.services,
+        });
+      }
+
+      return appointmentsWithDetails;
+    } catch (error) {
+      console.error("Error in getAppointmentsByPatient:", error);
+      throw error;
     }
-
-    return appointmentsWithDetails;
   }
 
   async getAppointmentsByProvider(providerId: string): Promise<AppointmentWithDetails[]> {
