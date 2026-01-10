@@ -31,9 +31,26 @@ export default function ProviderProfile() {
   const { id } = useParams<{ id: string }>();
   const [, navigate] = useLocation();
   const { isAuthenticated } = useAuth();
+
+  const { data: provider, isLoading: providerLoading } = useQuery<ProviderWithServices>({
+    queryKey: ["/api/providers", id],
+    enabled: !!id,
+  });
+
+  const { data: reviews } = useQuery<ReviewWithPatient[]>({
+    queryKey: [`/api/providers/${id}/reviews`],
+    enabled: !!id,
+  });
+
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [selectedService, setSelectedService] = useState<Service | null>(null);
   const [selectedSessions, setSelectedSessions] = useState<{ date: Date; time: string }[]>([]);
+  const [visitType, setVisitType] = useState<"online" | "home" | "clinic">("online");
+
+  const timeSlots = [
+    "09:00", "09:30", "10:00", "10:30", "11:00", "11:30",
+    "14:00", "14:30", "15:00", "15:30", "16:00", "16:30", "17:00",
+  ];
 
   const toggleSession = (time: string) => {
     if (!selectedDate) return;
@@ -55,7 +72,7 @@ export default function ProviderProfile() {
     
     if (selectedSessions.length === 0) return;
     
-    const effectiveService = selectedService || (provider.services && provider.services.length > 0 ? provider.services[0] : null);
+    const effectiveService = selectedService || (provider?.services && provider.services.length > 0 ? provider.services[0] : null);
     
     const params = new URLSearchParams({
       providerId: id!,

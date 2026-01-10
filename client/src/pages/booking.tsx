@@ -47,6 +47,10 @@ export default function Booking() {
   const initialTime = params.get("time");
   const finalSessions = sessions.length > 0 ? sessions : (initialDate && initialTime ? [{ date: initialDate, time: initialTime }] : []);
 
+  const providerId = params.get("providerId");
+  const serviceId = params.get("serviceId");
+  const visitType = (params.get("visitType") || "online") as "online" | "home" | "clinic";
+
   const [paymentMethod, setPaymentMethod] = useState("card");
   const [address, setAddress] = useState("");
   const [notes, setNotes] = useState("");
