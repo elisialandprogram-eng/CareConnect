@@ -552,6 +552,30 @@ export async function registerRoutes(
     res.status(204).end();
   });
 
+  // Get provider details with platform fees
+  app.get("/api/providers/:id/with-fees", async (req: Request, res: Response) => {
+    try {
+      const provider = await storage.getProviderWithServices(req.params.id);
+      if (!provider) return res.status(404).json({ message: "Provider not found" });
+      
+      const subServices = await storage.getAllSubServices();
+      const enrichedServices = provider.services.map(service => {
+        const matched = subServices.find(ss => ss.name === service.name && ss.category === provider.providerType);
+        return {
+          ...service,
+          platformFee: matched ? matched.platformFee : "0.00"
+        };
+      });
+
+      res.json({
+        ...provider,
+        services: enrichedServices
+      });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get provider details" });
+    }
+  });
+
   // Get patient appointments
   app.get("/api/appointments/patient", authenticateToken, async (req: AuthRequest, res: Response) => {
     try {
