@@ -33,40 +33,37 @@ export default function ProviderProfile() {
   const { isAuthenticated } = useAuth();
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [selectedService, setSelectedService] = useState<Service | null>(null);
-  const [selectedTime, setSelectedTime] = useState<string | null>(null);
-  const [visitType, setVisitType] = useState<"online" | "home" | "clinic">("online");
+  const [selectedSessions, setSelectedSessions] = useState<{ date: Date; time: string }[]>([]);
 
-  const { data: provider, isLoading: providerLoading } = useQuery<ProviderWithServices>({
-    queryKey: ["/api/providers", id],
-    enabled: !!id,
-  });
-
-  const { data: reviews } = useQuery<ReviewWithPatient[]>({
-    queryKey: [`/api/providers/${id}/reviews`],
-    enabled: !!id,
-  });
-
-  const timeSlots = [
-    "09:00", "09:30", "10:00", "10:30", "11:00", "11:30",
-    "14:00", "14:30", "15:00", "15:30", "16:00", "16:30", "17:00",
-  ];
+  const toggleSession = (time: string) => {
+    if (!selectedDate) return;
+    const dateStr = selectedDate.toISOString().split("T")[0];
+    const existingIndex = selectedSessions.findIndex(s => s.date.toISOString().split("T")[0] === dateStr && s.time === time);
+    
+    if (existingIndex > -1) {
+      setSelectedSessions(selectedSessions.filter((_, i) => i !== existingIndex));
+    } else {
+      setSelectedSessions([...selectedSessions, { date: selectedDate, time }]);
+    }
+  };
 
   const handleBooking = () => {
     if (!isAuthenticated) {
       navigate("/login?redirect=/provider/" + id);
       return;
     }
-    // If no service selected, default to the first one if available, 
-    // or allow booking without service if provider has general consultation fee
-    const effectiveService = selectedService || (provider.services && provider.services.length > 0 ? provider.services[0] : null);
     
-    if (!selectedDate || !selectedTime) return;
+    if (selectedSessions.length === 0) return;
+    
+    const effectiveService = selectedService || (provider.services && provider.services.length > 0 ? provider.services[0] : null);
     
     const params = new URLSearchParams({
       providerId: id!,
-      date: selectedDate.toISOString().split("T")[0],
-      time: selectedTime,
       visitType: visitType,
+      sessions: JSON.stringify(selectedSessions.map(s => ({
+        date: s.date.toISOString().split("T")[0],
+        time: s.time
+      })))
     });
     
     if (effectiveService) {
@@ -431,39 +428,68 @@ export default function ProviderProfile() {
                   </div>
 
                   <div className="space-y-2">
-                    <p className="text-sm font-medium">Select Time</p>
+                    <p className="text-sm font-medium">Select Time Slots (Select multiple if needed)</p>
                     <div className="grid grid-cols-3 gap-2">
-                      {timeSlots.map((time) => (
-                        <Button
-                          key={time}
-                          variant={selectedTime === time ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => setSelectedTime(time)}
-                          data-testid={`time-${time}`}
-                        >
-                          {time}
-                        </Button>
-                      ))}
+                      {timeSlots.map((time) => {
+                        const isSelected = selectedSessions.some(s => s.date.toISOString().split("T")[0] === (selectedDate?.toISOString().split("T")[0]) && s.time === time);
+                        return (
+                          <Button
+                            key={time}
+                            variant={isSelected ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => toggleSession(time)}
+                            data-testid={`time-${time}`}
+                          >
+                            {time}
+                          </Button>
+                        );
+                      })}
                     </div>
+                    {selectedSessions.length > 0 && (
+                      <div className="mt-4 p-3 bg-muted rounded-md text-xs space-y-1">
+                        <p className="font-medium">Selected Sessions:</p>
+                        {selectedSessions.map((s, i) => (
+                          <div key={i} className="flex justify-between">
+                            <span>{s.date.toLocaleDateString()} at {s.time}</span>
+                            <Button variant="ghost" size="icon" className="h-4 w-4" onClick={() => {
+                              setSelectedSessions(selectedSessions.filter((_, idx) => idx !== i));
+                            }}>
+                              <span className="sr-only">Remove</span>
+                              ×
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
 
                   <div className="pt-4 border-t">
-                    <div className="flex items-center justify-between mb-4">
-                      <span className="text-muted-foreground">Consultation Fee</span>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-muted-foreground">Per Consultation</span>
                       <span className="font-semibold">
                         ${visitType === "home" && provider.homeVisitFee
                           ? Number(provider.homeVisitFee).toFixed(0)
                           : Number(provider.consultationFee).toFixed(0)}
                       </span>
                     </div>
+                    {selectedSessions.length > 1 && (
+                      <div className="flex items-center justify-between mb-4 text-primary font-bold">
+                        <span>Total ({selectedSessions.length} sessions)</span>
+                        <span>
+                          ${(selectedSessions.length * (visitType === "home" && provider.homeVisitFee
+                            ? Number(provider.homeVisitFee)
+                            : Number(provider.consultationFee))).toFixed(0)}
+                        </span>
+                      </div>
+                    )}
                     <Button
                       className="w-full"
                       size="lg"
                       onClick={handleBooking}
-                      disabled={!selectedDate || !selectedTime}
+                      disabled={selectedSessions.length === 0}
                       data-testid="button-book-appointment"
                     >
-                      Book Appointment
+                      Book {selectedSessions.length > 1 ? `${selectedSessions.length} Sessions` : "Appointment"}
                       <ChevronRight className="h-4 w-4 ml-2" />
                     </Button>
                   </div>

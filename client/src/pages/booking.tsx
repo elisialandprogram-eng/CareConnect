@@ -39,11 +39,13 @@ export default function Booking() {
   const { user, isAuthenticated } = useAuth();
   const { toast } = useToast();
 
-  const providerId = params.get("providerId");
-  const serviceId = params.get("serviceId");
-  const date = params.get("date");
-  const time = params.get("time");
-  const visitType = params.get("visitType") as "online" | "home" | "clinic";
+  const sessionsParam = params.get("sessions");
+  const sessions = sessionsParam ? JSON.parse(sessionsParam) : [];
+  
+  // For backwards compatibility or single session flow
+  const initialDate = params.get("date");
+  const initialTime = params.get("time");
+  const finalSessions = sessions.length > 0 ? sessions : (initialDate && initialTime ? [{ date: initialDate, time: initialTime }] : []);
 
   const [paymentMethod, setPaymentMethod] = useState("card");
   const [address, setAddress] = useState("");
@@ -72,15 +74,26 @@ export default function Booking() {
 
   const bookingMutation = useMutation({
     mutationFn: async (data: any) => {
-      const response = await apiRequest("POST", "/api/appointments", data);
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || "Failed to book appointment");
+      const results = [];
+      for (const session of data.sessions) {
+        const sessionData = {
+          ...data,
+          date: session.date,
+          startTime: session.time,
+          endTime: session.endTime,
+        };
+        delete sessionData.sessions;
+        
+        const response = await apiRequest("POST", "/api/appointments", sessionData);
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.message || "Failed to book appointment");
+        }
+        results.push(await response.json());
       }
-      const appointment = await response.json();
-      return appointment;
+      return results;
     },
-    onSuccess: (data) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/appointments"] });
       const methodLabel = paymentMethods.find(m => m.id === paymentMethod)?.label || paymentMethod;
       toast({
@@ -101,50 +114,32 @@ export default function Booking() {
   });
 
   const handleConfirmBooking = () => {
-    console.log("handleConfirmBooking called");
-    if (!provider || !date || !time) {
-      console.log("Missing provider, date, or time", { provider, date, time });
-      return;
-    }
-
-    const endTime = new Date(`2024-01-01T${time}`);
-    endTime.setMinutes(endTime.getMinutes() + (selectedService?.duration || 60));
-    const endTimeStr = endTime.toTimeString().slice(0, 5);
+    if (!provider || finalSessions.length === 0) return;
 
     const fee = visitType === "home" && provider.homeVisitFee
       ? provider.homeVisitFee
       : provider.consultationFee;
 
-    const visitTypeLabel = visitType === "online" ? "Online Consultation" : visitType === "clinic" ? "Clinic Visit" : "Home Visit";
-    const serviceName = selectedService?.name || "General Consultation";
-
-    console.log("Mutating booking with data:", {
+    const bookingData = {
       providerId: provider.id,
       serviceId: serviceId || null,
-      serviceName,
-      date,
-      startTime: time,
-      endTime: endTimeStr,
-      visitType,
-      visitTypeLabel,
-      paymentMethod,
-      notes,
-      patientAddress: visitType === "home" ? address : null,
-      totalAmount: fee.toString(),
-    });
-
-    bookingMutation.mutate({
-      providerId: provider.id,
-      serviceId: serviceId || null,
-      date,
-      startTime: time,
-      endTime: endTimeStr,
       visitType,
       paymentMethod,
       notes,
       patientAddress: visitType === "home" ? address : null,
       totalAmount: fee.toString(),
-    });
+      sessions: finalSessions.map((s: any) => {
+        const endTime = new Date(`2024-01-01T${s.time}`);
+        endTime.setMinutes(endTime.getMinutes() + (selectedService?.duration || 60));
+        return {
+          date: s.date,
+          time: s.time,
+          endTime: endTime.toTimeString().slice(0, 5)
+        };
+      })
+    };
+
+    bookingMutation.mutate(bookingData);
   };
 
   const formatDate = (dateStr: string) => {
@@ -189,7 +184,7 @@ export default function Booking() {
     );
   }
 
-  if (!provider || !date || !time) {
+  if (!provider || finalSessions.length === 0) {
     return (
       <div className="min-h-screen flex flex-col">
         <Header />
@@ -208,6 +203,8 @@ export default function Booking() {
   const fee = visitType === "home" && provider.homeVisitFee
     ? Number(provider.homeVisitFee)
     : Number(provider.consultationFee);
+  
+  const totalAmount = fee * finalSessions.length;
 
   if (step === "confirmed") {
     return (
@@ -220,7 +217,7 @@ export default function Booking() {
             </div>
             <h1 className="text-3xl font-semibold mb-2">Booking Confirmed!</h1>
             <p className="text-muted-foreground mb-8">
-              Your appointment has been successfully booked. You will receive a confirmation email shortly.
+              Your {finalSessions.length > 1 ? `${finalSessions.length} appointments have` : "appointment has"} been successfully booked. You will receive a confirmation email shortly.
             </p>
 
             <Card className="text-left mb-6">
@@ -237,15 +234,21 @@ export default function Booking() {
                     <p className="text-sm text-muted-foreground">{provider.specialization}</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-2 text-sm">
-                  <Calendar className="h-4 w-4 text-muted-foreground" />
-                  <span>{formatDate(date)}</span>
+                <div className="space-y-3 pt-2">
+                  {finalSessions.map((session: any, idx: number) => (
+                    <div key={idx} className="flex flex-col gap-1 pb-2 border-b last:border-0">
+                      <div className="flex items-center gap-2 text-sm">
+                        <Calendar className="h-4 w-4 text-muted-foreground" />
+                        <span>{formatDate(session.date)}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm">
+                        <Clock className="h-4 w-4 text-muted-foreground" />
+                        <span>{session.time}</span>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-                <div className="flex items-center gap-2 text-sm">
-                  <Clock className="h-4 w-4 text-muted-foreground" />
-                  <span>{time}</span>
-                </div>
-                <div className="flex items-center gap-2 text-sm">
+                <div className="flex items-center gap-2 text-sm pt-2">
                   {getVisitTypeIcon(visitType)}
                   <span>{getVisitTypeLabel(visitType)}</span>
                 </div>
@@ -306,20 +309,21 @@ export default function Booking() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="flex items-center gap-3 p-4 rounded-lg bg-muted/50">
-                      <Calendar className="h-5 w-5 text-primary" />
-                      <div>
-                        <p className="text-sm text-muted-foreground">Date</p>
-                        <p className="font-medium">{formatDate(date)}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3 p-4 rounded-lg bg-muted/50">
-                      <Clock className="h-5 w-5 text-primary" />
-                      <div>
-                        <p className="text-sm text-muted-foreground">Time</p>
-                        <p className="font-medium">{time}</p>
-                      </div>
+                  <div className="grid grid-cols-1 gap-4">
+                    <div className="space-y-3">
+                      <Label>Selected Sessions</Label>
+                      {finalSessions.map((session: any, idx: number) => (
+                        <div key={idx} className="flex gap-4 p-4 rounded-lg bg-muted/50 border">
+                          <div className="flex items-center gap-2">
+                            <Calendar className="h-5 w-5 text-primary" />
+                            <span className="font-medium text-sm">{formatDate(session.date)}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Clock className="h-5 w-5 text-primary" />
+                            <span className="font-medium text-sm">{session.time}</span>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                     <div className="flex items-center gap-3 p-4 rounded-lg bg-muted/50">
                       {getVisitTypeIcon(visitType)}
@@ -446,8 +450,12 @@ export default function Booking() {
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Consultation Fee</span>
+                      <span className="text-muted-foreground">Fee per Session</span>
                       <span>${fee.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Sessions</span>
+                      <span>x {finalSessions.length}</span>
                     </div>
                     {visitType === "home" && (
                       <div className="flex justify-between text-sm">
@@ -460,7 +468,7 @@ export default function Booking() {
                   <div className="pt-4 border-t">
                     <div className="flex justify-between font-semibold">
                       <span>Total</span>
-                      <span>${fee.toFixed(2)}</span>
+                      <span>${totalAmount.toFixed(2)}</span>
                     </div>
                   </div>
 
