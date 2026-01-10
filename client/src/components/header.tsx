@@ -31,7 +31,7 @@ export function Header() {
 
   const getDashboardLink = () => {
     if (user?.role === "provider") return "/provider/dashboard";
-    if (user?.role === "admin") return "/admin/dashboard";
+    if (user?.role === "admin") return "/admin";
     return "/patient/dashboard";
   };
 
@@ -106,7 +106,7 @@ export function Header() {
                 <DropdownMenuItem asChild>
                   {user?.role === "admin" ? (
                     <Button asChild variant="ghost" size="sm">
-                      <Link href="/admin/dashboard">Admin</Link>
+                      <Link href="/admin">Admin</Link>
                     </Button>
                   ) : user?.role === "provider" ? (
                     <Button asChild variant="ghost" size="sm">
