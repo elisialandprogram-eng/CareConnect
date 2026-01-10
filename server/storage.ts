@@ -414,17 +414,22 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getAllProviders(): Promise<ProviderWithUser[]> {
-    const result = await db
-      .select()
-      .from(providers)
-      .innerJoin(users, eq(providers.userId, users.id))
-      .where(eq(providers.isActive, true))
-      .orderBy(desc(providers.rating));
+    try {
+      // In Admin Dashboard, we want to see ALL providers regardless of status
+      const result = await db
+        .select()
+        .from(providers)
+        .innerJoin(users, eq(providers.userId, users.id))
+        .orderBy(desc(providers.createdAt));
 
-    return result.map((r) => ({
-      ...r.providers,
-      user: r.users,
-    }));
+      return result.map((r) => ({
+        ...r.providers,
+        user: r.users,
+      }));
+    } catch (error) {
+      console.error("Error in getAllProviders:", error);
+      throw error;
+    }
   }
 
   async createProvider(insertProvider: InsertProvider): Promise<Provider> {
