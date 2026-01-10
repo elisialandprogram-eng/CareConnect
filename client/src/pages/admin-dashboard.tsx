@@ -79,6 +79,106 @@ const dayOptions = [
   { value: "sunday", label: "Sunday" },
 ];
 
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+
+// Provider Details Dialog Component
+function ProviderDetailsDialog({ provider }: { provider: any }) {
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button variant="ghost" size="icon" data-testid={`button-view-provider-${provider.id}`}>
+          <Eye className="h-4 w-4" />
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Provider Details</DialogTitle>
+          <DialogDescription>Full profile information for {provider.user?.firstName} {provider.user?.lastName}</DialogDescription>
+        </DialogHeader>
+        <ScrollArea className="max-h-[80vh] pr-4">
+          <div className="space-y-6 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label className="text-muted-foreground">Type</Label>
+                <p className="font-medium capitalize">{provider.type}</p>
+              </div>
+              <div>
+                <Label className="text-muted-foreground">Specialization</Label>
+                <p className="font-medium">{provider.specialization}</p>
+              </div>
+              <div>
+                <Label className="text-muted-foreground">Email</Label>
+                <p className="font-medium">{provider.user?.email}</p>
+              </div>
+              <div>
+                <Label className="text-muted-foreground">Phone</Label>
+                <p className="font-medium">{provider.user?.phone || 'N/A'}</p>
+              </div>
+              <div>
+                <Label className="text-muted-foreground">Experience</Label>
+                <p className="font-medium">{provider.yearsExperience} Years</p>
+              </div>
+              <div>
+                <Label className="text-muted-foreground">Education</Label>
+                <p className="font-medium">{provider.education}</p>
+              </div>
+              <div>
+                <Label className="text-muted-foreground">Consultation Fee</Label>
+                <p className="font-medium">${Number(provider.consultationFee).toFixed(2)}</p>
+              </div>
+              <div>
+                <Label className="text-muted-foreground">Home Visit Fee</Label>
+                <p className="font-medium">{provider.homeVisitFee ? `$${Number(provider.homeVisitFee).toFixed(2)}` : 'N/A'}</p>
+              </div>
+            </div>
+
+            <div>
+              <Label className="text-muted-foreground">Bio</Label>
+              <p className="text-sm mt-1 whitespace-pre-wrap">{provider.bio}</p>
+            </div>
+
+            <div>
+              <Label className="text-muted-foreground">Languages</Label>
+              <div className="flex flex-wrap gap-2 mt-1">
+                {provider.languages?.map((lang: string) => (
+                  <Badge key={lang} variant="secondary" className="capitalize">{lang}</Badge>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <Label className="text-muted-foreground">Available Days</Label>
+              <div className="flex flex-wrap gap-2 mt-1">
+                {provider.availableDays?.map((day: string) => (
+                  <Badge key={day} variant="outline" className="capitalize">{day}</Badge>
+                ))}
+              </div>
+            </div>
+
+            <div className="pt-4 border-t grid grid-cols-2 gap-4">
+              <div>
+                <Label className="text-muted-foreground">Rating</Label>
+                <p className="font-medium">{provider.rating} / 5 ({provider.totalReviews} reviews)</p>
+              </div>
+              <div>
+                <Label className="text-muted-foreground">Joined On</Label>
+                <p className="font-medium">{new Date(provider.createdAt).toLocaleDateString()}</p>
+              </div>
+            </div>
+          </div>
+        </ScrollArea>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 // Analytics Overview Component
 function AnalyticsOverview() {
   const { data: analytics, isLoading } = useQuery<{
