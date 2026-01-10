@@ -70,6 +70,11 @@ export default function ProviderDashboard() {
 
   const { data: appointments, isLoading } = useQuery<AppointmentWithDetails[]>({
     queryKey: ["/api/appointments/provider"],
+    queryFn: async () => {
+      const res = await apiRequest("GET", "/api/appointments/provider");
+      if (!res.ok) throw new Error("Failed to fetch appointments");
+      return res.json();
+    }
   });
 
   const updateStatusMutation = useMutation({

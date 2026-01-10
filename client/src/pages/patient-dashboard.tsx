@@ -121,10 +121,9 @@ export default function PatientDashboard() {
 
   const { data: appointments, isLoading } = useQuery<AppointmentWithDetails[]>({
     queryKey: ["/api/appointments/patient"],
-    // Automatically trigger cleanup when dashboard loads
     queryFn: async () => {
       await apiRequest("POST", "/api/appointments/cleanup", {});
-      const res = await fetch("/api/appointments/patient", { credentials: "include" });
+      const res = await apiRequest("GET", "/api/appointments/patient");
       if (!res.ok) throw new Error("Failed to fetch appointments");
       return res.json();
     }
