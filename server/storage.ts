@@ -426,7 +426,12 @@ export class DatabaseStorage implements IStorage {
       const providersWithUser = [];
       for (const r of result) {
         // Fetch practitioners if they exist in the new table
-        const practitioners = await db.select().from(medicalPractitioners).where(eq(medicalPractitioners.providerId, r.providers.id));
+        let practitioners = [];
+        try {
+          practitioners = await db.select().from(medicalPractitioners).where(eq(medicalPractitioners.providerId, r.providers.id));
+        } catch (e) {
+          console.warn("Medical practitioners table might be missing, skipping...");
+        }
         
         // Use practitioners from the related table or dummy data
         let practitionerData = '[]';
