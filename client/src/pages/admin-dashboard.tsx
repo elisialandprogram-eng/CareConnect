@@ -954,12 +954,13 @@ function ProvidersManagement() {
                             <SelectItem value="pending">Pending</SelectItem>
                           </SelectContent>
                         </Select>
+                        <ProviderDetailsDialog provider={provider} />
                         <Button 
                           size="sm" 
                           variant="outline"
                           onClick={() => setSelectedProviderId(provider.id)}
                         >
-                          <Eye className="h-4 w-4 mr-1" /> View Stats
+                          <BarChart3 className="h-4 w-4 mr-1" /> Stats
                         </Button>
                       </div>
                     </td>
