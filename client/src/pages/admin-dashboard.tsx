@@ -175,6 +175,7 @@ function ProviderDetailsDialog({ provider }: { provider: any }) {
                         <div key={index} className="p-3 rounded-md bg-muted/50 border space-y-2">
                           <div className="grid grid-cols-2 gap-2 text-sm">
                             <div><span className="text-muted-foreground font-medium">Name:</span> {practitioner.name}</div>
+                            <div><span className="text-muted-foreground font-medium">Designation:</span> {practitioner.designation}</div>
                             <div><span className="text-muted-foreground font-medium">DOB:</span> {practitioner.dob}</div>
                             <div><span className="text-muted-foreground font-medium">Origin:</span> {practitioner.originCountry}</div>
                             <div><span className="text-muted-foreground font-medium">Reg #:</span> {practitioner.registrationNumber}</div>

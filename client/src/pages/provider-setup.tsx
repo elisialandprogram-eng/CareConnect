@@ -35,6 +35,7 @@ import type { SubService } from "@shared/schema";
 
 const practitionerSchema = z.object({
   name: z.string().min(2, "Name is required"),
+  designation: z.string().min(2, "Designation is required"),
   dob: z.string().min(1, "Date of birth is required"),
   originCountry: z.string().min(2, "Origin country is required"),
   registrationNumber: z.string().min(2, "Registration number is required"),
@@ -98,7 +99,7 @@ export default function ProviderSetup() {
       city: "",
       languages: ["english"],
       availableDays: ["monday", "tuesday", "wednesday", "thursday", "friday"],
-      practitioners: [{ name: "", dob: "", originCountry: "", registrationNumber: "", identityNumber: "", mobileNumber: "" }],
+      practitioners: [{ name: "", designation: "", dob: "", originCountry: "", registrationNumber: "", identityNumber: "", mobileNumber: "" }],
     },
   });
 
