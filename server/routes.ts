@@ -547,12 +547,28 @@ export async function registerRoutes(
     res.status(204).end();
   });
 
-  // Admin price override for provider service
-  app.patch("/api/admin/services/:id/price", authenticateToken, async (req: AuthRequest, res: Response) => {
-    if (req.user?.role !== "admin") return res.status(403).json({ message: "Admin access required" });
-    const { adminPriceOverride } = req.body;
-    const service = await storage.updateService(req.params.id, { adminPriceOverride });
-    res.json(service);
+  // Get patient appointments
+  app.get("/api/appointments/patient", authenticateToken, async (req: AuthRequest, res: Response) => {
+    try {
+      const appointments = await storage.getAppointmentsByPatient(req.user!.id);
+      res.json(appointments);
+    } catch (error) {
+      console.error("Get patient appointments error:", error);
+      res.status(500).json({ message: "Failed to get appointments" });
+    }
+  });
+
+  // Get provider appointments
+  app.get("/api/appointments/provider", authenticateToken, async (req: AuthRequest, res: Response) => {
+    try {
+      const provider = await storage.getProviderByUserId(req.user!.id);
+      if (!provider) return res.status(404).json({ message: "Provider not found" });
+      const appointments = await storage.getAppointmentsByProvider(provider.id);
+      res.json(appointments);
+    } catch (error) {
+      console.error("Get provider appointments error:", error);
+      res.status(500).json({ message: "Failed to get appointments" });
+    }
   });
 
   app.patch("/api/auth/profile", authenticateToken, async (req: AuthRequest, res: Response) => {
