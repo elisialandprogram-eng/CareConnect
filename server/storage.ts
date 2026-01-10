@@ -428,19 +428,17 @@ export class DatabaseStorage implements IStorage {
         // Fetch practitioners if they exist in the new table
         const practitioners = await db.select().from(medicalPractitioners).where(eq(medicalPractitioners.providerId, r.providers.id));
         
-        // If practitionerData is empty/null, try to use practitioners from the related table
-        let practitionerData = r.providers.practitionerData;
-        if (!practitionerData || practitionerData === '[]') {
-          if (practitioners.length > 0) {
-            practitionerData = JSON.stringify(practitioners);
-          } else {
-            // Add dummy data for now as requested
-            practitionerData = JSON.stringify([{
-              name: "Dummy Practitioner",
-              specialization: r.providers.specialization || "General",
-              experience: r.providers.yearsExperience || 0
-            }]);
-          }
+        // Use practitioners from the related table or dummy data
+        let practitionerData = '[]';
+        if (practitioners.length > 0) {
+          practitionerData = JSON.stringify(practitioners);
+        } else {
+          // Add dummy data for now as requested
+          practitionerData = JSON.stringify([{
+            name: "Dummy Practitioner",
+            specialization: r.providers.specialization || "General",
+            experience: r.providers.yearsExperience || 0
+          }]);
         }
 
         providersWithUser.push({

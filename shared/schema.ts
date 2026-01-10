@@ -144,7 +144,6 @@ export const providers = pgTable("providers", {
   latitude: decimal("latitude", { precision: 10, scale: 8 }),
   longitude: decimal("longitude", { precision: 11, scale: 8 }),
   availableDays: text("available_days").array(),
-  practitionerData: text("practitioner_data"), // JSON string for multiple practitioners
   workingHoursStart: text("working_hours_start").default("09:00"),
   workingHoursEnd: text("working_hours_end").default("18:00"),
   createdAt: timestamp("created_at").defaultNow(),
