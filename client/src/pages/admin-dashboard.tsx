@@ -2513,7 +2513,15 @@ export default function AdminDashboard() {
               <MessageSquare className="h-4 w-4 mr-2" />
               Support
             </TabsTrigger>
+            <TabsTrigger value="sub-services" data-testid="tab-sub-services">
+              <ListTree className="h-4 w-4 mr-2" />
+              Sub-Services
+            </TabsTrigger>
           </TabsList>
+
+          <TabsContent value="sub-services">
+            <SubServicesManagement />
+          </TabsContent>
 
           <TabsContent value="overview">
             <AnalyticsOverview />
