@@ -547,9 +547,12 @@ export async function registerRoutes(
     res.status(204).end();
   });
 
-  app.get("/api/sub-services/:category", async (req: Request, res: Response) => {
-    const subServices = await storage.getSubServicesByCategory(req.params.category);
-    res.json(subServices);
+  // Admin price override for provider service
+  app.patch("/api/admin/services/:id/price", authenticateToken, async (req: AuthRequest, res: Response) => {
+    if (req.user?.role !== "admin") return res.status(403).json({ message: "Admin access required" });
+    const { adminPriceOverride } = req.body;
+    const service = await storage.updateService(req.params.id, { adminPriceOverride });
+    res.json(service);
   });
 
   app.patch("/api/auth/profile", authenticateToken, async (req: AuthRequest, res: Response) => {

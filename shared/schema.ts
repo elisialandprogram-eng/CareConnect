@@ -153,10 +153,12 @@ export const providers = pgTable("providers", {
 export const services = pgTable("services", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   providerId: varchar("provider_id").notNull().references(() => providers.id),
+  subServiceId: varchar("sub_service_id").references(() => subServices.id), // Link to central sub-service
   name: text("name").notNull(),
   description: text("description"),
   duration: integer("duration").notNull(), // in minutes
   price: decimal("price", { precision: 10, scale: 2 }).notNull(),
+  adminPriceOverride: decimal("admin_price_override", { precision: 10, scale: 2 }), // Admin override
   isActive: boolean("is_active").default(true),
 });
 
