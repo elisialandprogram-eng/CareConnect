@@ -1301,12 +1301,18 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createSubService(data: InsertSubService): Promise<SubService> {
-    const [subService] = await db.insert(subServices).values(data).returning();
+    const [subService] = await db.insert(subServices).values({
+      ...data,
+      platformFee: data.platformFee?.toString() || "0.00"
+    }).returning();
     return subService;
   }
 
   async updateSubService(id: string, data: Partial<SubService>): Promise<SubService | undefined> {
-    const [subService] = await db.update(subServices).set(data).where(eq(subServices.id, id)).returning();
+    const [subService] = await db.update(subServices).set({
+      ...data,
+      platformFee: data.platformFee?.toString()
+    }).where(eq(subServices.id, id)).returning();
     return subService || undefined;
   }
 

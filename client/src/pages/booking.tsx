@@ -74,7 +74,13 @@ export default function Booking() {
     enabled: !!providerId,
   });
 
+  const { data: subServices } = useQuery<any[]>({
+    queryKey: ["/api/admin/sub-services"],
+  });
+
   const selectedService = provider?.services?.find(s => s.id === serviceId);
+  const matchedSubService = subServices?.find(ss => ss.name === selectedService?.name && ss.category === provider?.providerType);
+  const platformFee = matchedSubService ? Number(matchedSubService.platformFee) : 0;
 
   const bookingMutation = useMutation({
     mutationFn: async (data: any) => {
@@ -120,9 +126,11 @@ export default function Booking() {
   const handleConfirmBooking = () => {
     if (!provider || finalSessions.length === 0) return;
 
-    const fee = visitType === "home" && provider.homeVisitFee
-      ? provider.homeVisitFee
-      : provider.consultationFee;
+    const baseFee = visitType === "home" && provider.homeVisitFee
+      ? Number(provider.homeVisitFee)
+      : Number(provider.consultationFee);
+    
+    const feeWithPlatform = baseFee + platformFee;
 
     const bookingData = {
       providerId: provider.id,
@@ -131,7 +139,7 @@ export default function Booking() {
       paymentMethod,
       notes,
       patientAddress: visitType === "home" ? address : null,
-      totalAmount: fee.toString(),
+      totalAmount: feeWithPlatform.toString(),
       sessions: finalSessions.map((s: any) => {
         const endTime = new Date(`2024-01-01T${s.time}`);
         endTime.setMinutes(endTime.getMinutes() + (selectedService?.duration || 60));
@@ -204,11 +212,12 @@ export default function Booking() {
     );
   }
 
-  const fee = visitType === "home" && provider.homeVisitFee
+  const baseFee = visitType === "home" && provider.homeVisitFee
     ? Number(provider.homeVisitFee)
     : Number(provider.consultationFee);
   
-  const totalAmount = fee * finalSessions.length;
+  const feeWithPlatform = baseFee + platformFee;
+  const totalAmount = feeWithPlatform * finalSessions.length;
 
   if (step === "confirmed") {
     return (
@@ -454,9 +463,15 @@ export default function Booking() {
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Fee per Session</span>
-                      <span>${fee.toFixed(2)}</span>
+                      <span className="text-muted-foreground">Consultation Fee</span>
+                      <span>${baseFee.toFixed(2)}</span>
                     </div>
+                    {platformFee > 0 && (
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Platform Fee</span>
+                        <span>+${platformFee.toFixed(2)}</span>
+                      </div>
+                    )}
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Sessions</span>
                       <span>x {finalSessions.length}</span>
