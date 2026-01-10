@@ -142,6 +142,42 @@ export default function ProviderDashboard() {
     });
   };
 
+  const { data: subServices } = useQuery<SubService[]>({
+    queryKey: ["/api/sub-services", providerData?.type],
+    enabled: !!providerData?.type,
+  });
+
+  const addServiceMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const response = await apiRequest("POST", "/api/services", {
+        ...data,
+        providerId: providerData?.id,
+      });
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/providers", providerData?.id] });
+      toast({ title: "Service added successfully" });
+    },
+  });
+
+  const [selectedSubServiceId, setSelectedSubServiceId] = useState("");
+  const [servicePrice, setServicePrice] = useState("");
+
+  const handleAddService = () => {
+    const sub = subServices?.find(s => s.id === selectedSubServiceId);
+    if (!sub) return;
+    addServiceMutation.mutate({
+      subServiceId: sub.id,
+      name: sub.name,
+      description: sub.description,
+      duration: 60,
+      price: servicePrice,
+    });
+    setSelectedSubServiceId("");
+    setServicePrice("");
+  };
+
   const AppointmentRow = ({ appointment }: { appointment: AppointmentWithDetails }) => (
     <div
       className="flex items-center justify-between p-4 border rounded-lg hover-elevate"
@@ -426,10 +462,47 @@ export default function ProviderDashboard() {
                 </CardContent>
               </Card>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">Quick Actions</CardTitle>
-                </CardHeader>
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-lg">Add Service with Custom Price</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="space-y-2">
+                        <Label>Select Sub-Service</Label>
+                        <Select onValueChange={setSelectedSubServiceId} value={selectedSubServiceId}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Choose a sub-service" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {subServices?.map(sub => (
+                              <SelectItem key={sub.id} value={sub.id}>{sub.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Your Price ($)</Label>
+                        <Input 
+                          type="number" 
+                          value={servicePrice} 
+                          onChange={(e) => setServicePrice(e.target.value)}
+                          placeholder="Enter your fee for this service"
+                        />
+                      </div>
+                      <Button 
+                        onClick={handleAddService} 
+                        disabled={!selectedSubServiceId || !servicePrice || addServiceMutation.isPending}
+                        className="w-full"
+                      >
+                        {addServiceMutation.isPending ? "Adding..." : "Add Service"}
+                      </Button>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-lg">Quick Actions</CardTitle>
+                    </CardHeader>
                 <CardContent className="space-y-2">
                   <Button variant="outline" className="w-full justify-start" asChild>
                     <Link href="/provider/availability">

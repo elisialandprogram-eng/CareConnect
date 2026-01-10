@@ -314,7 +314,12 @@ export default function ProviderProfile() {
                                 </div>
                               </div>
                               <div className="text-right">
-                                <p className="text-lg font-semibold">${Number(service.price).toFixed(0)}</p>
+                                <p className="text-lg font-semibold">
+                                  ${Number(service.adminPriceOverride || service.price).toFixed(0)}
+                                </p>
+                                {service.adminPriceOverride && (
+                                  <Badge variant="secondary" className="text-[10px] uppercase">Special Offer</Badge>
+                                )}
                               </div>
                             </div>
                           </div>
