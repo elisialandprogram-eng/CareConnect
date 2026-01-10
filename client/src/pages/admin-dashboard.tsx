@@ -36,9 +36,9 @@ import { z } from "zod";
 import { 
   Loader2, Shield, Users, Building, Trash2, Edit, Plus, Tag, DollarSign,
   Calendar, FileText, Settings, MessageSquare, Activity, BarChart3,
-  Bell, HelpCircle, CheckCircle, XCircle, Clock, Eye
+  Bell, HelpCircle, CheckCircle, XCircle, Clock, Eye, ListTree
 } from "lucide-react";
-import type { User, ProviderWithUser, PromoCode, ProviderPricingOverride } from "@shared/schema";
+import type { User, ProviderWithUser, PromoCode, ProviderPricingOverride, SubService } from "@shared/schema";
 import { useLocation } from "wouter";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from "recharts";
 
@@ -2244,6 +2244,118 @@ function UsersManagement() {
         </div>
       </CardContent>
     </Card>
+  );
+}
+
+// Sub-services Management Component
+function SubServicesManagement() {
+  const { toast } = useToast();
+  const [newService, setNewService] = useState({ name: "", category: "physiotherapist", description: "" });
+
+  const { data: subServices = [], isLoading, refetch } = useQuery<SubService[]>({
+    queryKey: ["/api/admin/sub-services"],
+  });
+
+  const createMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const res = await apiRequest("POST", "/api/admin/sub-services", data);
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Sub-service added" });
+      setNewService({ name: "", category: "physiotherapist", description: "" });
+      refetch();
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      await apiRequest("DELETE", `/api/admin/sub-services/${id}`, {});
+    },
+    onSuccess: () => {
+      toast({ title: "Sub-service deleted" });
+      refetch();
+    },
+  });
+
+  if (isLoading) return <div className="flex justify-center p-12"><Loader2 className="h-8 w-8 animate-spin" /></div>;
+
+  return (
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle>Add New Sub-Service</CardTitle>
+          <CardDescription>Define services for specific provider categories</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <Label>Service Name</Label>
+              <Input 
+                value={newService.name} 
+                onChange={(e) => setNewService({ ...newService, name: e.target.value })} 
+                placeholder="e.g., Post-Stroke Rehab"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Category</Label>
+              <Select 
+                value={newService.category} 
+                onValueChange={(val) => setNewService({ ...newService, category: val })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="physiotherapist">Physiotherapist</SelectItem>
+                  <SelectItem value="doctor">Doctor</SelectItem>
+                  <SelectItem value="nurse">Home Nurse</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-end">
+              <Button 
+                onClick={() => createMutation.mutate(newService)} 
+                disabled={!newService.name || createMutation.isPending}
+                className="w-full"
+              >
+                <Plus className="h-4 w-4 mr-2" /> Add Service
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Existing Sub-Services</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="divide-y border rounded-md">
+            {subServices.length === 0 ? (
+              <div className="p-8 text-center text-muted-foreground">No sub-services defined</div>
+            ) : (
+              subServices.map((service) => (
+                <div key={service.id} className="p-4 flex items-center justify-between">
+                  <div>
+                    <p className="font-medium">{service.name}</p>
+                    <Badge variant="outline" className="capitalize">{service.category}</Badge>
+                  </div>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="text-destructive"
+                    onClick={() => deleteMutation.mutate(service.id)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))
+            )}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   );
 }
 

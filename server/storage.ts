@@ -29,6 +29,7 @@ import {
   chatMessages,
   realtimeConversations,
   realtimeMessages,
+  subServices,
   type User,
   type InsertUser,
   type Provider,
@@ -90,6 +91,8 @@ import {
   type ProviderWithServices,
   type AppointmentWithDetails,
   type ReviewWithPatient,
+  type SubService,
+  type InsertSubService,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, gte, lte, or, sql, count, asc } from "drizzle-orm";
@@ -315,6 +318,13 @@ export interface IStorage {
   
   // Provider management enhancements  
   deleteProvider(id: string): Promise<void>;
+
+  // Sub-services
+  getAllSubServices(): Promise<SubService[]>;
+  getSubServicesByCategory(category: string): Promise<SubService[]>;
+  createSubService(data: InsertSubService): Promise<SubService>;
+  updateSubService(id: string, data: Partial<SubService>): Promise<SubService | undefined>;
+  deleteSubService(id: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1239,6 +1249,29 @@ export class DatabaseStorage implements IStorage {
   // Provider management enhancements
   async deleteProvider(id: string): Promise<void> {
     await db.update(providers).set({ isActive: false }).where(eq(providers.id, id));
+  }
+
+  // Sub-services
+  async getAllSubServices(): Promise<SubService[]> {
+    return db.select().from(subServices).orderBy(asc(subServices.name));
+  }
+
+  async getSubServicesByCategory(category: string): Promise<SubService[]> {
+    return db.select().from(subServices).where(eq(subServices.category, category as any)).orderBy(asc(subServices.name));
+  }
+
+  async createSubService(data: InsertSubService): Promise<SubService> {
+    const [subService] = await db.insert(subServices).values(data).returning();
+    return subService;
+  }
+
+  async updateSubService(id: string, data: Partial<SubService>): Promise<SubService | undefined> {
+    const [subService] = await db.update(subServices).set(data).where(eq(subServices.id, id)).returning();
+    return subService || undefined;
+  }
+
+  async deleteSubService(id: string): Promise<void> {
+    await db.delete(subServices).where(eq(subServices.id, id));
   }
 }
 

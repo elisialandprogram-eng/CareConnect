@@ -29,11 +29,14 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { Loader2, Stethoscope, CheckCircle } from "lucide-react";
+import { Loader2, Stethoscope, CheckCircle, ChevronDown } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import type { SubService } from "@shared/schema";
 
 const providerSetupSchema = z.object({
   type: z.enum(["physiotherapist", "doctor", "nurse"]),
   specialization: z.string().min(3, "Specialization is required"),
+  subServices: z.array(z.string()).min(1, "Select at least one sub-service"),
   bio: z.string().min(50, "Please write at least 50 characters about yourself"),
   yearsExperience: z.coerce.number().min(0).max(50),
   education: z.string().min(3, "Education is required"),
@@ -76,6 +79,7 @@ export default function ProviderSetup() {
     defaultValues: {
       type: "physiotherapist",
       specialization: "",
+      subServices: [],
       bio: "",
       yearsExperience: 0,
       education: "",
@@ -110,6 +114,13 @@ export default function ProviderSetup() {
         variant: "destructive",
       });
     },
+  });
+
+  const selectedType = form.watch("type");
+
+  const { data: subServicesData = [] } = useQuery<SubService[]>({
+    queryKey: ["/api/sub-services", selectedType],
+    enabled: !!selectedType,
   });
 
   const onSubmit = (data: ProviderSetupData) => {
@@ -209,6 +220,49 @@ export default function ProviderSetup() {
                               data-testid="input-specialization"
                             />
                           </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="subServices"
+                      render={() => (
+                        <FormItem>
+                          <FormLabel>Sub Services</FormLabel>
+                          <div className="grid grid-cols-2 gap-2 border rounded-md p-4 bg-background">
+                            {subServicesData.length === 0 ? (
+                              <p className="text-sm text-muted-foreground col-span-2">No sub-services available for this category</p>
+                            ) : (
+                              subServicesData.map((service) => (
+                                <FormField
+                                  key={service.id}
+                                  control={form.control}
+                                  name="subServices"
+                                  render={({ field }) => (
+                                    <FormItem className="flex items-center space-x-2 space-y-0">
+                                      <FormControl>
+                                        <Checkbox
+                                          checked={field.value?.includes(service.name)}
+                                          onCheckedChange={(checked) => {
+                                            const updated = checked
+                                              ? [...(field.value || []), service.name]
+                                              : field.value?.filter((v) => v !== service.name) || [];
+                                            field.onChange(updated);
+                                          }}
+                                        />
+                                      </FormControl>
+                                      <FormLabel className="font-normal cursor-pointer text-sm">
+                                        {service.name}
+                                      </FormLabel>
+                                    </FormItem>
+                                  )}
+                                />
+                              ))
+                            )}
+                          </div>
+                          <FormDescription>Select the specific treatments or services you provide</FormDescription>
                           <FormMessage />
                         </FormItem>
                       )}

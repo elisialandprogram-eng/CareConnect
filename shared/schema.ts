@@ -18,6 +18,20 @@ export const contentTypeEnum = pgEnum("content_type", ["homepage", "about", "ter
 export const announcementTypeEnum = pgEnum("announcement_type", ["info", "warning", "success", "error"]);
 export const medicalHistoryTypeEnum = pgEnum("medical_history_type", ["diagnosis", "procedure", "lab_result", "vaccination", "allergy"]);
 
+// Service Categories & Sub-Services
+export const subServices = pgTable("sub_services", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  category: providerTypeEnum("category").notNull(),
+  name: text("name").notNull(),
+  description: text("description"),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertSubServiceSchema = createInsertSchema(subServices).omit({ id: true, createdAt: true });
+export type SubService = typeof subServices.$inferSelect;
+export type InsertSubService = z.infer<typeof insertSubServiceSchema>;
+
 // Real-time Chat Tables
 export const realtimeConversations = pgTable("realtime_conversations", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),

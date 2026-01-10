@@ -11,7 +11,8 @@ import {
   insertProviderSchema, 
   insertAppointmentSchema, 
   insertReviewSchema,
-  insertSupportTicketSchema 
+  insertSupportTicketSchema,
+  insertSubServiceSchema
 } from "@shared/schema";
 import crypto from 'crypto'; // Import crypto module for randomUUID
 import { Resend } from 'resend';
@@ -518,7 +519,41 @@ export async function registerRoutes(
     }
   });
 
-  // Update user profile
+  // Sub-services management
+  app.get("/api/admin/sub-services", authenticateToken, async (req: AuthRequest, res: Response) => {
+    if (req.user?.role !== "admin") return res.status(403).json({ message: "Admin access required" });
+    const subServices = await storage.getAllSubServices();
+    res.json(subServices);
+  });
+
+  app.post("/api/admin/sub-services", authenticateToken, async (req: AuthRequest, res: Response) => {
+    if (req.user?.role !== "admin") return res.status(403).json({ message: "Admin access required" });
+    try {
+      const data = insertSubServiceSchema.parse(req.body);
+      const subService = await storage.createSubService(data);
+      res.json(subService);
+    } catch (error) {
+      res.status(400).json({ message: "Invalid sub-service data" });
+    }
+  });
+
+  app.patch("/api/admin/sub-services/:id", authenticateToken, async (req: AuthRequest, res: Response) => {
+    if (req.user?.role !== "admin") return res.status(403).json({ message: "Admin access required" });
+    const subService = await storage.updateSubService(req.params.id, req.body);
+    res.json(subService);
+  });
+
+  app.delete("/api/admin/sub-services/:id", authenticateToken, async (req: AuthRequest, res: Response) => {
+    if (req.user?.role !== "admin") return res.status(403).json({ message: "Admin access required" });
+    await storage.deleteSubService(req.params.id);
+    res.status(204).end();
+  });
+
+  app.get("/api/sub-services/:category", async (req: Request, res: Response) => {
+    const subServices = await storage.getSubServicesByCategory(req.params.category);
+    res.json(subServices);
+  });
+
   app.patch("/api/auth/profile", authenticateToken, async (req: AuthRequest, res: Response) => {
     try {
       const { firstName, lastName, phone, address, avatarUrl } = req.body;
