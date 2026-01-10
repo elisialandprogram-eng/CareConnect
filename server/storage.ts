@@ -430,8 +430,17 @@ export class DatabaseStorage implements IStorage {
         
         // If practitionerData is empty/null, try to use practitioners from the related table
         let practitionerData = r.providers.practitionerData;
-        if (!practitionerData && practitioners.length > 0) {
-          practitionerData = JSON.stringify(practitioners);
+        if (!practitionerData || practitionerData === '[]') {
+          if (practitioners.length > 0) {
+            practitionerData = JSON.stringify(practitioners);
+          } else {
+            // Add dummy data for now as requested
+            practitionerData = JSON.stringify([{
+              name: "Dummy Practitioner",
+              specialization: r.providers.specialization || "General",
+              experience: r.providers.yearsExperience || 0
+            }]);
+          }
         }
 
         providersWithUser.push({
