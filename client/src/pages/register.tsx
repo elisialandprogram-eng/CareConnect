@@ -73,12 +73,14 @@ export default function Register() {
   const onSubmit = async (data: RegisterFormData) => {
     setIsLoading(true);
     try {
-      const user = await register(data);
+      const result = await register(data);
+      if (!result) throw new Error("Registration failed");
+      
       toast({
         title: "Account created!",
         description: "Please check your email for the verification code.",
       });
-      navigate(`/verify-email?userId=${user.id}`);
+      navigate(`/verify-email?userId=${result.id}`);
     } catch (error: any) {
       toast({
         title: "Registration failed",
