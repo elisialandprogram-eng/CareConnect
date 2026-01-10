@@ -346,7 +346,7 @@ export default function ProviderSetup() {
                     <div className="space-y-4 border-t pt-4">
                       <div className="flex items-center justify-between">
                         <Label>Medical Practitioners</Label>
-                        <Button type="button" variant="outline" size="sm" onClick={() => append({ name: "", dob: "", originCountry: "", registrationNumber: "", identityNumber: "", mobileNumber: "" })}>
+                        <Button type="button" variant="outline" size="sm" onClick={() => append({ name: "", designation: "", dob: "", originCountry: "", registrationNumber: "", identityNumber: "", mobileNumber: "" })}>
                           <Plus className="h-4 w-4 mr-2" /> Add Practitioner
                         </Button>
                       </div>
@@ -356,7 +356,7 @@ export default function ProviderSetup() {
                           <Button type="button" variant="ghost" size="icon" className="absolute top-2 right-2 text-destructive" onClick={() => remove(index)}>
                             <Trash2 className="h-4 w-4" />
                           </Button>
-                          <div className="grid grid-cols-1 gap-4">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <FormField
                               control={form.control}
                               name={`practitioners.${index}.name`}
@@ -368,66 +368,77 @@ export default function ProviderSetup() {
                                 </FormItem>
                               )}
                             />
-                            <div className="grid grid-cols-2 gap-4">
-                              <FormField
-                                control={form.control}
-                                name={`practitioners.${index}.dob`}
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormLabel>DOB</FormLabel>
-                                    <FormControl><Input type="date" {...field} /></FormControl>
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
-                              />
-                              <FormField
-                                control={form.control}
-                                name={`practitioners.${index}.originCountry`}
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormLabel>Origin Country</FormLabel>
-                                    <FormControl><Input {...field} /></FormControl>
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
-                              />
-                            </div>
-                            <div className="grid grid-cols-2 gap-4">
-                              <FormField
-                                control={form.control}
-                                name={`practitioners.${index}.registrationNumber`}
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormLabel>Registration #</FormLabel>
-                                    <FormControl><Input {...field} /></FormControl>
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
-                              />
-                              <FormField
-                                control={form.control}
-                                name={`practitioners.${index}.identityNumber`}
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormLabel>Identity #</FormLabel>
-                                    <FormControl><Input {...field} /></FormControl>
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
-                              />
-                            </div>
                             <FormField
                               control={form.control}
-                              name={`practitioners.${index}.mobileNumber`}
+                              name={`practitioners.${index}.designation`}
                               render={({ field }) => (
                                 <FormItem>
-                                  <FormLabel>Mobile #</FormLabel>
+                                  <FormLabel>Designation</FormLabel>
+                                  <FormControl><Input placeholder="e.g. Senior Physiotherapist" {...field} /></FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </div>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <FormField
+                              control={form.control}
+                              name={`practitioners.${index}.dob`}
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>DOB</FormLabel>
+                                  <FormControl><Input type="date" {...field} /></FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <FormField
+                              control={form.control}
+                              name={`practitioners.${index}.originCountry`}
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Origin Country</FormLabel>
                                   <FormControl><Input {...field} /></FormControl>
                                   <FormMessage />
                                 </FormItem>
                               )}
                             />
                           </div>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <FormField
+                              control={form.control}
+                              name={`practitioners.${index}.registrationNumber`}
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Registration #</FormLabel>
+                                  <FormControl><Input {...field} /></FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <FormField
+                              control={form.control}
+                              name={`practitioners.${index}.identityNumber`}
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Identity #</FormLabel>
+                                  <FormControl><Input {...field} /></FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </div>
+                          <FormField
+                            control={form.control}
+                            name={`practitioners.${index}.mobileNumber`}
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Mobile #</FormLabel>
+                                <FormControl><Input {...field} /></FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
                         </div>
                       ))}
                     </div>
