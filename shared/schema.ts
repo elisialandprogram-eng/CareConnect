@@ -92,6 +92,9 @@ export const users = pgTable("users", {
   socialNumber: text("social_number"),
   emergencyContactName: text("emergency_contact_name"),
   emergencyContactPhone: text("emergency_contact_phone"),
+  googleCalendarId: text("google_calendar_id"),
+  googleAccessToken: text("google_access_token"),
+  googleRefreshToken: text("google_refresh_token"),
   isEmailVerified: boolean("is_email_verified").notNull().default(false),
   isSuspended: boolean("is_suspended").notNull().default(false),
   suspensionReason: text("suspension_reason"),
@@ -167,6 +170,7 @@ export const appointments = pgTable("appointments", {
   notes: text("notes"),
   patientAddress: text("patient_address"),
   totalAmount: decimal("total_amount", { precision: 10, scale: 2 }).notNull(),
+  googleCalendarEventId: text("google_calendar_event_id"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
