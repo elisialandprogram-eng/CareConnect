@@ -73,7 +73,7 @@ export default function Register() {
   const onSubmit = async (data: RegisterFormData) => {
     setIsLoading(true);
     try {
-      const result = await register(data);
+      const result = (await register(data)) as any;
       if (!result) throw new Error("Registration failed");
       
       toast({
