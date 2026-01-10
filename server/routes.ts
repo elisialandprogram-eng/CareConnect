@@ -772,11 +772,10 @@ export async function registerRoutes(
         homeVisitFee: homeVisitFee ? homeVisitFee.toString() : null,
         languages,
         availableDays,
-        practitionerData: practitioners ? JSON.stringify(practitioners) : null,
         isVerified: false,
         isActive: true,
         status: "pending",
-      });
+      } as any);
 
       // Update user role to provider if not already
       await storage.updateUser(req.user!.id, { role: "provider" });

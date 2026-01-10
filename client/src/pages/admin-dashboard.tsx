@@ -619,7 +619,10 @@ function ProvidersManagement() {
 
   const { data: providers, isLoading, refetch } = useQuery<any[]>({
     queryKey: ["/api/admin/providers"],
+    refetchOnWindowFocus: true,
   });
+
+  console.log("Admin providers data:", providers);
 
   const [selectedProviderId, setSelectedProviderId] = useState<string | null>(null);
 
