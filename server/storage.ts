@@ -422,10 +422,24 @@ export class DatabaseStorage implements IStorage {
         .innerJoin(users, eq(providers.userId, users.id))
         .orderBy(desc(providers.createdAt));
 
-      return result.map((r) => ({
-        ...r.providers,
-        user: r.users,
-      }));
+      const providersWithUser = [];
+      for (const r of result) {
+        // Fetch practitioners if they exist in the new table
+        const practitioners = await db.select().from(medicalPractitioners).where(eq(medicalPractitioners.providerId, r.providers.id));
+        
+        // If practitionerData is empty/null, try to use practitioners from the related table
+        let practitionerData = r.providers.practitionerData;
+        if (!practitionerData && practitioners.length > 0) {
+          practitionerData = JSON.stringify(practitioners);
+        }
+
+        providersWithUser.push({
+          ...r.providers,
+          practitionerData,
+          user: r.users,
+        });
+      }
+      return providersWithUser;
     } catch (error) {
       console.error("Error in getAllProviders:", error);
       throw error;
