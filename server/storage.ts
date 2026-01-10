@@ -339,7 +339,11 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateUser(id: string, data: Partial<User>): Promise<User | undefined> {
-    const [user] = await db.update(users).set(data).where(eq(users.id, id)).returning();
+    const [user] = await db.update(users).set({
+      ...data,
+      isSuspended: data.isSuspended !== undefined ? data.isSuspended : undefined,
+      suspensionReason: data.suspensionReason !== undefined ? data.suspensionReason : undefined
+    }).where(eq(users.id, id)).returning();
     return user || undefined;
   }
 

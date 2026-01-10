@@ -620,6 +620,37 @@ export async function registerRoutes(
     }
   });
 
+  // Update user suspension status
+  app.patch("/api/admin/users/:id/suspend", authenticateToken, async (req: AuthRequest, res: Response) => {
+    try {
+      if (req.user!.role !== "admin") {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+      const { isSuspended, suspensionReason } = req.body;
+      const user = await storage.updateUser(req.params.id, {
+        isSuspended,
+        suspensionReason: isSuspended ? suspensionReason : null
+      });
+      if (!user) return res.status(404).json({ message: "User not found" });
+      res.json(user);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update user status" });
+    }
+  });
+
+  // Get all users (Admin)
+  app.get("/api/admin/users", authenticateToken, async (req: AuthRequest, res: Response) => {
+    try {
+      if (req.user!.role !== "admin") {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+      const users = await storage.getAllUsers();
+      res.json(users);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get users" });
+    }
+  });
+
   // Get current provider (for logged in provider)
   app.get("/api/provider/me", authenticateToken, async (req: AuthRequest, res: Response) => {
     try {

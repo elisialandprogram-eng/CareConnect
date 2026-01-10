@@ -2170,6 +2170,83 @@ function PromoCodeManagement({ providers }: { providers: ProviderWithUser[] }) {
   );
 }
 
+// Users Management Component
+function UsersManagement() {
+  const { toast } = useToast();
+  const { data: users, isLoading, refetch } = useQuery<User[]>({
+    queryKey: ["/api/admin/users"],
+  });
+
+  const suspendMutation = useMutation({
+    mutationFn: async ({ id, isSuspended, reason }: { id: string; isSuspended: boolean; reason?: string }) => {
+      const response = await apiRequest("PATCH", `/api/admin/users/${id}/suspend`, {
+        isSuspended,
+        suspensionReason: reason
+      });
+      if (!response.ok) throw new Error("Failed to update user status");
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({ title: "User status updated" });
+      refetch();
+    },
+  });
+
+  if (isLoading) return <div className="flex justify-center p-12"><Loader2 className="h-8 w-8 animate-spin" /></div>;
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Users Management</CardTitle>
+        <CardDescription>Manage user accounts and status</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="divide-y">
+          {users?.map((user) => (
+            <div key={user.id} className="py-4 flex items-center justify-between gap-4">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="font-medium">{user.firstName} {user.lastName}</span>
+                  {user.isSuspended && <Badge variant="destructive">Suspended</Badge>}
+                  <Badge variant="outline">{user.role}</Badge>
+                </div>
+                <p className="text-sm text-muted-foreground">{user.email}</p>
+                {user.isSuspended && user.suspensionReason && (
+                  <p className="text-xs text-destructive mt-1">Reason: {user.suspensionReason}</p>
+                )}
+              </div>
+              <div className="flex gap-2">
+                {user.isSuspended ? (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => suspendMutation.mutate({ id: user.id, isSuspended: false })}
+                  >
+                    Activate
+                  </Button>
+                ) : (
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    onClick={() => {
+                      const reason = window.prompt("Reason for suspension:");
+                      if (reason !== null) {
+                        suspendMutation.mutate({ id: user.id, isSuspended: true, reason });
+                      }
+                    }}
+                  >
+                    Suspend
+                  </Button>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function AdminDashboard() {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -2330,30 +2407,7 @@ export default function AdminDashboard() {
           </TabsContent>
 
           <TabsContent value="users">
-            <Card>
-              <CardHeader>
-                <CardTitle>All Users</CardTitle>
-                <CardDescription>Manage registered users on the platform</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {users?.map((u) => (
-                    <div key={u.id} className="flex items-center justify-between p-4 border rounded-lg" data-testid={`row-user-${u.id}`}>
-                      <div>
-                        <p className="font-medium">
-                          {u.firstName} {u.lastName}
-                        </p>
-                        <p className="text-sm text-muted-foreground">{u.email}</p>
-                        <p className="text-xs text-muted-foreground">{u.city}</p>
-                      </div>
-                      <Badge variant={u.role === 'admin' ? 'default' : u.role === 'provider' ? 'secondary' : 'outline'}>
-                        {u.role}
-                      </Badge>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+            <UsersManagement />
           </TabsContent>
 
           <TabsContent value="providers">

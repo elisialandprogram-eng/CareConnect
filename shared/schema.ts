@@ -93,6 +93,8 @@ export const users = pgTable("users", {
   emergencyContactName: text("emergency_contact_name"),
   emergencyContactPhone: text("emergency_contact_phone"),
   isEmailVerified: boolean("is_email_verified").notNull().default(false),
+  isSuspended: boolean("is_suspended").notNull().default(false),
+  suspensionReason: text("suspension_reason"),
   emailOtpHash: text("email_otp_hash"),
   emailOtpExpiresAt: timestamp("email_otp_expires_at"),
   otpAttempts: integer("otp_attempts").notNull().default(0),
