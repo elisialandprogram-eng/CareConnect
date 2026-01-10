@@ -45,7 +45,7 @@ export default function Appointments() {
   }, [isAuthenticated, authLoading, navigate]);
 
   const { data: appointments, isLoading } = useQuery<Appointment[]>({
-    queryKey: ["/api/appointments"],
+    queryKey: [user?.role === "provider" ? "/api/appointments/provider" : "/api/appointments/patient"],
     enabled: isAuthenticated,
   });
 

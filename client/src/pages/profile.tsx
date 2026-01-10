@@ -11,6 +11,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { Badge } from "@/components/ui/badge";
 import { User, Mail, Phone, MapPin, Save, Lock, Eye, EyeOff, Loader2 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 

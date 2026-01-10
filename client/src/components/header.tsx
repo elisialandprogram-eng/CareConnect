@@ -105,17 +105,20 @@ export function Header() {
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
                   {user?.role === "admin" ? (
-                    <Button asChild variant="ghost" size="sm">
-                      <Link href="/admin">Admin</Link>
-                    </Button>
+                    <Link href="/admin" className="cursor-pointer">
+                      <LayoutDashboard className="mr-2 h-4 w-4" />
+                      Dashboard
+                    </Link>
                   ) : user?.role === "provider" ? (
-                    <Button asChild variant="ghost" size="sm">
-                      <Link href="/provider/dashboard">Dashboard</Link>
-                    </Button>
+                    <Link href="/provider/dashboard" className="cursor-pointer">
+                      <LayoutDashboard className="mr-2 h-4 w-4" />
+                      Dashboard
+                    </Link>
                   ) : (
-                    <Button asChild variant="ghost" size="sm">
-                      <Link href="/patient/dashboard">Dashboard</Link>
-                    </Button>
+                    <Link href="/patient/dashboard" className="cursor-pointer">
+                      <LayoutDashboard className="mr-2 h-4 w-4" />
+                      Dashboard
+                    </Link>
                   )}
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
