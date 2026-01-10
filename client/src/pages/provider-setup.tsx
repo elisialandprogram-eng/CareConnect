@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
-import { useForm } from "react-hook-form";
+import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
 import { Button } from "@/components/ui/button";
@@ -27,11 +27,20 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { Loader2, Stethoscope, CheckCircle, ChevronDown } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { Loader2, Stethoscope, CheckCircle, Plus, Trash2 } from "lucide-react";
 import type { SubService } from "@shared/schema";
+
+const practitionerSchema = z.object({
+  name: z.string().min(2, "Name is required"),
+  dob: z.string().min(1, "Date of birth is required"),
+  originCountry: z.string().min(2, "Origin country is required"),
+  registrationNumber: z.string().min(2, "Registration number is required"),
+  identityNumber: z.string().min(2, "Identity number is required"),
+  mobileNumber: z.string().min(2, "Mobile number is required"),
+});
 
 const providerSetupSchema = z.object({
   type: z.enum(["physiotherapist", "doctor", "nurse"]),
@@ -45,6 +54,7 @@ const providerSetupSchema = z.object({
   city: z.string().min(2, "City is required"),
   languages: z.array(z.string()).min(1, "Select at least one language"),
   availableDays: z.array(z.string()).min(1, "Select at least one day"),
+  practitioners: z.array(practitionerSchema).optional(),
 });
 
 type ProviderSetupData = z.infer<typeof providerSetupSchema>;
@@ -88,7 +98,13 @@ export default function ProviderSetup() {
       city: "",
       languages: ["english"],
       availableDays: ["monday", "tuesday", "wednesday", "thursday", "friday"],
+      practitioners: [{ name: "", dob: "", originCountry: "", registrationNumber: "", identityNumber: "", mobileNumber: "" }],
     },
+  });
+
+  const { fields, append, remove } = useFieldArray({
+    control: form.control,
+    name: "practitioners",
   });
 
   const setupMutation = useMutation({
@@ -325,6 +341,95 @@ export default function ProviderSetup() {
                         </FormItem>
                       )}
                     />
+
+                    <div className="space-y-4 border-t pt-4">
+                      <div className="flex items-center justify-between">
+                        <Label>Medical Practitioners</Label>
+                        <Button type="button" variant="outline" size="sm" onClick={() => append({ name: "", dob: "", originCountry: "", registrationNumber: "", identityNumber: "", mobileNumber: "" })}>
+                          <Plus className="h-4 w-4 mr-2" /> Add Practitioner
+                        </Button>
+                      </div>
+                      <FormDescription>For clinics or groups, list the individual practitioners.</FormDescription>
+                      {fields.map((field, index) => (
+                        <div key={field.id} className="p-4 border rounded-md space-y-4 relative">
+                          <Button type="button" variant="ghost" size="icon" className="absolute top-2 right-2 text-destructive" onClick={() => remove(index)}>
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                          <div className="grid grid-cols-1 gap-4">
+                            <FormField
+                              control={form.control}
+                              name={`practitioners.${index}.name`}
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Name</FormLabel>
+                                  <FormControl><Input {...field} /></FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <div className="grid grid-cols-2 gap-4">
+                              <FormField
+                                control={form.control}
+                                name={`practitioners.${index}.dob`}
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>DOB</FormLabel>
+                                    <FormControl><Input type="date" {...field} /></FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+                              <FormField
+                                control={form.control}
+                                name={`practitioners.${index}.originCountry`}
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>Origin Country</FormLabel>
+                                    <FormControl><Input {...field} /></FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                              <FormField
+                                control={form.control}
+                                name={`practitioners.${index}.registrationNumber`}
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>Registration #</FormLabel>
+                                    <FormControl><Input {...field} /></FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+                              <FormField
+                                control={form.control}
+                                name={`practitioners.${index}.identityNumber`}
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>Identity #</FormLabel>
+                                    <FormControl><Input {...field} /></FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+                            </div>
+                            <FormField
+                              control={form.control}
+                              name={`practitioners.${index}.mobileNumber`}
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Mobile #</FormLabel>
+                                  <FormControl><Input {...field} /></FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
 
                     <Button type="button" className="w-full" onClick={nextStep} data-testid="button-next-1">
                       Continue

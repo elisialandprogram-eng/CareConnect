@@ -743,7 +743,19 @@ export async function registerRoutes(
   // Setup provider profile
   app.post("/api/provider/setup", authenticateToken, async (req: AuthRequest, res: Response) => {
     try {
-      const { type, specialization, bio, yearsExperience, education, consultationFee, homeVisitFee, city, languages, availableDays } = req.body;
+      const { 
+        type, 
+        specialization, 
+        bio, 
+        yearsExperience, 
+        education, 
+        consultationFee, 
+        homeVisitFee, 
+        city, 
+        languages, 
+        availableDays,
+        practitioners 
+      } = req.body;
 
       // Update user city
       await storage.updateUser(req.user!.id, { city });
@@ -760,8 +772,10 @@ export async function registerRoutes(
         homeVisitFee: homeVisitFee ? homeVisitFee.toString() : null,
         languages,
         availableDays,
+        practitionerData: practitioners ? JSON.stringify(practitioners) : null,
         isVerified: false,
         isActive: true,
+        status: "pending",
       });
 
       // Update user role to provider if not already
