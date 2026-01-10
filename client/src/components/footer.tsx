@@ -1,8 +1,6 @@
 import { Link } from "wouter";
 import { Stethoscope, Mail, Phone, MapPin } from "lucide-react";
 
-import logoImg from "@assets/G16_1767974671445.jpg";
-
 export function Footer() {
   return (
     <footer className="border-t bg-card">
@@ -10,7 +8,6 @@ export function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           <div className="space-y-4">
             <Link href="/" className="flex items-center gap-3">
-              <img src={logoImg} alt="Golden Life Logo" className="h-12 w-auto object-contain" />
               <span className="text-xl font-semibold">Golden Life</span>
             </Link>
             <p className="text-sm text-muted-foreground">

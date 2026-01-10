@@ -13,8 +13,6 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { User, Calendar, LogOut, Settings, LayoutDashboard, Menu, X, Stethoscope, MessageSquare, Bell } from "lucide-react";
 import { useState } from "react";
 
-import logoImg from "@assets/G16_1767974671445.jpg";
-
 export function Header() {
   const { user, isAuthenticated, logout } = useAuth();
   const [, navigate] = useLocation();
@@ -39,7 +37,6 @@ export function Header() {
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto flex h-16 items-center justify-between gap-4 px-4">
         <Link href="/" className="flex items-center gap-3" data-testid="link-home">
-          <img src="/favicon.png" alt="Golden Life Logo" className="h-10 w-10 rounded-lg object-cover" />
           <span className="text-xl font-semibold tracking-tight">Golden Life</span>
         </Link>
 
