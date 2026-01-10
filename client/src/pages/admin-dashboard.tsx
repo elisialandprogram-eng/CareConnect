@@ -1278,9 +1278,13 @@ function ContentManagement() {
     <div className="space-y-4">
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
+          <TabsTrigger value="providers" data-testid="tab-content-providers">Providers</TabsTrigger>
+          <TabsTrigger value="users" data-testid="tab-content-users">Users</TabsTrigger>
+          <TabsTrigger value="sub-services" data-testid="tab-sub-services">Sub-Services</TabsTrigger>
+          <TabsTrigger value="promo-codes" data-testid="tab-content-promo-codes">Promo Codes</TabsTrigger>
+          <TabsTrigger value="tickets" data-testid="tab-content-tickets">Support</TabsTrigger>
           <TabsTrigger value="faqs" data-testid="tab-content-faqs">FAQs</TabsTrigger>
           <TabsTrigger value="announcements" data-testid="tab-content-announcements">Announcements</TabsTrigger>
-          <TabsTrigger value="sub-services" data-testid="tab-sub-services">Sub-Services</TabsTrigger>
         </TabsList>
 
         <TabsContent value="sub-services">
