@@ -40,27 +40,48 @@ interface AuthRequest extends Request {
   user?: { id: string; email: string; role: string };
 }
 
-// Middleware to verify JWT token
-const authenticateToken = async (req: AuthRequest, res: Response, next: NextFunction) => {
-  const authHeader = req.headers.authorization;
-  const token = authHeader && authHeader.split(" ")[1];
+  // Middleware to verify JWT token
+  const authenticateToken = async (req: AuthRequest, res: Response, next: NextFunction) => {
+    const authHeader = req.headers.authorization;
+    const token = authHeader && authHeader.split(" ")[1];
 
-  // Also check cookies
-  const cookieToken = req.cookies?.accessToken;
-  const finalToken = token || cookieToken;
+    // Also check cookies
+    const cookieToken = req.cookies?.accessToken;
+    const finalToken = token || cookieToken;
 
-  if (!finalToken) {
-    return res.status(401).json({ message: "Authentication required" });
-  }
+    if (!finalToken) {
+      return res.status(401).json({ message: "Authentication required" });
+    }
 
-  try {
-    const decoded = jwt.verify(finalToken, JWT_SECRET) as { id: string; email: string; role: string };
-    req.user = decoded;
-    next();
-  } catch (error) {
-    return res.status(403).json({ message: "Invalid or expired token" });
-  }
-};
+    try {
+      const decoded = jwt.verify(finalToken, JWT_SECRET) as { id: string; email: string; role: string };
+      
+      // Check if user exists and is verified
+      const user = await storage.getUser(decoded.id);
+      if (!user) {
+        return res.status(401).json({ message: "User not found" });
+      }
+      
+      if (!user.isEmailVerified) {
+        return res.status(403).json({ message: "Email verification required" });
+      }
+
+      if (user.role === "provider") {
+        const provider = await storage.getProviderByUserId(user.id);
+        if (provider && !provider.isVerified) {
+          // Allow access to setup page but not other provider routes
+          if (req.path !== "/api/provider/setup" && !req.path.startsWith("/api/auth")) {
+             return res.status(403).json({ message: "Account awaiting admin approval" });
+          }
+        }
+      }
+
+      req.user = decoded;
+      next();
+    } catch (error) {
+      return res.status(403).json({ message: "Invalid or expired token" });
+    }
+  };
 
 // Optional auth - doesn't fail if no token
 const optionalAuth = async (req: AuthRequest, res: Response, next: NextFunction) => {
@@ -145,37 +166,8 @@ export async function registerRoutes(
         }
       }
 
-      // Generate tokens
-      const accessToken = jwt.sign(
-        { id: user.id, email: user.email, role: user.role },
-        JWT_SECRET,
-        { expiresIn: JWT_EXPIRES_IN }
-      );
-
-      const refreshToken = randomBytes(64).toString("hex");
-      await storage.createRefreshToken({
-        userId: user.id,
-        token: refreshToken,
-        expiresAt: new Date(Date.now() + REFRESH_TOKEN_EXPIRES_IN),
-      });
-
-      // Set cookies
-      res.cookie("accessToken", accessToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "lax",
-        maxAge: 15 * 60 * 1000,
-      });
-
-      res.cookie("refreshToken", refreshToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "lax",
-        maxAge: REFRESH_TOKEN_EXPIRES_IN,
-      });
-
       const { password: _, ...userWithoutPassword } = user;
-      res.status(201).json({ user: userWithoutPassword, accessToken });
+      res.status(201).json({ user: userWithoutPassword });
     } catch (error: any) {
       console.error("Registration error:", error);
       res.status(500).json({ message: "Registration failed" });
@@ -208,6 +200,12 @@ export async function registerRoutes(
           message: "Please verify your email before logging in",
           isEmailVerified: false,
           userId: user.id 
+        });
+      }
+
+      if (user.role === "provider" && !user.isVerified) {
+        return res.status(403).json({ 
+          message: "Your provider profile is awaiting admin approval. Please check back later." 
         });
       }
 

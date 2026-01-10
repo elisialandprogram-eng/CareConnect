@@ -70,7 +70,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!response.ok) {
       throw new Error(result.message || "Registration failed");
     }
-    setUser(result.user);
+    // Don't set user state here to prevent automatic login
     return result.user;
   };
 
