@@ -33,6 +33,7 @@ export default function Profile() {
     socialNumber: "",
     emergencyContactName: "",
     emergencyContactPhone: "",
+    avatarUrl: "",
   });
 
   const [passwordData, setPasswordData] = useState({
@@ -45,6 +46,8 @@ export default function Profile() {
     new: false,
     confirm: false,
   });
+
+  const [isUploading, setIsUploading] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -67,9 +70,32 @@ export default function Profile() {
         socialNumber: user.socialNumber || "",
         emergencyContactName: user.emergencyContactName || "",
         emergencyContactPhone: user.emergencyContactPhone || "",
+        avatarUrl: user.avatarUrl || "",
       });
     }
   }, [user]);
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    try {
+      const reader = new FileReader();
+      reader.onloadend = async () => {
+        const base64 = reader.result as string;
+        const res = await apiRequest("POST", "/api/upload", { image: base64 });
+        const data = await res.json();
+        setFormData(prev => ({ ...prev, avatarUrl: data.url }));
+        toast({ title: "Image uploaded", description: "Click save to update your profile." });
+        setIsUploading(false);
+      };
+      reader.readAsDataURL(file);
+    } catch (error) {
+      toast({ title: "Upload failed", variant: "destructive" });
+      setIsUploading(false);
+    }
+  };
 
   const updateProfileMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
@@ -168,18 +194,39 @@ export default function Profile() {
         <Card className="mb-6">
           <CardHeader>
             <div className="flex items-center gap-4">
-              <Avatar className="h-16 w-16">
-                <AvatarImage src={user.avatarUrl || undefined} />
-                <AvatarFallback className="bg-primary text-primary-foreground text-lg">
-                  {getInitials(user.firstName, user.lastName)}
-                </AvatarFallback>
-              </Avatar>
+              <div className="relative group">
+                <Avatar className="h-20 w-20">
+                  <AvatarImage src={formData.avatarUrl || user.avatarUrl || undefined} />
+                  <AvatarFallback className="bg-primary text-primary-foreground text-xl">
+                    {getInitials(user.firstName, user.lastName)}
+                  </AvatarFallback>
+                </Avatar>
+                <label 
+                  htmlFor="avatar-upload" 
+                  className="absolute inset-0 flex items-center justify-center bg-black/40 text-white opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer rounded-full"
+                >
+                  <span className="text-[10px] font-medium text-center px-1">
+                    {isUploading ? "..." : "Change Photo"}
+                  </span>
+                  <input 
+                    id="avatar-upload" 
+                    type="file" 
+                    className="hidden" 
+                    accept="image/*" 
+                    onChange={handleImageUpload}
+                    disabled={isUploading}
+                  />
+                </label>
+              </div>
               <div>
                 <CardTitle>{user.firstName} {user.lastName}</CardTitle>
                 <CardDescription className="flex items-center gap-1">
                   <Mail className="h-4 w-4" />
                   {user.email}
                 </CardDescription>
+                {user.role === "provider" && (
+                  <Badge variant="secondary" className="mt-1">Healthcare Provider</Badge>
+                )}
               </div>
             </div>
           </CardHeader>
