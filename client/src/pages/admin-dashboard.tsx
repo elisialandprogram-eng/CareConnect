@@ -30,7 +30,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { useForm } from "react-hook-form";
+import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { 
@@ -161,6 +161,35 @@ function ProviderDetailsDialog({ provider }: { provider: any }) {
                 ))}
               </div>
             </div>
+
+            {provider.practitionerData && (
+              <div className="pt-4 border-t">
+                <Label className="text-muted-foreground">Medical Practitioners</Label>
+                <div className="mt-2 space-y-4">
+                  {(() => {
+                    try {
+                      const practitioners = typeof provider.practitionerData === 'string' 
+                        ? JSON.parse(provider.practitionerData) 
+                        : provider.practitionerData;
+                      return Array.isArray(practitioners) ? practitioners.map((practitioner: any, index: number) => (
+                        <div key={index} className="p-3 rounded-md bg-muted/50 border space-y-2">
+                          <div className="grid grid-cols-2 gap-2 text-sm">
+                            <div><span className="text-muted-foreground font-medium">Name:</span> {practitioner.name}</div>
+                            <div><span className="text-muted-foreground font-medium">DOB:</span> {practitioner.dob}</div>
+                            <div><span className="text-muted-foreground font-medium">Origin:</span> {practitioner.originCountry}</div>
+                            <div><span className="text-muted-foreground font-medium">Reg #:</span> {practitioner.registrationNumber}</div>
+                            <div><span className="text-muted-foreground font-medium">Identity #:</span> {practitioner.identityNumber}</div>
+                            <div><span className="text-muted-foreground font-medium">Mobile:</span> {practitioner.mobileNumber}</div>
+                          </div>
+                        </div>
+                      )) : null;
+                    } catch (e) {
+                      return <p className="text-xs text-destructive">Error parsing practitioner data</p>;
+                    }
+                  })()}
+                </div>
+              </div>
+            )}
 
             <div className="pt-4 border-t grid grid-cols-2 gap-4">
               <div>
@@ -528,8 +557,17 @@ function FinancialReports() {
 function ProvidersManagement() {
   const { toast } = useToast();
   const [, navigate] = useLocation();
-  const form = useForm<AdminProviderData>({
-    resolver: zodResolver(adminProviderSchema),
+  const form = useForm<AdminProviderData & { practitioners: any[] }>({
+    resolver: zodResolver(adminProviderSchema.extend({
+      practitioners: z.array(z.object({
+        name: z.string().min(2),
+        dob: z.string().min(10),
+        originCountry: z.string().min(2),
+        registrationNumber: z.string().min(2),
+        identityNumber: z.string().min(2),
+        mobileNumber: z.string().min(2),
+      })).optional()
+    })),
     defaultValues: {
       email: "",
       password: "",
@@ -546,7 +584,13 @@ function ProvidersManagement() {
       homeVisitFee: undefined,
       languages: ["english"],
       availableDays: ["monday", "tuesday", "wednesday", "thursday", "friday"],
+      practitioners: [{ name: "", dob: "", originCountry: "", registrationNumber: "", identityNumber: "", mobileNumber: "" }],
     },
+  });
+
+  const { fields, append, remove } = useFieldArray({
+    control: form.control,
+    name: "practitioners",
   });
 
   const createProviderMutation = useMutation({
@@ -773,6 +817,90 @@ function ProvidersManagement() {
                     </FormItem>
                   )}
                 />
+              </div>
+
+              <div className="space-y-4 border-t pt-4">
+                <div className="flex items-center justify-between">
+                  <Label>Medical Practitioners</Label>
+                  <Button type="button" variant="outline" size="sm" onClick={() => append({ name: "", dob: "", originCountry: "", registrationNumber: "", identityNumber: "", mobileNumber: "" })}>
+                    <Plus className="h-4 w-4 mr-2" /> Add Practitioner
+                  </Button>
+                </div>
+                {fields.map((field, index) => (
+                  <div key={field.id} className="p-4 border rounded-md space-y-4 relative">
+                    <Button type="button" variant="ghost" size="icon" className="absolute top-2 right-2 text-destructive" onClick={() => remove(index)}>
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <FormField
+                        control={form.control}
+                        name={`practitioners.${index}.name`}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Name</FormLabel>
+                            <FormControl><Input {...field} /></FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name={`practitioners.${index}.dob`}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>DOB (YYYY-MM-DD)</FormLabel>
+                            <FormControl><Input type="date" {...field} /></FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name={`practitioners.${index}.originCountry`}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Origin Country</FormLabel>
+                            <FormControl><Input {...field} /></FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name={`practitioners.${index}.registrationNumber`}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Registration #</FormLabel>
+                            <FormControl><Input {...field} /></FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name={`practitioners.${index}.identityNumber`}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Identity #</FormLabel>
+                            <FormControl><Input {...field} /></FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name={`practitioners.${index}.mobileNumber`}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Mobile #</FormLabel>
+                            <FormControl><Input {...field} /></FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  </div>
+                ))}
               </div>
 
               <FormField

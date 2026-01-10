@@ -144,6 +144,7 @@ export const providers = pgTable("providers", {
   latitude: decimal("latitude", { precision: 10, scale: 8 }),
   longitude: decimal("longitude", { precision: 11, scale: 8 }),
   availableDays: text("available_days").array(),
+  practitionerData: text("practitioner_data"), // JSON string for multiple practitioners
   workingHoursStart: text("working_hours_start").default("09:00"),
   workingHoursEnd: text("working_hours_end").default("18:00"),
   createdAt: timestamp("created_at").defaultNow(),
@@ -471,19 +472,32 @@ export const chatMessages = pgTable("chat_messages", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Medical Practitioners for Provider Groups
+export const medicalPractitioners = pgTable("medical_practitioners", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  providerId: varchar("provider_id").notNull().references(() => providers.id),
+  name: text("name").notNull(),
+  dob: text("dob").notNull(),
+  originCountry: text("origin_country").notNull(),
+  registrationNumber: text("registration_number").notNull(),
+  identityNumber: text("identity_number").notNull(),
+  mobileNumber: text("mobile_number").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertMedicalPractitionerSchema = createInsertSchema(medicalPractitioners).omit({ id: true, createdAt: true });
+export type MedicalPractitioner = typeof medicalPractitioners.$inferSelect;
+export type InsertMedicalPractitioner = z.infer<typeof insertMedicalPractitionerSchema>;
+
 // Relations
-export const usersRelations = relations(users, ({ one, many }) => ({
+export const medicalPractitionersRelations = relations(medicalPractitioners, ({ one }) => ({
   provider: one(providers, {
-    fields: [users.id],
-    references: [providers.userId],
+    fields: [medicalPractitioners.providerId],
+    references: [providers.id],
   }),
-  appointments: many(appointments),
-  reviews: many(reviews),
-  payments: many(payments),
-  refreshTokens: many(refreshTokens),
-  conversations: many(conversations),
 }));
 
+// Add to providersRelations
 export const providersRelations = relations(providers, ({ one, many }) => ({
   user: one(users, {
     fields: [providers.userId],
@@ -493,6 +507,7 @@ export const providersRelations = relations(providers, ({ one, many }) => ({
   timeSlots: many(timeSlots),
   appointments: many(appointments),
   reviews: many(reviews),
+  practitioners: many(medicalPractitioners),
 }));
 
 export const servicesRelations = relations(services, ({ one, many }) => ({
