@@ -30,6 +30,7 @@ import {
   realtimeConversations,
   realtimeMessages,
   subServices,
+  medicalPractitioners,
   type User,
   type InsertUser,
   type Provider,
