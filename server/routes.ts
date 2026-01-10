@@ -203,10 +203,15 @@ export async function registerRoutes(
         });
       }
 
-      if (user.role === "provider" && !user.isVerified) {
-        return res.status(403).json({ 
-          message: "Your provider profile is awaiting admin approval. Please check back later." 
-        });
+      if (user.role === "provider") {
+        const provider = await storage.getProviderByUserId(user.id);
+        if (provider && provider.status !== "active") {
+          return res.status(403).json({ 
+            message: provider.status === "pending" 
+              ? "Your provider profile is awaiting admin approval. Please check back later." 
+              : `Your account has been ${provider.status}.`
+          });
+        }
       }
 
       // Generate tokens

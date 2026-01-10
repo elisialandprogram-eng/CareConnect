@@ -136,7 +136,7 @@ export const providers = pgTable("providers", {
   homeVisitFee: decimal("home_visit_fee", { precision: 10, scale: 2 }),
   isVerified: boolean("is_verified").default(false),
   isActive: boolean("is_active").default(true),
-  status: text("status").notNull().default("active"),
+  status: text("status").notNull().default("pending"),
   startDate: timestamp("start_date").defaultNow(),
   endDate: timestamp("end_date"),
   rating: decimal("rating", { precision: 2, scale: 1 }).default("0"),

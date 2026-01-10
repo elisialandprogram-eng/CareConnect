@@ -839,7 +839,11 @@ function ProvidersManagement() {
                       <div className="flex items-center gap-2">
                         <Select
                           value={provider.status}
-                          onValueChange={(status) => updateProviderMutation.mutate({ id: provider.id, status })}
+                          onValueChange={(status) => updateProviderMutation.mutate({ 
+                            id: provider.id, 
+                            status,
+                            isVerified: status === "active"
+                          })}
                         >
                           <SelectTrigger className="w-28">
                             <SelectValue />
