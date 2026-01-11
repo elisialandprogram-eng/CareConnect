@@ -2741,6 +2741,97 @@ function SubServicesManagement() {
   );
 }
 
+  function TaxManagement() {
+    const { toast } = useToast();
+    const { data: taxSettings, isLoading, refetch } = useQuery<TaxSetting[]>({
+      queryKey: ["/api/admin/tax-settings"],
+    });
+
+    const createTaxMutation = useMutation({
+      mutationFn: async (data: InsertTaxSetting) => {
+        const response = await apiRequest("POST", "/api/admin/tax-settings", data);
+        return response.json();
+      },
+      onSuccess: () => {
+        toast({ title: "Tax setting created" });
+        refetch();
+      },
+    });
+
+    const updateTaxMutation = useMutation({
+      mutationFn: async ({ id, ...data }: Partial<TaxSetting> & { id: string }) => {
+        const response = await apiRequest("PATCH", `/api/admin/tax-settings/${id}`, data);
+        return response.json();
+      },
+      onSuccess: () => {
+        toast({ title: "Tax setting updated" });
+        refetch();
+      },
+    });
+
+    const deleteTaxMutation = useMutation({
+      mutationFn: async (id: string) => {
+        await apiRequest("DELETE", `/api/admin/tax-settings/${id}`);
+      },
+      onSuccess: () => {
+        toast({ title: "Tax setting deleted" });
+        refetch();
+      },
+    });
+
+    const [newCountry, setNewCountry] = useState("");
+    const [newPercentage, setNewPercentage] = useState("");
+
+    if (isLoading) return <Loader2 className="h-8 w-8 animate-spin mx-auto" />;
+
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Tax Settings</CardTitle>
+          <CardDescription>Manage online payment taxes by country</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="flex gap-4 items-end border-b pb-6">
+            <div className="space-y-2">
+              <Label>Country</Label>
+              <Input value={newCountry} onChange={(e) => setNewCountry(e.target.value)} placeholder="e.g. USA" />
+            </div>
+            <div className="space-y-2">
+              <Label>Tax %</Label>
+              <Input type="number" step="0.01" value={newPercentage} onChange={(e) => setNewPercentage(e.target.value)} placeholder="0.00" />
+            </div>
+            <Button onClick={() => {
+              createTaxMutation.mutate({ country: newCountry, taxPercentage: newPercentage, isActive: true });
+              setNewCountry("");
+              setNewPercentage("");
+            }}>Add Tax</Button>
+          </div>
+
+          <div className="space-y-4">
+            {taxSettings?.map((setting) => (
+              <div key={setting.id} className="flex items-center justify-between p-4 border rounded-lg">
+                <div className="flex-1">
+                  <p className="font-bold">{setting.country}</p>
+                  <p className="text-sm text-muted-foreground">{setting.taxPercentage}% Tax</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Checkbox 
+                    checked={setting.isActive} 
+                    onCheckedChange={(checked) => updateTaxMutation.mutate({ id: setting.id, isActive: !!checked })}
+                  />
+                  <Label>Active</Label>
+                  <Button variant="ghost" size="icon" onClick={() => deleteTaxMutation.mutate(setting.id)}>
+                    <Trash2 className="h-4 w-4 text-destructive" />
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
 export default function AdminDashboard() {
   const { user } = useAuth();
   const { toast } = useToast();
