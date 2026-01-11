@@ -581,10 +581,53 @@ export async function registerRoutes(
   app.get("/api/appointments/patient", authenticateToken, async (req: AuthRequest, res: Response) => {
     try {
       const appointments = await storage.getAppointmentsByPatient(req.user!.id);
-      res.json(appointments);
+      
+      // Check for reviews for each appointment
+      const appointmentsWithReviewStatus = await Promise.all(appointments.map(async (apt) => {
+        const review = await storage.getReviewByAppointment(apt.id);
+        return { ...apt, hasReview: !!review };
+      }));
+      
+      res.json(appointmentsWithReviewStatus);
     } catch (error) {
       console.error("Get patient appointments error:", error);
       res.status(500).json({ message: "Failed to get appointments" });
+    }
+  });
+
+  // Create a review
+  app.post("/api/reviews", authenticateToken, async (req: AuthRequest, res: Response) => {
+    try {
+      const { appointmentId, providerId, rating, comment } = req.body;
+      
+      // Validate appointment ownership and status
+      const appointment = await storage.getAppointment(appointmentId);
+      if (!appointment || appointment.patientId !== req.user!.id) {
+        return res.status(403).json({ message: "Unauthorized" });
+      }
+      
+      if (appointment.status !== "completed") {
+        return res.status(400).json({ message: "Can only review completed appointments" });
+      }
+
+      // Check if already reviewed
+      const existingReview = await storage.getReviewByAppointment(appointmentId);
+      if (existingReview) {
+        return res.status(400).json({ message: "Review already exists for this appointment" });
+      }
+
+      const review = await storage.createReview({
+        appointmentId,
+        patientId: req.user!.id,
+        providerId,
+        rating,
+        comment,
+      });
+
+      res.status(201).json(review);
+    } catch (error) {
+      console.error("Create review error:", error);
+      res.status(500).json({ message: "Failed to create review" });
     }
   });
 

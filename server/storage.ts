@@ -164,6 +164,7 @@ export interface IStorage {
   getReview(id: string): Promise<Review | undefined>;
   getReviewsByProvider(providerId: string): Promise<ReviewWithPatient[]>;
   createReview(review: InsertReview): Promise<Review>;
+  getReviewByAppointment(appointmentId: string): Promise<Review | undefined>;
 
   // Payments
   getPayment(id: string): Promise<Payment | undefined>;
@@ -632,6 +633,11 @@ export class DatabaseStorage implements IStorage {
   // Reviews
   async getReview(id: string): Promise<Review | undefined> {
     const [review] = await db.select().from(reviews).where(eq(reviews.id, id));
+    return review || undefined;
+  }
+
+  async getReviewByAppointment(appointmentId: string): Promise<Review | undefined> {
+    const [review] = await db.select().from(reviews).where(eq(reviews.appointmentId, appointmentId));
     return review || undefined;
   }
 

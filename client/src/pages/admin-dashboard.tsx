@@ -2844,17 +2844,17 @@ export default function AdminDashboard() {
               <BarChart3 className="h-4 w-4 mr-2" />
               Overview
             </TabsTrigger>
-            <TabsTrigger value="bookings" data-testid="tab-bookings">
-              <Calendar className="h-4 w-4 mr-2" />
-              Bookings
+            <TabsTrigger value="providers" data-testid="tab-providers">
+              <Building className="h-4 w-4 mr-2" />
+              Providers
             </TabsTrigger>
             <TabsTrigger value="users" data-testid="tab-users">
               <Users className="h-4 w-4 mr-2" />
               Users
             </TabsTrigger>
-            <TabsTrigger value="providers" data-testid="tab-providers">
-              <Building className="h-4 w-4 mr-2" />
-              Providers
+            <TabsTrigger value="bookings" data-testid="tab-bookings">
+              <Calendar className="h-4 w-4 mr-2" />
+              Bookings
             </TabsTrigger>
             <TabsTrigger value="financial" data-testid="tab-financial">
               <DollarSign className="h-4 w-4 mr-2" />

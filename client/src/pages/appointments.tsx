@@ -2,14 +2,18 @@ import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
 import { useAuth } from "@/lib/auth";
 import { useLocation } from "wouter";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
-import { Calendar, Clock, User, MapPin, Video, Building } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { Calendar, Clock, User, MapPin, Video, Building, Star } from "lucide-react";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 
 interface Appointment {
   id: string;
@@ -19,6 +23,7 @@ interface Appointment {
   status: string;
   visitType: string;
   notes?: string;
+  providerId: string;
   provider: {
     id: string;
     type: string;
@@ -32,6 +37,83 @@ interface Appointment {
     name: string;
     price: string;
   } | null;
+  hasReview?: boolean;
+}
+
+function RatingDialog({ appointment }: { appointment: Appointment }) {
+  const { toast } = useToast();
+  const [rating, setRating] = useState(5);
+  const [comment, setComment] = useState("");
+  const [isOpen, setIsOpen] = useState(false);
+
+  const mutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/reviews", {
+        appointmentId: appointment.id,
+        providerId: appointment.providerId,
+        rating,
+        comment,
+      });
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Review submitted successfully" });
+      queryClient.invalidateQueries({ queryKey: ["/api/appointments/patient"] });
+      setIsOpen(false);
+    },
+    onError: (error: Error) => {
+      toast({ title: "Failed to submit review", description: error.message, variant: "destructive" });
+    },
+  });
+
+  return (
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <DialogTrigger asChild>
+        <Button variant="outline" size="sm" data-testid={`button-rate-${appointment.id}`}>Rate Service</Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Rate your experience</DialogTitle>
+          <DialogDescription>
+            How was your session with Dr. {appointment.provider.user.firstName} {appointment.provider.user.lastName}?
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4 py-4">
+          <div className="flex justify-center gap-2">
+            {[1, 2, 3, 4, 5].map((s) => (
+              <button
+                key={s}
+                onClick={() => setRating(s)}
+                className="focus:outline-none"
+                data-testid={`star-${s}`}
+              >
+                <Star
+                  className={`h-8 w-8 ${s <= rating ? "fill-yellow-400 text-yellow-400" : "text-muted"}`}
+                />
+              </button>
+            ))}
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Comments</label>
+            <Textarea
+              placeholder="Tell us about your experience..."
+              value={comment}
+              onChange={(e) => setComment(e.target.value)}
+              data-testid="input-review-comment"
+            />
+          </div>
+          <Button
+            className="w-full"
+            onClick={() => mutation.mutate()}
+            disabled={mutation.isPending}
+            data-testid="button-submit-review"
+          >
+            {mutation.isPending ? "Submitting..." : "Submit Review"}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
 }
 
 export default function Appointments() {
@@ -136,19 +218,24 @@ export default function Appointments() {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
-                    <div className="flex items-center gap-1">
-                      <Calendar className="h-4 w-4" />
-                      {new Date(appointment.date).toLocaleDateString()}
+                  <div className="flex justify-between items-end">
+                    <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
+                      <div className="flex items-center gap-1">
+                        <Calendar className="h-4 w-4" />
+                        {new Date(appointment.date).toLocaleDateString()}
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Clock className="h-4 w-4" />
+                        {appointment.startTime} - {appointment.endTime}
+                      </div>
+                      <div className="flex items-center gap-1">
+                        {getVisitTypeIcon(appointment.visitType)}
+                        {getVisitTypeLabel(appointment.visitType)}
+                      </div>
                     </div>
-                    <div className="flex items-center gap-1">
-                      <Clock className="h-4 w-4" />
-                      {appointment.startTime} - {appointment.endTime}
-                    </div>
-                    <div className="flex items-center gap-1">
-                      {getVisitTypeIcon(appointment.visitType)}
-                      {getVisitTypeLabel(appointment.visitType)}
-                    </div>
+                    {appointment.status === "completed" && !appointment.hasReview && (
+                      <RatingDialog appointment={appointment} />
+                    )}
                   </div>
                 </CardContent>
               </Card>
