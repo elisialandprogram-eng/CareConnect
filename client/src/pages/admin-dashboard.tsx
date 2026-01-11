@@ -214,10 +214,11 @@ function AnalyticsOverview() {
   const { data: analytics, isLoading } = useQuery<{
     totalUsers: number;
     totalProviders: number;
-    totalAppointments: number;
-    totalRevenue: number;
-    pendingAppointments: number;
-    completedAppointments: number;
+    totalBookings: number;
+    totalRevenue: string;
+    pendingBookings: number;
+    completedBookings: number;
+    recentPayments: any[];
   }>({
     queryKey: ["/api/admin/analytics"],
   });
@@ -232,8 +233,8 @@ function AnalyticsOverview() {
   ];
 
   const pieData = [
-    { name: 'Completed', value: analytics?.completedAppointments || 0, color: '#22c55e' },
-    { name: 'Pending', value: analytics?.pendingAppointments || 0, color: '#f59e0b' },
+    { name: 'Completed', value: analytics?.completedBookings || 0, color: '#22c55e' },
+    { name: 'Pending', value: analytics?.pendingBookings || 0, color: '#f59e0b' },
   ];
 
   if (isLoading) {
@@ -273,7 +274,7 @@ function AnalyticsOverview() {
             <Calendar className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold" data-testid="text-total-bookings">{analytics?.totalAppointments || 0}</div>
+            <div className="text-2xl font-bold" data-testid="text-total-bookings">{analytics?.totalBookings || 0}</div>
             <p className="text-xs text-muted-foreground">All time bookings</p>
           </CardContent>
         </Card>

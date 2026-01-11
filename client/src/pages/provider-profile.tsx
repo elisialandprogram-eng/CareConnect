@@ -175,6 +175,29 @@ export default function ProviderProfile() {
                         </Badge>
                       </div>
 
+                      {/* Display Practitioners if available */}
+                      {provider.practitionerData && (
+                        <div className="mt-2 space-y-2">
+                          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Our Specialists</p>
+                          <div className="flex flex-wrap gap-2">
+                            {(() => {
+                              try {
+                                const practitioners = typeof provider.practitionerData === 'string' 
+                                  ? JSON.parse(provider.practitionerData) 
+                                  : provider.practitionerData;
+                                return Array.isArray(practitioners) ? practitioners.map((p: any, i: number) => (
+                                  <Badge key={i} variant="outline" className="bg-muted/30">
+                                    {p.name} ({p.specialization})
+                                  </Badge>
+                                )) : null;
+                              } catch (e) {
+                                return null;
+                              }
+                            })()}
+                          </div>
+                        </div>
+                      )}
+
                       <div className="flex flex-wrap gap-4 text-sm">
                         <div className="flex items-center gap-1">
                           <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
