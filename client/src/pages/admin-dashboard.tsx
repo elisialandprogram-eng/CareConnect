@@ -2894,7 +2894,15 @@ export default function AdminDashboard() {
             <ListTree className="h-4 w-4 mr-2" />
             Sub-Services & Platform Fee
           </TabsTrigger>
+            <TabsTrigger value="tax" data-testid="tab-tax">
+              <DollarSign className="h-4 w-4 mr-2" />
+              Tax Settings
+            </TabsTrigger>
           </TabsList>
+
+          <TabsContent value="tax">
+            <TaxManagement />
+          </TabsContent>
 
           <TabsContent value="sub-services">
             <SubServicesManagement />
