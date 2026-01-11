@@ -33,6 +33,13 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { 
   Loader2, Shield, Users, Building, Trash2, Edit, Plus, Tag, DollarSign,
   Calendar, FileText, Settings, MessageSquare, Activity, BarChart3,
@@ -2424,6 +2431,7 @@ function PromoCodeManagement({ providers }: { providers: ProviderWithUser[] }) {
 // Users Management Component
 function UsersManagement() {
   const { toast } = useToast();
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const { data: users, isLoading, refetch } = useQuery<User[]>({
     queryKey: ["/api/admin/users"],
   });
@@ -2446,55 +2454,110 @@ function UsersManagement() {
   if (isLoading) return <div className="flex justify-center p-12"><Loader2 className="h-8 w-8 animate-spin" /></div>;
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Users Management</CardTitle>
-        <CardDescription>Manage user accounts and status</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="divide-y">
-          {users?.map((user) => (
-            <div key={user.id} className="py-4 flex items-center justify-between gap-4">
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="font-medium">{user.firstName} {user.lastName}</span>
-                  {user.isSuspended && <Badge variant="destructive">Suspended</Badge>}
-                  <Badge variant="outline">{user.role}</Badge>
+    <>
+      <Card>
+        <CardHeader>
+          <CardTitle>Users Management</CardTitle>
+          <CardDescription>Manage user accounts and status</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="divide-y">
+            {users?.map((user) => (
+              <div key={user.id} className="py-4 flex items-center justify-between gap-4">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium">{user.firstName} {user.lastName}</span>
+                    {user.isSuspended && <Badge variant="destructive">Suspended</Badge>}
+                    <Badge variant="outline">{user.role}</Badge>
+                  </div>
+                  <p className="text-sm text-muted-foreground">{user.email}</p>
                 </div>
-                <p className="text-sm text-muted-foreground">{user.email}</p>
-                {user.isSuspended && user.suspensionReason && (
-                  <p className="text-xs text-destructive mt-1">Reason: {user.suspensionReason}</p>
-                )}
-              </div>
-              <div className="flex gap-2">
-                {user.isSuspended ? (
-                  <Button
-                    size="sm"
+                <div className="flex gap-2">
+                  <Button 
+                    size="sm" 
                     variant="outline"
-                    onClick={() => suspendMutation.mutate({ id: user.id, isSuspended: false })}
+                    onClick={() => setSelectedUser(user)}
+                    data-testid={`button-view-user-${user.id}`}
                   >
-                    Activate
+                    <Eye className="h-4 w-4 mr-2" />
+                    Details
                   </Button>
-                ) : (
-                  <Button
-                    size="sm"
-                    variant="destructive"
-                    onClick={() => {
-                      const reason = window.prompt("Reason for suspension:");
-                      if (reason !== null) {
-                        suspendMutation.mutate({ id: user.id, isSuspended: true, reason });
-                      }
-                    }}
-                  >
-                    Suspend
-                  </Button>
-                )}
+                  {user.isSuspended ? (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => suspendMutation.mutate({ id: user.id, isSuspended: false })}
+                    >
+                      Activate
+                    </Button>
+                  ) : (
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => {
+                        const reason = window.prompt("Reason for suspension:");
+                        if (reason !== null) {
+                          suspendMutation.mutate({ id: user.id, isSuspended: true, reason });
+                        }
+                      }}
+                    >
+                      Suspend
+                    </Button>
+                  )}
+                </div>
               </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      <Dialog open={!!selectedUser} onOpenChange={(open) => !open && setSelectedUser(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>User Details</DialogTitle>
+            <DialogDescription>Complete profile information for {selectedUser?.firstName} {selectedUser?.lastName}</DialogDescription>
+          </DialogHeader>
+          {selectedUser && (
+            <div className="grid grid-cols-2 gap-4 py-4">
+              <div className="space-y-1">
+                <p className="text-sm font-medium text-muted-foreground">Full Name</p>
+                <p>{selectedUser.firstName} {selectedUser.lastName}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm font-medium text-muted-foreground">Email Address</p>
+                <p>{selectedUser.email}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm font-medium text-muted-foreground">Phone Number</p>
+                <p>{selectedUser.phone || 'Not provided'}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm font-medium text-muted-foreground">Role</p>
+                <p className="capitalize">{selectedUser.role}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm font-medium text-muted-foreground">City</p>
+                <p>{selectedUser.city || 'Not provided'}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm font-medium text-muted-foreground">Account Created</p>
+                <p>{new Date(selectedUser.createdAt).toLocaleDateString()}</p>
+              </div>
+              <div className="col-span-2 space-y-1">
+                <p className="text-sm font-medium text-muted-foreground">Address</p>
+                <p>{selectedUser.address || 'Not provided'}</p>
+              </div>
+              {selectedUser.isSuspended && (
+                <div className="col-span-2 p-3 bg-destructive/10 rounded-md border border-destructive/20 mt-2">
+                  <p className="text-sm font-semibold text-destructive">Account Suspended</p>
+                  <p className="text-sm text-destructive/80 mt-1">Reason: {selectedUser.suspensionReason || 'No reason provided'}</p>
+                </div>
+              )}
             </div>
-          ))}
-        </div>
-      </CardContent>
-    </Card>
+          )}
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 
