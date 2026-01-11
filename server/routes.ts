@@ -764,6 +764,25 @@ export async function registerRoutes(
     }
   });
 
+  // Notifications
+  app.get("/api/notifications", authenticateToken, async (req: AuthRequest, res: Response) => {
+    try {
+      const notifications = await storage.getUserNotifications(req.user!.id);
+      res.json(notifications);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get notifications" });
+    }
+  });
+
+  app.patch("/api/notifications/:id/read", authenticateToken, async (req: AuthRequest, res: Response) => {
+    try {
+      await storage.markNotificationRead(req.params.id);
+      res.status(204).end();
+    } catch (error) {
+      res.status(500).json({ message: "Failed to mark notification as read" });
+    }
+  });
+
   // Setup provider profile
   app.post("/api/provider/setup", authenticateToken, async (req: AuthRequest, res: Response) => {
     try {
@@ -962,6 +981,31 @@ export async function registerRoutes(
 
       console.log("Payment record created:", payment.id);
 
+      // Create notifications for both patient and provider
+      try {
+        const providerWithUser = await storage.getProviderWithUser(providerId);
+        
+        // Notification for Patient
+        await storage.createUserNotification({
+          userId: userId,
+          type: "appointment",
+          title: "Booking Confirmed",
+          message: `Your appointment with ${providerWithUser?.user.firstName} ${providerWithUser?.user.lastName} has been successfully booked for ${date} at ${startTime}.`,
+          isRead: false,
+        });
+
+        // Notification for Provider
+        await storage.createUserNotification({
+          userId: providerWithUser!.userId,
+          type: "appointment",
+          title: "New Booking Received",
+          message: `You have a new booking from ${user.firstName} ${user.lastName} for ${date} at ${startTime}.`,
+          isRead: false,
+        });
+      } catch (notifyError) {
+        console.error("Failed to create booking notifications:", notifyError);
+      }
+
       // Send booking confirmation email
       if (resend) {
         try {
@@ -1042,6 +1086,30 @@ export async function registerRoutes(
       if (!appointment) {
         return res.status(404).json({ message: "Appointment not found" });
       }
+
+      // Create notification for patient about status change
+      try {
+        const patientId = appointment.patientId;
+        const statusMessages: Record<string, string> = {
+          confirmed: "Your appointment has been confirmed by the provider.",
+          cancelled: "Your appointment has been cancelled.",
+          completed: "Your appointment has been marked as completed. Please leave a review!",
+          rescheduled: "Your appointment has been rescheduled."
+        };
+
+        if (statusMessages[status]) {
+          await storage.createUserNotification({
+            userId: patientId,
+            type: "appointment",
+            title: `Appointment ${status.charAt(0).toUpperCase() + status.slice(1)}`,
+            message: statusMessages[status],
+            isRead: false,
+          });
+        }
+      } catch (notifyError) {
+        console.error("Failed to create status update notification:", notifyError);
+      }
+
       res.json(appointment);
     } catch (error) {
       res.status(500).json({ message: "Failed to update appointment status" });
