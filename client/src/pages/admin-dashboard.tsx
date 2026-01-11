@@ -2425,6 +2425,9 @@ function PromoCodeManagement({ providers }: { providers: ProviderWithUser[] }) {
 function UsersManagement() {
   const { toast } = useToast();
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [roleFilter, setRoleFilter] = useState<string>("all");
+  const [searchQuery, setSearchQuery] = useState<string>("");
+
   const { data: users, isLoading, refetch } = useQuery<User[]>({
     queryKey: ["/api/admin/users"],
   });
@@ -2444,10 +2447,46 @@ function UsersManagement() {
     },
   });
 
+  const filteredUsers = users?.filter((u: User) => {
+    const matchesRole = roleFilter === "all" || u.role === roleFilter;
+    const fullName = `${u.firstName} ${u.lastName}`.toLowerCase();
+    const email = u.email.toLowerCase();
+    const search = searchQuery.toLowerCase();
+    const matchesSearch = fullName.includes(search) || email.includes(search);
+    return matchesRole && matchesSearch;
+  }) || [];
+
   if (isLoading) return <div className="flex justify-center p-12"><Loader2 className="h-8 w-8 animate-spin" /></div>;
 
   return (
     <>
+      <div className="flex items-center gap-4 mb-4 flex-wrap">
+        <div className="relative flex-1 min-w-[200px]">
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search users by name or email..."
+            className="pl-8"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            data-testid="input-user-search"
+          />
+        </div>
+        <Select value={roleFilter} onValueChange={setRoleFilter}>
+          <SelectTrigger className="w-40" data-testid="select-user-role-filter">
+            <SelectValue placeholder="Filter by role" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Roles</SelectItem>
+            <SelectItem value="patient">Patients</SelectItem>
+            <SelectItem value="provider">Providers</SelectItem>
+            <SelectItem value="admin">Admins</SelectItem>
+          </SelectContent>
+        </Select>
+        <span className="text-sm text-muted-foreground">
+          Showing {filteredUsers.length} users
+        </span>
+      </div>
+
       <Card>
         <CardHeader>
           <CardTitle>Users Management</CardTitle>
@@ -2455,7 +2494,7 @@ function UsersManagement() {
         </CardHeader>
         <CardContent>
           <div className="divide-y">
-            {users?.map((user) => (
+            {filteredUsers.map((user) => (
               <div key={user.id} className="py-4 flex items-center justify-between gap-4">
                 <div>
                   <div className="flex items-center gap-2">
