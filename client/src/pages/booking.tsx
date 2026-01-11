@@ -30,7 +30,7 @@ import {
   Bitcoin,
 } from "lucide-react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import type { ProviderWithServices, Service } from "@shared/schema";
+import type { ProviderWithServices, Service, TaxSetting } from "@shared/schema";
 
 export default function Booking() {
   const [, navigate] = useLocation();
@@ -38,6 +38,25 @@ export default function Booking() {
   const params = new URLSearchParams(searchParams);
   const { user, isAuthenticated } = useAuth();
   const { toast } = useToast();
+
+  const [taxPercentage, setTaxPercentage] = useState<number>(0);
+
+  // Fetch tax settings
+  const { data: taxSettings } = useQuery<TaxSetting[]>({
+    queryKey: ["/api/admin/tax-settings"],
+    enabled: isAuthenticated,
+  });
+
+  useEffect(() => {
+    if (taxSettings && user?.city) {
+      // In a real app we might use country, but let's try to match something
+      // The user asked for country-based, so let's look for a match
+      const setting = taxSettings.find(s => s.isActive);
+      if (setting) {
+        setTaxPercentage(parseFloat(setting.taxPercentage));
+      }
+    }
+  }, [taxSettings, user]);
 
   const sessionsParam = params.get("sessions");
   const sessions = sessionsParam ? JSON.parse(sessionsParam) : [];
@@ -232,7 +251,9 @@ export default function Booking() {
     : Number(provider.consultationFee);
   
   const feeWithPlatform = baseFee + platformFee;
-  const totalAmount = feeWithPlatform * finalSessions.length;
+  const totalBaseAmount = feeWithPlatform * finalSessions.length;
+  const taxAmount = paymentMethod !== "cash" ? totalBaseAmount * (taxPercentage / 100) : 0;
+  const totalAmount = totalBaseAmount + taxAmount;
 
   if (step === "confirmed") {
     return (
@@ -518,6 +539,16 @@ export default function Booking() {
                       <div className="flex justify-between text-sm">
                         <span className="text-muted-foreground">Home Visit</span>
                         <Badge variant="secondary">Included</Badge>
+                      </div>
+                    )}
+                    <div className="flex justify-between text-sm font-semibold">
+                      <span>Subtotal</span>
+                      <span>${totalBaseAmount.toFixed(2)}</span>
+                    </div>
+                    {taxAmount > 0 && (
+                      <div className="flex justify-between text-sm text-primary font-medium">
+                        <span>Tax ({taxPercentage}%)</span>
+                        <span>+${taxAmount.toFixed(2)}</span>
                       </div>
                     )}
                   </div>

@@ -1195,6 +1195,30 @@ export class DatabaseStorage implements IStorage {
     return h;
   }
 
+  // Tax Settings
+  async getAllTaxSettings(): Promise<TaxSetting[]> {
+    return db.select().from(taxSettings).orderBy(asc(taxSettings.country));
+  }
+
+  async getTaxSettingByCountry(country: string): Promise<TaxSetting | undefined> {
+    const [setting] = await db.select().from(taxSettings).where(eq(taxSettings.country, country));
+    return setting || undefined;
+  }
+
+  async createTaxSetting(data: InsertTaxSetting): Promise<TaxSetting> {
+    const [setting] = await db.insert(taxSettings).values(data).returning();
+    return setting;
+  }
+
+  async updateTaxSetting(id: string, data: Partial<TaxSetting>): Promise<TaxSetting | undefined> {
+    const [setting] = await db.update(taxSettings).set({ ...data, updatedAt: new Date() }).where(eq(taxSettings.id, id)).returning();
+    return setting || undefined;
+  }
+
+  async deleteTaxSetting(id: string): Promise<void> {
+    await db.delete(taxSettings).where(eq(taxSettings.id, id));
+  }
+
   // Admin Analytics
   async getAnalyticsStats(): Promise<{
     totalUsers: number;

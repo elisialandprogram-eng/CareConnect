@@ -49,6 +49,7 @@ import {
 import type { User, ProviderWithUser, PromoCode, ProviderPricingOverride, SubService } from "@shared/schema";
 import { useLocation } from "wouter";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from "recharts";
+import type { TaxSetting, InsertTaxSetting } from "@shared/schema";
 
 const adminProviderSchema = z.object({
   email: z.string().email(),

@@ -12,7 +12,8 @@ import {
   insertAppointmentSchema, 
   insertReviewSchema,
   insertSupportTicketSchema,
-  insertSubServiceSchema
+  insertSubServiceSchema,
+  insertTaxSettingSchema
 } from "@shared/schema";
 import crypto from 'crypto'; // Import crypto module for randomUUID
 import { Resend } from 'resend';
@@ -113,7 +114,48 @@ export async function registerRoutes(
   const cookieParser = await import("cookie-parser");
   app.use(cookieParser.default());
 
-  // ============ AUTH ROUTES ============
+  // ============ TAX SETTINGS ROUTES ============
+
+  app.get("/api/admin/tax-settings", authenticateToken, async (req: AuthRequest, res: Response) => {
+    if (req.user?.role !== "admin") return res.status(403).json({ message: "Admin access required" });
+    try {
+      const settings = await storage.getAllTaxSettings();
+      res.json(settings);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get tax settings" });
+    }
+  });
+
+  app.post("/api/admin/tax-settings", authenticateToken, async (req: AuthRequest, res: Response) => {
+    if (req.user?.role !== "admin") return res.status(403).json({ message: "Admin access required" });
+    try {
+      const data = insertTaxSettingSchema.parse(req.body);
+      const setting = await storage.createTaxSetting(data);
+      res.json(setting);
+    } catch (error) {
+      res.status(400).json({ message: "Invalid tax setting data" });
+    }
+  });
+
+  app.patch("/api/admin/tax-settings/:id", authenticateToken, async (req: AuthRequest, res: Response) => {
+    if (req.user?.role !== "admin") return res.status(403).json({ message: "Admin access required" });
+    try {
+      const setting = await storage.updateTaxSetting(req.params.id, req.body);
+      res.json(setting);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update tax setting" });
+    }
+  });
+
+  app.delete("/api/admin/tax-settings/:id", authenticateToken, async (req: AuthRequest, res: Response) => {
+    if (req.user?.role !== "admin") return res.status(403).json({ message: "Admin access required" });
+    try {
+      await storage.deleteTaxSetting(req.params.id);
+      res.status(204).end();
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete tax setting" });
+    }
+  });
 
   // Register
   app.post("/api/auth/register", async (req: Request, res: Response) => {
