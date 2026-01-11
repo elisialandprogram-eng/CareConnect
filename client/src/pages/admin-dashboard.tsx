@@ -39,6 +39,7 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
 } from "@/components/ui/dialog";
 import { 
   Loader2, Shield, Users, Building, Trash2, Edit, Plus, Tag, DollarSign,
@@ -86,14 +87,6 @@ const dayOptions = [
   { value: "sunday", label: "Sunday" },
 ];
 
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 
 // Provider Details Dialog Component
 function ProviderDetailsDialog({ provider }: { provider: any }) {
@@ -2541,7 +2534,7 @@ function UsersManagement() {
               </div>
               <div className="space-y-1">
                 <p className="text-sm font-medium text-muted-foreground">Account Created</p>
-                <p>{new Date(selectedUser.createdAt).toLocaleDateString()}</p>
+                <p>{selectedUser.createdAt ? new Date(selectedUser.createdAt).toLocaleDateString() : 'N/A'}</p>
               </div>
               <div className="col-span-2 space-y-1">
                 <p className="text-sm font-medium text-muted-foreground">Address</p>
