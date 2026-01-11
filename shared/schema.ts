@@ -7,7 +7,7 @@ import { z } from "zod";
 // Enums
 export const userRoleEnum = pgEnum("user_role", ["patient", "provider", "admin"]);
 export const providerTypeEnum = pgEnum("provider_type", ["physiotherapist", "doctor", "nurse"]);
-export const appointmentStatusEnum = pgEnum("appointment_status", ["pending", "confirmed", "completed", "cancelled", "rescheduled"]);
+export const appointmentStatusEnum = pgEnum("appointment_status", ["pending", "approved", "confirmed", "completed", "cancelled", "rejected", "rescheduled"]);
 export const visitTypeEnum = pgEnum("visit_type", ["online", "home", "clinic"]);
 export const paymentStatusEnum = pgEnum("payment_status", ["pending", "completed", "refunded", "failed"]);
 export const paymentMethodEnum = pgEnum("payment_method", ["card", "crypto", "cash", "bank_transfer"]);
