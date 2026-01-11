@@ -916,10 +916,11 @@ export async function registerRoutes(
   // Create appointment
   app.post("/api/appointments", authenticateToken, async (req: AuthRequest, res: Response) => {
     try {
-      // Log appointment request for debugging but keep it concise to avoid large base64 strings
-      console.log(`Received appointment request for provider ${providerId} from user ${userId} on ${date}`);
       const { providerId, serviceId, date, startTime, endTime, visitType, paymentMethod, notes, patientAddress, totalAmount } = req.body;
       const userId = req.user?.id;
+
+      // Log appointment request for debugging but keep it concise to avoid large base64 strings
+      console.log(`Received appointment request for provider ${providerId} from user ${userId} on ${date}`);
 
       if (!userId) {
         console.log("Booking failed: User not authenticated");
