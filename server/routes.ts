@@ -560,7 +560,8 @@ export async function registerRoutes(
       
       const subServices = await storage.getAllSubServices();
       const enrichedServices = provider.services.map(service => {
-        const matched = subServices.find(ss => ss.name === service.name && ss.category === provider.providerType);
+        const providerType = (provider as any).providerType;
+        const matched = subServices.find(ss => ss.name === service.name && ss.category === providerType);
         return {
           ...service,
           platformFee: matched ? matched.platformFee : "0.00"
