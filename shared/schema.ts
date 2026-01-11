@@ -188,6 +188,8 @@ export const appointments = pgTable("appointments", {
   status: appointmentStatusEnum("status").notNull().default("pending"),
   notes: text("notes"),
   patientAddress: text("patient_address"),
+  contactPerson: text("contact_person"),
+  contactMobile: text("contact_mobile"),
   totalAmount: decimal("total_amount", { precision: 10, scale: 2 }).notNull(),
   googleCalendarEventId: text("google_calendar_event_id"),
   createdAt: timestamp("created_at").defaultNow(),

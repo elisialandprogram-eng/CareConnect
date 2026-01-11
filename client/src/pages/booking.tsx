@@ -52,9 +52,22 @@ export default function Booking() {
   const visitType = (params.get("visitType") || "online") as "online" | "home" | "clinic";
 
   const [paymentMethod, setPaymentMethod] = useState("card");
-  const [address, setAddress] = useState("");
+  const [address, setAddress] = useState(user?.address || "");
+  const [contactPerson, setContactPerson] = useState(`${user?.firstName || ""} ${user?.lastName || ""}`.trim());
+  const [contactMobile, setContactMobile] = useState(user?.mobileNumber || user?.phone || "");
   const [notes, setNotes] = useState("");
   const [step, setStep] = useState<"details" | "confirmed">("details");
+
+  useEffect(() => {
+    if (user) {
+      if (!address) setAddress(user.address || "");
+      if (!contactPerson) {
+        const name = `${user.firstName || ""} ${user.lastName || ""}`.trim();
+        if (name) setContactPerson(name);
+      }
+      if (!contactMobile) setContactMobile(user.mobileNumber || user.phone || "");
+    }
+  }, [user]);
 
   const paymentMethods = [
     { id: "card", label: "Credit/Debit Card", icon: CreditCard },
@@ -138,7 +151,9 @@ export default function Booking() {
       visitType,
       paymentMethod,
       notes,
-      patientAddress: visitType === "home" ? address : null,
+      patientAddress: address || null,
+      contactPerson,
+      contactMobile,
       totalAmount: feeWithPlatform.toString(),
       sessions: finalSessions.map((s: any) => {
         const endTime = new Date(`2024-01-01T${s.time}`);
@@ -358,9 +373,32 @@ export default function Booking() {
                     )}
                   </div>
 
-                  {visitType === "home" && (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="contactPerson">Contact Person</Label>
+                        <Input
+                          id="contactPerson"
+                          placeholder="Full Name"
+                          value={contactPerson}
+                          onChange={(e) => setContactPerson(e.target.value)}
+                          data-testid="input-contact-person"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="contactMobile">Mobile Number</Label>
+                        <Input
+                          id="contactMobile"
+                          placeholder="Mobile Number"
+                          value={contactMobile}
+                          onChange={(e) => setContactMobile(e.target.value)}
+                          data-testid="input-contact-mobile"
+                        />
+                      </div>
+                    </div>
+
                     <div className="space-y-2">
-                      <Label htmlFor="address">Your Address (for home visit)</Label>
+                      <Label htmlFor="address">Address {visitType !== "home" && "(Optional)"}</Label>
                       <div className="relative">
                         <MapPin className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                         <Input
@@ -373,7 +411,7 @@ export default function Booking() {
                         />
                       </div>
                     </div>
-                  )}
+                  </div>
 
                   <div className="space-y-3">
                     <Label>Payment Method</Label>
@@ -495,7 +533,7 @@ export default function Booking() {
                     className="w-full"
                     size="lg"
                     onClick={handleConfirmBooking}
-                    disabled={bookingMutation.isPending || (visitType === "home" && !address)}
+                    disabled={bookingMutation.isPending || (visitType === "home" && !address) || !contactPerson || !contactMobile}
                     data-testid="button-confirm-booking"
                   >
                     {bookingMutation.isPending ? (
