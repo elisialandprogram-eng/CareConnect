@@ -2539,7 +2539,7 @@ function SubServicesManagement() {
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <h3 className="text-lg font-medium">Platform Sub-Services</h3>
+        <h3 className="text-lg font-medium">Platform Sub-Services & Booking Fees</h3>
         <Button onClick={() => setIsAdding(true)} size="sm" data-testid="button-add-subservice">
           <Plus className="h-4 w-4 mr-2" /> Add Sub-Service
         </Button>
@@ -2795,10 +2795,10 @@ export default function AdminDashboard() {
               <MessageSquare className="h-4 w-4 mr-2" />
               Support
             </TabsTrigger>
-            <TabsTrigger value="sub-services" data-testid="tab-sub-services">
-              <ListTree className="h-4 w-4 mr-2" />
-              Sub-Services
-            </TabsTrigger>
+          <TabsTrigger value="sub-services" data-testid="tab-sub-services">
+            <ListTree className="h-4 w-4 mr-2" />
+            Sub-Services & Platform Fee
+          </TabsTrigger>
           </TabsList>
 
           <TabsContent value="sub-services">
