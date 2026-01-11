@@ -622,8 +622,6 @@ function ProvidersManagement() {
     refetchOnWindowFocus: true,
   });
 
-  console.log("Admin providers data:", providers);
-
   const [selectedProviderId, setSelectedProviderId] = useState<string | null>(null);
 
   const { data: providerStats, isLoading: isLoadingStats } = useQuery<any>({
