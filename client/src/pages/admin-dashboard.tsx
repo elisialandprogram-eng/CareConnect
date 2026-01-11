@@ -44,7 +44,7 @@ import {
 import { 
   Loader2, Shield, Users, Building, Trash2, Edit, Plus, Tag, DollarSign,
   Calendar, FileText, Settings, MessageSquare, Activity, BarChart3,
-  Bell, HelpCircle, CheckCircle, XCircle, Clock, Eye, ListTree
+  Bell, HelpCircle, CheckCircle, XCircle, Clock, Eye, ListTree, Search
 } from "lucide-react";
 import type { User, ProviderWithUser, PromoCode, ProviderPricingOverride, SubService } from "@shared/schema";
 import { useLocation } from "wouter";
