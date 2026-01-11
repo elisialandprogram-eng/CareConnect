@@ -407,6 +407,19 @@ export const platformSettings = pgTable("platform_settings", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Tax settings table
+export const taxSettings = pgTable("tax_settings", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  country: text("country").notNull().unique(),
+  taxPercentage: decimal("tax_percentage", { precision: 5, scale: 2 }).notNull().default("0.00"),
+  isActive: boolean("is_active").default(true),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertTaxSettingSchema = createInsertSchema(taxSettings).omit({ id: true, updatedAt: true });
+export type TaxSetting = typeof taxSettings.$inferSelect;
+export type InsertTaxSetting = z.infer<typeof insertTaxSettingSchema>;
+
 // Service categories
 export const serviceCategories = pgTable("service_categories", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),

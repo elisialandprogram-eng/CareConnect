@@ -31,6 +31,7 @@ import {
   realtimeMessages,
   subServices,
   medicalPractitioners,
+  taxSettings,
   type User,
   type InsertUser,
   type Provider,
@@ -94,6 +95,8 @@ import {
   type ReviewWithPatient,
   type SubService,
   type InsertSubService,
+  type TaxSetting,
+  type InsertTaxSetting,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, gte, lte, or, sql, count, asc } from "drizzle-orm";
@@ -310,6 +313,13 @@ export interface IStorage {
   createPrescription(data: InsertPrescription): Promise<Prescription>;
   getMedicalHistoryByPatient(patientId: string): Promise<MedicalHistory[]>;
   createMedicalHistory(data: InsertMedicalHistory): Promise<MedicalHistory>;
+
+  // Tax Settings
+  getAllTaxSettings(): Promise<TaxSetting[]>;
+  getTaxSettingByCountry(country: string): Promise<TaxSetting | undefined>;
+  createTaxSetting(data: InsertTaxSetting): Promise<TaxSetting>;
+  updateTaxSetting(id: string, data: Partial<TaxSetting>): Promise<TaxSetting | undefined>;
+  deleteTaxSetting(id: string): Promise<void>;
 
   // Admin Analytics
   getAnalyticsStats(): Promise<{
