@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { useState, useEffect } from "react";
 import { useLocation, useSearch } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -33,6 +34,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import type { ProviderWithServices, Service, TaxSetting } from "@shared/schema";
 
 export default function Booking() {
+  const { t } = useTranslation();
   const [, navigate] = useLocation();
   const searchParams = useSearch();
   const params = new URLSearchParams(searchParams);
@@ -209,10 +211,10 @@ export default function Booking() {
 
   const getVisitTypeLabel = (type: string) => {
     switch (type) {
-      case "online": return "Online Consultation";
-      case "clinic": return "Clinic Visit";
-      case "home": return "Home Visit";
-      default: return "In-person";
+      case "online": return t("booking.visit_online");
+      case "clinic": return t("booking.visit_clinic");
+      case "home": return t("booking.visit_home");
+      default: return t("booking.in_person");
     }
   };
 
@@ -264,9 +266,11 @@ export default function Booking() {
             <div className="w-20 h-20 rounded-full bg-green-100 dark:bg-green-900 mx-auto mb-6 flex items-center justify-center">
               <CheckCircle className="h-10 w-10 text-green-600 dark:text-green-400" />
             </div>
-            <h1 className="text-3xl font-semibold mb-2">Booking Confirmed!</h1>
+            <h1 className="text-3xl font-semibold mb-2">{t("booking.confirmed_title")}</h1>
             <p className="text-muted-foreground mb-8">
-              Your {finalSessions.length > 1 ? `${finalSessions.length} appointments have` : "appointment has"} been successfully booked. You will receive a confirmation email shortly.
+              {finalSessions.length > 1 
+                ? t("booking.confirmed_desc_other", { count: finalSessions.length }) 
+                : t("booking.confirmed_desc_one")}
             </p>
 
             <Card className="text-left mb-6">
@@ -340,7 +344,7 @@ export default function Booking() {
             <div className="lg:col-span-2 space-y-6">
               <Card>
                 <CardHeader>
-                  <CardTitle>Appointment Details</CardTitle>
+                  <CardTitle>{t("booking.details_title")}</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-6">
                   <div className="flex items-center gap-4">
@@ -360,7 +364,7 @@ export default function Booking() {
 
                   <div className="grid grid-cols-1 gap-4">
                     <div className="space-y-3">
-                      <Label>Selected Sessions</Label>
+                      <Label>{t("booking.selected_sessions")}</Label>
                       {finalSessions.map((session: any, idx: number) => (
                         <div key={idx} className="flex gap-4 p-4 rounded-lg bg-muted/50 border">
                           <div className="flex items-center gap-2">
@@ -377,7 +381,7 @@ export default function Booking() {
                     <div className="flex items-center gap-3 p-4 rounded-lg bg-muted/50">
                       {getVisitTypeIcon(visitType)}
                       <div>
-                        <p className="text-sm text-muted-foreground">Visit Type</p>
+                        <p className="text-sm text-muted-foreground">{t("booking.visit_type")}</p>
                         <p className="font-medium">
                           {getVisitTypeLabel(visitType)}
                         </p>
@@ -387,7 +391,7 @@ export default function Booking() {
                       <div className="flex items-center gap-3 p-4 rounded-lg bg-muted/50">
                         <CreditCard className="h-5 w-5 text-primary" />
                         <div>
-                          <p className="text-sm text-muted-foreground">Service</p>
+                          <p className="text-sm text-muted-foreground">{t("booking.service")}</p>
                           <p className="font-medium">{selectedService.name}</p>
                         </div>
                       </div>
@@ -397,7 +401,7 @@ export default function Booking() {
                   <div className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <Label htmlFor="contactPerson">Contact Person</Label>
+                        <Label htmlFor="contactPerson">{t("booking.contact_person")}</Label>
                         <Input
                           id="contactPerson"
                           placeholder="Full Name"
@@ -407,7 +411,7 @@ export default function Booking() {
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="contactMobile">Mobile Number</Label>
+                        <Label htmlFor="contactMobile">{t("booking.mobile_number")}</Label>
                         <Input
                           id="contactMobile"
                           placeholder="Mobile Number"
@@ -419,7 +423,7 @@ export default function Booking() {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="address">Address {visitType !== "home" && "(Optional)"}</Label>
+                      <Label htmlFor="address">{t("booking.address")} {visitType !== "home" && t("booking.optional")}</Label>
                       <div className="relative">
                         <MapPin className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                         <Input
@@ -435,7 +439,7 @@ export default function Booking() {
                   </div>
 
                   <div className="space-y-3">
-                    <Label>Payment Method</Label>
+                    <Label>{t("booking.payment_method")}</Label>
                     <RadioGroup 
                       value={paymentMethod} 
                       onValueChange={(value: any) => setPaymentMethod(value)}
@@ -500,7 +504,7 @@ export default function Booking() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="notes">Additional Notes (Optional)</Label>
+                    <Label htmlFor="notes">{t("booking.additional_notes")} {t("booking.optional")}</Label>
                     <Textarea
                       id="notes"
                       placeholder="Any specific concerns or information the provider should know..."
