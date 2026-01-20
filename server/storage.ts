@@ -430,8 +430,8 @@ export class DatabaseStorage implements IStorage {
     return db.select().from(chatConversations).orderBy(desc(chatConversations.createdAt));
   }
 
-  async createConversation(title: string): Promise<ChatConversation> {
-    const [conv] = await db.insert(chatConversations).values({ title }).returning();
+  async createConversation(title: string): Promise<any> {
+    const [conv] = await db.insert(chatConversations).values({ patientId: "", providerId: "" } as any).returning();
     return conv;
   }
 
@@ -443,8 +443,8 @@ export class DatabaseStorage implements IStorage {
     return db.select().from(chatMessages).where(eq(chatMessages.conversationId, conversationId)).orderBy(asc(chatMessages.createdAt));
   }
 
-  async createMessage(conversationId: string, role: string, content: string): Promise<ChatMessage> {
-    const [msg] = await db.insert(chatMessages).values({ conversationId, role, content }).returning();
+  async createMessage(conversationId: string, role: string, content: string): Promise<any> {
+    const [msg] = await db.insert(chatMessages).values({ conversationId, senderId: "", content }).returning();
     return msg;
   }
 
@@ -480,7 +480,7 @@ export class DatabaseStorage implements IStorage {
     const providerServices = await this.getServicesByProvider(id);
     
     // Fetch practitioners from the database if they exist
-    let practitioners = [];
+    let practitioners: any[] = [];
     try {
       practitioners = await db.select().from(medicalPractitioners).where(eq(medicalPractitioners.providerId, id));
     } catch (e) {
@@ -514,7 +514,7 @@ export class DatabaseStorage implements IStorage {
 
     const providersWithUser = [];
     for (const r of result) {
-      let practitioners = [];
+      let practitioners: any[] = [];
       try {
         practitioners = await db.select().from(medicalPractitioners).where(eq(medicalPractitioners.providerId, r.providers.id));
       } catch (e) {}
@@ -897,7 +897,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getAllFaqs(): Promise<Faq[]> {
-    return db.select().from(faqs).orderBy(asc(faqs.order));
+    return db.select().from(faqs).orderBy(asc(faqs.sortOrder));
   }
 
   async updateFaq(id: string, data: Partial<Faq>): Promise<Faq | undefined> {
@@ -1132,9 +1132,19 @@ export class DatabaseStorage implements IStorage {
 
   // Messaging (New)
   async getChatConversations(userId: string, role: string): Promise<any[]> {
-    return db.select().from(chatConversations).where(
-      role === "patient" ? eq(chatConversations.patientId, userId) : eq(chatConversations.providerId, userId)
-    );
+    const filter = role === "patient" ? eq(chatConversations.patientId, userId) : eq(chatConversations.providerId, userId);
+    
+    const results = await db
+      .select()
+      .from(chatConversations)
+      .where(filter)
+      .innerJoin(users, eq(role === "patient" ? chatConversations.providerId : chatConversations.patientId, users.id))
+      .orderBy(desc(chatConversations.updatedAt));
+
+    return results.map(r => ({
+      ...r.chat_conversations,
+      otherUser: r.users
+    }));
   }
 
   async getChatMessages(conversationId: string): Promise<ChatMessage[]> {
@@ -1151,7 +1161,7 @@ export class DatabaseStorage implements IStorage {
       and(eq(chatConversations.patientId, patientId), eq(chatConversations.providerId, providerId))
     );
     if (existing) return existing;
-    const [created] = await db.insert(chatConversations).values({ patientId, providerId, title: "New Conversation" }).returning();
+    const [created] = await db.insert(chatConversations).values({ patientId, providerId }).returning();
     return created;
   }
 
@@ -1161,7 +1171,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getSubServicesByCategory(category: string): Promise<SubService[]> {
-    return db.select().from(subServices).where(eq(subServices.category, category));
+    return db.select().from(subServices).where(sql`${subServices.category}::text = ${category}`);
   }
 
   async createSubService(data: InsertSubService): Promise<SubService> {

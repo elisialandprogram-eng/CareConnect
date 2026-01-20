@@ -115,7 +115,7 @@ export default function Booking() {
   });
 
   const selectedService = provider?.services?.find(s => s.id === serviceId);
-  const matchedSubService = subServices?.find(ss => ss.name === selectedService?.name && ss.category === provider?.providerType);
+  const matchedSubService = subServices?.find(ss => ss.name === selectedService?.name && ss.category === provider?.type);
   const platformFee = matchedSubService ? Number(matchedSubService.platformFee) : 0;
 
   const bookingMutation = useMutation({

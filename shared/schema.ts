@@ -855,7 +855,11 @@ export type ChatMessage = typeof chatMessages.$inferSelect;
 export type InsertChatMessage = z.infer<typeof insertChatMessageSchema>;
 
 export type ProviderWithUser = Provider & { user: User };
-export type ProviderWithServices = Provider & { user: User; services: Service[] };
+export type ProviderWithServices = Provider & { 
+  user: User; 
+  services: Service[];
+  practitionerData?: string;
+};
 export type AppointmentWithDetails = Appointment & { 
   patient: User; 
   provider: Provider & { user: User }; 
