@@ -245,17 +245,37 @@ export default function Profile() {
                   <Mail className="h-4 w-4" />
                   {user.email}
                 </CardDescription>
-                {user.role === "provider" && (
-                  <Badge variant="secondary" className="mt-1">Healthcare Provider</Badge>
-                )}
-              </div>
-            </div>
-          </CardHeader>
-        </Card>
+        {user.role === "provider" && (
+          <div className="mt-4">
+            <Badge variant="secondary">Healthcare Provider</Badge>
+          </div>
+        )}
+      </div>
+    </div>
+  </CardHeader>
+</Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Edit Profile</CardTitle>
+{user.role === "provider" && user.gallery && user.gallery.length > 0 && (
+  <Card className="mb-6">
+    <CardHeader>
+      <CardTitle className="text-lg">My Gallery</CardTitle>
+      <CardDescription>Visuals of your services or clinic</CardDescription>
+    </CardHeader>
+    <CardContent>
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+        {user.gallery.map((img: string, idx: number) => (
+          <div key={idx} className="aspect-square rounded-lg overflow-hidden border hover-elevate cursor-pointer">
+            <img src={img} alt={`Gallery ${idx}`} className="w-full h-full object-cover" />
+          </div>
+        ))}
+      </div>
+    </CardContent>
+  </Card>
+)}
+
+<Card>
+  <CardHeader>
+    <CardTitle className="text-lg">Edit Profile</CardTitle>
             <CardDescription>Update your personal information</CardDescription>
           </CardHeader>
           <CardContent>
