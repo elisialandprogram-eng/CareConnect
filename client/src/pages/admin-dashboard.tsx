@@ -1084,6 +1084,12 @@ function ProvidersManagement() {
                             <SelectItem value="active">Active</SelectItem>
                             <SelectItem value="suspended">Suspended</SelectItem>
                             <SelectItem value="pending">Pending</SelectItem>
+                            <SelectItem value="approved">Approved</SelectItem>
+                            <SelectItem value="confirmed">Confirmed</SelectItem>
+                            <SelectItem value="completed">Completed</SelectItem>
+                            <SelectItem value="rejected">Rejected</SelectItem>
+                            <SelectItem value="cancelled">Cancelled</SelectItem>
+                            <SelectItem value="rescheduled">Rescheduled</SelectItem>
                           </SelectContent>
                         </Select>
                         <div className="flex items-center gap-1">
