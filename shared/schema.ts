@@ -109,6 +109,12 @@ export const users = pgTable("users", {
   socialNumber: text("social_number"),
   emergencyContactName: text("emergency_contact_name"),
   emergencyContactPhone: text("emergency_contact_phone"),
+  // Medical Information
+  bloodGroup: text("blood_group"),
+  knownAllergies: text("known_allergies"),
+  medicalConditions: text("medical_conditions"),
+  currentMedications: text("current_medications"),
+  pastSurgeries: text("past_surgeries"),
   googleCalendarId: text("google_calendar_id"),
   googleAccessToken: text("google_access_token"),
   googleRefreshToken: text("google_refresh_token"),

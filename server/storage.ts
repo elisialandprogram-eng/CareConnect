@@ -365,7 +365,12 @@ export class DatabaseStorage implements IStorage {
     const [user] = await db.update(users).set({
       ...data,
       isSuspended: data.isSuspended !== undefined ? data.isSuspended : undefined,
-      suspensionReason: data.suspensionReason !== undefined ? data.suspensionReason : undefined
+      suspensionReason: data.suspensionReason !== undefined ? data.suspensionReason : undefined,
+      bloodGroup: data.bloodGroup !== undefined ? data.bloodGroup : undefined,
+      knownAllergies: data.knownAllergies !== undefined ? data.knownAllergies : undefined,
+      medicalConditions: data.medicalConditions !== undefined ? data.medicalConditions : undefined,
+      currentMedications: data.currentMedications !== undefined ? data.currentMedications : undefined,
+      pastSurgeries: data.pastSurgeries !== undefined ? data.pastSurgeries : undefined,
     }).where(eq(users.id, id)).returning();
     return user || undefined;
   }
