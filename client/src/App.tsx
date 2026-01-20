@@ -31,6 +31,8 @@ import Consent from "@/pages/consent";
 
 import { ChatBox } from "@/components/chat/ChatBox";
 
+import "@/lib/i18n";
+
 function Router() {
   return (
     <Switch>
