@@ -106,7 +106,7 @@ function AIChatBox() {
                 <div className="p-2 bg-white/20 rounded-lg">
                   <Bot className="w-5 h-5" />
                 </div>
-                <div>
+                <div className={i18n.language === 'fa' ? "text-right" : ""}>
                   <h3 className="font-semibold text-sm">{t("chat.assistant_title")}</h3>
                   <p className="text-[10px] opacity-80">{t("chat.assistant_status")}</p>
                 </div>
@@ -135,7 +135,7 @@ function AIChatBox() {
                 {conversation?.messages?.map((msg: any) => (
                   <div
                     key={msg.id}
-                    className={`flex gap-2 ${msg.role === "user" ? "flex-row-reverse" : ""}`}
+                    className={`flex gap-2 ${msg.role === "user" ? (i18n.language === 'fa' ? "flex-row" : "flex-row-reverse") : (i18n.language === 'fa' ? "flex-row-reverse" : "")}`}
                   >
                     <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
                       msg.role === "user" ? "bg-primary" : "bg-primary/10"
@@ -148,8 +148,8 @@ function AIChatBox() {
                     </div>
                     <div className={`p-3 rounded-2xl text-sm max-w-[85%] ${
                       msg.role === "user"
-                        ? "bg-primary text-primary-foreground rounded-tr-none"
-                        : "bg-muted rounded-tl-none"
+                        ? "bg-primary text-primary-foreground " + (i18n.language === 'fa' ? "rounded-tl-none" : "rounded-tr-none")
+                        : "bg-muted " + (i18n.language === 'fa' ? "rounded-tr-none" : "rounded-tl-none")
                     }`}>
                       {msg.content}
                     </div>
@@ -170,7 +170,7 @@ function AIChatBox() {
                 placeholder={t("chat.input_placeholder")}
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
-                className="flex-1"
+                className={`flex-1 ${i18n.language === 'fa' ? "text-right" : ""}`}
                 disabled={sendMessage.isPending}
               />
               <Button size="icon" type="submit" disabled={sendMessage.isPending || !message.trim()}>

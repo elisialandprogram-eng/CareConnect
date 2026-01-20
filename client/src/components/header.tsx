@@ -91,6 +91,9 @@ export function Header() {
               <DropdownMenuItem onClick={() => changeLanguage('hu')}>
                 Magyar
               </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => changeLanguage('fa')}>
+                فارسی (Persian)
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
 

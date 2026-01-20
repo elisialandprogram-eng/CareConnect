@@ -4,6 +4,7 @@ import LanguageDetector from 'i18next-browser-languagedetector';
 
 import enTranslation from './locales/en/translation.json';
 import huTranslation from './locales/hu/translation.json';
+import faTranslation from './locales/fa/translation.json';
 
 i18n
   .use(LanguageDetector)
@@ -15,6 +16,9 @@ i18n
       },
       hu: {
         translation: huTranslation
+      },
+      fa: {
+        translation: faTranslation
       }
     },
     fallbackLng: 'en',
@@ -26,5 +30,20 @@ i18n
       caches: ['localStorage', 'cookie'],
     }
   });
+
+// Handle RTL for Persian
+i18n.on('languageChanged', (lng) => {
+  if (typeof document !== 'undefined') {
+    document.dir = lng === 'fa' ? 'rtl' : 'ltr';
+    document.documentElement.lang = lng;
+    
+    // Update font based on language
+    if (lng === 'fa') {
+      document.body.style.fontFamily = "'Vazirmatn', 'Inter', sans-serif";
+    } else {
+      document.body.style.fontFamily = "'Inter', sans-serif";
+    }
+  }
+});
 
 export default i18n;
