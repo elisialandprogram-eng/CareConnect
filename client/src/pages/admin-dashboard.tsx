@@ -89,6 +89,164 @@ const dayOptions = [
 ];
 
 
+// Provider Edit Dialog Component
+function ProviderEditDialog({ provider }: { provider: any }) {
+  const { toast } = useToast();
+  const [open, setOpen] = useState(false);
+  const { data: providerServices, refetch: refetchServices } = useQuery<any[]>({
+    queryKey: [`/api/admin/providers/${provider.id}/services`],
+    enabled: open,
+  });
+
+  const form = useForm({
+    defaultValues: {
+      specialization: provider.specialization,
+      consultationFee: provider.consultationFee,
+      homeVisitFee: provider.homeVisitFee || "",
+      bio: provider.bio || "",
+    },
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: async (data: any) => {
+      await apiRequest("PATCH", `/api/admin/providers/${provider.id}`, data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/providers"] });
+      toast({ title: "Provider updated successfully" });
+      setOpen(false);
+    },
+  });
+
+  const addServiceMutation = useMutation({
+    mutationFn: async (data: any) => {
+      await apiRequest("POST", `/api/admin/providers/${provider.id}/services`, {
+        ...data,
+        duration: 60, // Default duration
+      });
+    },
+    onSuccess: () => {
+      refetchServices();
+      toast({ title: "Service added successfully" });
+    },
+  });
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="ghost" size="icon" data-testid={`button-edit-provider-${provider.id}`}>
+          <Edit className="h-4 w-4" />
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Edit Provider: {provider.user?.firstName} {provider.user?.lastName}</DialogTitle>
+        </DialogHeader>
+        <Tabs defaultValue="details">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="details">Details & Fees</TabsTrigger>
+            <TabsTrigger value="services">Services</TabsTrigger>
+          </TabsList>
+          <TabsContent value="details" className="space-y-4 py-4">
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit((data) => updateMutation.mutate(data))} className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="specialization"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Specialization</FormLabel>
+                      <FormControl><Input {...field} /></FormControl>
+                    </FormItem>
+                  )}
+                />
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="consultationFee"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Consultation Fee ($)</FormLabel>
+                        <FormControl><Input type="number" {...field} /></FormControl>
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="homeVisitFee"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Home Visit Fee ($)</FormLabel>
+                        <FormControl><Input type="number" {...field} /></FormControl>
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                <FormField
+                  control={form.control}
+                  name="bio"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Bio</FormLabel>
+                      <FormControl><Textarea {...field} /></FormControl>
+                    </FormItem>
+                  )}
+                />
+                <Button type="submit" disabled={updateMutation.isPending} className="w-full">
+                  {updateMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Save Changes
+                </Button>
+              </form>
+            </Form>
+          </TabsContent>
+          <TabsContent value="services" className="space-y-4 py-4">
+            <div className="space-y-4">
+              <div className="grid grid-cols-3 gap-2">
+                <Input id="new-service-name" placeholder="Service Name" />
+                <Input id="new-service-price" type="number" placeholder="Price" />
+                <Button 
+                  onClick={() => {
+                    const name = (document.getElementById('new-service-name') as HTMLInputElement).value;
+                    const price = (document.getElementById('new-service-price') as HTMLInputElement).value;
+                    if (name && price) {
+                      addServiceMutation.mutate({ name, price: parseFloat(price) });
+                      (document.getElementById('new-service-name') as HTMLInputElement).value = '';
+                      (document.getElementById('new-service-price') as HTMLInputElement).value = '';
+                    }
+                  }}
+                  disabled={addServiceMutation.isPending}
+                >
+                  <Plus className="h-4 w-4 mr-2" /> Add
+                </Button>
+              </div>
+              <ScrollArea className="h-[200px] border rounded-md p-2">
+                <div className="space-y-2">
+                  {providerServices?.map((service) => (
+                    <div key={service.id} className="flex items-center justify-between p-2 bg-muted/50 rounded-md">
+                      <span>{service.name} - ${service.price}</span>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="text-destructive h-8 w-8"
+                        onClick={async () => {
+                          await apiRequest("DELETE", `/api/admin/services/${service.id}`);
+                          refetchServices();
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </ScrollArea>
+            </div>
+          </TabsContent>
+        </Tabs>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 // Provider Details Dialog Component
 function ProviderDetailsDialog({ provider }: { provider: any }) {
   return (
@@ -1093,6 +1251,7 @@ function ProvidersManagement() {
                           </SelectContent>
                         </Select>
                         <div className="flex items-center gap-1">
+                          <ProviderEditDialog provider={provider} />
                           <ProviderDetailsDialog provider={provider} />
                           <Button 
                             size="sm" 

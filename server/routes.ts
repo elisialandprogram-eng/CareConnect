@@ -1563,13 +1563,53 @@ export async function registerRoutes(
     }
   });
 
-  app.patch("/api/admin/providers/:id/status", authenticateToken, requireAdmin, async (req: AuthRequest, res: Response) => {
+  app.patch("/api/admin/providers/:id", authenticateToken, requireAdmin, async (req: AuthRequest, res: Response) => {
     try {
-      const { status } = req.body;
-      const provider = await storage.updateProvider(req.params.id, { status });
+      const provider = await storage.updateProvider(req.params.id, req.body);
+      if (!provider) return res.status(404).json({ message: "Provider not found" });
       res.json(provider);
     } catch (error) {
-      res.status(500).json({ message: "Failed to update provider status" });
+      res.status(500).json({ message: "Failed to update provider" });
+    }
+  });
+
+  app.get("/api/admin/providers/:id/services", authenticateToken, requireAdmin, async (req: AuthRequest, res: Response) => {
+    try {
+      const services = await storage.getServicesByProvider(req.params.id);
+      res.json(services);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get provider services" });
+    }
+  });
+
+  app.post("/api/admin/providers/:id/services", authenticateToken, requireAdmin, async (req: AuthRequest, res: Response) => {
+    try {
+      const service = await storage.createService({
+        ...req.body,
+        providerId: req.params.id
+      });
+      res.status(201).json(service);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to create service" });
+    }
+  });
+
+  app.patch("/api/admin/services/:id", authenticateToken, requireAdmin, async (req: AuthRequest, res: Response) => {
+    try {
+      const service = await storage.updateService(req.params.id, req.body);
+      if (!service) return res.status(404).json({ message: "Service not found" });
+      res.json(service);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update service" });
+    }
+  });
+
+  app.delete("/api/admin/services/:id", authenticateToken, requireAdmin, async (req: AuthRequest, res: Response) => {
+    try {
+      await storage.deleteService(req.params.id);
+      res.status(204).end();
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete service" });
     }
   });
 
