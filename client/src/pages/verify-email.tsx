@@ -7,8 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Mail, RefreshCw } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 export default function VerifyEmail() {
+  const { t } = useTranslation();
   const { user, verifyEmail, resendOtp } = useAuth();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
@@ -42,14 +44,14 @@ export default function VerifyEmail() {
     try {
       await verifyEmail(userId, otp);
       toast({
-        title: "Success",
-        description: "Your email has been verified. You can now log in.",
+        title: t("common.success"),
+        description: t("auth.verify_success"),
       });
       setLocation("/login");
     } catch (error: any) {
       toast({
         variant: "destructive",
-        title: "Verification failed",
+        title: t("auth.verify_failed"),
         description: error.message,
       });
     } finally {
@@ -64,14 +66,14 @@ export default function VerifyEmail() {
     try {
       await resendOtp(userId);
       toast({
-        title: "OTP Resent",
-        description: "A new verification code has been sent to your email.",
+        title: t("auth.otp_resent"),
+        description: t("auth.otp_resent_desc"),
       });
       setCooldown(60);
     } catch (error: any) {
       toast({
         variant: "destructive",
-        title: "Failed to resend OTP",
+        title: t("auth.otp_resend_failed"),
         description: error.message,
       });
     } finally {
@@ -84,11 +86,11 @@ export default function VerifyEmail() {
       <div className="min-h-screen flex items-center justify-center bg-background p-4">
         <Card className="w-full max-w-md">
           <CardHeader>
-            <CardTitle>Invalid Link</CardTitle>
-            <CardDescription>The verification link is invalid or expired.</CardDescription>
+            <CardTitle>{t("auth.invalid_link")}</CardTitle>
+            <CardDescription>{t("auth.invalid_link_desc")}</CardDescription>
           </CardHeader>
           <CardFooter>
-            <Button className="w-full" onClick={() => setLocation("/login")}>Go to Login</Button>
+            <Button className="w-full" onClick={() => setLocation("/login")}>{t("auth.go_to_login")}</Button>
           </CardFooter>
         </Card>
       </div>
@@ -102,16 +104,15 @@ export default function VerifyEmail() {
           <div className="mx-auto w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mb-4">
             <Mail className="h-6 w-6 text-primary" />
           </div>
-          <CardTitle>Verify your email</CardTitle>
+          <CardTitle>{t("auth.verify_email_title")}</CardTitle>
           <CardDescription>
-            We've sent a 6-digit code to your email address.
-            Please enter it below to verify your account.
+            {t("auth.verify_email_desc")}
           </CardDescription>
         </CardHeader>
         <form onSubmit={handleVerify}>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="otp">Verification Code</Label>
+              <Label htmlFor="otp">{t("auth.verification_code")}</Label>
               <Input
                 id="otp"
                 placeholder="000000"
@@ -129,7 +130,7 @@ export default function VerifyEmail() {
               className="w-full" 
               disabled={otp.length !== 6 || isVerifying}
             >
-              {isVerifying ? "Verifying..." : "Verify Account"}
+              {isVerifying ? t("auth.verifying") : t("auth.verify_account")}
             </Button>
             <Button
               type="button"
@@ -141,7 +142,7 @@ export default function VerifyEmail() {
               {isResending ? (
                 <RefreshCw className="h-4 w-4 animate-spin mr-2" />
               ) : null}
-              {cooldown > 0 ? `Resend in ${cooldown}s` : "Resend Code"}
+              {cooldown > 0 ? t("auth.resend_cooldown", { seconds: cooldown }) : t("auth.resend_code")}
             </Button>
           </CardFooter>
         </form>

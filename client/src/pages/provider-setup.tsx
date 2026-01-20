@@ -32,60 +32,62 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { Loader2, Stethoscope, CheckCircle, Plus, Trash2 } from "lucide-react";
 import type { SubService } from "@shared/schema";
-
-const practitionerSchema = z.object({
-  name: z.string().min(2, "Name is required"),
-  designation: z.string().min(2, "Designation is required"),
-  dob: z.string().min(1, "Date of birth is required"),
-  originCountry: z.string().min(2, "Origin country is required"),
-  registrationNumber: z.string().min(2, "Registration number is required"),
-  identityNumber: z.string().min(2, "Identity number is required"),
-  mobileNumber: z.string().min(2, "Mobile number is required"),
-});
-
-const providerSetupSchema = z.object({
-  type: z.enum(["physiotherapist", "doctor", "nurse"]),
-  specialization: z.string().min(3, "Specialization is required"),
-  subServices: z.array(z.string()).min(1, "Select at least one sub-service"),
-  bio: z.string().min(50, "Please write at least 50 characters about yourself"),
-  yearsExperience: z.coerce.number().min(0).max(50),
-  education: z.string().min(3, "Education is required"),
-  consultationFee: z.coerce.number().min(1, "Consultation fee is required"),
-  homeVisitFee: z.coerce.number().optional(),
-  city: z.string().min(2, "City is required"),
-  languages: z.array(z.string()).min(1, "Select at least one language"),
-  availableDays: z.array(z.string()).min(1, "Select at least one day"),
-  practitioners: z.array(practitionerSchema).optional(),
-});
-
-type ProviderSetupData = z.infer<typeof providerSetupSchema>;
-
-const languageOptions = [
-  { value: "english", label: "English" },
-  { value: "spanish", label: "Spanish" },
-  { value: "french", label: "French" },
-  { value: "german", label: "German" },
-  { value: "chinese", label: "Chinese" },
-  { value: "hindi", label: "Hindi" },
-  { value: "arabic", label: "Arabic" },
-];
-
-const dayOptions = [
-  { value: "monday", label: "Monday" },
-  { value: "tuesday", label: "Tuesday" },
-  { value: "wednesday", label: "Wednesday" },
-  { value: "thursday", label: "Thursday" },
-  { value: "friday", label: "Friday" },
-  { value: "saturday", label: "Saturday" },
-  { value: "sunday", label: "Sunday" },
-];
+import { useTranslation } from "react-i18next";
 
 export default function ProviderSetup() {
+  const { t } = useTranslation();
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const [step, setStep] = useState(1);
 
-  const form = useForm<ProviderSetupData>({
+  const practitionerSchema = z.object({
+    name: z.string().min(2, t("validation.field_required")),
+    designation: z.string().min(2, t("validation.field_required")),
+    dob: z.string().min(1, t("validation.field_required")),
+    originCountry: z.string().min(2, t("validation.field_required")),
+    registrationNumber: z.string().min(2, t("validation.field_required")),
+    identityNumber: z.string().min(2, t("validation.field_required")),
+    mobileNumber: z.string().min(2, t("validation.field_required")),
+  });
+
+  const providerSetupSchema = z.object({
+    type: z.enum(["physiotherapist", "doctor", "nurse"]),
+    specialization: z.string().min(3, t("validation.specialization_required")),
+    subServices: z.array(z.string()).min(1, t("validation.sub_service_select")),
+    bio: z.string().min(50, t("validation.bio_min")),
+    yearsExperience: z.coerce.number().min(0).max(50),
+    education: z.string().min(3, t("validation.field_required")),
+    consultationFee: z.coerce.number().min(1, t("validation.cons_fee_required")),
+    homeVisitFee: z.coerce.number().optional(),
+    city: z.string().min(2, t("validation.city_required")),
+    languages: z.array(z.string()).min(1, t("validation.lang_select")),
+    availableDays: z.array(z.string()).min(1, t("validation.day_select")),
+    practitioners: z.array(practitionerSchema).optional(),
+  });
+
+  const languageOptions = [
+    { value: "english", label: "English" },
+    { value: "spanish", label: "Spanish" },
+    { value: "french", label: "French" },
+    { value: "german", label: "German" },
+    { value: "chinese", label: "Chinese" },
+    { value: "hindi", label: "Hindi" },
+    { value: "arabic", label: "Arabic" },
+    { value: "farsi", label: "Farsi" },
+    { value: "hungarian", label: "Magyar" },
+  ];
+
+  const dayOptions = [
+    { value: "monday", label: t("setup.mon") },
+    { value: "tuesday", label: t("setup.tue") },
+    { value: "wednesday", label: t("setup.wed") },
+    { value: "thursday", label: t("setup.thu") },
+    { value: "friday", label: t("setup.fri") },
+    { value: "saturday", label: t("setup.sat") },
+    { value: "sunday", label: t("setup.sun") },
+  ];
+
+  const form = useForm<z.infer<typeof providerSetupSchema>>({
     resolver: zodResolver(providerSetupSchema),
     defaultValues: {
       type: "physiotherapist",
@@ -109,24 +111,24 @@ export default function ProviderSetup() {
   });
 
   const setupMutation = useMutation({
-    mutationFn: async (data: ProviderSetupData) => {
+    mutationFn: async (data: any) => {
       const response = await apiRequest("POST", "/api/provider/setup", data);
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.message || "Failed to set up profile");
+        throw new Error(error.message || t("setup.setup_failed"));
       }
       return response.json();
     },
     onSuccess: () => {
       toast({
-        title: "Profile created!",
-        description: "Your provider profile is now live. Patients can start booking with you.",
+        title: t("setup.profile_created"),
+        description: t("setup.profile_live"),
       });
       navigate("/provider/dashboard");
     },
     onError: (error: Error) => {
       toast({
-        title: "Setup failed",
+        title: t("setup.setup_failed"),
         description: error.message,
         variant: "destructive",
       });
@@ -140,7 +142,7 @@ export default function ProviderSetup() {
     enabled: !!selectedType,
   });
 
-  const onSubmit = (data: ProviderSetupData) => {
+  const onSubmit = (data: any) => {
     setupMutation.mutate(data);
   };
 
@@ -157,9 +159,9 @@ export default function ProviderSetup() {
             <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary">
               <Stethoscope className="h-8 w-8 text-primary-foreground" />
             </div>
-            <h1 className="text-3xl font-semibold mb-2">Set Up Your Provider Profile</h1>
+            <h1 className="text-3xl font-semibold mb-2">{t("setup.title")}</h1>
             <p className="text-muted-foreground">
-              Complete your profile to start accepting appointments from patients
+              {t("setup.description")}
             </p>
           </div>
 
@@ -195,9 +197,9 @@ export default function ProviderSetup() {
               {step === 1 && (
                 <Card>
                   <CardHeader>
-                    <CardTitle>Professional Information</CardTitle>
+                    <CardTitle>{t("setup.prof_info")}</CardTitle>
                     <CardDescription>
-                      Tell us about your professional background
+                      {t("setup.prof_desc")}
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-6">
@@ -206,17 +208,17 @@ export default function ProviderSetup() {
                       name="type"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Provider Type</FormLabel>
+                          <FormLabel>{t("setup.provider_type")}</FormLabel>
                           <Select onValueChange={field.onChange} defaultValue={field.value}>
                             <FormControl>
                               <SelectTrigger data-testid="select-provider-type">
-                                <SelectValue placeholder="Select your profession" />
+                                <SelectValue placeholder={t("setup.select_profession")} />
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              <SelectItem value="physiotherapist">Physiotherapist</SelectItem>
-                              <SelectItem value="doctor">Doctor</SelectItem>
-                              <SelectItem value="nurse">Home Nurse</SelectItem>
+                              <SelectItem value="physiotherapist">{t("common.physiotherapists")}</SelectItem>
+                              <SelectItem value="doctor">{t("common.doctors")}</SelectItem>
+                              <SelectItem value="nurse">{t("common.nurses")}</SelectItem>
                             </SelectContent>
                           </Select>
                           <FormMessage />
@@ -229,10 +231,10 @@ export default function ProviderSetup() {
                       name="specialization"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Specialization</FormLabel>
+                          <FormLabel>{t("setup.specialization")}</FormLabel>
                           <FormControl>
                             <Input
-                              placeholder="e.g., Sports Rehabilitation, Geriatric Care"
+                              placeholder={t("setup.spec_placeholder")}
                               {...field}
                               data-testid="input-specialization"
                             />
@@ -247,10 +249,10 @@ export default function ProviderSetup() {
                       name="subServices"
                       render={() => (
                         <FormItem>
-                          <FormLabel>Sub Services</FormLabel>
+                          <FormLabel>{t("setup.sub_services")}</FormLabel>
                           <div className="grid grid-cols-2 gap-2 border rounded-md p-4 bg-background">
                             {subServicesData.length === 0 ? (
-                              <p className="text-sm text-muted-foreground col-span-2">No sub-services available for this category</p>
+                              <p className="text-sm text-muted-foreground col-span-2">{t("setup.no_sub_services")}</p>
                             ) : (
                               subServicesData.map((service) => (
                                 <FormField
@@ -279,7 +281,7 @@ export default function ProviderSetup() {
                               ))
                             )}
                           </div>
-                          <FormDescription>Select the specific treatments or services you provide</FormDescription>
+                          <FormDescription>{t("setup.sub_services_desc")}</FormDescription>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -290,7 +292,7 @@ export default function ProviderSetup() {
                       name="yearsExperience"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Years of Experience</FormLabel>
+                          <FormLabel>{t("setup.years_experience")}</FormLabel>
                           <FormControl>
                             <Input
                               type="number"
@@ -310,10 +312,10 @@ export default function ProviderSetup() {
                       name="education"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Education & Qualifications</FormLabel>
+                          <FormLabel>{t("setup.education")}</FormLabel>
                           <FormControl>
                             <Input
-                              placeholder="e.g., MD from Johns Hopkins, Physical Therapy License"
+                              placeholder={t("setup.edu_placeholder")}
                               {...field}
                               data-testid="input-education"
                             />
@@ -328,16 +330,16 @@ export default function ProviderSetup() {
                       name="bio"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>About You</FormLabel>
+                          <FormLabel>{t("setup.about_you")}</FormLabel>
                           <FormControl>
                             <Textarea
-                              placeholder="Tell patients about your experience, approach, and what makes you unique..."
+                              placeholder={t("setup.bio_placeholder")}
                               className="min-h-32"
                               {...field}
                               data-testid="input-bio"
                             />
                           </FormControl>
-                          <FormDescription>Minimum 50 characters</FormDescription>
+                          <FormDescription>{t("setup.min_chars")}</FormDescription>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -345,12 +347,12 @@ export default function ProviderSetup() {
 
                     <div className="space-y-4 border-t pt-4">
                       <div className="flex items-center justify-between">
-                        <Label>Medical Practitioners</Label>
+                        <Label>{t("setup.practitioners")}</Label>
                         <Button type="button" variant="outline" size="sm" onClick={() => append({ name: "", designation: "", dob: "", originCountry: "", registrationNumber: "", identityNumber: "", mobileNumber: "" })}>
-                          <Plus className="h-4 w-4 mr-2" /> Add Practitioner
+                          <Plus className="h-4 w-4 mr-2" /> {t("setup.add_practitioner")}
                         </Button>
                       </div>
-                      <FormDescription>For clinics or groups, list the individual practitioners.</FormDescription>
+                      <FormDescription>{t("setup.clinics_desc")}</FormDescription>
                       {fields.map((field, index) => (
                         <div key={field.id} className="p-4 border rounded-md space-y-4 relative">
                           <Button type="button" variant="ghost" size="icon" className="absolute top-2 right-2 text-destructive" onClick={() => remove(index)}>
@@ -362,7 +364,7 @@ export default function ProviderSetup() {
                               name={`practitioners.${index}.name`}
                               render={({ field }) => (
                                 <FormItem>
-                                  <FormLabel>Name</FormLabel>
+                                  <FormLabel>{t("setup.name")}</FormLabel>
                                   <FormControl><Input {...field} /></FormControl>
                                   <FormMessage />
                                 </FormItem>
@@ -373,8 +375,8 @@ export default function ProviderSetup() {
                               name={`practitioners.${index}.designation`}
                               render={({ field }) => (
                                 <FormItem>
-                                  <FormLabel>Designation</FormLabel>
-                                  <FormControl><Input placeholder="e.g. Senior Physiotherapist" {...field} /></FormControl>
+                                  <FormLabel>{t("setup.designation")}</FormLabel>
+                                  <FormControl><Input placeholder={t("setup.designation_placeholder")} {...field} /></FormControl>
                                   <FormMessage />
                                 </FormItem>
                               )}
@@ -386,7 +388,7 @@ export default function ProviderSetup() {
                               name={`practitioners.${index}.dob`}
                               render={({ field }) => (
                                 <FormItem>
-                                  <FormLabel>DOB</FormLabel>
+                                  <FormLabel>{t("setup.dob")}</FormLabel>
                                   <FormControl><Input type="date" {...field} /></FormControl>
                                   <FormMessage />
                                 </FormItem>
@@ -397,7 +399,7 @@ export default function ProviderSetup() {
                               name={`practitioners.${index}.originCountry`}
                               render={({ field }) => (
                                 <FormItem>
-                                  <FormLabel>Origin Country</FormLabel>
+                                  <FormLabel>{t("setup.origin_country")}</FormLabel>
                                   <FormControl><Input {...field} /></FormControl>
                                   <FormMessage />
                                 </FormItem>
@@ -410,7 +412,7 @@ export default function ProviderSetup() {
                               name={`practitioners.${index}.registrationNumber`}
                               render={({ field }) => (
                                 <FormItem>
-                                  <FormLabel>Registration #</FormLabel>
+                                  <FormLabel>{t("setup.reg_number")}</FormLabel>
                                   <FormControl><Input {...field} /></FormControl>
                                   <FormMessage />
                                 </FormItem>
@@ -421,7 +423,7 @@ export default function ProviderSetup() {
                               name={`practitioners.${index}.identityNumber`}
                               render={({ field }) => (
                                 <FormItem>
-                                  <FormLabel>Identity #</FormLabel>
+                                  <FormLabel>{t("setup.id_number")}</FormLabel>
                                   <FormControl><Input {...field} /></FormControl>
                                   <FormMessage />
                                 </FormItem>
@@ -433,7 +435,7 @@ export default function ProviderSetup() {
                             name={`practitioners.${index}.mobileNumber`}
                             render={({ field }) => (
                               <FormItem>
-                                <FormLabel>Mobile #</FormLabel>
+                                <FormLabel>{t("setup.mobile_number")}</FormLabel>
                                 <FormControl><Input {...field} /></FormControl>
                                 <FormMessage />
                               </FormItem>
@@ -444,7 +446,7 @@ export default function ProviderSetup() {
                     </div>
 
                     <Button type="button" className="w-full" onClick={nextStep} data-testid="button-next-1">
-                      Continue
+                      {t("setup.continue")}
                     </Button>
                   </CardContent>
                 </Card>
@@ -453,9 +455,9 @@ export default function ProviderSetup() {
               {step === 2 && (
                 <Card>
                   <CardHeader>
-                    <CardTitle>Pricing & Location</CardTitle>
+                    <CardTitle>{t("setup.pricing_location")}</CardTitle>
                     <CardDescription>
-                      Set your fees and service area
+                      {t("setup.pricing_desc")}
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-6">
@@ -464,7 +466,7 @@ export default function ProviderSetup() {
                       name="consultationFee"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Consultation Fee ($)</FormLabel>
+                          <FormLabel>{t("setup.cons_fee")}</FormLabel>
                           <FormControl>
                             <Input
                               type="number"
@@ -473,9 +475,6 @@ export default function ProviderSetup() {
                               data-testid="input-consultation-fee"
                             />
                           </FormControl>
-                          <FormDescription>
-                            Your standard rate for online consultations
-                          </FormDescription>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -486,20 +485,17 @@ export default function ProviderSetup() {
                       name="homeVisitFee"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Home Visit Fee ($) - Optional</FormLabel>
+                          <FormLabel>{t("setup.home_fee")}</FormLabel>
                           <FormControl>
                             <Input
                               type="number"
                               min={1}
-                              placeholder="Leave empty if you don't offer home visits"
+                              placeholder={t("setup.home_fee_desc")}
                               {...field}
                               value={field.value || ""}
                               data-testid="input-home-visit-fee"
                             />
                           </FormControl>
-                          <FormDescription>
-                            Additional fee for home visits (if offered)
-                          </FormDescription>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -510,10 +506,10 @@ export default function ProviderSetup() {
                       name="city"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>City</FormLabel>
+                          <FormLabel>{t("setup.city")}</FormLabel>
                           <FormControl>
                             <Input
-                              placeholder="e.g., New York, Los Angeles"
+                              placeholder={t("setup.city_placeholder")}
                               {...field}
                               data-testid="input-city"
                             />
@@ -528,7 +524,7 @@ export default function ProviderSetup() {
                       name="languages"
                       render={() => (
                         <FormItem>
-                          <FormLabel>Languages Spoken</FormLabel>
+                          <FormLabel>{t("setup.languages_spoken")}</FormLabel>
                           <div className="grid grid-cols-2 gap-2">
                             {languageOptions.map((lang) => (
                               <FormField
@@ -548,7 +544,7 @@ export default function ProviderSetup() {
                                         }}
                                       />
                                     </FormControl>
-                                    <FormLabel className="font-normal cursor-pointer">
+                                    <FormLabel className="font-normal cursor-pointer text-sm">
                                       {lang.label}
                                     </FormLabel>
                                   </FormItem>
@@ -561,12 +557,12 @@ export default function ProviderSetup() {
                       )}
                     />
 
-                    <div className="flex gap-3">
+                    <div className="flex gap-4">
                       <Button type="button" variant="outline" className="flex-1" onClick={prevStep}>
                         Back
                       </Button>
                       <Button type="button" className="flex-1" onClick={nextStep} data-testid="button-next-2">
-                        Continue
+                        {t("setup.continue")}
                       </Button>
                     </div>
                   </CardContent>
@@ -576,9 +572,9 @@ export default function ProviderSetup() {
               {step === 3 && (
                 <Card>
                   <CardHeader>
-                    <CardTitle>Availability</CardTitle>
+                    <CardTitle>{t("setup.availability")}</CardTitle>
                     <CardDescription>
-                      Set your working days
+                      {t("setup.availability_desc")}
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-6">
@@ -587,15 +583,14 @@ export default function ProviderSetup() {
                       name="availableDays"
                       render={() => (
                         <FormItem>
-                          <FormLabel>Available Days</FormLabel>
-                          <div className="grid grid-cols-2 gap-2">
+                          <div className="grid grid-cols-1 gap-2">
                             {dayOptions.map((day) => (
                               <FormField
                                 key={day.value}
                                 control={form.control}
                                 name="availableDays"
                                 render={({ field }) => (
-                                  <FormItem className="flex items-center space-x-2 space-y-0">
+                                  <FormItem className="flex items-center space-x-2 space-y-0 p-2 border rounded-md hover:bg-muted/50 transition-colors">
                                     <FormControl>
                                       <Checkbox
                                         checked={field.value?.includes(day.value)}
@@ -607,7 +602,7 @@ export default function ProviderSetup() {
                                         }}
                                       />
                                     </FormControl>
-                                    <FormLabel className="font-normal cursor-pointer">
+                                    <FormLabel className="font-medium cursor-pointer flex-1">
                                       {day.label}
                                     </FormLabel>
                                   </FormItem>
@@ -620,29 +615,18 @@ export default function ProviderSetup() {
                       )}
                     />
 
-                    <div className="p-4 bg-muted rounded-lg">
-                      <p className="text-sm text-muted-foreground">
-                        You can set specific time slots after completing the setup from your dashboard.
-                      </p>
-                    </div>
-
-                    <div className="flex gap-3">
+                    <div className="flex gap-4">
                       <Button type="button" variant="outline" className="flex-1" onClick={prevStep}>
                         Back
                       </Button>
-                      <Button
-                        type="submit"
-                        className="flex-1"
-                        disabled={setupMutation.isPending}
-                        data-testid="button-submit-setup"
-                      >
+                      <Button type="submit" className="flex-1" disabled={setupMutation.isPending} data-testid="button-setup-submit">
                         {setupMutation.isPending ? (
                           <>
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Setting up...
+                            {t("setup.completing")}
                           </>
                         ) : (
-                          "Complete Setup"
+                          t("setup.complete_setup")
                         )}
                       </Button>
                     </div>
