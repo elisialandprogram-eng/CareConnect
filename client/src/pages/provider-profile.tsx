@@ -243,6 +243,23 @@ export default function ProviderProfile() {
                 </TabsList>
 
                 <TabsContent value="about" className="mt-6 space-y-6">
+                  {provider.gallery && provider.gallery.length > 0 && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="text-lg">Gallery</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                          {provider.gallery.map((img, idx) => (
+                            <div key={idx} className="aspect-square rounded-lg overflow-hidden border hover-elevate cursor-pointer">
+                              <img src={img} alt={`Gallery ${idx}`} className="w-full h-full object-cover" />
+                            </div>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+
                   <Card>
                     <CardHeader>
                       <CardTitle className="text-lg">About</CardTitle>

@@ -43,6 +43,9 @@ import {
   Settings,
   TrendingUp,
   FileText,
+  Image as ImageIcon,
+  Plus,
+  Trash2,
 } from "lucide-react";
 import type { AppointmentWithDetails, Provider } from "@shared/schema";
 
@@ -187,6 +190,44 @@ export default function ProviderDashboard() {
     });
     setSelectedSubServiceId("");
     setServicePrice("");
+  };
+
+  const updateProviderMutation = useMutation({
+    mutationFn: async (data: Partial<Provider>) => {
+      const res = await apiRequest("PATCH", `/api/providers/${providerData?.id}`, data);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/provider/me"] });
+      toast({ title: "Gallery updated" });
+    },
+  });
+
+  const handleGalleryUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || !providerData) return;
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const reader = new FileReader();
+      reader.onloadend = async () => {
+        const base64 = reader.result as string;
+        const res = await apiRequest("POST", "/api/upload", { image: base64 });
+        const data = await res.json();
+        const currentGallery = providerData.gallery || [];
+        updateProviderMutation.mutate({
+          gallery: [...currentGallery, data.url]
+        });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const removeGalleryImage = (index: number) => {
+    if (!providerData) return;
+    const currentGallery = [...(providerData.gallery || [])];
+    currentGallery.splice(index, 1);
+    updateProviderMutation.mutate({ gallery: currentGallery });
   };
 
   const AppointmentRow = ({ appointment }: { appointment: AppointmentWithDetails }) => (
@@ -542,6 +583,38 @@ export default function ProviderDashboard() {
                       Edit Profile
                     </Link>
                   </Button>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <ImageIcon className="h-5 w-5 text-primary" />
+                    Gallery
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 gap-2 mb-4">
+                    {providerData?.gallery?.map((img, idx) => (
+                      <div key={idx} className="relative group aspect-square rounded-md overflow-hidden border">
+                        <img src={img} alt={`Gallery ${idx}`} className="w-full h-full object-cover" />
+                        <button
+                          onClick={() => removeGalleryImage(idx)}
+                          className="absolute top-1 right-1 p-1 bg-black/50 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ))}
+                    <label className="flex flex-col items-center justify-center aspect-square rounded-md border-2 border-dashed cursor-pointer hover:bg-muted/50 transition-colors">
+                      <Plus className="h-6 w-6 text-muted-foreground" />
+                      <span className="text-[10px] mt-1 text-muted-foreground">Add Photo</span>
+                      <input type="file" className="hidden" accept="image/*" multiple onChange={handleGalleryUpload} />
+                    </label>
+                  </div>
+                  <p className="text-xs text-muted-foreground italic">
+                    Upload pictures of your clinic, workspace, or equipment.
+                  </p>
                 </CardContent>
               </Card>
 

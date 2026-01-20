@@ -550,7 +550,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateProvider(id: string, data: Partial<InsertProvider>): Promise<Provider | undefined> {
-    const [provider] = await db.update(providers).set(data).where(eq(providers.id, id)).returning();
+    const [provider] = await db.update(providers).set({
+      ...data,
+      gallery: data.gallery !== undefined ? data.gallery : undefined,
+    }).where(eq(providers.id, id)).returning();
     return provider || undefined;
   }
 

@@ -153,6 +153,7 @@ export const providers = pgTable("providers", {
   availableDays: text("available_days").array(),
   workingHoursStart: text("working_hours_start").default("09:00"),
   workingHoursEnd: text("working_hours_end").default("18:00"),
+  gallery: text("gallery").array(),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
