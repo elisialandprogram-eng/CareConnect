@@ -376,6 +376,9 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteUser(id: string): Promise<void> {
+    // Delete associated provider profile if exists
+    await db.delete(providers).where(eq(providers.userId, id));
+    // Delete user
     await db.delete(users).where(eq(users.id, id));
   }
 

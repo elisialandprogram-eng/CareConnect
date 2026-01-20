@@ -182,6 +182,27 @@ export async function registerRoutes(
     }
   });
 
+  // Admin User/Provider Management
+  app.delete("/api/admin/users/:id", authenticateToken, async (req: AuthRequest, res: Response) => {
+    if (req.user?.role !== "admin") return res.status(403).json({ message: "Admin access required" });
+    try {
+      await storage.deleteUser(req.params.id);
+      res.status(204).end();
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete user" });
+    }
+  });
+
+  app.delete("/api/admin/providers/:id", authenticateToken, async (req: AuthRequest, res: Response) => {
+    if (req.user?.role !== "admin") return res.status(403).json({ message: "Admin access required" });
+    try {
+      await storage.deleteProvider(req.params.id);
+      res.status(204).end();
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete provider" });
+    }
+  });
+
   // Register
   app.post("/api/auth/register", async (req: Request, res: Response) => {
     try {

@@ -804,6 +804,19 @@ function ProvidersManagement() {
     },
   });
 
+  const deleteProviderMutation = useMutation({
+    mutationFn: async (id: string) => {
+      await apiRequest("DELETE", `/api/admin/providers/${id}`);
+    },
+    onSuccess: () => {
+      toast({ title: "Provider profile deleted" });
+      refetch();
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
   if (isLoading) return <div className="flex justify-center p-12"><Loader2 className="h-8 w-8 animate-spin" /></div>;
 
   return (
@@ -1256,6 +1269,19 @@ function ProvidersManagement() {
                         <div className="flex items-center gap-1">
                           <ProviderEditDialog provider={provider} />
                           <ProviderDetailsDialog provider={provider} />
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-destructive"
+                            onClick={() => {
+                              if (confirm("Are you sure you want to delete this provider profile? The user account will remain active as a patient.")) {
+                                deleteProviderMutation.mutate(provider.id);
+                              }
+                            }}
+                            data-testid={`button-delete-provider-${provider.id}`}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
                           <Button 
                             size="sm" 
                             variant="outline"
@@ -2615,6 +2641,19 @@ function UsersManagement() {
     },
   });
 
+  const deleteUserMutation = useMutation({
+    mutationFn: async (id: string) => {
+      await apiRequest("DELETE", `/api/admin/users/${id}`);
+    },
+    onSuccess: () => {
+      toast({ title: "User deleted successfully" });
+      refetch();
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
   const filteredUsers = users?.filter((u: User) => {
     const matchesRole = roleFilter === "all" || u.role === roleFilter;
     const fullName = `${u.firstName} ${u.lastName}`.toLowerCase();
@@ -2704,6 +2743,19 @@ function UsersManagement() {
                       Suspend
                     </Button>
                   )}
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="text-destructive"
+                    onClick={() => {
+                      if (confirm("Are you sure you want to delete this user? This will also remove their provider profile if they have one.")) {
+                        deleteUserMutation.mutate(user.id);
+                      }
+                    }}
+                    data-testid={`button-delete-user-${user.id}`}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
                 </div>
               </div>
             ))}
