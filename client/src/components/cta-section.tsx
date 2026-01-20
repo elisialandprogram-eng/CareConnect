@@ -2,8 +2,11 @@ import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, UserPlus, Sparkles } from "lucide-react";
 import { motion } from "framer-motion";
+import { useTranslation } from "react-i18next";
 
 export function CTASection() {
+  const { t } = useTranslation();
+
   return (
     <section className="py-24 relative overflow-hidden">
       <div className="absolute inset-0 animated-gradient" />
@@ -40,15 +43,14 @@ export function CTASection() {
             className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary font-medium mb-6"
           >
             <Sparkles className="h-4 w-4" />
-            Start Your Health Journey Today
+            {t("cta.journey_badge")}
           </motion.div>
           
           <h2 className="text-3xl md:text-5xl font-bold mb-6">
-            Ready to Get Started?
+            {t("cta.ready_title")}
           </h2>
           <p className="text-lg md:text-xl text-muted-foreground mb-10 max-w-2xl mx-auto leading-relaxed">
-            Join thousands of patients who have found trusted healthcare providers through Golden Life. 
-            Quality care is just a click away.
+            {t("cta.description")}
           </p>
           <motion.div 
             className="flex flex-col sm:flex-row gap-4 justify-center"
@@ -60,7 +62,7 @@ export function CTASection() {
             <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.98 }}>
               <Button asChild size="lg" className="text-base px-8 py-6 rounded-xl shadow-lg glow" data-testid="button-find-provider">
                 <Link href="/providers">
-                  Find a Provider
+                  {t("common.find_a_provider")}
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Link>
               </Button>
@@ -69,7 +71,7 @@ export function CTASection() {
               <Button asChild variant="outline" size="lg" className="text-base px-8 py-6 rounded-xl bg-background/80 backdrop-blur-sm" data-testid="button-become-provider">
                 <Link href="/become-provider">
                   <UserPlus className="mr-2 h-5 w-5" />
-                  Become a Provider
+                  {t("common.become_provider")}
                 </Link>
               </Button>
             </motion.div>

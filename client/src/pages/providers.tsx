@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useLocation, useSearch } from "wouter";
 import { useQuery } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
 import { ProviderCard, ProviderCardSkeleton } from "@/components/provider-card";
@@ -28,6 +29,7 @@ import { SlidersHorizontal, X, Star, MapPin } from "lucide-react";
 import type { ProviderWithUser } from "@shared/schema";
 
 export default function Providers() {
+  const { t } = useTranslation();
   const searchParams = useSearch();
   const params = new URLSearchParams(searchParams);
   const typeParam = params.get("type") || "";
@@ -50,26 +52,26 @@ export default function Providers() {
   const getPageTitle = () => {
     switch (typeParam) {
       case "physiotherapist":
-        return "Physiotherapists";
+        return t("providers.physiotherapists");
       case "nurse":
-        return "Home Nurses";
+        return t("providers.nurses");
       case "doctor":
-        return "Doctors";
+        return t("providers.doctors");
       default:
-        return "Healthcare Providers";
+        return t("providers.healthcare_providers");
     }
   };
 
   const getPageDescription = () => {
     switch (typeParam) {
       case "physiotherapist":
-        return "Find certified physiotherapists for rehabilitation, pain management, and mobility improvement";
+        return t("providers.physio_desc");
       case "nurse":
-        return "Book professional home nurses for personalized care and medical assistance";
+        return t("providers.nurse_desc");
       case "doctor":
-        return "Connect with qualified doctors for consultations and home visits";
+        return t("providers.doctor_desc");
       default:
-        return "Find trusted healthcare professionals in your area";
+        return t("providers.generic_desc");
     }
   };
 
@@ -105,29 +107,29 @@ export default function Providers() {
   const FilterContent = () => (
     <div className="space-y-6">
       <div className="space-y-3">
-        <Label className="text-sm font-medium">Service Type</Label>
+        <Label className="text-sm font-medium">{t("providers.service_type")}</Label>
         <Select
           value={filters.type || "all"}
           onValueChange={(value) => setFilters({ ...filters, type: value })}
         >
           <SelectTrigger data-testid="filter-service-type">
-            <SelectValue placeholder="All types" />
+            <SelectValue placeholder={t("providers.all_types")} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Services</SelectItem>
-            <SelectItem value="physiotherapist">Physiotherapy</SelectItem>
-            <SelectItem value="nurse">Home Nursing</SelectItem>
-            <SelectItem value="doctor">Doctor</SelectItem>
+            <SelectItem value="all">{t("providers.all_services")}</SelectItem>
+            <SelectItem value="physiotherapist">{t("providers.physiotherapy")}</SelectItem>
+            <SelectItem value="nurse">{t("providers.home_nursing")}</SelectItem>
+            <SelectItem value="doctor">{t("providers.doctor")}</SelectItem>
           </SelectContent>
         </Select>
       </div>
 
       <div className="space-y-3">
-        <Label className="text-sm font-medium">Location</Label>
+        <Label className="text-sm font-medium">{t("providers.location")}</Label>
         <div className="relative">
           <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Enter city..."
+            placeholder={t("providers.enter_city")}
             value={filters.location}
             onChange={(e) => setFilters({ ...filters, location: e.target.value })}
             className="pl-9"
@@ -137,7 +139,7 @@ export default function Providers() {
       </div>
 
       <div className="space-y-3">
-        <Label className="text-sm font-medium">Minimum Rating</Label>
+        <Label className="text-sm font-medium">{t("providers.min_rating")}</Label>
         <div className="flex items-center gap-2">
           {[0, 3, 4, 4.5].map((rating) => (
             <Button
@@ -148,7 +150,7 @@ export default function Providers() {
               className="flex items-center gap-1"
               data-testid={`filter-rating-${rating}`}
             >
-              {rating === 0 ? "Any" : (
+              {rating === 0 ? t("providers.any_rating") : (
                 <>
                   <Star className="h-3 w-3 fill-current" />
                   {rating}+
@@ -160,7 +162,9 @@ export default function Providers() {
       </div>
 
       <div className="space-y-3">
-        <Label className="text-sm font-medium">Price Range: ${filters.priceRange[0]} - ${filters.priceRange[1]}</Label>
+        <Label className="text-sm font-medium">
+          {t("providers.price_range")}: ${filters.priceRange[0]} - ${filters.priceRange[1]}
+        </Label>
         <Slider
           value={filters.priceRange}
           onValueChange={(value) => setFilters({ ...filters, priceRange: value as [number, number] })}
@@ -173,7 +177,7 @@ export default function Providers() {
       </div>
 
       <div className="space-y-3">
-        <Label className="text-sm font-medium">Visit Type</Label>
+        <Label className="text-sm font-medium">{t("providers.visit_type")}</Label>
         <div className="space-y-2">
           <div className="flex items-center space-x-2">
             <Checkbox
@@ -183,7 +187,7 @@ export default function Providers() {
               data-testid="filter-home-visit"
             />
             <label htmlFor="homeVisit" className="text-sm cursor-pointer">
-              Home Visit Available
+              {t("providers.home_visit_available")}
             </label>
           </div>
           <div className="flex items-center space-x-2">
@@ -194,7 +198,7 @@ export default function Providers() {
               data-testid="filter-online"
             />
             <label htmlFor="online" className="text-sm cursor-pointer">
-              Online Consultation
+              {t("providers.online_consultation")}
             </label>
           </div>
         </div>
@@ -214,7 +218,7 @@ export default function Providers() {
         data-testid="button-clear-filters"
       >
         <X className="h-4 w-4 mr-2" />
-        Clear Filters
+        {t("providers.clear_filters")}
       </Button>
     </div>
   );
@@ -239,7 +243,7 @@ export default function Providers() {
             <div className="flex flex-col lg:flex-row gap-8">
               <aside className="hidden lg:block w-64 flex-shrink-0">
                 <div className="sticky top-24 bg-card rounded-lg border p-6">
-                  <h2 className="font-semibold mb-4">Filters</h2>
+                  <h2 className="font-semibold mb-4">{t("providers.filters")}</h2>
                   <FilterContent />
                 </div>
               </aside>
@@ -247,7 +251,7 @@ export default function Providers() {
               <div className="flex-1">
                 <div className="flex items-center justify-between gap-4 mb-6">
                   <p className="text-muted-foreground" data-testid="text-results-count">
-                    {isLoading ? "Loading..." : `${sortedProviders?.length || 0} providers found`}
+                    {isLoading ? t("providers.loading") : t("providers.results_found", { count: sortedProviders?.length || 0 })}
                   </p>
                   
                   <div className="flex items-center gap-2">
@@ -255,12 +259,12 @@ export default function Providers() {
                       <SheetTrigger asChild>
                         <Button variant="outline" size="sm" className="lg:hidden" data-testid="button-mobile-filters">
                           <SlidersHorizontal className="h-4 w-4 mr-2" />
-                          Filters
+                          {t("providers.filters")}
                         </Button>
                       </SheetTrigger>
                       <SheetContent side="left" className="w-80">
                         <SheetHeader>
-                          <SheetTitle>Filters</SheetTitle>
+                          <SheetTitle>{t("providers.filters")}</SheetTitle>
                         </SheetHeader>
                         <div className="mt-6">
                           <FilterContent />
@@ -270,13 +274,13 @@ export default function Providers() {
 
                     <Select value={sortBy} onValueChange={setSortBy}>
                       <SelectTrigger className="w-[160px]" data-testid="select-sort">
-                        <SelectValue placeholder="Sort by" />
+                        <SelectValue placeholder={t("providers.sort_by")} />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="rating">Top Rated</SelectItem>
-                        <SelectItem value="price-low">Price: Low to High</SelectItem>
-                        <SelectItem value="price-high">Price: High to Low</SelectItem>
-                        <SelectItem value="experience">Most Experienced</SelectItem>
+                        <SelectItem value="rating">{t("providers.top_rated")}</SelectItem>
+                        <SelectItem value="price-low">{t("providers.price_low_high")}</SelectItem>
+                        <SelectItem value="price-high">{t("providers.price_high_low")}</SelectItem>
+                        <SelectItem value="experience">{t("providers.most_experienced")}</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -303,9 +307,9 @@ export default function Providers() {
                     <div className="w-16 h-16 rounded-full bg-muted mx-auto mb-4 flex items-center justify-center">
                       <SlidersHorizontal className="h-8 w-8 text-muted-foreground" />
                     </div>
-                    <h3 className="text-lg font-semibold mb-2">No providers found</h3>
+                    <h3 className="text-lg font-semibold mb-2">{t("providers.no_providers")}</h3>
                     <p className="text-muted-foreground mb-4">
-                      Try adjusting your filters or search criteria
+                      {t("providers.adjust_filters")}
                     </p>
                     <Button
                       variant="outline"
@@ -319,7 +323,7 @@ export default function Providers() {
                       })}
                       data-testid="button-reset-filters"
                     >
-                      Reset Filters
+                      {t("providers.reset_filters")}
                     </Button>
                   </div>
                 )}

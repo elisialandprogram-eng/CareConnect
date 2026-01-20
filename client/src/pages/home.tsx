@@ -372,7 +372,7 @@ export default function Home() {
               viewport={{ once: true }}
               transition={{ duration: 0.5 }}
             >
-              <p className="text-sm text-muted-foreground font-medium">We Accept</p>
+              <p className="text-sm text-muted-foreground font-medium">{t("payment.accept_title")}</p>
               <div className="flex flex-wrap justify-center items-center gap-6">
                 <div className="flex items-center gap-2 text-muted-foreground" data-testid="payment-visa">
                   <SiVisa className="h-8 w-12" />
@@ -388,7 +388,7 @@ export default function Home() {
                 </div>
                 <div className="flex items-center gap-2 text-muted-foreground" data-testid="payment-card">
                   <CreditCard className="h-6 w-6" />
-                  <span className="text-sm">Credit/Debit</span>
+                  <span className="text-sm">{t("payment.credit_debit")}</span>
                 </div>
                 <div className="flex items-center gap-2 text-muted-foreground" data-testid="payment-wallet">
                   <Wallet className="h-6 w-6" />
@@ -396,7 +396,7 @@ export default function Home() {
                 </div>
                 <div className="flex items-center gap-2 text-muted-foreground" data-testid="payment-netbanking">
                   <Banknote className="h-6 w-6" />
-                  <span className="text-sm">Net Banking</span>
+                  <span className="text-sm">{t("payment.net_banking")}</span>
                 </div>
               </div>
             </motion.div>

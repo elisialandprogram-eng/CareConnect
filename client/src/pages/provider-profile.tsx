@@ -28,6 +28,7 @@ import type { ProviderWithServices, Service, ReviewWithPatient } from "@shared/s
 import { useAuth } from "@/lib/auth";
 
 export default function ProviderProfile() {
+  const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const [, navigate] = useLocation();
   const { isAuthenticated } = useAuth();
@@ -116,9 +117,9 @@ export default function ProviderProfile() {
         <Header />
         <main className="flex-1 flex items-center justify-center">
           <div className="text-center">
-            <h1 className="text-2xl font-semibold mb-2">Provider Not Found</h1>
-            <p className="text-muted-foreground mb-4">The provider you're looking for doesn't exist.</p>
-            <Button onClick={() => navigate("/providers")}>Browse Providers</Button>
+            <h1 className="text-2xl font-semibold mb-2">{t("profile.not_found")}</h1>
+            <p className="text-muted-foreground mb-4">{t("profile.not_found_desc")}</p>
+            <Button onClick={() => navigate("/providers")}>{t("profile.browse_providers")}</Button>
           </div>
         </main>
         <Footer />
@@ -132,9 +133,9 @@ export default function ProviderProfile() {
 
   const getTypeLabel = (type: string) => {
     switch (type) {
-      case "physiotherapist": return "Physiotherapist";
-      case "nurse": return "Home Nurse";
-      case "doctor": return "Doctor";
+      case "physiotherapist": return t("common.physiotherapists");
+      case "nurse": return t("common.nurses");
+      case "doctor": return t("common.doctors");
       default: return type;
     }
   };
@@ -178,7 +179,7 @@ export default function ProviderProfile() {
                       {/* Display Practitioners if available */}
                       {provider.practitionerData && (
                         <div className="mt-2 space-y-2">
-                          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Our Specialists</p>
+                          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t("profile.our_specialists")}</p>
                           <div className="flex flex-wrap gap-2">
                             {(() => {
                               try {
@@ -202,7 +203,7 @@ export default function ProviderProfile() {
                         <div className="flex items-center gap-1">
                           <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
                           <span className="font-medium">{Number(provider.rating).toFixed(1)}</span>
-                          <span className="text-muted-foreground">({provider.totalReviews} reviews)</span>
+                          <span className="text-muted-foreground">{t("profile.reviews_count", { count: provider.totalReviews })}</span>
                         </div>
                         {provider.user.city && (
                           <div className="flex items-center gap-1 text-muted-foreground">
@@ -213,7 +214,7 @@ export default function ProviderProfile() {
                         {provider.yearsExperience && (
                           <div className="flex items-center gap-1 text-muted-foreground">
                             <Clock className="h-4 w-4" />
-                            <span>{provider.yearsExperience}+ years experience</span>
+                            <span>{t("profile.years_experience", { count: provider.yearsExperience })}</span>
                           </div>
                         )}
                       </div>
@@ -221,12 +222,12 @@ export default function ProviderProfile() {
                       <div className="flex flex-wrap gap-2">
                         <Badge variant="outline" className="gap-1">
                           <Video className="h-3 w-3" />
-                          Online Consultation
+                          {t("profile.online_consultation")}
                         </Badge>
                         {provider.homeVisitFee && (
                           <Badge variant="outline" className="gap-1">
                             <Home className="h-3 w-3" />
-                            Home Visit
+                            {t("profile.home_visit")}
                           </Badge>
                         )}
                       </div>
@@ -237,16 +238,16 @@ export default function ProviderProfile() {
 
               <Tabs defaultValue="about" className="w-full">
                 <TabsList className="w-full grid grid-cols-3">
-                  <TabsTrigger value="about" data-testid="tab-about">About</TabsTrigger>
-                  <TabsTrigger value="services" data-testid="tab-services">Services</TabsTrigger>
-                  <TabsTrigger value="reviews" data-testid="tab-reviews">Reviews</TabsTrigger>
+                  <TabsTrigger value="about" data-testid="tab-about">{t("profile.tabs.about")}</TabsTrigger>
+                  <TabsTrigger value="services" data-testid="tab-services">{t("profile.tabs.services")}</TabsTrigger>
+                  <TabsTrigger value="reviews" data-testid="tab-reviews">{t("profile.tabs.reviews")}</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="about" className="mt-6 space-y-6">
                   {provider.gallery && provider.gallery.length > 0 && (
                     <Card>
                       <CardHeader>
-                        <CardTitle className="text-lg">Gallery</CardTitle>
+                        <CardTitle className="text-lg">{t("profile.gallery")}</CardTitle>
                       </CardHeader>
                       <CardContent>
                         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
@@ -262,11 +263,11 @@ export default function ProviderProfile() {
 
                   <Card>
                     <CardHeader>
-                      <CardTitle className="text-lg">About</CardTitle>
+                      <CardTitle className="text-lg">{t("profile.tabs.about")}</CardTitle>
                     </CardHeader>
                     <CardContent>
                       <p className="text-muted-foreground">
-                        {provider.bio || "No bio available."}
+                        {provider.bio || t("profile.no_bio")}
                       </p>
                     </CardContent>
                   </Card>
@@ -278,7 +279,7 @@ export default function ProviderProfile() {
                           <div className="flex items-start gap-3">
                             <GraduationCap className="h-5 w-5 text-primary mt-0.5" />
                             <div>
-                              <h4 className="font-medium mb-1">Education</h4>
+                              <h4 className="font-medium mb-1">{t("profile.education")}</h4>
                               <p className="text-sm text-muted-foreground">{provider.education}</p>
                             </div>
                           </div>
@@ -292,7 +293,7 @@ export default function ProviderProfile() {
                           <div className="flex items-start gap-3">
                             <Award className="h-5 w-5 text-primary mt-0.5" />
                             <div>
-                              <h4 className="font-medium mb-1">Certifications</h4>
+                              <h4 className="font-medium mb-1">{t("profile.certifications")}</h4>
                               <ul className="text-sm text-muted-foreground space-y-1">
                                 {provider.certifications.map((cert, i) => (
                                   <li key={i}>{cert}</li>
@@ -310,7 +311,7 @@ export default function ProviderProfile() {
                           <div className="flex items-start gap-3">
                             <Languages className="h-5 w-5 text-primary mt-0.5" />
                             <div>
-                              <h4 className="font-medium mb-1">Languages</h4>
+                              <h4 className="font-medium mb-1">{t("profile.languages")}</h4>
                               <p className="text-sm text-muted-foreground">
                                 {provider.languages.join(", ")}
                               </p>
@@ -325,7 +326,7 @@ export default function ProviderProfile() {
                 <TabsContent value="services" className="mt-6">
                   <Card>
                     <CardHeader>
-                      <CardTitle className="text-lg">Services & Pricing</CardTitle>
+                      <CardTitle className="text-lg">{t("profile.services_pricing")}</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
                       {provider.services && provider.services.length > 0 ? (
@@ -358,7 +359,7 @@ export default function ProviderProfile() {
                                   ${Number(service.adminPriceOverride || service.price).toFixed(0)}
                                 </p>
                                 {service.adminPriceOverride && (
-                                  <Badge variant="secondary" className="text-[10px] uppercase">Special Offer</Badge>
+                                  <Badge variant="secondary" className="text-[10px] uppercase">{t("profile.special_offer")}</Badge>
                                 )}
                               </div>
                             </div>
@@ -366,9 +367,9 @@ export default function ProviderProfile() {
                         ))
                       ) : (
                         <div className="text-center py-8 text-muted-foreground">
-                          <p>No services listed yet</p>
+                          <p>{t("profile.no_services")}</p>
                           <div className="mt-4 p-4 bg-muted rounded-lg">
-                            <p className="font-medium text-foreground">Consultation Fee</p>
+                            <p className="font-medium text-foreground">{t("profile.consultation_fee")}</p>
                             <p className="text-2xl font-semibold text-foreground mt-1">
                               ${Number(provider.consultationFee).toFixed(0)}
                             </p>
@@ -382,7 +383,7 @@ export default function ProviderProfile() {
                 <TabsContent value="reviews" className="mt-6">
                   <Card>
                     <CardHeader>
-                      <CardTitle className="text-lg">Patient Reviews</CardTitle>
+                      <CardTitle className="text-lg">{t("profile.patient_reviews")}</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-6">
                       {reviews && reviews.length > 0 ? (
@@ -424,7 +425,7 @@ export default function ProviderProfile() {
                       ) : (
                         <div className="text-center py-8 text-muted-foreground">
                           <Star className="h-12 w-12 mx-auto mb-3 text-muted" />
-                          <p>No reviews yet</p>
+                          <p>{t("profile.no_reviews")}</p>
                         </div>
                       )}
                     </CardContent>

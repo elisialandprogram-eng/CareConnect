@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/select";
 import { Search, MapPin, Sparkles } from "lucide-react";
 import { motion } from "framer-motion";
+import { useTranslation } from "react-i18next";
 
 interface SearchBarProps {
   className?: string;
@@ -18,6 +19,7 @@ interface SearchBarProps {
 }
 
 export function SearchBar({ className = "", variant = "hero" }: SearchBarProps) {
+  const { t } = useTranslation();
   const [, navigate] = useLocation();
   const [location, setLocation] = useState("");
   const [serviceType, setServiceType] = useState<string>("");
@@ -37,7 +39,7 @@ export function SearchBar({ className = "", variant = "hero" }: SearchBarProps) 
         <div className="relative flex-1">
           <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="City or area..."
+            placeholder={t("common.city_area_placeholder")}
             value={location}
             onChange={(e) => setLocation(e.target.value)}
             className="pl-9"
@@ -46,13 +48,13 @@ export function SearchBar({ className = "", variant = "hero" }: SearchBarProps) 
         </div>
         <Select value={serviceType} onValueChange={setServiceType}>
           <SelectTrigger className="w-[180px]" data-testid="select-service-type-compact">
-            <SelectValue placeholder="Service type" />
+            <SelectValue placeholder={t("common.service_type")} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Services</SelectItem>
-            <SelectItem value="physiotherapist">Physiotherapy</SelectItem>
-            <SelectItem value="nurse">Home Nursing</SelectItem>
-            <SelectItem value="doctor">Doctor Visit</SelectItem>
+            <SelectItem value="all">{t("common.all_services")}</SelectItem>
+            <SelectItem value="physiotherapist">{t("common.physiotherapy")}</SelectItem>
+            <SelectItem value="nurse">{t("common.home_nursing")}</SelectItem>
+            <SelectItem value="doctor">{t("common.doctor_visit")}</SelectItem>
           </SelectContent>
         </Select>
         <Button type="submit" size="icon" data-testid="button-search-compact">
@@ -78,7 +80,7 @@ export function SearchBar({ className = "", variant = "hero" }: SearchBarProps) 
         <div className="relative flex-1">
           <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-primary" />
           <Input
-            placeholder="Enter your city or area..."
+            placeholder={t("common.enter_city_area")}
             value={location}
             onChange={(e) => setLocation(e.target.value)}
             onFocus={() => setIsFocused(true)}
@@ -92,13 +94,13 @@ export function SearchBar({ className = "", variant = "hero" }: SearchBarProps) 
             className="h-14 md:w-[240px] rounded-xl border-2 focus:border-primary/50 transition-colors" 
             data-testid="select-service-type"
           >
-            <SelectValue placeholder="Select service type" />
+            <SelectValue placeholder={t("common.select_service_type")} />
           </SelectTrigger>
           <SelectContent className="rounded-xl">
-            <SelectItem value="all" className="rounded-lg">All Services</SelectItem>
-            <SelectItem value="physiotherapist" className="rounded-lg">Physiotherapy</SelectItem>
-            <SelectItem value="nurse" className="rounded-lg">Home Nursing</SelectItem>
-            <SelectItem value="doctor" className="rounded-lg">Doctor Visit</SelectItem>
+            <SelectItem value="all" className="rounded-lg">{t("common.all_services")}</SelectItem>
+            <SelectItem value="physiotherapist" className="rounded-lg">{t("common.physiotherapy")}</SelectItem>
+            <SelectItem value="nurse" className="rounded-lg">{t("common.home_nursing")}</SelectItem>
+            <SelectItem value="doctor" className="rounded-lg">{t("common.doctor_visit")}</SelectItem>
           </SelectContent>
         </Select>
         <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.98 }}>
@@ -109,7 +111,7 @@ export function SearchBar({ className = "", variant = "hero" }: SearchBarProps) 
             data-testid="button-search"
           >
             <Search className="h-5 w-5 mr-2" />
-            Search
+            {t("common.search")}
             <Sparkles className="h-4 w-4 ml-2 opacity-70" />
           </Button>
         </motion.div>

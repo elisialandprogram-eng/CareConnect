@@ -1,33 +1,7 @@
 import { Users, Award, Calendar, Heart } from "lucide-react";
 import { motion, useMotionValue, useTransform, animate } from "framer-motion";
 import { useEffect, useState } from "react";
-
-const stats = [
-  {
-    icon: Users,
-    value: 10000,
-    suffix: "+",
-    label: "Happy Patients",
-  },
-  {
-    icon: Award,
-    value: 500,
-    suffix: "+",
-    label: "Verified Providers",
-  },
-  {
-    icon: Calendar,
-    value: 50000,
-    suffix: "+",
-    label: "Appointments Booked",
-  },
-  {
-    icon: Heart,
-    value: 4.9,
-    suffix: "",
-    label: "Average Rating",
-  },
-];
+import { useTranslation } from "react-i18next";
 
 function AnimatedCounter({ value, suffix, isDecimal = false }: { value: number; suffix: string; isDecimal?: boolean }) {
   const [displayValue, setDisplayValue] = useState(0);
@@ -83,6 +57,35 @@ const itemVariants = {
 };
 
 export function StatsSection() {
+  const { t } = useTranslation();
+
+  const stats = [
+    {
+      icon: Users,
+      value: 10000,
+      suffix: "+",
+      label: t("stats.patients"),
+    },
+    {
+      icon: Award,
+      value: 500,
+      suffix: "+",
+      label: t("stats.providers"),
+    },
+    {
+      icon: Calendar,
+      value: 50000,
+      suffix: "+",
+      label: t("stats.bookings"),
+    },
+    {
+      icon: Heart,
+      value: 4.9,
+      suffix: "",
+      label: t("stats.rating"),
+    },
+  ];
+
   return (
     <section className="py-20 bg-gradient-to-br from-primary via-primary to-primary/90 text-primary-foreground relative overflow-hidden">
       <motion.div 
@@ -128,7 +131,7 @@ export function StatsSection() {
                 <AnimatedCounter 
                   value={stat.value} 
                   suffix={stat.suffix} 
-                  isDecimal={stat.label === "Average Rating"}
+                  isDecimal={stat.label === t("stats.rating")}
                 />
               </motion.p>
               <p className="text-sm md:text-base text-primary-foreground/80 font-medium">{stat.label}</p>

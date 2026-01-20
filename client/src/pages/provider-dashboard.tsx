@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import { Link } from "wouter";
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
@@ -50,6 +51,7 @@ import {
 import type { AppointmentWithDetails, Provider } from "@shared/schema";
 
 export default function ProviderDashboard() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const { toast } = useToast();
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
@@ -329,15 +331,15 @@ export default function ProviderDashboard() {
         <div className="container mx-auto px-4">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
             <div>
-              <h1 className="text-3xl font-semibold">Provider Dashboard</h1>
+              <h1 className="text-3xl font-semibold">{t("dashboard.provider_title")}</h1>
               <p className="text-muted-foreground">
-                Manage your appointments and availability
+                {t("dashboard.provider_desc")}
               </p>
             </div>
             <Button variant="outline" asChild data-testid="button-settings">
               <Link href="/provider/settings">
                 <Settings className="h-4 w-4 mr-2" />
-                Settings
+                {t("dashboard.settings")}
               </Link>
             </Button>
           </div>
@@ -347,7 +349,7 @@ export default function ProviderDashboard() {
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-muted-foreground">Today's Appointments</p>
+                    <p className="text-sm text-muted-foreground">{t("dashboard.today_appointments")}</p>
                     <p className="text-3xl font-bold">{todayAppointments.length}</p>
                   </div>
                   <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
@@ -361,7 +363,7 @@ export default function ProviderDashboard() {
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-muted-foreground">This Week</p>
+                    <p className="text-sm text-muted-foreground">{t("dashboard.this_week")}</p>
                     <p className="text-3xl font-bold">${weeklyEarnings.toFixed(0)}</p>
                   </div>
                   <div className="w-12 h-12 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center">
@@ -375,9 +377,9 @@ export default function ProviderDashboard() {
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-muted-foreground">Rating</p>
+                    <p className="text-sm text-muted-foreground">{t("dashboard.rating")}</p>
                     <p className="text-3xl font-bold">
-                      {providerData?.rating ? Number(providerData.rating).toFixed(1) : "N/A"}
+                      {providerData?.rating ? Number(providerData.rating).toFixed(1) : t("common.na")}
                     </p>
                   </div>
                   <div className="w-12 h-12 rounded-full bg-yellow-100 dark:bg-yellow-900 flex items-center justify-center">
@@ -391,7 +393,7 @@ export default function ProviderDashboard() {
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-muted-foreground">Total Patients</p>
+                    <p className="text-sm text-muted-foreground">{t("dashboard.total_patients")}</p>
                     <p className="text-3xl font-bold">{completedAppointments.length}</p>
                   </div>
                   <div className="w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
@@ -407,16 +409,16 @@ export default function ProviderDashboard() {
               <Tabs defaultValue="upcoming" className="w-full">
                 <TabsList>
                   <TabsTrigger value="today" data-testid="tab-today">
-                    Today ({todayAppointments.length})
+                    {t("dashboard.today")} ({todayAppointments.length})
                   </TabsTrigger>
                   <TabsTrigger value="upcoming" data-testid="tab-upcoming">
-                    Upcoming ({upcomingAppointments.length})
+                    {t("dashboard.upcoming")} ({upcomingAppointments.length})
                   </TabsTrigger>
                   <TabsTrigger value="completed" data-testid="tab-completed">
-                    Completed
+                    {t("dashboard.completed")}
                   </TabsTrigger>
                   <TabsTrigger value="cancelled" data-testid="tab-cancelled">
-                    Cancelled ({cancelledAppointments.length})
+                    {t("dashboard.cancelled")} ({cancelledAppointments.length})
                   </TabsTrigger>
                 </TabsList>
 
@@ -433,7 +435,7 @@ export default function ProviderDashboard() {
                     <Card>
                       <CardContent className="p-12 text-center">
                         <CalendarIcon className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                        <p className="text-muted-foreground">No appointments today</p>
+                        <p className="text-muted-foreground">{t("dashboard.no_appointments_today")}</p>
                       </CardContent>
                     </Card>
                   )}

@@ -2,33 +2,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Star, Quote } from "lucide-react";
 import { motion } from "framer-motion";
-
-const testimonials = [
-  {
-    id: 1,
-    name: "Sarah Mitchell",
-    role: "Patient",
-    avatar: "",
-    rating: 5,
-    comment: "Golden Life made it so easy to find a physiotherapist after my surgery. The home visits were incredibly convenient, and my recovery was faster than expected.",
-  },
-  {
-    id: 2,
-    name: "James Peterson",
-    role: "Patient",
-    avatar: "",
-    rating: 5,
-    comment: "Having a nurse come to my elderly mother's home for regular check-ups gives our family peace of mind. The booking process is simple and the staff is always professional.",
-  },
-  {
-    id: 3,
-    name: "Emily Chen",
-    role: "Patient",
-    avatar: "",
-    rating: 5,
-    comment: "I was able to book a doctor's home visit within hours when my child got sick. The doctor was thorough and caring. Highly recommend this service!",
-  },
-];
+import { useTranslation } from "react-i18next";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -54,6 +28,35 @@ const cardVariants = {
 };
 
 export function Testimonials() {
+  const { t } = useTranslation();
+
+  const testimonials = [
+    {
+      id: 1,
+      name: "Sarah Mitchell",
+      role: t("testimonials.patient"),
+      avatar: "",
+      rating: 5,
+      comment: "Golden Life made it so easy to find a physiotherapist after my surgery. The home visits were incredibly convenient, and my recovery was faster than expected.",
+    },
+    {
+      id: 2,
+      name: "James Peterson",
+      role: t("testimonials.patient"),
+      avatar: "",
+      rating: 5,
+      comment: "Having a nurse come to my elderly mother's home for regular check-ups gives our family peace of mind. The booking process is simple and the staff is always professional.",
+    },
+    {
+      id: 3,
+      name: "Emily Chen",
+      role: t("testimonials.patient"),
+      avatar: "",
+      rating: 5,
+      comment: "I was able to book a doctor's home visit within hours when my child got sick. The doctor was thorough and caring. Highly recommend this service!",
+    },
+  ];
+
   return (
     <section className="py-20 bg-muted/30">
       <div className="container mx-auto px-4">
@@ -64,9 +67,9 @@ export function Testimonials() {
           viewport={{ once: true }}
           transition={{ duration: 0.5 }}
         >
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">What Our Patients Say</h2>
+          <h2 className="text-3xl md:text-4xl font-bold mb-4">{t("testimonials.title")}</h2>
           <p className="text-muted-foreground max-w-2xl mx-auto text-lg">
-            Real experiences from real patients who found quality healthcare through Golden Life
+            {t("testimonials.description")}
           </p>
         </motion.div>
 
