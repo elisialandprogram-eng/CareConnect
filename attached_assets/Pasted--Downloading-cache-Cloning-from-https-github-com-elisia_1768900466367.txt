@@ -1,0 +1,161 @@
+==> Downloading cache...
+==> Cloning from https://github.com/elisialandprogram-eng/CareConnect
+==> Checking out commit 8cf76937d613624d3f21f19a2af6fb002c87948b in branch main
+==> Downloaded 215MB in 2s. Extraction took 8s.
+==> Using Node.js version 22.16.0 (default)
+==> Docs on specifying a Node.js version: https://render.com/docs/node-version
+==> Running build command 'npm install; npm run build'...
+up to date, audited 522 packages in 1s
+70 packages are looking for funding
+  run `npm fund` for details
+13 vulnerabilities (3 low, 5 moderate, 5 high)
+To address issues that do not require attention, run:
+  npm audit fix
+To address all issues (including breaking changes), run:
+  npm audit fix --force
+Run `npm audit` for details.
+> rest-express@1.0.0 build
+> tsx script/build.ts
+building client...
+vite v5.4.20 building for production...
+transforming...
+A PostCSS plugin did not pass the `from` option to `postcss.parse`. This may cause imported assets to be incorrectly transformed. If you've recently added a PostCSS plugin that raised this warning, please contact the package author to fix the issue.
+✓ 12 modules transformed.
+x Build failed in 1.57s
+[vite:json] [plugin vite:json] client/src/i18n/locales/fa/translation.json (199:3): Failed to parse JSON file, invalid JSON syntax found at position 8922
+file: /opt/render/project/src/client/src/i18n/locales/fa/translation.json:199:3
+197:     "day_select": "حداقل یک روز را انتخاب کنید"
+198:   }
+199:     "title": "تنظیم پروفایل ارائه دهنده",
+        ^
+200:     "description": "پروفایل خود را تکمیل کنید تا پذیرش نوبت از بیماران را آغاز کنید",
+201:     "prof_info": "اطلاعات حرفه‌ای",
+    at getRollupError (file:///opt/render/project/src/node_modules/rollup/dist/es/shared/parseAst.js:396:41)
+    at error (file:///opt/render/project/src/node_modules/rollup/dist/es/shared/parseAst.js:392:42)
+    at Object.error (/opt/render/project/src/node_modules/rollup/dist/es/shared/node-entry.js:20604:20)
+    at Object.error (/opt/render/project/src/node_modules/rollup/dist/es/shared/node-entry.js:19663:42)
+    at Object.transform (/opt/render/project/src/node_modules/vite/dist/node/chunks/dep-D_zLpgQd.js:47184:14)
+    at <anonymous> (/opt/render/project/src/node_modules/rollup/dist/es/shared/node-entry.js:20789:40) {
+  pos: 8922,
+  loc: {
+    column: 3,
+    file: '/opt/render/project/src/client/src/i18n/locales/fa/translation.json',
+    line: 199
+  },
+  frame: '197:     "day_select": "حداقل یک روز را انتخاب کنید"\n' +
+    '198:   }\n' +
+    '199:     "title": "تنظیم پروفایل ارائه دهنده",\n' +
+    '        ^\n' +
+    '200:     "description": "پروفایل خود را تکمیل کنید تا پذیرش نوبت از بیماران را آغاز کنید",\n' +
+    '201:     "prof_info": "اطلاعات حرفه‌ای",',
+  id: '/opt/render/project/src/client/src/i18n/locales/fa/translation.json',
+  hook: 'transform',
+  code: 'PLUGIN_ERROR',
+  plugin: 'vite:json',
+  watchFiles: [
+    '/opt/render/project/src/client/index.html',
+    '/opt/render/project/src/client/src/main.tsx',
+    '/opt/render/project/src/package.json',
+    '/opt/render/project/src/node_modules/react/jsx-runtime.js',
+    '/opt/render/project/src/node_modules/react-dom/client.js',
+    '/opt/render/project/src/client/src/index.css',
+    '/opt/render/project/src/node_modules/react/index.js',
+    '/opt/render/project/src/client/src/App.tsx',
+    '/opt/render/project/src/client/src/i18n/config.ts',
+    '/opt/render/project/src/client/src/hooks/use-toast.ts',
+    '/opt/render/project/src/client/src/lib/queryClient.ts',
+    '/opt/render/project/src/client/src/lib/utils.ts',
+    '/opt/render/project/src/client/src/components/contact-form.tsx',
+    '/opt/render/project/src/client/src/components/cta-section.tsx',
+    '/opt/render/project/src/client/src/components/footer.tsx',
+    '/opt/render/project/src/client/src/components/header.tsx',
+    '/opt/render/project/src/client/src/components/how-it-works.tsx',
+    '/opt/render/project/src/client/src/components/provider-card.tsx',
+    '/opt/render/project/src/client/src/components/search-bar.tsx',
+    '/opt/render/project/src/client/src/components/service-categories.tsx',
+    '/opt/render/project/src/client/src/components/stats-section.tsx',
+    '/opt/render/project/src/client/src/components/testimonials.tsx',
+    '/opt/render/project/src/client/src/components/theme-toggle.tsx',
+    '/opt/render/project/src/client/src/hooks/use-mobile.tsx',
+    '/opt/render/project/src/client/src/lib/auth.tsx',
+    '/opt/render/project/src/client/src/pages/about.tsx',
+    '/opt/render/project/src/client/src/pages/admin-dashboard.tsx',
+    '/opt/render/project/src/client/src/pages/appointments.tsx',
+    '/opt/render/project/src/client/src/pages/become-provider.tsx',
+    '/opt/render/project/src/client/src/pages/booking.tsx',
+    '/opt/render/project/src/client/src/pages/cookie-policy.tsx',
+    '/opt/render/project/src/client/src/pages/forgot-password.tsx',
+    '/opt/render/project/src/client/src/pages/home.tsx',
+    '/opt/render/project/src/client/src/pages/login.tsx',
+    '/opt/render/project/src/client/src/pages/messages.tsx',
+    '/opt/render/project/src/client/src/pages/not-found.tsx',
+    '/opt/render/project/src/client/src/pages/notifications.tsx',
+    '/opt/render/project/src/client/src/pages/patient-dashboard.tsx',
+    '/opt/render/project/src/client/src/pages/privacy.tsx',
+    '/opt/render/project/src/client/src/pages/profile.tsx',
+    '/opt/render/project/src/client/src/pages/provider-dashboard.tsx',
+    '/opt/render/project/src/client/src/pages/provider-profile.tsx',
+    '/opt/render/project/src/client/src/pages/provider-setup.tsx',
+    '/opt/render/project/src/client/src/pages/providers.tsx',
+    '/opt/render/project/src/client/src/pages/register.tsx',
+    '/opt/render/project/src/client/src/pages/settings.tsx',
+    '/opt/render/project/src/client/src/pages/terms.tsx',
+    '/opt/render/project/src/client/src/pages/verify-email.tsx',
+    '/opt/render/project/src/client/src/components/chat/ChatBox.tsx',
+    '/opt/render/project/src/client/src/components/ui/accordion.tsx',
+    '/opt/render/project/src/client/src/components/ui/alert-dialog.tsx',
+    '/opt/render/project/src/client/src/components/ui/alert.tsx',
+    '/opt/render/project/src/client/src/components/ui/aspect-ratio.tsx',
+    '/opt/render/project/src/client/src/components/ui/avatar.tsx',
+    '/opt/render/project/src/client/src/components/ui/badge.tsx',
+    '/opt/render/project/src/client/src/components/ui/breadcrumb.tsx',
+    '/opt/render/project/src/client/src/components/ui/button.tsx',
+    '/opt/render/project/src/client/src/components/ui/calendar.tsx',
+    '/opt/render/project/src/client/src/components/ui/card.tsx',
+    '/opt/render/project/src/client/src/components/ui/carousel.tsx',
+    '/opt/render/project/src/client/src/components/ui/chart.tsx',
+    '/opt/render/project/src/client/src/components/ui/checkbox.tsx',
+    '/opt/render/project/src/client/src/components/ui/collapsible.tsx',
+    '/opt/render/project/src/client/src/components/ui/command.tsx',
+    '/opt/render/project/src/client/src/components/ui/context-menu.tsx',
+    '/opt/render/project/src/client/src/components/ui/dialog.tsx',
+    '/opt/render/project/src/client/src/components/ui/drawer.tsx',
+    '/opt/render/project/src/client/src/components/ui/dropdown-menu.tsx',
+    '/opt/render/project/src/client/src/components/ui/form.tsx',
+    '/opt/render/project/src/client/src/components/ui/hover-card.tsx',
+    '/opt/render/project/src/client/src/components/ui/input-otp.tsx',
+    '/opt/render/project/src/client/src/components/ui/input.tsx',
+    '/opt/render/project/src/client/src/components/ui/label.tsx',
+    '/opt/render/project/src/client/src/components/ui/menubar.tsx',
+    '/opt/render/project/src/client/src/components/ui/navigation-menu.tsx',
+    '/opt/render/project/src/client/src/components/ui/pagination.tsx',
+    '/opt/render/project/src/client/src/components/ui/popover.tsx',
+    '/opt/render/project/src/client/src/components/ui/progress.tsx',
+    '/opt/render/project/src/client/src/components/ui/radio-group.tsx',
+    '/opt/render/project/src/client/src/components/ui/resizable.tsx',
+    '/opt/render/project/src/client/src/components/ui/scroll-area.tsx',
+    '/opt/render/project/src/client/src/components/ui/select.tsx',
+    '/opt/render/project/src/client/src/components/ui/separator.tsx',
+    '/opt/render/project/src/client/src/components/ui/sheet.tsx',
+    '/opt/render/project/src/client/src/components/ui/sidebar.tsx',
+    '/opt/render/project/src/client/src/components/ui/skeleton.tsx',
+    '/opt/render/project/src/client/src/components/ui/slider.tsx',
+    '/opt/render/project/src/client/src/components/ui/switch.tsx',
+    '/opt/render/project/src/client/src/components/ui/table.tsx',
+    '/opt/render/project/src/client/src/components/ui/tabs.tsx',
+    '/opt/render/project/src/client/src/components/ui/textarea.tsx',
+    '/opt/render/project/src/client/src/components/ui/toast.tsx',
+    '/opt/render/project/src/client/src/components/ui/toaster.tsx',
+    '/opt/render/project/src/client/src/components/ui/toggle-group.tsx',
+    '/opt/render/project/src/client/src/components/ui/toggle.tsx',
+    '/opt/render/project/src/client/src/components/ui/tooltip.tsx',
+    '/opt/render/project/src/tailwind.config.ts',
+    '/opt/render/project/src/node_modules/react/cjs/react-jsx-runtime.production.min.js',
+    '/opt/render/project/src/node_modules/react-dom/index.js',
+    '/opt/render/project/src/node_modules/react/cjs/react.production.min.js',
+    ... 6 more items
+  ],
+  [Symbol(augmented)]: true
+}
+==> Build failed 😞
+==> Common ways to troubleshoot your deploy: https://render.com/docs/troubleshooting-deploys
