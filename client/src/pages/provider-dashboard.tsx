@@ -125,16 +125,22 @@ export default function ProviderDashboard() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "confirmed":
-        return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200";
       case "pending":
-        return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200";
+        return "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400";
+      case "approved":
+        return "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400";
+      case "confirmed":
+        return "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400";
       case "completed":
-        return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200";
+        return "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300";
+      case "rejected":
+        return "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400";
       case "cancelled":
-        return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200";
+        return "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400";
+      case "rescheduled":
+        return "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400";
       default:
-        return "bg-muted text-muted-foreground";
+        return "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300";
     }
   };
 
@@ -147,7 +153,7 @@ export default function ProviderDashboard() {
     });
   };
 
-  const { data: subServices } = useQuery<SubService[]>({
+  const { data: subServices } = useQuery<any[]>({
     queryKey: ["/api/sub-services", providerData?.type],
     enabled: !!providerData?.type,
   });
@@ -221,46 +227,55 @@ export default function ProviderDashboard() {
         <Badge className={getStatusColor(appointment.status)}>
           {appointment.status}
         </Badge>
-        {appointment.status === "pending" && (
-          <div className="flex gap-1">
-            <Button
-              size="icon"
-              variant="ghost"
-              className="h-8 w-8 text-green-600"
-              onClick={() => updateStatusMutation.mutate({ id: appointment.id, status: "confirmed" })}
-              data-testid={`confirm-${appointment.id}`}
-            >
-              <CheckCircle className="h-4 w-4" />
-            </Button>
-            <Button
-              size="icon"
-              variant="ghost"
-              className="h-8 w-8 text-destructive"
-              onClick={() => updateStatusMutation.mutate({ id: appointment.id, status: "cancelled" })}
-              data-testid={`cancel-${appointment.id}`}
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
-        )}
-        {appointment.status === "confirmed" && (
-          <div className="flex gap-2">
+        <div className="flex gap-1">
+          {appointment.status === "pending" && (
+            <>
+              <Button
+                size="sm"
+                variant="outline"
+                className="text-blue-600"
+                onClick={() => updateStatusMutation.mutate({ id: appointment.id, status: "approved" })}
+              >
+                Approve
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="text-destructive"
+                onClick={() => updateStatusMutation.mutate({ id: appointment.id, status: "rejected" })}
+              >
+                Reject
+              </Button>
+            </>
+          )}
+          {appointment.status === "approved" && (
             <Button
               size="sm"
               variant="outline"
-              onClick={() => setSelectedAppointmentForPrescription(appointment)}
+              className="text-green-600"
+              onClick={() => updateStatusMutation.mutate({ id: appointment.id, status: "confirmed" })}
             >
-              Prescribe
+              Confirm
             </Button>
-            <Button
-              size="sm"
-              onClick={() => updateStatusMutation.mutate({ id: appointment.id, status: "completed" })}
-              data-testid={`complete-${appointment.id}`}
-            >
-              Complete
-            </Button>
-          </div>
-        )}
+          )}
+          {appointment.status === "confirmed" && (
+            <>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setSelectedAppointmentForPrescription(appointment)}
+              >
+                Prescribe
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => updateStatusMutation.mutate({ id: appointment.id, status: "completed" })}
+              >
+                Complete
+              </Button>
+            </>
+          )}
+        </div>
       </div>
     </div>
   );
