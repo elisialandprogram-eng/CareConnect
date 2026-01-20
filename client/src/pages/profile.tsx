@@ -64,6 +64,7 @@ export default function Profile() {
   });
 
   const [isUploading, setIsUploading] = useState(false);
+  const [isGalleryUploading, setIsGalleryUploading] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -115,6 +116,62 @@ export default function Profile() {
     } catch (error) {
       toast({ title: "Upload failed", variant: "destructive" });
       setIsUploading(false);
+    }
+  };
+
+  const handleGalleryUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setIsGalleryUploading(true);
+    try {
+      const uploadPromises = Array.from(files).map(file => {
+        return new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = async () => {
+            try {
+              const base64 = reader.result as string;
+              const res = await apiRequest("POST", "/api/upload", { image: base64 });
+              const data = await res.json();
+              resolve(data.url);
+            } catch (err) {
+              reject(err);
+            }
+          };
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+      });
+
+      const urls = await Promise.all(uploadPromises);
+      const currentGallery = (user as any)?.gallery || [];
+      const updatedGallery = [...currentGallery, ...urls];
+
+      await apiRequest("PATCH", "/api/auth/profile", { gallery: updatedGallery });
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+      
+      toast({ 
+        title: "Gallery updated", 
+        description: `${urls.length} image(s) uploaded successfully.` 
+      });
+    } catch (error) {
+      toast({ title: "Upload failed", variant: "destructive" });
+    } finally {
+      setIsGalleryUploading(false);
+    }
+  };
+
+  const handleRemoveGalleryImage = async (index: number) => {
+    try {
+      const currentGallery = (user as any)?.gallery || [];
+      const updatedGallery = currentGallery.filter((_: any, i: number) => i !== index);
+      
+      await apiRequest("PATCH", "/api/auth/profile", { gallery: updatedGallery });
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+      
+      toast({ title: "Image removed" });
+    } catch (error) {
+      toast({ title: "Failed to remove image", variant: "destructive" });
     }
   };
 
@@ -254,6 +311,59 @@ export default function Profile() {
     </div>
   </CardHeader>
 </Card>
+
+{user.role === "provider" && (
+  <Card className="mb-6">
+    <CardHeader className="flex flex-row items-center justify-between gap-4">
+      <div>
+        <CardTitle className="text-lg">Gallery & Certificates</CardTitle>
+        <CardDescription>Upload clinic photos, certificates, and other documents</CardDescription>
+      </div>
+      <div className="relative">
+        <Button size="sm" disabled={isGalleryUploading} className="relative overflow-hidden">
+          {isGalleryUploading ? (
+            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+          ) : (
+            <Activity className="h-4 w-4 mr-2" />
+          )}
+          Upload
+          <input
+            type="file"
+            className="absolute inset-0 opacity-0 cursor-pointer"
+            multiple
+            accept="image/*"
+            onChange={handleGalleryUpload}
+            disabled={isGalleryUploading}
+          />
+        </Button>
+      </div>
+    </CardHeader>
+    <CardContent>
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+        {((user as any).gallery || []).map((img: string, idx: number) => (
+          <div key={idx} className="group relative aspect-square rounded-lg overflow-hidden border">
+            <img src={img} alt={`Gallery ${idx}`} className="w-full h-full object-cover" />
+            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+              <Button
+                variant="destructive"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => handleRemoveGalleryImage(idx)}
+              >
+                <Save className="h-4 w-4 rotate-45" />
+              </Button>
+            </div>
+          </div>
+        ))}
+        {(!(user as any).gallery || (user as any).gallery.length === 0) && (
+          <div className="col-span-full py-8 text-center border-2 border-dashed rounded-lg text-muted-foreground">
+            No images uploaded yet. Upload clinic pics or certificates here.
+          </div>
+        )}
+      </div>
+    </CardContent>
+  </Card>
+)}
 
 <Card>
   <CardHeader>
