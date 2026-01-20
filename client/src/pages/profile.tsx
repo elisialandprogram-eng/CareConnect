@@ -255,24 +255,6 @@ export default function Profile() {
   </CardHeader>
 </Card>
 
-{user.role === "provider" && user.gallery && user.gallery.length > 0 && (
-  <Card className="mb-6">
-    <CardHeader>
-      <CardTitle className="text-lg">My Gallery</CardTitle>
-      <CardDescription>Visuals of your services or clinic</CardDescription>
-    </CardHeader>
-    <CardContent>
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-        {user.gallery.map((img: string, idx: number) => (
-          <div key={idx} className="aspect-square rounded-lg overflow-hidden border hover-elevate cursor-pointer">
-            <img src={img} alt={`Gallery ${idx}`} className="w-full h-full object-cover" />
-          </div>
-        ))}
-      </div>
-    </CardContent>
-  </Card>
-)}
-
 <Card>
   <CardHeader>
     <CardTitle className="text-lg">Edit Profile</CardTitle>
