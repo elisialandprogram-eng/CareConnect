@@ -26,7 +26,9 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth";
+import { apiRequest } from "@/lib/queryClient";
 import { Loader2, Stethoscope, Eye, EyeOff } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useTranslation } from "react-i18next";
 
 export default function Register() {
@@ -50,6 +52,11 @@ export default function Register() {
     password: z.string().min(6, t("validation.password_min")),
     confirmPassword: z.string().min(6, t("validation.confirm_password")),
     role: z.enum(["patient", "provider"]),
+    treatmentConsent: z.boolean().refine(v => v === true, { message: "Required" }),
+    privacyConsent: z.boolean().refine(v => v === true, { message: "Required" }),
+    telemedicineConsent: z.boolean().refine(v => v === true, { message: "Required" }),
+    termsConsent: z.boolean().refine(v => v === true, { message: "Required" }),
+    declarationConsent: z.boolean().refine(v => v === true, { message: "Required" }),
   }).refine((data) => data.password === data.confirmPassword, {
     message: t("validation.passwords_match"),
     path: ["confirmPassword"],
@@ -67,6 +74,11 @@ export default function Register() {
       password: "",
       confirmPassword: "",
       role: roleParam || "patient",
+      treatmentConsent: false,
+      privacyConsent: false,
+      telemedicineConsent: false,
+      termsConsent: false,
+      declarationConsent: false,
     },
   });
 
@@ -78,6 +90,20 @@ export default function Register() {
       const result = (await register(data)) as any;
       if (!result) throw new Error("Registration failed");
       
+      // Submit consent after successful registration
+      if (data.role === "patient") {
+        await apiRequest("POST", "/api/consents", {
+          userId: result.id,
+          treatmentConsent: data.treatmentConsent,
+          privacyConsent: data.privacyConsent,
+          telemedicineConsent: data.telemedicineConsent,
+          termsConsent: data.termsConsent,
+          declarationConsent: data.declarationConsent,
+          language: "en", // Default to English for registration
+          consentTextVersion: "1.0"
+        });
+      }
+
       toast({
         title: t("common.account_created"),
         description: t("common.check_email_verify"),
@@ -172,6 +198,82 @@ export default function Register() {
                       )}
                     />
                   </div>
+
+                  {selectedRole === "patient" && (
+                    <div className="space-y-4 border-t pt-4">
+                      <p className="text-sm font-semibold">Consents & Authorizations</p>
+                      <FormField
+                        control={form.control}
+                        name="treatmentConsent"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                            <FormControl>
+                              <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                            </FormControl>
+                            <div className="space-y-1 leading-none">
+                              <FormLabel className="text-xs">I consent to receive medical treatment.</FormLabel>
+                            </div>
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="privacyConsent"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                            <FormControl>
+                              <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                            </FormControl>
+                            <div className="space-y-1 leading-none">
+                              <FormLabel className="text-xs">I consent to the collection and processing of my data.</FormLabel>
+                            </div>
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="telemedicineConsent"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                            <FormControl>
+                              <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                            </FormControl>
+                            <div className="space-y-1 leading-none">
+                              <FormLabel className="text-xs">I consent to receive telemedicine services.</FormLabel>
+                            </div>
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="termsConsent"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                            <FormControl>
+                              <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                            </FormControl>
+                            <div className="space-y-1 leading-none">
+                              <FormLabel className="text-xs">I agree to the Terms & Conditions.</FormLabel>
+                            </div>
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="declarationConsent"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                            <FormControl>
+                              <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                            </FormControl>
+                            <div className="space-y-1 leading-none">
+                              <FormLabel className="text-xs">I confirm and submit my consent.</FormLabel>
+                            </div>
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  )}
 
                   <FormField
                     control={form.control}

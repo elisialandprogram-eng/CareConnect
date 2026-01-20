@@ -31,6 +31,7 @@ import {
   Bitcoin,
 } from "lucide-react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Checkbox } from "@/components/ui/checkbox";
 import type { ProviderWithServices, Service, TaxSetting } from "@shared/schema";
 
 export default function Booking() {
@@ -78,6 +79,7 @@ export default function Booking() {
   const [contactMobile, setContactMobile] = useState(user?.mobileNumber || user?.phone || "");
   const [notes, setNotes] = useState("");
   const [step, setStep] = useState<"details" | "confirmed">("details");
+  const [consentChecked, setConsentChecked] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -158,7 +160,16 @@ export default function Booking() {
   });
 
   const handleConfirmBooking = () => {
-    if (!provider || finalSessions.length === 0) return;
+    if (!provider || finalSessions.length === 0 || !consentChecked) {
+      if (!consentChecked) {
+        toast({
+          title: "Consent Required",
+          description: "Please agree to the Patient Consent & Authorization to proceed.",
+          variant: "destructive"
+        });
+      }
+      return;
+    }
 
     const baseFee = visitType === "home" && provider.homeVisitFee
       ? Number(provider.homeVisitFee)
@@ -513,6 +524,24 @@ export default function Booking() {
                       className="min-h-24"
                       data-testid="input-notes"
                     />
+                  </div>
+
+                  <div className="space-y-4 pt-4 border-t">
+                    <div className="flex items-start space-x-3">
+                      <Checkbox 
+                        id="booking-consent" 
+                        checked={consentChecked} 
+                        onCheckedChange={(checked: boolean) => setConsentChecked(checked)}
+                      />
+                      <div className="space-y-1 leading-none">
+                        <Label htmlFor="booking-consent" className="text-sm font-medium">
+                          I confirm that I have read and agree to the Patient Consent & Authorization.
+                        </Label>
+                        <p className="text-xs text-muted-foreground">
+                          All healthcare services provided by Golden Life Health Care require your voluntary consent.
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
