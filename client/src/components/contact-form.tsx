@@ -73,7 +73,10 @@ export function ContactForm() {
                 </div>
                 <div>
                   <h4 className="font-semibold">Email Us</h4>
-                  <p className="text-muted-foreground">support@healthcare.com</p>
+                  <div className="flex flex-col">
+                    <p className="text-muted-foreground">Info@GoldenLife.Health</p>
+                    <p className="text-muted-foreground">Admin@GoldenLife.Health</p>
+                  </div>
                 </div>
               </div>
 
@@ -83,7 +86,7 @@ export function ContactForm() {
                 </div>
                 <div>
                   <h4 className="font-semibold">Call Us</h4>
-                  <p className="text-muted-foreground">+1 (555) 000-0000</p>
+                  <p className="text-muted-foreground">+36702370103</p>
                 </div>
               </div>
 
@@ -93,7 +96,7 @@ export function ContactForm() {
                 </div>
                 <div>
                   <h4 className="font-semibold">Visit Us</h4>
-                  <p className="text-muted-foreground">123 Health St, Medical District<br />New York, NY 10001</p>
+                  <p className="text-muted-foreground">Hungary, 3060 Pásztó, Semmelweis utca 10</p>
                 </div>
               </div>
             </motion.div>
