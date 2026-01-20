@@ -1,4 +1,5 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import { Link, useLocation } from "wouter";
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
@@ -115,6 +116,7 @@ const HistoryList = ({ patientId }: { patientId?: string }) => {
 };
 
 export default function PatientDashboard() {
+  const { t } = useTranslation();
   const [, navigate] = useLocation();
   const { user } = useAuth();
   const { toast } = useToast();
@@ -298,8 +300,8 @@ export default function PatientDashboard() {
         <div className="container mx-auto px-4">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
             <div>
-              <h1 className="text-3xl font-semibold">Welcome, {user?.firstName}!</h1>
-              <p className="text-muted-foreground">Manage your healthcare appointments</p>
+              <h1 className="text-3xl font-semibold">{t("dashboard.welcome")}, {user?.firstName}!</h1>
+              <p className="text-muted-foreground">{t("dashboard.manage_appointments")}</p>
             </div>
             <Button asChild data-testid="button-new-appointment">
               <Link href="/providers">
@@ -411,16 +413,16 @@ export default function PatientDashboard() {
           <Tabs defaultValue="upcoming" className="w-full">
             <TabsList>
               <TabsTrigger value="upcoming" data-testid="tab-upcoming">
-                Upcoming ({upcomingAppointments.length})
+                {t("dashboard.upcoming")} ({upcomingAppointments.length})
               </TabsTrigger>
               <TabsTrigger value="past" data-testid="tab-past">
-                Past ({pastAppointments.length})
+                {t("dashboard.past")} ({pastAppointments.length})
               </TabsTrigger>
               <TabsTrigger value="medical" data-testid="tab-medical">
-                Medical Records
+                {t("dashboard.medical_records")}
               </TabsTrigger>
               <TabsTrigger value="invoices" data-testid="tab-invoices">
-                Invoices
+                {t("dashboard.invoices")}
               </TabsTrigger>
             </TabsList>
 

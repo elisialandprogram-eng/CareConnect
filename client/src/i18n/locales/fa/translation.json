@@ -93,6 +93,38 @@
     "step4_title": "دریافت مراقبت و ثبت نظر",
     "step4_desc": "مراقبت با کیفیت دریافت کنید و تجربه خود را برای کمک به دیگران به اشتراک بگذارید"
   },
+  "admin": {
+    "total_users": "کل کاربران",
+    "registered_users": "کاربران ثبت‌نام شده",
+    "total_providers": "کل ارائه‌دهندگان",
+    "active_providers": "ارائه‌دهندگان فعال",
+    "total_bookings": "کل رزروها",
+    "all_time_bookings": "رزروهای تمام دوران",
+    "total_revenue": "کل درآمد",
+    "platform_earnings": "درآمدهای پلتفرم",
+    "filter_by_status": "فیلتر بر اساس وضعیت",
+    "all_bookings": "همه رزروها",
+    "pending": "در انتظار",
+    "confirmed": "تایید شده",
+    "completed": "تکمیل شده",
+    "cancelled": "لغو شده",
+    "tax_settings": "تنظیمات مالیات",
+    "tax_settings_desc": "مدیریت مالیات‌های پرداخت آنلاین بر اساس کشور",
+    "tax_percent": "درصد مالیات",
+    "add_tax": "افزودن مالیات",
+    "tax": "مالیات",
+    "active": "فعال",
+    "bookings_management": "مدیریت رزروها",
+    "showing_bookings": "در حال نمایش {{count}} رزرو"
+  },
+  "dashboard": {
+    "welcome": "خوش آمدید",
+    "manage_appointments": "نوبت‌های پزشکی خود را مدیریت کنید",
+    "upcoming": "آتی",
+    "past": "گذشته",
+    "medical_records": "سوابق پزشکی",
+    "invoices": "صورتحساب‌ها"
+  },
   "validation": {
     "invalid_email": "لطفاً یک آدرس ایمیل معتبر وارد کنید",
     "password_min": "رمز عبور باید حداقل ۶ کاراکتر باشد",

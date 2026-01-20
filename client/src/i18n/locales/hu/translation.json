@@ -93,6 +93,38 @@
     "step4_title": "Ellátás és értékelés",
     "step4_desc": "Részesüljön minőségi ellátásban, és ossza meg tapasztalatait mások segítésére"
   },
+  "admin": {
+    "total_users": "Összes Felhasználó",
+    "registered_users": "Regisztrált felhasználók",
+    "total_providers": "Összes Szolgáltató",
+    "active_providers": "Aktív szolgáltatók",
+    "total_bookings": "Összes Foglalás",
+    "all_time_bookings": "Összes foglalás",
+    "total_revenue": "Összes Bevétel",
+    "platform_earnings": "Platform bevételek",
+    "filter_by_status": "Szűrés állapot szerint",
+    "all_bookings": "Összes foglalás",
+    "pending": "Függőben",
+    "confirmed": "Visszaigazolva",
+    "completed": "Befejezve",
+    "cancelled": "Törölve",
+    "tax_settings": "Adóbeállítások",
+    "tax_settings_desc": "Online fizetési adók kezelése országonként",
+    "tax_percent": "Adó %",
+    "add_tax": "Adó hozzáadása",
+    "tax": "Adó",
+    "active": "Aktív",
+    "bookings_management": "Foglalások kezelése",
+    "showing_bookings": "{{count}} foglalás megjelenítése"
+  },
+  "dashboard": {
+    "welcome": "Üdvözöljük",
+    "manage_appointments": "Kezelje egészségügyi foglalásait",
+    "upcoming": "Közelgő",
+    "past": "Múltbeli",
+    "medical_records": "Orvosi leletek",
+    "invoices": "Számlák"
+  },
   "validation": {
     "invalid_email": "Kérjük, adjon meg egy érvényes e-mail címet",
     "password_min": "A jelszónak legalább 6 karakterből kell állnia",

@@ -1,5 +1,6 @@
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "@/lib/auth";
 import { useLocation } from "wouter";
 import { useEffect, useState } from "react";
@@ -23,6 +24,7 @@ import {
 } from "@/components/ui/select";
 
 export default function Profile() {
+  const { t } = useTranslation();
   const { isAuthenticated, user, isLoading: authLoading } = useAuth();
   const [, navigate] = useLocation();
   const { toast } = useToast();
@@ -197,7 +199,7 @@ export default function Profile() {
     <div className="min-h-screen flex flex-col">
       <Header />
       <main className="flex-1 container mx-auto px-4 py-8 max-w-2xl">
-        <h1 className="text-3xl font-bold mb-8">My Profile</h1>
+        <h1 className="text-3xl font-bold mb-8">{t("common.profile")}</h1>
 
         <Card className="mb-6">
           <CardHeader>
@@ -249,7 +251,7 @@ export default function Profile() {
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="firstName">First Name</Label>
+                  <Label htmlFor="firstName">{t("common.first_name")}</Label>
                   <div className="relative">
                     <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
@@ -257,12 +259,12 @@ export default function Profile() {
                       value={formData.firstName}
                       onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
                       className="pl-10"
-                      placeholder="First name"
+                      placeholder={t("common.first_name")}
                     />
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="lastName">Last Name</Label>
+                  <Label htmlFor="lastName">{t("common.last_name")}</Label>
                   <div className="relative">
                     <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
@@ -270,7 +272,7 @@ export default function Profile() {
                       value={formData.lastName}
                       onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
                       className="pl-10"
-                      placeholder="Last name"
+                      placeholder={t("common.last_name")}
                     />
                   </div>
                 </div>

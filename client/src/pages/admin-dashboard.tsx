@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
 import { Button } from "@/components/ui/button";
@@ -370,6 +371,7 @@ function ProviderDetailsDialog({ provider }: { provider: any }) {
 
 // Analytics Overview Component
 function AnalyticsOverview() {
+  const { t } = useTranslation();
   const { data: analytics, isLoading } = useQuery<{
     totalUsers: number;
     totalProviders: number;
@@ -409,42 +411,42 @@ function AnalyticsOverview() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Users</CardTitle>
+            <CardTitle className="text-sm font-medium">{t("admin.total_users")}</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold" data-testid="text-total-users">{analytics?.totalUsers || 0}</div>
-            <p className="text-xs text-muted-foreground">Registered users</p>
+            <p className="text-xs text-muted-foreground">{t("admin.registered_users")}</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Providers</CardTitle>
+            <CardTitle className="text-sm font-medium">{t("admin.total_providers")}</CardTitle>
             <Building className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold" data-testid="text-total-providers">{analytics?.totalProviders || 0}</div>
-            <p className="text-xs text-muted-foreground">Active providers</p>
+            <p className="text-xs text-muted-foreground">{t("admin.active_providers")}</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Bookings</CardTitle>
+            <CardTitle className="text-sm font-medium">{t("admin.total_bookings")}</CardTitle>
             <Calendar className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold" data-testid="text-total-bookings">{analytics?.totalBookings || 0}</div>
-            <p className="text-xs text-muted-foreground">All time bookings</p>
+            <p className="text-xs text-muted-foreground">{t("admin.all_time_bookings")}</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+            <CardTitle className="text-sm font-medium">{t("admin.total_revenue")}</CardTitle>
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold" data-testid="text-total-revenue">${Number(analytics?.totalRevenue || 0).toFixed(2)}</div>
-            <p className="text-xs text-muted-foreground">Platform earnings</p>
+            <p className="text-xs text-muted-foreground">{t("admin.platform_earnings")}</p>
           </CardContent>
         </Card>
       </div>
@@ -509,6 +511,7 @@ function AnalyticsOverview() {
 
 // Bookings Management Component
 function BookingsManagement() {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const [statusFilter, setStatusFilter] = useState<string>("all");
 
@@ -549,18 +552,18 @@ function BookingsManagement() {
       <div className="flex items-center gap-4">
         <Select value={statusFilter} onValueChange={setStatusFilter}>
           <SelectTrigger className="w-48" data-testid="select-booking-status-filter">
-            <SelectValue placeholder="Filter by status" />
+            <SelectValue placeholder={t("admin.filter_by_status")} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Bookings</SelectItem>
-            <SelectItem value="pending">Pending</SelectItem>
-            <SelectItem value="confirmed">Confirmed</SelectItem>
-            <SelectItem value="completed">Completed</SelectItem>
-            <SelectItem value="cancelled">Cancelled</SelectItem>
+            <SelectItem value="all">{t("admin.all_bookings")}</SelectItem>
+            <SelectItem value="pending">{t("admin.pending")}</SelectItem>
+            <SelectItem value="confirmed">{t("admin.confirmed")}</SelectItem>
+            <SelectItem value="completed">{t("admin.completed")}</SelectItem>
+            <SelectItem value="cancelled">{t("admin.cancelled")}</SelectItem>
           </SelectContent>
         </Select>
         <span className="text-sm text-muted-foreground">
-          Showing {filteredBookings.length} bookings
+          {t("admin.showing_bookings", { count: filteredBookings.length })}
         </span>
       </div>
 
@@ -2907,6 +2910,7 @@ function SubServicesManagement() {
 }
 
   function TaxManagement() {
+    const { t } = useTranslation();
     const { toast } = useToast();
     const { data: taxSettings, isLoading, refetch } = useQuery<TaxSetting[]>({
       queryKey: ["/api/admin/tax-settings"],
@@ -2951,53 +2955,54 @@ function SubServicesManagement() {
 
     return (
       <Card>
-        <CardHeader>
-          <CardTitle>Tax Settings</CardTitle>
-          <CardDescription>Manage online payment taxes by country</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="flex gap-4 items-end border-b pb-6">
-            <div className="space-y-2">
-              <Label>Country</Label>
-              <Input value={newCountry} onChange={(e) => setNewCountry(e.target.value)} placeholder="e.g. USA" />
-            </div>
-            <div className="space-y-2">
-              <Label>Tax %</Label>
-              <Input type="number" step="0.01" value={newPercentage} onChange={(e) => setNewPercentage(e.target.value)} placeholder="0.00" />
-            </div>
-            <Button onClick={() => {
-              createTaxMutation.mutate({ country: newCountry, taxPercentage: newPercentage, isActive: true });
-              setNewCountry("");
-              setNewPercentage("");
-            }}>Add Tax</Button>
-          </div>
-
-          <div className="space-y-4">
-            {taxSettings?.map((setting) => (
-              <div key={setting.id} className="flex items-center justify-between p-4 border rounded-lg">
-                <div className="flex-1">
-                  <p className="font-bold">{setting.country}</p>
-                  <p className="text-sm text-muted-foreground">{setting.taxPercentage}% Tax</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Checkbox 
-                    checked={setting.isActive} 
-                    onCheckedChange={(checked) => updateTaxMutation.mutate({ id: setting.id, isActive: !!checked })}
-                  />
-                  <Label>Active</Label>
-                  <Button variant="ghost" size="icon" onClick={() => deleteTaxMutation.mutate(setting.id)}>
-                    <Trash2 className="h-4 w-4 text-destructive" />
-                  </Button>
-                </div>
+          <CardHeader>
+            <CardTitle>{t("admin.tax_settings")}</CardTitle>
+            <CardDescription>{t("admin.tax_settings_desc")}</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="flex gap-4 items-end border-b pb-6">
+              <div className="space-y-2">
+                <Label>{t("setup.country")}</Label>
+                <Input value={newCountry} onChange={(e) => setNewCountry(e.target.value)} placeholder="e.g. USA" />
               </div>
-            ))}
-          </div>
-        </CardContent>
+              <div className="space-y-2">
+                <Label>{t("admin.tax_percent")}</Label>
+                <Input type="number" step="0.01" value={newPercentage} onChange={(e) => setNewPercentage(e.target.value)} placeholder="0.00" />
+              </div>
+              <Button onClick={() => {
+                createTaxMutation.mutate({ country: newCountry, taxPercentage: newPercentage, isActive: true });
+                setNewCountry("");
+                setNewPercentage("");
+              }}>{t("admin.add_tax")}</Button>
+            </div>
+
+            <div className="space-y-4">
+              {taxSettings?.map((setting) => (
+                <div key={setting.id} className="flex items-center justify-between p-4 border rounded-lg">
+                  <div className="flex-1">
+                    <p className="font-bold">{setting.country}</p>
+                    <p className="text-sm text-muted-foreground">{setting.taxPercentage}% {t("admin.tax")}</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Checkbox 
+                      checked={setting.isActive} 
+                      onCheckedChange={(checked) => updateTaxMutation.mutate({ id: setting.id, isActive: !!checked })}
+                    />
+                    <Label>{t("admin.active")}</Label>
+                    <Button variant="ghost" size="icon" onClick={() => deleteTaxMutation.mutate(setting.id)}>
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
       </Card>
     );
   }
 
 export default function AdminDashboard() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const { toast } = useToast();
   const [, navigate] = useLocation();
