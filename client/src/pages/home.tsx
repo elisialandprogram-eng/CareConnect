@@ -21,6 +21,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent } from "@/components/ui/card";
+import { useTranslation } from "react-i18next";
 
 const fadeInUp = {
   initial: { opacity: 0, y: 20 },
@@ -48,6 +49,7 @@ const floatingAnimation = {
 };
 
 function AIChatBox() {
+  const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const [message, setMessage] = useState("");
   const [conversationId, setConversationId] = useState<number | null>(null);
@@ -105,8 +107,8 @@ function AIChatBox() {
                   <Bot className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-sm">AI Health Assistant</h3>
-                  <p className="text-[10px] opacity-80">Always active • Verified Info</p>
+                  <h3 className="font-semibold text-sm">{t("chat.assistant_title")}</h3>
+                  <p className="text-[10px] opacity-80">{t("chat.assistant_status")}</p>
                 </div>
               </div>
               <Button
@@ -126,7 +128,7 @@ function AIChatBox() {
                     <Bot className="w-4 h-4 text-primary" />
                   </div>
                   <div className="p-3 rounded-2xl rounded-tl-none bg-muted text-sm max-w-[85%]">
-                    Hello! I'm your AI health assistant. How can I help you book an appointment or find the right care today?
+                    {t("chat.welcome_message")}
                   </div>
                 </div>
 
@@ -165,7 +167,7 @@ function AIChatBox() {
               className="p-4 border-t flex gap-2"
             >
               <Input
-                placeholder="Type your message..."
+                placeholder={t("chat.input_placeholder")}
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 className="flex-1"
@@ -195,6 +197,7 @@ function AIChatBox() {
 }
 
 export default function Home() {
+  const { t } = useTranslation();
   console.log("Home page rendering");
   const { user } = useAuth();
 
@@ -238,7 +241,7 @@ export default function Home() {
               <motion.div variants={fadeInUp}>
                 <Badge variant="secondary" className="text-sm px-4 py-2 gap-2 shimmer" data-testid="badge-hero">
                   <Sparkles className="h-4 w-4 text-primary" />
-                  Trusted by 10,000+ patients
+                  {t("hero.trusted_badge")}
                 </Badge>
               </motion.div>
 
@@ -246,14 +249,14 @@ export default function Home() {
                 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight"
                 variants={fadeInUp}
               >
-                Find Expert Healthcare
+                {t("hero.title")}
                 <motion.span
                   className="text-primary block mt-2"
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: 0.3, duration: 0.5 }}
                 >
-                  At Your Doorstep
+                  {t("hero.title_span")}
                 </motion.span>
               </motion.h1>
 
@@ -261,8 +264,7 @@ export default function Home() {
                 className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto"
                 variants={fadeInUp}
               >
-                Connect with verified physiotherapists, doctors, and home care nurses.
-                Quality healthcare delivered where you need it, when you need it.
+                {t("hero.description")}
               </motion.p>
 
               <motion.div variants={fadeInUp}>
@@ -279,7 +281,7 @@ export default function Home() {
                     className="px-4 py-2 text-sm cursor-pointer hover:bg-primary hover:text-primary-foreground transition-all duration-300 hover:scale-105 hover:shadow-lg"
                     data-testid="badge-physio"
                   >
-                    Physiotherapy
+                    {t("common.physiotherapists")}
                   </Badge>
                 </Link>
                 <Link href="/providers?type=nurse">
@@ -288,7 +290,7 @@ export default function Home() {
                     className="px-4 py-2 text-sm cursor-pointer hover:bg-primary hover:text-primary-foreground transition-all duration-300 hover:scale-105 hover:shadow-lg"
                     data-testid="badge-nursing"
                   >
-                    Home Nursing
+                    {t("common.nurses")}
                   </Badge>
                 </Link>
                 <Link href="/providers?type=doctor">
@@ -297,7 +299,7 @@ export default function Home() {
                     className="px-4 py-2 text-sm cursor-pointer hover:bg-primary hover:text-primary-foreground transition-all duration-300 hover:scale-105 hover:shadow-lg"
                     data-testid="badge-doctor"
                   >
-                    Doctor Consultation
+                    {t("common.doctors")}
                   </Badge>
                 </Link>
               </motion.div>
@@ -324,8 +326,8 @@ export default function Home() {
                   <Shield className="h-7 w-7 text-primary" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-lg">Verified Professionals</h3>
-                  <p className="text-sm text-muted-foreground">All providers are background-checked and certified</p>
+                  <h3 className="font-semibold text-lg">{t("features.verified_title")}</h3>
+                  <p className="text-sm text-muted-foreground">{t("features.verified_desc")}</p>
                 </div>
               </motion.div>
               <motion.div
@@ -338,8 +340,8 @@ export default function Home() {
                   <Clock className="h-7 w-7 text-primary" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-lg">Easy Online Booking</h3>
-                  <p className="text-sm text-muted-foreground">Book appointments in minutes, 24/7</p>
+                  <h3 className="font-semibold text-lg">{t("features.booking_title")}</h3>
+                  <p className="text-sm text-muted-foreground">{t("features.booking_desc")}</p>
                 </div>
               </motion.div>
               <motion.div
@@ -352,8 +354,8 @@ export default function Home() {
                   <Award className="h-7 w-7 text-primary" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-lg">Quality Guaranteed</h3>
-                  <p className="text-sm text-muted-foreground">Rated 4.9/5 by thousands of patients</p>
+                  <h3 className="font-semibold text-lg">{t("features.quality_title")}</h3>
+                  <p className="text-sm text-muted-foreground">{t("features.quality_desc")}</p>
                 </div>
               </motion.div>
             </motion.div>

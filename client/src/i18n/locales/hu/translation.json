@@ -1,0 +1,51 @@
+{
+  "common": {
+    "healthcare": "Egészségügy",
+    "physiotherapists": "Fizioterapeuták",
+    "doctors": "Orvosok",
+    "nurses": "Otthoni ápolók",
+    "search": "Keresés",
+    "book_appointment": "Időpontfoglalás",
+    "login": "Bejelentkezés",
+    "register": "Regisztráció",
+    "home": "Főoldal",
+    "about": "Rólunk",
+    "contact": "Kapcsolat",
+    "language": "Nyelv",
+    "get_started": "Kezdje el most",
+    "dashboard": "Vezérlőpult",
+    "my_appointments": "Időpontjaim",
+    "messages": "Üzenetek",
+    "notifications": "Értesítések",
+    "profile": "Profil",
+    "settings": "Beállítások",
+    "logout": "Kijelentkezés"
+  },
+  "hero": {
+    "trusted_badge": "Több mint 10 000 páciens bizalmával",
+    "title": "Szakértő Egészségügyi Ellátás",
+    "title_span": "Az Ön Otthonában",
+    "description": "Lépjen kapcsolatba ellenőrzött fizioterapeutákkal, orvososkkal és otthoni ápolókkal. Minőségi egészségügyi ellátás ott és akkor, amikor Önnek szüksége van rá."
+  },
+  "features": {
+    "verified_title": "Ellenőrzött Szakemberek",
+    "verified_desc": "Minden szolgáltatónk háttérellenőrzésen esett át és hitelesített",
+    "booking_title": "Egyszerű Online Foglalás",
+    "booking_desc": "Foglaljon időpontot percek alatt, a nap 24 órájában",
+    "quality_title": "Garantált Minőség",
+    "quality_desc": "Páciensek ezrei által 4.9/5-re értékelve"
+  },
+  "chat": {
+    "assistant_title": "AI Egészségügyi Asszisztens",
+    "assistant_status": "Mindig aktív • Hitelesített információk",
+    "welcome_message": "Üdvözlöm! Én vagyok az Ön AI egészségügyi asszisztense. Miben segíthetek ma az időpontfoglalással vagy a megfelelő ellátás megtalálásával kapcsolatban?",
+    "input_placeholder": "Írja meg üzenetét..."
+  },
+  "footer": {
+    "description": "Páciensek összekapcsolása ellenőrzött egészségügyi szakemberekkel a minőségi otthoni vagy klinikai ellátás érdekében.",
+    "quick_links": "Gyorshivatkozások",
+    "services": "Szolgáltatások",
+    "contact_us": "Kapcsolat",
+    "all_rights_reserved": "Minden jog fenntartva."
+  }
+}

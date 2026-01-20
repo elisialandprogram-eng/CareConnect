@@ -1,0 +1,51 @@
+{
+  "common": {
+    "healthcare": "Healthcare",
+    "physiotherapists": "Physiotherapists",
+    "doctors": "Doctors",
+    "nurses": "Home care nurses",
+    "search": "Search",
+    "book_appointment": "Book Appointment",
+    "login": "Login",
+    "register": "Register",
+    "home": "Home",
+    "about": "About",
+    "contact": "Contact",
+    "language": "Language",
+    "get_started": "Get Started",
+    "dashboard": "Dashboard",
+    "my_appointments": "My Appointments",
+    "messages": "Messages",
+    "notifications": "Notifications",
+    "profile": "Profile",
+    "settings": "Settings",
+    "logout": "Log out"
+  },
+  "hero": {
+    "trusted_badge": "Trusted by 10,000+ patients",
+    "title": "Find Expert Healthcare",
+    "title_span": "At Your Doorstep",
+    "description": "Connect with verified physiotherapists, doctors, and home care nurses. Quality healthcare delivered where you need it, when you need it."
+  },
+  "features": {
+    "verified_title": "Verified Professionals",
+    "verified_desc": "All providers are background-checked and certified",
+    "booking_title": "Easy Online Booking",
+    "booking_desc": "Book appointments in minutes, 24/7",
+    "quality_title": "Quality Guaranteed",
+    "quality_desc": "Rated 4.9/5 by thousands of patients"
+  },
+  "chat": {
+    "assistant_title": "AI Health Assistant",
+    "assistant_status": "Always active • Verified Info",
+    "welcome_message": "Hello! I'm your AI health assistant. How can I help you book an appointment or find the right care today?",
+    "input_placeholder": "Type your message..."
+  },
+  "footer": {
+    "description": "Connecting patients with verified healthcare professionals for quality care at home or in-clinic.",
+    "quick_links": "Quick Links",
+    "services": "Services",
+    "contact_us": "Contact Us",
+    "all_rights_reserved": "All rights reserved."
+  }
+}
