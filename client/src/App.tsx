@@ -33,6 +33,9 @@ import { ChatBox } from "@/components/chat/ChatBox";
 
 import "@/lib/i18n";
 
+import { useTranslation } from "react-i18next";
+import { useEffect } from "react";
+
 function Router() {
   const { i18n } = useTranslation();
   
