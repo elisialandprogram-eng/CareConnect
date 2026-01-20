@@ -27,23 +27,10 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth";
 import { Loader2, Stethoscope, Eye, EyeOff } from "lucide-react";
-
-const registerSchema = z.object({
-  firstName: z.string().min(2, "First name must be at least 2 characters"),
-  lastName: z.string().min(2, "Last name must be at least 2 characters"),
-  email: z.string().email("Please enter a valid email address"),
-  phone: z.string().optional(),
-  password: z.string().min(6, "Password must be at least 6 characters"),
-  confirmPassword: z.string().min(6, "Please confirm your password"),
-  role: z.enum(["patient", "provider"]),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: "Passwords don't match",
-  path: ["confirmPassword"],
-});
-
-type RegisterFormData = z.infer<typeof registerSchema>;
+import { useTranslation } from "react-i18next";
 
 export default function Register() {
+  const { t } = useTranslation();
   const [, navigate] = useLocation();
   const searchParams = useSearch();
   const params = new URLSearchParams(searchParams);
@@ -54,6 +41,21 @@ export default function Register() {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  const registerSchema = z.object({
+    firstName: z.string().min(2, t("validation.first_name_min")),
+    lastName: z.string().min(2, t("validation.last_name_min")),
+    email: z.string().email(t("validation.invalid_email")),
+    phone: z.string().optional(),
+    password: z.string().min(6, t("validation.password_min")),
+    confirmPassword: z.string().min(6, t("validation.confirm_password")),
+    role: z.enum(["patient", "provider"]),
+  }).refine((data) => data.password === data.confirmPassword, {
+    message: t("validation.passwords_match"),
+    path: ["confirmPassword"],
+  });
+
+  type RegisterFormData = z.infer<typeof registerSchema>;
 
   const form = useForm<RegisterFormData>({
     resolver: zodResolver(registerSchema),
@@ -77,14 +79,14 @@ export default function Register() {
       if (!result) throw new Error("Registration failed");
       
       toast({
-        title: "Account created!",
-        description: "Please check your email for the verification code.",
+        title: t("common.account_created"),
+        description: t("common.check_email_verify"),
       });
       navigate(`/verify-email?userId=${result.id}`);
     } catch (error: any) {
       toast({
-        title: "Registration failed",
-        description: error.message || "Something went wrong. Please try again.",
+        title: t("auth.login_failed"),
+        description: error.message || t("auth.invalid_credentials"),
         variant: "destructive",
       });
     } finally {
@@ -124,9 +126,9 @@ export default function Register() {
               >
                 <Stethoscope className="h-7 w-7 text-primary-foreground" />
               </motion.div>
-              <CardTitle className="text-2xl font-bold">Create Account</CardTitle>
+              <CardTitle className="text-2xl font-bold">{t("common.create_account")}</CardTitle>
               <CardDescription>
-                Join Golden Life and access quality healthcare
+                {t("common.join_golden_life")}
               </CardDescription>
             </CardHeader>
 
@@ -139,7 +141,7 @@ export default function Register() {
                       name="firstName"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>First Name</FormLabel>
+                          <FormLabel>{t("common.first_name")}</FormLabel>
                           <FormControl>
                             <Input
                               placeholder="John"
@@ -157,7 +159,7 @@ export default function Register() {
                       name="lastName"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Last Name</FormLabel>
+                          <FormLabel>{t("common.last_name")}</FormLabel>
                           <FormControl>
                             <Input
                               placeholder="Doe"
@@ -176,7 +178,7 @@ export default function Register() {
                     name="email"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Email</FormLabel>
+                        <FormLabel>{t("common.email")}</FormLabel>
                         <FormControl>
                           <Input
                             type="email"
@@ -195,11 +197,11 @@ export default function Register() {
                     name="phone"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Phone (Optional)</FormLabel>
+                        <FormLabel>{t("common.phone_optional")}</FormLabel>
                         <FormControl>
                           <Input
                             type="tel"
-                            placeholder="+1 234 567 890"
+                            placeholder="+36 70 123 4567"
                             {...field}
                             data-testid="input-phone"
                           />
@@ -214,7 +216,7 @@ export default function Register() {
                     name="role"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>I am a</FormLabel>
+                        <FormLabel>{t("common.i_am_a")}</FormLabel>
                         <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
                           <FormControl>
                             <SelectTrigger data-testid="select-role">
@@ -222,8 +224,8 @@ export default function Register() {
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="patient">Patient looking for care</SelectItem>
-                            <SelectItem value="provider">Healthcare provider</SelectItem>
+                            <SelectItem value="patient">{t("common.patient_looking")}</SelectItem>
+                            <SelectItem value="provider">{t("common.healthcare_provider")}</SelectItem>
                           </SelectContent>
                         </Select>
                         <FormMessage />
@@ -240,10 +242,10 @@ export default function Register() {
                       <div className="bg-primary/5 p-4 rounded-lg border border-primary/10">
                         <p className="text-sm text-primary font-medium flex items-center">
                           <Stethoscope className="h-4 w-4 mr-2" />
-                          Professional Provider Information
+                          {t("common.professional_info")}
                         </p>
                         <p className="text-xs text-muted-foreground mt-1">
-                          After registration, you'll complete your full profile to start accepting appointments.
+                          {t("common.provider_onboarding_desc")}
                         </p>
                       </div>
                     </motion.div>
@@ -255,7 +257,7 @@ export default function Register() {
                       name="password"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Password</FormLabel>
+                          <FormLabel>{t("common.password")}</FormLabel>
                           <FormControl>
                             <div className="relative">
                               <Input
@@ -289,7 +291,7 @@ export default function Register() {
                       name="confirmPassword"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Confirm Password</FormLabel>
+                          <FormLabel>{t("common.confirm_password")}</FormLabel>
                           <FormControl>
                             <div className="relative">
                               <Input
@@ -329,10 +331,10 @@ export default function Register() {
                     {isLoading ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Creating account...
+                        {t("auth.creating_account")}
                       </>
                     ) : (
-                      "Create Account"
+                      t("common.create_account")
                     )}
                   </Button>
                 </form>
@@ -341,9 +343,9 @@ export default function Register() {
 
             <CardFooter className="flex flex-col space-y-4">
               <div className="text-center text-sm text-muted-foreground">
-                Already have an account?{" "}
+                {t("common.already_account")}{" "}
                 <Link href="/login" className="text-primary hover:underline font-medium" data-testid="link-login">
-                  Sign in
+                  {t("common.sign_in")}
                 </Link>
               </div>
             </CardFooter>

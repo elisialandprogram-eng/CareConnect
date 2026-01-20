@@ -1,7 +1,9 @@
 import { Link } from "wouter";
 import { Stethoscope, Mail, Phone, MapPin } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 export function Footer() {
+  const { t } = useTranslation();
   return (
     <footer className="border-t bg-card">
       <div className="container mx-auto px-4 py-12">
@@ -11,42 +13,42 @@ export function Footer() {
               <span className="text-xl font-semibold">Golden Life</span>
             </Link>
             <p className="text-sm text-muted-foreground">
-              Connecting patients with trusted healthcare professionals. Quality care delivered to your doorstep.
+              {t("footer.description")}
             </p>
           </div>
 
           <div>
-            <h3 className="font-semibold mb-4">Services</h3>
+            <h3 className="font-semibold mb-4">{t("footer.services")}</h3>
             <ul className="space-y-2 text-sm text-muted-foreground">
               <li>
                 <Link href="/providers?type=physiotherapist" className="hover:text-foreground transition-colors">
-                  Physiotherapy
+                  {t("common.physiotherapists")}
                 </Link>
               </li>
               <li>
                 <Link href="/providers?type=nurse" className="hover:text-foreground transition-colors">
-                  Home Nursing
+                  {t("common.nurses")}
                 </Link>
               </li>
               <li>
                 <Link href="/providers?type=doctor" className="hover:text-foreground transition-colors">
-                  Doctor Consultations
+                  {t("common.doctors")}
                 </Link>
               </li>
               <li>
                 <Link href="/providers" className="hover:text-foreground transition-colors">
-                  All Providers
+                  {t("footer.all_providers")}
                 </Link>
               </li>
             </ul>
           </div>
 
           <div>
-            <h3 className="font-semibold mb-4">Company</h3>
+            <h3 className="font-semibold mb-4">{t("footer.quick_links")}</h3>
             <ul className="space-y-2 text-sm text-muted-foreground">
               <li>
                 <Link href="/about" className="hover:text-foreground transition-colors">
-                  About Us
+                  {t("common.about")}
                 </Link>
               </li>
               <li>
@@ -73,7 +75,7 @@ export function Footer() {
           </div>
 
           <div>
-            <h3 className="font-semibold mb-4">Contact</h3>
+            <h3 className="font-semibold mb-4">{t("footer.contact_us")}</h3>
             <ul className="space-y-3 text-sm text-muted-foreground">
               <li className="flex items-start gap-2">
                 <Mail className="h-4 w-4 mt-0.5" />
@@ -101,7 +103,7 @@ export function Footer() {
         </div>
 
         <div className="mt-12 pt-8 border-t text-center text-sm text-muted-foreground">
-          <p>&copy; {new Date().getFullYear()} Golden Life. All rights reserved.</p>
+          <p>&copy; {new Date().getFullYear()} Golden Life. {t("footer.all_rights_reserved")}</p>
         </div>
       </div>
     </footer>

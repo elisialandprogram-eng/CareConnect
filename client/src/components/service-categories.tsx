@@ -2,60 +2,63 @@ import { Link } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Activity, HeartPulse, Stethoscope, ArrowRight } from "lucide-react";
 import { motion } from "framer-motion";
-
-const categories = [
-  {
-    id: "physiotherapist",
-    title: "Physiotherapy",
-    description: "Expert physical therapy for recovery, pain management, and mobility improvement",
-    icon: Activity,
-    color: "text-blue-600 dark:text-blue-400",
-    bgColor: "bg-gradient-to-br from-blue-100 to-blue-50 dark:from-blue-950 dark:to-blue-900",
-    borderColor: "group-hover:border-blue-300 dark:group-hover:border-blue-700",
-  },
-  {
-    id: "nurse",
-    title: "Home Nursing",
-    description: "Professional nursing care in the comfort of your home for recovery and wellness",
-    icon: HeartPulse,
-    color: "text-pink-600 dark:text-pink-400",
-    bgColor: "bg-gradient-to-br from-pink-100 to-pink-50 dark:from-pink-950 dark:to-pink-900",
-    borderColor: "group-hover:border-pink-300 dark:group-hover:border-pink-700",
-  },
-  {
-    id: "doctor",
-    title: "Doctor Consultations",
-    description: "Qualified doctors available for home visits and online consultations",
-    icon: Stethoscope,
-    color: "text-green-600 dark:text-green-400",
-    bgColor: "bg-gradient-to-br from-green-100 to-green-50 dark:from-green-950 dark:to-green-900",
-    borderColor: "group-hover:border-green-300 dark:group-hover:border-green-700",
-  },
-];
-
-const containerVariants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.15
-    }
-  }
-};
-
-const cardVariants = {
-  hidden: { opacity: 0, y: 30 },
-  visible: { 
-    opacity: 1, 
-    y: 0,
-    transition: {
-      duration: 0.5,
-      ease: "easeOut"
-    }
-  }
-};
+import { useTranslation } from "react-i18next";
 
 export function ServiceCategories() {
+  const { t } = useTranslation();
+
+  const categories = [
+    {
+      id: "physiotherapist",
+      title: t("common.physiotherapists"),
+      description: t("service_categories.physio_desc"),
+      icon: Activity,
+      color: "text-blue-600 dark:text-blue-400",
+      bgColor: "bg-gradient-to-br from-blue-100 to-blue-50 dark:from-blue-950 dark:to-blue-900",
+      borderColor: "group-hover:border-blue-300 dark:group-hover:border-blue-700",
+    },
+    {
+      id: "nurse",
+      title: t("common.nurses"),
+      description: t("service_categories.nurse_desc"),
+      icon: HeartPulse,
+      color: "text-pink-600 dark:text-pink-400",
+      bgColor: "bg-gradient-to-br from-pink-100 to-pink-50 dark:from-pink-950 dark:to-pink-900",
+      borderColor: "group-hover:border-pink-300 dark:group-hover:border-pink-700",
+    },
+    {
+      id: "doctor",
+      title: t("common.doctors"),
+      description: t("service_categories.doctor_desc"),
+      icon: Stethoscope,
+      color: "text-green-600 dark:text-green-400",
+      bgColor: "bg-gradient-to-br from-green-100 to-green-50 dark:from-green-950 dark:to-green-900",
+      borderColor: "group-hover:border-green-300 dark:group-hover:border-green-700",
+    },
+  ];
+
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.15
+      }
+    }
+  };
+
+  const cardVariants = {
+    hidden: { opacity: 0, y: 30 },
+    visible: { 
+      opacity: 1, 
+      y: 0,
+      transition: {
+        duration: 0.5,
+        ease: "easeOut"
+      }
+    }
+  };
+
   return (
     <section className="py-20 bg-muted/30">
       <div className="container mx-auto px-4">
@@ -66,9 +69,9 @@ export function ServiceCategories() {
           viewport={{ once: true }}
           transition={{ duration: 0.5 }}
         >
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">Our Services</h2>
+          <h2 className="text-3xl md:text-4xl font-bold mb-4">{t("service_categories.title")}</h2>
           <p className="text-muted-foreground max-w-2xl mx-auto text-lg">
-            Choose from our range of professional healthcare services, all delivered with care and expertise
+            {t("service_categories.description")}
           </p>
         </motion.div>
 
@@ -97,7 +100,7 @@ export function ServiceCategories() {
                     <h3 className="text-xl font-bold mb-3">{category.title}</h3>
                     <p className="text-muted-foreground flex-1 leading-relaxed">{category.description}</p>
                     <div className="flex items-center gap-2 mt-6 text-primary font-semibold">
-                      <span>Find providers</span>
+                      <span>{t("service_categories.find_providers")}</span>
                       <motion.div
                         initial={{ x: 0 }}
                         whileHover={{ x: 5 }}

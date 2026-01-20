@@ -20,15 +20,10 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth";
 import { Loader2, Stethoscope, Eye, EyeOff } from "lucide-react";
-
-const loginSchema = z.object({
-  email: z.string().email("Please enter a valid email address"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
-});
-
-type LoginFormData = z.infer<typeof loginSchema>;
+import { useTranslation } from "react-i18next";
 
 export default function Login() {
+  const { t } = useTranslation();
   const [, navigate] = useLocation();
   const searchParams = useSearch();
   const params = new URLSearchParams(searchParams);
@@ -38,6 +33,13 @@ export default function Login() {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+
+  const loginSchema = z.object({
+    email: z.string().email(t("validation.invalid_email")),
+    password: z.string().min(6, t("validation.password_min")),
+  });
+
+  type LoginFormData = z.infer<typeof loginSchema>;
 
   const form = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
@@ -52,14 +54,14 @@ export default function Login() {
     try {
       await login(data.email, data.password);
       toast({
-        title: "Welcome back!",
-        description: "You have successfully logged in.",
+        title: t("common.welcome_back"),
+        description: t("auth.login_success"),
       });
       navigate(redirectUrl);
     } catch (error: any) {
       if (error.message.includes("verify your email")) {
         toast({
-          title: "Verification required",
+          title: t("common.verification_required"),
           description: error.message,
           variant: "destructive",
         });
@@ -68,8 +70,8 @@ export default function Login() {
         }, 2000);
       } else {
         toast({
-          title: "Login failed",
-          description: error.message || "Invalid email or password. Please try again.",
+          title: t("auth.login_failed"),
+          description: error.message || t("auth.invalid_credentials"),
           variant: "destructive",
         });
       }
@@ -110,9 +112,9 @@ export default function Login() {
               >
                 <Stethoscope className="h-7 w-7 text-primary-foreground" />
               </motion.div>
-              <CardTitle className="text-2xl font-bold">Welcome Back</CardTitle>
+              <CardTitle className="text-2xl font-bold">{t("common.welcome_back")}</CardTitle>
               <CardDescription>
-                Sign in to your Golden Life account
+                {t("auth.signin_description")}
               </CardDescription>
             </CardHeader>
 
@@ -124,7 +126,7 @@ export default function Login() {
                   name="email"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Email</FormLabel>
+                      <FormLabel>{t("common.email")}</FormLabel>
                       <FormControl>
                         <Input
                           type="email"
@@ -143,12 +145,12 @@ export default function Login() {
                   name="password"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Password</FormLabel>
+                      <FormLabel>{t("common.password")}</FormLabel>
                       <FormControl>
                         <div className="relative">
                           <Input
                             type={showPassword ? "text" : "password"}
-                            placeholder="Enter your password"
+                            placeholder={t("auth.enter_password")}
                             {...field}
                             data-testid="input-password"
                           />
@@ -173,8 +175,8 @@ export default function Login() {
                 />
 
                 <div className="flex justify-end">
-                  <Link href="/forgot-password" title="Forgot Password?" className="text-sm text-primary hover:underline font-medium" data-testid="link-forgot-password">
-                    Forgot Password?
+                  <Link href="/forgot-password" title={t("common.forgot_password")} className="text-sm text-primary hover:underline font-medium" data-testid="link-forgot-password">
+                    {t("common.forgot_password")}
                   </Link>
                 </div>
 
@@ -188,10 +190,10 @@ export default function Login() {
                   {isLoading ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Signing in...
+                      {t("common.signing_in")}
                     </>
                   ) : (
-                    "Sign In"
+                    t("common.sign_in")
                   )}
                 </Button>
               </form>
@@ -200,9 +202,9 @@ export default function Login() {
 
           <CardFooter className="flex flex-col space-y-4">
             <div className="text-center text-sm text-muted-foreground">
-              Don't have an account?{" "}
+              {t("common.no_account")}{" "}
               <Link href="/register" className="text-primary hover:underline font-medium" data-testid="link-register">
-                Sign up
+                {t("common.sign_up")}
               </Link>
             </div>
           </CardFooter>

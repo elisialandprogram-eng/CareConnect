@@ -10,8 +10,6 @@ if (!rootElement) {
   throw new Error("Root element not found");
 }
 
-console.log("Initializing React app...");
-
 createRoot(rootElement).render(
   <StrictMode>
     <App />

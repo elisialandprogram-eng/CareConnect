@@ -1,56 +1,59 @@
 import { Search, Calendar, CreditCard, Star } from "lucide-react";
 import { motion } from "framer-motion";
-
-const steps = [
-  {
-    icon: Search,
-    title: "Find Your Provider",
-    description: "Search for healthcare professionals by specialty, location, and availability",
-    step: 1,
-  },
-  {
-    icon: Calendar,
-    title: "Book Appointment",
-    description: "Choose a convenient time slot for online consultation or home visit",
-    step: 2,
-  },
-  {
-    icon: CreditCard,
-    title: "Secure Payment",
-    description: "Pay securely online with our Stripe integration for a seamless experience",
-    step: 3,
-  },
-  {
-    icon: Star,
-    title: "Get Care & Review",
-    description: "Receive quality care and share your experience to help others",
-    step: 4,
-  },
-];
-
-const containerVariants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.2
-    }
-  }
-};
-
-const itemVariants = {
-  hidden: { opacity: 0, y: 30 },
-  visible: { 
-    opacity: 1, 
-    y: 0,
-    transition: {
-      duration: 0.5,
-      ease: "easeOut"
-    }
-  }
-};
+import { useTranslation } from "react-i18next";
 
 export function HowItWorks() {
+  const { t } = useTranslation();
+
+  const steps = [
+    {
+      icon: Search,
+      title: t("how_it_works.step1_title"),
+      description: t("how_it_works.step1_desc"),
+      step: 1,
+    },
+    {
+      icon: Calendar,
+      title: t("how_it_works.step2_title"),
+      description: t("how_it_works.step2_desc"),
+      step: 2,
+    },
+    {
+      icon: CreditCard,
+      title: t("how_it_works.step3_title"),
+      description: t("how_it_works.step3_desc"),
+      step: 3,
+    },
+    {
+      icon: Star,
+      title: t("how_it_works.step4_title"),
+      description: t("how_it_works.step4_desc"),
+      step: 4,
+    },
+  ];
+
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.2
+      }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 30 },
+    visible: { 
+      opacity: 1, 
+      y: 0,
+      transition: {
+        duration: 0.5,
+        ease: "easeOut"
+      }
+    }
+  };
+
   return (
     <section className="py-20">
       <div className="container mx-auto px-4">
@@ -61,9 +64,9 @@ export function HowItWorks() {
           viewport={{ once: true }}
           transition={{ duration: 0.5 }}
         >
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">How It Works</h2>
+          <h2 className="text-3xl md:text-4xl font-bold mb-4">{t("how_it_works.title")}</h2>
           <p className="text-muted-foreground max-w-2xl mx-auto text-lg">
-            Getting quality healthcare has never been easier. Follow these simple steps to connect with trusted professionals.
+            {t("how_it_works.description")}
           </p>
         </motion.div>
 
