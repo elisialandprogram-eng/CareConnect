@@ -49,7 +49,7 @@ const floatingAnimation = {
 };
 
 function AIChatBox() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const [message, setMessage] = useState("");
   const [conversationId, setConversationId] = useState<number | null>(null);
@@ -197,7 +197,7 @@ function AIChatBox() {
 }
 
 export default function Home() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   console.log("Home page rendering");
   const { user } = useAuth();
 
