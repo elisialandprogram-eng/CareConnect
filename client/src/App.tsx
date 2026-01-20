@@ -34,6 +34,13 @@ import { ChatBox } from "@/components/chat/ChatBox";
 import "@/lib/i18n";
 
 function Router() {
+  const { i18n } = useTranslation();
+  
+  useEffect(() => {
+    document.dir = i18n.language === 'fa' ? 'rtl' : 'ltr';
+    document.documentElement.lang = i18n.language;
+  }, [i18n.language]);
+
   return (
     <Switch>
       <Route path="/" component={Home} />
