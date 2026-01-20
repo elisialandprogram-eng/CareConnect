@@ -13,7 +13,8 @@ import {
   insertReviewSchema,
   insertSupportTicketSchema,
   insertSubServiceSchema,
-  insertTaxSettingSchema
+  insertTaxSettingSchema,
+  insertPatientConsentSchema
 } from "@shared/schema";
 import crypto from 'crypto'; // Import crypto module for randomUUID
 import { Resend } from 'resend';
@@ -114,7 +115,31 @@ export async function registerRoutes(
   const cookieParser = await import("cookie-parser");
   app.use(cookieParser.default());
 
-  // ============ TAX SETTINGS ROUTES ============
+  // ============ PATIENT CONSENT ROUTES ============
+  app.post("/api/consents", authenticateToken, async (req: AuthRequest, res: Response) => {
+    try {
+      const data = insertPatientConsentSchema.parse({
+        ...req.body,
+        userId: req.user!.id,
+        ipAddress: req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress,
+        userAgent: req.headers['user-agent']
+      });
+      const consent = await storage.createPatientConsent(data);
+      res.status(201).json(consent);
+    } catch (error) {
+      console.error("Consent submission error:", error);
+      res.status(400).json({ message: "Invalid consent data" });
+    }
+  });
+
+  app.get("/api/consents", authenticateToken, async (req: AuthRequest, res: Response) => {
+    try {
+      const consents = await storage.getPatientConsents(req.user!.id);
+      res.json(consents);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch consents" });
+    }
+  });
 
   app.get("/api/admin/tax-settings", authenticateToken, async (req: AuthRequest, res: Response) => {
     if (req.user?.role !== "admin") return res.status(403).json({ message: "Admin access required" });

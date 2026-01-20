@@ -27,6 +27,7 @@ import Messages from "@/pages/messages";
 import Notifications from "@/pages/notifications";
 import VerifyEmail from "@/pages/verify-email";
 import ForgotPassword from "@/pages/forgot-password";
+import Consent from "@/pages/consent";
 
 import { ChatBox } from "@/components/chat/ChatBox";
 
@@ -40,6 +41,7 @@ function Router() {
       <Route path="/register" component={Register} />
       <Route path="/forgot-password" component={ForgotPassword} />
       <Route path="/verify-email" component={VerifyEmail} />
+      <Route path="/consent" component={Consent} />
       <Route path="/booking" component={Booking} />
       <Route path="/patient/dashboard" component={PatientDashboard} />
       <Route path="/provider/dashboard" component={ProviderDashboard} />

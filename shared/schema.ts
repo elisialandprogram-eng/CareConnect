@@ -504,7 +504,39 @@ export const insertMedicalPractitionerSchema = createInsertSchema(medicalPractit
 export type MedicalPractitioner = typeof medicalPractitioners.$inferSelect;
 export type InsertMedicalPractitioner = z.infer<typeof insertMedicalPractitionerSchema>;
 
+// Patient Consent records
+export const patientConsents = pgTable("patient_consents", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  consentTextVersion: text("consent_text_version").notNull(),
+  ipAddress: text("ip_address").notNull(),
+  userAgent: text("user_agent"),
+  language: text("language").notNull().default("en"),
+  consentedAt: timestamp("consented_at").defaultNow().notNull(),
+  treatmentConsent: boolean("treatment_consent").notNull().default(false),
+  privacyConsent: boolean("privacy_consent").notNull().default(false),
+  telemedicineConsent: boolean("telemedicine_consent").notNull().default(false),
+  termsConsent: boolean("terms_consent").notNull().default(false),
+  declarationConsent: boolean("declaration_consent").notNull().default(false),
+});
+
+export const insertPatientConsentSchema = createInsertSchema(patientConsents).omit({ id: true, consentedAt: true });
+export type PatientConsent = typeof patientConsents.$inferSelect;
+export type InsertPatientConsent = z.infer<typeof insertPatientConsentSchema>;
+
 // Relations
+export const patientConsentsRelations = relations(patientConsents, ({ one }) => ({
+  user: one(users, {
+    fields: [patientConsents.userId],
+    references: [users.id],
+  }),
+}));
+
+// Add to usersRelations
+export const usersRelations = relations(users, ({ many }) => ({
+  consents: many(patientConsents),
+  // ... existing relations
+}));
 export const medicalPractitionersRelations = relations(medicalPractitioners, ({ one }) => ({
   provider: one(providers, {
     fields: [medicalPractitioners.providerId],

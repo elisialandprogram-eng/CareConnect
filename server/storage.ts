@@ -32,6 +32,7 @@ import {
   subServices,
   medicalPractitioners,
   taxSettings,
+  patientConsents,
   type User,
   type InsertUser,
   type Provider,
@@ -97,6 +98,8 @@ import {
   type InsertSubService,
   type TaxSetting,
   type InsertTaxSetting,
+  type PatientConsent,
+  type InsertPatientConsent,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, gte, lte, or, sql, count, asc } from "drizzle-orm";
@@ -320,6 +323,10 @@ export interface IStorage {
   createTaxSetting(data: InsertTaxSetting): Promise<TaxSetting>;
   updateTaxSetting(id: string, data: Partial<TaxSetting>): Promise<TaxSetting | undefined>;
   deleteTaxSetting(id: string): Promise<void>;
+
+  // Patient Consents
+  createPatientConsent(data: InsertPatientConsent): Promise<PatientConsent>;
+  getPatientConsents(userId: string): Promise<PatientConsent[]>;
 
   // Admin Analytics
   getAnalyticsStats(): Promise<{
@@ -1217,6 +1224,16 @@ export class DatabaseStorage implements IStorage {
 
   async deleteTaxSetting(id: string): Promise<void> {
     await db.delete(taxSettings).where(eq(taxSettings.id, id));
+  }
+
+  // Patient Consents
+  async createPatientConsent(data: InsertPatientConsent): Promise<PatientConsent> {
+    const [consent] = await db.insert(patientConsents).values(data).returning();
+    return consent;
+  }
+
+  async getPatientConsents(userId: string): Promise<PatientConsent[]> {
+    return db.select().from(patientConsents).where(eq(patientConsents.userId, userId)).orderBy(desc(patientConsents.consentedAt));
   }
 
   // Admin Analytics
