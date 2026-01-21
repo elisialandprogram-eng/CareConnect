@@ -104,7 +104,23 @@ function ProviderEditDialog({ provider }: { provider: any }) {
       specialization: provider.specialization,
       consultationFee: provider.consultationFee,
       homeVisitFee: provider.homeVisitFee || "",
+      telemedicineFee: provider.telemedicineFee || "",
+      emergencyCareFee: provider.emergencyCareFee || "",
       bio: provider.bio || "",
+      professionalTitle: provider.professionalTitle || "",
+      licenseNumber: provider.licenseNumber || "",
+      licensingAuthority: provider.licensingAuthority || "",
+      licenseExpiryDate: provider.licenseExpiryDate ? new Date(provider.licenseExpiryDate).toISOString().split('T')[0] : "",
+      nationalProviderId: provider.nationalProviderId || "",
+      yearsExperience: provider.yearsExperience || 0,
+      education: provider.education || "",
+      qualifications: provider.qualifications || "",
+      city: provider.city || "",
+      state: provider.state || "",
+      country: provider.country || "",
+      serviceRadiusKm: provider.serviceRadiusKm || "",
+      primaryServiceLocation: provider.primaryServiceLocation || "",
+      status: provider.status || "pending",
     },
   });
 
@@ -151,16 +167,86 @@ function ProviderEditDialog({ provider }: { provider: any }) {
           <TabsContent value="details" className="space-y-4 py-4">
             <Form {...form}>
               <form onSubmit={form.handleSubmit((data) => updateMutation.mutate(data))} className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="specialization"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Specialization</FormLabel>
-                      <FormControl><Input {...field} /></FormControl>
-                    </FormItem>
-                  )}
-                />
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="professionalTitle"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Title</FormLabel>
+                        <FormControl><Input {...field} /></FormControl>
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="specialization"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Specialization</FormLabel>
+                        <FormControl><Input {...field} /></FormControl>
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="status"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Verification Status</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="pending">Pending</SelectItem>
+                            <SelectItem value="approved">Approved</SelectItem>
+                            <SelectItem value="rejected">Rejected</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="yearsExperience"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Years Experience</FormLabel>
+                        <FormControl><Input type="number" {...field} /></FormControl>
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="licenseNumber"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>License #</FormLabel>
+                        <FormControl><Input {...field} /></FormControl>
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="licenseExpiryDate"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>License Expiry</FormLabel>
+                        <FormControl><Input type="date" {...field} /></FormControl>
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
                 <div className="grid grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
@@ -183,6 +269,30 @@ function ProviderEditDialog({ provider }: { provider: any }) {
                     )}
                   />
                 </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="city"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>City</FormLabel>
+                        <FormControl><Input {...field} /></FormControl>
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="serviceRadiusKm"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Radius (km)</FormLabel>
+                        <FormControl><Input type="number" {...field} /></FormControl>
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
                 <FormField
                   control={form.control}
                   name="bio"
