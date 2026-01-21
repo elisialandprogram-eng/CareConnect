@@ -87,6 +87,8 @@ export default function ProviderSetup() {
     state: z.string().min(2, t("validation.field_required")),
     country: z.string().min(2, t("validation.field_required")),
     serviceRadiusKm: z.coerce.number().min(1).optional(),
+    googleMapsLocation: z.string().optional(),
+    multipleServiceAreas: z.array(z.string()).optional(),
 
     // Pricing
     consultationFee: z.coerce.number().min(1, t("validation.cons_fee_required")),
@@ -94,7 +96,7 @@ export default function ProviderSetup() {
     telemedicineFee: z.coerce.number().optional(),
     emergencyCareFee: z.coerce.number().optional(),
     insuranceAccepted: z.array(z.string()).optional(),
-    currency: z.string().default("USD"),
+    currency: z.string().default("HUF"),
     paymentMethods: z.array(z.string()).min(1, t("validation.field_required")),
 
     // Compliance
@@ -159,14 +161,18 @@ export default function ProviderSetup() {
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
       primaryServiceLocation: "",
       city: "",
+      state: "",
+      country: "Hungary",
       serviceRadiusKm: 20,
       consultationFee: 50,
       homeVisitFee: undefined,
       telemedicineFee: undefined,
+      emergencyCareFee: undefined,
       insuranceAccepted: [],
-      currency: "USD",
+      currency: "HUF",
       paymentMethods: ["card"],
       malpracticeCoverage: "",
+      preferredContactMethod: "email",
       providerAgreementAccepted: false,
       dataProcessingAgreementAccepted: false,
       telemedicineAgreementAccepted: false,
@@ -746,6 +752,58 @@ export default function ProviderSetup() {
                               data-testid="input-city"
                             />
                           </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <FormField
+                        control={form.control}
+                        name="state"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>State/Province</FormLabel>
+                            <FormControl>
+                              <Input placeholder="e.g. Pest" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="country"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Country</FormLabel>
+                            <FormControl>
+                              <Input placeholder="e.g. Hungary" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+
+                    <FormField
+                      control={form.control}
+                      name="preferredContactMethod"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Preferred Contact Method</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select method" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="email">Email</SelectItem>
+                              <SelectItem value="phone">Phone</SelectItem>
+                              <SelectItem value="both">Both</SelectItem>
+                            </SelectContent>
+                          </Select>
                           <FormMessage />
                         </FormItem>
                       )}

@@ -357,7 +357,17 @@ export default function Profile() {
         </div>
         <div className="space-y-1">
           <p className="text-muted-foreground">Consultation Fee</p>
-          <p className="font-medium">${providerData.consultationFee}</p>
+          <p className="font-medium">{providerData.currency} {providerData.consultationFee}</p>
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-4 text-sm mt-4">
+        <div className="space-y-1">
+          <p className="text-muted-foreground">Location</p>
+          <p className="font-medium">{providerData.city}, {providerData.country}</p>
+        </div>
+        <div className="space-y-1">
+          <p className="text-muted-foreground">Preferred Contact</p>
+          <p className="font-medium capitalize">{providerData.preferredContactMethod || "Email"}</p>
         </div>
       </div>
       <div className="space-y-1 pt-2">
