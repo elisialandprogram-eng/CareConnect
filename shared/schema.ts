@@ -150,9 +150,6 @@ export const providers = pgTable("providers", {
   nationalProviderId: text("national_provider_id"),
 
   // Experience & Education
-  education: text("education"),
-  certifications: text("certifications").array(),
-  languages: text("languages").array(),
   qualifications: text("qualifications").array(), // Degree, Institution, Year
 
   // Availability & Scheduling
