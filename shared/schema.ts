@@ -162,7 +162,7 @@ export const providers = pgTable("providers", {
   nationalProviderId: text("national_provider_id"),
 
   // Experience & Education
-  qualifications: text("qualifications").array().notNull().default(sql`'{}'::text[]`), // Degree, Institution, Year
+  qualifications: text("qualifications"), // Degree, Institution, Year
 
   // Availability & Scheduling
   availableDays: text("available_days").array().notNull().default(sql`'{}'::text[]`),
@@ -178,7 +178,7 @@ export const providers = pgTable("providers", {
   state: text("state"),
   country: text("country"),
   serviceRadiusKm: integer("service_radius_km"),
-  multipleServiceAreas: text("multiple_service_areas").array().notNull().default(sql`'{}'::text[]`),
+  multipleServiceAreas: boolean("multiple_service_areas").default(false),
   googleMapsLocation: text("google_maps_location"),
 
   // Pricing & Payment
