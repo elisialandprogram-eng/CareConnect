@@ -1,0 +1,75 @@
+5:02:03 AM [express] POST /api/auth/login 500 in 1140ms
+Login error: error: column "qualifications" does not exist
+    at /opt/render/project/src/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async /opt/render/project/src/dist/index.cjs:79:117881
+    at async sv.getProviderByUserId (/opt/render/project/src/dist/index.cjs:79:123157)
+    at async /opt/render/project/src/dist/index.cjs:111:5780 {
+  length: 115,
+  severity: 'ERROR',
+  code: '42703',
+  detail: undefined,
+  hint: undefined,
+  position: '281',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '3716',
+  routine: 'errorMissingColumn'
+}
+Login error: error: column "qualifications" does not exist
+    at /opt/render/project/src/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async /opt/render/project/src/dist/index.cjs:79:117881
+    at async sv.getProviderByUserId (/opt/render/project/src/dist/index.cjs:79:123157)
+    at async /opt/render/project/src/dist/index.cjs:111:5780 {
+  length: 115,
+  severity: 'ERROR',
+  code: '42703',
+  detail: undefined,
+  hint: undefined,
+  position: '281',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '3716',
+  routine: 'errorMissingColumn'
+}
+5:02:08 AM [express] POST /api/auth/login 500 in 1000ms
+Login error: error: column "qualifications" does not exist
+    at /opt/render/project/src/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async /opt/render/project/src/dist/index.cjs:79:117881
+    at async sv.getProviderByUserId (/opt/render/project/src/dist/index.cjs:79:123157)
+    at async /opt/render/project/src/dist/index.cjs:111:5780 {
+  length: 115,
+  severity: 'ERROR',
+  code: '42703',
+  detail: undefined,
+  hint: undefined,
+  position: '281',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '3716',
+  routine: 'errorMissingColumn'
+}
+5:02:12 AM [express] POST /api/auth/login 500 in 1044ms
