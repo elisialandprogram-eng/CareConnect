@@ -480,49 +480,8 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getProviderByUserId(userId: string): Promise<Provider | undefined> {
-    try {
-      const [provider] = await db.select().from(providers).where(eq(providers.userId, userId));
-      return provider || undefined;
-    } catch (error: any) {
-      // Robust runtime detection for production/cached environments
-      if (error.code === '42703') {
-        const result = await db.execute(sql`
-          SELECT * FROM providers WHERE user_id = ${userId} LIMIT 1
-        `);
-        
-        if (result.rows.length === 0) return undefined;
-        const row = result.rows[0];
-        
-        // Map whatever column exists to the expected property
-        return {
-          ...row,
-          id: row.id,
-          userId: row.user_id,
-          providerType: row.provider_type || row.type || 'doctor',
-          qualifications: row.qualifications || [],
-          specialization: row.specialization,
-          bio: row.bio,
-          consultationFee: row.consultation_fee,
-          homeVisitFee: row.home_visit_fee,
-          location: row.location,
-          yearsExperience: row.years_experience,
-          rating: row.rating,
-          totalReviews: row.total_reviews,
-          isVerified: row.is_verified,
-          availabilityStatus: row.availability_status,
-          secondarySpecialties: row.secondary_specialties,
-          certifications: row.certifications,
-          languages: row.languages,
-          availableDays: row.available_days,
-          insuranceAccepted: row.insurance_accepted,
-          paymentMethods: row.payment_methods,
-          gallery: row.gallery,
-          bannerImage: row.banner_image,
-          createdAt: row.created_at
-        } as unknown as Provider;
-      }
-      throw error;
-    }
+    const [provider] = await db.select().from(providers).where(eq(providers.userId, userId));
+    return provider || undefined;
   }
 
   async getProviderWithUser(id: string): Promise<ProviderWithUser | undefined> {
