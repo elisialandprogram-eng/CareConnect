@@ -147,12 +147,12 @@ export const providers = pgTable("providers", {
   providerType: text("provider_type").notNull().default("doctor"),
   professionalTitle: text("professional_title"), // Dr., RN, etc.
   specialization: text("specialization").notNull(),
-  secondarySpecialties: text("secondary_specialties").array(),
+  secondarySpecialties: text("secondary_specialties").array().notNull().default(sql`'{}'::text[]`),
   bio: text("bio"),
   yearsExperience: integer("years_experience").default(0),
   education: text("education"),
-  certifications: text("certifications").array(),
-  languages: text("languages").array(),
+  certifications: text("certifications").array().notNull().default(sql`'{}'::text[]`),
+  languages: text("languages").array().notNull().default(sql`'{}'::text[]`),
   
   // Professional Credentials
   licenseNumber: text("license_number"),
@@ -162,11 +162,11 @@ export const providers = pgTable("providers", {
   nationalProviderId: text("national_provider_id"),
 
   // Experience & Education
-  qualifications: text("qualifications").array(), // Degree, Institution, Year
+  qualifications: text("qualifications").array().notNull().default(sql`'{}'::text[]`), // Degree, Institution, Year
 
   // Availability & Scheduling
-  availableDays: text("available_days").array(),
-  availableTimeSlots: text("available_time_slots").array(), // Specific time slots
+  availableDays: text("available_days").array().notNull().default(sql`'{}'::text[]`),
+  availableTimeSlots: text("available_time_slots").array().notNull().default(sql`'{}'::text[]`), // Specific time slots
   workingHoursStart: text("working_hours_start").default("09:00"),
   workingHoursEnd: text("working_hours_end").default("18:00"),
   maxPatientsPerDay: integer("max_patients_per_day"),
@@ -178,7 +178,7 @@ export const providers = pgTable("providers", {
   state: text("state"),
   country: text("country"),
   serviceRadiusKm: integer("service_radius_km"),
-  multipleServiceAreas: text("multiple_service_areas").array(),
+  multipleServiceAreas: text("multiple_service_areas").array().notNull().default(sql`'{}'::text[]`),
   googleMapsLocation: text("google_maps_location"),
 
   // Pricing & Payment
@@ -186,9 +186,9 @@ export const providers = pgTable("providers", {
   homeVisitFee: decimal("home_visit_fee", { precision: 10, scale: 2 }),
   telemedicineFee: decimal("telemedicine_fee", { precision: 10, scale: 2 }),
   emergencyCareFee: decimal("emergency_care_fee", { precision: 10, scale: 2 }),
-  insuranceAccepted: text("insurance_accepted").array(),
+  insuranceAccepted: text("insurance_accepted").array().notNull().default(sql`'{}'::text[]`),
   currency: text("currency").default("USD"),
-  paymentMethods: text("payment_methods").array(), // Cash, Card, Online
+  paymentMethods: text("payment_methods").array().notNull().default(sql`'{}'::text[]`), // Cash, Card, Online
 
   // Compliance & Verification
   backgroundCheckStatus: text("background_check_status").default("pending"),
@@ -221,7 +221,7 @@ export const providers = pgTable("providers", {
   totalReviews: integer("total_reviews").default(0),
   latitude: decimal("latitude", { precision: 10, scale: 8 }),
   longitude: decimal("longitude", { precision: 11, scale: 8 }),
-  gallery: text("gallery").array(),
+  gallery: text("gallery").array().notNull().default(sql`'{}'::text[]`),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
