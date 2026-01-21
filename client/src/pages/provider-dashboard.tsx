@@ -54,10 +54,12 @@ import type { AppointmentWithDetails, Provider } from "@shared/schema";
 function ServiceStaffList({ serviceId, onDelete, onToggle }: { serviceId: string; onDelete: (id: string) => void; onToggle: (args: {id: string, isActive: boolean}) => void }) {
   const { data: practitioners } = useQuery<any[]>({
     queryKey: [`/api/services/${serviceId}/practitioners`],
+    enabled: !!serviceId,
   });
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-2 mt-2">
+      {practitioners?.length === 0 && <p className="text-sm text-muted-foreground italic">No staff assigned</p>}
       {practitioners?.map((sp) => (
         <div key={sp.id} className="flex items-center justify-between p-2 bg-muted/50 rounded border text-sm">
           <span>{sp.practitioner.name} (${Number(sp.fee).toFixed(0)})</span>
@@ -68,7 +70,7 @@ function ServiceStaffList({ serviceId, onDelete, onToggle }: { serviceId: string
               className={sp.isActive ? "text-primary" : "text-muted-foreground"}
               onClick={() => onToggle({ id: sp.id, isActive: !sp.isActive })}
             >
-              {sp.isActive ? "Bookable" : "Paused"}
+              {sp.isActive ? "Active" : "Paused"}
             </Button>
             <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => onDelete(sp.id)}>
               <Trash2 className="h-4 w-4" />
@@ -79,6 +81,43 @@ function ServiceStaffList({ serviceId, onDelete, onToggle }: { serviceId: string
     </div>
   );
 }
+
+const Briefcase = ({ className }: { className?: string }) => (
+  <svg 
+    xmlns="http://www.w3.org/2000/svg" 
+    width="24" 
+    height="24" 
+    viewBox="0 0 24 24" 
+    fill="none" 
+    stroke="currentColor" 
+    strokeWidth="2" 
+    strokeLinecap="round" 
+    strokeLinejoin="round" 
+    className={className}
+  >
+    <rect width="20" height="14" x="2" y="7" rx="2" ry="2"/>
+    <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+  </svg>
+);
+
+const Banknote = ({ className }: { className?: string }) => (
+  <svg 
+    xmlns="http://www.w3.org/2000/svg" 
+    width="24" 
+    height="24" 
+    viewBox="0 0 24 24" 
+    fill="none" 
+    stroke="currentColor" 
+    strokeWidth="2" 
+    strokeLinecap="round" 
+    strokeLinejoin="round" 
+    className={className}
+  >
+    <rect width="20" height="12" x="2" y="6" rx="2"/>
+    <circle cx="12" cy="12" r="2"/>
+    <path d="M6 12h.01M18 12h.01"/>
+  </svg>
+);
 
 export default function ProviderDashboard() {
   const { t } = useTranslation();
@@ -460,7 +499,7 @@ export default function ProviderDashboard() {
     },
   });
 
-  const Briefcase = ({ className }: { className?: string }) => (
+  const BriefcaseIcon = ({ className }: { className?: string }) => (
     <svg 
       xmlns="http://www.w3.org/2000/svg" 
       width="24" 
@@ -475,25 +514,6 @@ export default function ProviderDashboard() {
     >
       <rect width="20" height="14" x="2" y="7" rx="2" ry="2"/>
       <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
-    </svg>
-  );
-
-  const Banknote = ({ className }: { className?: string }) => (
-    <svg 
-      xmlns="http://www.w3.org/2000/svg" 
-      width="24" 
-      height="24" 
-      viewBox="0 0 24 24" 
-      fill="none" 
-      stroke="currentColor" 
-      strokeWidth="2" 
-      strokeLinecap="round" 
-      strokeLinejoin="round" 
-      className={className}
-    >
-      <rect width="20" height="12" x="2" y="6" rx="2"/>
-      <circle cx="12" cy="12" r="2"/>
-      <path d="M6 12h.01M18 12h.01"/>
     </svg>
   );
 
@@ -756,7 +776,7 @@ export default function ProviderDashboard() {
                             <Select name="serviceId" required>
                               <SelectTrigger><SelectValue placeholder="Pick service" /></SelectTrigger>
                               <SelectContent>
-                                {providerWithServices?.services?.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                                {providerWithServices?.services?.filter(s => s.isActive).map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
                               </SelectContent>
                             </Select>
                           </div>

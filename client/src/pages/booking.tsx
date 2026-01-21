@@ -105,24 +105,21 @@ export default function Booking() {
     }
   }, [isAuthenticated, navigate, searchParams]);
 
-  const [bookingStep, setBookingStep] = useState<1 | 2 | 3>(1);
-
-  useEffect(() => {
-    if (serviceId) setBookingStep(2);
-    if (serviceId && selectedPractitionerId) setBookingStep(3);
-  }, [serviceId, selectedPractitionerId]);
-
-  const { data: services } = useQuery<Service[]>({
-    queryKey: ["/api/providers", providerId, "services"],
+  const { data: provider, isLoading } = useQuery<ProviderWithServices>({
+    queryKey: ["/api/providers", providerId],
     enabled: !!providerId,
   });
+
+  const [selectedPractitionerId, setSelectedPractitionerId] = useState<string | null>(params.get("practitionerId"));
 
   const { data: practitioners } = useQuery<any[]>({
     queryKey: [`/api/services/${serviceId}/practitioners`],
     enabled: !!serviceId,
   });
 
-  const selectedService = services?.find(s => s.id === serviceId);
+  const activePractitioners = practitioners?.filter(p => p.isActive) || [];
+
+  const selectedService = provider?.services?.find(s => s.id === serviceId);
   const selectedPractitioner = practitioners?.find(p => p.practitionerId === selectedPractitionerId);
 
   const baseFee = selectedPractitioner 
@@ -132,6 +129,36 @@ export default function Booking() {
       : Number(provider.consultationFee)) : 0);
     
   const feeWithPlatform = baseFee;
+
+  const bookingMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const results = [];
+      for (const session of data.sessions) {
+        const response = await apiRequest("POST", "/api/appointments", session);
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.message || "Failed to book appointment");
+        }
+        results.push(await response.json());
+      }
+      return results;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/appointments"] });
+      toast({
+        title: "Success",
+        description: `Your appointment has been booked successfully!`,
+      });
+      setStep("confirmed");
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to book appointment.",
+        variant: "destructive",
+      });
+    },
+  });
 
   const handleConfirmBooking = () => {
     if (!provider || finalSessions.length === 0 || !consentChecked) {
@@ -158,7 +185,7 @@ export default function Booking() {
       totalAmount: feeWithPlatform.toString(),
       date: finalSessions[0].date,
       startTime: finalSessions[0].time,
-      endTime: "10:00", // Simplified
+      endTime: "10:00", // Simplified for fast mode
     };
 
     bookingMutation.mutate({ sessions: [bookingData] });
@@ -332,56 +359,47 @@ export default function Booking() {
                   </div>
 
                   <div className="grid grid-cols-1 gap-4">
-                    {practitioners && practitioners.length > 0 && (
-                      <div className="space-y-3 p-4 rounded-lg bg-muted/50 border">
-                        <Label>{t("booking.select_practitioner") || "Select Practitioner"}</Label>
-                        <RadioGroup 
-                          value={selectedPractitionerId || ""} 
-                          onValueChange={setSelectedPractitionerId}
-                          className="space-y-2"
-                        >
-                          {practitioners.map((sp) => (
-                            <div key={sp.practitionerId} className="flex items-center space-x-2">
-                              <RadioGroupItem value={sp.practitionerId} id={sp.practitionerId} />
-                              <Label htmlFor={sp.practitionerId} className="flex justify-between w-full cursor-pointer">
-                                <span>{sp.practitioner.name} ({sp.practitioner.title})</span>
-                                <span className="font-semibold">${Number(sp.fee).toFixed(0)}</span>
-                              </Label>
+                    <div className="space-y-4">
+                      <Label>Available Services</Label>
+                      <div className="grid gap-3">
+                        {provider.services?.filter(s => s.isActive).map((service) => (
+                          <Button
+                            key={service.id}
+                            variant={serviceId === service.id ? "default" : "outline"}
+                            className="justify-between h-auto py-4"
+                            onClick={() => {
+                              params.set("serviceId", service.id);
+                              navigate(`/booking?${params.toString()}`);
+                            }}
+                          >
+                            <div className="text-left">
+                              <p className="font-semibold">{service.name}</p>
+                              <p className="text-sm opacity-80">{service.description}</p>
                             </div>
+                            <span className="font-bold">${Number(service.price).toFixed(0)}</span>
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {serviceId && (
+                      <div className="space-y-4">
+                        <Label>Select Practitioner</Label>
+                        <div className="grid gap-3">
+                          {activePractitioners.map((sp) => (
+                            <Button
+                              key={sp.practitionerId}
+                              variant={selectedPractitionerId === sp.practitionerId ? "default" : "outline"}
+                              className="justify-between h-auto py-4"
+                              onClick={() => setSelectedPractitionerId(sp.practitionerId)}
+                            >
+                              <div className="text-left">
+                                <p className="font-semibold">{sp.practitioner.name}</p>
+                                <p className="text-sm opacity-80">{sp.practitioner.title} - {sp.practitioner.specialization}</p>
+                              </div>
+                              <span className="font-bold">${Number(sp.fee).toFixed(0)}</span>
+                            </Button>
                           ))}
-                        </RadioGroup>
-                      </div>
-                    )}
-                    <div className="space-y-3">
-                      <Label>{t("booking.selected_sessions")}</Label>
-                      {finalSessions.map((session: any, idx: number) => (
-                        <div key={idx} className="flex gap-4 p-4 rounded-lg bg-muted/50 border">
-                          <div className="flex items-center gap-2">
-                            <Calendar className="h-5 w-5 text-primary" />
-                            <span className="font-medium text-sm">{formatDate(session.date)}</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Clock className="h-5 w-5 text-primary" />
-                            <span className="font-medium text-sm">{session.time}</span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                    <div className="flex items-center gap-3 p-4 rounded-lg bg-muted/50">
-                      {getVisitTypeIcon(visitType)}
-                      <div>
-                        <p className="text-sm text-muted-foreground">{t("booking.visit_type")}</p>
-                        <p className="font-medium">
-                          {getVisitTypeLabel(visitType)}
-                        </p>
-                      </div>
-                    </div>
-                    {selectedService && (
-                      <div className="flex items-center gap-3 p-4 rounded-lg bg-muted/50">
-                        <CreditCard className="h-5 w-5 text-primary" />
-                        <div>
-                          <p className="text-sm text-muted-foreground">{t("booking.service")}</p>
-                          <p className="font-medium">{selectedService.name}</p>
                         </div>
                       </div>
                     )}

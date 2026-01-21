@@ -418,8 +418,8 @@ export default function ProviderProfile() {
                               selectedService?.id === service.id
                                 ? "border-primary bg-primary/5"
                                 : "hover:border-primary/50"
-                            }`}
-                            onClick={() => setSelectedService(service)}
+                            } ${!service.isActive ? "opacity-50 grayscale pointer-events-none" : ""}`}
+                            onClick={() => service.isActive && setSelectedService(service)}
                             data-testid={`service-${service.id}`}
                           >
                             <div className="flex items-start justify-between gap-4">

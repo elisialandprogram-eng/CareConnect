@@ -16,10 +16,18 @@ import {
   insertTaxSettingSchema,
   insertPatientConsentSchema,
   insertPractitionerSchema,
-  insertServicePractitionerSchema
+  insertServicePractitionerSchema,
+  insertServiceSchema,
+  services,
+  practitioners,
+  servicePractitioners,
+  users,
+  providers
 } from "@shared/schema";
 import crypto from 'crypto'; // Import crypto module for randomUUID
 import { Resend } from 'resend';
+import { db } from "./db";
+import { eq, and, desc, or } from "drizzle-orm";
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 const FROM_EMAIL = "GoldenLife <no-reply@goldenlife.health>";
@@ -1020,10 +1028,17 @@ export async function registerRoutes(
       if (req.body.fee !== undefined) updates.fee = req.body.fee;
       if (req.body.isActive !== undefined) updates.isActive = req.body.isActive;
       
-      const sp = await storage.updateServicePractitionerFee(req.params.id, updates.fee);
+      let sp;
+      if (updates.fee !== undefined) {
+        sp = await storage.updateServicePractitionerFee(req.params.id, updates.fee);
+      }
       
       if (updates.isActive !== undefined) {
-        await db.update(servicePractitioners).set({ isActive: updates.isActive }).where(eq(servicePractitioners.id, req.params.id));
+        const [updated] = await db.update(servicePractitioners)
+          .set({ isActive: updates.isActive })
+          .where(eq(servicePractitioners.id, req.params.id))
+          .returning();
+        sp = updated;
       }
       
       res.json(sp);
