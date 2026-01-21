@@ -482,9 +482,19 @@ export class DatabaseStorage implements IStorage {
       const [provider] = await db.select().from(providers).where(eq(providers.userId, userId));
       return provider || undefined;
     } catch (error: any) {
-      if (error.code === '42703' && error.message.includes('qualifications')) {
-        // Fallback for missing column in selection
-        const result = await db.execute(sql`SELECT id, user_id, provider_type, specialization, bio, consultation_fee, home_visit_fee, location, years_experience, rating, total_reviews, is_verified, availability_status, secondary_specialties, certifications, languages, available_days, insurance_accepted, payment_methods, gallery, banner_image, created_at FROM providers WHERE user_id = ${userId} LIMIT 1`);
+      if (error.code === '42703') {
+        // Fallback for missing columns (type/provider_type or qualifications) in Supabase
+        const result = await db.execute(sql`
+          SELECT 
+            id, user_id, 
+            CASE 
+              WHEN EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='providers' AND column_name='type') THEN type 
+              WHEN EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='providers' AND column_name='provider_type') THEN provider_type
+              ELSE 'doctor' 
+            END as provider_type,
+            specialization, bio, consultation_fee, home_visit_fee, location, years_experience, rating, total_reviews, is_verified, availability_status, secondary_specialties, certifications, languages, available_days, insurance_accepted, payment_methods, gallery, banner_image, created_at 
+          FROM providers WHERE user_id = ${userId} LIMIT 1
+        `);
         if (result.rows.length === 0) return undefined;
         const row = result.rows[0];
         return {
@@ -510,7 +520,7 @@ export class DatabaseStorage implements IStorage {
           gallery: row.gallery,
           bannerImage: row.banner_image,
           createdAt: row.created_at,
-          qualifications: [] // Provide empty array as fallback
+          qualifications: [] 
         } as Provider;
       }
       throw error;
