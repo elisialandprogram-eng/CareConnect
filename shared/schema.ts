@@ -133,14 +133,62 @@ export const providers = pgTable("providers", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull().references(() => users.id),
   type: providerTypeEnum("type").notNull(),
+  professionalTitle: text("professional_title"), // Dr., RN, etc.
   specialization: text("specialization").notNull(),
+  secondarySpecialties: text("secondary_specialties").array(),
   bio: text("bio"),
   yearsExperience: integer("years_experience").default(0),
   education: text("education"),
   certifications: text("certifications").array(),
   languages: text("languages").array(),
+  
+  // Professional Credentials
+  licenseNumber: text("license_number"),
+  licensingAuthority: text("licensing_authority"),
+  licenseExpiryDate: timestamp("license_expiry_date"),
+  licenseDocumentUrl: text("license_document_url"),
+  nationalProviderId: text("national_provider_id"),
+
+  // Services & Age Groups
+  ageGroupsServed: text("age_groups_served").array(), // Children, Adults, Seniors
+  
+  // Availability & Scheduling
+  availableDays: text("available_days").array(),
+  workingHoursStart: text("working_hours_start").default("09:00"),
+  workingHoursEnd: text("working_hours_end").default("18:00"),
+  maxPatientsPerDay: integer("max_patients_per_day"),
+  timezone: text("timezone"),
+
+  // Service Area
+  primaryServiceLocation: text("primary_service_location"),
+  serviceRadiusKm: integer("service_radius_km"),
+  googleMapsLocation: text("google_maps_location"),
+
+  // Pricing & Payment
   consultationFee: decimal("consultation_fee", { precision: 10, scale: 2 }).notNull(),
   homeVisitFee: decimal("home_visit_fee", { precision: 10, scale: 2 }),
+  telemedicineFee: decimal("telemedicine_fee", { precision: 10, scale: 2 }),
+  insuranceAccepted: text("insurance_accepted").array(),
+  currency: text("currency").default("USD"),
+  paymentMethods: text("payment_methods").array(), // Cash, Card, Online
+
+  // Compliance & Verification
+  backgroundCheckStatus: text("background_check_status").default("pending"),
+  identityVerificationStatus: text("identity_verification_status").default("pending"),
+  malpracticeCoverage: text("malpractice_coverage"),
+  
+  // Legal Consents
+  providerAgreementAccepted: boolean("provider_agreement_accepted").default(false),
+  dataProcessingAgreementAccepted: boolean("data_processing_agreement_accepted").default(false),
+  telemedicineAgreementAccepted: boolean("telemedicine_agreement_accepted").default(false),
+  codeOfConductAccepted: boolean("code_of_conduct_accepted").default(false),
+
+  // Custom Fields
+  affiliatedHospital: text("affiliated_hospital"),
+  onCallAvailability: boolean("on_call_availability").default(false),
+  emergencyContact: text("emergency_contact"),
+  internalNotes: text("internal_notes"),
+
   isVerified: boolean("is_verified").default(false),
   isActive: boolean("is_active").default(true),
   status: text("status").notNull().default("pending"),
@@ -150,9 +198,6 @@ export const providers = pgTable("providers", {
   totalReviews: integer("total_reviews").default(0),
   latitude: decimal("latitude", { precision: 10, scale: 8 }),
   longitude: decimal("longitude", { precision: 11, scale: 8 }),
-  availableDays: text("available_days").array(),
-  workingHoursStart: text("working_hours_start").default("09:00"),
-  workingHoursEnd: text("working_hours_end").default("18:00"),
   gallery: text("gallery").array(),
   createdAt: timestamp("created_at").defaultNow(),
 });

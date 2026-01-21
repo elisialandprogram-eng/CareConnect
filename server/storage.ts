@@ -564,10 +564,21 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateProvider(id: string, data: Partial<InsertProvider>): Promise<Provider | undefined> {
-    const [provider] = await db.update(providers).set({
-      ...data,
-      gallery: data.gallery !== undefined ? data.gallery : undefined,
-    }).where(eq(providers.id, id)).returning();
+    const updateValues: any = { ...data };
+    
+    // Explicitly handle array fields to avoid issues with undefined
+    const arrayFields = [
+      'secondarySpecialties', 'certifications', 'languages', 'ageGroupsServed',
+      'availableDays', 'insuranceAccepted', 'paymentMethods', 'gallery'
+    ];
+    
+    arrayFields.forEach(field => {
+      if (field in data) {
+        updateValues[field] = data[field as keyof typeof data];
+      }
+    });
+
+    const [provider] = await db.update(providers).set(updateValues).where(eq(providers.id, id)).returning();
     return provider || undefined;
   }
 
