@@ -271,11 +271,6 @@ export default function Booking() {
     );
   }
 
-  const baseFee = visitType === "home" && provider.homeVisitFee
-    ? Number(provider.homeVisitFee)
-    : Number(provider.consultationFee);
-  
-  const feeWithPlatform = baseFee + platformFee;
   const totalBaseAmount = feeWithPlatform * finalSessions.length;
   const taxAmount = paymentMethod !== "cash" ? totalBaseAmount * (taxPercentage / 100) : 0;
   const totalAmount = totalBaseAmount + taxAmount;
