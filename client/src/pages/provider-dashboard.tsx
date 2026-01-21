@@ -77,8 +77,19 @@ export default function ProviderDashboard() {
   const [, setLocation] = useLocation();
 
   if (!isLoadingProvider && !providerData) {
-    setLocation("/provider/setup");
-    return null;
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Header />
+        <main className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <h1 className="text-2xl font-semibold mb-2">{t("profile.not_found")}</h1>
+            <p className="text-muted-foreground mb-4">{t("profile.not_found_desc")}</p>
+            <Button onClick={() => setLocation("/provider/setup")}>{t("profile.setup_profile")}</Button>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
   }
 
   const { data: appointments, isLoading } = useQuery<AppointmentWithDetails[]>({
@@ -167,8 +178,8 @@ export default function ProviderDashboard() {
   };
 
   const { data: subServices } = useQuery<any[]>({
-    queryKey: ["/api/sub-services", providerData?.type],
-    enabled: !!providerData?.type,
+    queryKey: ["/api/sub-services", providerData?.providerType],
+    enabled: !!providerData?.providerType,
   });
 
   const addServiceMutation = useMutation({
