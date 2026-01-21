@@ -317,6 +317,10 @@ export interface IStorage {
   getMedicalHistoryByPatient(patientId: string): Promise<MedicalHistory[]>;
   createMedicalHistory(data: InsertMedicalHistory): Promise<MedicalHistory>;
 
+  // Medical Practitioners
+  createMedicalPractitioner(practitioner: InsertMedicalPractitioner): Promise<MedicalPractitioner>;
+  getMedicalPractitionersByProvider(providerId: string): Promise<MedicalPractitioner[]>;
+
   // Tax Settings
   getAllTaxSettings(): Promise<TaxSetting[]>;
   getTaxSettingByCountry(country: string): Promise<TaxSetting | undefined>;
@@ -584,6 +588,15 @@ export class DatabaseStorage implements IStorage {
 
   async deleteProvider(id: string): Promise<void> {
     await db.delete(providers).where(eq(providers.id, id));
+  }
+
+  async createMedicalPractitioner(practitioner: InsertMedicalPractitioner): Promise<MedicalPractitioner> {
+    const [newPractitioner] = await db.insert(medicalPractitioners).values(practitioner).returning();
+    return newPractitioner;
+  }
+
+  async getMedicalPractitionersByProvider(providerId: string): Promise<MedicalPractitioner[]> {
+    return await db.select().from(medicalPractitioners).where(eq(medicalPractitioners.providerId, providerId));
   }
 
   // Services

@@ -931,47 +931,45 @@ export async function registerRoutes(
   // Setup provider profile
   app.post("/api/provider/setup", authenticateToken, async (req: AuthRequest, res: Response) => {
     try {
-      const { 
-        type, 
-        specialization, 
-        bio, 
-        yearsExperience, 
-        education, 
-        consultationFee, 
-        homeVisitFee, 
-        city, 
-        languages, 
-        availableDays,
-        practitioners 
-      } = req.body;
+      const { practitioners, ...providerData } = req.body;
+      const userId = req.user!.id;
 
-      // Update user city
-      await storage.updateUser(req.user!.id, { city });
+      const existingProvider = await storage.getProviderByUserId(userId);
+      if (existingProvider) {
+        return res.status(400).json({ message: "Provider profile already exists" });
+      }
+
+      // Explicitly format date for database
+      if (providerData.licenseExpiryDate) {
+        providerData.licenseExpiryDate = new Date(providerData.licenseExpiryDate).toISOString();
+      }
 
       // Create provider profile
       const provider = await storage.createProvider({
-        userId: req.user!.id,
-        type,
-        specialization,
-        bio,
-        yearsExperience,
-        education,
-        consultationFee: consultationFee.toString(),
-        homeVisitFee: homeVisitFee ? homeVisitFee.toString() : null,
-        languages,
-        availableDays,
+        ...providerData,
+        userId,
+        status: "pending",
         isVerified: false,
         isActive: true,
-        status: "pending",
-      } as any);
+      });
 
-      // Update user role to provider if not already
-      await storage.updateUser(req.user!.id, { role: "provider" });
+      // Update user role to provider
+      await storage.updateUser(userId, { role: "provider" });
+
+      // Create practitioners if provided
+      if (practitioners && Array.isArray(practitioners)) {
+        for (const p of practitioners) {
+          await storage.createMedicalPractitioner({
+            ...p,
+            providerId: provider.id,
+          });
+        }
+      }
 
       res.status(201).json(provider);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Provider setup error:", error);
-      res.status(500).json({ message: "Failed to setup provider profile" });
+      res.status(500).json({ message: error.message || "Failed to setup provider profile" });
     }
   });
 
