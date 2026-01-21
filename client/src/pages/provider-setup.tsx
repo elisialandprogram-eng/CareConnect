@@ -79,6 +79,7 @@ export default function ProviderSetup() {
 
     // Service Area
     primaryServiceLocation: z.string().min(2, t("validation.field_required")),
+    city: z.string().min(2, t("validation.field_required")),
     serviceRadiusKm: z.coerce.number().min(1).optional(),
 
     // Pricing
@@ -150,6 +151,7 @@ export default function ProviderSetup() {
       maxPatientsPerDay: 10,
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
       primaryServiceLocation: "",
+      city: "",
       serviceRadiusKm: 20,
       consultationFee: 50,
       homeVisitFee: undefined,
@@ -733,6 +735,7 @@ export default function ProviderSetup() {
                             <Input
                               placeholder={t("setup.city_placeholder")}
                               {...field}
+                              value={typeof field.value === 'string' ? field.value : ""}
                               data-testid="input-city"
                             />
                           </FormControl>
