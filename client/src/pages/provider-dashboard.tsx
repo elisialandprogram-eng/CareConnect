@@ -69,9 +69,16 @@ export default function ProviderDashboard() {
     },
   });
 
-  const { data: providerData } = useQuery<Provider>({
+  const { data: providerData, isLoading: isLoadingProvider } = useQuery<Provider>({
     queryKey: ["/api/provider/me"],
   });
+
+  const [, setLocation] = useLocation();
+
+  if (!isLoadingProvider && !providerData) {
+    setLocation("/provider/setup");
+    return null;
+  }
 
   const { data: appointments, isLoading } = useQuery<AppointmentWithDetails[]>({
     queryKey: ["/api/appointments/provider"],
