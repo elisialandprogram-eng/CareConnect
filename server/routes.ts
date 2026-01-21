@@ -734,15 +734,28 @@ export async function registerRoutes(
 
   app.patch("/api/auth/profile", authenticateToken, async (req: AuthRequest, res: Response) => {
     try {
-      const { firstName, lastName, phone, address, avatarUrl } = req.body;
+      const { firstName, lastName, phone, address, avatarUrl, bloodGroup, knownAllergies, medicalConditions, currentMedications, pastSurgeries } = req.body;
       
-      const user = await storage.updateUser(req.user!.id, {
-        firstName,
-        lastName,
-        phone,
-        address,
-        avatarUrl,
-      });
+      const updateData: any = {};
+      if (firstName !== undefined) updateData.firstName = firstName;
+      if (lastName !== undefined) updateData.lastName = lastName;
+      if (phone !== undefined) updateData.phone = phone;
+      if (address !== undefined) updateData.address = address;
+      if (avatarUrl !== undefined) updateData.avatarUrl = avatarUrl;
+      if (bloodGroup !== undefined) updateData.bloodGroup = bloodGroup;
+      if (knownAllergies !== undefined) updateData.knownAllergies = knownAllergies;
+      if (medicalConditions !== undefined) updateData.medicalConditions = medicalConditions;
+      if (currentMedications !== undefined) updateData.currentMedications = currentMedications;
+      if (pastSurgeries !== undefined) updateData.pastSurgeries = pastSurgeries;
+
+      if (Object.keys(updateData).length === 0) {
+        const user = await storage.getUser(req.user!.id);
+        if (!user) return res.status(404).json({ message: "User not found" });
+        const { password: _, ...userWithoutPassword } = user;
+        return res.json({ user: userWithoutPassword });
+      }
+
+      const user = await storage.updateUser(req.user!.id, updateData);
 
       if (!user) {
         return res.status(404).json({ message: "User not found" });

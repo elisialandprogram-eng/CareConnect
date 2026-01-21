@@ -362,16 +362,27 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateUser(id: string, data: Partial<User>): Promise<User | undefined> {
-    const [user] = await db.update(users).set({
-      ...data,
-      isSuspended: data.isSuspended !== undefined ? data.isSuspended : undefined,
-      suspensionReason: data.suspensionReason !== undefined ? data.suspensionReason : undefined,
-      bloodGroup: data.bloodGroup !== undefined ? data.bloodGroup : undefined,
-      knownAllergies: data.knownAllergies !== undefined ? data.knownAllergies : undefined,
-      medicalConditions: data.medicalConditions !== undefined ? data.medicalConditions : undefined,
-      currentMedications: data.currentMedications !== undefined ? data.currentMedications : undefined,
-      pastSurgeries: data.pastSurgeries !== undefined ? data.pastSurgeries : undefined,
-    }).where(eq(users.id, id)).returning();
+    const updateValues: any = { ...data };
+    
+    // Explicitly handle fields that might be passed as undefined or null
+    const fields = [
+      'isSuspended', 'suspensionReason', 'bloodGroup', 'knownAllergies',
+      'medicalConditions', 'currentMedications', 'pastSurgeries'
+    ];
+    
+    fields.forEach(field => {
+      if (field in data) {
+        updateValues[field] = data[field as keyof typeof data];
+      } else {
+        delete updateValues[field];
+      }
+    });
+
+    if (Object.keys(updateValues).length === 0) {
+      return this.getUser(id);
+    }
+
+    const [user] = await db.update(users).set(updateValues).where(eq(users.id, id)).returning();
     return user || undefined;
   }
 
