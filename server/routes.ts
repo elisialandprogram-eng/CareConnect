@@ -978,6 +978,69 @@ export async function registerRoutes(
     }
   });
 
+  app.patch("/api/services/:id", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const service = await storage.updateService(req.params.id, req.body);
+      res.json(service);
+    } catch (error) {
+      res.status(400).json({ message: "Failed to update service" });
+    }
+  });
+
+  app.delete("/api/services/:id", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      await storage.deleteService(req.params.id);
+      res.status(204).end();
+    } catch (error) {
+      res.status(400).json({ message: "Failed to delete service" });
+    }
+  });
+
+  app.patch("/api/practitioners/:id", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const practitioner = await storage.updatePractitioner(req.params.id, req.body);
+      res.json(practitioner);
+    } catch (error) {
+      res.status(400).json({ message: "Failed to update practitioner" });
+    }
+  });
+
+  app.delete("/api/practitioners/:id", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      await storage.deletePractitioner(req.params.id);
+      res.status(204).end();
+    } catch (error) {
+      res.status(400).json({ message: "Failed to delete practitioner" });
+    }
+  });
+
+  app.patch("/api/service-practitioners/:id", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const updates: any = {};
+      if (req.body.fee !== undefined) updates.fee = req.body.fee;
+      if (req.body.isActive !== undefined) updates.isActive = req.body.isActive;
+      
+      const sp = await storage.updateServicePractitionerFee(req.params.id, updates.fee);
+      
+      if (updates.isActive !== undefined) {
+        await db.update(servicePractitioners).set({ isActive: updates.isActive }).where(eq(servicePractitioners.id, req.params.id));
+      }
+      
+      res.json(sp);
+    } catch (error) {
+      res.status(400).json({ message: "Failed to update assignment" });
+    }
+  });
+
+  app.delete("/api/service-practitioners/:id", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      await storage.removePractitionerFromService(req.params.id);
+      res.status(204).end();
+    } catch (error) {
+      res.status(400).json({ message: "Failed to remove assignment" });
+    }
+  });
+
   // Notifications
   app.get("/api/notifications", authenticateToken, async (req: AuthRequest, res: Response) => {
     try {

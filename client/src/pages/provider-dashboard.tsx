@@ -51,6 +51,35 @@ import {
 } from "lucide-react";
 import type { AppointmentWithDetails, Provider } from "@shared/schema";
 
+function ServiceStaffList({ serviceId, onDelete, onToggle }: { serviceId: string; onDelete: (id: string) => void; onToggle: (args: {id: string, isActive: boolean}) => void }) {
+  const { data: practitioners } = useQuery<any[]>({
+    queryKey: [`/api/services/${serviceId}/practitioners`],
+  });
+
+  return (
+    <div className="space-y-2">
+      {practitioners?.map((sp) => (
+        <div key={sp.id} className="flex items-center justify-between p-2 bg-muted/50 rounded border text-sm">
+          <span>{sp.practitioner.name} (${Number(sp.fee).toFixed(0)})</span>
+          <div className="flex items-center gap-1">
+            <Button 
+              size="sm" 
+              variant="ghost" 
+              className={sp.isActive ? "text-primary" : "text-muted-foreground"}
+              onClick={() => onToggle({ id: sp.id, isActive: !sp.isActive })}
+            >
+              {sp.isActive ? "Bookable" : "Paused"}
+            </Button>
+            <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => onDelete(sp.id)}>
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function ProviderDashboard() {
   const { t } = useTranslation();
   const { user } = useAuth();
@@ -369,6 +398,105 @@ export default function ProviderDashboard() {
     </div>
   );
 
+  const { data: providerWithServices, isLoading: isLoadingServices } = useQuery<ProviderWithServices & { services: (Service & { subService?: any })[] }>({
+    queryKey: ["/api/providers", providerData?.id],
+    enabled: !!providerData?.id,
+  });
+
+  const deleteServiceMutation = useMutation({
+    mutationFn: async (id: string) => {
+      await apiRequest("DELETE", `/api/services/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/providers", providerData?.id] });
+      toast({ title: "Service deleted" });
+    },
+  });
+
+  const toggleServiceMutation = useMutation({
+    mutationFn: async ({ id, isActive }: { id: string; isActive: boolean }) => {
+      await apiRequest("PATCH", `/api/services/${id}`, { isActive });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/providers", providerData?.id] });
+    },
+  });
+
+  const deletePractitionerMutation = useMutation({
+    mutationFn: async (id: string) => {
+      await apiRequest("DELETE", `/api/practitioners/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/providers/${providerData?.id}/practitioners`] });
+      toast({ title: "Practitioner deleted" });
+    },
+  });
+
+  const togglePractitionerMutation = useMutation({
+    mutationFn: async ({ id, isActive }: { id: string; isActive: boolean }) => {
+      await apiRequest("PATCH", `/api/practitioners/${id}`, { isActive });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/providers/${providerData?.id}/practitioners`] });
+    },
+  });
+
+  const deleteAssignmentMutation = useMutation({
+    mutationFn: async (id: string) => {
+      await apiRequest("DELETE", `/api/service-practitioners/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [/api\/services\/.*\/practitioners/] });
+      toast({ title: "Assignment removed" });
+    },
+  });
+
+  const toggleAssignmentMutation = useMutation({
+    mutationFn: async ({ id, isActive }: { id: string; isActive: boolean }) => {
+      await apiRequest("PATCH", `/api/service-practitioners/${id}`, { isActive });
+    },
+    onSuccess: () => {
+       queryClient.invalidateQueries({ queryKey: [/api\/services\/.*\/practitioners/] });
+    },
+  });
+
+  const Briefcase = ({ className }: { className?: string }) => (
+    <svg 
+      xmlns="http://www.w3.org/2000/svg" 
+      width="24" 
+      height="24" 
+      viewBox="0 0 24 24" 
+      fill="none" 
+      stroke="currentColor" 
+      strokeWidth="2" 
+      strokeLinecap="round" 
+      strokeLinejoin="round" 
+      className={className}
+    >
+      <rect width="20" height="14" x="2" y="7" rx="2" ry="2"/>
+      <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+    </svg>
+  );
+
+  const Banknote = ({ className }: { className?: string }) => (
+    <svg 
+      xmlns="http://www.w3.org/2000/svg" 
+      width="24" 
+      height="24" 
+      viewBox="0 0 24 24" 
+      fill="none" 
+      stroke="currentColor" 
+      strokeWidth="2" 
+      strokeLinecap="round" 
+      strokeLinejoin="round" 
+      className={className}
+    >
+      <rect width="20" height="12" x="2" y="6" rx="2"/>
+      <circle cx="12" cy="12" r="2"/>
+      <path d="M6 12h.01M18 12h.01"/>
+    </svg>
+  );
+
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
@@ -474,29 +602,7 @@ export default function ProviderDashboard() {
                   <TabsTrigger value="completed" data-testid="tab-completed">
                     {t("dashboard.completed")}
                   </TabsTrigger>
-                  <TabsTrigger value="cancelled" data-testid="tab-cancelled">
-                    {t("dashboard.cancelled")} ({cancelledAppointments.length})
-                  </TabsTrigger>
                 </TabsList>
-
-                <TabsContent value="today" className="mt-6 space-y-3">
-                  {isLoading ? (
-                    Array.from({ length: 3 }).map((_, i) => (
-                      <Skeleton key={i} className="h-20 w-full rounded-lg" />
-                    ))
-                  ) : todayAppointments.length > 0 ? (
-                    todayAppointments.map((appointment) => (
-                      <AppointmentRow key={appointment.id} appointment={appointment} />
-                    ))
-                  ) : (
-                    <Card>
-                      <CardContent className="p-12 text-center">
-                        <CalendarIcon className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                        <p className="text-muted-foreground">{t("dashboard.no_appointments_today")}</p>
-                      </CardContent>
-                    </Card>
-                  )}
-                </TabsContent>
 
                 <TabsContent value="upcoming" className="mt-6 space-y-3">
                   {upcomingAppointments.length > 0 ? (
@@ -514,53 +620,129 @@ export default function ProviderDashboard() {
                 </TabsContent>
 
                 <TabsContent value="services" className="mt-6 space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 gap-6">
                     <Card>
-                      <CardHeader className="flex flex-row items-center justify-between gap-1 space-y-0 pb-2">
-                        <CardTitle className="text-lg">Add New Practitioner</CardTitle>
-                        <Users className="h-4 w-4 text-muted-foreground" />
+                      <CardHeader>
+                        <CardTitle>Manage Services</CardTitle>
                       </CardHeader>
-                      <CardContent>
-                        <form className="space-y-4" onSubmit={(e) => {
+                      <CardContent className="space-y-4">
+                        <div className="flex gap-4 items-end border-b pb-4 mb-4">
+                          <div className="flex-1 space-y-2">
+                            <Label>Quick Add Service</Label>
+                            <Select value={selectedSubServiceId} onValueChange={setSelectedSubServiceId}>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select a service type" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {subServices?.map((sub) => (
+                                  <SelectItem key={sub.id} value={sub.id}>{sub.name}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="w-32 space-y-2">
+                            <Label>Price ($)</Label>
+                            <Input 
+                              type="number" 
+                              value={servicePrice} 
+                              onChange={(e) => setServicePrice(e.target.value)} 
+                              placeholder="Fee"
+                            />
+                          </div>
+                          <Button onClick={handleAddService} disabled={!selectedSubServiceId || !servicePrice}>
+                            <Plus className="h-4 w-4 mr-2" /> Add
+                          </Button>
+                        </div>
+
+                        <div className="space-y-3">
+                          {providerWithServices?.services?.map((service) => (
+                            <div key={service.id} className="flex items-center justify-between p-3 border rounded-lg">
+                              <div>
+                                <p className="font-medium">{service.name}</p>
+                                <p className="text-sm text-muted-foreground">${Number(service.price).toFixed(0)} • {service.duration}m</p>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <Button 
+                                  size="sm" 
+                                  variant={service.isActive ? "default" : "secondary"}
+                                  onClick={() => toggleServiceMutation.mutate({ id: service.id, isActive: !service.isActive })}
+                                >
+                                  {service.isActive ? "Active" : "Inactive"}
+                                </Button>
+                                <Button 
+                                  size="icon" 
+                                  variant="ghost" 
+                                  className="text-destructive"
+                                  onClick={() => deleteServiceMutation.mutate(service.id)}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Manage Practitioners</CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <form className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end border-b pb-4" onSubmit={(e) => {
                           e.preventDefault();
                           const formData = new FormData(e.currentTarget);
                           addPractitionerMutation.mutate({
                             name: formData.get("name"),
                             title: formData.get("title"),
                             specialization: formData.get("specialization"),
-                            bio: formData.get("bio"),
                           });
                           e.currentTarget.reset();
                         }}>
+                          <div className="md:col-span-1 space-y-2">
+                            <Label>Name</Label>
+                            <Input name="name" required />
+                          </div>
                           <div className="space-y-2">
-                            <Label htmlFor="prac-name">Name</Label>
-                            <Input id="prac-name" name="name" required />
+                            <Label>Title</Label>
+                            <Input name="title" placeholder="Dr/PT" />
                           </div>
-                          <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                              <Label htmlFor="prac-title">Title</Label>
-                              <Input id="prac-title" name="title" placeholder="e.g. Dr., PT" />
-                            </div>
-                            <div className="space-y-2">
-                              <Label htmlFor="prac-spec">Specialization</Label>
-                              <Input id="prac-spec" name="specialization" />
-                            </div>
+                          <div className="space-y-2">
+                            <Label>Specialty</Label>
+                            <Input name="specialization" />
                           </div>
-                          <Button type="submit" className="w-full" disabled={addPractitionerMutation.isPending}>
-                            <Plus className="h-4 w-4 mr-2" />
-                            Add Practitioner
-                          </Button>
+                          <Button type="submit">Add Staff</Button>
                         </form>
+
+                        <div className="space-y-3">
+                          {practitioners?.map((prac) => (
+                            <div key={prac.id} className="flex items-center justify-between p-3 border rounded-lg">
+                              <div>
+                                <p className="font-medium">{prac.name}, {prac.title}</p>
+                                <p className="text-sm text-muted-foreground">{prac.specialization}</p>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <Button 
+                                  size="icon" 
+                                  variant="ghost" 
+                                  className="text-destructive"
+                                  onClick={() => deletePractitionerMutation.mutate(prac.id)}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
                       </CardContent>
                     </Card>
 
                     <Card>
-                      <CardHeader className="flex flex-row items-center justify-between gap-1 space-y-0 pb-2">
-                        <CardTitle className="text-lg">Assign to Service</CardTitle>
-                        <Briefcase className="h-4 w-4 text-muted-foreground" />
+                      <CardHeader>
+                        <CardTitle>Service-Practitioner Assignments</CardTitle>
                       </CardHeader>
                       <CardContent>
-                        <form className="space-y-4" onSubmit={(e) => {
+                         <form className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end border-b pb-4 mb-4" onSubmit={(e) => {
                           e.preventDefault();
                           const formData = new FormData(e.currentTarget);
                           assignMutation.mutate({
@@ -570,8 +752,40 @@ export default function ProviderDashboard() {
                           });
                         }}>
                           <div className="space-y-2">
-                            <Label>Select Service</Label>
+                            <Label>Service</Label>
                             <Select name="serviceId" required>
+                              <SelectTrigger><SelectValue placeholder="Pick service" /></SelectTrigger>
+                              <SelectContent>
+                                {providerWithServices?.services?.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Practitioner</Label>
+                            <Select name="practitionerId" required>
+                              <SelectTrigger><SelectValue placeholder="Pick staff" /></SelectTrigger>
+                              <SelectContent>
+                                {practitioners?.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Specific Fee</Label>
+                            <Input name="fee" type="number" placeholder="Fee" required />
+                          </div>
+                          <Button type="submit">Assign</Button>
+                        </form>
+
+                        {providerWithServices?.services?.map(service => (
+                          <div key={service.id} className="mt-4 first:mt-0">
+                            <h4 className="font-semibold mb-2">{service.name} Staff</h4>
+                            <ServiceStaffList serviceId={service.id} onDelete={deleteAssignmentMutation.mutate} onToggle={toggleAssignmentMutation.mutate} />
+                          </div>
+                        ))}
+                      </CardContent>
+                    </Card>
+                  </div>
+                </TabsContent>
                               <SelectTrigger><SelectValue placeholder="Select Service" /></SelectTrigger>
                               <SelectContent>
                                 {(providerData as any)?.services?.map((s: any) => (
