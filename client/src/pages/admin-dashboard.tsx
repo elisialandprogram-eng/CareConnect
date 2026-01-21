@@ -416,12 +416,12 @@ function ProviderDetailsDialog({ provider }: { provider: any }) {
           <Eye className="h-4 w-4" />
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-2xl">
-        <DialogHeader>
+      <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col p-0">
+        <DialogHeader className="p-6 pb-2">
           <DialogTitle>Provider Details</DialogTitle>
           <DialogDescription>Full profile information for {provider.user?.firstName} {provider.user?.lastName}</DialogDescription>
         </DialogHeader>
-        <ScrollArea className="max-h-[80vh] pr-4">
+        <ScrollArea className="flex-1 px-6 pb-6">
           <div className="space-y-6 py-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
@@ -3229,7 +3229,7 @@ function SubServicesManagement() {
                   </div>
                   <div className="flex items-center gap-2">
                     <Checkbox 
-                      checked={setting.isActive} 
+                      checked={!!setting.isActive} 
                       onCheckedChange={(checked) => updateTaxMutation.mutate({ id: setting.id, isActive: !!checked })}
                     />
                     <Label>{t("admin.active")}</Label>
