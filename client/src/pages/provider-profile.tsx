@@ -160,7 +160,7 @@ export default function ProviderProfile() {
                           <p className="text-muted-foreground">{provider.specialization}</p>
                         </div>
                         <Badge variant="secondary" className="text-sm">
-                          {getTypeLabel(provider.type)}
+                          {getTypeLabel(provider.providerType)}
                         </Badge>
                       </div>
 
@@ -191,7 +191,7 @@ export default function ProviderProfile() {
                         <div className="flex items-center gap-1">
                           <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
                           <span className="font-medium">{Number(provider.rating).toFixed(1)}</span>
-                          <span className="text-muted-foreground">{t("profile.reviews_count", { count: provider.totalReviews })}</span>
+                          <span className="text-muted-foreground">{t("profile.reviews_count", { count: provider.totalReviews || 0 })}</span>
                         </div>
                         {provider.user.city && (
                           <div className="flex items-center gap-1 text-muted-foreground">
@@ -199,7 +199,7 @@ export default function ProviderProfile() {
                             <span>{provider.user.city}</span>
                           </div>
                         )}
-                        {provider.yearsExperience && (
+                        {provider.yearsExperience !== null && (
                           <div className="flex items-center gap-1 text-muted-foreground">
                             <Clock className="h-4 w-4" />
                             <span>{t("profile.years_experience", { count: provider.yearsExperience })}</span>
@@ -401,21 +401,6 @@ export default function ProviderProfile() {
                       </Card>
                     )}
 
-                    {provider.ageGroupsServed && provider.ageGroupsServed.length > 0 && (
-                      <Card>
-                        <CardContent className="p-4">
-                          <div className="flex items-start gap-3">
-                            <Users className="h-5 w-5 text-primary mt-0.5" />
-                            <div>
-                              <h4 className="font-medium mb-1">Patient Groups</h4>
-                              <p className="text-sm text-muted-foreground">
-                                {provider.ageGroupsServed.join(", ")}
-                              </p>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    )}
                   </div>
                 </TabsContent>
 
