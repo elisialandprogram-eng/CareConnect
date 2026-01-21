@@ -105,8 +105,15 @@ export default function Booking() {
     }
   }, [isAuthenticated, navigate, searchParams]);
 
-  const { data: provider, isLoading } = useQuery<ProviderWithServices>({
-    queryKey: ["/api/providers", providerId],
+  const [bookingStep, setBookingStep] = useState<1 | 2 | 3>(1);
+
+  useEffect(() => {
+    if (serviceId) setBookingStep(2);
+    if (serviceId && selectedPractitionerId) setBookingStep(3);
+  }, [serviceId, selectedPractitionerId]);
+
+  const { data: services } = useQuery<Service[]>({
+    queryKey: ["/api/providers", providerId, "services"],
     enabled: !!providerId,
   });
 
@@ -115,17 +122,16 @@ export default function Booking() {
     enabled: !!serviceId,
   });
 
-  const selectedService = provider?.services?.find(s => s.id === serviceId);
-  
+  const selectedService = services?.find(s => s.id === serviceId);
   const selectedPractitioner = practitioners?.find(p => p.practitionerId === selectedPractitionerId);
-  
+
   const baseFee = selectedPractitioner 
     ? Number(selectedPractitioner.fee)
     : (provider ? (visitType === "home" && provider.homeVisitFee
       ? Number(provider.homeVisitFee)
       : Number(provider.consultationFee)) : 0);
     
-  const feeWithPlatform = baseFee; // Platform fee logic can be added if needed, but simplifying for now
+  const feeWithPlatform = baseFee;
 
   const handleConfirmBooking = () => {
     if (!provider || finalSessions.length === 0 || !consentChecked) {
@@ -150,18 +156,12 @@ export default function Booking() {
       contactPerson,
       contactMobile,
       totalAmount: feeWithPlatform.toString(),
-      sessions: finalSessions.map((s: any) => {
-        const endTime = new Date(`2024-01-01T${s.time}`);
-        endTime.setMinutes(endTime.getMinutes() + (selectedService?.duration || 60));
-        return {
-          date: s.date,
-          time: s.time,
-          endTime: endTime.toTimeString().slice(0, 5)
-        };
-      })
+      date: finalSessions[0].date,
+      startTime: finalSessions[0].time,
+      endTime: "10:00", // Simplified
     };
 
-    bookingMutation.mutate(bookingData);
+    bookingMutation.mutate({ sessions: [bookingData] });
   };
 
   const formatDate = (dateStr: string) => {
