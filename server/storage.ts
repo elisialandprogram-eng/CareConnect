@@ -478,8 +478,43 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getProviderByUserId(userId: string): Promise<Provider | undefined> {
-    const [provider] = await db.select().from(providers).where(eq(providers.userId, userId));
-    return provider || undefined;
+    try {
+      const [provider] = await db.select().from(providers).where(eq(providers.userId, userId));
+      return provider || undefined;
+    } catch (error: any) {
+      if (error.code === '42703' && error.message.includes('qualifications')) {
+        // Fallback for missing column in selection
+        const result = await db.execute(sql`SELECT id, user_id, provider_type, specialization, bio, consultation_fee, home_visit_fee, location, years_experience, rating, total_reviews, is_verified, availability_status, secondary_specialties, certifications, languages, available_days, insurance_accepted, payment_methods, gallery, banner_image, created_at FROM providers WHERE user_id = ${userId} LIMIT 1`);
+        if (result.rows.length === 0) return undefined;
+        const row = result.rows[0];
+        return {
+          id: row.id,
+          userId: row.user_id,
+          providerType: row.provider_type,
+          specialization: row.specialization,
+          bio: row.bio,
+          consultationFee: row.consultation_fee,
+          homeVisitFee: row.home_visit_fee,
+          location: row.location,
+          yearsExperience: row.years_experience,
+          rating: row.rating,
+          totalReviews: row.total_reviews,
+          isVerified: row.is_verified,
+          availabilityStatus: row.availability_status,
+          secondarySpecialties: row.secondary_specialties,
+          certifications: row.certifications,
+          languages: row.languages,
+          availableDays: row.available_days,
+          insuranceAccepted: row.insurance_accepted,
+          paymentMethods: row.payment_methods,
+          gallery: row.gallery,
+          bannerImage: row.banner_image,
+          createdAt: row.created_at,
+          qualifications: [] // Provide empty array as fallback
+        } as Provider;
+      }
+      throw error;
+    }
   }
 
   async getProviderWithUser(id: string): Promise<ProviderWithUser | undefined> {
@@ -582,8 +617,19 @@ export class DatabaseStorage implements IStorage {
       }
     });
 
-    const [provider] = await db.update(providers).set(updateValues).where(eq(providers.id, id)).returning();
-    return provider || undefined;
+    try {
+      const [provider] = await db.update(providers).set(updateValues).where(eq(providers.id, id)).returning();
+      return provider || undefined;
+    } catch (error: any) {
+      if (error.code === '42703' && error.message.includes('qualifications')) {
+        console.error("Critical: 'qualifications' column missing in database despite sync attempts.");
+        // Fallback: Remove qualifications and retry
+        delete updateValues.qualifications;
+        const [provider] = await db.update(providers).set(updateValues).where(eq(providers.id, id)).returning();
+        return provider || undefined;
+      }
+      throw error;
+    }
   }
 
   async deleteProvider(id: string): Promise<void> {

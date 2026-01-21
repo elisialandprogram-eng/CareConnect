@@ -90,8 +90,6 @@ export const medicalPractitioners = pgTable("medical_practitioners", {
 export const insertMedicalPractitionerSchema = createInsertSchema(medicalPractitioners).omit({ id: true, createdAt: true });
 export type MedicalPractitioner = typeof medicalPractitioners.$inferSelect;
 export type InsertMedicalPractitioner = z.infer<typeof insertMedicalPractitionerSchema>;
-
-// Medical History
 export const medicalHistory = pgTable("medical_history", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   patientId: varchar("patient_id").notNull().references(() => users.id),
