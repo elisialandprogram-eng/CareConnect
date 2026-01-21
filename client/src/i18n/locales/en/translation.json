@@ -17,7 +17,8 @@
     "my_appointments": "My Appointments",
     "messages": "Messages",
     "notifications": "Notifications",
-    "profile": "Profile",
+    "settings": "Settings",
+    "profile_label": "Profile",
     "profile": {
       "not_found": "Provider Not Found",
       "not_found_desc": "The provider you're looking for doesn't exist or is no longer available.",

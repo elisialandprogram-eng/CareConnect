@@ -17,7 +17,8 @@
     "my_appointments": "نوبت‌های من",
     "messages": "پیام‌ها",
     "notifications": "اعلان‌ها",
-    "profile": "پروفایل",
+    "settings": "تنظیمات",
+    "profile_label": "پروفایل",
     "profile": {
       "not_found": "ارائه دهنده یافت نشد",
       "not_found_desc": "ارائه دهنده‌ای که به دنبال آن هستید وجود ندارد یا دیگر در دسترس نیست.",

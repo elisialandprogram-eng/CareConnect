@@ -17,7 +17,8 @@
     "my_appointments": "Időpontjaim",
     "messages": "Üzenetek",
     "notifications": "Értesítések",
-    "profile": "Profil",
+    "settings": "Beállítások",
+    "profile_label": "Profil",
     "profile": {
       "not_found": "Szolgáltató nem található",
       "not_found_desc": "A keresett szolgáltató nem létezik vagy már nem érhető el.",
