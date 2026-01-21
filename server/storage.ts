@@ -512,10 +512,10 @@ export class DatabaseStorage implements IStorage {
       console.warn("Medical practitioners table might be missing, skipping...");
     }
 
-    let practitionerData = '[]';
+    let practitionerData = providerWithUser.practitionerData || '[]';
     if (practitioners.length > 0) {
       practitionerData = JSON.stringify(practitioners);
-    } else {
+    } else if (!practitionerData || practitionerData === '[]') {
       practitionerData = JSON.stringify([{
         name: "Dummy Practitioner",
         specialization: providerWithUser.specialization || "General",
@@ -544,10 +544,10 @@ export class DatabaseStorage implements IStorage {
         practitioners = await db.select().from(medicalPractitioners).where(eq(medicalPractitioners.providerId, r.providers.id));
       } catch (e) {}
       
-      let practitionerData = '[]';
+      let practitionerData = r.providers.practitionerData || '[]';
       if (practitioners.length > 0) {
         practitionerData = JSON.stringify(practitioners);
-      } else {
+      } else if (!practitionerData || practitionerData === '[]') {
         practitionerData = JSON.stringify([{
           name: "Dummy Practitioner",
           specialization: r.providers.specialization || "General",

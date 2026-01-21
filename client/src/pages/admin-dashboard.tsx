@@ -121,6 +121,13 @@ function ProviderEditDialog({ provider }: { provider: any }) {
       serviceRadiusKm: provider.serviceRadiusKm || "",
       primaryServiceLocation: provider.primaryServiceLocation || "",
       status: provider.status || "pending",
+      languages: provider.languages || [],
+      availableDays: provider.availableDays || [],
+      insuranceAccepted: provider.insuranceAccepted || [],
+      paymentMethods: provider.paymentMethods || [],
+      affiliatedHospital: provider.affiliatedHospital || "",
+      onCallAvailability: provider.onCallAvailability || false,
+      emergencyContact: provider.emergencyContact || "",
     },
   });
 
@@ -293,6 +300,48 @@ function ProviderEditDialog({ provider }: { provider: any }) {
                   />
                 </div>
 
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="affiliatedHospital"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Affiliated Hospital</FormLabel>
+                        <FormControl><Input {...field} /></FormControl>
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="emergencyContact"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Emergency Contact</FormLabel>
+                        <FormControl><Input {...field} /></FormControl>
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <FormField
+                  control={form.control}
+                  name="onCallAvailability"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                      <FormControl>
+                        <Checkbox 
+                          checked={!!field.value} 
+                          onCheckedChange={field.onChange} 
+                        />
+                      </FormControl>
+                      <div className="space-y-1 leading-none">
+                        <FormLabel>On-Call Availability</FormLabel>
+                        <FormDescription>Available for emergency calls</FormDescription>
+                      </div>
+                    </FormItem>
+                  )}
+                />
+
                 <FormField
                   control={form.control}
                   name="bio"
@@ -420,6 +469,39 @@ function ProviderDetailsDialog({ provider }: { provider: any }) {
                 {provider.languages?.map((lang: string) => (
                   <Badge key={lang} variant="secondary" className="capitalize">{lang}</Badge>
                 ))}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label className="text-muted-foreground">Affiliated Hospital</Label>
+                <p className="font-medium">{provider.affiliatedHospital || 'N/A'}</p>
+              </div>
+              <div>
+                <Label className="text-muted-foreground">On-Call</Label>
+                <p className="font-medium">{provider.onCallAvailability ? 'Yes' : 'No'}</p>
+              </div>
+              <div>
+                <Label className="text-muted-foreground">Emergency Contact</Label>
+                <p className="font-medium">{provider.emergencyContact || 'N/A'}</p>
+              </div>
+            </div>
+
+            <div>
+              <Label className="text-muted-foreground">Insurance Accepted</Label>
+              <div className="flex flex-wrap gap-2 mt-1">
+                {provider.insuranceAccepted?.length > 0 ? provider.insuranceAccepted.map((ins: string) => (
+                  <Badge key={ins} variant="outline" className="capitalize">{ins}</Badge>
+                )) : <p className="text-sm font-medium">None listed</p>}
+              </div>
+            </div>
+
+            <div>
+              <Label className="text-muted-foreground">Payment Methods</Label>
+              <div className="flex flex-wrap gap-2 mt-1">
+                {provider.paymentMethods?.length > 0 ? provider.paymentMethods.map((pm: string) => (
+                  <Badge key={pm} variant="outline" className="capitalize">{pm}</Badge>
+                )) : <p className="text-sm font-medium">None listed</p>}
               </div>
             </div>
 

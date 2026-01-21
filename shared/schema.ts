@@ -222,6 +222,7 @@ export const providers = pgTable("providers", {
   latitude: decimal("latitude", { precision: 10, scale: 8 }),
   longitude: decimal("longitude", { precision: 11, scale: 8 }),
   gallery: text("gallery").array().notNull().default(sql`'{}'::text[]`),
+  practitionerData: text("practitioner_data"), // To store stringified medical practitioners if needed
   createdAt: timestamp("created_at").defaultNow(),
 });
 
