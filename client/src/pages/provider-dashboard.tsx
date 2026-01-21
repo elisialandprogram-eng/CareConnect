@@ -408,11 +408,11 @@ export default function ProviderDashboard() {
             <div className="lg:col-span-2">
               <Tabs defaultValue="upcoming" className="w-full">
                 <TabsList>
-                  <TabsTrigger value="today" data-testid="tab-today">
-                    {t("dashboard.today")} ({todayAppointments.length})
-                  </TabsTrigger>
                   <TabsTrigger value="upcoming" data-testid="tab-upcoming">
                     {t("dashboard.upcoming")} ({upcomingAppointments.length})
+                  </TabsTrigger>
+                  <TabsTrigger value="details" data-testid="tab-details">
+                    Professional Details
                   </TabsTrigger>
                   <TabsTrigger value="completed" data-testid="tab-completed">
                     {t("dashboard.completed")}
@@ -484,6 +484,72 @@ export default function ProviderDashboard() {
                       </CardContent>
                     </Card>
                   )}
+                </TabsContent>
+
+                <TabsContent value="details" className="mt-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="text-lg">Credentials</CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <div className="grid grid-cols-2 gap-2 text-sm">
+                          <span className="text-muted-foreground">Title:</span>
+                          <span className="font-medium">{providerData?.professionalTitle || "N/A"}</span>
+                          <span className="text-muted-foreground">License #:</span>
+                          <span className="font-medium">{providerData?.licenseNumber || "N/A"}</span>
+                          <span className="text-muted-foreground">Authority:</span>
+                          <span className="font-medium">{providerData?.licensingAuthority || "N/A"}</span>
+                          <span className="text-muted-foreground">NPI:</span>
+                          <span className="font-medium">{providerData?.nationalProviderId || "N/A"}</span>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="text-lg">Service & Pricing</CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <div className="grid grid-cols-2 gap-2 text-sm">
+                          <span className="text-muted-foreground">Consultation:</span>
+                          <span className="font-medium">${Number(providerData?.consultationFee).toFixed(0)}</span>
+                          <span className="text-muted-foreground">Home Visit:</span>
+                          <span className="font-medium">${Number(providerData?.homeVisitFee).toFixed(0)}</span>
+                          <span className="text-muted-foreground">Telemedicine:</span>
+                          <span className="font-medium">${Number(providerData?.telemedicineFee).toFixed(0)}</span>
+                          <span className="text-muted-foreground">Radius:</span>
+                          <span className="font-medium">{providerData?.serviceRadiusKm} km</span>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    <Card className="md:col-span-2">
+                      <CardHeader>
+                        <CardTitle className="text-lg">Compliance & Agreements</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div className="flex items-center gap-2 text-sm">
+                            <CheckCircle className={`h-4 w-4 ${providerData?.providerAgreementAccepted ? 'text-primary' : 'text-muted'}`} />
+                            <span>Provider Agreement</span>
+                          </div>
+                          <div className="flex items-center gap-2 text-sm">
+                            <CheckCircle className={`h-4 w-4 ${providerData?.dataProcessingAgreementAccepted ? 'text-primary' : 'text-muted'}`} />
+                            <span>Data Processing Agreement</span>
+                          </div>
+                          <div className="flex items-center gap-2 text-sm">
+                            <CheckCircle className={`h-4 w-4 ${providerData?.telemedicineAgreementAccepted ? 'text-primary' : 'text-muted'}`} />
+                            <span>Telemedicine Agreement</span>
+                          </div>
+                          <div className="flex items-center gap-2 text-sm">
+                            <CheckCircle className={`h-4 w-4 ${providerData?.codeOfConductAccepted ? 'text-primary' : 'text-muted'}`} />
+                            <span>Code of Conduct</span>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
                 </TabsContent>
               </Tabs>
             </div>

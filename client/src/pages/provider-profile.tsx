@@ -308,6 +308,56 @@ export default function ProviderProfile() {
                         </CardContent>
                       </Card>
                     )}
+
+                    {provider.licenseNumber && (
+                      <Card>
+                        <CardContent className="p-4">
+                          <div className="flex items-start gap-3">
+                            <Award className="h-5 w-5 text-primary mt-0.5" />
+                            <div>
+                              <h4 className="font-medium mb-1">License & Credentials</h4>
+                              <p className="text-sm text-muted-foreground">
+                                License: {provider.licenseNumber}<br />
+                                Authority: {provider.licensingAuthority}
+                              </p>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
+
+                    {provider.primaryServiceLocation && (
+                      <Card>
+                        <CardContent className="p-4">
+                          <div className="flex items-start gap-3">
+                            <MapPin className="h-5 w-5 text-primary mt-0.5" />
+                            <div>
+                              <h4 className="font-medium mb-1">Service Area</h4>
+                              <p className="text-sm text-muted-foreground">
+                                {provider.primaryServiceLocation}<br />
+                                {provider.serviceRadiusKm && `Radius: ${provider.serviceRadiusKm} km`}
+                              </p>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
+
+                    {provider.ageGroupsServed && provider.ageGroupsServed.length > 0 && (
+                      <Card>
+                        <CardContent className="p-4">
+                          <div className="flex items-start gap-3">
+                            <Users className="h-5 w-5 text-primary mt-0.5" />
+                            <div>
+                              <h4 className="font-medium mb-1">Patient Groups</h4>
+                              <p className="text-sm text-muted-foreground">
+                                {provider.ageGroupsServed.join(", ")}
+                              </p>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
                   </div>
                 </TabsContent>
 

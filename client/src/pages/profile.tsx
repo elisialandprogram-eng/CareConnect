@@ -505,84 +505,86 @@ export default function Profile() {
                 </div>
               </div>
 
-              <div className="pt-4 border-t">
-                <h3 className="text-sm font-medium mb-4 flex items-center gap-2">
-                  <Activity className="h-4 w-4" />
-                  Medical Information
-                </h3>
-                <p className="text-xs text-muted-foreground mb-4 italic">
-                  This information helps our healthcare professionals provide safe and personalized care.
-                </p>
-                
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="bloodGroup">Blood Group</Label>
-                    <Select 
-                      value={formData.bloodGroup} 
-                      onValueChange={(value) => setFormData({ ...formData, bloodGroup: value })}
-                    >
-                      <SelectTrigger id="bloodGroup">
-                        <SelectValue placeholder="Select blood group" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="A+">A+</SelectItem>
-                        <SelectItem value="A-">A-</SelectItem>
-                        <SelectItem value="B+">B+</SelectItem>
-                        <SelectItem value="B-">B-</SelectItem>
-                        <SelectItem value="AB+">AB+</SelectItem>
-                        <SelectItem value="AB-">AB-</SelectItem>
-                        <SelectItem value="O+">O+</SelectItem>
-                        <SelectItem value="O-">O-</SelectItem>
-                        <SelectItem value="Unknown">Unknown</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+              {user.role === "patient" && (
+                <div className="pt-4 border-t">
+                  <h3 className="text-sm font-medium mb-4 flex items-center gap-2">
+                    <Activity className="h-4 w-4" />
+                    Medical Information
+                  </h3>
+                  <p className="text-xs text-muted-foreground mb-4 italic">
+                    This information helps our healthcare professionals provide safe and personalized care.
+                  </p>
+                  
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="bloodGroup">Blood Group</Label>
+                      <Select 
+                        value={formData.bloodGroup} 
+                        onValueChange={(value) => setFormData({ ...formData, bloodGroup: value })}
+                      >
+                        <SelectTrigger id="bloodGroup">
+                          <SelectValue placeholder="Select blood group" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="A+">A+</SelectItem>
+                          <SelectItem value="A-">A-</SelectItem>
+                          <SelectItem value="B+">B+</SelectItem>
+                          <SelectItem value="B-">B-</SelectItem>
+                          <SelectItem value="AB+">AB+</SelectItem>
+                          <SelectItem value="AB-">AB-</SelectItem>
+                          <SelectItem value="O+">O+</SelectItem>
+                          <SelectItem value="O-">O-</SelectItem>
+                          <SelectItem value="Unknown">Unknown</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="knownAllergies">Known Allergies</Label>
-                    <Textarea
-                      id="knownAllergies"
-                      value={formData.knownAllergies}
-                      onChange={(e) => setFormData({ ...formData, knownAllergies: e.target.value })}
-                      placeholder="Please list any allergies to medications, food, or substances (e.g., penicillin, nuts, latex). If none, write “None”."
-                      className="min-h-[80px]"
-                    />
-                  </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="knownAllergies">Known Allergies</Label>
+                      <Textarea
+                        id="knownAllergies"
+                        value={formData.knownAllergies}
+                        onChange={(e) => setFormData({ ...formData, knownAllergies: e.target.value })}
+                        placeholder="Please list any allergies to medications, food, or substances (e.g., penicillin, nuts, latex). If none, write “None”."
+                        className="min-h-[80px]"
+                      />
+                    </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="medicalConditions">Existing Medical Conditions</Label>
-                    <Textarea
-                      id="medicalConditions"
-                      value={formData.medicalConditions}
-                      onChange={(e) => setFormData({ ...formData, medicalConditions: e.target.value })}
-                      placeholder="Include any chronic or ongoing conditions such as diabetes, high blood pressure, asthma, heart disease, etc."
-                      className="min-h-[80px]"
-                    />
-                  </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="medicalConditions">Existing Medical Conditions</Label>
+                      <Textarea
+                        id="medicalConditions"
+                        value={formData.medicalConditions}
+                        onChange={(e) => setFormData({ ...formData, medicalConditions: e.target.value })}
+                        placeholder="Include any chronic or ongoing conditions such as diabetes, high blood pressure, asthma, heart disease, etc."
+                        className="min-h-[80px]"
+                      />
+                    </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="currentMedications">Current Medications</Label>
-                    <Textarea
-                      id="currentMedications"
-                      value={formData.currentMedications}
-                      onChange={(e) => setFormData({ ...formData, currentMedications: e.target.value })}
-                      placeholder="List all medications you are currently taking, including dosage if known. If none, write “None”."
-                      className="min-h-[80px]"
-                    />
-                  </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="currentMedications">Current Medications</Label>
+                      <Textarea
+                        id="currentMedications"
+                        value={formData.currentMedications}
+                        onChange={(e) => setFormData({ ...formData, currentMedications: e.target.value })}
+                        placeholder="List all medications you are currently taking, including dosage if known. If none, write “None”."
+                        className="min-h-[80px]"
+                      />
+                    </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="pastSurgeries">Past Surgeries / Hospitalizations</Label>
-                    <Textarea
-                      id="pastSurgeries"
-                      value={formData.pastSurgeries}
-                      onChange={(e) => setFormData({ ...formData, pastSurgeries: e.target.value })}
-                      placeholder="Please mention any major surgeries or hospital stays and approximate dates."
-                      className="min-h-[80px]"
-                    />
+                    <div className="space-y-2">
+                      <Label htmlFor="pastSurgeries">Past Surgeries / Hospitalizations</Label>
+                      <Textarea
+                        id="pastSurgeries"
+                        value={formData.pastSurgeries}
+                        onChange={(e) => setFormData({ ...formData, pastSurgeries: e.target.value })}
+                        placeholder="Please mention any major surgeries or hospital stays and approximate dates."
+                        className="min-h-[80px]"
+                      />
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
 
               <div className="pt-4 border-t">
                 <h3 className="text-sm font-medium mb-4">Emergency Contact</h3>
