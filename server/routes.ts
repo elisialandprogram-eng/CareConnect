@@ -183,6 +183,17 @@ export async function registerRoutes(
   });
 
   // Admin User/Provider Management
+  app.patch("/api/admin/providers/:id", authenticateToken, async (req: AuthRequest, res: Response) => {
+    if (req.user?.role !== "admin") return res.status(403).json({ message: "Admin access required" });
+    try {
+      const provider = await storage.updateProvider(req.params.id, req.body);
+      res.json(provider);
+    } catch (error) {
+      console.error("Failed to update provider:", error);
+      res.status(500).json({ message: "Failed to update provider" });
+    }
+  });
+
   app.delete("/api/admin/users/:id", authenticateToken, async (req: AuthRequest, res: Response) => {
     if (req.user?.role !== "admin") return res.status(403).json({ message: "Admin access required" });
     try {
