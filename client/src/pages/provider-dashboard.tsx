@@ -74,6 +74,33 @@ export default function ProviderDashboard() {
     queryKey: ["/api/provider/me"],
   });
 
+  const { data: practitioners } = useQuery<any[]>({
+    queryKey: [`/api/providers/${providerData?.id}/practitioners`],
+    enabled: !!providerData?.id,
+  });
+
+  const addPractitionerMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const res = await apiRequest("POST", `/api/providers/${providerData?.id}/practitioners`, data);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/providers/${providerData?.id}/practitioners`] });
+      toast({ title: "Practitioner added" });
+    },
+  });
+
+  const assignMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const res = await apiRequest("POST", `/api/services/${data.serviceId}/practitioners`, data);
+      return res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: [`/api/services/${data.serviceId}/practitioners`] });
+      toast({ title: "Practitioner assigned to service" });
+    },
+  });
+
   const [, setLocation] = useLocation();
 
   if (!isLoadingProvider && !providerData) {
@@ -438,6 +465,9 @@ export default function ProviderDashboard() {
                   <TabsTrigger value="upcoming" data-testid="tab-upcoming">
                     {t("dashboard.upcoming")} ({upcomingAppointments.length})
                   </TabsTrigger>
+                  <TabsTrigger value="services" data-testid="tab-services">
+                    Services & Practitioners
+                  </TabsTrigger>
                   <TabsTrigger value="details" data-testid="tab-details">
                     Professional Details
                   </TabsTrigger>
@@ -481,6 +511,97 @@ export default function ProviderDashboard() {
                       </CardContent>
                     </Card>
                   )}
+                </TabsContent>
+
+                <TabsContent value="services" className="mt-6 space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <Card>
+                      <CardHeader className="flex flex-row items-center justify-between gap-1 space-y-0 pb-2">
+                        <CardTitle className="text-lg">Add New Practitioner</CardTitle>
+                        <Users className="h-4 w-4 text-muted-foreground" />
+                      </CardHeader>
+                      <CardContent>
+                        <form className="space-y-4" onSubmit={(e) => {
+                          e.preventDefault();
+                          const formData = new FormData(e.currentTarget);
+                          addPractitionerMutation.mutate({
+                            name: formData.get("name"),
+                            title: formData.get("title"),
+                            specialization: formData.get("specialization"),
+                            bio: formData.get("bio"),
+                          });
+                          e.currentTarget.reset();
+                        }}>
+                          <div className="space-y-2">
+                            <Label htmlFor="prac-name">Name</Label>
+                            <Input id="prac-name" name="name" required />
+                          </div>
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <Label htmlFor="prac-title">Title</Label>
+                              <Input id="prac-title" name="title" placeholder="e.g. Dr., PT" />
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="prac-spec">Specialization</Label>
+                              <Input id="prac-spec" name="specialization" />
+                            </div>
+                          </div>
+                          <Button type="submit" className="w-full" disabled={addPractitionerMutation.isPending}>
+                            <Plus className="h-4 w-4 mr-2" />
+                            Add Practitioner
+                          </Button>
+                        </form>
+                      </CardContent>
+                    </Card>
+
+                    <Card>
+                      <CardHeader className="flex flex-row items-center justify-between gap-1 space-y-0 pb-2">
+                        <CardTitle className="text-lg">Assign to Service</CardTitle>
+                        <Briefcase className="h-4 w-4 text-muted-foreground" />
+                      </CardHeader>
+                      <CardContent>
+                        <form className="space-y-4" onSubmit={(e) => {
+                          e.preventDefault();
+                          const formData = new FormData(e.currentTarget);
+                          assignMutation.mutate({
+                            serviceId: formData.get("serviceId"),
+                            practitionerId: formData.get("practitionerId"),
+                            fee: formData.get("fee"),
+                          });
+                        }}>
+                          <div className="space-y-2">
+                            <Label>Select Service</Label>
+                            <Select name="serviceId" required>
+                              <SelectTrigger><SelectValue placeholder="Select Service" /></SelectTrigger>
+                              <SelectContent>
+                                {(providerData as any)?.services?.map((s: any) => (
+                                  <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Select Practitioner</Label>
+                            <Select name="practitionerId" required>
+                              <SelectTrigger><SelectValue placeholder="Select Practitioner" /></SelectTrigger>
+                              <SelectContent>
+                                {practitioners?.map((p: any) => (
+                                  <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="assign-fee">Fee ($)</Label>
+                            <Input id="assign-fee" name="fee" type="number" required />
+                          </div>
+                          <Button type="submit" className="w-full" disabled={assignMutation.isPending}>
+                            Assign & Set Fee
+                          </Button>
+                        </form>
+                      </CardContent>
+                    </Card>
+                  </div>
                 </TabsContent>
 
                 <TabsContent value="completed" className="mt-6 space-y-3">

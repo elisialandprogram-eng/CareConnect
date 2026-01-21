@@ -159,6 +159,23 @@ export default function Booking() {
     },
   });
 
+  const [selectedPractitionerId, setSelectedPractitionerId] = useState<string | null>(params.get("practitionerId"));
+
+  const { data: practitioners } = useQuery<any[]>({
+    queryKey: [`/api/services/${serviceId}/practitioners`],
+    enabled: !!serviceId,
+  });
+
+  const selectedPractitioner = practitioners?.find(p => p.practitionerId === selectedPractitionerId);
+  
+  const baseFee = selectedPractitioner 
+    ? Number(selectedPractitioner.fee)
+    : (visitType === "home" && provider.homeVisitFee
+      ? Number(provider.homeVisitFee)
+      : Number(provider.consultationFee));
+    
+  const feeWithPlatform = baseFee + platformFee;
+
   const handleConfirmBooking = () => {
     if (!provider || finalSessions.length === 0 || !consentChecked) {
       if (!consentChecked) {
@@ -171,15 +188,10 @@ export default function Booking() {
       return;
     }
 
-    const baseFee = visitType === "home" && provider.homeVisitFee
-      ? Number(provider.homeVisitFee)
-      : Number(provider.consultationFee);
-    
-    const feeWithPlatform = baseFee + platformFee;
-
     const bookingData = {
       providerId: provider.id,
       serviceId: serviceId || null,
+      practitionerId: selectedPractitionerId || null,
       visitType,
       paymentMethod,
       notes,
@@ -374,6 +386,26 @@ export default function Booking() {
                   </div>
 
                   <div className="grid grid-cols-1 gap-4">
+                    {practitioners && practitioners.length > 0 && (
+                      <div className="space-y-3 p-4 rounded-lg bg-muted/50 border">
+                        <Label>{t("booking.select_practitioner") || "Select Practitioner"}</Label>
+                        <RadioGroup 
+                          value={selectedPractitionerId || ""} 
+                          onValueChange={setSelectedPractitionerId}
+                          className="space-y-2"
+                        >
+                          {practitioners.map((sp) => (
+                            <div key={sp.practitionerId} className="flex items-center space-x-2">
+                              <RadioGroupItem value={sp.practitionerId} id={sp.practitionerId} />
+                              <Label htmlFor={sp.practitionerId} className="flex justify-between w-full cursor-pointer">
+                                <span>{sp.practitioner.name} ({sp.practitioner.title})</span>
+                                <span className="font-semibold">${Number(sp.fee).toFixed(0)}</span>
+                              </Label>
+                            </div>
+                          ))}
+                        </RadioGroup>
+                      </div>
+                    )}
                     <div className="space-y-3">
                       <Label>{t("booking.selected_sessions")}</Label>
                       {finalSessions.map((session: any, idx: number) => (

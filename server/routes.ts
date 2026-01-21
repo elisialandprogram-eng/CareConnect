@@ -1125,10 +1125,70 @@ export async function registerRoutes(
     }
   });
 
+  // ============ PROVIDER SERVICES & PRACTITIONERS ============
+  app.get("/api/providers/:providerId/services", async (req, res) => {
+    try {
+      const providerServices = await storage.getServicesByProvider(req.params.providerId);
+      res.json(providerServices);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch services" });
+    }
+  });
+
+  app.get("/api/providers/:providerId/practitioners", async (req, res) => {
+    try {
+      const providerPractitioners = await storage.getPractitionersByProvider(req.params.providerId);
+      res.json(providerPractitioners);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch practitioners" });
+    }
+  });
+
+  app.get("/api/services/:serviceId/practitioners", async (req, res) => {
+    try {
+      const servicePractitioners = await storage.getServicePractitioners(req.params.serviceId);
+      res.json(servicePractitioners);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch service practitioners" });
+    }
+  });
+
+  app.post("/api/providers/:providerId/practitioners", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const provider = await storage.getProviderByUserId(req.user!.id);
+      if (!provider || provider.id !== req.params.providerId) {
+        return res.status(403).json({ message: "Unauthorized" });
+      }
+      const data = insertPractitionerSchema.parse({ ...req.body, providerId: provider.id });
+      const practitioner = await storage.createPractitioner(data);
+      res.status(201).json(practitioner);
+    } catch (error) {
+      res.status(400).json({ message: "Invalid practitioner data" });
+    }
+  });
+
+  app.post("/api/services/:serviceId/practitioners", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const service = await storage.getService(req.params.serviceId);
+      if (!service) return res.status(404).json({ message: "Service not found" });
+      
+      const provider = await storage.getProviderByUserId(req.user!.id);
+      if (!provider || provider.id !== service.providerId) {
+        return res.status(403).json({ message: "Unauthorized" });
+      }
+
+      const data = insertServicePractitionerSchema.parse(req.body);
+      const result = await storage.addPractitionerToService(data);
+      res.status(201).json(result);
+    } catch (error) {
+      res.status(400).json({ message: "Invalid assignment data" });
+    }
+  });
+
   // Create appointment
   app.post("/api/appointments", authenticateToken, async (req: AuthRequest, res: Response) => {
     try {
-      const { providerId, serviceId, date, startTime, endTime, visitType, paymentMethod, notes, patientAddress, totalAmount } = req.body;
+      const { providerId, serviceId, practitionerId, date, startTime, endTime, visitType, paymentMethod, notes, patientAddress, totalAmount } = req.body;
       const userId = req.user?.id;
 
       // Log appointment request for debugging but keep it concise to avoid large base64 strings
@@ -1152,15 +1212,27 @@ export async function registerRoutes(
         return res.status(404).json({ message: "Provider not found" });
       }
 
-      const fee = totalAmount || (visitType === "home" && provider.homeVisitFee
-        ? provider.homeVisitFee
-        : provider.consultationFee);
+      // Validate practitioner and fee if provided
+      let fee = totalAmount;
+      if (serviceId && practitionerId) {
+        const servicePractitioners = await storage.getServicePractitioners(serviceId);
+        const sp = servicePractitioners.find(p => p.practitionerId === practitionerId);
+        if (!sp) {
+          return res.status(400).json({ message: "Practitioner not assigned to this service" });
+        }
+        fee = sp.fee;
+      } else if (!totalAmount) {
+        fee = visitType === "home" && provider.homeVisitFee
+          ? provider.homeVisitFee
+          : provider.consultationFee;
+      }
 
       // Create appointment
       console.log("Creating appointment with data:", {
         patientId: userId,
         providerId,
         serviceId,
+        practitionerId,
         date,
         startTime,
         endTime,
@@ -1172,6 +1244,7 @@ export async function registerRoutes(
         patientId: userId,
         providerId,
         serviceId: serviceId || null,
+        practitionerId: practitionerId || null,
         date,
         startTime,
         endTime,
@@ -1240,11 +1313,11 @@ export async function registerRoutes(
                 
                 <div style="background-color: #f8fafc; padding: 15px; border-radius: 8px; margin: 20px 0;">
                   <h3 style="margin-top: 0; color: #1e293b;">Appointment Details</h3>
-                  <p style="margin: 5px 0;"><strong>Date:</strong> \${date}</p>
-                  <p style="margin: 5px 0;"><strong>Time:</strong> \${startTime} - \${endTime}</p>
-                  \${service ? \`<p style="margin: 5px 0;"><strong>Service:</strong> \${service.name}</p>\` : ''}
-                  <p style="margin: 5px 0;"><strong>Visit Type:</strong> \${visitType === 'home' ? 'Home Visit' : 'Online Consultation'}</p>
-                  <p style="margin: 5px 0;"><strong>Total Amount:</strong> $\${fee}</p>
+                  <p style="margin: 5px 0;"><strong>Date:</strong> ${date}</p>
+                  <p style="margin: 5px 0;"><strong>Time:</strong> ${startTime} - ${endTime}</p>
+                  ${service ? `<p style="margin: 5px 0;"><strong>Service:</strong> ${service.name}</p>` : ''}
+                  <p style="margin: 5px 0;"><strong>Visit Type:</strong> ${visitType === 'home' ? 'Home Visit' : 'Online Consultation'}</p>
+                  <p style="margin: 5px 0;"><strong>Total Amount:</strong> $${fee}</p>
                 </div>
 
                 <p>You can view and manage your appointment in your patient dashboard.</p>
