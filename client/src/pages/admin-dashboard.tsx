@@ -3329,7 +3329,7 @@ function SubServicesManagement() {
             <CardDescription>{t("admin.tax_settings_desc")}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="flex gap-4 items-end border-b pb-6">
+              <div className="flex gap-4 items-end border-b pb-6">
               <div className="space-y-2">
                 <Label>{t("setup.country")}</Label>
                 <Input value={newCountry} onChange={(e) => setNewCountry(e.target.value)} placeholder="e.g. USA" />
@@ -3339,7 +3339,7 @@ function SubServicesManagement() {
                 <Input type="number" step="0.01" value={newPercentage} onChange={(e) => setNewPercentage(e.target.value)} placeholder="0.00" />
               </div>
               <Button onClick={() => {
-                createTaxMutation.mutate({ country: newCountry, taxPercentage: newPercentage, isActive: true });
+                createTaxMutation.mutate({ country: newCountry, taxName: "Sales Tax", taxRate: newPercentage, isActive: true });
                 setNewCountry("");
                 setNewPercentage("");
               }}>{t("admin.add_tax")}</Button>
@@ -3350,7 +3350,7 @@ function SubServicesManagement() {
                 <div key={setting.id} className="flex items-center justify-between p-4 border rounded-lg">
                   <div className="flex-1">
                     <p className="font-bold">{setting.country}</p>
-                    <p className="text-sm text-muted-foreground">{setting.taxPercentage}% {t("admin.tax")}</p>
+                    <p className="text-sm text-muted-foreground">{setting.taxRate}% {t("admin.tax")}</p>
                   </div>
                   <div className="flex items-center gap-2">
                     <Checkbox 

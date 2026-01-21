@@ -663,7 +663,7 @@ export class DatabaseStorage implements IStorage {
         user: (r as any).users_2,
       },
       service: r.services || undefined,
-      practitioner: r.practitioners || (undefined as any),
+      practitioner: (r.practitioners as any) || undefined,
     };
   }
 
@@ -687,7 +687,7 @@ export class DatabaseStorage implements IStorage {
         user: (r as any).users_2,
       },
       service: r.services || undefined,
-      practitioner: r.practitioners || (undefined as any),
+      practitioner: (r.practitioners as any) || undefined,
     }));
   }
 
@@ -711,7 +711,7 @@ export class DatabaseStorage implements IStorage {
         user: (r as any).users_2,
       },
       service: r.services || undefined,
-      practitioner: r.practitioners || (undefined as any),
+      practitioner: (r.practitioners as any) || undefined,
     }));
   }
 
