@@ -55,6 +55,16 @@ export default function Profile() {
     currentMedications: "",
     pastSurgeries: "",
     avatarUrl: "",
+    // Provider specific fields
+    providerType: "",
+    professionalTitle: "",
+    specialization: "",
+    bio: "",
+    yearsExperience: 0,
+    education: "",
+    licenseNumber: "",
+    consultationFee: "0",
+    country: "",
   });
 
   const [passwordData, setPasswordData] = useState({
@@ -98,9 +108,19 @@ export default function Profile() {
         currentMedications: user.currentMedications || "",
         pastSurgeries: user.pastSurgeries || "",
         avatarUrl: user.avatarUrl || "",
+        // Provider data
+        providerType: providerData?.providerType || "",
+        professionalTitle: providerData?.professionalTitle || "",
+        specialization: providerData?.specialization || "",
+        bio: providerData?.bio || "",
+        yearsExperience: providerData?.yearsExperience || 0,
+        education: providerData?.education || "",
+        licenseNumber: providerData?.licenseNumber || "",
+        consultationFee: providerData?.consultationFee || "0",
+        country: providerData?.country || "",
       });
     }
-  }, [user]);
+  }, [user, providerData]);
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
