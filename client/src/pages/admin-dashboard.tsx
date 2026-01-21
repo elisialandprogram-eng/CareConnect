@@ -162,224 +162,224 @@ function ProviderEditDialog({ provider }: { provider: any }) {
           <Edit className="h-4 w-4" />
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-2xl">
-        <DialogHeader>
+      <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col p-0">
+        <DialogHeader className="p-6 pb-2">
           <DialogTitle>Edit Provider: {provider.user?.firstName} {provider.user?.lastName}</DialogTitle>
         </DialogHeader>
-        <Tabs defaultValue="details">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="details">Details & Fees</TabsTrigger>
-            <TabsTrigger value="services">Services</TabsTrigger>
-          </TabsList>
-          <TabsContent value="details" className="space-y-4 py-4">
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit((data) => updateMutation.mutate(data))} className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+        <ScrollArea className="flex-1 px-6 pb-6">
+          <Tabs defaultValue="details">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="details">Details & Fees</TabsTrigger>
+              <TabsTrigger value="services">Services</TabsTrigger>
+            </TabsList>
+            <TabsContent value="details" className="space-y-4 py-4">
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit((data) => updateMutation.mutate(data))} className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="professionalTitle"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Title</FormLabel>
+                          <FormControl><Input {...field} /></FormControl>
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="specialization"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Specialization</FormLabel>
+                          <FormControl><Input {...field} /></FormControl>
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="status"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Verification Status</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="pending">Pending</SelectItem>
+                              <SelectItem value="approved">Approved</SelectItem>
+                              <SelectItem value="rejected">Rejected</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="yearsExperience"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Years Experience</FormLabel>
+                          <FormControl><Input type="number" {...field} /></FormControl>
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="licenseNumber"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>License #</FormLabel>
+                          <FormControl><Input {...field} /></FormControl>
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="licenseExpiryDate"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>License Expiry</FormLabel>
+                          <FormControl><Input type="date" {...field} /></FormControl>
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="consultationFee"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Consultation Fee ($)</FormLabel>
+                          <FormControl><Input type="number" {...field} /></FormControl>
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="homeVisitFee"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Home Visit Fee ($)</FormLabel>
+                          <FormControl><Input type="number" {...field} /></FormControl>
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="city"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>City</FormLabel>
+                          <FormControl><Input {...field} /></FormControl>
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="serviceRadiusKm"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Radius (km)</FormLabel>
+                          <FormControl><Input type="number" {...field} /></FormControl>
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="affiliatedHospital"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Affiliated Hospital</FormLabel>
+                          <FormControl><Input {...field} /></FormControl>
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="emergencyContact"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Emergency Contact</FormLabel>
+                          <FormControl><Input {...field} /></FormControl>
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
                   <FormField
                     control={form.control}
-                    name="professionalTitle"
+                    name="onCallAvailability"
                     render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Title</FormLabel>
-                        <FormControl><Input {...field} /></FormControl>
+                      <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                        <FormControl>
+                          <Checkbox 
+                            checked={!!field.value} 
+                            onCheckedChange={field.onChange} 
+                          />
+                        </FormControl>
+                        <div className="space-y-1 leading-none">
+                          <FormLabel>On-Call Availability</FormLabel>
+                          <FormDescription>Available for emergency calls</FormDescription>
+                        </div>
                       </FormItem>
                     )}
                   />
+
                   <FormField
                     control={form.control}
-                    name="specialization"
+                    name="bio"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Specialization</FormLabel>
-                        <FormControl><Input {...field} /></FormControl>
+                        <FormLabel>Bio</FormLabel>
+                        <FormControl><Textarea {...field} /></FormControl>
                       </FormItem>
                     )}
                   />
+                  <Button type="submit" disabled={updateMutation.isPending} className="w-full">
+                    {updateMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Save Changes
+                  </Button>
+                </form>
+              </Form>
+            </TabsContent>
+            <TabsContent value="services" className="space-y-4 py-4">
+              <div className="space-y-4">
+                <div className="grid grid-cols-3 gap-2">
+                  <Input id="new-service-name" placeholder="Service Name" />
+                  <Input id="new-service-price" type="number" placeholder="Price" />
+                  <Button 
+                    onClick={() => {
+                      const name = (document.getElementById('new-service-name') as HTMLInputElement).value;
+                      const price = (document.getElementById('new-service-price') as HTMLInputElement).value;
+                      if (name && price) {
+                        addServiceMutation.mutate({ name, price: parseFloat(price) });
+                        (document.getElementById('new-service-name') as HTMLInputElement).value = '';
+                        (document.getElementById('new-service-price') as HTMLInputElement).value = '';
+                      }
+                    }}
+                    disabled={addServiceMutation.isPending}
+                  >
+                    <Plus className="h-4 w-4 mr-2" /> Add
+                  </Button>
                 </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="status"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Verification Status</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="pending">Pending</SelectItem>
-                            <SelectItem value="approved">Approved</SelectItem>
-                            <SelectItem value="rejected">Rejected</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="yearsExperience"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Years Experience</FormLabel>
-                        <FormControl><Input type="number" {...field} /></FormControl>
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="licenseNumber"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>License #</FormLabel>
-                        <FormControl><Input {...field} /></FormControl>
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="licenseExpiryDate"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>License Expiry</FormLabel>
-                        <FormControl><Input type="date" {...field} /></FormControl>
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="consultationFee"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Consultation Fee ($)</FormLabel>
-                        <FormControl><Input type="number" {...field} /></FormControl>
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="homeVisitFee"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Home Visit Fee ($)</FormLabel>
-                        <FormControl><Input type="number" {...field} /></FormControl>
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="city"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>City</FormLabel>
-                        <FormControl><Input {...field} /></FormControl>
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="serviceRadiusKm"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Radius (km)</FormLabel>
-                        <FormControl><Input type="number" {...field} /></FormControl>
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="affiliatedHospital"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Affiliated Hospital</FormLabel>
-                        <FormControl><Input {...field} /></FormControl>
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="emergencyContact"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Emergency Contact</FormLabel>
-                        <FormControl><Input {...field} /></FormControl>
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                <FormField
-                  control={form.control}
-                  name="onCallAvailability"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-                      <FormControl>
-                        <Checkbox 
-                          checked={!!field.value} 
-                          onCheckedChange={field.onChange} 
-                        />
-                      </FormControl>
-                      <div className="space-y-1 leading-none">
-                        <FormLabel>On-Call Availability</FormLabel>
-                        <FormDescription>Available for emergency calls</FormDescription>
-                      </div>
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="bio"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Bio</FormLabel>
-                      <FormControl><Textarea {...field} /></FormControl>
-                    </FormItem>
-                  )}
-                />
-                <Button type="submit" disabled={updateMutation.isPending} className="w-full">
-                  {updateMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Save Changes
-                </Button>
-              </form>
-            </Form>
-          </TabsContent>
-          <TabsContent value="services" className="space-y-4 py-4">
-            <div className="space-y-4">
-              <div className="grid grid-cols-3 gap-2">
-                <Input id="new-service-name" placeholder="Service Name" />
-                <Input id="new-service-price" type="number" placeholder="Price" />
-                <Button 
-                  onClick={() => {
-                    const name = (document.getElementById('new-service-name') as HTMLInputElement).value;
-                    const price = (document.getElementById('new-service-price') as HTMLInputElement).value;
-                    if (name && price) {
-                      addServiceMutation.mutate({ name, price: parseFloat(price) });
-                      (document.getElementById('new-service-name') as HTMLInputElement).value = '';
-                      (document.getElementById('new-service-price') as HTMLInputElement).value = '';
-                    }
-                  }}
-                  disabled={addServiceMutation.isPending}
-                >
-                  <Plus className="h-4 w-4 mr-2" /> Add
-                </Button>
-              </div>
-              <ScrollArea className="h-[200px] border rounded-md p-2">
                 <div className="space-y-2">
                   {providerServices?.map((service) => (
                     <div key={service.id} className="flex items-center justify-between p-2 bg-muted/50 rounded-md">
@@ -398,10 +398,10 @@ function ProviderEditDialog({ provider }: { provider: any }) {
                     </div>
                   ))}
                 </div>
-              </ScrollArea>
-            </div>
-          </TabsContent>
-        </Tabs>
+              </div>
+            </TabsContent>
+          </Tabs>
+        </ScrollArea>
       </DialogContent>
     </Dialog>
   );
