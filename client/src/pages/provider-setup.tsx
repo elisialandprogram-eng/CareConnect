@@ -52,16 +52,56 @@ export default function ProviderSetup() {
 
   const providerSetupSchema = z.object({
     type: z.enum(["physiotherapist", "doctor", "nurse"]),
+    professionalTitle: z.string().min(1, t("validation.field_required")),
     specialization: z.string().min(3, t("validation.specialization_required")),
+    secondarySpecialties: z.array(z.string()).optional(),
     subServices: z.array(z.string()).min(1, t("validation.sub_service_select")),
     bio: z.string().min(50, t("validation.bio_min")),
     yearsExperience: z.coerce.number().min(0).max(50),
     education: z.string().min(3, t("validation.field_required")),
+    languages: z.array(z.string()).min(1, t("validation.lang_select")),
+    
+    // Credentials
+    licenseNumber: z.string().min(2, t("validation.field_required")),
+    licensingAuthority: z.string().min(2, t("validation.field_required")),
+    licenseExpiryDate: z.string().min(1, t("validation.field_required")),
+    nationalProviderId: z.string().optional(),
+
+    // Services
+    ageGroupsServed: z.array(z.string()).min(1, t("validation.field_required")),
+    
+    // Availability
+    availableDays: z.array(z.string()).min(1, t("validation.day_select")),
+    workingHoursStart: z.string().default("09:00"),
+    workingHoursEnd: z.string().default("18:00"),
+    maxPatientsPerDay: z.coerce.number().min(1).optional(),
+    timezone: z.string().min(1, t("validation.field_required")),
+
+    // Service Area
+    primaryServiceLocation: z.string().min(2, t("validation.field_required")),
+    serviceRadiusKm: z.coerce.number().min(1).optional(),
+
+    // Pricing
     consultationFee: z.coerce.number().min(1, t("validation.cons_fee_required")),
     homeVisitFee: z.coerce.number().optional(),
-    city: z.string().min(2, t("validation.city_required")),
-    languages: z.array(z.string()).min(1, t("validation.lang_select")),
-    availableDays: z.array(z.string()).min(1, t("validation.day_select")),
+    telemedicineFee: z.coerce.number().optional(),
+    insuranceAccepted: z.array(z.string()).optional(),
+    currency: z.string().default("USD"),
+    paymentMethods: z.array(z.string()).min(1, t("validation.field_required")),
+
+    // Compliance
+    malpracticeCoverage: z.string().optional(),
+    
+    // Consents
+    providerAgreementAccepted: z.boolean().refine(v => v === true, t("validation.field_required")),
+    dataProcessingAgreementAccepted: z.boolean().refine(v => v === true, t("validation.field_required")),
+    telemedicineAgreementAccepted: z.boolean().refine(v => v === true, t("validation.field_required")),
+    codeOfConductAccepted: z.boolean().refine(v => v === true, t("validation.field_required")),
+
+    // Custom
+    affiliatedHospital: z.string().optional(),
+    onCallAvailability: z.boolean().default(false),
+    emergencyContact: z.string().optional(),
     practitioners: z.array(practitionerSchema).optional(),
   });
 
@@ -91,16 +131,40 @@ export default function ProviderSetup() {
     resolver: zodResolver(providerSetupSchema),
     defaultValues: {
       type: "physiotherapist",
+      professionalTitle: "",
       specialization: "",
+      secondarySpecialties: [],
       subServices: [],
       bio: "",
       yearsExperience: 0,
       education: "",
+      languages: ["english"],
+      licenseNumber: "",
+      licensingAuthority: "",
+      licenseExpiryDate: "",
+      nationalProviderId: "",
+      ageGroupsServed: ["adults"],
+      availableDays: ["monday", "tuesday", "wednesday", "thursday", "friday"],
+      workingHoursStart: "09:00",
+      workingHoursEnd: "18:00",
+      maxPatientsPerDay: 10,
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      primaryServiceLocation: "",
+      serviceRadiusKm: 20,
       consultationFee: 50,
       homeVisitFee: undefined,
-      city: "",
-      languages: ["english"],
-      availableDays: ["monday", "tuesday", "wednesday", "thursday", "friday"],
+      telemedicineFee: undefined,
+      insuranceAccepted: [],
+      currency: "USD",
+      paymentMethods: ["card"],
+      malpracticeCoverage: "",
+      providerAgreementAccepted: false,
+      dataProcessingAgreementAccepted: false,
+      telemedicineAgreementAccepted: false,
+      codeOfConductAccepted: false,
+      affiliatedHospital: "",
+      onCallAvailability: false,
+      emergencyContact: "",
       practitioners: [{ name: "", designation: "", dob: "", originCountry: "", registrationNumber: "", identityNumber: "", mobileNumber: "" }],
     },
   });
@@ -167,7 +231,7 @@ export default function ProviderSetup() {
 
           <div className="flex justify-center mb-8">
             <div className="flex items-center gap-2">
-              {[1, 2, 3].map((s) => (
+              {[1, 2, 3, 4, 5, 6].map((s) => (
                 <div key={s} className="flex items-center">
                   <div
                     className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
@@ -180,9 +244,9 @@ export default function ProviderSetup() {
                   >
                     {s < step ? <CheckCircle className="h-4 w-4" /> : s}
                   </div>
-                  {s < 3 && (
+                  {s < 6 && (
                     <div
-                      className={`w-12 h-0.5 ${
+                      className={`w-4 h-0.5 ${
                         s < step ? "bg-primary" : "bg-muted"
                       }`}
                     />
@@ -203,6 +267,20 @@ export default function ProviderSetup() {
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-6">
+                    <FormField
+                      control={form.control}
+                      name="professionalTitle"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Professional Title (Dr., RN, PT, etc.)</FormLabel>
+                          <FormControl>
+                            <Input placeholder="e.g. Dr." {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
                     <FormField
                       control={form.control}
                       name="type"
@@ -455,6 +533,150 @@ export default function ProviderSetup() {
               {step === 2 && (
                 <Card>
                   <CardHeader>
+                    <CardTitle>Professional Credentials</CardTitle>
+                    <CardDescription>
+                      Critical licensing and identification information.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    <FormField
+                      control={form.control}
+                      name="licenseNumber"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>License Number</FormLabel>
+                          <FormControl><Input {...field} /></FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="licensingAuthority"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Licensing Authority</FormLabel>
+                          <FormControl><Input {...field} /></FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="licenseExpiryDate"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>License Expiry Date</FormLabel>
+                          <FormControl><Input type="date" {...field} /></FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="nationalProviderId"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>National Provider ID (NPI)</FormLabel>
+                          <FormControl><Input {...field} /></FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <div className="flex gap-4">
+                      <Button type="button" variant="outline" className="flex-1" onClick={prevStep}>
+                        {t("setup.back")}
+                      </Button>
+                      <Button type="button" className="flex-1" onClick={nextStep}>
+                        {t("setup.continue")}
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {step === 3 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Availability & Location</CardTitle>
+                    <CardDescription>
+                      Where and when you are available to provide services.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    <FormField
+                      control={form.control}
+                      name="primaryServiceLocation"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Work Address / Primary Location</FormLabel>
+                          <FormControl><Input {...field} /></FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="serviceRadiusKm"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Service Radius (km)</FormLabel>
+                          <FormControl><Input type="number" {...field} /></FormControl>
+                          <FormDescription>For home visits</FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="timezone"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Time Zone</FormLabel>
+                          <FormControl><Input {...field} /></FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <div className="grid grid-cols-2 gap-4">
+                      <FormField
+                        control={form.control}
+                        name="workingHoursStart"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Start Time</FormLabel>
+                            <FormControl><Input type="time" {...field} /></FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="workingHoursEnd"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>End Time</FormLabel>
+                            <FormControl><Input type="time" {...field} /></FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                    <div className="flex gap-4">
+                      <Button type="button" variant="outline" className="flex-1" onClick={prevStep}>
+                        {t("setup.back")}
+                      </Button>
+                      <Button type="button" className="flex-1" onClick={nextStep}>
+                        {t("setup.continue")}
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {step === 4 && (
+                <Card>
+                  <CardHeader>
                     <CardTitle>{t("setup.pricing_location")}</CardTitle>
                     <CardDescription>
                       {t("setup.pricing_desc")}
@@ -619,7 +841,12 @@ export default function ProviderSetup() {
                       <Button type="button" variant="outline" className="flex-1" onClick={prevStep}>
                         Back
                       </Button>
-                      <Button type="submit" className="flex-1" disabled={setupMutation.isPending} data-testid="button-setup-submit">
+                      <Button
+                        type="submit"
+                        className="flex-1"
+                        disabled={setupMutation.isPending}
+                        data-testid="button-setup-submit"
+                      >
                         {setupMutation.isPending ? (
                           <>
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
