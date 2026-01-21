@@ -100,6 +100,8 @@ import {
   type InsertTaxSetting,
   type PatientConsent,
   type InsertPatientConsent,
+  type MedicalPractitioner,
+  type InsertMedicalPractitioner,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, gte, lte, or, sql, count, asc } from "drizzle-orm";
