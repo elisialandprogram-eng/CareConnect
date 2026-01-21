@@ -696,6 +696,76 @@ export default function Profile() {
                 </div>
               </div>
 
+              {user.role === "provider" && (
+                <div className="pt-4 border-t space-y-4">
+                  <h3 className="text-sm font-medium flex items-center gap-2">
+                    <Activity className="h-4 w-4" />
+                    Professional Information
+                  </h3>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="professionalTitle">Professional Title</Label>
+                      <Input
+                        id="professionalTitle"
+                        value={formData.professionalTitle}
+                        onChange={(e) => setFormData({ ...formData, professionalTitle: e.target.value })}
+                        placeholder="e.g. Dr., PT, RN"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="specialization">Specialization</Label>
+                      <Input
+                        id="specialization"
+                        value={formData.specialization}
+                        onChange={(e) => setFormData({ ...formData, specialization: e.target.value })}
+                        placeholder="e.g. Orthopedics"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="yearsExperience">Years of Experience</Label>
+                      <Input
+                        id="yearsExperience"
+                        type="number"
+                        value={formData.yearsExperience}
+                        onChange={(e) => setFormData({ ...formData, yearsExperience: parseInt(e.target.value) || 0 })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="consultationFee">Consultation Fee</Label>
+                      <Input
+                        id="consultationFee"
+                        value={formData.consultationFee}
+                        onChange={(e) => setFormData({ ...formData, consultationFee: e.target.value })}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="licenseNumber">License Number</Label>
+                    <Input
+                      id="licenseNumber"
+                      value={formData.licenseNumber}
+                      onChange={(e) => setFormData({ ...formData, licenseNumber: e.target.value })}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="bio">Professional Bio</Label>
+                    <Textarea
+                      id="bio"
+                      value={formData.bio}
+                      onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
+                      placeholder="Tell patients about your experience..."
+                      className="min-h-[100px]"
+                    />
+                  </div>
+                </div>
+              )}
+
               <Button 
                 type="submit" 
                 className="w-full"
