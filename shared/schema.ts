@@ -149,11 +149,15 @@ export const providers = pgTable("providers", {
   licenseDocumentUrl: text("license_document_url"),
   nationalProviderId: text("national_provider_id"),
 
-  // Services & Age Groups
-  ageGroupsServed: text("age_groups_served").array(), // Children, Adults, Seniors
-  
+  // Experience & Education
+  education: text("education"),
+  certifications: text("certifications").array(),
+  languages: text("languages").array(),
+  qualifications: text("qualifications").array(), // Degree, Institution, Year
+
   // Availability & Scheduling
   availableDays: text("available_days").array(),
+  availableTimeSlots: text("available_time_slots").array(), // Specific time slots
   workingHoursStart: text("working_hours_start").default("09:00"),
   workingHoursEnd: text("working_hours_end").default("18:00"),
   maxPatientsPerDay: integer("max_patients_per_day"),
@@ -161,13 +165,18 @@ export const providers = pgTable("providers", {
 
   // Service Area
   primaryServiceLocation: text("primary_service_location"),
+  city: text("city"),
+  state: text("state"),
+  country: text("country"),
   serviceRadiusKm: integer("service_radius_km"),
+  multipleServiceAreas: text("multiple_service_areas").array(),
   googleMapsLocation: text("google_maps_location"),
 
   // Pricing & Payment
   consultationFee: decimal("consultation_fee", { precision: 10, scale: 2 }).notNull(),
   homeVisitFee: decimal("home_visit_fee", { precision: 10, scale: 2 }),
   telemedicineFee: decimal("telemedicine_fee", { precision: 10, scale: 2 }),
+  emergencyCareFee: decimal("emergency_care_fee", { precision: 10, scale: 2 }),
   insuranceAccepted: text("insurance_accepted").array(),
   currency: text("currency").default("USD"),
   paymentMethods: text("payment_methods").array(), // Cash, Card, Online
@@ -176,6 +185,11 @@ export const providers = pgTable("providers", {
   backgroundCheckStatus: text("background_check_status").default("pending"),
   identityVerificationStatus: text("identity_verification_status").default("pending"),
   malpracticeCoverage: text("malpractice_coverage"),
+  complianceApprovalStatus: text("compliance_approval_status").default("pending"),
+
+  // Account & Security
+  twoFactorEnabled: boolean("two_factor_enabled").default(false),
+  preferredContactMethod: text("preferred_contact_method"), // Email, Phone, etc.
   
   // Legal Consents
   providerAgreementAccepted: boolean("provider_agreement_accepted").default(false),

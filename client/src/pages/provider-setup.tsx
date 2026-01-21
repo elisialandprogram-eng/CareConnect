@@ -57,8 +57,11 @@ export default function ProviderSetup() {
     secondarySpecialties: z.array(z.string()).optional(),
     subServices: z.array(z.string()).min(1, t("validation.sub_service_select")),
     bio: z.string().min(50, t("validation.bio_min")),
+    // Experience & Education
     yearsExperience: z.coerce.number().min(0).max(50),
     education: z.string().min(3, t("validation.field_required")),
+    qualifications: z.array(z.string()).optional(),
+    certifications: z.array(z.string()).optional(),
     languages: z.array(z.string()).min(1, t("validation.lang_select")),
     
     // Credentials
@@ -69,6 +72,7 @@ export default function ProviderSetup() {
 
     // Services
     ageGroupsServed: z.array(z.string()).min(1, t("validation.field_required")),
+    preferredContactMethod: z.enum(["email", "phone", "both"]).default("email"),
     
     // Availability
     availableDays: z.array(z.string()).min(1, t("validation.day_select")),
@@ -80,12 +84,15 @@ export default function ProviderSetup() {
     // Service Area
     primaryServiceLocation: z.string().min(2, t("validation.field_required")),
     city: z.string().min(2, t("validation.field_required")),
+    state: z.string().min(2, t("validation.field_required")),
+    country: z.string().min(2, t("validation.field_required")),
     serviceRadiusKm: z.coerce.number().min(1).optional(),
 
     // Pricing
     consultationFee: z.coerce.number().min(1, t("validation.cons_fee_required")),
     homeVisitFee: z.coerce.number().optional(),
     telemedicineFee: z.coerce.number().optional(),
+    emergencyCareFee: z.coerce.number().optional(),
     insuranceAccepted: z.array(z.string()).optional(),
     currency: z.string().default("USD"),
     paymentMethods: z.array(z.string()).min(1, t("validation.field_required")),
