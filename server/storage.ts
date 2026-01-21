@@ -572,7 +572,7 @@ export class DatabaseStorage implements IStorage {
     
     // Explicitly handle array fields to avoid issues with undefined
     const arrayFields = [
-      'secondarySpecialties', 'certifications', 'languages', 'ageGroupsServed',
+      'secondarySpecialties', 'certifications', 'languages', 'qualifications',
       'availableDays', 'insuranceAccepted', 'paymentMethods', 'gallery'
     ];
     
