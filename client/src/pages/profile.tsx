@@ -2,7 +2,7 @@ import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/lib/auth";
-import { useLocation } from "wouter";
+import { useLocation, Link } from "wouter";
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,9 +11,9 @@ import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Badge } from "@/components/ui/badge";
-import { User, Mail, Phone, MapPin, Save, Lock, Eye, EyeOff, Loader2, Activity } from "lucide-react";
+import { User, Mail, Phone, MapPin, Save, Lock, Eye, EyeOff, Loader2, Activity, Settings } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -30,6 +30,11 @@ export default function Profile() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  const { data: providerData } = useQuery<any>({
+    queryKey: ["/api/provider/me"],
+    enabled: user?.role === "provider",
+  });
 
   const [formData, setFormData] = useState({
     firstName: "",
@@ -303,14 +308,65 @@ export default function Profile() {
                   {user.email}
                 </CardDescription>
         {user.role === "provider" && (
-          <div className="mt-4">
-            <Badge variant="secondary">Healthcare Provider</Badge>
+          <div className="mt-4 flex flex-col gap-2">
+            <div className="flex items-center gap-2">
+              <Badge variant="secondary">Healthcare Provider</Badge>
+              {providerData?.isVerified && (
+                <Badge className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
+                  Verified
+                </Badge>
+              )}
+            </div>
+            {providerData && (
+              <p className="text-sm font-medium text-primary">
+                {providerData.professionalTitle} • {providerData.specialization}
+              </p>
+            )}
+            <Button variant="outline" size="sm" asChild className="mt-2">
+              <Link href="/provider/dashboard">
+                <Settings className="h-4 w-4 mr-2" />
+                Go to Provider Dashboard
+              </Link>
+            </Button>
           </div>
         )}
       </div>
     </div>
   </CardHeader>
 </Card>
+
+{user.role === "provider" && providerData && (
+  <Card className="mb-6">
+    <CardHeader>
+      <CardTitle className="text-lg">Professional Information</CardTitle>
+      <CardDescription>Details about your medical practice</CardDescription>
+    </CardHeader>
+    <CardContent className="space-y-4">
+      <div className="grid grid-cols-2 gap-4 text-sm">
+        <div className="space-y-1">
+          <p className="text-muted-foreground">Specialization</p>
+          <p className="font-medium">{providerData.specialization}</p>
+        </div>
+        <div className="space-y-1">
+          <p className="text-muted-foreground">Experience</p>
+          <p className="font-medium">{providerData.yearsExperience} Years</p>
+        </div>
+        <div className="space-y-1">
+          <p className="text-muted-foreground">License Number</p>
+          <p className="font-medium">{providerData.licenseNumber}</p>
+        </div>
+        <div className="space-y-1">
+          <p className="text-muted-foreground">Consultation Fee</p>
+          <p className="font-medium">${providerData.consultationFee}</p>
+        </div>
+      </div>
+      <div className="space-y-1 pt-2">
+        <p className="text-muted-foreground text-sm">Bio</p>
+        <p className="text-sm leading-relaxed line-clamp-3">{providerData.bio}</p>
+      </div>
+    </CardContent>
+  </Card>
+)}
 
 {user.role === "provider" && (
   <Card className="mb-6">
