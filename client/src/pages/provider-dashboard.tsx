@@ -260,7 +260,7 @@ export default function ProviderDashboard() {
               ) : (
                 <Home className="h-3 w-3" />
               )}
-              {appointment.visitType === "online" ? "Online" : "Home Visit"}
+              {appointment.visitType === "online" ? t("profile.online_consultation") : t("profile.home_visit")}
             </span>
           </div>
         </div>
@@ -279,7 +279,7 @@ export default function ProviderDashboard() {
                 className="text-blue-600"
                 onClick={() => updateStatusMutation.mutate({ id: appointment.id, status: "approved" })}
               >
-                Approve
+                {t("dashboard.approve")}
               </Button>
               <Button
                 size="sm"
@@ -287,7 +287,7 @@ export default function ProviderDashboard() {
                 className="text-destructive"
                 onClick={() => updateStatusMutation.mutate({ id: appointment.id, status: "rejected" })}
               >
-                Reject
+                {t("dashboard.reject")}
               </Button>
             </>
           )}
@@ -298,7 +298,7 @@ export default function ProviderDashboard() {
               className="text-green-600"
               onClick={() => updateStatusMutation.mutate({ id: appointment.id, status: "confirmed" })}
             >
-              Confirm
+              {t("dashboard.confirm")}
             </Button>
           )}
           {appointment.status === "confirmed" && (
@@ -308,13 +308,13 @@ export default function ProviderDashboard() {
                 variant="outline"
                 onClick={() => setSelectedAppointmentForPrescription(appointment)}
               >
-                Prescribe
+                {t("dashboard.prescribe")}
               </Button>
               <Button
                 size="sm"
                 onClick={() => updateStatusMutation.mutate({ id: appointment.id, status: "completed" })}
               >
-                Complete
+                {t("dashboard.complete")}
               </Button>
             </>
           )}
@@ -450,7 +450,7 @@ export default function ProviderDashboard() {
                     <Card>
                       <CardContent className="p-12 text-center">
                         <CalendarIcon className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                        <p className="text-muted-foreground">No upcoming appointments</p>
+                        <p className="text-muted-foreground">{t("dashboard.no_upcoming")}</p>
                       </CardContent>
                     </Card>
                   )}
@@ -465,7 +465,7 @@ export default function ProviderDashboard() {
                     <Card>
                       <CardContent className="p-12 text-center">
                         <CheckCircle className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                        <p className="text-muted-foreground">No completed appointments yet</p>
+                        <p className="text-muted-foreground">{t("dashboard.no_completed_yet")}</p>
                       </CardContent>
                     </Card>
                   )}
@@ -480,7 +480,7 @@ export default function ProviderDashboard() {
                     <Card>
                       <CardContent className="p-12 text-center">
                         <X className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                        <p className="text-muted-foreground">No cancelled appointments</p>
+                        <p className="text-muted-foreground">{t("dashboard.no_cancelled")}</p>
                       </CardContent>
                     </Card>
                   )}
@@ -491,7 +491,7 @@ export default function ProviderDashboard() {
             <div className="space-y-6">
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-lg">Calendar</CardTitle>
+                  <CardTitle className="text-lg">{t("profile.select_date")}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <Calendar
@@ -505,19 +505,19 @@ export default function ProviderDashboard() {
 
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-lg">Earnings Summary</CardTitle>
+                  <CardTitle className="text-lg">{t("dashboard.earnings_summary")}</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground">This Week</span>
+                    <span className="text-muted-foreground">{t("dashboard.this_week")}</span>
                     <span className="font-semibold">${weeklyEarnings.toFixed(2)}</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground">Total Earned</span>
+                    <span className="text-muted-foreground">{t("dashboard.total_earned")}</span>
                     <span className="font-semibold">${totalEarnings.toFixed(2)}</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground">Pending Payment</span>
+                    <span className="text-muted-foreground">{t("dashboard.pending_payment")}</span>
                     <span className="font-semibold">
                       ${upcomingAppointments.reduce((sum, a) => sum + Number(a.totalAmount || 0), 0).toFixed(2)}
                     </span>
@@ -527,14 +527,14 @@ export default function ProviderDashboard() {
 
                   <Card>
                     <CardHeader>
-                      <CardTitle className="text-lg">Add Service with Custom Price</CardTitle>
+                      <CardTitle className="text-lg">{t("dashboard.add_service_custom")}</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
                       <div className="space-y-2">
-                        <Label>Select Sub-Service</Label>
+                        <Label>{t("dashboard.select_subservice")}</Label>
                         <Select onValueChange={setSelectedSubServiceId} value={selectedSubServiceId}>
                           <SelectTrigger>
-                            <SelectValue placeholder="Choose a sub-service" />
+                            <SelectValue placeholder={t("dashboard.choose_subservice")} />
                           </SelectTrigger>
                           <SelectContent>
                             {subServices?.map(sub => (
@@ -544,12 +544,12 @@ export default function ProviderDashboard() {
                         </Select>
                       </div>
                       <div className="space-y-2">
-                        <Label>Your Price ($)</Label>
+                        <Label>{t("dashboard.your_price")}</Label>
                         <Input 
                           type="number" 
                           value={servicePrice} 
                           onChange={(e) => setServicePrice(e.target.value)}
-                          placeholder="Enter your fee for this service"
+                          placeholder={t("dashboard.enter_fee")}
                         />
                       </div>
                       <Button 
@@ -557,26 +557,26 @@ export default function ProviderDashboard() {
                         disabled={!selectedSubServiceId || !servicePrice || addServiceMutation.isPending}
                         className="w-full"
                       >
-                        {addServiceMutation.isPending ? "Adding..." : "Add Service"}
+                        {addServiceMutation.isPending ? t("dashboard.adding") : t("dashboard.add_service_btn")}
                       </Button>
                     </CardContent>
                   </Card>
 
                   <Card>
                     <CardHeader>
-                      <CardTitle className="text-lg">Quick Actions</CardTitle>
+                      <CardTitle className="text-lg">{t("dashboard.quick_actions")}</CardTitle>
                     </CardHeader>
                 <CardContent className="space-y-2">
                   <Button variant="outline" className="w-full justify-start" asChild>
                     <Link href="/provider/availability">
                       <Clock className="h-4 w-4 mr-2" />
-                      Manage Availability
+                      {t("dashboard.manage_availability")}
                     </Link>
                   </Button>
                   <Button variant="outline" className="w-full justify-start" asChild>
                     <Link href="/provider/services">
                       <Settings className="h-4 w-4 mr-2" />
-                      Edit Services
+                      {t("dashboard.edit_services")}
                     </Link>
                   </Button>
                   <Button variant="outline" className="w-full justify-start" asChild>

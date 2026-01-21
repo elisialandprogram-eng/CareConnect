@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useParams, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
 import { Button } from "@/components/ui/button";
@@ -10,20 +11,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Calendar } from "@/components/ui/calendar";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Star,
-  MapPin,
-  Clock,
-  CheckCircle,
-  Video,
-  Home,
-  GraduationCap,
-  Award,
-  Languages,
-  Calendar as CalendarIcon,
-  ChevronRight,
-  Building2,
-} from "lucide-react";
+import { Star, MapPin, Clock, CheckCircle, Video, Home, GraduationCap, Award, Languages, Calendar as CalendarIcon, ChevronRight, Building2, X } from "lucide-react";
 import type { ProviderWithServices, Service, ReviewWithPatient } from "@shared/schema";
 import { useAuth } from "@/lib/auth";
 
@@ -439,12 +427,12 @@ export default function ProviderProfile() {
                 <CardHeader>
                   <CardTitle className="text-lg flex items-center gap-2">
                     <CalendarIcon className="h-5 w-5" />
-                    Book Appointment
+                    {t("profile.book_appointment")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
-                    <p className="text-sm font-medium">Visit Type</p>
+                    <p className="text-sm font-medium">{t("common.service_type")}</p>
                     <div className="grid grid-cols-2 gap-2">
                       <Button
                         variant={visitType === "online" ? "default" : "outline"}
@@ -453,7 +441,7 @@ export default function ProviderProfile() {
                         data-testid="button-visit-online"
                       >
                         <Video className="h-4 w-4 mr-2" />
-                        Online
+                        {t("profile.online_consultation")}
                       </Button>
                       <Button
                         variant={visitType === "clinic" ? "default" : "outline"}
@@ -462,7 +450,7 @@ export default function ProviderProfile() {
                         data-testid="button-visit-clinic"
                       >
                         <Building2 className="h-4 w-4 mr-2" />
-                        Clinic
+                        {t("profile.visit_clinic")}
                       </Button>
                       {provider.homeVisitFee && (
                         <Button
@@ -472,14 +460,14 @@ export default function ProviderProfile() {
                           data-testid="button-visit-home"
                         >
                           <Home className="h-4 w-4 mr-2" />
-                          Home Visit
+                          {t("profile.home_visit")}
                         </Button>
                       )}
                     </div>
                   </div>
 
                   <div className="space-y-2">
-                    <p className="text-sm font-medium">Select Date</p>
+                    <p className="text-sm font-medium">{t("profile.select_date")}</p>
                     <Calendar
                       mode="single"
                       selected={selectedDate}
@@ -491,7 +479,7 @@ export default function ProviderProfile() {
                   </div>
 
                   <div className="space-y-2">
-                    <p className="text-sm font-medium">Select Time Slots (Select multiple if needed)</p>
+                    <p className="text-sm font-medium">{t("profile.select_time")}</p>
                     <div className="grid grid-cols-3 gap-2">
                       {timeSlots.map((time) => {
                         const isSelected = selectedSessions.some(s => s.date.toISOString().split("T")[0] === (selectedDate?.toISOString().split("T")[0]) && s.time === time);
@@ -510,15 +498,14 @@ export default function ProviderProfile() {
                     </div>
                     {selectedSessions.length > 0 && (
                       <div className="mt-4 p-3 bg-muted rounded-md text-xs space-y-1">
-                        <p className="font-medium">Selected Sessions:</p>
+                        <p className="font-medium">{t("profile.selected_sessions")}</p>
                         {selectedSessions.map((s, i) => (
-                          <div key={i} className="flex justify-between">
+                          <div key={i} className="flex justify-between items-center">
                             <span>{s.date.toLocaleDateString()} at {s.time}</span>
                             <Button variant="ghost" size="icon" className="h-4 w-4" onClick={() => {
                               setSelectedSessions(selectedSessions.filter((_, idx) => idx !== i));
                             }}>
-                              <span className="sr-only">Remove</span>
-                              ×
+                              <X className="h-3 w-3" />
                             </Button>
                           </div>
                         ))}
@@ -528,7 +515,7 @@ export default function ProviderProfile() {
 
                   <div className="pt-4 border-t">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-muted-foreground">Per Consultation</span>
+                      <span className="text-muted-foreground">{t("profile.consultation_fee")}</span>
                       <span className="font-semibold">
                         ${visitType === "home" && provider.homeVisitFee
                           ? Number(provider.homeVisitFee).toFixed(0)
@@ -537,7 +524,7 @@ export default function ProviderProfile() {
                     </div>
                     {selectedSessions.length > 1 && (
                       <div className="flex items-center justify-between mb-4 text-primary font-bold">
-                        <span>Total ({selectedSessions.length} sessions)</span>
+                        <span>{t("profile.total_price")} ({selectedSessions.length} sessions)</span>
                         <span>
                           ${(selectedSessions.length * (visitType === "home" && provider.homeVisitFee
                             ? Number(provider.homeVisitFee)
@@ -552,7 +539,7 @@ export default function ProviderProfile() {
                       disabled={selectedSessions.length === 0}
                       data-testid="button-book-appointment"
                     >
-                      Book {selectedSessions.length > 1 ? `${selectedSessions.length} Sessions` : "Appointment"}
+                      {t("profile.book_now")}
                       <ChevronRight className="h-4 w-4 ml-2" />
                     </Button>
                   </div>

@@ -39,6 +39,8 @@ const resources = {
         select_service_type: "Select service type",
         find_a_provider: "Find a Provider",
         become_provider: "Become a Provider",
+        at: "at",
+        remove: "Remove",
       },
       auth: {
         signin_description: "Sign in to your account to manage your bookings",

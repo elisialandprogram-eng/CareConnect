@@ -42,13 +42,14 @@ import {
 import type { AppointmentWithDetails, Prescription, MedicalHistory } from "@shared/schema";
 
 const PrescriptionList = ({ patientId }: { patientId?: string }) => {
+  const { t } = useTranslation();
   const { data: prescriptions, isLoading } = useQuery<Prescription[]>({
     queryKey: [`/api/prescriptions/patient/${patientId}`],
     enabled: !!patientId,
   });
 
   if (isLoading) return <Skeleton className="h-32 w-full" />;
-  if (!prescriptions?.length) return <p className="text-muted-foreground text-center py-4">No prescriptions found.</p>;
+  if (!prescriptions?.length) return <p className="text-muted-foreground text-center py-4">{t("dashboard.no_prescriptions")}</p>;
 
   return (
     <div className="space-y-4">
@@ -60,12 +61,12 @@ const PrescriptionList = ({ patientId }: { patientId?: string }) => {
           {p.attachments && p.attachments.length > 0 && (
             <div className="flex gap-2 mt-2">
               {p.attachments.map((url, idx) => (
-                <Button key={idx} variant="outline" size="sm" className="h-7 text-xs" asChild>
-                  <a href={url} target="_blank" rel="noopener noreferrer">
-                    <FileText className="h-3 w-3 mr-1" />
-                    View Document
-                  </a>
-                </Button>
+                  <Button key={idx} variant="outline" size="sm" className="h-7 text-xs" asChild>
+                    <a href={url} target="_blank" rel="noopener noreferrer">
+                      <FileText className="h-3 w-3 mr-1" />
+                      {t("dashboard.view_document")}
+                    </a>
+                  </Button>
               ))}
             </div>
           )}
@@ -76,13 +77,14 @@ const PrescriptionList = ({ patientId }: { patientId?: string }) => {
 };
 
 const HistoryList = ({ patientId }: { patientId?: string }) => {
+  const { t } = useTranslation();
   const { data: history, isLoading } = useQuery<MedicalHistory[]>({
     queryKey: [`/api/medical-history/patient/${patientId}`],
     enabled: !!patientId,
   });
 
   if (isLoading) return <Skeleton className="h-32 w-full" />;
-  if (!history?.length) return <p className="text-muted-foreground text-center py-4">No medical history found.</p>;
+  if (!history?.length) return <p className="text-muted-foreground text-center py-4">{t("dashboard.no_history")}</p>;
 
   return (
     <div className="space-y-4">
@@ -102,7 +104,7 @@ const HistoryList = ({ patientId }: { patientId?: string }) => {
                   <Button key={idx} variant="outline" size="sm" className="h-7 text-xs" asChild>
                     <a href={url} target="_blank" rel="noopener noreferrer">
                       <FileText className="h-3 w-3 mr-1" />
-                      View Lab Result
+                      {t("dashboard.view_lab_result")}
                     </a>
                   </Button>
                 ))}
@@ -237,7 +239,7 @@ export default function PatientDashboard() {
                 ) : (
                   <Home className="h-4 w-4" />
                 )}
-                <span>{appointment.visitType === "online" ? "Online" : "Home Visit"}</span>
+                <span>{appointment.visitType === "online" ? t("profile.online_consultation") : t("profile.home_visit")}</span>
               </div>
             </div>
 
@@ -245,30 +247,30 @@ export default function PatientDashboard() {
               <div className="flex gap-2 mt-4">
                 <Button size="sm" variant="outline" asChild>
                   <Link href={`/provider/${appointment.providerId}`}>
-                    View Provider
+                    {t("dashboard.view_provider")}
                   </Link>
                 </Button>
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
                     <Button size="sm" variant="ghost" className="text-destructive">
                       <X className="h-4 w-4 mr-1" />
-                      Cancel
+                      {t("dashboard.cancel")}
                     </Button>
                   </AlertDialogTrigger>
                   <AlertDialogContent>
                     <AlertDialogHeader>
-                      <AlertDialogTitle>Cancel Appointment?</AlertDialogTitle>
+                      <AlertDialogTitle>{t("dashboard.cancel_confirm_title")}</AlertDialogTitle>
                       <AlertDialogDescription>
-                        Are you sure you want to cancel this appointment? This action cannot be undone.
+                        {t("dashboard.cancel_confirm_desc")}
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                      <AlertDialogCancel>Keep Appointment</AlertDialogCancel>
+                      <AlertDialogCancel>{t("dashboard.keep_appointment")}</AlertDialogCancel>
                       <AlertDialogAction
                         onClick={() => cancelMutation.mutate(appointment.id)}
                         className="bg-destructive text-destructive-foreground"
                       >
-                        Cancel Appointment
+                        {t("dashboard.cancel")}
                       </AlertDialogAction>
                     </AlertDialogFooter>
                   </AlertDialogContent>
@@ -281,7 +283,7 @@ export default function PatientDashboard() {
                 <Button size="sm" variant="outline" asChild>
                   <Link href={`/review/${appointment.id}`}>
                     <Star className="h-4 w-4 mr-1" />
-                    Leave Review
+                    {t("dashboard.leave_review")}
                   </Link>
                 </Button>
               </div>
@@ -306,7 +308,7 @@ export default function PatientDashboard() {
             <Button asChild data-testid="button-new-appointment">
               <Link href="/providers">
                 <Plus className="h-4 w-4 mr-2" />
-                Book New Appointment
+                {t("dashboard.book_new")}
               </Link>
             </Button>
           </div>
@@ -320,7 +322,7 @@ export default function PatientDashboard() {
                       <Calendar className="h-8 w-8 text-primary" />
                     </div>
                     <div>
-                      <p className="text-sm text-muted-foreground">Your Next Appointment</p>
+                      <p className="text-sm text-muted-foreground">{t("dashboard.next_appointment")}</p>
                       <h3 className="text-xl font-semibold">
                         {nextAppointment.provider?.user?.firstName} {nextAppointment.provider?.user?.lastName}
                       </h3>
@@ -332,21 +334,21 @@ export default function PatientDashboard() {
 
                   <div className="flex flex-wrap gap-6">
                     <div>
-                      <p className="text-sm text-muted-foreground">Date & Time</p>
+                      <p className="text-sm text-muted-foreground">{t("profile.select_date")}</p>
                       <p className="font-medium">{formatDate(nextAppointment.date)} at {nextAppointment.startTime}</p>
                     </div>
                     <div>
-                      <p className="text-sm text-muted-foreground">Visit Type</p>
+                      <p className="text-sm text-muted-foreground">{t("common.service_type")}</p>
                       <p className="font-medium flex items-center gap-1">
                         {nextAppointment.visitType === "online" ? (
                           <>
                             <Video className="h-4 w-4" />
-                            Online Consultation
+                            {t("profile.online_consultation")}
                           </>
                         ) : (
                           <>
                             <Home className="h-4 w-4" />
-                            Home Visit
+                            {t("profile.home_visit")}
                           </>
                         )}
                       </p>
@@ -355,7 +357,7 @@ export default function PatientDashboard() {
 
                   <Button asChild>
                     <Link href={`/provider/${nextAppointment.providerId}`}>
-                      View Details
+                      {t("dashboard.view_details")}
                       <ChevronRight className="h-4 w-4 ml-2" />
                     </Link>
                   </Button>
@@ -373,7 +375,7 @@ export default function PatientDashboard() {
                   </div>
                   <div>
                     <p className="text-2xl font-bold">{upcomingAppointments.length}</p>
-                    <p className="text-sm text-muted-foreground">Upcoming</p>
+                    <p className="text-sm text-muted-foreground">{t("dashboard.upcoming")}</p>
                   </div>
                 </div>
               </CardContent>
@@ -389,7 +391,7 @@ export default function PatientDashboard() {
                     <p className="text-2xl font-bold">
                       {pastAppointments.filter(a => a.status === "completed").length}
                     </p>
-                    <p className="text-sm text-muted-foreground">Completed</p>
+                    <p className="text-sm text-muted-foreground">{t("dashboard.completed")}</p>
                   </div>
                 </div>
               </CardContent>
@@ -403,7 +405,7 @@ export default function PatientDashboard() {
                   </div>
                   <div>
                     <p className="text-2xl font-bold">{upcomingAppointments.filter(a => a.status === 'confirmed').length}</p>
-                    <p className="text-sm text-muted-foreground">Active</p>
+                    <p className="text-sm text-muted-foreground">{t("dashboard.active")}</p>
                   </div>
                 </div>
               </CardContent>
@@ -518,33 +520,33 @@ export default function PatientDashboard() {
                         .map((a) => {
                           const payment = a.payment!;
                           return (
-                          <div className="flex items-center justify-between py-4 border-b last:border-0" data-testid={`row-payment-${payment.id}`}>
-                            <div className="flex items-center gap-4">
-                              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                                {(payment as any).paymentMethod === 'crypto' ? <Bitcoin className="h-5 w-5" /> : 
-                                 (payment as any).paymentMethod === 'card' ? <CreditCard className="h-5 w-5" /> :
-                                 (payment as any).paymentMethod === 'bank_transfer' ? <Building2 className="h-5 w-5" /> :
-                                 <Banknote className="h-5 w-5" />}
-                              </div>
-                              <div>
-                                <p className="font-medium">Payment #{String(payment.id).slice(0, 8)}</p>
-                                <p className="text-sm text-muted-foreground">
-                                  {payment.createdAt ? new Date(payment.createdAt).toLocaleDateString() : 'N/A'} • {
-                                    (payment as any).paymentMethod === 'crypto' ? 'Cryptocurrency' : 
-                                    (payment as any).paymentMethod === 'card' ? 'Credit Card' :
-                                    (payment as any).paymentMethod === 'bank_transfer' ? 'Bank Transfer' :
-                                    'Cash'
-                                  }
-                                </p>
-                              </div>
-                            </div>
-                            <div className="text-right">
-                              <p className="font-semibold">${Number(payment.amount).toFixed(2)}</p>
-                              <Badge variant={payment.status === 'completed' ? 'default' : 'outline'}>
-                                {payment.status}
-                              </Badge>
-                            </div>
-                          </div>
+          <div className="flex items-center justify-between py-4 border-b last:border-0" data-testid={`row-payment-${payment.id}`}>
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                {(payment as any).paymentMethod === 'crypto' ? <Bitcoin className="h-5 w-5" /> : 
+                 (payment as any).paymentMethod === 'card' ? <CreditCard className="h-5 w-5" /> :
+                 (payment as any).paymentMethod === 'bank_transfer' ? <Building2 className="h-5 w-5" /> :
+                 <Banknote className="h-5 w-5" />}
+              </div>
+              <div>
+                <p className="font-medium">{t("dashboard.payment_id")} #{String(payment.id).slice(0, 8)}</p>
+                <p className="text-sm text-muted-foreground">
+                  {payment.createdAt ? new Date(payment.createdAt).toLocaleDateString() : 'N/A'} • {
+                    (payment as any).paymentMethod === 'crypto' ? t("dashboard.cryptocurrency") : 
+                    (payment as any).paymentMethod === 'card' ? t("dashboard.credit_card") :
+                    (payment as any).paymentMethod === 'bank_transfer' ? t("dashboard.bank_transfer") :
+                    t("dashboard.cash")
+                  }
+                </p>
+              </div>
+            </div>
+            <div className="text-right">
+              <p className="font-semibold">${Number(payment.amount).toFixed(2)}</p>
+              <Badge variant={payment.status === 'completed' ? 'default' : 'outline'}>
+                {payment.status}
+              </Badge>
+            </div>
+          </div>
                           );
                         })}
                     </div>
