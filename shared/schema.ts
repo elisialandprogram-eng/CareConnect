@@ -77,6 +77,20 @@ export const prescriptions = pgTable("prescriptions", {
   isActive: boolean("is_active").default(true),
 });
 
+// Medical Practitioners
+export const medicalPractitioners = pgTable("medical_practitioners", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  providerId: varchar("provider_id").notNull().references(() => providers.id),
+  name: text("name").notNull(),
+  specialization: text("specialization").notNull(),
+  experience: integer("experience").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertMedicalPractitionerSchema = createInsertSchema(medicalPractitioners).omit({ id: true, createdAt: true });
+export type MedicalPractitioner = typeof medicalPractitioners.$inferSelect;
+export type InsertMedicalPractitioner = z.infer<typeof insertMedicalPractitionerSchema>;
+
 // Medical History
 export const medicalHistory = pgTable("medical_history", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -551,21 +565,7 @@ export const chatMessages = pgTable("chat_messages", {
 });
 
 // Medical Practitioners for Provider Groups
-export const medicalPractitioners = pgTable("medical_practitioners", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  providerId: varchar("provider_id").notNull().references(() => providers.id),
-  name: text("name").notNull(),
-  dob: text("dob").notNull(),
-  originCountry: text("origin_country").notNull(),
-  registrationNumber: text("registration_number").notNull(),
-  identityNumber: text("identity_number").notNull(),
-  mobileNumber: text("mobile_number").notNull(),
-  createdAt: timestamp("created_at").defaultNow(),
-});
-
-export const insertMedicalPractitionerSchema = createInsertSchema(medicalPractitioners).omit({ id: true, createdAt: true });
-export type MedicalPractitioner = typeof medicalPractitioners.$inferSelect;
-export type InsertMedicalPractitioner = z.infer<typeof insertMedicalPractitionerSchema>;
+// Redundant definition removed
 
 // Patient Consent records
 export const patientConsents = pgTable("patient_consents", {
@@ -599,25 +599,6 @@ export const patientConsentsRelations = relations(patientConsents, ({ one }) => 
 export const usersRelations = relations(users, ({ many }) => ({
   consents: many(patientConsents),
   // ... existing relations
-}));
-export const medicalPractitionersRelations = relations(medicalPractitioners, ({ one }) => ({
-  provider: one(providers, {
-    fields: [medicalPractitioners.providerId],
-    references: [providers.id],
-  }),
-}));
-
-// Add to providersRelations
-export const providersRelations = relations(providers, ({ one, many }) => ({
-  user: one(users, {
-    fields: [providers.userId],
-    references: [users.id],
-  }),
-  services: many(services),
-  timeSlots: many(timeSlots),
-  appointments: many(appointments),
-  reviews: many(reviews),
-  practitioners: many(medicalPractitioners),
 }));
 
 export const servicesRelations = relations(services, ({ one, many }) => ({
