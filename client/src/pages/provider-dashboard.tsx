@@ -355,12 +355,20 @@ export default function ProviderDashboard() {
                 {t("dashboard.provider_desc")}
               </p>
             </div>
-            <Button variant="outline" asChild data-testid="button-settings">
-              <Link href="/provider/settings">
-                <Settings className="h-4 w-4 mr-2" />
-                {t("dashboard.settings")}
-              </Link>
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              <Button variant="outline" asChild data-testid="button-view-profile">
+                <Link href={`/provider/${providerData?.id}`}>
+                  <FileText className="h-4 w-4 mr-2" />
+                  View Public Profile
+                </Link>
+              </Button>
+              <Button variant="outline" asChild data-testid="button-settings">
+                <Link href="/provider/settings">
+                  <Settings className="h-4 w-4 mr-2" />
+                  {t("dashboard.settings")}
+                </Link>
+              </Button>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
