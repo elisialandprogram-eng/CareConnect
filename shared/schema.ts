@@ -1,6 +1,5 @@
 import { sql } from "drizzle-orm";
 import { pgTable, text, varchar, integer, decimal, boolean, timestamp, pgEnum, serial } from "drizzle-orm/pg-core";
-import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -18,91 +17,7 @@ export const contentTypeEnum = pgEnum("content_type", ["homepage", "about", "ter
 export const announcementTypeEnum = pgEnum("announcement_type", ["info", "warning", "success", "error"]);
 export const medicalHistoryTypeEnum = pgEnum("medical_history_type", ["diagnosis", "procedure", "lab_result", "vaccination", "allergy"]);
 
-// Service Categories & Sub-Services
-export const subServices = pgTable("sub_services", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  category: providerTypeEnum("category").notNull(),
-  name: text("name").notNull(),
-  description: text("description"),
-  platformFee: decimal("platform_fee", { precision: 10, scale: 2 }).default("0.00"),
-  isActive: boolean("is_active").default(true),
-  createdAt: timestamp("created_at").defaultNow(),
-}, (table) => ({
-  unq: sql`UNIQUE(${table.name}, ${table.category})`
-}));
-
-export const insertSubServiceSchema = createInsertSchema(subServices).omit({ id: true, createdAt: true });
-export type SubService = typeof subServices.$inferSelect;
-export type InsertSubService = z.infer<typeof insertSubServiceSchema>;
-
-// Real-time Chat Tables
-export const realtimeConversations = pgTable("realtime_conversations", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  participant1Id: varchar("participant1_id").notNull().references(() => users.id),
-  participant2Id: varchar("participant2_id").notNull().references(() => users.id),
-  lastMessage: text("last_message"),
-  lastMessageAt: timestamp("last_message_at").defaultNow(),
-  createdAt: timestamp("created_at").defaultNow(),
-});
-
-export const realtimeMessages = pgTable("realtime_messages", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  conversationId: varchar("conversation_id").notNull().references(() => realtimeConversations.id),
-  senderId: varchar("sender_id").notNull().references(() => users.id),
-  content: text("content").notNull(),
-  isRead: boolean("is_read").default(false),
-  createdAt: timestamp("created_at").defaultNow(),
-});
-
-export const insertRealtimeConversationSchema = createInsertSchema(realtimeConversations).omit({ id: true, createdAt: true });
-export const insertRealtimeMessageSchema = createInsertSchema(realtimeMessages).omit({ id: true, createdAt: true });
-
-export type RealtimeConversation = typeof realtimeConversations.$inferSelect;
-export type RealtimeMessage = typeof realtimeMessages.$inferSelect;
-
-// Prescriptions
-export const prescriptions = pgTable("prescriptions", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  appointmentId: varchar("appointment_id").notNull().references(() => appointments.id),
-  patientId: varchar("patient_id").notNull().references(() => users.id),
-  providerId: varchar("provider_id").notNull().references(() => providers.id),
-  medicationName: text("medication_name").notNull(),
-  dosage: text("dosage").notNull(),
-  frequency: text("frequency").notNull(),
-  duration: text("duration").notNull(),
-  instructions: text("instructions"),
-  attachments: text("attachments").array(),
-  issuedAt: timestamp("issued_at").defaultNow(),
-  expiresAt: timestamp("expires_at"),
-  isActive: boolean("is_active").default(true),
-});
-
-// Medical Practitioners
-export const medicalPractitioners = pgTable("medical_practitioners", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  providerId: varchar("provider_id").notNull().references(() => providers.id),
-  name: text("name").notNull(),
-  specialization: text("specialization").notNull(),
-  experience: integer("experience").default(0),
-  createdAt: timestamp("created_at").defaultNow(),
-});
-
-export const insertMedicalPractitionerSchema = createInsertSchema(medicalPractitioners).omit({ id: true, createdAt: true });
-export type MedicalPractitioner = typeof medicalPractitioners.$inferSelect;
-export type InsertMedicalPractitioner = z.infer<typeof insertMedicalPractitionerSchema>;
-export const medicalHistory = pgTable("medical_history", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  patientId: varchar("patient_id").notNull().references(() => users.id),
-  providerId: varchar("provider_id").references(() => providers.id),
-  type: medicalHistoryTypeEnum("type").notNull(),
-  title: text("title").notNull(),
-  description: text("description"),
-  date: timestamp("date").notNull(),
-  attachments: text("attachments").array(),
-  createdAt: timestamp("created_at").defaultNow(),
-});
-
-// Users table
+// Tables
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   email: text("email").notNull().unique(),
@@ -121,7 +36,6 @@ export const users = pgTable("users", {
   socialNumber: text("social_number"),
   emergencyContactName: text("emergency_contact_name"),
   emergencyContactPhone: text("emergency_contact_phone"),
-  // Medical Information
   bloodGroup: text("blood_group"),
   knownAllergies: text("known_allergies"),
   medicalConditions: text("medical_conditions"),
@@ -140,12 +54,11 @@ export const users = pgTable("users", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-// Provider profiles table
 export const providers = pgTable("providers", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull().references(() => users.id),
   providerType: text("provider_type").notNull().default("doctor"),
-  professionalTitle: text("professional_title"), // Dr., RN, etc.
+  professionalTitle: text("professional_title"),
   specialization: text("specialization").notNull(),
   secondarySpecialties: text("secondary_specialties").array().notNull().default(sql`'{}'::text[]`),
   bio: text("bio"),
@@ -153,26 +66,18 @@ export const providers = pgTable("providers", {
   education: text("education"),
   certifications: text("certifications").array().notNull().default(sql`'{}'::text[]`),
   languages: text("languages").array().notNull().default(sql`'{}'::text[]`),
-  
-  // Professional Credentials
   licenseNumber: text("license_number"),
   licensingAuthority: text("licensing_authority"),
   licenseExpiryDate: timestamp("license_expiry_date"),
   licenseDocumentUrl: text("license_document_url"),
   nationalProviderId: text("national_provider_id"),
-
-  // Experience & Education
-  qualifications: text("qualifications"), // Degree, Institution, Year
-
-  // Availability & Scheduling
+  qualifications: text("qualifications"),
   availableDays: text("available_days").array().notNull().default(sql`'{}'::text[]`),
-  availableTimeSlots: text("available_time_slots").array().notNull().default(sql`'{}'::text[]`), // Specific time slots
+  availableTimeSlots: text("available_time_slots").array().notNull().default(sql`'{}'::text[]`),
   workingHoursStart: text("working_hours_start").default("09:00"),
   workingHoursEnd: text("working_hours_end").default("18:00"),
   maxPatientsPerDay: integer("max_patients_per_day"),
   timezone: text("timezone"),
-
-  // Service Area
   primaryServiceLocation: text("primary_service_location"),
   city: text("city"),
   state: text("state"),
@@ -180,38 +85,27 @@ export const providers = pgTable("providers", {
   serviceRadiusKm: integer("service_radius_km"),
   multipleServiceAreas: boolean("multiple_service_areas").default(false),
   googleMapsLocation: text("google_maps_location"),
-
-  // Pricing & Payment
   consultationFee: decimal("consultation_fee", { precision: 10, scale: 2 }).notNull(),
   homeVisitFee: decimal("home_visit_fee", { precision: 10, scale: 2 }),
   telemedicineFee: decimal("telemedicine_fee", { precision: 10, scale: 2 }),
   emergencyCareFee: decimal("emergency_care_fee", { precision: 10, scale: 2 }),
   insuranceAccepted: text("insurance_accepted").array().notNull().default(sql`'{}'::text[]`),
   currency: text("currency").default("USD"),
-  paymentMethods: text("payment_methods").array().notNull().default(sql`'{}'::text[]`), // Cash, Card, Online
-
-  // Compliance & Verification
+  paymentMethods: text("payment_methods").array().notNull().default(sql`'{}'::text[]`),
   backgroundCheckStatus: text("background_check_status").default("pending"),
   identityVerificationStatus: text("identity_verification_status").default("pending"),
   malpracticeCoverage: text("malpractice_coverage"),
   complianceApprovalStatus: text("compliance_approval_status").default("pending"),
-
-  // Account & Security
   twoFactorEnabled: boolean("two_factor_enabled").default(false),
-  preferredContactMethod: text("preferred_contact_method"), // Email, Phone, etc.
-  
-  // Legal Consents
+  preferredContactMethod: text("preferred_contact_method"),
   providerAgreementAccepted: boolean("provider_agreement_accepted").default(false),
   dataProcessingAgreementAccepted: boolean("data_processing_agreement_accepted").default(false),
   telemedicineAgreementAccepted: boolean("telemedicine_agreement_accepted").default(false),
   codeOfConductAccepted: boolean("code_of_conduct_accepted").default(false),
-
-  // Custom Fields
   affiliatedHospital: text("affiliated_hospital"),
   onCallAvailability: boolean("on_call_availability").default(false),
   emergencyContact: text("emergency_contact"),
   internalNotes: text("internal_notes"),
-
   isVerified: boolean("is_verified").default(false),
   isActive: boolean("is_active").default(true),
   status: text("status").notNull().default("pending"),
@@ -222,40 +116,82 @@ export const providers = pgTable("providers", {
   latitude: decimal("latitude", { precision: 10, scale: 8 }),
   longitude: decimal("longitude", { precision: 11, scale: 8 }),
   gallery: text("gallery").array().notNull().default(sql`'{}'::text[]`),
-  practitionerData: text("practitioner_data"), // To store stringified medical practitioners if needed
+  practitionerData: text("practitioner_data"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-// Services offered by providers
+export const serviceCategories = pgTable("service_categories", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  description: text("description"),
+  icon: text("icon"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const subServices = pgTable("sub_services", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  category: providerTypeEnum("category").notNull(),
+  name: text("name").notNull(),
+  description: text("description"),
+  platformFee: decimal("platform_fee", { precision: 10, scale: 2 }).default("0.00"),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => ({
+  unq: sql`UNIQUE(${table.name}, ${table.category})`
+}));
+
 export const services = pgTable("services", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   providerId: varchar("provider_id").notNull().references(() => providers.id),
-  subServiceId: varchar("sub_service_id").references(() => subServices.id), // Link to central sub-service
+  subServiceId: varchar("sub_service_id").references(() => subServices.id),
   name: text("name").notNull(),
   description: text("description"),
-  duration: integer("duration").notNull(), // in minutes
+  duration: integer("duration").notNull(),
   price: decimal("price", { precision: 10, scale: 2 }).notNull(),
-  adminPriceOverride: decimal("admin_price_override", { precision: 10, scale: 2 }), // Admin override
+  adminPriceOverride: decimal("admin_price_override", { precision: 10, scale: 2 }),
   isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-// Time slots for availability
+export const practitioners = pgTable("practitioners", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  providerId: varchar("provider_id").notNull().references(() => providers.id),
+  name: text("name").notNull(),
+  title: text("title"),
+  specialization: text("specialization"),
+  bio: text("bio"),
+  languages: text("languages").array().notNull().default(sql`'{}'::text[]`),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const servicePractitioners = pgTable("service_practitioners", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  serviceId: varchar("service_id").notNull().references(() => services.id),
+  practitionerId: varchar("practitioner_id").notNull().references(() => practitioners.id),
+  fee: decimal("fee", { precision: 10, scale: 2 }).notNull(),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 export const timeSlots = pgTable("time_slots", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   providerId: varchar("provider_id").notNull().references(() => providers.id),
-  date: text("date").notNull(), // YYYY-MM-DD format
-  startTime: text("start_time").notNull(), // HH:MM format
-  endTime: text("end_time").notNull(), // HH:MM format
+  date: text("date").notNull(),
+  startTime: text("start_time").notNull(),
+  endTime: text("end_time").notNull(),
   isBooked: boolean("is_booked").default(false),
   isBlocked: boolean("is_blocked").default(false),
 });
 
-// Appointments
 export const appointments = pgTable("appointments", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   patientId: varchar("patient_id").notNull().references(() => users.id),
   providerId: varchar("provider_id").notNull().references(() => providers.id),
   serviceId: varchar("service_id").references(() => services.id),
+  practitionerId: varchar("practitioner_id").references(() => practitioners.id),
   timeSlotId: varchar("time_slot_id").references(() => timeSlots.id),
   date: text("date").notNull(),
   startTime: text("start_time").notNull(),
@@ -272,18 +208,16 @@ export const appointments = pgTable("appointments", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-// Reviews
 export const reviews = pgTable("reviews", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   appointmentId: varchar("appointment_id").notNull().references(() => appointments.id),
   patientId: varchar("patient_id").notNull().references(() => users.id),
   providerId: varchar("provider_id").notNull().references(() => providers.id),
-  rating: integer("rating").notNull(), // 1-5
+  rating: integer("rating").notNull(),
   comment: text("comment"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-// Payments
 export const payments = pgTable("payments", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   appointmentId: varchar("appointment_id").notNull().references(() => appointments.id),
@@ -297,7 +231,25 @@ export const payments = pgTable("payments", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-// AI Chat Integration Tables
+export const chatConversations = pgTable("chat_conversations", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  patientId: varchar("patient_id").notNull().references(() => users.id),
+  providerId: varchar("provider_id").notNull().references(() => users.id),
+  lastMessage: text("last_message"),
+  lastMessageAt: timestamp("last_message_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const chatMessages = pgTable("chat_messages", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  conversationId: varchar("conversation_id").notNull().references(() => chatConversations.id),
+  senderId: varchar("sender_id").notNull().references(() => users.id),
+  content: text("content").notNull(),
+  isRead: boolean("is_read").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export const conversations = pgTable("conversations", {
   id: serial("id").primaryKey(),
   userId: varchar("user_id").references(() => users.id),
@@ -313,7 +265,6 @@ export const messages = pgTable("messages", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-// Refresh tokens for JWT
 export const refreshTokens = pgTable("refresh_tokens", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull().references(() => users.id),
@@ -322,24 +273,22 @@ export const refreshTokens = pgTable("refresh_tokens", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-// Promo codes for discounts
 export const promoCodes = pgTable("promo_codes", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   code: text("code").notNull().unique(),
   description: text("description"),
-  discountType: text("discount_type").notNull(), // "percentage" or "fixed"
+  discountType: text("discount_type").notNull(),
   discountValue: decimal("discount_value", { precision: 10, scale: 2 }).notNull(),
   maxUses: integer("max_uses"),
   usedCount: integer("used_count").default(0),
   validFrom: timestamp("valid_from").notNull(),
   validUntil: timestamp("valid_until").notNull(),
   isActive: boolean("is_active").default(true),
-  applicableProviders: text("applicable_providers").array(), // null means all providers
+  applicableProviders: text("applicable_providers").array(),
   minAmount: decimal("min_amount", { precision: 10, scale: 2 }),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-// Provider pricing overrides set by admin
 export const providerPricingOverrides = pgTable("provider_pricing_overrides", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   providerId: varchar("provider_id").notNull().references(() => providers.id),
@@ -352,7 +301,6 @@ export const providerPricingOverrides = pgTable("provider_pricing_overrides", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-// Audit logs for tracking admin actions
 export const auditLogs = pgTable("audit_logs", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").references(() => users.id),
@@ -365,7 +313,6 @@ export const auditLogs = pgTable("audit_logs", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-// Support tickets
 export const supportTickets = pgTable("support_tickets", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").references(() => users.id),
@@ -383,7 +330,6 @@ export const supportTickets = pgTable("support_tickets", {
   resolvedAt: timestamp("resolved_at"),
 });
 
-// Ticket messages
 export const ticketMessages = pgTable("ticket_messages", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   ticketId: varchar("ticket_id").notNull().references(() => supportTickets.id),
@@ -393,7 +339,6 @@ export const ticketMessages = pgTable("ticket_messages", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-// Content blocks for CMS
 export const contentBlocks = pgTable("content_blocks", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   key: text("key").notNull().unique(),
@@ -405,7 +350,6 @@ export const contentBlocks = pgTable("content_blocks", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-// FAQs
 export const faqs = pgTable("faqs", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   question: text("question").notNull(),
@@ -417,7 +361,6 @@ export const faqs = pgTable("faqs", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-// Blog posts
 export const blogPosts = pgTable("blog_posts", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   authorId: varchar("author_id").notNull().references(() => users.id),
@@ -433,7 +376,6 @@ export const blogPosts = pgTable("blog_posts", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-// Announcements/banners
 export const announcements = pgTable("announcements", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   title: text("title").notNull(),
@@ -446,7 +388,6 @@ export const announcements = pgTable("announcements", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-// Email templates
 export const emailTemplates = pgTable("email_templates", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   name: text("name").notNull().unique(),
@@ -458,349 +399,147 @@ export const emailTemplates = pgTable("email_templates", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-// Notification queue
 export const notificationQueue = pgTable("notification_queue", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar("user_id").references(() => users.id),
-  templateId: varchar("template_id").references(() => emailTemplates.id),
-  channel: text("channel").notNull().default("email"),
-  recipient: text("recipient").notNull(),
-  subject: text("subject"),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  type: text("type").notNull(),
+  subject: text("subject").notNull(),
   body: text("body").notNull(),
   status: text("status").notNull().default("pending"),
   sentAt: timestamp("sent_at"),
-  error: text("error"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-// Platform settings
 export const platformSettings = pgTable("platform_settings", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   key: text("key").notNull().unique(),
   value: text("value").notNull(),
   category: text("category").notNull(),
-  description: text("description"),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-// Tax settings table
-export const taxSettings = pgTable("tax_settings", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  country: text("country").notNull().unique(),
-  taxPercentage: decimal("tax_percentage", { precision: 5, scale: 2 }).notNull().default("0.00"),
-  isActive: boolean("is_active").default(true),
-  updatedAt: timestamp("updated_at").defaultNow(),
-});
-
-export const insertTaxSettingSchema = createInsertSchema(taxSettings).omit({ id: true, updatedAt: true });
-export type TaxSetting = typeof taxSettings.$inferSelect;
-export type InsertTaxSetting = z.infer<typeof insertTaxSettingSchema>;
-
-// Service categories
-export const serviceCategories = pgTable("service_categories", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  name: text("name").notNull(),
-  description: text("description"),
-  icon: text("icon"),
-  sortOrder: integer("sort_order").default(0),
-  isActive: boolean("is_active").default(true),
-  createdAt: timestamp("created_at").defaultNow(),
-});
-
-// Locations/cities
 export const locations = pgTable("locations", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   name: text("name").notNull(),
+  address: text("address").notNull(),
+  city: text("city").notNull(),
+  state: text("state").notNull(),
   country: text("country").notNull(),
-  state: text("state"),
-  timezone: text("timezone"),
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-// Daily metrics for analytics
 export const dailyMetrics = pgTable("daily_metrics", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   date: text("date").notNull().unique(),
-  totalUsers: integer("total_users").default(0),
   newUsers: integer("new_users").default(0),
-  totalProviders: integer("total_providers").default(0),
   newProviders: integer("new_providers").default(0),
-  totalBookings: integer("total_bookings").default(0),
-  completedBookings: integer("completed_bookings").default(0),
-  cancelledBookings: integer("cancelled_bookings").default(0),
-  totalRevenue: decimal("total_revenue", { precision: 10, scale: 2 }).default("0"),
+  totalAppointments: integer("total_appointments").default(0),
+  completedAppointments: integer("completed_appointments").default(0),
+  revenue: decimal("revenue", { precision: 12, scale: 2 }).default("0.00"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-// User Notifications
+export const prescriptions = pgTable("prescriptions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  appointmentId: varchar("appointment_id").notNull().references(() => appointments.id),
+  patientId: varchar("patient_id").notNull().references(() => users.id),
+  providerId: varchar("provider_id").notNull().references(() => providers.id),
+  medicationName: text("medication_name").notNull(),
+  dosage: text("dosage").notNull(),
+  frequency: text("frequency").notNull(),
+  duration: text("duration").notNull(),
+  instructions: text("instructions"),
+  attachments: text("attachments").array(),
+  issuedAt: timestamp("issued_at").defaultNow(),
+  expiresAt: timestamp("expires_at"),
+  isActive: boolean("is_active").default(true),
+});
+
+export const medicalHistory = pgTable("medical_history", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  patientId: varchar("patient_id").notNull().references(() => users.id),
+  providerId: varchar("provider_id").references(() => providers.id),
+  type: medicalHistoryTypeEnum("type").notNull(),
+  title: text("title").notNull(),
+  description: text("description"),
+  date: timestamp("date").notNull(),
+  attachments: text("attachments").array(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export const userNotifications = pgTable("user_notifications", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull().references(() => users.id),
   title: text("title").notNull(),
   message: text("message").notNull(),
-  type: text("type").notNull().default("info"), // "info", "appointment", "system"
   isRead: boolean("is_read").default(false),
+  type: text("type"),
+  data: text("data"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-// Conversations (Enhanced for Patient-Provider)
-export const chatConversations = pgTable("chat_conversations", {
+export const realtimeConversations = pgTable("realtime_conversations", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  patientId: varchar("patient_id").notNull().references(() => users.id),
-  providerId: varchar("provider_id").notNull().references(() => providers.id),
+  participant1Id: varchar("participant1_id").notNull().references(() => users.id),
+  participant2Id: varchar("participant2_id").notNull().references(() => users.id),
   lastMessage: text("last_message"),
-  updatedAt: timestamp("updated_at").defaultNow(),
+  lastMessageAt: timestamp("last_message_at").defaultNow(),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-export const chatMessages = pgTable("chat_messages", {
+export const realtimeMessages = pgTable("realtime_messages", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  conversationId: varchar("conversation_id").notNull().references(() => chatConversations.id),
+  conversationId: varchar("conversation_id").notNull().references(() => realtimeConversations.id),
   senderId: varchar("sender_id").notNull().references(() => users.id),
   content: text("content").notNull(),
   isRead: boolean("is_read").default(false),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-// Medical Practitioners for Provider Groups
-// Redundant definition removed
+export const taxSettings = pgTable("tax_settings", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  country: text("country").notNull(),
+  taxName: text("tax_name").notNull(),
+  taxRate: decimal("tax_rate", { precision: 5, scale: 2 }).notNull(),
+  isActive: boolean("is_active").default(true),
+});
 
-// Patient Consent records
 export const patientConsents = pgTable("patient_consents", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull().references(() => users.id),
-  consentTextVersion: text("consent_text_version").notNull(),
-  ipAddress: text("ip_address").notNull(),
+  consentType: text("consent_type").notNull(),
+  isAccepted: boolean("is_accepted").notNull(),
+  ipAddress: text("ip_address"),
   userAgent: text("user_agent"),
-  language: text("language").notNull().default("en"),
-  consentedAt: timestamp("consented_at").defaultNow().notNull(),
-  treatmentConsent: boolean("treatment_consent").notNull().default(false),
-  privacyConsent: boolean("privacy_consent").notNull().default(false),
-  telemedicineConsent: boolean("telemedicine_consent").notNull().default(false),
-  termsConsent: boolean("terms_consent").notNull().default(false),
-  declarationConsent: boolean("declaration_consent").notNull().default(false),
+  acceptedAt: timestamp("accepted_at").defaultNow(),
 });
 
-export const insertPatientConsentSchema = createInsertSchema(patientConsents).omit({ id: true, consentedAt: true });
-export type PatientConsent = typeof patientConsents.$inferSelect;
-export type InsertPatientConsent = z.infer<typeof insertPatientConsentSchema>;
-
-// Relations
-export const patientConsentsRelations = relations(patientConsents, ({ one }) => ({
-  user: one(users, {
-    fields: [patientConsents.userId],
-    references: [users.id],
-  }),
-}));
-
-// Add to usersRelations
-export const usersRelations = relations(users, ({ many }) => ({
-  consents: many(patientConsents),
-  // ... existing relations
-}));
-
-export const servicesRelations = relations(services, ({ one, many }) => ({
-  provider: one(providers, {
-    fields: [services.providerId],
-    references: [providers.id],
-  }),
-  appointments: many(appointments),
-}));
-
-export const timeSlotsRelations = relations(timeSlots, ({ one }) => ({
-  provider: one(providers, {
-    fields: [timeSlots.providerId],
-    references: [providers.id],
-  }),
-}));
-
-export const appointmentsRelations = relations(appointments, ({ one, many }) => ({
-  patient: one(users, {
-    fields: [appointments.patientId],
-    references: [users.id],
-  }),
-  provider: one(providers, {
-    fields: [appointments.providerId],
-    references: [providers.id],
-  }),
-  service: one(services, {
-    fields: [appointments.serviceId],
-    references: [services.id],
-  }),
-  timeSlot: one(timeSlots, {
-    fields: [appointments.timeSlotId],
-    references: [timeSlots.id],
-  }),
-  reviews: many(reviews),
-  payment: one(payments),
-}));
-
-export const reviewsRelations = relations(reviews, ({ one }) => ({
-  appointment: one(appointments, {
-    fields: [reviews.appointmentId],
-    references: [appointments.id],
-  }),
-  patient: one(users, {
-    fields: [reviews.patientId],
-    references: [users.id],
-  }),
-  provider: one(providers, {
-    fields: [reviews.providerId],
-    references: [providers.id],
-  }),
-}));
-
-export const paymentsRelations = relations(payments, ({ one }) => ({
-  appointment: one(appointments, {
-    fields: [payments.appointmentId],
-    references: [appointments.id],
-  }),
-  patient: one(users, {
-    fields: [payments.patientId],
-    references: [users.id],
-  }),
-}));
-
-export const conversationsRelations = relations(conversations, ({ one, many }) => ({
-  user: one(users, {
-    fields: [conversations.userId],
-    references: [users.id],
-  }),
-  messages: many(messages),
-}));
-
-export const messagesRelations = relations(messages, ({ one }) => ({
-  conversation: one(conversations, {
-    fields: [messages.conversationId],
-    references: [conversations.id],
-  }),
-}));
-
-export const prescriptionsRelations = relations(prescriptions, ({ one }) => ({
-  appointment: one(appointments, {
-    fields: [prescriptions.appointmentId],
-    references: [appointments.id],
-  }),
-  patient: one(users, {
-    fields: [prescriptions.patientId],
-    references: [users.id],
-  }),
-  provider: one(providers, {
-    fields: [prescriptions.providerId],
-    references: [providers.id],
-  }),
-}));
-
-export const medicalHistoryRelations = relations(medicalHistory, ({ one }) => ({
-  patient: one(users, {
-    fields: [medicalHistory.patientId],
-    references: [users.id],
-  }),
-  provider: one(providers, {
-    fields: [medicalHistory.providerId],
-    references: [providers.id],
-  }),
-}));
-
-export const refreshTokensRelations = relations(refreshTokens, ({ one }) => ({
-  user: one(users, {
-    fields: [refreshTokens.userId],
-    references: [users.id],
-  }),
-}));
-
-export const promoCodesRelations = relations(promoCodes, ({ many }) => ({
-  // Future: track promo code usage per appointment
-}));
-
-export const providerPricingOverridesRelations = relations(providerPricingOverrides, ({ one }) => ({
-  provider: one(providers, {
-    fields: [providerPricingOverrides.providerId],
-    references: [providers.id],
-  }),
-}));
-
-export const chatConversationsRelations = relations(chatConversations, ({ one, many }) => ({
-  patient: one(users, { fields: [chatConversations.patientId], references: [users.id] }),
-  provider: one(providers, { fields: [chatConversations.providerId], references: [providers.id] }),
-  messages: many(chatMessages),
-}));
-
-export const chatMessagesRelations = relations(chatMessages, ({ one }) => ({
-  conversation: one(chatConversations, { fields: [chatMessages.conversationId], references: [chatConversations.id] }),
-  sender: one(users, { fields: [chatMessages.senderId], references: [users.id] }),
-}));
-
-// Insert schemas
-export const insertUserSchema = createInsertSchema(users).omit({
-  id: true,
-  createdAt: true,
+export const medicalPractitioners = pgTable("medical_practitioners", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  providerId: varchar("provider_id").notNull().references(() => providers.id),
+  name: text("name").notNull(),
+  specialization: text("specialization").notNull(),
+  experience: integer("experience").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
 });
 
-export const insertProviderSchema = createInsertSchema(providers).omit({
-  id: true,
-  createdAt: true,
-  rating: true,
-  totalReviews: true,
-});
-
-export const insertServiceSchema = createInsertSchema(services).omit({
-  id: true,
-});
-
-export const insertTimeSlotSchema = createInsertSchema(timeSlots).omit({
-  id: true,
-});
-
-export const insertAppointmentSchema = createInsertSchema(appointments).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
-
-export const insertReviewSchema = createInsertSchema(reviews).omit({
-  id: true,
-  createdAt: true,
-});
-
-export const insertPaymentSchema = createInsertSchema(payments).omit({
-  id: true,
-  createdAt: true,
-});
-
-export const insertConversationSchema = createInsertSchema(conversations).omit({
-  id: true,
-  createdAt: true,
-});
-
-export const insertMessageSchema = createInsertSchema(messages).omit({
-  id: true,
-  createdAt: true,
-});
-
-export const insertRefreshTokenSchema = createInsertSchema(refreshTokens).omit({
-  id: true,
-  createdAt: true,
-});
-
-export const insertPromoCodeSchema = createInsertSchema(promoCodes).omit({
-  id: true,
-  createdAt: true,
-  usedCount: true,
-});
-
-export const insertAuditLogSchema = createInsertSchema(auditLogs).omit({
-  id: true,
-  createdAt: true,
-});
-
-export const insertProviderPricingOverrideSchema = createInsertSchema(providerPricingOverrides).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
-
+// Schemas
+export const insertUserSchema = createInsertSchema(users).omit({ id: true, createdAt: true });
+export const insertProviderSchema = createInsertSchema(providers).omit({ id: true, createdAt: true, rating: true, totalReviews: true });
+export const insertServiceSchema = createInsertSchema(services).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertPractitionerSchema = createInsertSchema(practitioners).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertServicePractitionerSchema = createInsertSchema(servicePractitioners).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertTimeSlotSchema = createInsertSchema(timeSlots).omit({ id: true });
+export const insertAppointmentSchema = createInsertSchema(appointments).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertReviewSchema = createInsertSchema(reviews).omit({ id: true, createdAt: true });
+export const insertPaymentSchema = createInsertSchema(payments).omit({ id: true, createdAt: true });
+export const insertConversationSchema = createInsertSchema(conversations).omit({ id: true, createdAt: true });
+export const insertMessageSchema = createInsertSchema(messages).omit({ id: true, createdAt: true });
+export const insertRefreshTokenSchema = createInsertSchema(refreshTokens).omit({ id: true, createdAt: true });
+export const insertPromoCodeSchema = createInsertSchema(promoCodes).omit({ id: true, createdAt: true, usedCount: true });
+export const insertAuditLogSchema = createInsertSchema(auditLogs).omit({ id: true, createdAt: true });
+export const insertProviderPricingOverrideSchema = createInsertSchema(providerPricingOverrides).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertUserNotificationSchema = createInsertSchema(userNotifications).omit({ id: true, createdAt: true });
 export const insertChatConversationSchema = createInsertSchema(chatConversations).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertChatMessageSchema = createInsertSchema(chatMessages).omit({ id: true, createdAt: true });
@@ -818,8 +557,13 @@ export const insertLocationSchema = createInsertSchema(locations).omit({ id: tru
 export const insertDailyMetricSchema = createInsertSchema(dailyMetrics).omit({ id: true, createdAt: true });
 export const insertPrescriptionSchema = createInsertSchema(prescriptions).omit({ id: true, issuedAt: true });
 export const insertMedicalHistorySchema = createInsertSchema(medicalHistory).omit({ id: true, createdAt: true });
+export const insertSubServiceSchema = createInsertSchema(subServices).omit({ id: true, createdAt: true });
+export const insertTaxSettingSchema = createInsertSchema(taxSettings).omit({ id: true });
+export const insertPatientConsentSchema = createInsertSchema(patientConsents).omit({ id: true, acceptedAt: true });
+export const insertMedicalPractitionerSchema = createInsertSchema(medicalPractitioners).omit({ id: true, createdAt: true });
+export const insertRealtimeConversationSchema = createInsertSchema(realtimeConversations).omit({ id: true, createdAt: true });
+export const insertRealtimeMessageSchema = createInsertSchema(realtimeMessages).omit({ id: true, createdAt: true });
 
-// Auth schemas
 export const loginSchema = z.object({
   email: z.string().email(),
   password: z.string().min(6),
@@ -838,6 +582,10 @@ export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type Provider = typeof providers.$inferSelect;
 export type InsertProvider = z.infer<typeof insertProviderSchema>;
+export type Practitioner = typeof practitioners.$inferSelect;
+export type InsertPractitioner = z.infer<typeof insertPractitionerSchema>;
+export type ServicePractitioner = typeof servicePractitioners.$inferSelect;
+export type InsertServicePractitioner = z.infer<typeof insertServicePractitionerSchema>;
 export type Service = typeof services.$inferSelect;
 export type InsertService = z.infer<typeof insertServiceSchema>;
 export type TimeSlot = typeof timeSlots.$inferSelect;
@@ -858,8 +606,6 @@ export type PromoCode = typeof promoCodes.$inferSelect;
 export type InsertPromoCode = z.infer<typeof insertPromoCodeSchema>;
 export type ProviderPricingOverride = typeof providerPricingOverrides.$inferSelect;
 export type InsertProviderPricingOverride = z.infer<typeof insertProviderPricingOverrideSchema>;
-
-// Admin types
 export type AuditLog = typeof auditLogs.$inferSelect;
 export type InsertAuditLog = z.infer<typeof insertAuditLogSchema>;
 export type SupportTicket = typeof supportTickets.$inferSelect;
@@ -893,20 +639,26 @@ export type InsertMedicalHistory = z.infer<typeof insertMedicalHistorySchema>;
 export type UserNotification = typeof userNotifications.$inferSelect;
 export type InsertUserNotification = z.infer<typeof insertUserNotificationSchema>;
 export type ChatConversation = typeof chatConversations.$inferSelect;
-export type InsertChatConversation = z.infer<typeof insertChatConversationSchema>;
 export type ChatMessage = typeof chatMessages.$inferSelect;
 export type InsertChatMessage = z.infer<typeof insertChatMessageSchema>;
+export type RealtimeConversation = typeof realtimeConversations.$inferSelect;
+export type RealtimeMessage = typeof realtimeMessages.$inferSelect;
+export type SubService = typeof subServices.$inferSelect;
+export type InsertSubService = z.infer<typeof insertSubServiceSchema>;
+export type TaxSetting = typeof taxSettings.$inferSelect;
+export type InsertTaxSetting = z.infer<typeof insertTaxSettingSchema>;
+export type PatientConsent = typeof patientConsents.$inferSelect;
+export type InsertPatientConsent = z.infer<typeof insertPatientConsentSchema>;
+export type MedicalPractitioner = typeof medicalPractitioners.$inferSelect;
+export type InsertMedicalPractitioner = z.infer<typeof insertMedicalPractitionerSchema>;
 
 export type ProviderWithUser = Provider & { user: User };
-export type ProviderWithServices = Provider & { 
-  user: User; 
-  services: Service[];
-  practitionerData?: string;
-};
+export type ProviderWithServices = ProviderWithUser & { services: Service[], practitionerData?: string };
 export type AppointmentWithDetails = Appointment & { 
   patient: User; 
   provider: Provider & { user: User }; 
-  service: Service | null;
-  payment?: Payment;
+  service?: Service; 
+  practitioner?: Practitioner;
+  timeSlot?: TimeSlot;
 };
 export type ReviewWithPatient = Review & { patient: User };

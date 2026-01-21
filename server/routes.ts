@@ -14,7 +14,9 @@ import {
   insertSupportTicketSchema,
   insertSubServiceSchema,
   insertTaxSettingSchema,
-  insertPatientConsentSchema
+  insertPatientConsentSchema,
+  insertPractitionerSchema,
+  insertServicePractitionerSchema
 } from "@shared/schema";
 import crypto from 'crypto'; // Import crypto module for randomUUID
 import { Resend } from 'resend';
@@ -651,7 +653,63 @@ export async function registerRoutes(
     res.status(204).end();
   });
 
-  // Get provider details with platform fees
+  // Practitioners
+  app.get("/api/providers/:providerId/practitioners", async (req, res) => {
+    try {
+      const practitioners = await storage.getPractitionersByProvider(req.params.providerId);
+      res.json(practitioners);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch practitioners" });
+    }
+  });
+
+  app.post("/api/providers/:providerId/practitioners", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const practitioner = await storage.createPractitioner({
+        ...req.body,
+        providerId: req.params.providerId
+      });
+      res.status(201).json(practitioner);
+    } catch (error) {
+      res.status(400).json({ message: "Invalid practitioner data" });
+    }
+  });
+
+  app.get("/api/providers/:providerId/services/:serviceId/practitioners", async (req, res) => {
+    try {
+      const practitioners = await storage.getServicePractitioners(req.params.serviceId);
+      res.json(practitioners);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch service practitioners" });
+    }
+  });
+
+  app.post("/api/admin/services/:serviceId/practitioners", authenticateToken, async (req: AuthRequest, res) => {
+    if (req.user?.role !== "admin") return res.status(403).json({ message: "Admin access required" });
+    try {
+      const sp = await storage.addPractitionerToService({
+        ...req.body,
+        serviceId: req.params.serviceId
+      });
+      res.status(201).json(sp);
+    } catch (error) {
+      res.status(400).json({ message: "Failed to add practitioner to service" });
+    }
+  });
+
+  // Booking
+  app.post("/api/booking", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const appointment = await storage.createAppointment({
+        ...req.body,
+        patientId: req.user!.id,
+        status: "pending"
+      });
+      res.status(201).json(appointment);
+    } catch (error) {
+      res.status(400).json({ message: "Booking failed" });
+    }
+  });
   app.get("/api/providers/:id/with-fees", async (req: Request, res: Response) => {
     try {
       const provider = await storage.getProviderWithServices(req.params.id);
@@ -1690,6 +1748,88 @@ export async function registerRoutes(
       res.json({ totalRevenue: totalRevenue.toFixed(2) });
     } catch (error) {
       res.status(500).json({ message: "Failed to calculate revenue" });
+    }
+  });
+
+  // Practitioners management
+  app.get("/api/providers/:providerId/practitioners", authenticateToken, async (req: AuthRequest, res: Response) => {
+    try {
+      const practitioners = await storage.getPractitionersByProvider(req.params.providerId);
+      res.json(practitioners);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch practitioners" });
+    }
+  });
+
+  app.post("/api/providers/:providerId/practitioners", authenticateToken, async (req: AuthRequest, res: Response) => {
+    try {
+      const data = insertPractitionerSchema.parse({
+        ...req.body,
+        providerId: req.params.providerId
+      });
+      const practitioner = await storage.createPractitioner(data);
+      res.status(201).json(practitioner);
+    } catch (error) {
+      res.status(400).json({ message: "Invalid practitioner data" });
+    }
+  });
+
+  app.patch("/api/practitioners/:id", authenticateToken, async (req: AuthRequest, res: Response) => {
+    try {
+      const practitioner = await storage.updatePractitioner(req.params.id, req.body);
+      res.json(practitioner);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update practitioner" });
+    }
+  });
+
+  app.delete("/api/practitioners/:id", authenticateToken, async (req: AuthRequest, res: Response) => {
+    try {
+      await storage.deletePractitioner(req.params.id);
+      res.status(204).end();
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete practitioner" });
+    }
+  });
+
+  // Service Practitioners management
+  app.get("/api/services/:serviceId/practitioners", authenticateToken, async (req: AuthRequest, res: Response) => {
+    try {
+      const practitioners = await storage.getServicePractitioners(req.params.serviceId);
+      res.json(practitioners);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch service practitioners" });
+    }
+  });
+
+  app.post("/api/services/:serviceId/practitioners", authenticateToken, async (req: AuthRequest, res: Response) => {
+    try {
+      const data = insertServicePractitionerSchema.parse({
+        ...req.body,
+        serviceId: req.params.serviceId
+      });
+      const result = await storage.addPractitionerToService(data);
+      res.status(201).json(result);
+    } catch (error) {
+      res.status(400).json({ message: "Invalid service practitioner data" });
+    }
+  });
+
+  app.patch("/api/service-practitioners/:id", authenticateToken, async (req: AuthRequest, res: Response) => {
+    try {
+      const result = await storage.updateServicePractitionerFee(req.params.id, req.body.fee);
+      res.json(result);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update service practitioner fee" });
+    }
+  });
+
+  app.delete("/api/service-practitioners/:id", authenticateToken, async (req: AuthRequest, res: Response) => {
+    try {
+      await storage.removePractitionerFromService(req.params.id);
+      res.status(204).end();
+    } catch (error) {
+      res.status(500).json({ message: "Failed to remove practitioner from service" });
     }
   });
 

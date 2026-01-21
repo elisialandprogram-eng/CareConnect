@@ -1,0 +1,80 @@
+I need to enhance the provider profile and booking system.
+
+Requirement:
+- A provider can offer **multiple services**
+- Each service can have **multiple practitioners** (doctors/nurses/therapists etc.)
+- Each practitioner can have **different fees**
+- During booking, the patient must be able to:
+  1. Select a **service**
+  2. Select a **practitioner** assigned to that service
+  3. See the **fee for that practitioner**
+  4. Book appointment with selected practitioner
+
+Please implement the following changes:
+
+1. Database Schema:
+   - Create new tables:
+
+     a) services
+        - id (uuid)
+        - provider_id (foreign key)
+        - name
+        - description
+        - duration_minutes
+        - created_at
+        - updated_at
+
+     b) practitioners
+        - id (uuid)
+        - provider_id (foreign key)
+        - name
+        - title
+        - specialization
+        - bio
+        - languages (array)
+        - created_at
+        - updated_at
+
+     c) service_practitioners (junction table)
+        - id (uuid)
+        - service_id (foreign key)
+        - practitioner_id (foreign key)
+        - fee (numeric)
+        - is_active (boolean)
+        - created_at
+        - updated_at
+
+2. Backend API:
+   - Add endpoints:
+     - GET /api/providers/:providerId/services
+     - GET /api/providers/:providerId/services/:serviceId/practitioners
+     - POST /api/booking (include serviceId + practitionerId + fee)
+
+   - Update booking logic:
+     - Validate that practitioner belongs to the selected service
+     - Validate fee matches the service_practitioners table
+     - Save booking with service_id and practitioner_id
+
+3. Frontend UI:
+   - Provider Profile:
+     - Add a section “Services & Practitioners”
+     - Provider can add/edit:
+       - Services
+       - Practitioners
+       - Assign practitioners to services
+       - Set fees per practitioner per service
+
+   - Booking Page:
+     - Step 1: Choose Service
+     - Step 2: Choose Practitioner (only practitioners assigned to that service)
+     - Step 3: Confirm Fee and Book
+
+4. Data Migration:
+   - Ensure existing provider profile remains intact
+   - Add sample seed data for testing
+
+5. Deployment:
+   - Apply migrations to Supabase
+   - Ensure backend and frontend builds successfully
+
+Please implement this feature fully and provide confirmation once done.

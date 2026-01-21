@@ -45,12 +45,132 @@ import {
 import { 
   Loader2, Shield, Users, Building, Trash2, Edit, Plus, Tag, DollarSign,
   Calendar, FileText, Settings, MessageSquare, Activity, BarChart3,
-  Bell, HelpCircle, CheckCircle, XCircle, Clock, Eye, ListTree, Search
+  Bell, HelpCircle, CheckCircle, XCircle, Clock, Eye, ListTree, Search, UserCheck
 } from "lucide-react";
-import type { User, ProviderWithUser, PromoCode, ProviderPricingOverride, SubService } from "@shared/schema";
+import type { User, ProviderWithUser, PromoCode, ProviderPricingOverride, SubService, Practitioner, ServicePractitioner } from "@shared/schema";
 import { useLocation } from "wouter";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from "recharts";
 import type { TaxSetting, InsertTaxSetting } from "@shared/schema";
+
+// Practitioner Management Component
+function PractitionerManagement({ providerId }: { providerId: string }) {
+  const { toast } = useToast();
+  const { data: practitioners, refetch: refetchPractitioners } = useQuery<Practitioner[]>({
+    queryKey: [`/api/providers/${providerId}/practitioners`],
+  });
+
+  const createMutation = useMutation({
+    mutationFn: async (data: any) => {
+      await apiRequest("POST", `/api/providers/${providerId}/practitioners`, data);
+    },
+    onSuccess: () => {
+      refetchPractitioners();
+      toast({ title: "Practitioner added successfully" });
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      await apiRequest("DELETE", `/api/practitioners/${id}`);
+    },
+    onSuccess: () => {
+      refetchPractitioners();
+      toast({ title: "Practitioner removed" });
+    },
+  });
+
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 gap-2">
+        <Input id="practitioner-name" placeholder="Name" />
+        <Input id="practitioner-title" placeholder="Title (e.g. Dr., RN)" />
+        <Input id="practitioner-spec" placeholder="Specialization" className="col-span-2" />
+        <Button 
+          className="col-span-2"
+          onClick={() => {
+            const name = (document.getElementById('practitioner-name') as HTMLInputElement).value;
+            const title = (document.getElementById('practitioner-title') as HTMLInputElement).value;
+            const specialization = (document.getElementById('practitioner-spec') as HTMLInputElement).value;
+            if (name) createMutation.mutate({ name, title, specialization });
+          }}
+        >
+          <Plus className="h-4 w-4 mr-2" /> Add Practitioner
+        </Button>
+      </div>
+      <div className="space-y-2">
+        {practitioners?.map((p) => (
+          <div key={p.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-md border">
+            <div>
+              <p className="font-medium">{p.title} {p.name}</p>
+              <p className="text-xs text-muted-foreground">{p.specialization}</p>
+            </div>
+            <Button variant="ghost" size="icon" className="text-destructive" onClick={() => deleteMutation.mutate(p.id)}>
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// Service Practitioner Linkage Component
+function ServicePractitionerAssignment({ serviceId, providerId }: { serviceId: string, providerId: string }) {
+  const { toast } = useToast();
+  const { data: practitioners } = useQuery<Practitioner[]>({
+    queryKey: [`/api/providers/${providerId}/practitioners`],
+  });
+  const { data: assigned, refetch } = useQuery<(ServicePractitioner & { practitioner: Practitioner })[]>({
+    queryKey: [`/api/services/${serviceId}/practitioners`],
+  });
+
+  const assignMutation = useMutation({
+    mutationFn: async (data: any) => {
+      await apiRequest("POST", `/api/services/${serviceId}/practitioners`, data);
+    },
+    onSuccess: () => {
+      refetch();
+      toast({ title: "Practitioner assigned to service" });
+    },
+  });
+
+  return (
+    <div className="space-y-4 mt-4 pt-4 border-t">
+      <h4 className="text-sm font-semibold">Assigned Practitioners</h4>
+      <div className="grid grid-cols-3 gap-2">
+        <Select id="select-practitioner">
+          <SelectTrigger className="col-span-2">
+            <SelectValue placeholder="Select Practitioner" />
+          </SelectTrigger>
+          <SelectContent>
+            {practitioners?.map(p => (
+              <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Input id="practitioner-fee" type="number" placeholder="Fee" />
+        <Button 
+          className="col-span-3"
+          onClick={() => {
+            const pId = (document.getElementById('select-practitioner') as any)?.value;
+            const fee = (document.getElementById('practitioner-fee') as HTMLInputElement).value;
+            if (pId && fee) assignMutation.mutate({ practitionerId: pId, fee });
+          }}
+        >
+          Assign
+        </Button>
+      </div>
+      <div className="space-y-2">
+        {assigned?.map(a => (
+          <div key={a.id} className="flex items-center justify-between text-sm p-2 bg-accent/50 rounded">
+            <span>{a.practitioner.name}</span>
+            <span className="font-mono">${a.fee}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 const adminProviderSchema = z.object({
   email: z.string().email(),
@@ -168,10 +288,14 @@ function ProviderEditDialog({ provider }: { provider: any }) {
         </DialogHeader>
         <ScrollArea className="flex-1 px-6 pb-6">
           <Tabs defaultValue="details">
-            <TabsList className="grid w-full grid-cols-2">
+            <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="details">Details & Fees</TabsTrigger>
               <TabsTrigger value="services">Services</TabsTrigger>
+              <TabsTrigger value="practitioners">Practitioners</TabsTrigger>
             </TabsList>
+            <TabsContent value="practitioners">
+              <PractitionerManagement providerId={provider.id} />
+            </TabsContent>
             <TabsContent value="details" className="space-y-4 py-4">
               <Form {...form}>
                 <form onSubmit={form.handleSubmit((data) => updateMutation.mutate(data))} className="space-y-4">
@@ -381,22 +505,23 @@ function ProviderEditDialog({ provider }: { provider: any }) {
                   </Button>
                 </div>
                 <div className="space-y-2">
-                  {providerServices?.map((service) => (
-                    <div key={service.id} className="flex items-center justify-between p-2 bg-muted/50 rounded-md">
-                      <span>{service.name} - ${service.price}</span>
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="text-destructive h-8 w-8"
-                        onClick={async () => {
-                          await apiRequest("DELETE", `/api/admin/services/${service.id}`);
-                          refetchServices();
-                        }}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                    <div key={service.id} className="p-3 bg-muted/50 rounded-md border">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="font-semibold">{service.name} - ${service.price}</span>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="text-destructive h-8 w-8"
+                          onClick={async () => {
+                            await apiRequest("DELETE", `/api/admin/services/${service.id}`);
+                            refetchServices();
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      <ServicePractitionerAssignment serviceId={service.id} providerId={provider.id} />
                     </div>
-                  ))}
                 </div>
               </div>
             </TabsContent>

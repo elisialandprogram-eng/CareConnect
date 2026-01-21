@@ -30,9 +30,11 @@ import {
   realtimeConversations,
   realtimeMessages,
   subServices,
-  medicalPractitioners,
+  practitioners,
+  servicePractitioners,
   taxSettings,
   patientConsents,
+  medicalPractitioners,
   type User,
   type InsertUser,
   type Provider,
@@ -102,9 +104,13 @@ import {
   type InsertPatientConsent,
   type MedicalPractitioner,
   type InsertMedicalPractitioner,
+  type Practitioner,
+  type InsertPractitioner,
+  type ServicePractitioner,
+  type InsertServicePractitioner,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, desc, gte, lte, or, sql, count, asc } from "drizzle-orm";
+import { eq, and, desc, or, sql, count, asc } from "drizzle-orm";
 
 export interface IStorage {
   // Users
@@ -154,6 +160,19 @@ export interface IStorage {
   createService(service: InsertService): Promise<Service>;
   updateService(id: string, data: Partial<InsertService>): Promise<Service | undefined>;
   deleteService(id: string): Promise<void>;
+
+  // Practitioners
+  getPractitioner(id: string): Promise<Practitioner | undefined>;
+  getPractitionersByProvider(providerId: string): Promise<Practitioner[]>;
+  createPractitioner(practitioner: InsertPractitioner): Promise<Practitioner>;
+  updatePractitioner(id: string, data: Partial<InsertPractitioner>): Promise<Practitioner | undefined>;
+  deletePractitioner(id: string): Promise<void>;
+
+  // Service Practitioners
+  getServicePractitioners(serviceId: string): Promise<(ServicePractitioner & { practitioner: Practitioner })[]>;
+  addPractitionerToService(data: InsertServicePractitioner): Promise<ServicePractitioner>;
+  removePractitionerFromService(id: string): Promise<void>;
+  updateServicePractitionerFee(id: string, fee: string): Promise<ServicePractitioner>;
 
   // Time Slots
   getTimeSlot(id: string): Promise<TimeSlot | undefined>;
@@ -368,34 +387,12 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateUser(id: string, data: Partial<User>): Promise<User | undefined> {
-    const updateValues: any = { ...data };
-    
-    // Explicitly handle fields that might be passed as undefined or null
-    const fields = [
-      'isSuspended', 'suspensionReason', 'bloodGroup', 'knownAllergies',
-      'medicalConditions', 'currentMedications', 'pastSurgeries'
-    ];
-    
-    fields.forEach(field => {
-      if (field in data) {
-        updateValues[field] = data[field as keyof typeof data];
-      } else {
-        delete updateValues[field];
-      }
-    });
-
-    if (Object.keys(updateValues).length === 0) {
-      return this.getUser(id);
-    }
-
-    const [user] = await db.update(users).set(updateValues).where(eq(users.id, id)).returning();
+    const [user] = await db.update(users).set(data).where(eq(users.id, id)).returning();
     return user || undefined;
   }
 
   async deleteUser(id: string): Promise<void> {
-    // Delete associated provider profile if exists
     await db.delete(providers).where(eq(providers.userId, id));
-    // Delete user
     await db.delete(users).where(eq(users.id, id));
   }
 
@@ -503,31 +500,7 @@ export class DatabaseStorage implements IStorage {
     const providerWithUser = await this.getProviderWithUser(id);
     if (!providerWithUser) return undefined;
     const providerServices = await this.getServicesByProvider(id);
-    
-    // Fetch practitioners from the database if they exist
-    let practitioners: any[] = [];
-    try {
-      practitioners = await db.select().from(medicalPractitioners).where(eq(medicalPractitioners.providerId, id));
-    } catch (e) {
-      console.warn("Medical practitioners table might be missing, skipping...");
-    }
-
-    let practitionerData = providerWithUser.practitionerData || '[]';
-    if (practitioners.length > 0) {
-      practitionerData = JSON.stringify(practitioners);
-    } else if (!practitionerData || practitionerData === '[]') {
-      practitionerData = JSON.stringify([{
-        name: "Dummy Practitioner",
-        specialization: providerWithUser.specialization || "General",
-        experience: providerWithUser.yearsExperience || 0
-      }]);
-    }
-
-    return { 
-      ...providerWithUser, 
-      services: providerServices,
-      practitionerData 
-    };
+    return { ...providerWithUser, services: providerServices };
   }
 
   async getAllProviders(): Promise<ProviderWithUser[]> {
@@ -537,31 +510,10 @@ export class DatabaseStorage implements IStorage {
       .innerJoin(users, eq(providers.userId, users.id))
       .orderBy(desc(providers.createdAt));
 
-    const providersWithUser = [];
-    for (const r of result) {
-      let practitioners: any[] = [];
-      try {
-        practitioners = await db.select().from(medicalPractitioners).where(eq(medicalPractitioners.providerId, r.providers.id));
-      } catch (e) {}
-      
-      let practitionerData = r.providers.practitionerData || '[]';
-      if (practitioners.length > 0) {
-        practitionerData = JSON.stringify(practitioners);
-      } else if (!practitionerData || practitionerData === '[]') {
-        practitionerData = JSON.stringify([{
-          name: "Dummy Practitioner",
-          specialization: r.providers.specialization || "General",
-          experience: r.providers.yearsExperience || 0
-        }]);
-      }
-
-      providersWithUser.push({
-        ...r.providers,
-        practitionerData,
-        user: r.users,
-      });
-    }
-    return providersWithUser;
+    return result.map(r => ({
+      ...r.providers,
+      user: r.users,
+    }));
   }
 
   async createProvider(insertProvider: InsertProvider): Promise<Provider> {
@@ -570,46 +522,12 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateProvider(id: string, data: Partial<InsertProvider>): Promise<Provider | undefined> {
-    const updateValues: any = { ...data };
-    
-    // Explicitly handle array fields to avoid issues with undefined
-    const arrayFields = [
-      'secondarySpecialties', 'certifications', 'languages', 'qualifications',
-      'availableDays', 'insuranceAccepted', 'paymentMethods', 'gallery'
-    ];
-    
-    arrayFields.forEach(field => {
-      if (field in data) {
-        updateValues[field] = data[field as keyof typeof data];
-      }
-    });
-
-    try {
-      const [provider] = await db.update(providers).set(updateValues).where(eq(providers.id, id)).returning();
-      return provider || undefined;
-    } catch (error: any) {
-      if (error.code === '42703' && error.message.includes('qualifications')) {
-        console.error("Critical: 'qualifications' column missing in database despite sync attempts.");
-        // Fallback: Remove qualifications and retry
-        delete updateValues.qualifications;
-        const [provider] = await db.update(providers).set(updateValues).where(eq(providers.id, id)).returning();
-        return provider || undefined;
-      }
-      throw error;
-    }
+    const [provider] = await db.update(providers).set(data).where(eq(providers.id, id)).returning();
+    return provider || undefined;
   }
 
   async deleteProvider(id: string): Promise<void> {
     await db.delete(providers).where(eq(providers.id, id));
-  }
-
-  async createMedicalPractitioner(practitioner: InsertMedicalPractitioner): Promise<MedicalPractitioner> {
-    const [newPractitioner] = await db.insert(medicalPractitioners).values(practitioner).returning();
-    return newPractitioner;
-  }
-
-  async getMedicalPractitionersByProvider(providerId: string): Promise<MedicalPractitioner[]> {
-    return await db.select().from(medicalPractitioners).where(eq(medicalPractitioners.providerId, providerId));
   }
 
   // Services
@@ -619,21 +537,74 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getServicesByProvider(providerId: string): Promise<Service[]> {
-    return db.select().from(services).where(and(eq(services.providerId, providerId), eq(services.isActive, true)));
+    return db.select().from(services).where(eq(services.providerId, providerId));
   }
 
-  async createService(insertService: InsertService): Promise<Service> {
-    const [service] = await db.insert(services).values(insertService).returning();
-    return service;
+  async createService(service: InsertService): Promise<Service> {
+    const [newService] = await db.insert(services).values(service).returning();
+    return newService;
   }
 
   async updateService(id: string, data: Partial<InsertService>): Promise<Service | undefined> {
-    const [service] = await db.update(services).set(data).where(eq(services.id, id)).returning();
-    return service || undefined;
+    const [updatedService] = await db.update(services).set(data).where(eq(services.id, id)).returning();
+    return updatedService || undefined;
   }
 
   async deleteService(id: string): Promise<void> {
-    await db.update(services).set({ isActive: false }).where(eq(services.id, id));
+    await db.delete(services).where(eq(services.id, id));
+  }
+
+  // Practitioners (Extended)
+  async getPractitioner(id: string): Promise<Practitioner | undefined> {
+    const [result] = await db.select().from(practitioners).where(eq(practitioners.id, id));
+    return result || undefined;
+  }
+
+  async getPractitionersByProvider(providerId: string): Promise<Practitioner[]> {
+    return db.select().from(practitioners).where(eq(practitioners.providerId, providerId));
+  }
+
+  async createPractitioner(practitioner: InsertPractitioner): Promise<Practitioner> {
+    const [result] = await db.insert(practitioners).values(practitioner).returning();
+    return result;
+  }
+
+  async updatePractitioner(id: string, data: Partial<InsertPractitioner>): Promise<Practitioner | undefined> {
+    const [result] = await db.update(practitioners).set(data).where(eq(practitioners.id, id)).returning();
+    return result || undefined;
+  }
+
+  async deletePractitioner(id: string): Promise<void> {
+    await db.delete(servicePractitioners).where(eq(servicePractitioners.practitionerId, id));
+    await db.delete(practitioners).where(eq(practitioners.id, id));
+  }
+
+  // Service Practitioners
+  async getServicePractitioners(serviceId: string): Promise<(ServicePractitioner & { practitioner: Practitioner })[]> {
+    const results = await db
+      .select()
+      .from(servicePractitioners)
+      .innerJoin(practitioners, eq(servicePractitioners.practitionerId, practitioners.id))
+      .where(eq(servicePractitioners.serviceId, serviceId));
+    
+    return results.map(r => ({
+      ...r.service_practitioners,
+      practitioner: r.practitioners
+    }));
+  }
+
+  async addPractitionerToService(data: InsertServicePractitioner): Promise<ServicePractitioner> {
+    const [result] = await db.insert(servicePractitioners).values(data).returning();
+    return result;
+  }
+
+  async removePractitionerFromService(id: string): Promise<void> {
+    await db.delete(servicePractitioners).where(eq(servicePractitioners.id, id));
+  }
+
+  async updateServicePractitionerFee(id: string, fee: string): Promise<ServicePractitioner> {
+    const [result] = await db.update(servicePractitioners).set({ fee }).where(eq(servicePractitioners.id, id)).returning();
+    return result;
   }
 
   // Time Slots
@@ -643,19 +614,21 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getTimeSlotsByProvider(providerId: string, date?: string): Promise<TimeSlot[]> {
-    const conditions = [eq(timeSlots.providerId, providerId)];
-    if (date) conditions.push(eq(timeSlots.date, date));
-    return db.select().from(timeSlots).where(and(...conditions));
+    let query = db.select().from(timeSlots).where(eq(timeSlots.providerId, providerId));
+    if (date) {
+      query = db.select().from(timeSlots).where(and(eq(timeSlots.providerId, providerId), eq(timeSlots.date, date)));
+    }
+    return query;
   }
 
-  async createTimeSlot(insertSlot: InsertTimeSlot): Promise<TimeSlot> {
-    const [slot] = await db.insert(timeSlots).values(insertSlot).returning();
-    return slot;
+  async createTimeSlot(slot: InsertTimeSlot): Promise<TimeSlot> {
+    const [newSlot] = await db.insert(timeSlots).values(slot).returning();
+    return newSlot;
   }
 
   async updateTimeSlot(id: string, data: Partial<InsertTimeSlot>): Promise<TimeSlot | undefined> {
-    const [slot] = await db.update(timeSlots).set(data).where(eq(timeSlots.id, id)).returning();
-    return slot || undefined;
+    const [updatedSlot] = await db.update(timeSlots).set(data).where(eq(timeSlots.id, id)).returning();
+    return updatedSlot || undefined;
   }
 
   async deleteTimeSlot(id: string): Promise<void> {
@@ -674,13 +647,24 @@ export class DatabaseStorage implements IStorage {
       .from(appointments)
       .innerJoin(users, eq(appointments.patientId, users.id))
       .innerJoin(providers, eq(appointments.providerId, providers.id))
+      .innerJoin(users as any, eq(providers.userId, (users as any).id))
       .leftJoin(services, eq(appointments.serviceId, services.id))
+      .leftJoin(practitioners, eq(appointments.practitionerId, practitioners.id))
       .where(eq(appointments.id, id));
 
     if (result.length === 0) return undefined;
-    const row = result[0];
-    const providerUser = await this.getUser(row.providers.userId);
-    return { ...row.appointments, patient: row.users, provider: { ...row.providers, user: providerUser! }, service: row.services };
+
+    const r = result[0];
+    return {
+      ...r.appointments,
+      patient: r.users,
+      provider: {
+        ...r.providers,
+        user: (r as any).users_2,
+      },
+      service: r.services || undefined,
+      practitioner: r.practitioners || (undefined as any),
+    };
   }
 
   async getAppointmentsByPatient(patientId: string): Promise<AppointmentWithDetails[]> {
@@ -689,16 +673,22 @@ export class DatabaseStorage implements IStorage {
       .from(appointments)
       .innerJoin(users, eq(appointments.patientId, users.id))
       .innerJoin(providers, eq(appointments.providerId, providers.id))
+      .innerJoin(users as any, eq(providers.userId, (users as any).id))
       .leftJoin(services, eq(appointments.serviceId, services.id))
+      .leftJoin(practitioners, eq(appointments.practitionerId, practitioners.id))
       .where(eq(appointments.patientId, patientId))
-      .orderBy(desc(appointments.date), desc(appointments.startTime));
+      .orderBy(desc(appointments.createdAt));
 
-    const appointmentsWithDetails: AppointmentWithDetails[] = [];
-    for (const row of result) {
-      const providerUser = await this.getUser(row.providers.userId);
-      appointmentsWithDetails.push({ ...row.appointments, patient: row.users, provider: { ...row.providers, user: providerUser! }, service: row.services });
-    }
-    return appointmentsWithDetails;
+    return result.map(r => ({
+      ...r.appointments,
+      patient: r.users,
+      provider: {
+        ...r.providers,
+        user: (r as any).users_2,
+      },
+      service: r.services || undefined,
+      practitioner: r.practitioners || (undefined as any),
+    }));
   }
 
   async getAppointmentsByProvider(providerId: string): Promise<AppointmentWithDetails[]> {
@@ -707,26 +697,32 @@ export class DatabaseStorage implements IStorage {
       .from(appointments)
       .innerJoin(users, eq(appointments.patientId, users.id))
       .innerJoin(providers, eq(appointments.providerId, providers.id))
+      .innerJoin(users as any, eq(providers.userId, (users as any).id))
       .leftJoin(services, eq(appointments.serviceId, services.id))
+      .leftJoin(practitioners, eq(appointments.practitionerId, practitioners.id))
       .where(eq(appointments.providerId, providerId))
-      .orderBy(desc(appointments.date));
+      .orderBy(desc(appointments.createdAt));
 
-    const appointmentsWithDetails: AppointmentWithDetails[] = [];
-    for (const row of result) {
-      const providerUser = await this.getUser(row.providers.userId);
-      appointmentsWithDetails.push({ ...row.appointments, patient: row.users, provider: { ...row.providers, user: providerUser! }, service: row.services });
-    }
-    return appointmentsWithDetails;
+    return result.map(r => ({
+      ...r.appointments,
+      patient: r.users,
+      provider: {
+        ...r.providers,
+        user: (r as any).users_2,
+      },
+      service: r.services || undefined,
+      practitioner: r.practitioners || (undefined as any),
+    }));
   }
 
-  async createAppointment(insertAppointment: InsertAppointment): Promise<Appointment> {
-    const [appointment] = await db.insert(appointments).values(insertAppointment).returning();
-    return appointment;
+  async createAppointment(appointment: InsertAppointment): Promise<Appointment> {
+    const [newAppointment] = await db.insert(appointments).values(appointment).returning();
+    return newAppointment;
   }
 
   async updateAppointment(id: string, data: Partial<InsertAppointment>): Promise<Appointment | undefined> {
-    const [appointment] = await db.update(appointments).set({ ...data, updatedAt: new Date() }).where(eq(appointments.id, id)).returning();
-    return appointment || undefined;
+    const [updatedAppointment] = await db.update(appointments).set(data).where(eq(appointments.id, id)).returning();
+    return updatedAppointment || undefined;
   }
 
   async getAllAppointments(): Promise<AppointmentWithDetails[]> {
@@ -735,25 +731,26 @@ export class DatabaseStorage implements IStorage {
       .from(appointments)
       .innerJoin(users, eq(appointments.patientId, users.id))
       .innerJoin(providers, eq(appointments.providerId, providers.id))
+      .innerJoin(users as any, eq(providers.userId, (users as any).id))
       .leftJoin(services, eq(appointments.serviceId, services.id))
+      .leftJoin(practitioners, eq(appointments.practitionerId, practitioners.id))
       .orderBy(desc(appointments.createdAt));
 
-    const appointmentsWithDetails: AppointmentWithDetails[] = [];
-    for (const row of result) {
-      const providerUser = await this.getUser(row.providers.userId);
-      appointmentsWithDetails.push({ ...row.appointments, patient: row.users, provider: { ...row.providers, user: providerUser! }, service: row.services });
-    }
-    return appointmentsWithDetails;
+    return result.map(r => ({
+      ...r.appointments,
+      patient: r.users,
+      provider: {
+        ...r.providers,
+        user: (r as any).users_2,
+      },
+      service: r.services || undefined,
+      practitioner: r.practitioners || undefined,
+    }));
   }
 
   // Reviews
   async getReview(id: string): Promise<Review | undefined> {
     const [review] = await db.select().from(reviews).where(eq(reviews.id, id));
-    return review || undefined;
-  }
-
-  async getReviewByAppointment(appointmentId: string): Promise<Review | undefined> {
-    const [review] = await db.select().from(reviews).where(eq(reviews.appointmentId, appointmentId));
     return review || undefined;
   }
 
@@ -764,15 +761,21 @@ export class DatabaseStorage implements IStorage {
       .innerJoin(users, eq(reviews.patientId, users.id))
       .where(eq(reviews.providerId, providerId))
       .orderBy(desc(reviews.createdAt));
-    return result.map((r) => ({ ...r.reviews, patient: r.users }));
+
+    return result.map(r => ({
+      ...r.reviews,
+      patient: r.users,
+    }));
   }
 
-  async createReview(insertReview: InsertReview): Promise<Review> {
-    const [review] = await db.insert(reviews).values(insertReview).returning();
-    const providerReviews = await this.getReviewsByProvider(insertReview.providerId);
-    const avgRating = providerReviews.reduce((sum, r) => sum + r.rating, 0) / providerReviews.length;
-    await this.updateProvider(insertReview.providerId, { rating: avgRating.toFixed(1), totalReviews: providerReviews.length } as any);
-    return review;
+  async createReview(review: InsertReview): Promise<Review> {
+    const [newReview] = await db.insert(reviews).values(review).returning();
+    return newReview;
+  }
+
+  async getReviewByAppointment(appointmentId: string): Promise<Review | undefined> {
+    const [review] = await db.select().from(reviews).where(eq(reviews.appointmentId, appointmentId));
+    return review || undefined;
   }
 
   // Payments
@@ -786,14 +789,14 @@ export class DatabaseStorage implements IStorage {
     return payment || undefined;
   }
 
-  async createPayment(insertPayment: InsertPayment): Promise<Payment> {
-    const [payment] = await db.insert(payments).values(insertPayment).returning();
-    return payment;
+  async createPayment(payment: InsertPayment): Promise<Payment> {
+    const [newPayment] = await db.insert(payments).values(payment).returning();
+    return newPayment;
   }
 
   async updatePayment(id: string, data: Partial<InsertPayment>): Promise<Payment | undefined> {
-    const [payment] = await db.update(payments).set(data).where(eq(payments.id, id)).returning();
-    return payment || undefined;
+    const [updatedPayment] = await db.update(payments).set(data).where(eq(payments.id, id)).returning();
+    return updatedPayment || undefined;
   }
 
   async getAllPayments(): Promise<Payment[]> {
@@ -802,13 +805,13 @@ export class DatabaseStorage implements IStorage {
 
   // Refresh Tokens
   async getRefreshToken(token: string): Promise<RefreshToken | undefined> {
-    const [refreshToken] = await db.select().from(refreshTokens).where(eq(refreshTokens.token, token));
-    return refreshToken || undefined;
+    const [t] = await db.select().from(refreshTokens).where(eq(refreshTokens.token, token));
+    return t || undefined;
   }
 
-  async createRefreshToken(insertToken: InsertRefreshToken): Promise<RefreshToken> {
-    const [token] = await db.insert(refreshTokens).values(insertToken).returning();
-    return token;
+  async createRefreshToken(refreshToken: InsertRefreshToken): Promise<RefreshToken> {
+    const [t] = await db.insert(refreshTokens).values(refreshToken).returning();
+    return t;
   }
 
   async deleteRefreshToken(token: string): Promise<void> {
@@ -821,8 +824,8 @@ export class DatabaseStorage implements IStorage {
 
   // Promo Codes
   async createPromoCode(data: InsertPromoCode): Promise<PromoCode> {
-    const [promoCode] = await db.insert(promoCodes).values(data).returning();
-    return promoCode;
+    const [c] = await db.insert(promoCodes).values(data).returning();
+    return c;
   }
 
   async getAllPromoCodes(): Promise<PromoCode[]> {
@@ -830,28 +833,28 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getPromoCodeByCode(code: string): Promise<PromoCode | undefined> {
-    const [promoCode] = await db.select().from(promoCodes).where(eq(promoCodes.code, code.toUpperCase()));
-    return promoCode;
+    const [c] = await db.select().from(promoCodes).where(eq(promoCodes.code, code));
+    return c || undefined;
   }
 
   async updatePromoCode(id: string, data: Partial<PromoCode>): Promise<PromoCode | undefined> {
-    const [updated] = await db.update(promoCodes).set(data).where(eq(promoCodes.id, id)).returning();
-    return updated;
+    const [c] = await db.update(promoCodes).set(data).where(eq(promoCodes.id, id)).returning();
+    return c || undefined;
   }
 
   async deletePromoCode(id: string): Promise<void> {
     await db.delete(promoCodes).where(eq(promoCodes.id, id));
   }
 
-  // Pricing Overrides
+  // Provider Pricing Overrides
   async createProviderPricingOverride(data: InsertProviderPricingOverride): Promise<ProviderPricingOverride> {
-    const [override] = await db.insert(providerPricingOverrides).values(data).returning();
-    return override;
+    const [o] = await db.insert(providerPricingOverrides).values(data).returning();
+    return o;
   }
 
   async getProviderPricingOverride(providerId: string): Promise<ProviderPricingOverride | undefined> {
-    const [override] = await db.select().from(providerPricingOverrides).where(and(eq(providerPricingOverrides.providerId, providerId), eq(providerPricingOverrides.isActive, true)));
-    return override;
+    const [o] = await db.select().from(providerPricingOverrides).where(eq(providerPricingOverrides.providerId, providerId));
+    return o || undefined;
   }
 
   async getAllPricingOverrides(): Promise<ProviderPricingOverride[]> {
@@ -859,8 +862,8 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateProviderPricingOverride(id: string, data: Partial<ProviderPricingOverride>): Promise<ProviderPricingOverride | undefined> {
-    const [updated] = await db.update(providerPricingOverrides).set({ ...data, updatedAt: new Date() }).where(eq(providerPricingOverrides.id, id)).returning();
-    return updated;
+    const [o] = await db.update(providerPricingOverrides).set(data).where(eq(providerPricingOverrides.id, id)).returning();
+    return o || undefined;
   }
 
   async deleteProviderPricingOverride(id: string): Promise<void> {
@@ -869,8 +872,8 @@ export class DatabaseStorage implements IStorage {
 
   // Audit Logs
   async createAuditLog(data: InsertAuditLog): Promise<AuditLog> {
-    const [log] = await db.insert(auditLogs).values(data).returning();
-    return log;
+    const [l] = await db.insert(auditLogs).values(data).returning();
+    return l;
   }
 
   async getAllAuditLogs(): Promise<AuditLog[]> {
@@ -883,13 +886,13 @@ export class DatabaseStorage implements IStorage {
 
   // Support Tickets
   async createSupportTicket(data: InsertSupportTicket): Promise<SupportTicket> {
-    const [ticket] = await db.insert(supportTickets).values(data).returning();
-    return ticket;
+    const [t] = await db.insert(supportTickets).values(data).returning();
+    return t;
   }
 
   async getSupportTicket(id: string): Promise<SupportTicket | undefined> {
-    const [ticket] = await db.select().from(supportTickets).where(eq(supportTickets.id, id));
-    return ticket;
+    const [t] = await db.select().from(supportTickets).where(eq(supportTickets.id, id));
+    return t || undefined;
   }
 
   async getAllSupportTickets(): Promise<SupportTicket[]> {
@@ -897,8 +900,8 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateSupportTicket(id: string, data: Partial<SupportTicket>): Promise<SupportTicket | undefined> {
-    const [ticket] = await db.update(supportTickets).set({ ...data, updatedAt: new Date() }).where(eq(supportTickets.id, id)).returning();
-    return ticket;
+    const [t] = await db.update(supportTickets).set(data).where(eq(supportTickets.id, id)).returning();
+    return t || undefined;
   }
 
   async deleteSupportTicket(id: string): Promise<void> {
@@ -907,8 +910,8 @@ export class DatabaseStorage implements IStorage {
 
   // Ticket Messages
   async createTicketMessage(data: InsertTicketMessage): Promise<TicketMessage> {
-    const [msg] = await db.insert(ticketMessages).values(data).returning();
-    return msg;
+    const [m] = await db.insert(ticketMessages).values(data).returning();
+    return m;
   }
 
   async getTicketMessages(ticketId: string): Promise<TicketMessage[]> {
@@ -917,27 +920,27 @@ export class DatabaseStorage implements IStorage {
 
   // Content Blocks
   async createContentBlock(data: InsertContentBlock): Promise<ContentBlock> {
-    const [block] = await db.insert(contentBlocks).values(data).returning();
-    return block;
+    const [b] = await db.insert(contentBlocks).values(data).returning();
+    return b;
   }
 
   async getContentBlock(id: string): Promise<ContentBlock | undefined> {
-    const [block] = await db.select().from(contentBlocks).where(eq(contentBlocks.id, id));
-    return block;
+    const [b] = await db.select().from(contentBlocks).where(eq(contentBlocks.id, id));
+    return b || undefined;
   }
 
   async getContentBlockByKey(key: string): Promise<ContentBlock | undefined> {
-    const [block] = await db.select().from(contentBlocks).where(eq(contentBlocks.key, key));
-    return block;
+    const [b] = await db.select().from(contentBlocks).where(eq(contentBlocks.key, key));
+    return b || undefined;
   }
 
   async getAllContentBlocks(): Promise<ContentBlock[]> {
-    return db.select().from(contentBlocks);
+    return db.select().from(contentBlocks).orderBy(asc(contentBlocks.key));
   }
 
   async updateContentBlock(id: string, data: Partial<ContentBlock>): Promise<ContentBlock | undefined> {
-    const [updated] = await db.update(contentBlocks).set(data).where(eq(contentBlocks.id, id)).returning();
-    return updated;
+    const [b] = await db.update(contentBlocks).set(data).where(eq(contentBlocks.id, id)).returning();
+    return b || undefined;
   }
 
   async deleteContentBlock(id: string): Promise<void> {
@@ -946,13 +949,13 @@ export class DatabaseStorage implements IStorage {
 
   // FAQs
   async createFaq(data: InsertFaq): Promise<Faq> {
-    const [faq] = await db.insert(faqs).values(data).returning();
-    return faq;
+    const [f] = await db.insert(faqs).values(data).returning();
+    return f;
   }
 
   async getFaq(id: string): Promise<Faq | undefined> {
-    const [faq] = await db.select().from(faqs).where(eq(faqs.id, id));
-    return faq;
+    const [f] = await db.select().from(faqs).where(eq(faqs.id, id));
+    return f || undefined;
   }
 
   async getAllFaqs(): Promise<Faq[]> {
@@ -960,28 +963,28 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateFaq(id: string, data: Partial<Faq>): Promise<Faq | undefined> {
-    const [updated] = await db.update(faqs).set(data).where(eq(faqs.id, id)).returning();
-    return updated;
+    const [f] = await db.update(faqs).set(data).where(eq(faqs.id, id)).returning();
+    return f || undefined;
   }
 
   async deleteFaq(id: string): Promise<void> {
     await db.delete(faqs).where(eq(faqs.id, id));
   }
 
-  // Blog
+  // Blog Posts
   async createBlogPost(data: InsertBlogPost): Promise<BlogPost> {
-    const [post] = await db.insert(blogPosts).values(data).returning();
-    return post;
+    const [p] = await db.insert(blogPosts).values(data).returning();
+    return p;
   }
 
   async getBlogPost(id: string): Promise<BlogPost | undefined> {
-    const [post] = await db.select().from(blogPosts).where(eq(blogPosts.id, id));
-    return post;
+    const [p] = await db.select().from(blogPosts).where(eq(blogPosts.id, id));
+    return p || undefined;
   }
 
   async getBlogPostBySlug(slug: string): Promise<BlogPost | undefined> {
-    const [post] = await db.select().from(blogPosts).where(eq(blogPosts.slug, slug));
-    return post;
+    const [p] = await db.select().from(blogPosts).where(eq(blogPosts.slug, slug));
+    return p || undefined;
   }
 
   async getAllBlogPosts(): Promise<BlogPost[]> {
@@ -989,8 +992,8 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateBlogPost(id: string, data: Partial<BlogPost>): Promise<BlogPost | undefined> {
-    const [updated] = await db.update(blogPosts).set(data).where(eq(blogPosts.id, id)).returning();
-    return updated;
+    const [p] = await db.update(blogPosts).set(data).where(eq(blogPosts.id, id)).returning();
+    return p || undefined;
   }
 
   async deleteBlogPost(id: string): Promise<void> {
@@ -999,13 +1002,13 @@ export class DatabaseStorage implements IStorage {
 
   // Announcements
   async createAnnouncement(data: InsertAnnouncement): Promise<Announcement> {
-    const [ann] = await db.insert(announcements).values(data).returning();
-    return ann;
+    const [a] = await db.insert(announcements).values(data).returning();
+    return a;
   }
 
   async getAnnouncement(id: string): Promise<Announcement | undefined> {
-    const [ann] = await db.select().from(announcements).where(eq(announcements.id, id));
-    return ann;
+    const [a] = await db.select().from(announcements).where(eq(announcements.id, id));
+    return a || undefined;
   }
 
   async getAllAnnouncements(): Promise<Announcement[]> {
@@ -1013,13 +1016,12 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getActiveAnnouncements(): Promise<Announcement[]> {
-    const now = new Date();
-    return db.select().from(announcements).where(and(eq(announcements.isActive, true), lte(announcements.startDate, now), gte(announcements.endDate, now)));
+    return db.select().from(announcements).where(eq(announcements.isActive, true)).orderBy(desc(announcements.createdAt));
   }
 
   async updateAnnouncement(id: string, data: Partial<Announcement>): Promise<Announcement | undefined> {
-    const [updated] = await db.update(announcements).set(data).where(eq(announcements.id, id)).returning();
-    return updated;
+    const [a] = await db.update(announcements).set(data).where(eq(announcements.id, id)).returning();
+    return a || undefined;
   }
 
   async deleteAnnouncement(id: string): Promise<void> {
@@ -1028,27 +1030,27 @@ export class DatabaseStorage implements IStorage {
 
   // Email Templates
   async createEmailTemplate(data: InsertEmailTemplate): Promise<EmailTemplate> {
-    const [tpl] = await db.insert(emailTemplates).values(data).returning();
-    return tpl;
+    const [t] = await db.insert(emailTemplates).values(data).returning();
+    return t;
   }
 
   async getEmailTemplate(id: string): Promise<EmailTemplate | undefined> {
-    const [tpl] = await db.select().from(emailTemplates).where(eq(emailTemplates.id, id));
-    return tpl;
+    const [t] = await db.select().from(emailTemplates).where(eq(emailTemplates.id, id));
+    return t || undefined;
   }
 
   async getEmailTemplateByName(name: string): Promise<EmailTemplate | undefined> {
-    const [tpl] = await db.select().from(emailTemplates).where(eq(emailTemplates.name, name));
-    return tpl;
+    const [t] = await db.select().from(emailTemplates).where(eq(emailTemplates.name, name));
+    return t || undefined;
   }
 
   async getAllEmailTemplates(): Promise<EmailTemplate[]> {
-    return db.select().from(emailTemplates);
+    return db.select().from(emailTemplates).orderBy(asc(emailTemplates.name));
   }
 
   async updateEmailTemplate(id: string, data: Partial<EmailTemplate>): Promise<EmailTemplate | undefined> {
-    const [updated] = await db.update(emailTemplates).set(data).where(eq(emailTemplates.id, id)).returning();
-    return updated;
+    const [t] = await db.update(emailTemplates).set(data).where(eq(emailTemplates.id, id)).returning();
+    return t || undefined;
   }
 
   async deleteEmailTemplate(id: string): Promise<void> {
@@ -1057,50 +1059,50 @@ export class DatabaseStorage implements IStorage {
 
   // Notifications
   async createNotification(data: InsertNotification): Promise<Notification> {
-    const [notif] = await db.insert(notificationQueue).values(data).returning();
-    return notif;
+    const [n] = await db.insert(notificationQueue).values(data).returning();
+    return n;
   }
 
   async getNotification(id: string): Promise<Notification | undefined> {
-    const [notif] = await db.select().from(notificationQueue).where(eq(notificationQueue.id, id));
-    return notif;
+    const [n] = await db.select().from(notificationQueue).where(eq(notificationQueue.id, id));
+    return n || undefined;
   }
 
   async getAllNotifications(): Promise<Notification[]> {
-    return db.select().from(notificationQueue);
+    return db.select().from(notificationQueue).orderBy(desc(notificationQueue.createdAt));
   }
 
   async getPendingNotifications(): Promise<Notification[]> {
-    return db.select().from(notificationQueue).where(eq(notificationQueue.status, "pending"));
+    return db.select().from(notificationQueue).where(eq(notificationQueue.status, "pending")).orderBy(asc(notificationQueue.createdAt));
   }
 
   async updateNotification(id: string, data: Partial<Notification>): Promise<Notification | undefined> {
-    const [updated] = await db.update(notificationQueue).set(data).where(eq(notificationQueue.id, id)).returning();
-    return updated;
+    const [n] = await db.update(notificationQueue).set(data).where(eq(notificationQueue.id, id)).returning();
+    return n || undefined;
   }
 
   // Platform Settings
   async createPlatformSetting(data: InsertPlatformSetting): Promise<PlatformSetting> {
-    const [setting] = await db.insert(platformSettings).values(data).returning();
-    return setting;
+    const [s] = await db.insert(platformSettings).values(data).returning();
+    return s;
   }
 
   async getPlatformSetting(key: string): Promise<PlatformSetting | undefined> {
-    const [setting] = await db.select().from(platformSettings).where(eq(platformSettings.key, key));
-    return setting;
+    const [s] = await db.select().from(platformSettings).where(eq(platformSettings.key, key));
+    return s || undefined;
   }
 
   async getAllPlatformSettings(): Promise<PlatformSetting[]> {
-    return db.select().from(platformSettings);
+    return db.select().from(platformSettings).orderBy(asc(platformSettings.key));
   }
 
   async getPlatformSettingsByCategory(category: string): Promise<PlatformSetting[]> {
-    return db.select().from(platformSettings).where(eq(platformSettings.category, category));
+    return db.select().from(platformSettings).where(eq(platformSettings.category, category)).orderBy(asc(platformSettings.key));
   }
 
   async updatePlatformSetting(key: string, value: string): Promise<PlatformSetting | undefined> {
-    const [updated] = await db.update(platformSettings).set({ value, updatedAt: new Date() }).where(eq(platformSettings.key, key)).returning();
-    return updated;
+    const [s] = await db.update(platformSettings).set({ value, updatedAt: new Date() }).where(eq(platformSettings.key, key)).returning();
+    return s || undefined;
   }
 
   async deletePlatformSetting(id: string): Promise<void> {
@@ -1109,22 +1111,22 @@ export class DatabaseStorage implements IStorage {
 
   // Service Categories
   async createServiceCategory(data: InsertServiceCategory): Promise<ServiceCategory> {
-    const [cat] = await db.insert(serviceCategories).values(data).returning();
-    return cat;
+    const [c] = await db.insert(serviceCategories).values(data).returning();
+    return c;
   }
 
   async getServiceCategory(id: string): Promise<ServiceCategory | undefined> {
-    const [cat] = await db.select().from(serviceCategories).where(eq(serviceCategories.id, id));
-    return cat;
+    const [c] = await db.select().from(serviceCategories).where(eq(serviceCategories.id, id));
+    return c || undefined;
   }
 
   async getAllServiceCategories(): Promise<ServiceCategory[]> {
-    return db.select().from(serviceCategories);
+    return db.select().from(serviceCategories).orderBy(asc(serviceCategories.name));
   }
 
   async updateServiceCategory(id: string, data: Partial<ServiceCategory>): Promise<ServiceCategory | undefined> {
-    const [updated] = await db.update(serviceCategories).set(data).where(eq(serviceCategories.id, id)).returning();
-    return updated;
+    const [c] = await db.update(serviceCategories).set(data).where(eq(serviceCategories.id, id)).returning();
+    return c || undefined;
   }
 
   async deleteServiceCategory(id: string): Promise<void> {
@@ -1133,22 +1135,22 @@ export class DatabaseStorage implements IStorage {
 
   // Locations
   async createLocation(data: InsertLocation): Promise<Location> {
-    const [loc] = await db.insert(locations).values(data).returning();
-    return loc;
+    const [l] = await db.insert(locations).values(data).returning();
+    return l;
   }
 
   async getLocation(id: string): Promise<Location | undefined> {
-    const [loc] = await db.select().from(locations).where(eq(locations.id, id));
-    return loc;
+    const [l] = await db.select().from(locations).where(eq(locations.id, id));
+    return l || undefined;
   }
 
   async getAllLocations(): Promise<Location[]> {
-    return db.select().from(locations);
+    return db.select().from(locations).orderBy(asc(locations.name));
   }
 
   async updateLocation(id: string, data: Partial<Location>): Promise<Location | undefined> {
-    const [updated] = await db.update(locations).set(data).where(eq(locations.id, id)).returning();
-    return updated;
+    const [l] = await db.update(locations).set(data).where(eq(locations.id, id)).returning();
+    return l || undefined;
   }
 
   async deleteLocation(id: string): Promise<void> {
@@ -1157,22 +1159,22 @@ export class DatabaseStorage implements IStorage {
 
   // Daily Metrics
   async createDailyMetric(data: InsertDailyMetric): Promise<DailyMetric> {
-    const [metric] = await db.insert(dailyMetrics).values(data).returning();
-    return metric;
+    const [m] = await db.insert(dailyMetrics).values(data).returning();
+    return m;
   }
 
   async getDailyMetricByDate(date: string): Promise<DailyMetric | undefined> {
-    const [metric] = await db.select().from(dailyMetrics).where(eq(dailyMetrics.date, date));
-    return metric;
+    const [m] = await db.select().from(dailyMetrics).where(eq(dailyMetrics.date, date));
+    return m || undefined;
   }
 
   async getDailyMetrics(startDate: string, endDate: string): Promise<DailyMetric[]> {
-    return db.select().from(dailyMetrics).where(and(gte(dailyMetrics.date, startDate), lte(dailyMetrics.date, endDate)));
+    return db.select().from(dailyMetrics).orderBy(asc(dailyMetrics.date));
   }
 
   async updateDailyMetric(id: string, data: Partial<DailyMetric>): Promise<DailyMetric | undefined> {
-    const [updated] = await db.update(dailyMetrics).set(data).where(eq(dailyMetrics.id, id)).returning();
-    return updated;
+    const [m] = await db.update(dailyMetrics).set(data).where(eq(dailyMetrics.id, id)).returning();
+    return m || undefined;
   }
 
   // User Notifications
@@ -1181,8 +1183,8 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createUserNotification(data: InsertUserNotification): Promise<UserNotification> {
-    const [notif] = await db.insert(userNotifications).values(data).returning();
-    return notif;
+    const [n] = await db.insert(userNotifications).values(data).returning();
+    return n;
   }
 
   async markNotificationRead(id: string): Promise<void> {
@@ -1191,19 +1193,12 @@ export class DatabaseStorage implements IStorage {
 
   // Messaging (New)
   async getChatConversations(userId: string, role: string): Promise<any[]> {
-    const filter = role === "patient" ? eq(chatConversations.patientId, userId) : eq(chatConversations.providerId, userId);
-    
-    const results = await db
+    const result = await db
       .select()
       .from(chatConversations)
-      .where(filter)
-      .innerJoin(users, eq(role === "patient" ? chatConversations.providerId : chatConversations.patientId, users.id))
-      .orderBy(desc(chatConversations.updatedAt));
-
-    return results.map(r => ({
-      ...r.chat_conversations,
-      otherUser: r.users
-    }));
+      .where(or(eq(chatConversations.patientId, userId), eq(chatConversations.providerId, userId)))
+      .orderBy(desc(chatConversations.lastMessageAt));
+    return result;
   }
 
   async getChatMessages(conversationId: string): Promise<ChatMessage[]> {
@@ -1211,14 +1206,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createChatMessage(data: InsertChatMessage): Promise<ChatMessage> {
-    const [msg] = await db.insert(chatMessages).values(data).returning();
-    return msg;
+    const [m] = await db.insert(chatMessages).values(data).returning();
+    await db.update(chatConversations).set({ lastMessage: data.content, lastMessageAt: new Date() }).where(eq(chatConversations.id, data.conversationId));
+    return m;
   }
 
   async getOrCreateConversation(patientId: string, providerId: string): Promise<ChatConversation> {
-    const [existing] = await db.select().from(chatConversations).where(
-      and(eq(chatConversations.patientId, patientId), eq(chatConversations.providerId, providerId))
-    );
+    const [existing] = await db.select().from(chatConversations).where(and(eq(chatConversations.patientId, patientId), eq(chatConversations.providerId, providerId)));
     if (existing) return existing;
     const [created] = await db.insert(chatConversations).values({ patientId, providerId }).returning();
     return created;
@@ -1226,21 +1220,21 @@ export class DatabaseStorage implements IStorage {
 
   // Sub-services
   async getAllSubServices(): Promise<SubService[]> {
-    return db.select().from(subServices);
+    return db.select().from(subServices).orderBy(asc(subServices.name));
   }
 
   async getSubServicesByCategory(category: string): Promise<SubService[]> {
-    return db.select().from(subServices).where(sql`${subServices.category}::text = ${category}`);
+    return db.select().from(subServices).where(eq(subServices.category, category as any)).orderBy(asc(subServices.name));
   }
 
   async createSubService(data: InsertSubService): Promise<SubService> {
-    const [service] = await db.insert(subServices).values(data).returning();
-    return service;
+    const [s] = await db.insert(subServices).values(data).returning();
+    return s;
   }
 
   async updateSubService(id: string, data: Partial<SubService>): Promise<SubService | undefined> {
-    const [updated] = await db.update(subServices).set(data).where(eq(subServices.id, id)).returning();
-    return updated;
+    const [s] = await db.update(subServices).set(data).where(eq(subServices.id, id)).returning();
+    return s || undefined;
   }
 
   async deleteSubService(id: string): Promise<void> {
@@ -1250,7 +1244,7 @@ export class DatabaseStorage implements IStorage {
   // Medical Data
   async getPrescription(id: string): Promise<Prescription | undefined> {
     const [p] = await db.select().from(prescriptions).where(eq(prescriptions.id, id));
-    return p;
+    return p || undefined;
   }
 
   async getPrescriptionsByPatient(patientId: string): Promise<Prescription[]> {
@@ -1271,6 +1265,16 @@ export class DatabaseStorage implements IStorage {
     return h;
   }
 
+  // Medical Practitioners
+  async createMedicalPractitioner(practitioner: InsertMedicalPractitioner): Promise<MedicalPractitioner> {
+    const [result] = await db.insert(medicalPractitioners).values(practitioner).returning();
+    return result;
+  }
+
+  async getMedicalPractitionersByProvider(providerId: string): Promise<MedicalPractitioner[]> {
+    return db.select().from(medicalPractitioners).where(eq(medicalPractitioners.providerId, providerId));
+  }
+
   // Tax Settings
   async getAllTaxSettings(): Promise<TaxSetting[]> {
     return db.select().from(taxSettings).orderBy(asc(taxSettings.country));
@@ -1287,7 +1291,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateTaxSetting(id: string, data: Partial<TaxSetting>): Promise<TaxSetting | undefined> {
-    const [setting] = await db.update(taxSettings).set({ ...data, updatedAt: new Date() }).where(eq(taxSettings.id, id)).returning();
+    const [setting] = await db.update(taxSettings).set(data).where(eq(taxSettings.id, id)).returning();
     return setting || undefined;
   }
 
@@ -1302,7 +1306,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getPatientConsents(userId: string): Promise<PatientConsent[]> {
-    return db.select().from(patientConsents).where(eq(patientConsents.userId, userId)).orderBy(desc(patientConsents.consentedAt));
+    return db.select().from(patientConsents).where(eq(patientConsents.userId, userId)).orderBy(desc(patientConsents.acceptedAt));
   }
 
   // Admin Analytics
