@@ -144,7 +144,7 @@ export const users = pgTable("users", {
 export const providers = pgTable("providers", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull().references(() => users.id),
-  type: providerTypeEnum("type").notNull(),
+  providerType: text("provider_type").notNull().default("doctor"),
   professionalTitle: text("professional_title"), // Dr., RN, etc.
   specialization: text("specialization").notNull(),
   secondarySpecialties: text("secondary_specialties").array(),
