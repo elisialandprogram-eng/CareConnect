@@ -1,0 +1,165 @@
+Golden Life Health Care
+Provider Details to Capture
+1️⃣ Basic Profile Information (Required)
+
+Provider Type
+
+Doctor / Nurse / Therapist / Caregiver / Specialist
+
+First Name
+
+Last Name
+
+Professional Title
+
+Dr., RN, NP, PT, etc.
+
+Profile Photo (optional but recommended)
+
+Short Bio / Introduction
+
+2️⃣ Contact Information
+
+Email Address
+
+Phone Number
+
+Work Address
+
+City / State / Country
+
+Preferred Contact Method
+
+3️⃣ Professional Credentials (Critical)
+
+License Number
+
+Licensing Authority
+
+License Expiry Date
+
+Upload License Document
+
+National Provider ID (if applicable)
+
+4️⃣ Specialization & Services
+
+Primary Specialty
+
+Cardiology, General Practice, Physiotherapy, Home Care, etc.
+
+Secondary Specialties (optional)
+
+Services Offered
+
+Consultation
+
+Home Visit
+
+Telemedicine
+
+Emergency Care
+
+Age Groups Served
+
+Children / Adults / Seniors
+
+5️⃣ Experience & Education
+
+Years of Experience
+
+Education / Qualifications
+
+Degree, Institution, Year
+
+Certifications
+
+CPR, ACLS, Specialty Certifications
+
+Languages Spoken
+
+English / Hungarian / Persian / Others
+
+6️⃣ Availability & Scheduling
+
+Available Days (Multi-select)
+
+Available Time Slots
+
+Home Visit Availability
+
+Telemedicine Availability
+
+Maximum Patients per Day
+
+Time Zone
+
+7️⃣ Service Area (Important for Home Care)
+
+Primary Service Location
+
+Service Radius (km/miles)
+
+Multiple Service Areas (optional)
+
+Google Maps Location Integration
+
+8️⃣ Pricing & Payment
+
+Consultation Fee
+
+Home Visit Fee
+
+Telemedicine Fee
+
+Insurance Accepted
+
+Currency
+
+Payment Method
+
+Cash / Card / Online
+
+9️⃣ Compliance & Verification (Mandatory)
+
+Background Check Status
+
+Identity Verification
+
+Insurance / Malpractice Coverage
+
+Compliance Approval Status
+
+Pending / Approved / Rejected
+
+🔐 10️⃣ Account & Security
+
+Login Email
+
+Password
+
+Two-Factor Authentication
+
+Role-Based Access
+
+Provider / Admin
+
+📄 11️⃣ Legal Consents & Agreements
+
+☐ Provider Agreement Acceptance
+
+☐ Data Processing Agreement
+
+☐ Telemedicine Agreement
+
+☐ Code of Conduct Acceptance
+
+⭐ 12️⃣ Golden Life Health Care Custom Fields
+
+Affiliated Hospital / Clinic
+
+On-Call Availability
+
+Emergency Contact
+
+Notes (Internal Admin Only)
