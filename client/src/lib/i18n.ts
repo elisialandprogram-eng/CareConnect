@@ -247,7 +247,7 @@ const resources = {
       }
     }
   },
-  hu: {
+      hu: {
     translation: {
       common: {
         search: "Keresés",
@@ -283,6 +283,13 @@ const resources = {
         select_service_type: "Válasszon szolgáltatást",
         find_a_provider: "Szolgáltató keresése",
         become_provider: "Legyen szolgáltató",
+        at: "helyen",
+        remove: "Eltávolítás",
+      },
+      cta: {
+        journey_badge: "Kezdje el egészségügyi utazását még ma",
+        ready_title: "Készen áll a kezdésre?",
+        description: "Csatlakozzon több ezer pácienshez, akik megbízható szolgáltatókat találtak a Golden Life-on keresztül. A minőségi ellátás csak egy kattintásra van.",
       },
       auth: {
         signin_description: "Jelentkezzen be fiókjába a foglalásai kezeléséhez",
@@ -489,7 +496,7 @@ const resources = {
       }
     }
   },
-  fa: {
+      fa: {
     translation: {
       common: {
         search: "جستجو",
@@ -525,6 +532,13 @@ const resources = {
         select_service_type: "انتخاب نوع خدمات",
         find_a_provider: "یافتن متخصص",
         become_provider: "متخصص شوید",
+        at: "در",
+        remove: "حذف",
+      },
+      cta: {
+        journey_badge: "سفر سلامتی خود را امروز آغاز کنید",
+        ready_title: "آماده شروع هستید؟",
+        description: "به هزاران بیماری بپیوندید که متخصصان درمانی قابل اعتماد را از طریق گلدن لایف پیدا کرده‌اند. مراقبت با کیفیت تنها یک کلیک فاصله دارد.",
       },
       auth: {
         signin_description: "برای مدیریت نوبت‌های خود وارد حساب کاربری شوید",
