@@ -1185,6 +1185,62 @@ export async function registerRoutes(
     }
   });
 
+  // Services & Practitioners
+  app.get("/api/providers/:providerId/services", async (req, res) => {
+    try {
+      const services = await storage.getServicesByProvider(req.params.providerId);
+      res.json(services);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch services" });
+    }
+  });
+
+  app.get("/api/services/:serviceId/practitioners", async (req, res) => {
+    try {
+      const practitioners = await storage.getServicePractitioners(req.params.serviceId);
+      res.json(practitioners);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch practitioners" });
+    }
+  });
+
+  app.post("/api/services", authenticateToken, async (req: AuthRequest, res) => {
+    if (req.user?.role !== "provider") return res.status(403).json({ message: "Provider access required" });
+    try {
+      const provider = await storage.getProviderByUserId(req.user.id);
+      if (!provider) return res.status(404).json({ message: "Provider not found" });
+      const data = insertServiceSchema.parse({ ...req.body, providerId: provider.id });
+      const service = await storage.createService(data);
+      res.status(201).json(service);
+    } catch (error) {
+      res.status(400).json({ message: "Invalid service data" });
+    }
+  });
+
+  app.post("/api/practitioners", authenticateToken, async (req: AuthRequest, res) => {
+    if (req.user?.role !== "provider") return res.status(403).json({ message: "Provider access required" });
+    try {
+      const provider = await storage.getProviderByUserId(req.user.id);
+      if (!provider) return res.status(404).json({ message: "Provider not found" });
+      const data = insertPractitionerSchema.parse({ ...req.body, providerId: provider.id });
+      const practitioner = await storage.createPractitioner(data);
+      res.status(201).json(practitioner);
+    } catch (error) {
+      res.status(400).json({ message: "Invalid practitioner data" });
+    }
+  });
+
+  app.post("/api/service-practitioners", authenticateToken, async (req: AuthRequest, res) => {
+    if (req.user?.role !== "provider") return res.status(403).json({ message: "Provider access required" });
+    try {
+      const data = insertServicePractitionerSchema.parse(req.body);
+      const sp = await storage.addPractitionerToService(data);
+      res.status(201).json(sp);
+    } catch (error) {
+      res.status(400).json({ message: "Invalid service practitioner data" });
+    }
+  });
+
   // Create appointment
   app.post("/api/appointments", authenticateToken, async (req: AuthRequest, res: Response) => {
     try {
