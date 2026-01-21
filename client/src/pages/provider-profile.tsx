@@ -11,7 +11,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Calendar } from "@/components/ui/calendar";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Star, MapPin, Clock, CheckCircle, Video, Home, GraduationCap, Award, Languages, Calendar as CalendarIcon, ChevronRight, Building2, X } from "lucide-react";
+import { Star, MapPin, Clock, CheckCircle, Video, Home, GraduationCap, Award, Languages, Calendar as CalendarIcon, ChevronRight, Building2, X, ShieldCheck, Briefcase, FileText, Landmark, Users } from "lucide-react";
 import type { ProviderWithServices, Service, ReviewWithPatient } from "@shared/schema";
 import { useAuth } from "@/lib/auth";
 
@@ -313,13 +313,71 @@ export default function ProviderProfile() {
                       <Card>
                         <CardContent className="p-4">
                           <div className="flex items-start gap-3">
-                            <Award className="h-5 w-5 text-primary mt-0.5" />
+                            <Landmark className="h-5 w-5 text-primary mt-0.5" />
                             <div>
                               <h4 className="font-medium mb-1">License & Credentials</h4>
                               <p className="text-sm text-muted-foreground">
                                 License: {provider.licenseNumber}<br />
-                                Authority: {provider.licensingAuthority}
+                                Authority: {provider.licensingAuthority}<br />
+                                {provider.nationalProviderId && `NPI: ${provider.nationalProviderId}`}
                               </p>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
+
+                    {provider.secondarySpecialties && provider.secondarySpecialties.length > 0 && (
+                      <Card>
+                        <CardContent className="p-4">
+                          <div className="flex items-start gap-3">
+                            <Briefcase className="h-5 w-5 text-primary mt-0.5" />
+                            <div>
+                              <h4 className="font-medium mb-1">Secondary Specialties</h4>
+                              <div className="flex flex-wrap gap-1 mt-1">
+                                {provider.secondarySpecialties.map((spec, i) => (
+                                  <Badge key={i} variant="secondary" className="text-[10px]">
+                                    {spec}
+                                  </Badge>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
+
+                    {provider.consultationFee && (
+                      <Card>
+                        <CardContent className="p-4">
+                          <div className="flex items-start gap-3">
+                            <FileText className="h-5 w-5 text-primary mt-0.5" />
+                            <div>
+                              <h4 className="font-medium mb-1">Fees & Pricing</h4>
+                              <div className="text-sm text-muted-foreground space-y-1">
+                                <p>Consultation: ${Number(provider.consultationFee).toFixed(0)}</p>
+                                {provider.homeVisitFee && <p>Home Visit: ${Number(provider.homeVisitFee).toFixed(0)}</p>}
+                                {provider.telemedicineFee && <p>Telemedicine: ${Number(provider.telemedicineFee).toFixed(0)}</p>}
+                                {provider.emergencyCareFee && <p>Emergency: ${Number(provider.emergencyCareFee).toFixed(0)}</p>}
+                              </div>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
+
+                    {(provider.backgroundCheckStatus === "completed" || provider.identityVerificationStatus === "completed" || provider.isVerified) && (
+                      <Card>
+                        <CardContent className="p-4">
+                          <div className="flex items-start gap-3">
+                            <ShieldCheck className="h-5 w-5 text-primary mt-0.5" />
+                            <div>
+                              <h4 className="font-medium mb-1">Verification Status</h4>
+                              <div className="flex flex-wrap gap-2 mt-1">
+                                {provider.isVerified && <Badge variant="outline" className="text-primary border-primary">Verified Provider</Badge>}
+                                {provider.backgroundCheckStatus === "completed" && <Badge variant="outline" className="text-green-600 border-green-600">Background Checked</Badge>}
+                                {provider.identityVerificationStatus === "completed" && <Badge variant="outline" className="text-blue-600 border-blue-600">Identity Verified</Badge>}
+                              </div>
                             </div>
                           </div>
                         </CardContent>
