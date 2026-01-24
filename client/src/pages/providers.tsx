@@ -52,30 +52,30 @@ export default function Providers() {
   const getPageTitle = () => {
     switch (typeParam) {
       case "physiotherapist":
-        return t("providers.physiotherapists");
+        return t("providers.physiotherapists", "Physiotherapists");
       case "nurse":
-        return t("providers.nurses");
+        return t("providers.nurses", "Home Nurses");
       case "doctor":
-        return t("providers.doctors");
+        return t("providers.doctors", "Doctors");
       default:
-        return t("providers.healthcare_providers");
+        return t("providers.healthcare_providers", "Healthcare Providers");
     }
   };
 
   const getServiceLabel = (type: string) => {
-    return t(`common_service_type.${type}`);
+    return t(`common_service_type.${type}`, type);
   };
 
   const getPageDescription = () => {
     switch (typeParam) {
       case "physiotherapist":
-        return t("providers.physio_desc");
+        return t("providers.physio_desc", "Find certified physiotherapists");
       case "nurse":
-        return t("providers.nurse_desc");
+        return t("providers.nurse_desc", "Book professional home nurses");
       case "doctor":
-        return t("providers.doctor_desc");
+        return t("providers.doctor_desc", "Connect with qualified doctors");
       default:
-        return t("providers.generic_desc");
+        return t("providers.generic_desc", "Find trusted healthcare professionals in your area");
     }
   };
 
