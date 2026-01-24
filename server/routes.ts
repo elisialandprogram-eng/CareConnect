@@ -130,6 +130,8 @@ export async function registerRoutes(
     try {
       const data = insertPatientConsentSchema.parse({
         ...req.body,
+        consentType: req.body.consentType || "general",
+        isAccepted: req.body.isAccepted ?? true,
         userId: req.body.userId || req.user?.id,
         ipAddress: req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress,
         userAgent: req.headers['user-agent']

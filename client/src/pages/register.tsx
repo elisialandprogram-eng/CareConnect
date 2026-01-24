@@ -92,16 +92,25 @@ export default function Register() {
       
       // Submit consent after successful registration
       if (data.role === "patient") {
-        await apiRequest("POST", "/api/consents", {
-          userId: result.id,
-          treatmentConsent: data.treatmentConsent,
-          privacyConsent: data.privacyConsent,
-          telemedicineConsent: data.telemedicineConsent,
-          termsConsent: data.termsConsent,
-          declarationConsent: data.declarationConsent,
-          language: "en", // Default to English for registration
-          consentTextVersion: "1.0"
-        });
+        const consentTypes = [
+          { type: "treatment", accepted: data.treatmentConsent },
+          { type: "privacy", accepted: data.privacyConsent },
+          { type: "telemedicine", accepted: data.telemedicineConsent },
+          { type: "terms", accepted: data.termsConsent },
+          { type: "declaration", accepted: data.declarationConsent },
+        ];
+
+        await Promise.all(
+          consentTypes.map((c) =>
+            apiRequest("POST", "/api/consents", {
+              userId: result.id,
+              consentType: c.type,
+              isAccepted: c.accepted,
+              language: "en",
+              consentTextVersion: "1.0",
+            })
+          )
+        );
       }
 
       toast({
