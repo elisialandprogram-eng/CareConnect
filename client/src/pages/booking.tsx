@@ -239,9 +239,9 @@ export default function Booking() {
         <Header />
         <main className="flex-1 flex items-center justify-center">
           <div className="text-center">
-            <h1 className="text-2xl font-semibold mb-2">Invalid Booking</h1>
-            <p className="text-muted-foreground mb-4">Missing booking information.</p>
-            <Button onClick={() => navigate("/providers")}>Browse Providers</Button>
+            <h1 className="text-2xl font-semibold mb-2">{t("booking.invalid_booking")}</h1>
+            <p className="text-muted-foreground mb-4">{t("booking.missing_info")}</p>
+            <Button onClick={() => navigate("/providers")}>{t("booking.browse_providers")}</Button>
           </div>
         </main>
         <Footer />
@@ -307,10 +307,10 @@ export default function Booking() {
 
             <div className="flex flex-col gap-3">
               <Button onClick={() => navigate("/patient/dashboard")} data-testid="button-go-to-dashboard">
-                Go to Dashboard
+                {t("booking.go_to_dashboard")}
               </Button>
               <Button variant="outline" onClick={() => navigate("/providers")} data-testid="button-browse-more">
-                Book Another Appointment
+                {t("booking.book_another")}
               </Button>
             </div>
           </div>
@@ -333,7 +333,7 @@ export default function Booking() {
             data-testid="button-back"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Provider
+            {t("booking.back_to_provider")}
           </Button>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

@@ -80,7 +80,7 @@ export function SearchBar({ className = "", variant = "hero" }: SearchBarProps) 
         <div className="relative flex-1">
           <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-primary" />
           <Input
-            placeholder={t("common.enter_city_area")}
+            placeholder={t("common.city_area_placeholder")}
             value={location}
             onChange={(e) => setLocation(e.target.value)}
             onFocus={() => setIsFocused(true)}
@@ -94,7 +94,7 @@ export function SearchBar({ className = "", variant = "hero" }: SearchBarProps) 
             className="h-14 md:w-[240px] rounded-xl border-2 focus:border-primary/50 transition-colors" 
             data-testid="select-service-type"
           >
-            <SelectValue placeholder={t("common.select_service_type")} />
+            <SelectValue placeholder={t("common.service_type")} />
           </SelectTrigger>
           <SelectContent className="rounded-xl">
             <SelectItem value="all" className="rounded-lg">{t("common.all_services")}</SelectItem>
