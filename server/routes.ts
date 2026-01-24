@@ -976,13 +976,17 @@ export async function registerRoutes(
   // Get current provider (for logged in provider)
   app.get("/api/provider/me", authenticateToken, async (req: AuthRequest, res: Response) => {
     try {
-      const provider = await storage.getProviderByUserId(req.user!.id);
+      if (req.user?.role !== "provider") {
+        return res.status(404).json({ message: "Not a provider account" });
+      }
+      const provider = await storage.getProviderByUserId(req.user.id);
       if (!provider) {
         return res.status(404).json({ message: "Provider profile not found" });
       }
       res.json(provider);
     } catch (error) {
-      res.status(500).json({ message: "Failed to get provider" });
+      console.error("Error fetching current provider:", error);
+      res.status(500).json({ message: "Internal server error" });
     }
   });
 
@@ -1487,15 +1491,18 @@ export async function registerRoutes(
   // Get provider appointments
   app.get("/api/appointments/provider", authenticateToken, async (req: AuthRequest, res: Response) => {
     try {
-      const provider = await storage.getProviderByUserId(req.user!.id);
-      if (!provider) {
-        return res.status(404).json({ message: "Provider not found" });
+      if (req.user?.role !== "provider") {
+        return res.status(403).json({ message: "Provider access required" });
       }
-
+      const provider = await storage.getProviderByUserId(req.user.id);
+      if (!provider) {
+        return res.status(404).json({ message: "Provider profile not found" });
+      }
       const appointments = await storage.getAppointmentsByProvider(provider.id);
       res.json(appointments);
     } catch (error) {
-      res.status(500).json({ message: "Failed to get appointments" });
+      console.error("Error fetching provider appointments:", error);
+      res.status(500).json({ message: "Internal server error" });
     }
   });
 

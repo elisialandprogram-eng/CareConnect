@@ -500,7 +500,11 @@ export class DatabaseStorage implements IStorage {
     const providerWithUser = await this.getProviderWithUser(id);
     if (!providerWithUser) return undefined;
     const providerServices = await this.getServicesByProvider(id);
-    return { ...providerWithUser, services: providerServices };
+    return {
+      ...providerWithUser,
+      services: providerServices,
+      practitionerData: providerWithUser.practitionerData || undefined
+    };
   }
 
   async getAllProviders(): Promise<ProviderWithUser[]> {

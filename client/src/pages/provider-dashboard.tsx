@@ -91,6 +91,7 @@ export default function ProviderDashboard() {
 
   const { data: providerData, isLoading: isLoadingProvider } = useQuery<Provider>({
     queryKey: ["/api/provider/me"],
+    retry: false,
   });
 
   const { data: practitioners } = useQuery<Practitioner[]>({
@@ -100,6 +101,7 @@ export default function ProviderDashboard() {
 
   const { data: appointments } = useQuery<AppointmentWithDetails[]>({
     queryKey: ["/api/appointments/provider"],
+    enabled: !!providerData?.id,
   });
 
   const { data: providerWithServices } = useQuery<ProviderWithServices>({
