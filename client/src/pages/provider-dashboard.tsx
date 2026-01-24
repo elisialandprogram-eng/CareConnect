@@ -375,7 +375,13 @@ export default function ProviderDashboard() {
                         <div key={p.id} className="flex justify-between items-center p-3 border rounded-lg">
                           <span>{p.name} ({p.title})</span>
                           <div className="flex gap-1">
-                            <Button size="sm" variant={p.isActive ? "default" : "outline"} onClick={() => togglePractitionerMutation.mutate({ id: p.id, isActive: !p.isActive })}>{p.isActive ? "Active" : "Paused"}</Button>
+                            <Button 
+                              size="sm" 
+                              variant={(p as any).isActive ? "default" : "outline"} 
+                              onClick={() => togglePractitionerMutation.mutate({ id: p.id, isActive: !(p as any).isActive })}
+                            >
+                              {(p as any).isActive ? "Active" : "Paused"}
+                            </Button>
                             <Button size="icon" variant="ghost" className="text-destructive" onClick={() => deletePractitionerMutation.mutate(p.id)}><Trash2 className="h-4 w-4" /></Button>
                           </div>
                         </div>
