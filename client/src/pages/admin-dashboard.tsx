@@ -138,7 +138,7 @@ function ServicePractitionerAssignment({ serviceId, providerId }: { serviceId: s
     <div className="space-y-4 mt-4 pt-4 border-t">
       <h4 className="text-sm font-semibold">Assigned Practitioners</h4>
       <div className="grid grid-cols-3 gap-2">
-        <Select id="select-practitioner">
+        <Select value={form.getValues('practitionerId')} onValueChange={(val) => form.setValue('practitionerId', val)}>
           <SelectTrigger className="col-span-2">
             <SelectValue placeholder="Select Practitioner" />
           </SelectTrigger>
@@ -505,6 +505,7 @@ function ProviderEditDialog({ provider }: { provider: any }) {
                   </Button>
                 </div>
                 <div className="space-y-2">
+                  {providerServices?.map((service: any) => (
                     <div key={service.id} className="p-3 bg-muted/50 rounded-md border">
                       <div className="flex items-center justify-between mb-2">
                         <span className="font-semibold">{service.name} - ${service.price}</span>
@@ -522,6 +523,7 @@ function ProviderEditDialog({ provider }: { provider: any }) {
                       </div>
                       <ServicePractitionerAssignment serviceId={service.id} providerId={provider.id} />
                     </div>
+                  ))}
                 </div>
               </div>
             </TabsContent>
