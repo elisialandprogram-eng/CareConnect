@@ -126,14 +126,19 @@ export async function registerRoutes(
   app.use(cookieParser.default());
 
   // ============ PATIENT CONSENT ROUTES ============
-  app.post("/api/consents", authenticateToken, async (req: AuthRequest, res: Response) => {
+  app.post("/api/consents", optionalAuth, async (req: AuthRequest, res: Response) => {
     try {
       const data = insertPatientConsentSchema.parse({
         ...req.body,
-        userId: req.user!.id,
+        userId: req.body.userId || req.user?.id,
         ipAddress: req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress,
         userAgent: req.headers['user-agent']
       });
+      
+      if (!data.userId) {
+        return res.status(400).json({ message: "User ID is required for consent" });
+      }
+
       const consent = await storage.createPatientConsent(data);
       res.status(201).json(consent);
     } catch (error) {
