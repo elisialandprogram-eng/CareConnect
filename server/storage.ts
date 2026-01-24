@@ -499,11 +499,13 @@ export class DatabaseStorage implements IStorage {
   async getProviderWithServices(id: string): Promise<ProviderWithServices | undefined> {
     const providerWithUser = await this.getProviderWithUser(id);
     if (!providerWithUser) return undefined;
-    const providerServices = await this.getServicesByProvider(id);
+    
+    // Direct query to services table to handle schema/table issues
+    const providerServices = await db.select().from(services).where(eq(services.providerId, id));
+    
     return {
       ...providerWithUser,
       services: providerServices,
-      practitionerData: providerWithUser.practitionerData || undefined
     };
   }
 

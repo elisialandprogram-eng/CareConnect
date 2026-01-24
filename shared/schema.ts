@@ -653,7 +653,7 @@ export type MedicalPractitioner = typeof medicalPractitioners.$inferSelect;
 export type InsertMedicalPractitioner = z.infer<typeof insertMedicalPractitionerSchema>;
 
 export type ProviderWithUser = Provider & { user: User };
-export type ProviderWithServices = ProviderWithUser & { services: Service[], practitionerData?: string };
+export type ProviderWithServices = ProviderWithUser & { services: Service[] };
 export type AppointmentWithDetails = Appointment & { 
   patient: User; 
   provider: Provider & { user: User }; 
