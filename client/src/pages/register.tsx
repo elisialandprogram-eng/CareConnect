@@ -108,6 +108,7 @@ export default function Register() {
         title: t("common.account_created"),
         description: t("common.check_email_verify"),
       });
+      // Correctly use navigate with the route to the verification page
       navigate(`/verify-email?userId=${result.id}`);
     } catch (error: any) {
       toast({
