@@ -89,11 +89,8 @@ export default function ProviderDashboard() {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [, setLocation] = useLocation();
 
-  const { data: providerData, isLoading: isLoadingProvider } = useQuery<Provider>({
-    queryKey: ["/api/providers/me"],
-    retry: 3,
-    refetchOnWindowFocus: true,
-    staleTime: 0,
+  const { data: providerData, isLoading: isLoadingProvider } = useQuery<ProviderWithServices>({
+    queryKey: ["/api/provider/me"],
   });
 
   const { data: practitioners } = useQuery<Practitioner[]>({

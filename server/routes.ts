@@ -982,7 +982,8 @@ export async function registerRoutes(
       const provider = await storage.getProviderByUserId(userId);
       if (!provider) return res.status(404).json({ message: "Provider profile not found" });
       
-      res.json(provider);
+      const providerWithServices = await storage.getProviderWithServices(provider.id);
+      res.json(providerWithServices || provider);
     } catch (error) {
       console.error("Error fetching provider/me:", error);
       res.status(500).json({ message: "Internal server error" });
@@ -1234,10 +1235,10 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/providers/:providerId/practitioners", authenticateToken, async (req: AuthRequest, res) => {
+  app.post("/api/practitioners", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const provider = await storage.getProviderByUserId(req.user!.id);
-      if (!provider || provider.id !== req.params.providerId) {
+      if (!provider) {
         return res.status(403).json({ message: "Unauthorized" });
       }
       const data = insertPractitionerSchema.parse({ ...req.body, providerId: provider.id });
@@ -1248,13 +1249,10 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/services/:serviceId/practitioners", authenticateToken, async (req: AuthRequest, res) => {
+  app.post("/api/service-practitioners", authenticateToken, async (req: AuthRequest, res) => {
     try {
-      const service = await storage.getService(req.params.serviceId);
-      if (!service) return res.status(404).json({ message: "Service not found" });
-      
       const provider = await storage.getProviderByUserId(req.user!.id);
-      if (!provider || provider.id !== service.providerId) {
+      if (!provider) {
         return res.status(403).json({ message: "Unauthorized" });
       }
 
@@ -1263,6 +1261,27 @@ export async function registerRoutes(
       res.status(201).json(result);
     } catch (error) {
       res.status(400).json({ message: "Invalid assignment data" });
+    }
+  });
+
+  app.delete("/api/service-practitioners/:id", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      await storage.removePractitionerFromService(req.params.id);
+      res.status(204).end();
+    } catch (error) {
+      res.status(400).json({ message: "Failed to remove assignment" });
+    }
+  });
+
+  app.patch("/api/service-practitioners/:id", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const { isActive } = req.body;
+      // Note: storage.ts might need a more general update method, but for now we use what's there
+      // or assume the storage interface supports Partial updates if I added them
+      const result = await db.update(servicePractitioners).set({ isActive }).where(eq(servicePractitioners.id, req.params.id)).returning();
+      res.json(result[0]);
+    } catch (error) {
+      res.status(400).json({ message: "Failed to update assignment" });
     }
   });
 
