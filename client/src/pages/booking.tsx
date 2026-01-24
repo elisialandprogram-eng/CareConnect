@@ -360,7 +360,7 @@ export default function Booking() {
 
                   <div className="grid grid-cols-1 gap-4">
                     <div className="space-y-4">
-                      <Label>Available Services</Label>
+                      <Label>{t("booking.available_services", "Available Services")}</Label>
                       <div className="grid gap-3">
                         {provider.services?.filter(s => s.isActive).map((service) => (
                           <Button
@@ -384,7 +384,7 @@ export default function Booking() {
 
                     {serviceId && (
                       <div className="space-y-4">
-                        <Label>Select Practitioner</Label>
+                        <Label>{t("booking.select_practitioner", "Select Practitioner")}</Label>
                         <div className="grid gap-3">
                           {activePractitioners.map((sp) => (
                             <Button
@@ -531,10 +531,10 @@ export default function Booking() {
                       />
                       <div className="space-y-1 leading-none">
                         <Label htmlFor="booking-consent" className="text-sm font-medium">
-                          I confirm that I have read and agree to the Patient Consent & Authorization.
+                          {t("booking.consent_label", "I confirm that I have read and agree to the Patient Consent & Authorization.")}
                         </Label>
                         <p className="text-xs text-muted-foreground">
-                          All healthcare services provided by Golden Life Health Care require your voluntary consent.
+                          {t("booking.consent_desc", "All healthcare services provided by Golden Life Health Care require your voluntary consent.")}
                         </p>
                       </div>
                     </div>

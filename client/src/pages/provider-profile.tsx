@@ -315,11 +315,11 @@ export default function ProviderProfile() {
                           <div className="flex items-start gap-3">
                             <Landmark className="h-5 w-5 text-primary mt-0.5" />
                             <div>
-                              <h4 className="font-medium mb-1">License & Credentials</h4>
+                              <h4 className="font-medium mb-1">{t("profile.license_credentials", "License & Credentials")}</h4>
                               <p className="text-sm text-muted-foreground">
-                                License: {provider.licenseNumber}<br />
-                                Authority: {provider.licensingAuthority}<br />
-                                {provider.nationalProviderId && `NPI: ${provider.nationalProviderId}`}
+                                {t("profile.license", "License")}: {provider.licenseNumber}<br />
+                                {t("profile.authority", "Authority")}: {provider.licensingAuthority}<br />
+                                {provider.nationalProviderId && `${t("profile.npi", "NPI")}: ${provider.nationalProviderId}`}
                               </p>
                             </div>
                           </div>
@@ -333,7 +333,7 @@ export default function ProviderProfile() {
                           <div className="flex items-start gap-3">
                             <Briefcase className="h-5 w-5 text-primary mt-0.5" />
                             <div>
-                              <h4 className="font-medium mb-1">Secondary Specialties</h4>
+                              <h4 className="font-medium mb-1">{t("profile.secondary_specialties", "Secondary Specialties")}</h4>
                               <div className="flex flex-wrap gap-1 mt-1">
                                 {provider.secondarySpecialties.map((spec, i) => (
                                   <Badge key={i} variant="secondary" className="text-[10px]">
@@ -353,12 +353,12 @@ export default function ProviderProfile() {
                           <div className="flex items-start gap-3">
                             <FileText className="h-5 w-5 text-primary mt-0.5" />
                             <div>
-                              <h4 className="font-medium mb-1">Fees & Pricing</h4>
+                              <h4 className="font-medium mb-1">{t("profile.fees_pricing", "Fees & Pricing")}</h4>
                               <div className="text-sm text-muted-foreground space-y-1">
-                                <p>Consultation: ${Number(provider.consultationFee).toFixed(0)}</p>
-                                {provider.homeVisitFee && <p>Home Visit: ${Number(provider.homeVisitFee).toFixed(0)}</p>}
-                                {provider.telemedicineFee && <p>Telemedicine: ${Number(provider.telemedicineFee).toFixed(0)}</p>}
-                                {provider.emergencyCareFee && <p>Emergency: ${Number(provider.emergencyCareFee).toFixed(0)}</p>}
+                                <p>{t("profile.consultation", "Consultation")}: ${Number(provider.consultationFee).toFixed(0)}</p>
+                                {provider.homeVisitFee && <p>{t("profile.home_visit", "Home Visit")}: ${Number(provider.homeVisitFee).toFixed(0)}</p>}
+                                {provider.telemedicineFee && <p>{t("profile.telemedicine", "Telemedicine")}: ${Number(provider.telemedicineFee).toFixed(0)}</p>}
+                                {provider.emergencyCareFee && <p>{t("profile.emergency", "Emergency")}: ${Number(provider.emergencyCareFee).toFixed(0)}</p>}
                               </div>
                             </div>
                           </div>
@@ -372,11 +372,11 @@ export default function ProviderProfile() {
                           <div className="flex items-start gap-3">
                             <ShieldCheck className="h-5 w-5 text-primary mt-0.5" />
                             <div>
-                              <h4 className="font-medium mb-1">Verification Status</h4>
+                              <h4 className="font-medium mb-1">{t("profile.verification_status", "Verification Status")}</h4>
                               <div className="flex flex-wrap gap-2 mt-1">
-                                {provider.isVerified && <Badge variant="outline" className="text-primary border-primary">Verified Provider</Badge>}
-                                {provider.backgroundCheckStatus === "completed" && <Badge variant="outline" className="text-green-600 border-green-600">Background Checked</Badge>}
-                                {provider.identityVerificationStatus === "completed" && <Badge variant="outline" className="text-blue-600 border-blue-600">Identity Verified</Badge>}
+                                {provider.isVerified && <Badge variant="outline" className="text-primary border-primary">{t("profile.verified_provider", "Verified Provider")}</Badge>}
+                                {provider.backgroundCheckStatus === "completed" && <Badge variant="outline" className="text-green-600 border-green-600">{t("profile.background_checked", "Background Checked")}</Badge>}
+                                {provider.identityVerificationStatus === "completed" && <Badge variant="outline" className="text-blue-600 border-blue-600">{t("profile.identity_verified", "Identity Verified")}</Badge>}
                               </div>
                             </div>
                           </div>
@@ -390,10 +390,10 @@ export default function ProviderProfile() {
                           <div className="flex items-start gap-3">
                             <MapPin className="h-5 w-5 text-primary mt-0.5" />
                             <div>
-                              <h4 className="font-medium mb-1">Service Area</h4>
+                              <h4 className="font-medium mb-1">{t("profile.service_area", "Service Area")}</h4>
                               <p className="text-sm text-muted-foreground">
                                 {provider.primaryServiceLocation}<br />
-                                {provider.serviceRadiusKm && `Radius: ${provider.serviceRadiusKm} km`}
+                                {provider.serviceRadiusKm && `${t("profile.radius", "Radius")}: ${provider.serviceRadiusKm} km`}
                               </p>
                             </div>
                           </div>
