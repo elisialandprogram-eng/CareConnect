@@ -93,6 +93,7 @@ export default function ProviderDashboard() {
     queryKey: ["/api/provider/me"],
     retry: 3,
     refetchOnWindowFocus: true,
+    staleTime: 0,
   });
 
   const { data: practitioners } = useQuery<Practitioner[]>({
@@ -235,7 +236,6 @@ export default function ProviderDashboard() {
   };
 
   if (!isLoadingProvider && !providerData) {
-    console.log("No provider data found, showing setup prompt");
     return (
       <div className="min-h-screen flex flex-col">
         <Header />
@@ -255,15 +255,6 @@ export default function ProviderDashboard() {
               <Button variant="ghost" size="sm" className="w-full text-muted-foreground" onClick={() => setLocation("/providers")}>
                 Browse Other Providers
               </Button>
-            </div>
-            {/* Debug info - only visible in dev */}
-            <div className="mt-8 pt-8 border-t text-xs text-muted-foreground text-left space-y-1">
-              <p><strong>Debug Information:</strong></p>
-              <p>User Role: {user?.role}</p>
-              <p>User ID: {user?.id}</p>
-              <p>Loading Status: {isLoadingProvider ? "Loading..." : "Finished"}</p>
-              <p>Provider Profile Found: {providerData ? "Yes" : "No"}</p>
-              <p className="text-[10px] break-all">Auth Header: {document.cookie.includes('accessToken') ? "Token Present" : "Token Missing"}</p>
             </div>
           </div>
         </main>

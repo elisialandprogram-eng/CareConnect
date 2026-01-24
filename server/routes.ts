@@ -977,23 +977,14 @@ export async function registerRoutes(
   app.get("/api/provider/me", authenticateToken, async (req: AuthRequest, res: Response) => {
     try {
       const userId = req.user?.id;
-      console.log(`[DEBUG] Fetching provider profile for userId: ${userId}, role: ${req.user?.role}`);
-      
-      if (!userId) {
-        return res.status(401).json({ message: "Not authenticated" });
-      }
+      if (!userId) return res.status(401).json({ message: "Not authenticated" });
 
       const provider = await storage.getProviderByUserId(userId);
+      if (!provider) return res.status(404).json({ message: "Provider profile not found" });
       
-      if (!provider) {
-        console.log(`[DEBUG] No provider record found in storage for userId: ${userId}`);
-        return res.status(404).json({ message: "Provider profile not found" });
-      }
-      
-      console.log(`[DEBUG] Found provider profile ${provider.id} for userId: ${userId}`);
       res.json(provider);
     } catch (error) {
-      console.error("[ERROR] Fetching /api/provider/me:", error);
+      console.error("Error fetching provider/me:", error);
       res.status(500).json({ message: "Internal server error" });
     }
   });
@@ -1499,18 +1490,17 @@ export async function registerRoutes(
   // Get provider appointments
   app.get("/api/appointments/provider", authenticateToken, async (req: AuthRequest, res: Response) => {
     try {
-      if (req.user?.role !== "provider") {
-        return res.status(403).json({ message: "Provider access required" });
-      }
-      const provider = await storage.getProviderByUserId(req.user.id);
+      const provider = await storage.getProviderByUserId(req.user!.id);
       if (!provider) {
-        return res.status(404).json({ message: "Provider profile not found" });
+        return res.status(404).json({ message: "Provider not found" });
       }
+
       const appointments = await storage.getAppointmentsByProvider(provider.id);
+      console.log(`[DEBUG] Found ${appointments.length} appointments for provider ${provider.id}`);
       res.json(appointments);
     } catch (error) {
-      console.error("Error fetching provider appointments:", error);
-      res.status(500).json({ message: "Internal server error" });
+      console.error("[ERROR] Get provider appointments:", error);
+      res.status(500).json({ message: "Failed to get appointments" });
     }
   });
 
