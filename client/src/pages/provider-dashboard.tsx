@@ -90,7 +90,7 @@ export default function ProviderDashboard() {
   const [, setLocation] = useLocation();
 
   const { data: providerData, isLoading: isLoadingProvider } = useQuery<Provider>({
-    queryKey: ["/api/provider/me"],
+    queryKey: ["/api/providers/me"],
     retry: 3,
     refetchOnWindowFocus: true,
     staleTime: 0,
