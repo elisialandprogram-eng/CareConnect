@@ -91,7 +91,8 @@ export default function ProviderDashboard() {
 
   const { data: providerData, isLoading: isLoadingProvider } = useQuery<Provider>({
     queryKey: ["/api/provider/me"],
-    retry: false,
+    retry: 3,
+    refetchOnWindowFocus: true,
   });
 
   const { data: practitioners } = useQuery<Practitioner[]>({
@@ -102,6 +103,7 @@ export default function ProviderDashboard() {
   const { data: appointments } = useQuery<AppointmentWithDetails[]>({
     queryKey: ["/api/appointments/provider"],
     enabled: !!providerData?.id,
+    refetchInterval: 5000,
   });
 
   const { data: providerWithServices } = useQuery<ProviderWithServices>({
@@ -233,17 +235,59 @@ export default function ProviderDashboard() {
   };
 
   if (!isLoadingProvider && !providerData) {
+    console.log("No provider data found, showing setup prompt");
     return (
       <div className="min-h-screen flex flex-col">
         <Header />
-        <main className="flex-1 flex items-center justify-center">
-          <div className="text-center">
-            <h1 className="text-2xl font-semibold mb-2">{t("profile.not_found") || "Profile Not Found"}</h1>
-            <p className="text-muted-foreground mb-4">{t("profile.not_found_desc") || "You need to set up your provider profile to access the dashboard."}</p>
-            <div className="flex gap-2 justify-center">
-              <Button onClick={() => setLocation("/provider/setup")}>{t("profile.complete_setup") || "Complete Setup"}</Button>
-              <Button variant="outline" onClick={() => setLocation("/providers")}>{t("profile.browse_providers") || "Browse Providers"}</Button>
+        <main className="flex-1 flex items-center justify-center bg-muted/30">
+          <div className="text-center p-8 bg-card rounded-xl border shadow-lg max-w-md mx-4">
+            <div className="h-16 w-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6">
+              <Users className="h-8 w-8 text-primary" />
             </div>
+            <h1 className="text-2xl font-bold mb-3 text-foreground tracking-tight">Complete Your Profile</h1>
+            <p className="text-muted-foreground mb-8 text-balance leading-relaxed">
+              To start managing appointments and services, you'll need to set up your professional profile first.
+            </p>
+            <div className="flex flex-col gap-3">
+              <Button size="lg" className="w-full font-semibold shadow-sm" onClick={() => setLocation("/provider/setup")}>
+                Setup Provider Profile
+              </Button>
+              <Button variant="ghost" size="sm" className="w-full text-muted-foreground" onClick={() => setLocation("/providers")}>
+                Browse Other Providers
+              </Button>
+            </div>
+            {/* Debug info - only visible in dev */}
+            <div className="mt-8 pt-8 border-t text-xs text-muted-foreground text-left space-y-1">
+              <p><strong>Debug Information:</strong></p>
+              <p>User Role: {user?.role}</p>
+              <p>User ID: {user?.id}</p>
+              <p>Loading Status: {isLoadingProvider ? "Loading..." : "Finished"}</p>
+              <p>Provider Profile Found: {providerData ? "Yes" : "No"}</p>
+              <p className="text-[10px] break-all">Auth Header: {document.cookie.includes('accessToken') ? "Token Present" : "Token Missing"}</p>
+            </div>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  if (providerData && (providerData as any).status === "pending") {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Header />
+        <main className="flex-1 flex items-center justify-center bg-muted/30">
+          <div className="text-center p-8 bg-card rounded-xl border shadow-lg max-w-md mx-4">
+            <div className="h-16 w-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-6">
+              <Clock className="h-8 w-8 text-orange-600" />
+            </div>
+            <h1 className="text-2xl font-bold mb-3 text-foreground tracking-tight">Awaiting Approval</h1>
+            <p className="text-muted-foreground mb-8 text-balance leading-relaxed">
+              Your provider profile has been submitted and is currently awaiting administrator approval. You will have full access once your account is verified.
+            </p>
+            <Button variant="outline" className="w-full" onClick={() => setLocation("/")}>
+              Back to Home
+            </Button>
           </div>
         </main>
         <Footer />

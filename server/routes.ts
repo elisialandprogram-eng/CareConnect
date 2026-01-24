@@ -976,16 +976,24 @@ export async function registerRoutes(
   // Get current provider (for logged in provider)
   app.get("/api/provider/me", authenticateToken, async (req: AuthRequest, res: Response) => {
     try {
-      if (req.user?.role !== "provider") {
-        return res.status(404).json({ message: "Not a provider account" });
+      const userId = req.user?.id;
+      console.log(`[DEBUG] Fetching provider profile for userId: ${userId}, role: ${req.user?.role}`);
+      
+      if (!userId) {
+        return res.status(401).json({ message: "Not authenticated" });
       }
-      const provider = await storage.getProviderByUserId(req.user.id);
+
+      const provider = await storage.getProviderByUserId(userId);
+      
       if (!provider) {
+        console.log(`[DEBUG] No provider record found in storage for userId: ${userId}`);
         return res.status(404).json({ message: "Provider profile not found" });
       }
+      
+      console.log(`[DEBUG] Found provider profile ${provider.id} for userId: ${userId}`);
       res.json(provider);
     } catch (error) {
-      console.error("Error fetching current provider:", error);
+      console.error("[ERROR] Fetching /api/provider/me:", error);
       res.status(500).json({ message: "Internal server error" });
     }
   });
