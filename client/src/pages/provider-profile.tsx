@@ -594,7 +594,7 @@ export default function ProviderProfile() {
                         <p className="font-medium">{t("profile.selected_sessions")}</p>
                         {selectedSessions.map((s, i) => (
                           <div key={i} className="flex justify-between items-center">
-                            <span>{s.date.toLocaleDateString()} at {s.time}</span>
+                            <span>{s.date.toLocaleDateString()} {t("common.at")} {s.time}</span>
                             <Button variant="ghost" size="icon" className="h-4 w-4" onClick={() => {
                               setSelectedSessions(selectedSessions.filter((_, idx) => idx !== i));
                             }}>
@@ -617,7 +617,7 @@ export default function ProviderProfile() {
                     </div>
                     {selectedSessions.length > 1 && (
                       <div className="flex items-center justify-between mb-4 text-primary font-bold">
-                        <span>{t("profile.total_price")} ({selectedSessions.length} sessions)</span>
+                        <span>{t("profile.total_price")} ({selectedSessions.length} {t("dashboard.appointments")})</span>
                         <span>
                           ${(selectedSessions.length * (visitType === "home" && provider.homeVisitFee
                             ? Number(provider.homeVisitFee)
