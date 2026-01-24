@@ -236,9 +236,12 @@ export default function ProviderDashboard() {
         <Header />
         <main className="flex-1 flex items-center justify-center">
           <div className="text-center">
-            <h1 className="text-2xl font-semibold mb-2">Profile Not Found</h1>
-            <p className="text-muted-foreground mb-4">You need to set up your provider profile to access the dashboard.</p>
-            <Button onClick={() => setLocation("/provider/setup")}>Complete Setup</Button>
+            <h1 className="text-2xl font-semibold mb-2">{t("profile.not_found") || "Profile Not Found"}</h1>
+            <p className="text-muted-foreground mb-4">{t("profile.not_found_desc") || "You need to set up your provider profile to access the dashboard."}</p>
+            <div className="flex gap-2 justify-center">
+              <Button onClick={() => setLocation("/provider/setup")}>{t("profile.complete_setup") || "Complete Setup"}</Button>
+              <Button variant="outline" onClick={() => setLocation("/providers")}>{t("profile.browse_providers") || "Browse Providers"}</Button>
+            </div>
           </div>
         </main>
         <Footer />
