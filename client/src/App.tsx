@@ -67,6 +67,7 @@ function Router() {
       <Route path="/settings" component={Settings} />
       <Route path="/verify-email" component={VerifyEmail} />
       <Route path="/forgot-password" component={ForgotPassword} />
+      <Route path="/consent" component={Consent} />
       <Route component={NotFound} />
     </Switch>
   );
