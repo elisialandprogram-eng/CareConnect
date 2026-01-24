@@ -288,7 +288,7 @@ const resources = {
         notifications: "Értesítések",
         profile: "Profil",
         settings: "Beállítások",
-        logout: "Kijelentkezés",
+        logout: "Kijentkezés",
         login: "Bejelentkezés",
         get_started: "Kezdés",
         first_name: "Keresztnév",
