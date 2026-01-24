@@ -104,15 +104,15 @@ export default function VerifyEmail() {
           <div className="mx-auto w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mb-4">
             <Mail className="h-6 w-6 text-primary" />
           </div>
-          <CardTitle>{t("auth.verify_email_title")}</CardTitle>
+          <CardTitle>{t("auth.verify_email_title", "Verify Your Email")}</CardTitle>
           <CardDescription>
-            {t("auth.verify_email_desc")}
+            {t("auth.verify_email_desc", "We've sent a 6-digit verification code to your email. Please enter it below to verify your account.")}
           </CardDescription>
         </CardHeader>
         <form onSubmit={handleVerify}>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="otp">{t("auth.verification_code")}</Label>
+              <Label htmlFor="otp">{t("auth.verification_code", "Verification Code")}</Label>
               <Input
                 id="otp"
                 placeholder="000000"
@@ -130,7 +130,7 @@ export default function VerifyEmail() {
               className="w-full" 
               disabled={otp.length !== 6 || isVerifying}
             >
-              {isVerifying ? t("auth.verifying") : t("auth.verify_account")}
+              {isVerifying ? t("auth.verifying", "Verifying...") : t("auth.verify_account", "Verify Account")}
             </Button>
             <Button
               type="button"
@@ -142,7 +142,7 @@ export default function VerifyEmail() {
               {isResending ? (
                 <RefreshCw className="h-4 w-4 animate-spin mr-2" />
               ) : null}
-              {cooldown > 0 ? t("auth.resend_cooldown", { seconds: cooldown }) : t("auth.resend_code")}
+              {cooldown > 0 ? t("auth.resend_cooldown", { seconds: cooldown }) : t("auth.resend_code", "Resend Code")}
             </Button>
           </CardFooter>
         </form>

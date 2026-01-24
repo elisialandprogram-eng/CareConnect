@@ -56,7 +56,7 @@ export default function Booking() {
       // The user asked for country-based, so let's look for a match
       const setting = taxSettings.find(s => s.isActive);
       if (setting) {
-        setTaxPercentage(parseFloat(setting.taxPercentage));
+        setTaxPercentage(parseFloat(setting.taxRate));
       }
     }
   }, [taxSettings, user]);
@@ -251,7 +251,8 @@ export default function Booking() {
 
   const totalBaseAmount = feeWithPlatform * finalSessions.length;
   const taxAmount = paymentMethod !== "cash" ? totalBaseAmount * (taxPercentage / 100) : 0;
-  const totalAmount = totalBaseAmount + taxAmount;
+  const platformFeeAmount = 0; // Simplified for now
+  const totalAmount = totalBaseAmount + taxAmount + platformFeeAmount;
 
   if (step === "confirmed") {
     return (
