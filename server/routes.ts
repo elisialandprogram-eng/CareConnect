@@ -133,6 +133,8 @@ export async function registerRoutes(
         consentType: req.body.consentType || "general",
         isAccepted: req.body.isAccepted ?? true,
         userId: req.body.userId || req.user?.id,
+        language: req.body.language || "en",
+        consentTextVersion: req.body.consentTextVersion || "1.0",
         ipAddress: req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress,
         userAgent: req.headers['user-agent']
       });
