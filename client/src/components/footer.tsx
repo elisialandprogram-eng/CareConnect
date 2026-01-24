@@ -53,7 +53,7 @@ export function Footer() {
               </li>
               <li>
                 <Link href="/become-provider" className="hover:text-foreground transition-colors">
-                  Become a Provider
+                  {t("common.become_provider")}
                 </Link>
               </li>
               <li>

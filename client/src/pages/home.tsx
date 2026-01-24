@@ -392,7 +392,7 @@ export default function Home() {
                 </div>
                 <div className="flex items-center gap-2 text-muted-foreground" data-testid="payment-wallet">
                   <Wallet className="h-6 w-6" />
-                  <span className="text-sm">UPI</span>
+                  <span className="text-sm">E-Wallet</span>
                 </div>
                 <div className="flex items-center gap-2 text-muted-foreground" data-testid="payment-netbanking">
                   <Banknote className="h-6 w-6" />
