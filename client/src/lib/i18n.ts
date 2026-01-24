@@ -169,11 +169,6 @@ const resources = {
         nurse: "Home Nurse",
         doctor: "Doctor",
       },
-      common_service_type: {
-        physiotherapist: "Physiotherapist",
-        nurse: "Home Nurse",
-        doctor: "Doctor",
-      },
       profile: {
         verified: "Verified",
         our_specialists: "Our Specialists",

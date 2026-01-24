@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { Link } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,17 +14,9 @@ interface ProviderCardProps {
 }
 
 export function ProviderCard({ provider, nextAvailable }: ProviderCardProps) {
+  const { t } = useTranslation();
   const getTypeLabel = (type: string) => {
-    switch (type) {
-      case "physiotherapist":
-        return "Physiotherapist";
-      case "nurse":
-        return "Home Nurse";
-      case "doctor":
-        return "Doctor";
-      default:
-        return type;
-    }
+    return t(`common_service_type.${type}`);
   };
 
   const getTypeColor = (type: string) => {
@@ -83,8 +76,8 @@ export function ProviderCard({ provider, nextAvailable }: ProviderCardProps) {
                 </div>
                 <p className="text-sm text-muted-foreground font-medium">{provider.specialization}</p>
                 <div className="flex items-center gap-2 mt-2">
-                  <Badge variant="secondary" className={`text-xs font-medium border ${getTypeColor(provider.type)}`}>
-                    {getTypeLabel(provider.type)}
+                  <Badge variant="secondary" className={`text-xs font-medium border ${getTypeColor(provider.providerType)}`}>
+                    {getTypeLabel(provider.providerType)}
                   </Badge>
                   {provider.yearsExperience && provider.yearsExperience > 0 && (
                     <span className="text-xs text-muted-foreground font-medium">

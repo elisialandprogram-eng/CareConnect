@@ -80,7 +80,7 @@ export default function Providers() {
   };
 
   const filteredProviders = providers?.filter((p) => {
-    if (filters.type && filters.type !== "all" && p.type !== filters.type) return false;
+    if (filters.type && filters.type !== "all" && p.providerType !== filters.type) return false;
     if (filters.minRating && Number(p.rating) < filters.minRating) return false;
     if (filters.priceRange) {
       const fee = Number(p.consultationFee);
