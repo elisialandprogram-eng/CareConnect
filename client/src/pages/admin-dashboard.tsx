@@ -117,6 +117,9 @@ function PractitionerManagement({ providerId }: { providerId: string }) {
 // Service Practitioner Linkage Component
 function ServicePractitionerAssignment({ serviceId, providerId }: { serviceId: string, providerId: string }) {
   const { toast } = useToast();
+  const [selectedPId, setSelectedPId] = useState("");
+  const [fee, setFee] = useState("");
+  
   const { data: practitioners } = useQuery<Practitioner[]>({
     queryKey: [`/api/providers/${providerId}/practitioners`],
   });
@@ -131,6 +134,8 @@ function ServicePractitionerAssignment({ serviceId, providerId }: { serviceId: s
     onSuccess: () => {
       refetch();
       toast({ title: "Practitioner assigned to service" });
+      setSelectedPId("");
+      setFee("");
     },
   });
 
@@ -138,7 +143,7 @@ function ServicePractitionerAssignment({ serviceId, providerId }: { serviceId: s
     <div className="space-y-4 mt-4 pt-4 border-t">
       <h4 className="text-sm font-semibold">Assigned Practitioners</h4>
       <div className="grid grid-cols-3 gap-2">
-        <Select value={form.getValues('practitionerId')} onValueChange={(val) => form.setValue('practitionerId', val)}>
+        <Select value={selectedPId} onValueChange={setSelectedPId}>
           <SelectTrigger className="col-span-2">
             <SelectValue placeholder="Select Practitioner" />
           </SelectTrigger>
@@ -148,16 +153,20 @@ function ServicePractitionerAssignment({ serviceId, providerId }: { serviceId: s
             ))}
           </SelectContent>
         </Select>
-        <Input id="practitioner-fee" type="number" placeholder="Fee" />
+        <Input 
+          type="number" 
+          placeholder="Fee" 
+          value={fee}
+          onChange={(e) => setFee(e.target.value)}
+        />
         <Button 
           className="col-span-3"
           onClick={() => {
-            const pId = (document.getElementById('select-practitioner') as any)?.value;
-            const fee = (document.getElementById('practitioner-fee') as HTMLInputElement).value;
-            if (pId && fee) assignMutation.mutate({ practitionerId: pId, fee });
+            if (selectedPId && fee) assignMutation.mutate({ practitionerId: selectedPId, fee });
           }}
+          disabled={assignMutation.isPending}
         >
-          Assign
+          {assignMutation.isPending ? "Assigning..." : "Assign"}
         </Button>
       </div>
       <div className="space-y-2">
