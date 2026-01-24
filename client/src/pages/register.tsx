@@ -52,14 +52,22 @@ export default function Register() {
     password: z.string().min(6, t("validation.password_min")),
     confirmPassword: z.string().min(6, t("validation.confirm_password")),
     role: z.enum(["patient", "provider"]),
-    treatmentConsent: z.boolean().refine(v => v === true, { message: "Required" }),
-    privacyConsent: z.boolean().refine(v => v === true, { message: "Required" }),
-    telemedicineConsent: z.boolean().refine(v => v === true, { message: "Required" }),
-    termsConsent: z.boolean().refine(v => v === true, { message: "Required" }),
-    declarationConsent: z.boolean().refine(v => v === true, { message: "Required" }),
+    treatmentConsent: z.boolean().default(false),
+    privacyConsent: z.boolean().default(false),
+    telemedicineConsent: z.boolean().default(false),
+    termsConsent: z.boolean().default(false),
+    declarationConsent: z.boolean().default(false),
   }).refine((data) => data.password === data.confirmPassword, {
     message: t("validation.passwords_match"),
     path: ["confirmPassword"],
+  }).refine((data) => {
+    if (data.role === "patient") {
+      return data.treatmentConsent && data.privacyConsent && data.telemedicineConsent && data.termsConsent && data.declarationConsent;
+    }
+    return true;
+  }, {
+    message: "Required",
+    path: ["declarationConsent"],
   });
 
   type RegisterFormData = z.infer<typeof registerSchema>;
