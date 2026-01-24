@@ -164,7 +164,7 @@ export function Header() {
                 <DropdownMenuItem asChild>
                   <Link href="/profile" className="cursor-pointer" data-testid="link-profile">
                     <User className="mr-2 h-4 w-4" />
-                    {t("common.profile")}
+                    {t("common.profile_label")}
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
