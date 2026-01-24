@@ -221,7 +221,7 @@ export default function Register() {
                               <Checkbox checked={field.value} onCheckedChange={field.onChange} />
                             </FormControl>
                             <div className="space-y-1 leading-none">
-                              <FormLabel className="text-xs">I consent to receive medical treatment.</FormLabel>
+                              <FormLabel className="text-xs">I consent to receive professional medical treatment.</FormLabel>
                             </div>
                           </FormItem>
                         )}
@@ -235,7 +235,7 @@ export default function Register() {
                               <Checkbox checked={field.value} onCheckedChange={field.onChange} />
                             </FormControl>
                             <div className="space-y-1 leading-none">
-                              <FormLabel className="text-xs">I consent to the collection and processing of my data.</FormLabel>
+                              <FormLabel className="text-xs">I consent to the collection and processing of my health data.</FormLabel>
                             </div>
                           </FormItem>
                         )}
@@ -249,7 +249,7 @@ export default function Register() {
                               <Checkbox checked={field.value} onCheckedChange={field.onChange} />
                             </FormControl>
                             <div className="space-y-1 leading-none">
-                              <FormLabel className="text-xs">I consent to receive telemedicine services.</FormLabel>
+                              <FormLabel className="text-xs">I consent to receive telemedicine and remote healthcare services.</FormLabel>
                             </div>
                           </FormItem>
                         )}
@@ -263,7 +263,7 @@ export default function Register() {
                               <Checkbox checked={field.value} onCheckedChange={field.onChange} />
                             </FormControl>
                             <div className="space-y-1 leading-none">
-                              <FormLabel className="text-xs">I agree to the Terms & Conditions.</FormLabel>
+                              <FormLabel className="text-xs">I agree to the Golden Life Terms & Conditions.</FormLabel>
                             </div>
                           </FormItem>
                         )}
@@ -277,7 +277,7 @@ export default function Register() {
                               <Checkbox checked={field.value} onCheckedChange={field.onChange} />
                             </FormControl>
                             <div className="space-y-1 leading-none">
-                              <FormLabel className="text-xs">I confirm and submit my consent.</FormLabel>
+                              <FormLabel className="text-xs">I confirm that all provided information is accurate.</FormLabel>
                             </div>
                           </FormItem>
                         )}
