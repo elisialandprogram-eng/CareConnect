@@ -62,6 +62,10 @@ export default function Providers() {
     }
   };
 
+  const getServiceLabel = (type: string) => {
+    return t(`common_service_type.${type}`);
+  };
+
   const getPageDescription = () => {
     switch (typeParam) {
       case "physiotherapist":

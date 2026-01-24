@@ -164,6 +164,16 @@ const resources = {
         reset_filters: "Reset Filters",
         loading: "Loading...",
       },
+      common_service_type: {
+        physiotherapist: "Physiotherapist",
+        nurse: "Home Nurse",
+        doctor: "Doctor",
+      },
+      common_service_type: {
+        physiotherapist: "Physiotherapist",
+        nurse: "Home Nurse",
+        doctor: "Doctor",
+      },
       profile: {
         verified: "Verified",
         our_specialists: "Our Specialists",
@@ -436,6 +446,11 @@ const resources = {
         reset_filters: "Szűrők visszaállítása",
         loading: "Betöltés...",
       },
+      common_service_type: {
+        physiotherapist: "Fizioterapeuta",
+        nurse: "Házi ápoló",
+        doctor: "Orvos",
+      },
       profile: {
         verified: "Ellenőrzött",
         our_specialists: "Szakembereink",
@@ -707,6 +722,11 @@ const resources = {
         adjust_filters: "سعی کنید فیلترها یا معیارهای جستجوی خود را تغییر دهید",
         reset_filters: "تنظیم مجدد فیلترها",
         loading: "در حال بارگذاری...",
+      },
+      common_service_type: {
+        physiotherapist: "فیزیوتراپیست",
+        nurse: "پرستار در منزل",
+        doctor: "پزشک",
       },
       profile: {
         verified: "تایید شده",
