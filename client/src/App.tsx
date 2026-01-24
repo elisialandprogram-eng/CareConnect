@@ -47,7 +47,10 @@ function Router() {
   return (
     <Switch>
       <Route path="/" component={Home} />
+      <Route path="/login" component={Login} />
+      <Route path="/register" component={Register} />
       <Route path="/providers" component={Providers} />
+      <Route path="/dashboard" component={PatientDashboard} />
       <Route path="/provider/dashboard" component={ProviderDashboard} />
       <Route path="/provider/setup" component={ProviderSetup} />
       <Route path="/provider/:id" component={ProviderProfile} />
