@@ -110,6 +110,10 @@ import {
   type InsertPractitioner,
   type ServicePractitioner,
   type InsertServicePractitioner,
+  type Invoice,
+  type InsertInvoice,
+  type InvoiceItem,
+  type InsertInvoiceItem,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, or, sql, count, asc } from "drizzle-orm";
