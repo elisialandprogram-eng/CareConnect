@@ -3481,11 +3481,12 @@ function SubServicesManagement() {
     );
   }
 
-export default function AdminDashboard() {
+function AdminDashboard() {
   const { t } = useTranslation();
   const { user } = useAuth();
   const { toast } = useToast();
   const [, navigate] = useLocation();
+  const [activeTab, setActiveTab] = useState("overview");
 
   const { data: providers } = useQuery<ProviderWithUser[]>({
     queryKey: ["/api/providers"],
@@ -3576,12 +3577,12 @@ export default function AdminDashboard() {
         <div className="mb-6">
           <h1 className="text-3xl font-bold flex items-center gap-2" data-testid="text-admin-title">
             <Shield className="h-8 w-8" />
-            {t("admin.stats")}
+            {t("admin.dashboard")}
           </h1>
           <p className="text-muted-foreground">{t("admin.bookings_management")}</p>
         </div>
 
-        <Tabs defaultValue="overview" className="space-y-6">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <TabsList className="flex flex-wrap gap-1">
             <TabsTrigger value="overview" data-testid="tab-overview">
               <BarChart3 className="h-4 w-4 mr-2" />
