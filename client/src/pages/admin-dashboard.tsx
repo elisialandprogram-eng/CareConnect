@@ -1052,6 +1052,7 @@ function FinancialReports() {
 
 // Provider Management Component
 function ProvidersManagement() {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const [, navigate] = useLocation();
   const form = useForm<AdminProviderData & { practitioners: any[] }>({
@@ -1571,7 +1572,7 @@ function ProvidersManagement() {
                     </td>
                     <td className="p-4">
                       <Badge variant={provider.status === 'active' ? 'default' : provider.status === 'suspended' ? 'destructive' : 'secondary'}>
-                        {provider.status}
+                        {t(`admin.${provider.status}`)}
                       </Badge>
                     </td>
                     <td className="p-4">
@@ -1588,15 +1589,15 @@ function ProvidersManagement() {
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="active">Active</SelectItem>
-                            <SelectItem value="suspended">Suspended</SelectItem>
-                            <SelectItem value="pending">Pending</SelectItem>
-                            <SelectItem value="approved">Approved</SelectItem>
-                            <SelectItem value="confirmed">Confirmed</SelectItem>
-                            <SelectItem value="completed">Completed</SelectItem>
-                            <SelectItem value="rejected">Rejected</SelectItem>
-                            <SelectItem value="cancelled">Cancelled</SelectItem>
-                            <SelectItem value="rescheduled">Rescheduled</SelectItem>
+                            <SelectItem value="active">{t("admin.active")}</SelectItem>
+                            <SelectItem value="suspended">{t("admin.suspended")}</SelectItem>
+                            <SelectItem value="pending">{t("admin.pending")}</SelectItem>
+                            <SelectItem value="approved">{t("admin.approved")}</SelectItem>
+                            <SelectItem value="confirmed">{t("admin.confirmed")}</SelectItem>
+                            <SelectItem value="completed">{t("admin.completed")}</SelectItem>
+                            <SelectItem value="rejected">{t("admin.rejected")}</SelectItem>
+                            <SelectItem value="cancelled">{t("admin.cancelled")}</SelectItem>
+                            <SelectItem value="rescheduled">{t("admin.rescheduled")}</SelectItem>
                           </SelectContent>
                         </Select>
                         <div className="flex items-center gap-1">
@@ -1607,7 +1608,7 @@ function ProvidersManagement() {
                             size="icon"
                             className="text-destructive"
                             onClick={() => {
-                              if (confirm("Are you sure you want to delete this provider profile? The user account will remain active as a patient.")) {
+                              if (confirm(t("admin.confirm_delete_provider"))) {
                                 deleteProviderMutation.mutate(provider.id);
                               }
                             }}
@@ -1714,6 +1715,7 @@ function ProvidersManagement() {
 
 // Content Management Component
 function ContentManagement() {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("faqs");
 
