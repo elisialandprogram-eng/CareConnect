@@ -1156,8 +1156,8 @@ function ProvidersManagement() {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Create New Provider</CardTitle>
-          <CardDescription>Add a new healthcare provider to the platform</CardDescription>
+          <CardTitle>{t("admin.create_new_provider")}</CardTitle>
+          <CardDescription>{t("admin.add_provider_desc")}</CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>
@@ -1168,7 +1168,7 @@ function ProvidersManagement() {
                   name="email"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Email</FormLabel>
+                      <FormLabel>{t("admin.email")}</FormLabel>
                       <FormControl>
                         <Input {...field} type="email" data-testid="input-provider-email" />
                       </FormControl>
@@ -1181,7 +1181,7 @@ function ProvidersManagement() {
                   name="password"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Password</FormLabel>
+                      <FormLabel>{t("admin.password")}</FormLabel>
                       <FormControl>
                         <Input {...field} type="password" data-testid="input-provider-password" />
                       </FormControl>
@@ -1194,7 +1194,7 @@ function ProvidersManagement() {
                   name="firstName"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>First Name</FormLabel>
+                      <FormLabel>{t("admin.first_name")}</FormLabel>
                       <FormControl>
                         <Input {...field} data-testid="input-provider-firstname" />
                       </FormControl>
@@ -1207,7 +1207,7 @@ function ProvidersManagement() {
                   name="lastName"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Last Name</FormLabel>
+                      <FormLabel>{t("admin.last_name")}</FormLabel>
                       <FormControl>
                         <Input {...field} data-testid="input-provider-lastname" />
                       </FormControl>
@@ -1220,7 +1220,7 @@ function ProvidersManagement() {
                   name="phone"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Phone</FormLabel>
+                      <FormLabel>{t("admin.phone")}</FormLabel>
                       <FormControl>
                         <Input {...field} data-testid="input-provider-phone" />
                       </FormControl>
@@ -1233,7 +1233,7 @@ function ProvidersManagement() {
                   name="city"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>City</FormLabel>
+                      <FormLabel>{t("admin.city")}</FormLabel>
                       <FormControl>
                         <Input {...field} data-testid="input-provider-city" />
                       </FormControl>
@@ -1246,7 +1246,7 @@ function ProvidersManagement() {
                   name="type"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Provider Type</FormLabel>
+                      <FormLabel>{t("admin.provider_type")}</FormLabel>
                       <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                           <SelectTrigger data-testid="select-provider-type">
@@ -1254,9 +1254,9 @@ function ProvidersManagement() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="physiotherapist">Physiotherapist</SelectItem>
-                          <SelectItem value="doctor">Doctor</SelectItem>
-                          <SelectItem value="nurse">Nurse</SelectItem>
+                          <SelectItem value="physiotherapist">{t("common_service_type.physiotherapist")}</SelectItem>
+                          <SelectItem value="doctor">{t("common_service_type.doctor")}</SelectItem>
+                          <SelectItem value="nurse">{t("common_service_type.nurse")}</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -1268,7 +1268,7 @@ function ProvidersManagement() {
                   name="specialization"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Specialization</FormLabel>
+                      <FormLabel>{t("admin.specialization")}</FormLabel>
                       <FormControl>
                         <Input {...field} data-testid="input-provider-specialization" />
                       </FormControl>
@@ -1281,7 +1281,7 @@ function ProvidersManagement() {
                   name="yearsExperience"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Years of Experience</FormLabel>
+                      <FormLabel>{t("admin.years_experience")}</FormLabel>
                       <FormControl>
                         <Input type="number" {...field} data-testid="input-provider-experience" />
                       </FormControl>
@@ -1294,7 +1294,7 @@ function ProvidersManagement() {
                   name="education"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Education</FormLabel>
+                      <FormLabel>{t("admin.education")}</FormLabel>
                       <FormControl>
                         <Input {...field} data-testid="input-provider-education" />
                       </FormControl>
@@ -1307,7 +1307,7 @@ function ProvidersManagement() {
                   name="consultationFee"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Consultation Fee ($)</FormLabel>
+                      <FormLabel>{t("admin.consultation_fee")}</FormLabel>
                       <FormControl>
                         <Input type="number" step="0.01" {...field} data-testid="input-provider-fee" />
                       </FormControl>
@@ -1320,7 +1320,7 @@ function ProvidersManagement() {
                   name="homeVisitFee"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Home Visit Fee ($)</FormLabel>
+                      <FormLabel>{t("admin.home_visit_fee")}</FormLabel>
                       <FormControl>
                         <Input type="number" step="0.01" {...field} value={field.value || ""} onChange={e => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)} data-testid="input-provider-homevisit-fee" />
                       </FormControl>
@@ -1332,9 +1332,9 @@ function ProvidersManagement() {
 
               <div className="space-y-4 border-t pt-4">
                 <div className="flex items-center justify-between">
-                  <Label>Medical Practitioners</Label>
+                  <Label>{t("admin.medical_practitioners")}</Label>
                   <Button type="button" variant="outline" size="sm" onClick={() => append({ name: "", dob: "", originCountry: "", registrationNumber: "", identityNumber: "", mobileNumber: "" })}>
-                    <Plus className="h-4 w-4 mr-2" /> Add Practitioner
+                    <Plus className="h-4 w-4 mr-2" /> {t("admin.add_practitioner")}
                   </Button>
                 </div>
                 {fields.map((field, index) => (
@@ -1348,7 +1348,7 @@ function ProvidersManagement() {
                         name={`practitioners.${index}.name`}
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Name</FormLabel>
+                            <FormLabel>{t("admin.name")}</FormLabel>
                             <FormControl><Input {...field} /></FormControl>
                             <FormMessage />
                           </FormItem>
@@ -1359,7 +1359,7 @@ function ProvidersManagement() {
                         name={`practitioners.${index}.dob`}
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>DOB (YYYY-MM-DD)</FormLabel>
+                            <FormLabel>{t("admin.dob_label")}</FormLabel>
                             <FormControl><Input type="date" {...field} /></FormControl>
                             <FormMessage />
                           </FormItem>
@@ -1370,7 +1370,7 @@ function ProvidersManagement() {
                         name={`practitioners.${index}.originCountry`}
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Origin Country</FormLabel>
+                            <FormLabel>{t("admin.origin_country")}</FormLabel>
                             <FormControl><Input {...field} /></FormControl>
                             <FormMessage />
                           </FormItem>
@@ -1381,7 +1381,7 @@ function ProvidersManagement() {
                         name={`practitioners.${index}.registrationNumber`}
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Registration #</FormLabel>
+                            <FormLabel>{t("admin.reg_number")}</FormLabel>
                             <FormControl><Input {...field} /></FormControl>
                             <FormMessage />
                           </FormItem>
@@ -1392,7 +1392,7 @@ function ProvidersManagement() {
                         name={`practitioners.${index}.identityNumber`}
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Identity #</FormLabel>
+                            <FormLabel>{t("admin.identity_number")}</FormLabel>
                             <FormControl><Input {...field} /></FormControl>
                             <FormMessage />
                           </FormItem>
@@ -1403,7 +1403,7 @@ function ProvidersManagement() {
                         name={`practitioners.${index}.mobileNumber`}
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Mobile #</FormLabel>
+                            <FormLabel>{t("admin.mobile_number")}</FormLabel>
                             <FormControl><Input {...field} /></FormControl>
                             <FormMessage />
                           </FormItem>
@@ -1419,7 +1419,7 @@ function ProvidersManagement() {
                 name="bio"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Bio</FormLabel>
+                    <FormLabel>{t("admin.bio")}</FormLabel>
                     <FormControl>
                       <Textarea {...field} rows={4} data-testid="input-provider-bio" />
                     </FormControl>
@@ -1433,7 +1433,7 @@ function ProvidersManagement() {
                 name="languages"
                 render={() => (
                   <FormItem>
-                    <FormLabel>Languages</FormLabel>
+                    <FormLabel>{t("admin.languages")}</FormLabel>
                     <div className="flex flex-wrap gap-4">
                       {languageOptions.map((lang) => (
                         <FormField
@@ -1470,7 +1470,7 @@ function ProvidersManagement() {
                 name="availableDays"
                 render={() => (
                   <FormItem>
-                    <FormLabel>Available Days</FormLabel>
+                    <FormLabel>{t("admin.available_days")}</FormLabel>
                     <div className="flex flex-wrap gap-4">
                       {dayOptions.map((day) => (
                         <FormField
@@ -1506,10 +1506,10 @@ function ProvidersManagement() {
                 {createProviderMutation.isPending ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Creating...
+                    {t("admin.creating")}
                   </>
                 ) : (
-                  "Create Provider"
+                  t("admin.create_provider")
                 )}
               </Button>
             </form>
@@ -1519,18 +1519,18 @@ function ProvidersManagement() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Manage Providers</CardTitle>
+          <CardTitle>{t("admin.manage_providers")}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="rounded-md border overflow-hidden">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b bg-muted/50">
-                  <th className="h-10 px-4 text-left font-medium">Provider</th>
-                  <th className="h-10 px-4 text-left font-medium">Specialization</th>
-                  <th className="h-10 px-4 text-left font-medium">Dates</th>
-                  <th className="h-10 px-4 text-left font-medium">Status</th>
-                  <th className="h-10 px-4 text-left font-medium">Actions</th>
+                  <th className="h-10 px-4 text-left font-medium">{t("admin.provider")}</th>
+                  <th className="h-10 px-4 text-left font-medium">{t("admin.specialization")}</th>
+                  <th className="h-10 px-4 text-left font-medium">{t("admin.dates")}</th>
+                  <th className="h-10 px-4 text-left font-medium">{t("admin.status")}</th>
+                  <th className="h-10 px-4 text-left font-medium">{t("admin.actions")}</th>
                 </tr>
               </thead>
               <tbody>
