@@ -54,6 +54,7 @@ import type { TaxSetting, InsertTaxSetting } from "@shared/schema";
 
 // Practitioner Management Component
 function PractitionerManagement({ providerId }: { providerId: string }) {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const { data: practitioners, refetch: refetchPractitioners } = useQuery<Practitioner[]>({
     queryKey: [`/api/providers/${providerId}/practitioners`],
@@ -65,7 +66,7 @@ function PractitionerManagement({ providerId }: { providerId: string }) {
     },
     onSuccess: () => {
       refetchPractitioners();
-      toast({ title: "Practitioner added successfully" });
+      toast({ title: t("admin.practitioner_added") });
     },
   });
 
@@ -75,16 +76,16 @@ function PractitionerManagement({ providerId }: { providerId: string }) {
     },
     onSuccess: () => {
       refetchPractitioners();
-      toast({ title: "Practitioner removed" });
+      toast({ title: t("admin.practitioner_removed") });
     },
   });
 
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-2">
-        <Input id="practitioner-name" placeholder="Name" />
-        <Input id="practitioner-title" placeholder="Title (e.g. Dr., RN)" />
-        <Input id="practitioner-spec" placeholder="Specialization" className="col-span-2" />
+        <Input id="practitioner-name" placeholder={t("admin.name")} />
+        <Input id="practitioner-title" placeholder={t("admin.title_label")} />
+        <Input id="practitioner-spec" placeholder={t("admin.specialization_label")} className="col-span-2" />
         <Button 
           className="col-span-2"
           onClick={() => {
@@ -94,7 +95,7 @@ function PractitionerManagement({ providerId }: { providerId: string }) {
             if (name) createMutation.mutate({ name, title, specialization });
           }}
         >
-          <Plus className="h-4 w-4 mr-2" /> Add Practitioner
+          <Plus className="h-4 w-4 mr-2" /> {t("admin.add_new")} {t("admin.practitioners")}
         </Button>
       </div>
       <div className="space-y-2">
@@ -116,6 +117,7 @@ function PractitionerManagement({ providerId }: { providerId: string }) {
 
 // Service Practitioner Linkage Component
 function ServicePractitionerAssignment({ serviceId, providerId }: { serviceId: string, providerId: string }) {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const [selectedPId, setSelectedPId] = useState("");
   const [fee, setFee] = useState("");
@@ -133,7 +135,7 @@ function ServicePractitionerAssignment({ serviceId, providerId }: { serviceId: s
     },
     onSuccess: () => {
       refetch();
-      toast({ title: "Practitioner assigned to service" });
+      toast({ title: t("admin.assigned_to_service") });
       setSelectedPId("");
       setFee("");
     },
@@ -141,11 +143,11 @@ function ServicePractitionerAssignment({ serviceId, providerId }: { serviceId: s
 
   return (
     <div className="space-y-4 mt-4 pt-4 border-t">
-      <h4 className="text-sm font-semibold">Assigned Practitioners</h4>
+      <h4 className="text-sm font-semibold">{t("admin.assigned_practitioners")}</h4>
       <div className="grid grid-cols-3 gap-2">
         <Select value={selectedPId} onValueChange={setSelectedPId}>
           <SelectTrigger className="col-span-2">
-            <SelectValue placeholder="Select Practitioner" />
+            <SelectValue placeholder={t("admin.select_practitioner")} />
           </SelectTrigger>
           <SelectContent>
             {practitioners?.map(p => (
@@ -155,7 +157,7 @@ function ServicePractitionerAssignment({ serviceId, providerId }: { serviceId: s
         </Select>
         <Input 
           type="number" 
-          placeholder="Fee" 
+          placeholder={t("admin.fee")} 
           value={fee}
           onChange={(e) => setFee(e.target.value)}
         />
@@ -166,7 +168,7 @@ function ServicePractitionerAssignment({ serviceId, providerId }: { serviceId: s
           }}
           disabled={assignMutation.isPending}
         >
-          {assignMutation.isPending ? "Assigning..." : "Assign"}
+          {assignMutation.isPending ? t("admin.assigning") : t("admin.assign")}
         </Button>
       </div>
       <div className="space-y-2">
@@ -221,6 +223,7 @@ const dayOptions = [
 
 // Provider Edit Dialog Component
 function ProviderEditDialog({ provider }: { provider: any }) {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
   const { data: providerServices, refetch: refetchServices } = useQuery<any[]>({
@@ -266,7 +269,7 @@ function ProviderEditDialog({ provider }: { provider: any }) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/providers"] });
-      toast({ title: "Provider updated successfully" });
+      toast({ title: t("admin.provider_updated") });
       setOpen(false);
     },
   });
@@ -280,7 +283,7 @@ function ProviderEditDialog({ provider }: { provider: any }) {
     },
     onSuccess: () => {
       refetchServices();
-      toast({ title: "Service added successfully" });
+      toast({ title: t("admin.service_added") });
     },
   });
 
@@ -293,14 +296,14 @@ function ProviderEditDialog({ provider }: { provider: any }) {
       </DialogTrigger>
       <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col p-0">
         <DialogHeader className="p-6 pb-2">
-          <DialogTitle>Edit Provider: {provider.user?.firstName} {provider.user?.lastName}</DialogTitle>
+          <DialogTitle>{t("admin.edit")} {t("admin.provider")}: {provider.user?.firstName} {provider.user?.lastName}</DialogTitle>
         </DialogHeader>
         <ScrollArea className="flex-1 px-6 pb-6">
           <Tabs defaultValue="details">
             <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="details">Details & Fees</TabsTrigger>
-              <TabsTrigger value="services">Services</TabsTrigger>
-              <TabsTrigger value="practitioners">Practitioners</TabsTrigger>
+              <TabsTrigger value="details">{t("admin.details_fees")}</TabsTrigger>
+              <TabsTrigger value="services">{t("admin.services")}</TabsTrigger>
+              <TabsTrigger value="practitioners">{t("admin.practitioners")}</TabsTrigger>
             </TabsList>
             <TabsContent value="practitioners">
               <PractitionerManagement providerId={provider.id} />
@@ -314,7 +317,7 @@ function ProviderEditDialog({ provider }: { provider: any }) {
                       name="professionalTitle"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Title</FormLabel>
+                          <FormLabel>{t("admin.title_label")}</FormLabel>
                           <FormControl><Input {...field} /></FormControl>
                         </FormItem>
                       )}
@@ -324,7 +327,7 @@ function ProviderEditDialog({ provider }: { provider: any }) {
                       name="specialization"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Specialization</FormLabel>
+                          <FormLabel>{t("admin.specialization_label")}</FormLabel>
                           <FormControl><Input {...field} /></FormControl>
                         </FormItem>
                       )}
@@ -337,7 +340,7 @@ function ProviderEditDialog({ provider }: { provider: any }) {
                       name="status"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Verification Status</FormLabel>
+                          <FormLabel>{t("admin.verification_status")}</FormLabel>
                           <Select onValueChange={field.onChange} defaultValue={field.value}>
                             <FormControl>
                               <SelectTrigger>
@@ -345,7 +348,7 @@ function ProviderEditDialog({ provider }: { provider: any }) {
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              <SelectItem value="pending">Pending</SelectItem>
+                              <SelectItem value="pending">{t("admin.pending")}</SelectItem>
                               <SelectItem value="approved">Approved</SelectItem>
                               <SelectItem value="rejected">Rejected</SelectItem>
                             </SelectContent>
@@ -358,7 +361,7 @@ function ProviderEditDialog({ provider }: { provider: any }) {
                       name="yearsExperience"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Years Experience</FormLabel>
+                          <FormLabel>{t("admin.years_experience_label")}</FormLabel>
                           <FormControl><Input type="number" {...field} /></FormControl>
                         </FormItem>
                       )}
@@ -371,7 +374,7 @@ function ProviderEditDialog({ provider }: { provider: any }) {
                       name="licenseNumber"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>License #</FormLabel>
+                          <FormLabel>{t("admin.license_number")}</FormLabel>
                           <FormControl><Input {...field} /></FormControl>
                         </FormItem>
                       )}
@@ -381,7 +384,7 @@ function ProviderEditDialog({ provider }: { provider: any }) {
                       name="licenseExpiryDate"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>License Expiry</FormLabel>
+                          <FormLabel>{t("admin.license_expiry")}</FormLabel>
                           <FormControl><Input type="date" {...field} /></FormControl>
                         </FormItem>
                       )}
@@ -394,7 +397,7 @@ function ProviderEditDialog({ provider }: { provider: any }) {
                       name="consultationFee"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Consultation Fee ($)</FormLabel>
+                          <FormLabel>{t("admin.consultation_fee_label")}</FormLabel>
                           <FormControl><Input type="number" {...field} /></FormControl>
                         </FormItem>
                       )}
@@ -404,7 +407,7 @@ function ProviderEditDialog({ provider }: { provider: any }) {
                       name="homeVisitFee"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Home Visit Fee ($)</FormLabel>
+                          <FormLabel>{t("admin.home_visit_fee_label")}</FormLabel>
                           <FormControl><Input type="number" {...field} /></FormControl>
                         </FormItem>
                       )}
@@ -417,7 +420,7 @@ function ProviderEditDialog({ provider }: { provider: any }) {
                       name="city"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>City</FormLabel>
+                          <FormLabel>{t("admin.city")}</FormLabel>
                           <FormControl><Input {...field} /></FormControl>
                         </FormItem>
                       )}
@@ -427,7 +430,7 @@ function ProviderEditDialog({ provider }: { provider: any }) {
                       name="serviceRadiusKm"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Radius (km)</FormLabel>
+                          <FormLabel>{t("admin.radius_km")}</FormLabel>
                           <FormControl><Input type="number" {...field} /></FormControl>
                         </FormItem>
                       )}
@@ -440,7 +443,7 @@ function ProviderEditDialog({ provider }: { provider: any }) {
                       name="affiliatedHospital"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Affiliated Hospital</FormLabel>
+                          <FormLabel>{t("admin.affiliated_hospital")}</FormLabel>
                           <FormControl><Input {...field} /></FormControl>
                         </FormItem>
                       )}
@@ -450,7 +453,7 @@ function ProviderEditDialog({ provider }: { provider: any }) {
                       name="emergencyContact"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Emergency Contact</FormLabel>
+                          <FormLabel>{t("admin.emergency_contact")}</FormLabel>
                           <FormControl><Input {...field} /></FormControl>
                         </FormItem>
                       )}
@@ -469,8 +472,8 @@ function ProviderEditDialog({ provider }: { provider: any }) {
                           />
                         </FormControl>
                         <div className="space-y-1 leading-none">
-                          <FormLabel>On-Call Availability</FormLabel>
-                          <FormDescription>Available for emergency calls</FormDescription>
+                          <FormLabel>{t("admin.on_call_availability")}</FormLabel>
+                          <FormDescription>{t("admin.available_emergency")}</FormDescription>
                         </div>
                       </FormItem>
                     )}
@@ -481,14 +484,14 @@ function ProviderEditDialog({ provider }: { provider: any }) {
                     name="bio"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Bio</FormLabel>
+                        <FormLabel>{t("admin.bio")}</FormLabel>
                         <FormControl><Textarea {...field} /></FormControl>
                       </FormItem>
                     )}
                   />
                   <Button type="submit" disabled={updateMutation.isPending} className="w-full">
                     {updateMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Save Changes
+                    {t("admin.save_changes")}
                   </Button>
                 </form>
               </Form>
@@ -496,8 +499,8 @@ function ProviderEditDialog({ provider }: { provider: any }) {
             <TabsContent value="services" className="space-y-4 py-4">
               <div className="space-y-4">
                 <div className="grid grid-cols-3 gap-2">
-                  <Input id="new-service-name" placeholder="Service Name" />
-                  <Input id="new-service-price" type="number" placeholder="Price" />
+                  <Input id="new-service-name" placeholder={t("admin.service_name")} />
+                  <Input id="new-service-price" type="number" placeholder={t("admin.price")} />
                   <Button 
                     onClick={() => {
                       const name = (document.getElementById('new-service-name') as HTMLInputElement).value;
@@ -510,7 +513,7 @@ function ProviderEditDialog({ provider }: { provider: any }) {
                     }}
                     disabled={addServiceMutation.isPending}
                   >
-                    <Plus className="h-4 w-4 mr-2" /> Add
+                    <Plus className="h-4 w-4 mr-2" /> {t("admin.add")}
                   </Button>
                 </div>
                 <div className="space-y-2">
