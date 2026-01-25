@@ -287,9 +287,9 @@ export default function ProviderSetup() {
                       name="professionalTitle"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Professional Title (Dr., RN, PT, etc.)</FormLabel>
+                          <FormLabel>{t("setup.prof_title_label", "Professional Title (Dr., RN, PT, etc.)")}</FormLabel>
                           <FormControl>
-                            <Input placeholder="e.g. Dr." {...field} />
+                            <Input placeholder={t("setup.prof_title_placeholder", "e.g. Dr.")} {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -301,17 +301,17 @@ export default function ProviderSetup() {
                       name="type"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>{t("setup.provider_type")}</FormLabel>
+                          <FormLabel>{t("setup.provider_type", "Provider Type")}</FormLabel>
                           <Select onValueChange={field.onChange} defaultValue={field.value}>
                             <FormControl>
                               <SelectTrigger data-testid="select-provider-type">
-                                <SelectValue placeholder={t("setup.select_profession")} />
+                                <SelectValue placeholder={t("setup.select_profession", "Select your profession")} />
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              <SelectItem value="physiotherapist">{t("common.physiotherapists")}</SelectItem>
-                              <SelectItem value="doctor">{t("common.doctors")}</SelectItem>
-                              <SelectItem value="nurse">{t("common.nurses")}</SelectItem>
+                              <SelectItem value="physiotherapist">{t("common.physiotherapists", "Physiotherapists")}</SelectItem>
+                              <SelectItem value="doctor">{t("common.doctors", "Doctors")}</SelectItem>
+                              <SelectItem value="nurse">{t("common.nurses", "Home Nurses")}</SelectItem>
                             </SelectContent>
                           </Select>
                           <FormMessage />
