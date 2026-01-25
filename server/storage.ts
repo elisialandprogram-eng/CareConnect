@@ -35,6 +35,8 @@ import {
   taxSettings,
   patientConsents,
   medicalPractitioners,
+  invoices,
+  invoiceItems,
   type User,
   type InsertUser,
   type Provider,
@@ -363,6 +365,14 @@ export interface IStorage {
     completedBookings: number;
     recentPayments: any[];
   }>;
+
+  // Invoices
+  getInvoice(id: string): Promise<Invoice | undefined>;
+  getInvoiceByAppointment(appointmentId: string): Promise<Invoice | undefined>;
+  getInvoicesByPatient(patientId: string): Promise<Invoice[]>;
+  getInvoicesByProvider(providerId: string): Promise<Invoice[]>;
+  createInvoice(invoice: InsertInvoice, items: InsertInvoiceItem[]): Promise<Invoice>;
+  getPendingInvoiceAppointments(): Promise<any[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1344,6 +1354,45 @@ export class DatabaseStorage implements IStorage {
       completedBookings: completedCount?.count || 0,
       recentPayments: allPayments,
     };
+  }
+
+  // Invoices
+  async getInvoice(id: string): Promise<Invoice | undefined> {
+    const [invoice] = await db.select().from(invoices).where(eq(invoices.id, id));
+    return invoice || undefined;
+  }
+
+  async getInvoiceByAppointment(appointmentId: string): Promise<Invoice | undefined> {
+    const [invoice] = await db.select().from(invoices).where(eq(invoices.appointmentId, appointmentId));
+    return invoice || undefined;
+  }
+
+  async getInvoicesByPatient(patientId: string): Promise<Invoice[]> {
+    return db.select().from(invoices).where(eq(invoices.patientId, patientId)).orderBy(desc(invoices.issueDate));
+  }
+
+  async getInvoicesByProvider(providerId: string): Promise<Invoice[]> {
+    return db.select().from(invoices).where(eq(invoices.providerId, providerId)).orderBy(desc(invoices.issueDate));
+  }
+
+  async createInvoice(invoice: InsertInvoice, items: InsertInvoiceItem[]): Promise<Invoice> {
+    return await db.transaction(async (tx) => {
+      const [newInvoice] = await tx.insert(invoices).values(invoice).returning();
+      if (items.length > 0) {
+        await tx.insert(invoiceItems).values(
+          items.map(item => ({ ...item, invoiceId: newInvoice.id }))
+        );
+      }
+      await tx.update(appointments)
+        .set({ invoiceGenerated: true })
+        .where(eq(appointments.id, invoice.appointmentId));
+      return newInvoice;
+    });
+  }
+
+  async getPendingInvoiceAppointments(): Promise<any[]> {
+    return db.select().from(appointments)
+      .where(and(eq(appointments.status, "completed"), eq(appointments.invoiceGenerated, false)));
   }
 }
 
