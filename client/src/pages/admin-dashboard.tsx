@@ -548,6 +548,7 @@ function ProviderEditDialog({ provider }: { provider: any }) {
 
 // Provider Details Dialog Component
 function ProviderDetailsDialog({ provider }: { provider: any }) {
+  const { t } = useTranslation();
   return (
     <Dialog>
       <DialogTrigger asChild>
@@ -557,53 +558,53 @@ function ProviderDetailsDialog({ provider }: { provider: any }) {
       </DialogTrigger>
       <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col p-0">
         <DialogHeader className="p-6 pb-2">
-          <DialogTitle>Provider Details</DialogTitle>
-          <DialogDescription>Full profile information for {provider.user?.firstName} {provider.user?.lastName}</DialogDescription>
+          <DialogTitle>{t("admin.provider_details")}</DialogTitle>
+          <DialogDescription>{t("admin.full_profile_info", { name: `${provider.user?.firstName} ${provider.user?.lastName}` })}</DialogDescription>
         </DialogHeader>
         <ScrollArea className="flex-1 px-6 pb-6">
           <div className="space-y-6 py-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label className="text-muted-foreground">Type</Label>
+                <Label className="text-muted-foreground">{t("admin.type")}</Label>
                 <p className="font-medium capitalize">{provider.type}</p>
               </div>
               <div>
-                <Label className="text-muted-foreground">Specialization</Label>
+                <Label className="text-muted-foreground">{t("admin.specialization_label")}</Label>
                 <p className="font-medium">{provider.specialization}</p>
               </div>
               <div>
-                <Label className="text-muted-foreground">Email</Label>
+                <Label className="text-muted-foreground">{t("common.email")}</Label>
                 <p className="font-medium">{provider.user?.email}</p>
               </div>
               <div>
-                <Label className="text-muted-foreground">Phone</Label>
+                <Label className="text-muted-foreground">{t("common.phone")}</Label>
                 <p className="font-medium">{provider.user?.phone || 'N/A'}</p>
               </div>
               <div>
-                <Label className="text-muted-foreground">Experience</Label>
-                <p className="font-medium">{provider.yearsExperience} Years</p>
+                <Label className="text-muted-foreground">{t("admin.experience")}</Label>
+                <p className="font-medium">{provider.yearsExperience} {t("admin.years")}</p>
               </div>
               <div>
-                <Label className="text-muted-foreground">Education</Label>
+                <Label className="text-muted-foreground">{t("common.profile.education")}</Label>
                 <p className="font-medium">{provider.education}</p>
               </div>
               <div>
-                <Label className="text-muted-foreground">Consultation Fee</Label>
+                <Label className="text-muted-foreground">{t("admin.consultation_fee_label")}</Label>
                 <p className="font-medium">${Number(provider.consultationFee).toFixed(2)}</p>
               </div>
               <div>
-                <Label className="text-muted-foreground">Home Visit Fee</Label>
+                <Label className="text-muted-foreground">{t("admin.home_visit_fee_label")}</Label>
                 <p className="font-medium">{provider.homeVisitFee ? `$${Number(provider.homeVisitFee).toFixed(2)}` : 'N/A'}</p>
               </div>
             </div>
 
             <div>
-              <Label className="text-muted-foreground">Bio</Label>
+              <Label className="text-muted-foreground">{t("admin.bio")}</Label>
               <p className="text-sm mt-1 whitespace-pre-wrap">{provider.bio}</p>
             </div>
 
             <div>
-              <Label className="text-muted-foreground">Languages</Label>
+              <Label className="text-muted-foreground">{t("common.profile.languages")}</Label>
               <div className="flex flex-wrap gap-2 mt-1">
                 {provider.languages?.map((lang: string) => (
                   <Badge key={lang} variant="secondary" className="capitalize">{lang}</Badge>
@@ -613,39 +614,39 @@ function ProviderDetailsDialog({ provider }: { provider: any }) {
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label className="text-muted-foreground">Affiliated Hospital</Label>
+                <Label className="text-muted-foreground">{t("admin.affiliated_hospital")}</Label>
                 <p className="font-medium">{provider.affiliatedHospital || 'N/A'}</p>
               </div>
               <div>
-                <Label className="text-muted-foreground">On-Call</Label>
-                <p className="font-medium">{provider.onCallAvailability ? 'Yes' : 'No'}</p>
+                <Label className="text-muted-foreground">{t("admin.on_call")}</Label>
+                <p className="font-medium">{provider.onCallAvailability ? t("admin.yes") : t("admin.no")}</p>
               </div>
               <div>
-                <Label className="text-muted-foreground">Emergency Contact</Label>
+                <Label className="text-muted-foreground">{t("admin.emergency_contact")}</Label>
                 <p className="font-medium">{provider.emergencyContact || 'N/A'}</p>
               </div>
             </div>
 
             <div>
-              <Label className="text-muted-foreground">Insurance Accepted</Label>
+              <Label className="text-muted-foreground">{t("admin.insurance_accepted")}</Label>
               <div className="flex flex-wrap gap-2 mt-1">
                 {provider.insuranceAccepted?.length > 0 ? provider.insuranceAccepted.map((ins: string) => (
                   <Badge key={ins} variant="outline" className="capitalize">{ins}</Badge>
-                )) : <p className="text-sm font-medium">None listed</p>}
+                )) : <p className="text-sm font-medium">{t("admin.none_listed")}</p>}
               </div>
             </div>
 
             <div>
-              <Label className="text-muted-foreground">Payment Methods</Label>
+              <Label className="text-muted-foreground">{t("admin.payment_methods")}</Label>
               <div className="flex flex-wrap gap-2 mt-1">
                 {provider.paymentMethods?.length > 0 ? provider.paymentMethods.map((pm: string) => (
                   <Badge key={pm} variant="outline" className="capitalize">{pm}</Badge>
-                )) : <p className="text-sm font-medium">None listed</p>}
+                )) : <p className="text-sm font-medium">{t("admin.none_listed")}</p>}
               </div>
             </div>
 
             <div>
-              <Label className="text-muted-foreground">Available Days</Label>
+              <Label className="text-muted-foreground">{t("setup.availability")}</Label>
               <div className="flex flex-wrap gap-2 mt-1">
                 {provider.availableDays?.map((day: string) => (
                   <Badge key={day} variant="outline" className="capitalize">{day}</Badge>
@@ -655,7 +656,7 @@ function ProviderDetailsDialog({ provider }: { provider: any }) {
 
             {provider.practitionerData && (
               <div className="pt-4 border-t">
-                <Label className="text-muted-foreground">Medical Practitioners</Label>
+                <Label className="text-muted-foreground">{t("admin.medical_practitioners")}</Label>
                 <div className="mt-2 space-y-4">
                   {(() => {
                     try {
@@ -665,13 +666,13 @@ function ProviderDetailsDialog({ provider }: { provider: any }) {
                       return Array.isArray(practitioners) ? practitioners.map((practitioner: any, index: number) => (
                         <div key={index} className="p-3 rounded-md bg-muted/50 border space-y-2">
                           <div className="grid grid-cols-2 gap-2 text-sm">
-                            <div><span className="text-muted-foreground font-medium">Name:</span> {practitioner.name}</div>
-                            <div><span className="text-muted-foreground font-medium">Designation:</span> {practitioner.designation}</div>
-                            <div><span className="text-muted-foreground font-medium">DOB:</span> {practitioner.dob}</div>
-                            <div><span className="text-muted-foreground font-medium">Origin:</span> {practitioner.originCountry}</div>
-                            <div><span className="text-muted-foreground font-medium">Reg #:</span> {practitioner.registrationNumber}</div>
-                            <div><span className="text-muted-foreground font-medium">Identity #:</span> {practitioner.identityNumber}</div>
-                            <div><span className="text-muted-foreground font-medium">Mobile:</span> {practitioner.mobileNumber}</div>
+                            <div><span className="text-muted-foreground font-medium">{t("admin.name")}:</span> {practitioner.name}</div>
+                            <div><span className="text-muted-foreground font-medium">{t("setup.designation")}:</span> {practitioner.designation}</div>
+                            <div><span className="text-muted-foreground font-medium">{t("setup.dob")}:</span> {practitioner.dob}</div>
+                            <div><span className="text-muted-foreground font-medium">{t("setup.origin_country")}:</span> {practitioner.originCountry}</div>
+                            <div><span className="text-muted-foreground font-medium">{t("setup.reg_number")}:</span> {practitioner.registrationNumber}</div>
+                            <div><span className="text-muted-foreground font-medium">{t("setup.id_number")}:</span> {practitioner.identityNumber}</div>
+                            <div><span className="text-muted-foreground font-medium">{t("setup.mobile_number")}:</span> {practitioner.mobileNumber}</div>
                           </div>
                         </div>
                       )) : null;
@@ -685,11 +686,11 @@ function ProviderDetailsDialog({ provider }: { provider: any }) {
 
             <div className="pt-4 border-t grid grid-cols-2 gap-4">
               <div>
-                <Label className="text-muted-foreground">Rating</Label>
-                <p className="font-medium">{provider.rating} / 5 ({provider.totalReviews} reviews)</p>
+                <Label className="text-muted-foreground">{t("admin.rating")}</Label>
+                <p className="font-medium">{provider.rating} / 5 ({provider.totalReviews} {t("common.profile.reviews_count", { count: provider.totalReviews })})</p>
               </div>
               <div>
-                <Label className="text-muted-foreground">Joined On</Label>
+                <Label className="text-muted-foreground">{t("admin.joined_on")}</Label>
                 <p className="font-medium">{new Date(provider.createdAt).toLocaleDateString()}</p>
               </div>
             </div>
@@ -785,8 +786,8 @@ function AnalyticsOverview() {
       <div className="grid gap-4 md:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Booking Trends</CardTitle>
-            <CardDescription>Monthly booking overview</CardDescription>
+            <CardTitle>{t("admin.booking_trends")}</CardTitle>
+            <CardDescription>{t("admin.monthly_overview")}</CardDescription>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
@@ -803,8 +804,8 @@ function AnalyticsOverview() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Appointment Status</CardTitle>
-            <CardDescription>Current appointment distribution</CardDescription>
+            <CardTitle>{t("admin.appointment_status")}</CardTitle>
+            <CardDescription>{t("admin.current_distribution")}</CardDescription>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
@@ -904,27 +905,27 @@ function BookingsManagement() {
             <div className="divide-y">
               {filteredBookings.length === 0 ? (
                 <div className="p-8 text-center text-muted-foreground">
-                  No bookings found
+                  {t("admin.no_bookings")}
                 </div>
               ) : (
                 filteredBookings.map((booking: any) => (
                   <div key={booking.id} className="p-4 flex items-center justify-between gap-4" data-testid={`row-booking-${booking.id}`}>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-medium truncate">Booking #{String(booking.id).slice(0, 8)}</span>
+                        <span className="font-medium truncate">{t("admin.booking_number")} {String(booking.id).slice(0, 8)}</span>
                         <Badge variant={
                           booking.status === 'completed' ? 'default' :
                           booking.status === 'confirmed' ? 'secondary' :
                           booking.status === 'cancelled' ? 'destructive' : 'outline'
                         }>
-                          {booking.status}
+                          {t(`admin.${booking.status}`)}
                         </Badge>
                       </div>
                       <p className="text-sm text-muted-foreground">
-                        {new Date(booking.appointmentDate).toLocaleDateString()} at {booking.startTime}
+                        {new Date(booking.appointmentDate).toLocaleDateString()} {t("admin.at")} {booking.startTime}
                       </p>
                       <p className="text-sm text-muted-foreground">
-                        Type: {booking.appointmentType} | Amount: ${Number(booking.totalAmount || 0).toFixed(2)}
+                        {t("admin.type")}: {booking.appointmentType} | {t("admin.amount")}: ${Number(booking.totalAmount || 0).toFixed(2)}
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
@@ -936,10 +937,10 @@ function BookingsManagement() {
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="pending">Pending</SelectItem>
-                          <SelectItem value="confirmed">Confirmed</SelectItem>
-                          <SelectItem value="completed">Completed</SelectItem>
-                          <SelectItem value="cancelled">Cancelled</SelectItem>
+                          <SelectItem value="pending">{t("admin.pending")}</SelectItem>
+                          <SelectItem value="confirmed">{t("admin.confirmed")}</SelectItem>
+                          <SelectItem value="completed">{t("admin.completed")}</SelectItem>
+                          <SelectItem value="cancelled">{t("admin.cancelled")}</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -956,6 +957,7 @@ function BookingsManagement() {
 
 // Financial Reports Component
 function FinancialReports() {
+  const { t } = useTranslation();
   const { data: analytics, isLoading } = useQuery<any>({
     queryKey: ["/api/admin/analytics"],
   });
@@ -976,7 +978,7 @@ function FinancialReports() {
       <div className="grid gap-4 md:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+            <CardTitle className="text-sm font-medium">{t("admin.total_revenue_label")}</CardTitle>
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -985,7 +987,7 @@ function FinancialReports() {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Completed Bookings</CardTitle>
+            <CardTitle className="text-sm font-medium">{t("admin.completed")} {t("admin.bookings")}</CardTitle>
             <CheckCircle className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -994,8 +996,8 @@ function FinancialReports() {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Users</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">{t("admin.total_users_label")}</CardTitle>
+            <Plus className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold" data-testid="text-financial-users">{analytics?.totalUsers || 0}</div>
@@ -1005,24 +1007,24 @@ function FinancialReports() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Recent Payments</CardTitle>
+          <CardTitle>{t("admin.recent_payments")}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="rounded-md border overflow-hidden">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b bg-muted/50">
-                  <th className="h-10 px-4 text-left font-medium">Date</th>
-                  <th className="h-10 px-4 text-left font-medium">Amount</th>
-                  <th className="h-10 px-4 text-left font-medium">Status</th>
-                  <th className="h-10 px-4 text-left font-medium">Method</th>
+                  <th className="h-10 px-4 text-left font-medium">{t("admin.date")}</th>
+                  <th className="h-10 px-4 text-left font-medium">{t("admin.amount")}</th>
+                  <th className="h-10 px-4 text-left font-medium">{t("admin.status")}</th>
+                  <th className="h-10 px-4 text-left font-medium">{t("booking.payment_method")}</th>
                 </tr>
               </thead>
               <tbody>
                 {payments.length === 0 ? (
                   <tr>
                     <td colSpan={4} className="p-4 text-center text-muted-foreground">
-                      No recent payments
+                      {t("admin.no_payments")}
                     </td>
                   </tr>
                 ) : (
@@ -3040,6 +3042,7 @@ function PromoCodeManagement({ providers }: { providers: ProviderWithUser[] }) {
 
 // Users Management Component
 function UsersManagement() {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [roleFilter, setRoleFilter] = useState<string>("all");
@@ -3059,7 +3062,7 @@ function UsersManagement() {
       return response.json();
     },
     onSuccess: () => {
-      toast({ title: "User status updated" });
+      toast({ title: t("admin.user_updated") });
       refetch();
     },
   });
@@ -3069,11 +3072,11 @@ function UsersManagement() {
       await apiRequest("DELETE", `/api/admin/users/${id}`);
     },
     onSuccess: () => {
-      toast({ title: "User deleted successfully" });
+      toast({ title: t("admin.user_deleted") });
       refetch();
     },
     onError: (error: Error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: t("common.error"), description: error.message, variant: "destructive" });
     },
   });
 
@@ -3094,7 +3097,7 @@ function UsersManagement() {
         <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search users by name or email..."
+            placeholder={t("common.search")}
             className="pl-8"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -3103,24 +3106,24 @@ function UsersManagement() {
         </div>
         <Select value={roleFilter} onValueChange={setRoleFilter}>
           <SelectTrigger className="w-40" data-testid="select-user-role-filter">
-            <SelectValue placeholder="Filter by role" />
+            <SelectValue placeholder={t("admin.filter_by_status")} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Roles</SelectItem>
-            <SelectItem value="patient">Patients</SelectItem>
-            <SelectItem value="provider">Providers</SelectItem>
-            <SelectItem value="admin">Admins</SelectItem>
+            <SelectItem value="all">{t("admin.all_bookings")}</SelectItem>
+            <SelectItem value="patient">{t("common.patient_looking")}</SelectItem>
+            <SelectItem value="provider">{t("common.healthcare_provider")}</SelectItem>
+            <SelectItem value="admin">Admin</SelectItem>
           </SelectContent>
         </Select>
         <span className="text-sm text-muted-foreground">
-          Showing {filteredUsers.length} users
+          {t("admin.showing_bookings", { count: filteredUsers.length })}
         </span>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Users Management</CardTitle>
-          <CardDescription>Manage user accounts and status</CardDescription>
+          <CardTitle>{t("admin.users")}</CardTitle>
+          <CardDescription>{t("admin.bookings_management")}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="divide-y">
@@ -3129,7 +3132,7 @@ function UsersManagement() {
                 <div>
                   <div className="flex items-center gap-2">
                     <span className="font-medium">{user.firstName} {user.lastName}</span>
-                    {user.isSuspended && <Badge variant="destructive">Suspended</Badge>}
+                    {user.isSuspended && <Badge variant="destructive">{t("admin.cancelled")}</Badge>}
                     <Badge variant="outline">{user.role}</Badge>
                   </div>
                   <p className="text-sm text-muted-foreground">{user.email}</p>
@@ -3142,7 +3145,7 @@ function UsersManagement() {
                     data-testid={`button-view-user-${user.id}`}
                   >
                     <Eye className="h-4 w-4 mr-2" />
-                    Details
+                    {t("admin.view")}
                   </Button>
                   {user.isSuspended ? (
                     <Button
@@ -3150,20 +3153,20 @@ function UsersManagement() {
                       variant="outline"
                       onClick={() => suspendMutation.mutate({ id: user.id, isSuspended: false })}
                     >
-                      Activate
+                      {t("admin.active")}
                     </Button>
                   ) : (
                     <Button
                       size="sm"
                       variant="destructive"
                       onClick={() => {
-                        const reason = window.prompt("Reason for suspension:");
+                        const reason = window.prompt(t("admin.bio"));
                         if (reason !== null) {
                           suspendMutation.mutate({ id: user.id, isSuspended: true, reason });
                         }
                       }}
                     >
-                      Suspend
+                      {t("admin.cancelled")}
                     </Button>
                   )}
                   <Button
@@ -3171,7 +3174,7 @@ function UsersManagement() {
                     variant="ghost"
                     className="text-destructive"
                     onClick={() => {
-                      if (confirm("Are you sure you want to delete this user? This will also remove their provider profile if they have one.")) {
+                      if (confirm(t("admin.delete"))) {
                         deleteUserMutation.mutate(user.id);
                       }
                     }}
@@ -3189,43 +3192,43 @@ function UsersManagement() {
       <Dialog open={!!selectedUser} onOpenChange={(open) => !open && setSelectedUser(null)}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>User Details</DialogTitle>
-            <DialogDescription>Complete profile information for {selectedUser?.firstName} {selectedUser?.lastName}</DialogDescription>
+            <DialogTitle>{t("admin.provider_details")}</DialogTitle>
+            <DialogDescription>{t("admin.full_profile_info", { name: `${selectedUser?.firstName} ${selectedUser?.lastName}` })}</DialogDescription>
           </DialogHeader>
           {selectedUser && (
             <div className="grid grid-cols-2 gap-4 py-4">
               <div className="space-y-1">
-                <p className="text-sm font-medium text-muted-foreground">Full Name</p>
+                <p className="text-sm font-medium text-muted-foreground">{t("admin.name")}</p>
                 <p>{selectedUser.firstName} {selectedUser.lastName}</p>
               </div>
               <div className="space-y-1">
-                <p className="text-sm font-medium text-muted-foreground">Email Address</p>
+                <p className="text-sm font-medium text-muted-foreground">{t("common.email")}</p>
                 <p>{selectedUser.email}</p>
               </div>
               <div className="space-y-1">
-                <p className="text-sm font-medium text-muted-foreground">Phone Number</p>
+                <p className="text-sm font-medium text-muted-foreground">{t("common.phone")}</p>
                 <p>{selectedUser.phone || 'Not provided'}</p>
               </div>
               <div className="space-y-1">
-                <p className="text-sm font-medium text-muted-foreground">Role</p>
+                <p className="text-sm font-medium text-muted-foreground">{t("admin.type")}</p>
                 <p className="capitalize">{selectedUser.role}</p>
               </div>
               <div className="space-y-1">
-                <p className="text-sm font-medium text-muted-foreground">City</p>
+                <p className="text-sm font-medium text-muted-foreground">{t("setup.city")}</p>
                 <p>{selectedUser.city || 'Not provided'}</p>
               </div>
               <div className="space-y-1">
-                <p className="text-sm font-medium text-muted-foreground">Account Created</p>
+                <p className="text-sm font-medium text-muted-foreground">{t("admin.joined_on")}</p>
                 <p>{selectedUser.createdAt ? new Date(selectedUser.createdAt).toLocaleDateString() : 'N/A'}</p>
               </div>
               <div className="col-span-2 space-y-1">
-                <p className="text-sm font-medium text-muted-foreground">Address</p>
+                <p className="text-sm font-medium text-muted-foreground">{t("booking.address")}</p>
                 <p>{selectedUser.address || 'Not provided'}</p>
               </div>
               {selectedUser.isSuspended && (
                 <div className="col-span-2 p-3 bg-destructive/10 rounded-md border border-destructive/20 mt-2">
-                  <p className="text-sm font-semibold text-destructive">Account Suspended</p>
-                  <p className="text-sm text-destructive/80 mt-1">Reason: {selectedUser.suspensionReason || 'No reason provided'}</p>
+                  <p className="text-sm font-semibold text-destructive">{t("admin.cancelled")}</p>
+                  <p className="text-sm text-destructive/80 mt-1">{t("admin.bio")}: {selectedUser.suspensionReason || 'No reason provided'}</p>
                 </div>
               )}
             </div>
@@ -3277,16 +3280,16 @@ function SubServicesManagement() {
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <h3 className="text-lg font-medium">Platform Sub-Services & Booking Fees</h3>
+        <h3 className="text-lg font-medium">{t("admin.sub_services_fees")}</h3>
         <Button onClick={() => setIsAdding(true)} size="sm" data-testid="button-add-subservice">
-          <Plus className="h-4 w-4 mr-2" /> Add Sub-Service
+          <Plus className="h-4 w-4 mr-2" /> {t("admin.add_subservice")}
         </Button>
       </div>
 
       {(isAdding || editingId) && (
         <Card>
           <CardHeader>
-            <CardTitle>{editingId ? "Edit" : "Add"} Sub-Service</CardTitle>
+            <CardTitle>{editingId ? t("admin.edit") : t("admin.add")} {t("setup.sub_services")}</CardTitle>
           </CardHeader>
           <CardContent>
             <Form {...form}>
@@ -3297,7 +3300,7 @@ function SubServicesManagement() {
                     name="name"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Name</FormLabel>
+                        <FormLabel>{t("admin.name")}</FormLabel>
                         <FormControl><Input {...field} data-testid="input-subservice-name" /></FormControl>
                       </FormItem>
                     )}
@@ -3307,13 +3310,13 @@ function SubServicesManagement() {
                     name="category"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Category</FormLabel>
+                        <FormLabel>{t("setup.provider_type")}</FormLabel>
                         <Select onValueChange={field.onChange} value={field.value}>
                           <FormControl><SelectTrigger data-testid="select-subservice-category"><SelectValue /></SelectTrigger></FormControl>
                           <SelectContent>
-                            <SelectItem value="physiotherapist">Physiotherapist</SelectItem>
-                            <SelectItem value="doctor">Doctor</SelectItem>
-                            <SelectItem value="nurse">Nurse</SelectItem>
+                            <SelectItem value="physiotherapist">{t("common.physiotherapists")}</SelectItem>
+                            <SelectItem value="doctor">{t("common.doctors")}</SelectItem>
+                            <SelectItem value="nurse">{t("common.nurses")}</SelectItem>
                           </SelectContent>
                         </Select>
                       </FormItem>
@@ -3325,9 +3328,9 @@ function SubServicesManagement() {
                   name="platformFee"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Platform Fee ($)</FormLabel>
+                      <FormLabel>{t("booking.platform_fee")} ($)</FormLabel>
                       <FormControl><Input {...field} type="number" step="0.01" data-testid="input-platform-fee" /></FormControl>
-                      <FormDescription>This fee will be added to the total price of bookings for this service.</FormDescription>
+                      <FormDescription>{t("admin.platform_fee_desc")}</FormDescription>
                     </FormItem>
                   )}
                 />
@@ -3336,15 +3339,15 @@ function SubServicesManagement() {
                   name="description"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Description</FormLabel>
+                      <FormLabel>{t("setup.about_you")}</FormLabel>
                       <FormControl><Textarea {...field} data-testid="textarea-subservice-description" /></FormControl>
                     </FormItem>
                   )}
                 />
                 <div className="flex justify-end gap-2">
-                  <Button type="button" variant="outline" onClick={() => { setIsAdding(false); setEditingId(null); }} data-testid="button-cancel-subservice">Cancel</Button>
+                  <Button type="button" variant="outline" onClick={() => { setIsAdding(false); setEditingId(null); }} data-testid="button-cancel-subservice">{t("admin.cancelled")}</Button>
                   <Button type="submit" disabled={mutation.isPending} data-testid="button-save-subservice">
-                    {mutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}
+                    {mutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : t("admin.save_changes")}
                   </Button>
                 </div>
               </form>
@@ -3547,14 +3550,14 @@ export default function AdminDashboard() {
           <Card className="max-w-md w-full mx-4">
             <CardHeader className="text-center">
               <Shield className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-              <CardTitle>Admin Access Required</CardTitle>
+              <CardTitle>{t("admin.admin_access_required")}</CardTitle>
               <CardDescription>
-                You don't have permission to access this page.
+                {t("admin.no_permission")}
               </CardDescription>
             </CardHeader>
             <CardContent>
               <Button onClick={() => navigate("/")} className="w-full" data-testid="button-go-home">
-                Go to Home
+                {t("admin.go_home")}
               </Button>
             </CardContent>
           </Card>
@@ -3571,72 +3574,72 @@ export default function AdminDashboard() {
         <div className="mb-6">
           <h1 className="text-3xl font-bold flex items-center gap-2" data-testid="text-admin-title">
             <Shield className="h-8 w-8" />
-            Admin Dashboard
+            {t("admin.stats")}
           </h1>
-          <p className="text-muted-foreground">Manage your healthcare platform</p>
+          <p className="text-muted-foreground">{t("admin.bookings_management")}</p>
         </div>
 
         <Tabs defaultValue="overview" className="space-y-6">
           <TabsList className="flex flex-wrap gap-1">
             <TabsTrigger value="overview" data-testid="tab-overview">
               <BarChart3 className="h-4 w-4 mr-2" />
-              Overview
+              {t("admin.analytics")}
             </TabsTrigger>
             <TabsTrigger value="providers" data-testid="tab-providers">
               <Building className="h-4 w-4 mr-2" />
-              Providers
+              {t("admin.providers")}
             </TabsTrigger>
             <TabsTrigger value="users" data-testid="tab-users">
               <Users className="h-4 w-4 mr-2" />
-              Users
+              {t("admin.users")}
             </TabsTrigger>
             <TabsTrigger value="bookings" data-testid="tab-bookings">
               <Calendar className="h-4 w-4 mr-2" />
-              Bookings
+              {t("admin.bookings")}
             </TabsTrigger>
             <TabsTrigger value="financial" data-testid="tab-financial">
               <DollarSign className="h-4 w-4 mr-2" />
-              Financial
+              {t("admin.financial_reports")}
             </TabsTrigger>
             <TabsTrigger value="invoices" data-testid="tab-invoices">
               <FileText className="h-4 w-4 mr-2" />
-              Invoices
+              {t("dashboard.invoices")}
             </TabsTrigger>
             <TabsTrigger value="content" data-testid="tab-content">
               <FileText className="h-4 w-4 mr-2" />
-              Content
+              {t("admin.analytics")}
             </TabsTrigger>
             <TabsTrigger value="pricing" data-testid="tab-pricing">
               <Tag className="h-4 w-4 mr-2" />
-              Pricing
+              {t("admin.pricing_overrides")}
             </TabsTrigger>
             <TabsTrigger value="promos" data-testid="tab-promos">
               <Tag className="h-4 w-4 mr-2" />
-              Promos
+              {t("admin.promo_codes")}
             </TabsTrigger>
             <TabsTrigger value="settings" data-testid="tab-settings">
               <Settings className="h-4 w-4 mr-2" />
-              Settings
+              {t("common.settings")}
             </TabsTrigger>
             <TabsTrigger value="integrations" data-testid="tab-integrations">
               <Plus className="h-4 w-4 mr-2" />
-              Integrations
+              {t("admin.external_integrations")}
             </TabsTrigger>
             <TabsTrigger value="audit" data-testid="tab-audit">
               <Activity className="h-4 w-4 mr-2" />
-              Audit
+              {t("admin.audit_logs")}
             </TabsTrigger>
             <TabsTrigger value="support" data-testid="tab-support">
               <MessageSquare className="h-4 w-4 mr-2" />
-              Support
+              {t("admin.support_tickets")}
             </TabsTrigger>
           <TabsTrigger value="sub-services" data-testid="tab-sub-services">
             <ListTree className="h-4 w-4 mr-2" />
-            Sub-Services & Platform Fee
+            {t("admin.services")}
           </TabsTrigger>
             <TabsTrigger value="tax" data-testid="tab-tax">
               <DollarSign className="h-4 w-4 mr-2" />
-              Tax Settings
+              {t("admin.tax_management")}
             </TabsTrigger>
           </TabsList>
 
