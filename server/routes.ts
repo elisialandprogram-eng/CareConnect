@@ -43,6 +43,7 @@ const otpRateLimit = new Map<string, number>();
 const OTP_COOLDOWN = 60 * 1000; // 60 seconds
 import { registerChatRoutes } from "./replit_integrations/chat";
 import { registerImageRoutes } from "./replit_integrations/image";
+import { generateInvoicePDF } from "./utils/invoice-gen";
 
 const JWT_SECRET = process.env.SESSION_SECRET || "careconnect-jwt-secret-key";
 const JWT_EXPIRES_IN = "15m";
@@ -117,6 +118,102 @@ export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
+  // ============ INVOICE ROUTES ============
+  app.get("/api/invoices/appointment/:appointmentId", authenticateToken, async (req: AuthRequest, res: Response) => {
+    try {
+      const invoice = await storage.getInvoiceByAppointment(req.params.appointmentId);
+      if (!invoice) return res.status(404).json({ message: "Invoice not found" });
+      
+      // Check permission
+      if (req.user?.role === "patient" && invoice.patientId !== req.user.id) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      if (req.user?.role === "provider" && invoice.providerId !== req.user.id) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      res.json(invoice);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch invoice" });
+    }
+  });
+
+  app.get("/api/invoices/:id/download", authenticateToken, async (req: AuthRequest, res: Response) => {
+    try {
+      const invoice = await storage.getInvoice(req.params.id);
+      if (!invoice) return res.status(404).json({ message: "Invoice not found" });
+
+      const appointment = await storage.getAppointmentWithDetails(invoice.appointmentId);
+      if (!appointment) return res.status(404).json({ message: "Appointment not found" });
+
+      // Check permission
+      if (req.user?.role === "patient" && invoice.patientId !== req.user.id) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      // Mock items for now or fetch from DB if implemented
+      const items = [{
+        description: appointment.service?.name || "Healthcare Service",
+        quantity: 1,
+        unitPrice: appointment.totalAmount,
+        totalPrice: appointment.totalAmount
+      }];
+
+      const pdfBuffer = await generateInvoicePDF(
+        invoice,
+        appointment.patient,
+        appointment.provider,
+        items
+      );
+
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader("Content-Disposition", `attachment; filename=invoice-${invoice.invoiceNumber}.pdf`);
+      res.send(pdfBuffer);
+    } catch (error) {
+      console.error("Invoice download error:", error);
+      res.status(500).json({ message: "Failed to generate invoice PDF" });
+    }
+  });
+
+  app.post("/api/admin/invoices/generate-pending", authenticateToken, async (req: AuthRequest, res: Response) => {
+    if (req.user?.role !== "admin") return res.status(403).json({ message: "Admin access required" });
+    
+    try {
+      const pendingAppointments = await storage.getPendingInvoiceAppointments();
+      const results = [];
+
+      for (const appt of pendingAppointments) {
+        const invoiceNumber = `INV-${Date.now()}-${appt.id.slice(0, 4)}`.toUpperCase();
+        const dueDate = new Date();
+        dueDate.setDate(dueDate.getDate() + 7);
+
+        const invoice = await storage.createInvoice({
+          appointmentId: appt.id,
+          patientId: appt.patientId,
+          providerId: appt.providerId,
+          invoiceNumber,
+          dueDate,
+          subtotal: appt.totalAmount,
+          taxAmount: "0.00",
+          totalAmount: appt.totalAmount,
+          status: "paid"
+        }, [{
+          description: "Healthcare Service",
+          quantity: 1,
+          unitPrice: appt.totalAmount,
+          totalPrice: appt.totalAmount
+        }]);
+
+        results.push(invoice);
+      }
+
+      res.json({ message: `Generated ${results.length} invoices`, invoices: results });
+    } catch (error) {
+      console.error("Bulk invoice generation error:", error);
+      res.status(500).json({ message: "Failed to generate pending invoices" });
+    }
+  });
+
   // Register AI integrations routes
   registerChatRoutes(app);
   registerImageRoutes(app);
