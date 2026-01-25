@@ -3481,7 +3481,7 @@ function SubServicesManagement() {
     );
   }
 
-function AdminDashboard() {
+export default function AdminDashboard() {
   const { t } = useTranslation();
   const { user } = useAuth();
   const { toast } = useToast();

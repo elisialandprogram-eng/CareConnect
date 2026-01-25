@@ -320,7 +320,6 @@ const resources = {
         service_added: "Service added successfully",
         edit: "Edit",
         details_fees: "Details & Fees",
-        services: "Services",
         verification_status: "Verification Status",
         pending: "Pending",
         active: "Active",
