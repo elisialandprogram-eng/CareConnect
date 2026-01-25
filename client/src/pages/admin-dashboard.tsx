@@ -2252,6 +2252,98 @@ function AuditLogs() {
   );
 }
 
+// Invoice Management Component
+function InvoiceManagement() {
+  const { toast } = useToast();
+  const { data: invoices, isLoading, refetch } = useQuery<any[]>({
+    queryKey: ["/api/admin/invoices"],
+  });
+
+  const generatePendingMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest("POST", "/api/admin/invoices/generate-pending", {});
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Pending invoices generated" });
+      refetch();
+    },
+  });
+
+  if (isLoading) return <div className="flex justify-center p-12"><Loader2 className="h-8 w-8 animate-spin" /></div>;
+
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <div>
+          <h3 className="text-lg font-medium">Invoice Management</h3>
+          <p className="text-sm text-muted-foreground">View and manage platform invoices</p>
+        </div>
+        <Button 
+          onClick={() => generatePendingMutation.mutate()} 
+          disabled={generatePendingMutation.isPending}
+          data-testid="button-generate-pending-invoices"
+        >
+          {generatePendingMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Plus className="h-4 w-4 mr-2" />}
+          Generate Pending
+        </Button>
+      </div>
+
+      <Card>
+        <CardContent className="p-0">
+          <div className="rounded-md border overflow-hidden">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b bg-muted/50">
+                  <th className="h-10 px-4 text-left font-medium">Invoice #</th>
+                  <th className="h-10 px-4 text-left font-medium">Date</th>
+                  <th className="h-10 px-4 text-left font-medium">Amount</th>
+                  <th className="h-10 px-4 text-left font-medium">Status</th>
+                  <th className="h-10 px-4 text-right font-medium">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {invoices?.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="p-8 text-center text-muted-foreground">
+                      No invoices found
+                    </td>
+                  </tr>
+                ) : (
+                  invoices?.map((invoice) => (
+                    <tr key={invoice.id} className="border-b last:border-0" data-testid={`row-invoice-${invoice.id}`}>
+                      <td className="p-4 font-medium">{invoice.invoiceNumber}</td>
+                      <td className="p-4">{new Date(invoice.issueDate).toLocaleDateString()}</td>
+                      <td className="p-4">${Number(invoice.totalAmount).toFixed(2)}</td>
+                      <td className="p-4">
+                        <Badge variant={invoice.status === "paid" ? "default" : "secondary"}>
+                          {invoice.status}
+                        </Badge>
+                      </td>
+                      <td className="p-4 text-right">
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          asChild
+                        >
+                          <a href={`/api/invoices/${invoice.id}/download`} target="_blank" rel="noreferrer">
+                            <FileText className="h-4 w-4 mr-2" />
+                            PDF
+                          </a>
+                        </Button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 // Support Tickets Component
 function SupportTickets() {
   const { toast } = useToast();
@@ -3503,6 +3595,10 @@ export default function AdminDashboard() {
               <DollarSign className="h-4 w-4 mr-2" />
               Financial
             </TabsTrigger>
+            <TabsTrigger value="invoices" data-testid="tab-invoices">
+              <FileText className="h-4 w-4 mr-2" />
+              Invoices
+            </TabsTrigger>
             <TabsTrigger value="content" data-testid="tab-content">
               <FileText className="h-4 w-4 mr-2" />
               Content
@@ -3567,6 +3663,10 @@ export default function AdminDashboard() {
 
           <TabsContent value="financial">
             <FinancialReports />
+          </TabsContent>
+
+          <TabsContent value="invoices">
+            <InvoiceManagement />
           </TabsContent>
 
           <TabsContent value="content">
