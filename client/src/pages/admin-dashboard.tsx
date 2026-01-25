@@ -3605,10 +3605,6 @@ export default function AdminDashboard() {
               <FileText className="h-4 w-4 mr-2" />
               {t("dashboard.invoices")}
             </TabsTrigger>
-            <TabsTrigger value="content" data-testid="tab-content">
-              <FileText className="h-4 w-4 mr-2" />
-              {t("admin.analytics")}
-            </TabsTrigger>
             <TabsTrigger value="pricing" data-testid="tab-pricing">
               <Tag className="h-4 w-4 mr-2" />
               {t("admin.pricing_overrides")}
@@ -3633,10 +3629,10 @@ export default function AdminDashboard() {
               <MessageSquare className="h-4 w-4 mr-2" />
               {t("admin.support_tickets")}
             </TabsTrigger>
-          <TabsTrigger value="sub-services" data-testid="tab-sub-services">
-            <ListTree className="h-4 w-4 mr-2" />
-            {t("admin.services")}
-          </TabsTrigger>
+            <TabsTrigger value="sub-services" data-testid="tab-sub-services">
+              <ListTree className="h-4 w-4 mr-2" />
+              {t("admin.services")}
+            </TabsTrigger>
             <TabsTrigger value="tax" data-testid="tab-tax">
               <DollarSign className="h-4 w-4 mr-2" />
               {t("admin.tax_management")}
