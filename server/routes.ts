@@ -1912,11 +1912,85 @@ export async function registerRoutes(
 
   app.patch("/api/admin/bookings/:id", authenticateToken, requireAdmin, async (req: AuthRequest, res: Response) => {
     try {
-      const appointment = await storage.updateAppointment(req.params.id, req.body);
-      if (!appointment) return res.status(404).json({ message: "Booking not found" });
-      res.json(appointment);
+      const { status } = req.body;
+      const booking = await storage.getAppointment(req.params.id);
+      if (!booking) return res.status(404).json({ message: "Booking not found" });
+
+      const updated = await storage.updateAppointment(req.params.id, req.body);
+      if (!updated) return res.status(404).json({ message: "Booking not found" });
+
+      // Automatically generate invoice if status is changed to completed and it hasn't been generated yet
+      if (status === "completed" && !booking.invoiceGenerated) {
+        try {
+          const appointment = await storage.getAppointmentWithDetails(booking.id);
+          if (appointment) {
+            const invoiceNumber = `INV-${Date.now()}-${booking.id.slice(0, 4)}`.toUpperCase();
+            const dueDate = new Date();
+            dueDate.setDate(dueDate.getDate() + 7);
+
+            const invoice = await storage.createInvoice({
+              appointmentId: booking.id,
+              patientId: booking.patientId,
+              providerId: booking.providerId,
+              invoiceNumber,
+              dueDate,
+              subtotal: booking.totalAmount,
+              taxAmount: "0.00",
+              totalAmount: booking.totalAmount,
+              status: "paid"
+            }, [{
+              description: appointment.service?.name || "Healthcare Service",
+              quantity: 1,
+              unitPrice: booking.totalAmount,
+              totalPrice: booking.totalAmount
+            }]);
+
+            // Try to send email
+            if (resend) {
+              const pdfBuffer = await generateInvoicePDF(
+                invoice,
+                appointment.patient,
+                appointment.provider,
+                [{
+                  description: appointment.service?.name || "Healthcare Service",
+                  quantity: 1,
+                  unitPrice: booking.totalAmount,
+                  totalPrice: booking.totalAmount
+                }]
+              );
+
+              await resend.emails.send({
+                from: FROM_EMAIL,
+                to: appointment.patient.email,
+                subject: `Invoice for your appointment ${invoiceNumber}`,
+                text: `Dear ${appointment.patient.firstName}, please find attached the invoice for your recent appointment.`,
+                attachments: [
+                  {
+                    filename: `invoice-${invoiceNumber}.pdf`,
+                    content: pdfBuffer,
+                  },
+                ],
+              });
+            }
+          }
+        } catch (genError) {
+          console.error("Auto invoice generation error:", genError);
+        }
+      }
+
+      res.json(updated);
     } catch (error) {
+      console.error("Failed to update booking status:", error);
       res.status(500).json({ message: "Failed to update booking" });
+    }
+  });
+
+  app.get("/api/admin/invoices", authenticateToken, requireAdmin, async (req: AuthRequest, res: Response) => {
+    try {
+      const allInvoices = await db.select().from(invoices).orderBy(desc(invoices.createdAt));
+      res.json(allInvoices);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch invoices" });
     }
   });
 
