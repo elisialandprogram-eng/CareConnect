@@ -375,6 +375,7 @@ export interface IStorage {
   getInvoiceByAppointment(appointmentId: string): Promise<Invoice | undefined>;
   getInvoicesByPatient(patientId: string): Promise<Invoice[]>;
   getInvoicesByProvider(providerId: string): Promise<Invoice[]>;
+  getAllInvoices(): Promise<Invoice[]>;
   createInvoice(invoice: InsertInvoice, items: InsertInvoiceItem[]): Promise<Invoice>;
   getPendingInvoiceAppointments(): Promise<any[]>;
 }
@@ -1392,6 +1393,10 @@ export class DatabaseStorage implements IStorage {
         .where(eq(appointments.id, invoice.appointmentId));
       return newInvoice;
     });
+  }
+
+  async getAllInvoices(): Promise<Invoice[]> {
+    return db.select().from(invoices).orderBy(desc(invoices.issueDate));
   }
 
   async getPendingInvoiceAppointments(): Promise<any[]> {
