@@ -3241,236 +3241,230 @@ function UsersManagement() {
   );
 }
 
-              <CardTitle>{t("admin.admin_access_required")}</CardTitle>
-              <CardDescription>
-                {t("admin.no_permission")}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button onClick={() => navigate("/")} className="w-full" data-testid="button-go-home">
-                {t("admin.go_home")}
-              </Button>
-            </CardContent>
-          </Card>
-        </main>
-        <Footer />
-      </div>
-    );
-  }
+function BookingsManagement() {
+  const { t } = useTranslation();
+  const { toast } = useToast();
+  const { data: bookings, isLoading, refetch } = useQuery<AppointmentWithDetails[]>({
+    queryKey: ["/api/admin/bookings"],
+  });
+
+  const updateStatusMutation = useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: string }) => {
+      const res = await apiRequest("PATCH", `/api/appointments/${id}/status`, { status });
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({ title: t("admin.booking_updated") });
+      refetch();
+    },
+  });
+
+  if (isLoading) return <div className="flex justify-center p-8"><Loader2 className="animate-spin h-8 w-8" /></div>;
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <Header />
-      <main className="flex-1 container mx-auto px-4 py-8">
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold flex items-center gap-2" data-testid="text-admin-title">
-            <Shield className="h-8 w-8" />
-            {t("admin.dashboard")}
-          </h1>
-          <p className="text-muted-foreground">{t("admin.bookings_management")}</p>
+    <Card>
+      <CardHeader>
+        <CardTitle>{t("admin.bookings")}</CardTitle>
+        <CardDescription>{t("admin.manage_all_bookings")}</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-4">
+          {!bookings || bookings.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground border rounded-lg bg-muted/50">
+              {t("admin.no_bookings_found")}
+            </div>
+          ) : (
+            bookings.map((booking) => (
+              <div key={booking.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/30 transition-colors" data-testid={`row-booking-${booking.id}`}>
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <p className="font-medium">{booking.patient?.firstName} {booking.patient?.lastName}</p>
+                    <Badge variant={
+                      booking.status === 'completed' ? 'default' :
+                      booking.status === 'cancelled' || booking.status === 'rejected' ? 'destructive' :
+                      booking.status === 'confirmed' ? 'secondary' : 'outline'
+                    } className="capitalize">
+                      {booking.status}
+                    </Badge>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    {booking.service?.name} {t("common.with")} {booking.provider?.user?.firstName} {booking.provider?.user?.lastName}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {new Date(booking.date).toLocaleDateString()} at {booking.startTime}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Select 
+                    value={booking.status} 
+                    onValueChange={(value) => updateStatusMutation.mutate({ id: booking.id, status: value })}
+                  >
+                    <SelectTrigger className="w-[130px]" data-testid={`select-status-${booking.id}`}>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="pending">{t("booking.status.pending")}</SelectItem>
+                      <SelectItem value="confirmed">{t("booking.status.confirmed")}</SelectItem>
+                      <SelectItem value="completed">{t("booking.status.completed")}</SelectItem>
+                      <SelectItem value="cancelled">{t("booking.status.cancelled")}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            ))
+          )}
         </div>
+      </CardContent>
+    </Card>
+  );
+}
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="flex flex-wrap gap-1">
-            <TabsTrigger value="overview" data-testid="tab-overview">
-              <BarChart3 className="h-4 w-4 mr-2" />
-              {t("admin.analytics")}
-            </TabsTrigger>
-            <TabsTrigger value="providers" data-testid="tab-providers">
-              <Building className="h-4 w-4 mr-2" />
-              {t("admin.providers")}
-            </TabsTrigger>
-            <TabsTrigger value="users" data-testid="tab-users">
-              <Users className="h-4 w-4 mr-2" />
-              {t("admin.users")}
-            </TabsTrigger>
-            <TabsTrigger value="bookings" data-testid="tab-bookings">
-              <Calendar className="h-4 w-4 mr-2" />
-              {t("admin.bookings")}
-            </TabsTrigger>
-            <TabsTrigger value="financial" data-testid="tab-financial">
-              <DollarSign className="h-4 w-4 mr-2" />
-              {t("admin.financial_reports")}
-            </TabsTrigger>
-            <TabsTrigger value="invoices" data-testid="tab-invoices">
-              <FileText className="h-4 w-4 mr-2" />
-              {t("dashboard.invoices")}
-            </TabsTrigger>
-            <TabsTrigger value="pricing" data-testid="tab-pricing">
-              <Tag className="h-4 w-4 mr-2" />
-              {t("admin.pricing_overrides")}
-            </TabsTrigger>
-            <TabsTrigger value="promos" data-testid="tab-promos">
-              <Tag className="h-4 w-4 mr-2" />
-              {t("admin.promo_codes")}
-            </TabsTrigger>
-            <TabsTrigger value="settings" data-testid="tab-settings">
-              <Settings className="h-4 w-4 mr-2" />
-              {t("common.settings")}
-            </TabsTrigger>
-            <TabsTrigger value="integrations" data-testid="tab-integrations">
-              <Plus className="h-4 w-4 mr-2" />
-              {t("admin.external_integrations")}
-            </TabsTrigger>
-            <TabsTrigger value="audit" data-testid="tab-audit">
-              <Activity className="h-4 w-4 mr-2" />
-              {t("admin.audit_logs")}
-            </TabsTrigger>
-            <TabsTrigger value="support" data-testid="tab-support">
-              <MessageSquare className="h-4 w-4 mr-2" />
-              {t("admin.support_tickets")}
-            </TabsTrigger>
-            <TabsTrigger value="sub-services" data-testid="tab-sub-services">
-              <ListTree className="h-4 w-4 mr-2" />
-              {t("admin.services")}
-            </TabsTrigger>
-            <TabsTrigger value="tax" data-testid="tab-tax">
-              <DollarSign className="h-4 w-4 mr-2" />
-              {t("admin.tax_management")}
-            </TabsTrigger>
-          </TabsList>
+// Sub-services Management Component
+function SubServicesManagement() {
+  const { t } = useTranslation();
+  const { toast } = useToast();
+  const [isAdding, setIsAdding] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  
+  const form = useForm({
+    defaultValues: {
+      name: "",
+      category: "physiotherapist",
+      description: "",
+      platformFee: "0.00",
+    }
+  });
 
-          <TabsContent value="tax">
-            <TaxManagement />
-          </TabsContent>
+  const { data: subServices, isLoading, refetch } = useQuery<any[]>({
+    queryKey: ["/api/admin/sub-services"],
+  });
 
-          <TabsContent value="sub-services">
-            <SubServicesManagement />
-          </TabsContent>
+  const mutation = useMutation({
+    mutationFn: async (data: any) => {
+      const url = editingId ? `/api/admin/sub-services/${editingId}` : "/api/admin/sub-services";
+      const method = editingId ? "PATCH" : "POST";
+      const res = await apiRequest(method, url, data);
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({ title: editingId ? "Sub-service updated" : "Sub-service created" });
+      setIsAdding(false);
+      setEditingId(null);
+      form.reset();
+      refetch();
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/sub-services"] });
+    }
+  });
 
-          <TabsContent value="overview">
-            <AnalyticsOverview />
-          </TabsContent>
+  if (isLoading) return <div className="flex justify-center p-8"><Loader2 className="animate-spin h-8 w-8" /></div>;
 
-          <TabsContent value="bookings">
-            <BookingsManagement />
-          </TabsContent>
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <h3 className="text-lg font-medium">{t("admin.sub_services_fees")}</h3>
+        <Button onClick={() => setIsAdding(true)} size="sm" data-testid="button-add-subservice">
+          <Plus className="h-4 w-4 mr-2" /> {t("admin.add_subservice")}
+        </Button>
+      </div>
 
-          <TabsContent value="users">
-            <UsersManagement />
-          </TabsContent>
+      {(isAdding || editingId) && (
+        <Card>
+          <CardHeader>
+            <CardTitle>{editingId ? t("admin.edit") : t("admin.add")} {t("setup.sub_services")}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit((data) => mutation.mutate(data))} className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t("admin.name")}</FormLabel>
+                        <FormControl><Input {...field} data-testid="input-subservice-name" /></FormControl>
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="category"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t("setup.provider_type")}</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl><SelectTrigger data-testid="select-subservice-category"><SelectValue /></SelectTrigger></FormControl>
+                          <SelectContent>
+                            <SelectItem value="physiotherapist">{t("common.physiotherapists")}</SelectItem>
+                            <SelectItem value="doctor">{t("common.doctors")}</SelectItem>
+                            <SelectItem value="nurse">{t("common.nurses")}</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                <FormField
+                  control={form.control}
+                  name="platformFee"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t("booking.platform_fee")} ($)</FormLabel>
+                      <FormControl><Input {...field} type="number" step="0.01" data-testid="input-platform-fee" /></FormControl>
+                      <FormDescription>{t("admin.platform_fee_desc")}</FormDescription>
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="description"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t("setup.about_you")}</FormLabel>
+                      <FormControl><Textarea {...field} data-testid="textarea-subservice-description" /></FormControl>
+                    </FormItem>
+                  )}
+                />
+                <div className="flex justify-end gap-2">
+                  <Button type="button" variant="outline" onClick={() => { setIsAdding(false); setEditingId(null); }} data-testid="button-cancel-subservice">{t("admin.cancelled")}</Button>
+                  <Button type="submit" disabled={mutation.isPending} data-testid="button-save-subservice">
+                    {mutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : t("admin.save_changes")}
+                  </Button>
+                </div>
+              </form>
+            </Form>
+          </CardContent>
+        </Card>
+      )}
 
-          <TabsContent value="providers">
-            <ProvidersManagement />
-          </TabsContent>
-
-          <TabsContent value="financial">
-            <FinancialReports />
-          </TabsContent>
-
-          <TabsContent value="invoices">
-            <InvoiceManagement />
-          </TabsContent>
-
-          <TabsContent value="content">
-            <ContentManagement />
-          </TabsContent>
-
-          <TabsContent value="pricing">
-            <Card>
-              <CardHeader>
-                <CardTitle>Pricing Overrides</CardTitle>
-                <CardDescription>Manage custom pricing for providers</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <PricingManagement providers={providers || []} />
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="promos">
-            <Card>
-              <CardHeader>
-                <CardTitle>Promo Codes</CardTitle>
-                <CardDescription>Create and manage promotional codes</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <PromoCodeManagement providers={providers || []} />
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="settings">
-            <PlatformSettings />
-          </TabsContent>
-
-          <TabsContent value="integrations">
-            <Card>
-              <CardHeader>
-                <CardTitle>External Integrations</CardTitle>
-                <CardDescription>Manage API keys and credentials for third-party services</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Tabs defaultValue="google" className="w-full">
-                  <TabsList className="grid w-full grid-cols-3">
-                    <TabsTrigger value="google">Google APIs</TabsTrigger>
-                    <TabsTrigger value="payments">Payments</TabsTrigger>
-                    <TabsTrigger value="messaging">Messaging</TabsTrigger>
-                  </TabsList>
-                  
-                  <TabsContent value="google" className="space-y-4 py-4">
-                    <div className="space-y-4">
-                      <div className="grid gap-2">
-                        <Label htmlFor="google-api-key">Google Maps API Key</Label>
-                        <Input id="google-api-key" placeholder="Enter API Key" type="password" />
-                      </div>
-                      <div className="grid gap-2">
-                        <Label htmlFor="google-client-id">Google Client ID (OAuth)</Label>
-                        <Input id="google-client-id" placeholder="Enter Client ID" />
-                      </div>
-                      <Button onClick={() => toast({ title: "Settings saved" })}>Save Google Settings</Button>
-                    </div>
-                  </TabsContent>
-
-                  <TabsContent value="payments" className="space-y-4 py-4">
-                    <div className="space-y-4">
-                      <div className="grid gap-2">
-                        <Label htmlFor="stripe-key">Stripe Secret Key</Label>
-                        <Input id="stripe-key" placeholder="sk_test_..." type="password" />
-                      </div>
-                      <div className="grid gap-2">
-                        <Label htmlFor="stripe-webhook">Stripe Webhook Secret</Label>
-                        <Input id="stripe-webhook" placeholder="whsec_..." type="password" />
-                      </div>
-                      <Button onClick={() => toast({ title: "Settings saved" })}>Save Payment Settings</Button>
-                    </div>
-                  </TabsContent>
-
-                  <TabsContent value="messaging" className="space-y-4 py-4">
-                    <div className="space-y-4">
-                      <div className="grid gap-4 md:grid-cols-2">
-                        <div className="space-y-2">
-                          <Label>WhatsApp (Twilio SID)</Label>
-                          <Input placeholder="AC..." type="password" />
-                        </div>
-                        <div className="space-y-2">
-                          <Label>Telegram Bot Token</Label>
-                          <Input placeholder="123456:ABC..." type="password" />
-                        </div>
-                        <div className="space-y-2">
-                          <Label>Viber Auth Token</Label>
-                          <Input placeholder="Enter token" type="password" />
-                        </div>
-                      </div>
-                      <Button onClick={() => toast({ title: "Settings saved" })}>Save Messaging Settings</Button>
-                    </div>
-                  </TabsContent>
-                </Tabs>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="audit">
-            <AuditLogs />
-          </TabsContent>
-
-          <TabsContent value="support">
-            <SupportTickets />
-          </TabsContent>
-        </Tabs>
-      </main>
-
-      <Footer />
+      <div className="grid gap-4 md:grid-cols-2">
+        {subServices?.map((service) => (
+          <Card key={service.id} data-testid={`card-subservice-${service.id}`}>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 gap-2">
+              <div>
+                <CardTitle className="text-sm font-bold">{service.name}</CardTitle>
+                <CardDescription className="capitalize">{service.category}</CardDescription>
+              </div>
+              <Badge variant="secondary">${service.platformFee || "0.00"}</Badge>
+            </CardHeader>
+            <CardContent>
+              <p className="text-xs text-muted-foreground line-clamp-2 mb-4">{service.description}</p>
+              <div className="flex justify-end gap-2">
+                <Button variant="ghost" size="sm" onClick={() => {
+                  setEditingId(service.id);
+                  form.reset({
+                    name: service.name,
+                    category: service.category,
+                    description: service.description || "",
+                    platformFee: service.platformFee || "0.00",
+                  });
+                }} data-testid={`button-edit-subservice-${service.id}`}><Edit className="h-4 w-4" /></Button>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
     </div>
   );
+}
 }
