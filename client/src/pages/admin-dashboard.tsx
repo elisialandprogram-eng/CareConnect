@@ -1050,6 +1050,52 @@ function FinancialReports() {
   );
 }
 
+// Invoices Management Component
+function InvoicesManagement() {
+  const { t } = useTranslation();
+  const { data: invoices, isLoading } = useQuery<any[]>({
+    queryKey: ["/api/admin/invoices"],
+  });
+
+  if (isLoading) return <div className="flex justify-center p-8"><Loader2 className="animate-spin h-8 w-8" /></div>;
+
+  return (
+    <div className="space-y-4">
+      <h3 className="text-lg font-medium">{t("admin.invoices", "Invoices")}</h3>
+      <Card>
+        <CardContent className="p-0">
+          <ScrollArea className="h-[500px]">
+            <div className="divide-y">
+              {invoices?.length === 0 ? (
+                <div className="p-8 text-center text-muted-foreground">
+                  {t("admin.no_invoices", "No invoices found")}
+                </div>
+              ) : (
+                invoices?.map((invoice) => (
+                  <div key={invoice.id} className="p-4 flex items-center justify-between gap-4">
+                    <div>
+                      <p className="font-medium">{invoice.invoiceNumber}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {new Date(invoice.issueDate).toLocaleDateString()}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-medium">${Number(invoice.totalAmount).toFixed(2)}</p>
+                      <Badge variant={invoice.status === "paid" ? "default" : "outline"}>
+                        {invoice.status}
+                      </Badge>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </ScrollArea>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 // Provider Management Component
 function ProvidersManagement() {
   const { t } = useTranslation();
@@ -3240,10 +3286,6 @@ function UsersManagement() {
     </>
   );
 }
-
-function BookingsManagement() {
-  const { t } = useTranslation();
-  const { toast } = useToast();
 
 // Sub-services Management Component
 function SubServicesManagement() {
