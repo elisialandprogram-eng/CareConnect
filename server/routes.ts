@@ -22,6 +22,7 @@ import {
   practitioners,
   servicePractitioners,
   users,
+  invoices,
   providers
 } from "@shared/schema";
 import crypto from 'crypto'; // Import crypto module for randomUUID
@@ -198,10 +199,12 @@ export async function registerRoutes(
           totalAmount: appt.totalAmount,
           status: "paid"
         }, [{
+          invoiceId: "", // Will be set by storage.createInvoice
           description: "Healthcare Service",
           quantity: 1,
           unitPrice: appt.totalAmount,
-          totalPrice: appt.totalAmount
+          totalPrice: appt.totalAmount,
+          practitionerId: null
         }]);
 
         results.push(invoice);
@@ -1962,10 +1965,12 @@ export async function registerRoutes(
               totalAmount: booking.totalAmount,
               status: "paid"
             }, [{
+              invoiceId: "", // Will be set by storage.createInvoice
               description: appointment.service?.name || "Healthcare Service",
               quantity: 1,
               unitPrice: booking.totalAmount,
-              totalPrice: booking.totalAmount
+              totalPrice: booking.totalAmount,
+              practitionerId: null
             }]);
 
             // Try to send email
@@ -2010,7 +2015,7 @@ export async function registerRoutes(
 
   app.get("/api/admin/invoices", authenticateToken, requireAdmin, async (req: AuthRequest, res: Response) => {
     try {
-      const allInvoices = await db.select().from(invoices).orderBy(desc(invoices.createdAt));
+      const allInvoices = await storage.getAllInvoices();
       res.json(allInvoices);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch invoices" });
