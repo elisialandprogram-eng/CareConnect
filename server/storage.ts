@@ -112,7 +112,6 @@ import {
   type InsertServicePractitioner,
   type Invoice,
   type InsertInvoice,
-  type InvoiceItem,
   type InsertInvoiceItem,
 } from "@shared/schema";
 import { db } from "./db";
@@ -1380,6 +1379,10 @@ export class DatabaseStorage implements IStorage {
     return db.select().from(invoices).where(eq(invoices.providerId, providerId)).orderBy(desc(invoices.issueDate));
   }
 
+  async getAllInvoices(): Promise<Invoice[]> {
+    return db.select().from(invoices).orderBy(desc(invoices.issueDate));
+  }
+
   async createInvoice(invoice: InsertInvoice, items: InsertInvoiceItem[]): Promise<Invoice> {
     return await db.transaction(async (tx) => {
       const [newInvoice] = await tx.insert(invoices).values(invoice).returning();
@@ -1393,10 +1396,6 @@ export class DatabaseStorage implements IStorage {
         .where(eq(appointments.id, invoice.appointmentId));
       return newInvoice;
     });
-  }
-
-  async getAllInvoices(): Promise<Invoice[]> {
-    return db.select().from(invoices).orderBy(desc(invoices.issueDate));
   }
 
   async getPendingInvoiceAppointments(): Promise<any[]> {

@@ -22,7 +22,6 @@ import {
   practitioners,
   servicePractitioners,
   users,
-  invoices,
   providers
 } from "@shared/schema";
 import crypto from 'crypto'; // Import crypto module for randomUUID
@@ -260,36 +259,13 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/admin/bookings", authenticateToken, async (req: AuthRequest, res: Response) => {
+  app.get("/api/admin/tax-settings", authenticateToken, async (req: AuthRequest, res: Response) => {
     if (req.user?.role !== "admin") return res.status(403).json({ message: "Admin access required" });
     try {
-      const allAppointments = await storage.getAllAppointments();
-      res.json(allAppointments);
+      const settings = await storage.getAllTaxSettings();
+      res.json(settings);
     } catch (error) {
-      console.error("Error fetching all bookings for admin:", error);
-      res.status(500).json({ message: "Failed to fetch bookings" });
-    }
-  });
-
-  app.get("/api/admin/invoices", authenticateToken, async (req: AuthRequest, res: Response) => {
-    if (req.user?.role !== "admin") return res.status(403).json({ message: "Admin access required" });
-    try {
-      const allInvoices = await storage.getAllInvoices();
-      res.json(allInvoices);
-    } catch (error) {
-      console.error("Error fetching invoices for admin:", error);
-      res.status(500).json({ message: "Failed to fetch invoices" });
-    }
-  });
-
-  app.get("/api/admin/sub-services", authenticateToken, async (req: AuthRequest, res: Response) => {
-    if (req.user?.role !== "admin") return res.status(403).json({ message: "Admin access required" });
-    try {
-      const allSubServices = await storage.getAllSubServices();
-      res.json(allSubServices);
-    } catch (error) {
-      console.error("Error fetching sub-services for admin:", error);
-      res.status(500).json({ message: "Failed to fetch sub-services" });
+      res.status(500).json({ message: "Failed to get tax settings" });
     }
   });
 

@@ -1050,52 +1050,6 @@ function FinancialReports() {
   );
 }
 
-// Invoices Management Component
-function InvoicesManagement() {
-  const { t } = useTranslation();
-  const { data: invoices, isLoading } = useQuery<any[]>({
-    queryKey: ["/api/admin/invoices"],
-  });
-
-  if (isLoading) return <div className="flex justify-center p-8"><Loader2 className="animate-spin h-8 w-8" /></div>;
-
-  return (
-    <div className="space-y-4">
-      <h3 className="text-lg font-medium">{t("admin.invoices", "Invoices")}</h3>
-      <Card>
-        <CardContent className="p-0">
-          <ScrollArea className="h-[500px]">
-            <div className="divide-y">
-              {invoices?.length === 0 ? (
-                <div className="p-8 text-center text-muted-foreground">
-                  {t("admin.no_invoices", "No invoices found")}
-                </div>
-              ) : (
-                invoices?.map((invoice) => (
-                  <div key={invoice.id} className="p-4 flex items-center justify-between gap-4">
-                    <div>
-                      <p className="font-medium">{invoice.invoiceNumber}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {new Date(invoice.issueDate).toLocaleDateString()}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-medium">${Number(invoice.totalAmount).toFixed(2)}</p>
-                      <Badge variant={invoice.status === "paid" ? "default" : "outline"}>
-                        {invoice.status}
-                      </Badge>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </ScrollArea>
-        </CardContent>
-      </Card>
-    </div>
-  );
-}
-
 // Provider Management Component
 function ProvidersManagement() {
   const { t } = useTranslation();
@@ -3432,6 +3386,404 @@ function SubServicesManagement() {
           </Card>
         ))}
       </div>
+    </div>
+  );
+}
+
+  function TaxManagement() {
+    const { t } = useTranslation();
+    const { toast } = useToast();
+    const { data: taxSettings, isLoading, refetch } = useQuery<TaxSetting[]>({
+      queryKey: ["/api/admin/tax-settings"],
+    });
+
+    const createTaxMutation = useMutation({
+      mutationFn: async (data: InsertTaxSetting) => {
+        const response = await apiRequest("POST", "/api/admin/tax-settings", data);
+        return response.json();
+      },
+      onSuccess: () => {
+        toast({ title: "Tax setting created" });
+        refetch();
+      },
+    });
+
+    const updateTaxMutation = useMutation({
+      mutationFn: async ({ id, ...data }: Partial<TaxSetting> & { id: string }) => {
+        const response = await apiRequest("PATCH", `/api/admin/tax-settings/${id}`, data);
+        return response.json();
+      },
+      onSuccess: () => {
+        toast({ title: "Tax setting updated" });
+        refetch();
+      },
+    });
+
+    const deleteTaxMutation = useMutation({
+      mutationFn: async (id: string) => {
+        await apiRequest("DELETE", `/api/admin/tax-settings/${id}`);
+      },
+      onSuccess: () => {
+        toast({ title: "Tax setting deleted" });
+        refetch();
+      },
+    });
+
+    const [newCountry, setNewCountry] = useState("");
+    const [newPercentage, setNewPercentage] = useState("");
+
+    if (isLoading) return <Loader2 className="h-8 w-8 animate-spin mx-auto" />;
+
+    return (
+      <Card>
+          <CardHeader>
+            <CardTitle>{t("admin.tax_settings")}</CardTitle>
+            <CardDescription>{t("admin.tax_settings_desc")}</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+              <div className="flex gap-4 items-end border-b pb-6">
+              <div className="space-y-2">
+                <Label>{t("setup.country")}</Label>
+                <Input value={newCountry} onChange={(e) => setNewCountry(e.target.value)} placeholder="e.g. USA" />
+              </div>
+              <div className="space-y-2">
+                <Label>{t("admin.tax_percent")}</Label>
+                <Input type="number" step="0.01" value={newPercentage} onChange={(e) => setNewPercentage(e.target.value)} placeholder="0.00" />
+              </div>
+              <Button onClick={() => {
+                createTaxMutation.mutate({ country: newCountry, taxName: "Sales Tax", taxRate: newPercentage, isActive: true });
+                setNewCountry("");
+                setNewPercentage("");
+              }}>{t("admin.add_tax")}</Button>
+            </div>
+
+            <div className="space-y-4">
+              {taxSettings?.map((setting) => (
+                <div key={setting.id} className="flex items-center justify-between p-4 border rounded-lg">
+                  <div className="flex-1">
+                    <p className="font-bold">{setting.country}</p>
+                    <p className="text-sm text-muted-foreground">{setting.taxRate}% {t("admin.tax")}</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Checkbox 
+                      checked={!!setting.isActive} 
+                      onCheckedChange={(checked) => updateTaxMutation.mutate({ id: setting.id, isActive: !!checked })}
+                    />
+                    <Label>{t("admin.active")}</Label>
+                    <Button variant="ghost" size="icon" onClick={() => deleteTaxMutation.mutate(setting.id)}>
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+      </Card>
+    );
+  }
+
+export default function AdminDashboard() {
+  const { t } = useTranslation();
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [, navigate] = useLocation();
+  const [activeTab, setActiveTab] = useState("overview");
+
+  const { data: providers } = useQuery<ProviderWithUser[]>({
+    queryKey: ["/api/providers"],
+  });
+
+  const { data: users } = useQuery<User[]>({
+    queryKey: ["/api/admin/users"],
+    enabled: user?.role === "admin",
+  });
+
+  const form = useForm<AdminProviderData>({
+    resolver: zodResolver(adminProviderSchema),
+    defaultValues: {
+      email: "",
+      password: "",
+      firstName: "",
+      lastName: "",
+      phone: "",
+      city: "",
+      type: "physiotherapist",
+      specialization: "",
+      bio: "",
+      yearsExperience: 0,
+      education: "",
+      consultationFee: 50,
+      homeVisitFee: undefined,
+      languages: ["english"],
+      availableDays: ["monday", "tuesday", "wednesday", "thursday", "friday"],
+    },
+  });
+
+  const createProviderMutation = useMutation({
+    mutationFn: async (data: AdminProviderData) => {
+      const response = await apiRequest("POST", "/api/admin/providers", data);
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to create provider");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Provider created!",
+        description: "The provider has been successfully added.",
+      });
+      form.reset();
+      queryClient.invalidateQueries({ queryKey: ["/api/providers"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to create provider",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  if (user?.role !== "admin") {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Header />
+        <main className="flex-1 flex items-center justify-center">
+          <Card className="max-w-md w-full mx-4">
+            <CardHeader className="text-center">
+              <Shield className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+              <CardTitle>{t("admin.admin_access_required")}</CardTitle>
+              <CardDescription>
+                {t("admin.no_permission")}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button onClick={() => navigate("/")} className="w-full" data-testid="button-go-home">
+                {t("admin.go_home")}
+              </Button>
+            </CardContent>
+          </Card>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen flex flex-col">
+      <Header />
+      <main className="flex-1 container mx-auto px-4 py-8">
+        <div className="mb-6">
+          <h1 className="text-3xl font-bold flex items-center gap-2" data-testid="text-admin-title">
+            <Shield className="h-8 w-8" />
+            {t("admin.dashboard")}
+          </h1>
+          <p className="text-muted-foreground">{t("admin.bookings_management")}</p>
+        </div>
+
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          <TabsList className="flex flex-wrap gap-1">
+            <TabsTrigger value="overview" data-testid="tab-overview">
+              <BarChart3 className="h-4 w-4 mr-2" />
+              {t("admin.analytics")}
+            </TabsTrigger>
+            <TabsTrigger value="providers" data-testid="tab-providers">
+              <Building className="h-4 w-4 mr-2" />
+              {t("admin.providers")}
+            </TabsTrigger>
+            <TabsTrigger value="users" data-testid="tab-users">
+              <Users className="h-4 w-4 mr-2" />
+              {t("admin.users")}
+            </TabsTrigger>
+            <TabsTrigger value="bookings" data-testid="tab-bookings">
+              <Calendar className="h-4 w-4 mr-2" />
+              {t("admin.bookings")}
+            </TabsTrigger>
+            <TabsTrigger value="financial" data-testid="tab-financial">
+              <DollarSign className="h-4 w-4 mr-2" />
+              {t("admin.financial_reports")}
+            </TabsTrigger>
+            <TabsTrigger value="invoices" data-testid="tab-invoices">
+              <FileText className="h-4 w-4 mr-2" />
+              {t("dashboard.invoices")}
+            </TabsTrigger>
+            <TabsTrigger value="pricing" data-testid="tab-pricing">
+              <Tag className="h-4 w-4 mr-2" />
+              {t("admin.pricing_overrides")}
+            </TabsTrigger>
+            <TabsTrigger value="promos" data-testid="tab-promos">
+              <Tag className="h-4 w-4 mr-2" />
+              {t("admin.promo_codes")}
+            </TabsTrigger>
+            <TabsTrigger value="settings" data-testid="tab-settings">
+              <Settings className="h-4 w-4 mr-2" />
+              {t("common.settings")}
+            </TabsTrigger>
+            <TabsTrigger value="integrations" data-testid="tab-integrations">
+              <Plus className="h-4 w-4 mr-2" />
+              {t("admin.external_integrations")}
+            </TabsTrigger>
+            <TabsTrigger value="audit" data-testid="tab-audit">
+              <Activity className="h-4 w-4 mr-2" />
+              {t("admin.audit_logs")}
+            </TabsTrigger>
+            <TabsTrigger value="support" data-testid="tab-support">
+              <MessageSquare className="h-4 w-4 mr-2" />
+              {t("admin.support_tickets")}
+            </TabsTrigger>
+            <TabsTrigger value="sub-services" data-testid="tab-sub-services">
+              <ListTree className="h-4 w-4 mr-2" />
+              {t("admin.services")}
+            </TabsTrigger>
+            <TabsTrigger value="tax" data-testid="tab-tax">
+              <DollarSign className="h-4 w-4 mr-2" />
+              {t("admin.tax_management")}
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="tax">
+            <TaxManagement />
+          </TabsContent>
+
+          <TabsContent value="sub-services">
+            <SubServicesManagement />
+          </TabsContent>
+
+          <TabsContent value="overview">
+            <AnalyticsOverview />
+          </TabsContent>
+
+          <TabsContent value="bookings">
+            <BookingsManagement />
+          </TabsContent>
+
+          <TabsContent value="users">
+            <UsersManagement />
+          </TabsContent>
+
+          <TabsContent value="providers">
+            <ProvidersManagement />
+          </TabsContent>
+
+          <TabsContent value="financial">
+            <FinancialReports />
+          </TabsContent>
+
+          <TabsContent value="invoices">
+            <InvoiceManagement />
+          </TabsContent>
+
+          <TabsContent value="content">
+            <ContentManagement />
+          </TabsContent>
+
+          <TabsContent value="pricing">
+            <Card>
+              <CardHeader>
+                <CardTitle>Pricing Overrides</CardTitle>
+                <CardDescription>Manage custom pricing for providers</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <PricingManagement providers={providers || []} />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="promos">
+            <Card>
+              <CardHeader>
+                <CardTitle>Promo Codes</CardTitle>
+                <CardDescription>Create and manage promotional codes</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <PromoCodeManagement providers={providers || []} />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="settings">
+            <PlatformSettings />
+          </TabsContent>
+
+          <TabsContent value="integrations">
+            <Card>
+              <CardHeader>
+                <CardTitle>External Integrations</CardTitle>
+                <CardDescription>Manage API keys and credentials for third-party services</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Tabs defaultValue="google" className="w-full">
+                  <TabsList className="grid w-full grid-cols-3">
+                    <TabsTrigger value="google">Google APIs</TabsTrigger>
+                    <TabsTrigger value="payments">Payments</TabsTrigger>
+                    <TabsTrigger value="messaging">Messaging</TabsTrigger>
+                  </TabsList>
+                  
+                  <TabsContent value="google" className="space-y-4 py-4">
+                    <div className="space-y-4">
+                      <div className="grid gap-2">
+                        <Label htmlFor="google-api-key">Google Maps API Key</Label>
+                        <Input id="google-api-key" placeholder="Enter API Key" type="password" />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="google-client-id">Google Client ID (OAuth)</Label>
+                        <Input id="google-client-id" placeholder="Enter Client ID" />
+                      </div>
+                      <Button onClick={() => toast({ title: "Settings saved" })}>Save Google Settings</Button>
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="payments" className="space-y-4 py-4">
+                    <div className="space-y-4">
+                      <div className="grid gap-2">
+                        <Label htmlFor="stripe-key">Stripe Secret Key</Label>
+                        <Input id="stripe-key" placeholder="sk_test_..." type="password" />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="stripe-webhook">Stripe Webhook Secret</Label>
+                        <Input id="stripe-webhook" placeholder="whsec_..." type="password" />
+                      </div>
+                      <Button onClick={() => toast({ title: "Settings saved" })}>Save Payment Settings</Button>
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="messaging" className="space-y-4 py-4">
+                    <div className="space-y-4">
+                      <div className="grid gap-4 md:grid-cols-2">
+                        <div className="space-y-2">
+                          <Label>WhatsApp (Twilio SID)</Label>
+                          <Input placeholder="AC..." type="password" />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Telegram Bot Token</Label>
+                          <Input placeholder="123456:ABC..." type="password" />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Viber Auth Token</Label>
+                          <Input placeholder="Enter token" type="password" />
+                        </div>
+                      </div>
+                      <Button onClick={() => toast({ title: "Settings saved" })}>Save Messaging Settings</Button>
+                    </div>
+                  </TabsContent>
+                </Tabs>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="audit">
+            <AuditLogs />
+          </TabsContent>
+
+          <TabsContent value="support">
+            <SupportTickets />
+          </TabsContent>
+        </Tabs>
+      </main>
+
+      <Footer />
     </div>
   );
 }
