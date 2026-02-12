@@ -266,7 +266,6 @@ const resources = {
       admin: {
         total_revenue_label: "Total Revenue",
         completed: "Completed",
-        bookings: "Bookings",
         total_users_label: "Total Users",
         recent_payments: "Recent Payments",
         date: "Date",

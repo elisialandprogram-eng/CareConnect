@@ -842,7 +842,7 @@ function AnalyticsOverview() {
 }
 
 // Bookings Management Component
-function BookingsManagement() {
+function BookingsManagementComponent() {
   const { t } = useTranslation();
   const { toast } = useToast();
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -3656,7 +3656,7 @@ export default function AdminDashboard() {
           </TabsContent>
 
           <TabsContent value="bookings">
-            <BookingsManagement />
+            <BookingsManagementComponent />
           </TabsContent>
 
           <TabsContent value="users">
