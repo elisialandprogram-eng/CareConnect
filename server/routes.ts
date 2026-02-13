@@ -118,6 +118,14 @@ export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
+  // Middleware to require admin role
+  const requireAdmin = async (req: AuthRequest, res: Response, next: NextFunction) => {
+    if (!req.user || req.user.role !== "admin") {
+      return res.status(403).json({ message: "Admin access required" });
+    }
+    next();
+  };
+
   // ============ INVOICE ROUTES ============
   app.get("/api/invoices/appointment/:appointmentId", authenticateToken, async (req: AuthRequest, res: Response) => {
     try {
@@ -259,8 +267,7 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/admin/tax-settings", authenticateToken, async (req: AuthRequest, res: Response) => {
-    if (req.user?.role !== "admin") return res.status(403).json({ message: "Admin access required" });
+  app.get("/api/admin/tax-settings", authenticateToken, requireAdmin, async (req: AuthRequest, res: Response) => {
     try {
       const settings = await storage.getAllTaxSettings();
       res.json(settings);
@@ -269,8 +276,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/admin/tax-settings", authenticateToken, async (req: AuthRequest, res: Response) => {
-    if (req.user?.role !== "admin") return res.status(403).json({ message: "Admin access required" });
+  app.post("/api/admin/tax-settings", authenticateToken, requireAdmin, async (req: AuthRequest, res: Response) => {
     try {
       const data = insertTaxSettingSchema.parse(req.body);
       const setting = await storage.createTaxSetting(data);
@@ -280,8 +286,7 @@ export async function registerRoutes(
     }
   });
 
-  app.patch("/api/admin/tax-settings/:id", authenticateToken, async (req: AuthRequest, res: Response) => {
-    if (req.user?.role !== "admin") return res.status(403).json({ message: "Admin access required" });
+  app.patch("/api/admin/tax-settings/:id", authenticateToken, requireAdmin, async (req: AuthRequest, res: Response) => {
     try {
       const setting = await storage.updateTaxSetting(req.params.id, req.body);
       res.json(setting);
@@ -290,8 +295,7 @@ export async function registerRoutes(
     }
   });
 
-  app.delete("/api/admin/tax-settings/:id", authenticateToken, async (req: AuthRequest, res: Response) => {
-    if (req.user?.role !== "admin") return res.status(403).json({ message: "Admin access required" });
+  app.delete("/api/admin/tax-settings/:id", authenticateToken, requireAdmin, async (req: AuthRequest, res: Response) => {
     try {
       await storage.deleteTaxSetting(req.params.id);
       res.status(204).end();
@@ -1749,14 +1753,6 @@ export async function registerRoutes(
   });
 
   // ============ ADMIN ROUTES ============
-
-  // Middleware to check admin role
-  const requireAdmin = async (req: AuthRequest, res: Response, next: NextFunction) => {
-    if (!req.user || req.user.role !== "admin") {
-      return res.status(403).json({ message: "Admin access required" });
-    }
-    next();
-  };
 
   app.post("/api/admin/providers", authenticateToken, requireAdmin, async (req: AuthRequest, res: Response) => {
     try {

@@ -3605,6 +3605,10 @@ export default function AdminDashboard() {
               <DollarSign className="h-4 w-4 mr-2" />
               {t("admin.financial_reports")}
             </TabsTrigger>
+            <TabsTrigger value="tax" data-testid="tab-tax">
+              <Shield className="h-4 w-4 mr-2" />
+              Tax Management
+            </TabsTrigger>
             <TabsTrigger value="invoices" data-testid="tab-invoices">
               <FileText className="h-4 w-4 mr-2" />
               {t("dashboard.invoices")}
@@ -3669,6 +3673,10 @@ export default function AdminDashboard() {
 
           <TabsContent value="financial">
             <FinancialReports />
+          </TabsContent>
+
+          <TabsContent value="tax">
+            <TaxManagement />
           </TabsContent>
 
           <TabsContent value="invoices">
