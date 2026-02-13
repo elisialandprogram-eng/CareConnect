@@ -1297,7 +1297,12 @@ export class DatabaseStorage implements IStorage {
 
   // Tax Settings
   async getAllTaxSettings(): Promise<TaxSetting[]> {
-    return db.select().from(taxSettings).orderBy(asc(taxSettings.country));
+    try {
+      return await db.select().from(taxSettings).orderBy(asc(taxSettings.country));
+    } catch (error) {
+      console.error("Storage: Error fetching tax settings:", error);
+      return [];
+    }
   }
 
   async getTaxSettingByCountry(country: string): Promise<TaxSetting | undefined> {

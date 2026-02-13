@@ -270,18 +270,25 @@ export async function registerRoutes(
   app.get("/api/admin/tax-settings", authenticateToken, requireAdmin, async (req: AuthRequest, res: Response) => {
     try {
       const settings = await storage.getAllTaxSettings();
-      res.json(settings);
+      res.json(settings || []);
     } catch (error) {
+      console.error("Failed to fetch tax settings:", error);
       res.status(500).json({ message: "Failed to get tax settings" });
     }
   });
 
   app.post("/api/admin/tax-settings", authenticateToken, requireAdmin, async (req: AuthRequest, res: Response) => {
     try {
-      const data = insertTaxSettingSchema.parse(req.body);
-      const setting = await storage.createTaxSetting(data);
+      const data = {
+        ...req.body,
+        isActive: req.body.isActive ?? true,
+        taxName: req.body.taxName || "Sales Tax"
+      };
+      const validated = insertTaxSettingSchema.parse(data);
+      const setting = await storage.createTaxSetting(validated);
       res.json(setting);
     } catch (error) {
+      console.error("Tax creation error:", error);
       res.status(400).json({ message: "Invalid tax setting data" });
     }
   });

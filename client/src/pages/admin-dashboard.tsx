@@ -3398,14 +3398,30 @@ function SubServicesManagement() {
     });
 
     const createTaxMutation = useMutation({
-      mutationFn: async (data: InsertTaxSetting) => {
-        const response = await apiRequest("POST", "/api/admin/tax-settings", data);
+      mutationFn: async (data: any) => {
+        const response = await apiRequest("POST", "/api/admin/tax-settings", {
+          ...data,
+          taxRate: data.taxRate.toString()
+        });
+        if (!response.ok) {
+          const err = await response.json();
+          throw new Error(err.message || "Failed to create tax setting");
+        }
         return response.json();
       },
       onSuccess: () => {
-        toast({ title: "Tax setting created" });
+        toast({ title: t("admin.tax_setting_created") || "Tax setting created" });
         refetch();
+        setNewCountry("");
+        setNewPercentage("");
       },
+      onError: (error: Error) => {
+        toast({ 
+          title: t("common.error") || "Error", 
+          description: error.message, 
+          variant: "destructive" 
+        });
+      }
     });
 
     const updateTaxMutation = useMutation({
@@ -3450,11 +3466,18 @@ function SubServicesManagement() {
                 <Label>{t("admin.tax_percent")}</Label>
                 <Input type="number" step="0.01" value={newPercentage} onChange={(e) => setNewPercentage(e.target.value)} placeholder="0.00" />
               </div>
-              <Button onClick={() => {
-                createTaxMutation.mutate({ country: newCountry, taxName: "Sales Tax", taxRate: newPercentage, isActive: true });
-                setNewCountry("");
-                setNewPercentage("");
-              }}>{t("admin.add_tax")}</Button>
+              <Button 
+                onClick={() => {
+                  if (!newCountry || !newPercentage) {
+                    toast({ title: "Required fields", description: "Please enter both country and tax rate", variant: "destructive" });
+                    return;
+                  }
+                  createTaxMutation.mutate({ country: newCountry, taxName: "Sales Tax", taxRate: newPercentage, isActive: true });
+                }}
+                disabled={createTaxMutation.isPending}
+              >
+                {createTaxMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : t("admin.add_tax")}
+              </Button>
             </div>
 
             <div className="space-y-4">
