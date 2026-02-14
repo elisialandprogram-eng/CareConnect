@@ -115,7 +115,7 @@ import {
   type InsertInvoiceItem,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, desc, or, sql, count, asc } from "drizzle-orm";
+import { eq, and, desc, or, sql, count, asc, aliasedTable } from "drizzle-orm";
 
 export interface IStorage {
   // Users
@@ -697,8 +697,8 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getAppointmentsByPatient(patientId: string): Promise<AppointmentWithDetails[]> {
-    const patientUsers = users;
-    const providerUsers = users;
+    const patientUsers = aliasedTable(users, "patientUsers");
+    const providerUsers = aliasedTable(users, "providerUsers");
     const result = await db
       .select({
         appointments: appointments,
@@ -730,8 +730,8 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getAppointmentsByProvider(providerId: string): Promise<AppointmentWithDetails[]> {
-    const patientUsers = users;
-    const providerUsers = users;
+    const patientUsers = aliasedTable(users, "patientUsers");
+    const providerUsers = aliasedTable(users, "providerUsers");
     const result = await db
       .select({
         appointments: appointments,
@@ -773,8 +773,8 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getAllAppointments(): Promise<AppointmentWithDetails[]> {
-    const patientUsers = users;
-    const providerUsers = users;
+    const patientUsers = aliasedTable(users, "patientUsers");
+    const providerUsers = aliasedTable(users, "providerUsers");
     const result = await db
       .select({
         appointments: appointments,
@@ -800,7 +800,7 @@ export class DatabaseStorage implements IStorage {
         user: r.users_2,
       },
       service: r.services || undefined,
-      practitioner: r.practitioners || undefined,
+      practitioner: (r.practitioners as any) || undefined,
     }));
   }
 
