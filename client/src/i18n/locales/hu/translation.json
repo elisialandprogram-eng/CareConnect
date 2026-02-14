@@ -241,7 +241,11 @@
     "visit_online": "Online konzultáció",
     "visit_clinic": "Klinikai vizit",
     "visit_home": "Otthoni vizit",
-    "in_person": "Személyes"
+    "in_person": "Személyes",
+    "available_services": "Elérhető szolgáltatások",
+    "select_practitioner": "Szakember kiválasztása",
+    "consent_label": "Megerősítem, hogy elolvastam és elfogadom a Páciens beleegyező nyilatkozatot.",
+    "consent_desc": "A Golden Life Health Care által nyújtott összes egészségügyi szolgáltatáshoz az Ön önkéntes beleegyezése szükséges."
   },
   "dashboard": {
     "welcome": "Üdvözöljük",
