@@ -1298,21 +1298,6 @@ export class DatabaseStorage implements IStorage {
   // Tax Settings
   async getAllTaxSettings(): Promise<TaxSetting[]> {
     try {
-      const allTables = await db.execute(sql`SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'`);
-      const hasTable = allTables.rows.some(row => row.table_name === 'tax_settings');
-      
-      if (!hasTable) {
-        console.log("Storage: tax_settings table missing, attempting to create...");
-        await db.execute(sql`
-          CREATE TABLE IF NOT EXISTS tax_settings (
-            id TEXT PRIMARY KEY DEFAULT gen_random_uuid(),
-            country TEXT NOT NULL,
-            tax_name TEXT NOT NULL DEFAULT 'Sales Tax',
-            tax_rate DECIMAL(5,2) NOT NULL,
-            is_active BOOLEAN DEFAULT true
-          )
-        `);
-      }
       return await db.select().from(taxSettings).orderBy(asc(taxSettings.country));
     } catch (error) {
       console.error("Storage: Error fetching tax settings:", error);
