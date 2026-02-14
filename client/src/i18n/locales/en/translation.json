@@ -123,6 +123,7 @@
     "step4_desc": "Receive quality care and share your experience to help others"
   },
   "admin": {
+    "dashboard": "Admin Dashboard",
     "total_users": "Total Users",
     "registered_users": "Registered users",
     "total_providers": "Total Providers",
@@ -156,6 +157,8 @@
     "analytics": "Analytics",
     "tax_management": "Tax Management",
     "promo_codes": "Promo Codes",
+    "promo_codes_desc": "Create and manage promotional codes",
+    "promo_deleted": "Promo code deleted",
     "revenue_overview": "Revenue Overview",
     "recent_bookings": "Recent Bookings",
     "user_distribution": "User Distribution",
@@ -203,8 +206,6 @@
     "provider_updated": "Provider updated successfully",
     "service_added": "Service added successfully",
     "assigned_to_service": "Practitioner assigned to service",
-    "provider_details": "Provider Details",
-    "full_profile_info": "Full profile information for {{name}}",
     "joined_on": "Joined On",
     "rating": "Rating",
     "none_listed": "None listed",
@@ -250,18 +251,7 @@
     "tax_setting_deleted": "Tax setting deleted",
     "required_fields": "Required fields",
     "enter_both_country_tax": "Please enter both country and tax rate",
-    "sales_tax": "Sales Tax",
-    "providers": "Providers",
-    "bookings": "Bookings",
-    "users": "Users",
-    "analytics": "Analytics",
-    "financial_reports": "Financial Reports",
-    "promo_codes": "Promo Codes",
-    "promo_codes_desc": "Create and manage promotional codes",
-    "promo_deleted": "Promo code deleted",
-    "tax_management": "Tax Management",
-    "services": "Services",
-    "tax_settings": "Tax Settings"
+    "sales_tax": "Sales Tax"
   },
   "booking": {
     "confirmed_title": "Booking Confirmed!",

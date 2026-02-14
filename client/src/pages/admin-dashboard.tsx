@@ -2771,6 +2771,7 @@ function PricingManagement({ providers }: { providers: ProviderWithUser[] }) {
 
 // Promo Code Management Component
 function PromoCodeManagement({ providers }: { providers: ProviderWithUser[] }) {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const [editingId, setEditingId] = useState<string | null>(null);
 
@@ -3664,10 +3665,7 @@ export default function AdminDashboard() {
               <ListTree className="h-4 w-4 mr-2" />
               {t("admin.services")}
             </TabsTrigger>
-            <TabsTrigger value="tax" data-testid="tab-tax">
-              <DollarSign className="h-4 w-4 mr-2" />
-              {t("admin.tax_management")}
-            </TabsTrigger>
+          </TabsList>
 
           <TabsContent value="tax">
             <TaxManagement />

@@ -123,6 +123,7 @@
     "step4_desc": "Részesüljön minőségi ellátásban, és ossza meg tapasztalatait mások segítésére"
   },
   "admin": {
+    "dashboard": "Adminisztrátori vezérlőpult",
     "total_users": "Összes Felhasználó",
     "registered_users": "Regisztrált felhasználók",
     "total_providers": "Összes Szolgáltató",
@@ -144,6 +145,7 @@
     "tax": "Adó",
     "active": "Aktív",
     "bookings_management": "Foglalások kezelése",
+    "showing_bookings": "Jelenleg {{count}} foglalás látható",
     "assigned_to_service": "Szakember hozzárendelve a szolgáltatáshoz",
     "provider_details": "Szolgáltató részletei",
     "full_profile_info": "Teljes profil információ: {{name}}",
@@ -197,13 +199,11 @@
     "bookings": "Foglalások",
     "users": "Felhasználók",
     "analytics": "Analitika",
-    "financial_reports": "Pénzügyi jelentések",
     "promo_codes": "Promóciós kódok",
     "promo_codes_desc": "Promóciós kódok létrehozása és kezelése",
     "promo_deleted": "Promóciós kód törölve",
     "tax_management": "Adókezelés",
-    "services": "Szolgáltatások",
-    "tax_settings": "Adóbeállítások"
+    "services": "Szolgáltatások"
   },
   "booking": {
     "confirmed_title": "Foglalás visszaigazolva!",
