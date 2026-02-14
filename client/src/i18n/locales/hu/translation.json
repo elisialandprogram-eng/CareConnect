@@ -199,8 +199,11 @@
     "analytics": "Analitika",
     "financial_reports": "Pénzügyi jelentések",
     "promo_codes": "Promóciós kódok",
+    "promo_codes_desc": "Promóciós kódok létrehozása és kezelése",
+    "promo_deleted": "Promóciós kód törölve",
     "tax_management": "Adókezelés",
-    "services": "Szolgáltatások"
+    "services": "Szolgáltatások",
+    "tax_settings": "Adóbeállítások"
   },
   "booking": {
     "confirmed_title": "Foglalás visszaigazolva!",

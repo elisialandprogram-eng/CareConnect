@@ -257,8 +257,11 @@
     "analytics": "Analytics",
     "financial_reports": "Financial Reports",
     "promo_codes": "Promo Codes",
+    "promo_codes_desc": "Create and manage promotional codes",
+    "promo_deleted": "Promo code deleted",
     "tax_management": "Tax Management",
-    "services": "Services"
+    "services": "Services",
+    "tax_settings": "Tax Settings"
   },
   "booking": {
     "confirmed_title": "Booking Confirmed!",

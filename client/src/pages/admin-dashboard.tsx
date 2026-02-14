@@ -3630,7 +3630,7 @@ export default function AdminDashboard() {
             </TabsTrigger>
             <TabsTrigger value="tax" data-testid="tab-tax">
               <Shield className="h-4 w-4 mr-2" />
-              Tax Management
+              {t("admin.tax_management")}
             </TabsTrigger>
             <TabsTrigger value="invoices" data-testid="tab-invoices">
               <FileText className="h-4 w-4 mr-2" />
@@ -3668,7 +3668,6 @@ export default function AdminDashboard() {
               <DollarSign className="h-4 w-4 mr-2" />
               {t("admin.tax_management")}
             </TabsTrigger>
-          </TabsList>
 
           <TabsContent value="tax">
             <TaxManagement />
@@ -3713,8 +3712,8 @@ export default function AdminDashboard() {
           <TabsContent value="pricing">
             <Card>
               <CardHeader>
-                <CardTitle>Pricing Overrides</CardTitle>
-                <CardDescription>Manage custom pricing for providers</CardDescription>
+                <CardTitle>{t("admin.pricing_overrides")}</CardTitle>
+                <CardDescription>{t("admin.manage_custom_pricing")}</CardDescription>
               </CardHeader>
               <CardContent>
                 <PricingManagement providers={providers || []} />
@@ -3725,8 +3724,8 @@ export default function AdminDashboard() {
           <TabsContent value="promos">
             <Card>
               <CardHeader>
-                <CardTitle>Promo Codes</CardTitle>
-                <CardDescription>Create and manage promotional codes</CardDescription>
+                <CardTitle>{t("admin.promo_codes")}</CardTitle>
+                <CardDescription>{t("admin.promo_codes_desc") || "Create and manage promotional codes"}</CardDescription>
               </CardHeader>
               <CardContent>
                 <PromoCodeManagement providers={providers || []} />
@@ -3741,8 +3740,8 @@ export default function AdminDashboard() {
           <TabsContent value="integrations">
             <Card>
               <CardHeader>
-                <CardTitle>External Integrations</CardTitle>
-                <CardDescription>Manage API keys and credentials for third-party services</CardDescription>
+                <CardTitle>{t("admin.external_integrations")}</CardTitle>
+                <CardDescription>{t("admin.manage_api_keys")}</CardDescription>
               </CardHeader>
               <CardContent>
                 <Tabs defaultValue="google" className="w-full">
@@ -3762,7 +3761,7 @@ export default function AdminDashboard() {
                         <Label htmlFor="google-client-id">Google Client ID (OAuth)</Label>
                         <Input id="google-client-id" placeholder="Enter Client ID" />
                       </div>
-                      <Button onClick={() => toast({ title: "Settings saved" })}>Save Google Settings</Button>
+                      <Button onClick={() => toast({ title: t("common.success") })}>Save Google Settings</Button>
                     </div>
                   </TabsContent>
 
@@ -3776,7 +3775,7 @@ export default function AdminDashboard() {
                         <Label htmlFor="stripe-webhook">Stripe Webhook Secret</Label>
                         <Input id="stripe-webhook" placeholder="whsec_..." type="password" />
                       </div>
-                      <Button onClick={() => toast({ title: "Settings saved" })}>Save Payment Settings</Button>
+                      <Button onClick={() => toast({ title: t("common.success") })}>Save Payment Settings</Button>
                     </div>
                   </TabsContent>
 
@@ -3796,7 +3795,7 @@ export default function AdminDashboard() {
                           <Input placeholder="Enter token" type="password" />
                         </div>
                       </div>
-                      <Button onClick={() => toast({ title: "Settings saved" })}>Save Messaging Settings</Button>
+                      <Button onClick={() => toast({ title: t("common.success") })}>Save Messaging Settings</Button>
                     </div>
                   </TabsContent>
                 </Tabs>

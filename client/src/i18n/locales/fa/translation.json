@@ -200,8 +200,11 @@
     "analytics": "تحلیل‌ها",
     "financial_reports": "گزارش‌های مالی",
     "promo_codes": "کدهای تخفیف",
+    "promo_codes_desc": "ایجاد و مدیریت کدهای تخفیف",
+    "promo_deleted": "کد تخفیف حذف شد",
     "tax_management": "مدیریت مالیات",
-    "services": "خدمات"
+    "services": "خدمات",
+    "tax_settings": "تنظیمات مالیات"
   },
   "booking": {
     "confirmed_title": "رزرو تایید شد!",
