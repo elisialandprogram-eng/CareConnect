@@ -1421,7 +1421,12 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getAllInvoices(): Promise<Invoice[]> {
-    return db.select().from(invoices).orderBy(desc(invoices.issueDate));
+    try {
+      return await db.select().from(invoices).orderBy(desc(invoices.issueDate));
+    } catch (error) {
+      console.error("Storage: Error fetching all invoices:", error);
+      return [];
+    }
   }
 
   async createInvoice(invoice: InsertInvoice, items: InsertInvoiceItem[]): Promise<Invoice> {
