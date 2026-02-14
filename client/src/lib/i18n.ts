@@ -630,22 +630,32 @@ i18n
   .init({
     resources,
     fallbackLng: 'en',
+    supportedLngs: ['en', 'fa', 'hu'],
     interpolation: {
       escapeValue: false,
     },
     defaultNS: 'translation',
     ns: ['translation'],
     detection: {
-      order: ['localStorage', 'navigator'],
+      order: ['localStorage', 'navigator', 'htmlTag'],
+      lookupLocalStorage: 'i18nextLng',
       caches: ['localStorage'],
     }
   });
 
 i18n.on('languageChanged', (lng) => {
   if (typeof document !== 'undefined') {
-    document.dir = lng === 'fa' ? 'rtl' : 'ltr';
+    const dir = lng === 'fa' ? 'rtl' : 'ltr';
+    document.documentElement.dir = dir;
     document.documentElement.lang = lng;
   }
 });
+
+// Initialize direction and lang on load
+if (typeof document !== 'undefined') {
+  const initialLng = i18n.language || 'en';
+  document.documentElement.dir = initialLng === 'fa' ? 'rtl' : 'ltr';
+  document.documentElement.lang = initialLng;
+}
 
 export default i18n;
