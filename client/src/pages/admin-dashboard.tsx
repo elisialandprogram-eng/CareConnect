@@ -3695,10 +3695,6 @@ export default function AdminDashboard() {
             <FinancialReports />
           </TabsContent>
 
-          <TabsContent value="tax">
-            <TaxManagement />
-          </TabsContent>
-
           <TabsContent value="invoices">
             <InvoiceManagement />
           </TabsContent>
