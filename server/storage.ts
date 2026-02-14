@@ -662,12 +662,21 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getAppointmentWithDetails(id: string): Promise<AppointmentWithDetails | undefined> {
+    const patientUsers = users;
+    const providerUsers = users;
     const result = await db
-      .select()
+      .select({
+        appointments: appointments,
+        users: patientUsers,
+        providers: providers,
+        users_2: providerUsers,
+        services: services,
+        practitioners: practitioners
+      })
       .from(appointments)
-      .innerJoin(users, eq(appointments.patientId, users.id))
+      .innerJoin(patientUsers, eq(appointments.patientId, patientUsers.id))
       .innerJoin(providers, eq(appointments.providerId, providers.id))
-      .innerJoin(users as any, eq(providers.userId, (users as any).id))
+      .innerJoin(providerUsers, eq(providers.userId, providerUsers.id))
       .leftJoin(services, eq(appointments.serviceId, services.id))
       .leftJoin(practitioners, eq(appointments.practitionerId, practitioners.id))
       .where(eq(appointments.id, id));
@@ -680,7 +689,7 @@ export class DatabaseStorage implements IStorage {
       patient: r.users,
       provider: {
         ...r.providers,
-        user: (r as any).users_2,
+        user: r.users_2,
       },
       service: r.services || undefined,
       practitioner: (r.practitioners as any) || undefined,
@@ -688,12 +697,21 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getAppointmentsByPatient(patientId: string): Promise<AppointmentWithDetails[]> {
+    const patientUsers = users;
+    const providerUsers = users;
     const result = await db
-      .select()
+      .select({
+        appointments: appointments,
+        users: patientUsers,
+        providers: providers,
+        users_2: providerUsers,
+        services: services,
+        practitioners: practitioners
+      })
       .from(appointments)
-      .innerJoin(users, eq(appointments.patientId, users.id))
+      .innerJoin(patientUsers, eq(appointments.patientId, patientUsers.id))
       .innerJoin(providers, eq(appointments.providerId, providers.id))
-      .innerJoin(users as any, eq(providers.userId, (users as any).id))
+      .innerJoin(providerUsers, eq(providers.userId, providerUsers.id))
       .leftJoin(services, eq(appointments.serviceId, services.id))
       .leftJoin(practitioners, eq(appointments.practitionerId, practitioners.id))
       .where(eq(appointments.patientId, patientId))
@@ -704,7 +722,7 @@ export class DatabaseStorage implements IStorage {
       patient: r.users,
       provider: {
         ...r.providers,
-        user: (r as any).users_2,
+        user: r.users_2,
       },
       service: r.services || undefined,
       practitioner: (r.practitioners as any) || undefined,
@@ -712,12 +730,21 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getAppointmentsByProvider(providerId: string): Promise<AppointmentWithDetails[]> {
+    const patientUsers = users;
+    const providerUsers = users;
     const result = await db
-      .select()
+      .select({
+        appointments: appointments,
+        users: patientUsers,
+        providers: providers,
+        users_2: providerUsers,
+        services: services,
+        practitioners: practitioners
+      })
       .from(appointments)
-      .innerJoin(users, eq(appointments.patientId, users.id))
+      .innerJoin(patientUsers, eq(appointments.patientId, patientUsers.id))
       .innerJoin(providers, eq(appointments.providerId, providers.id))
-      .innerJoin(users as any, eq(providers.userId, (users as any).id))
+      .innerJoin(providerUsers, eq(providers.userId, providerUsers.id))
       .leftJoin(services, eq(appointments.serviceId, services.id))
       .leftJoin(practitioners, eq(appointments.practitionerId, practitioners.id))
       .where(eq(appointments.providerId, providerId))
@@ -728,7 +755,7 @@ export class DatabaseStorage implements IStorage {
       patient: r.users,
       provider: {
         ...r.providers,
-        user: (r as any).users_2,
+        user: r.users_2,
       },
       service: r.services || undefined,
       practitioner: (r.practitioners as any) || undefined,
@@ -746,12 +773,21 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getAllAppointments(): Promise<AppointmentWithDetails[]> {
+    const patientUsers = users;
+    const providerUsers = users;
     const result = await db
-      .select()
+      .select({
+        appointments: appointments,
+        users: patientUsers,
+        providers: providers,
+        users_2: providerUsers,
+        services: services,
+        practitioners: practitioners
+      })
       .from(appointments)
-      .innerJoin(users, eq(appointments.patientId, users.id))
+      .innerJoin(patientUsers, eq(appointments.patientId, patientUsers.id))
       .innerJoin(providers, eq(appointments.providerId, providers.id))
-      .innerJoin(users as any, eq(providers.userId, (users as any).id))
+      .innerJoin(providerUsers, eq(providers.userId, providerUsers.id))
       .leftJoin(services, eq(appointments.serviceId, services.id))
       .leftJoin(practitioners, eq(appointments.practitionerId, practitioners.id))
       .orderBy(desc(appointments.createdAt));
@@ -761,7 +797,7 @@ export class DatabaseStorage implements IStorage {
       patient: r.users,
       provider: {
         ...r.providers,
-        user: (r as any).users_2,
+        user: r.users_2,
       },
       service: r.services || undefined,
       practitioner: r.practitioners || undefined,
