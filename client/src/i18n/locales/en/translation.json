@@ -289,7 +289,11 @@
     "visit_online": "Online Consultation",
     "visit_clinic": "Clinic Visit",
     "visit_home": "Home Visit",
-    "in_person": "In-person"
+    "in_person": "In-person",
+    "available_services": "Available Services",
+    "select_practitioner": "Select Practitioner",
+    "consent_label": "I confirm that I have read and agree to the Patient Consent & Authorization.",
+    "consent_desc": "All healthcare services provided by Golden Life Health Care require your voluntary consent."
   },
   "dashboard": {
     "welcome": "Welcome",
