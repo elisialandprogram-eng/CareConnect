@@ -3410,14 +3410,14 @@ function SubServicesManagement() {
         return response.json();
       },
       onSuccess: () => {
-        toast({ title: t("admin.tax_setting_created") || "Tax setting created" });
+        toast({ title: t("admin.tax_setting_created") });
         refetch();
         setNewCountry("");
         setNewPercentage("");
       },
       onError: (error: Error) => {
         toast({ 
-          title: t("common.error") || "Error", 
+          title: t("common.error"), 
           description: error.message, 
           variant: "destructive" 
         });
@@ -3430,7 +3430,7 @@ function SubServicesManagement() {
         return response.json();
       },
       onSuccess: () => {
-        toast({ title: "Tax setting updated" });
+        toast({ title: t("admin.tax_setting_updated") });
         refetch();
       },
     });
@@ -3440,7 +3440,7 @@ function SubServicesManagement() {
         await apiRequest("DELETE", `/api/admin/tax-settings/${id}`);
       },
       onSuccess: () => {
-        toast({ title: "Tax setting deleted" });
+        toast({ title: t("admin.tax_setting_deleted") });
         refetch();
       },
     });
@@ -3459,7 +3459,7 @@ function SubServicesManagement() {
           <CardContent className="space-y-6">
               <div className="flex gap-4 items-end border-b pb-6">
               <div className="space-y-2">
-                <Label>{t("setup.country")}</Label>
+                <Label>{t("setup.city")}</Label>
                 <Input value={newCountry} onChange={(e) => setNewCountry(e.target.value)} placeholder="e.g. USA" />
               </div>
               <div className="space-y-2">
@@ -3469,10 +3469,10 @@ function SubServicesManagement() {
               <Button 
                 onClick={() => {
                   if (!newCountry || !newPercentage) {
-                    toast({ title: "Required fields", description: "Please enter both country and tax rate", variant: "destructive" });
+                    toast({ title: t("admin.required_fields"), description: t("admin.enter_both_country_tax"), variant: "destructive" });
                     return;
                   }
-                  createTaxMutation.mutate({ country: newCountry, taxName: "Sales Tax", taxRate: newPercentage, isActive: true });
+                  createTaxMutation.mutate({ country: newCountry, taxName: t("admin.sales_tax"), taxRate: newPercentage, isActive: true });
                 }}
                 disabled={createTaxMutation.isPending}
               >
