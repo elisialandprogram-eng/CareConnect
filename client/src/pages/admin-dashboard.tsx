@@ -3633,10 +3633,10 @@ export default function AdminDashboard() {
               <Shield className="h-4 w-4 mr-2" />
               {t("admin.tax_management")}
             </TabsTrigger>
-            <TabsTrigger value="invoices" data-testid="tab-invoices">
-              <FileText className="h-4 w-4 mr-2" />
-              {t("dashboard.invoices")}
-            </TabsTrigger>
+                <TabsTrigger value="invoices" data-testid="tab-invoices">
+                  <FileText className="h-4 w-4 mr-2" />
+                  {t("admin.invoices")}
+                </TabsTrigger>
             <TabsTrigger value="pricing" data-testid="tab-pricing">
               <Tag className="h-4 w-4 mr-2" />
               {t("admin.pricing_overrides")}

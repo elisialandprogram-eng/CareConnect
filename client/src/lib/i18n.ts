@@ -366,6 +366,7 @@ const resources = {
         support_tickets: "Support Tickets",
         services: "Services",
         tax_management: "Tax Management",
+        invoices: "Invoices",
         total_users: "Total Users",
         registered_users: "Registered Users",
         total_providers: "Total Providers",
@@ -454,6 +455,7 @@ const resources = {
         approved: "Jóváhagyott",
         rejected: "Elutasított",
         pending: "Függőben",
+        invoices: "Számlák",
       }
     }
   },
