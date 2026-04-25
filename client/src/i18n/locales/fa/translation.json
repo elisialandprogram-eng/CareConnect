@@ -82,7 +82,8 @@
     "home_nursing": "پرستاری در منزل",
     "physiotherapy": "فیزیوتراپی",
     "service_type": "نوع خدمت",
-    "success": "موفقیت"
+    "success": "موفقیت",
+    "view_profile": "مشاهده پروفایل"
   },
   "hero": {
     "trusted_badge": "مورد اعتماد بیش از ۱۰,۰۰۰ بیمار",
@@ -541,7 +542,8 @@
     "verification_status": "وضعیت تأیید",
     "verified_provider": "ارائه‌دهنده تأییدشده",
     "visit_clinic": "ویزیت در کلینیک",
-    "years_experience": "{{count}} سال تجربه"
+    "years_experience": "{{count}} سال تجربه",
+    "booking_provider_only": "رزرو فقط برای بیماران در دسترس است."
   },
   "provider": {
     "get_directions": "مسیریابی"

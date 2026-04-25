@@ -82,7 +82,8 @@
     "home_nursing": "Otthoni ápolás",
     "physiotherapy": "Fizioterápia",
     "service_type": "Szolgáltatás típusa",
-    "success": "Sikeres"
+    "success": "Sikeres",
+    "view_profile": "Profil megtekintése"
   },
   "hero": {
     "trusted_badge": "Több mint 10 000 páciens bizalmával",
@@ -541,7 +542,8 @@
     "verification_status": "Ellenőrzés állapota",
     "verified_provider": "Ellenőrzött szolgáltató",
     "visit_clinic": "Klinikai vizit",
-    "years_experience": "{{count}} év tapasztalat"
+    "years_experience": "{{count}} év tapasztalat",
+    "booking_provider_only": "A foglalás csak betegek számára érhető el."
   },
   "provider": {
     "get_directions": "Útvonaltervezés"

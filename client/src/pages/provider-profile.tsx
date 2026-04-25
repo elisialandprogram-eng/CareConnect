@@ -19,7 +19,8 @@ export default function ProviderProfile() {
   const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const [, navigate] = useLocation();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
+  const canBook = !user || user.role === "patient";
 
   const { data: provider, isLoading: providerLoading } = useQuery<ProviderWithServices>({
     queryKey: ["/api/providers", id],
@@ -516,6 +517,7 @@ export default function ProviderProfile() {
             </div>
 
             <div className="lg:col-span-1">
+              {canBook ? (
               <Card className="sticky top-24" data-testid="card-booking-widget">
                 <CardHeader>
                   <CardTitle className="text-lg flex items-center gap-2">
@@ -638,6 +640,14 @@ export default function ProviderProfile() {
                   </div>
                 </CardContent>
               </Card>
+              ) : (
+                <Card className="sticky top-24" data-testid="card-booking-disabled">
+                  <CardContent className="py-8 text-center text-muted-foreground space-y-2">
+                    <CalendarIcon className="h-10 w-10 mx-auto text-muted" />
+                    <p className="text-sm">{t("profile.booking_provider_only")}</p>
+                  </CardContent>
+                </Card>
+              )}
             </div>
           </div>
         </div>

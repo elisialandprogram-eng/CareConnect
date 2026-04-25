@@ -7,6 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Star, MapPin, Clock, CheckCircle, Video, Home } from "lucide-react";
 import { motion } from "framer-motion";
 import type { ProviderWithUser } from "@shared/schema";
+import { useAuth } from "@/lib/auth";
 
 interface ProviderCardProps {
   provider: ProviderWithUser;
@@ -15,6 +16,8 @@ interface ProviderCardProps {
 
 export function ProviderCard({ provider, nextAvailable }: ProviderCardProps) {
   const { t } = useTranslation();
+  const { user } = useAuth();
+  const canBook = !user || user.role === "patient";
   const getTypeLabel = (type: string) => {
     return t(`common_service_type.${type}`);
   };
@@ -136,7 +139,7 @@ export function ProviderCard({ provider, nextAvailable }: ProviderCardProps) {
                 )}
                 <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.98 }}>
                   <Button asChild className="rounded-xl shadow-md glow" data-testid={`button-book-${provider.id}`}>
-                    <Link href={`/provider/${provider.id}`}>Book Now</Link>
+                    <Link href={`/provider/${provider.id}`}>{canBook ? t("profile.book_now") : t("common.view_profile")}</Link>
                   </Button>
                 </motion.div>
               </div>

@@ -82,7 +82,8 @@
     "home_nursing": "Home Nursing",
     "physiotherapy": "Physiotherapy",
     "service_type": "Service Type",
-    "success": "Success"
+    "success": "Success",
+    "view_profile": "View Profile"
   },
   "hero": {
     "trusted_badge": "Trusted by 10,000+ patients",
@@ -555,7 +556,8 @@
     "verification_status": "Verification Status",
     "verified_provider": "Verified Provider",
     "visit_clinic": "Clinic Visit",
-    "years_experience": "{{count}} years experience"
+    "years_experience": "{{count}} years experience",
+    "booking_provider_only": "Booking is only available for patients."
   },
   "provider": {
     "get_directions": "Get Directions"
