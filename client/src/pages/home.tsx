@@ -12,7 +12,7 @@ import { Footer } from "@/components/footer";
 import { ContactForm } from "@/components/contact-form";
 import { Shield, Clock, Award, Sparkles, CreditCard, Wallet, Banknote, MessageCircle, Send, X, Bot, User as UserIcon, Mail, Phone, MapPin } from "lucide-react";
 import { SiVisa, SiMastercard, SiGooglepay, SiApplepay } from "react-icons/si";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useScroll, useTransform, useMotionValue, useSpring } from "framer-motion";
 import { useAuth } from "@/lib/auth"; // Assuming useAuth is imported from here
 import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -201,16 +201,51 @@ export default function Home() {
   console.log("Home page rendering");
   const { user } = useAuth();
 
+  const heroRef = useRef<HTMLElement>(null);
+  const { scrollY } = useScroll();
+  const heroY = useTransform(scrollY, [0, 600], [0, 120]);
+  const heroOpacity = useTransform(scrollY, [0, 400], [1, 0.4]);
+  const blob1Y = useTransform(scrollY, [0, 600], [0, -80]);
+  const blob2Y = useTransform(scrollY, [0, 600], [0, 60]);
+
+  const mouseX = useMotionValue(50);
+  const mouseY = useMotionValue(50);
+  const smoothX = useSpring(mouseX, { stiffness: 60, damping: 20 });
+  const smoothY = useSpring(mouseY, { stiffness: 60, damping: 20 });
+  const spotlightX = useTransform(smoothX, (v) => `${v}%`);
+  const spotlightY = useTransform(smoothY, (v) => `${v}%`);
+
+  const handleHeroMouseMove = (e: React.MouseEvent<HTMLElement>) => {
+    if (!heroRef.current) return;
+    const rect = heroRef.current.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width) * 100;
+    const y = ((e.clientY - rect.top) / rect.height) * 100;
+    mouseX.set(x);
+    mouseY.set(y);
+  };
+
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
 
       <main className="flex-1">
         <AIChatBox />
-        <section className="relative py-20 lg:py-32 overflow-hidden">
+        <section
+          ref={heroRef}
+          onMouseMove={handleHeroMouseMove}
+          className="relative py-20 lg:py-32 overflow-hidden"
+        >
           <div className="absolute inset-0 animated-gradient -z-10" />
           <motion.div
+            className="absolute inset-0 -z-10 spotlight pointer-events-none"
+            style={{
+              ['--x' as any]: spotlightX,
+              ['--y' as any]: spotlightY,
+            }}
+          />
+          <motion.div
             className="absolute top-20 right-10 w-72 h-72 bg-primary/20 rounded-full blur-3xl -z-10"
+            style={{ y: blob1Y }}
             animate={{
               scale: [1, 1.2, 1],
               opacity: [0.3, 0.5, 0.3]
@@ -219,6 +254,7 @@ export default function Home() {
           />
           <motion.div
             className="absolute bottom-10 left-10 w-96 h-96 bg-primary/10 rounded-full blur-3xl -z-10"
+            style={{ y: blob2Y }}
             animate={{
               scale: [1.2, 1, 1.2],
               opacity: [0.2, 0.4, 0.2]

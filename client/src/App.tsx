@@ -30,11 +30,23 @@ import ForgotPassword from "@/pages/forgot-password";
 import Consent from "@/pages/consent";
 
 import { ChatBox } from "@/components/chat/ChatBox";
+import { ScrollProgress } from "@/components/scroll-progress";
+import { ScrollToTop } from "@/components/scroll-to-top";
+import { PageTransition } from "@/components/page-transition";
 
 import "@/lib/i18n";
 
 import { useTranslation } from "react-i18next";
 import { useEffect } from "react";
+import { useLocation } from "wouter";
+
+function ScrollToTopOnRouteChange() {
+  const [location] = useLocation();
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "auto" });
+  }, [location]);
+  return null;
+}
 
 function Router() {
   const { i18n } = useTranslation();
@@ -45,6 +57,7 @@ function Router() {
   }, [i18n.language]);
 
   return (
+    <PageTransition>
     <Switch>
       <Route path="/" component={Home} />
       <Route path="/login" component={Login} />
@@ -72,6 +85,7 @@ function Router() {
       <Route path="/consent" component={Consent} />
       <Route component={NotFound} />
     </Switch>
+    </PageTransition>
   );
 }
 
@@ -82,9 +96,12 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <AuthProvider>
+          <ScrollToTopOnRouteChange />
+          <ScrollProgress />
           <Toaster />
           <Router />
           <ChatBox />
+          <ScrollToTop />
         </AuthProvider>
       </TooltipProvider>
     </QueryClientProvider>
