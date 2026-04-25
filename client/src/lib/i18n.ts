@@ -109,6 +109,9 @@ const resources = {
         quick_links: "Quick Links",
         contact_us: "Contact Us",
         all_rights_reserved: "All rights reserved.",
+        privacy_policy: "Privacy Policy",
+        terms_of_service: "Terms of Service",
+        cookie_policy: "Cookie Policy",
       },
       auth: {
         signin_description: "Sign in to access your appointments and messages.",
@@ -645,6 +648,17 @@ const resources = {
         patient: "Beteg",
         user_status_updated: "Felhasználó állapota frissítve",
         edit_subservice: "Alszolgáltatás szerkesztése",
+      },
+      footer: {
+        description: "A Golden Life elkötelezett a professzionális és gondoskodó otthoni egészségügyi szolgáltatások nyújtása mellett. Hidat építünk a klinikai kiválóság és az otthoni kényelem között.",
+        services: "Szolgáltatások",
+        all_providers: "Összes szolgáltató",
+        quick_links: "Gyorshivatkozások",
+        contact_us: "Kapcsolat",
+        all_rights_reserved: "Minden jog fenntartva.",
+        privacy_policy: "Adatvédelmi szabályzat",
+        terms_of_service: "Felhasználási feltételek",
+        cookie_policy: "Süti szabályzat",
       },
     }
   },

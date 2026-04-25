@@ -57,18 +57,18 @@ export function Footer() {
                 </Link>
               </li>
               <li>
-                <Link href="/privacy" className="hover:text-foreground transition-colors">
-                  Privacy Policy
+                <Link href="/privacy" className="hover:text-foreground transition-colors" data-testid="link-privacy">
+                  {t("footer.privacy_policy")}
                 </Link>
               </li>
               <li>
-                <Link href="/terms" className="hover:text-foreground transition-colors">
-                  Terms of Service
+                <Link href="/terms" className="hover:text-foreground transition-colors" data-testid="link-terms">
+                  {t("footer.terms_of_service")}
                 </Link>
               </li>
               <li>
-                <Link href="/cookies" className="hover:text-foreground transition-colors">
-                  Cookie Policy
+                <Link href="/cookies" className="hover:text-foreground transition-colors" data-testid="link-cookies">
+                  {t("footer.cookie_policy")}
                 </Link>
               </li>
             </ul>

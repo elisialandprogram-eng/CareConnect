@@ -99,7 +99,10 @@
     "services": "Szolgáltatások",
     "contact_us": "Kapcsolat",
     "all_rights_reserved": "Minden jog fenntartva.",
-    "all_providers": "Összes szolgáltató"
+    "all_providers": "Összes szolgáltató",
+    "privacy_policy": "Adatvédelmi szabályzat",
+    "terms_of_service": "Felhasználási feltételek",
+    "cookie_policy": "Süti szabályzat"
   },
   "service_categories": {
     "title": "Szolgáltatásaink",

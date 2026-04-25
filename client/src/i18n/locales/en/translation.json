@@ -99,7 +99,10 @@
     "services": "Services",
     "contact_us": "Contact Us",
     "all_rights_reserved": "All rights reserved.",
-    "all_providers": "All Providers"
+    "all_providers": "All Providers",
+    "privacy_policy": "Privacy Policy",
+    "terms_of_service": "Terms of Service",
+    "cookie_policy": "Cookie Policy"
   },
   "service_categories": {
     "title": "Our Services",

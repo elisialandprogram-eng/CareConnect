@@ -137,6 +137,14 @@ Preferred communication style: Simple, everyday language.
 - `VITE_STRIPE_PUBLISHABLE_KEY`: Stripe publishable key (frontend). Currently informational — the Checkout Session redirect does not require it client-side, but the Admin → Settings → Payments panel reports its presence.
 - `STRIPE_WEBHOOK_SECRET`: Used by `POST /api/stripe/webhook` to verify event signatures. Without it the webhook still parses events but logs a loud warning (DEV ONLY). In Stripe, point a webhook at `${ORIGIN}/api/stripe/webhook` and subscribe to `checkout.session.completed`, `checkout.session.expired`, `checkout.session.async_payment_succeeded`, `checkout.session.async_payment_failed`.
 
+## Internationalization (i18n)
+
+**ACTIVE i18n CONFIG**: `client/src/lib/i18n.ts` — this is the file imported by `client/src/main.tsx` and `client/src/App.tsx`. All translation resources (en/hu/fa) are bundled inline here as JS objects. **All translation key edits must be made in this file.**
+
+**INACTIVE / LEGACY**: `client/src/i18n/config.ts` and `client/src/i18n/locales/*/translation.json` exist but are NOT imported anywhere. Editing the JSON files has no runtime effect. They can be removed in a future cleanup.
+
+Languages: English (`en`, default), Hungarian (`hu`, formal tone), Persian (`fa`, RTL). Detection order: localStorage → cookie → htmlTag. Persisted to localStorage as `i18nextLng`.
+
 ## Recent Changes
 
 - Integrated real Stripe Checkout payments (replaces the previous mock/placeholder UI):
