@@ -33,3 +33,9 @@ channel = "stable-25_05"
 
 [agent]
 expertMode = true
+stack = "FULLSTACK_JS"
+
+[deployment]
+deploymentTarget = "autoscale"
+run = ["node", "./dist/index.cjs"]
+build = ["npm", "run", "build"]
