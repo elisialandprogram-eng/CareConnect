@@ -26,7 +26,9 @@ A lightweight in-process reminder cron (`server/reminderCron.ts`) starts after t
 
 ### Database
 
-The application uses Neon Serverless PostgreSQL with WebSocket connections. The schema includes core tables for users, providers, services, time slots, appointments, reviews, payments, and refresh tokens. Relationships are defined to link these entities, such as one-to-one for User-Provider and one-to-many for Provider-Services. Enums are used for user roles, provider types, appointment statuses, visit types, and payment statuses to ensure data integrity and consistency. UUIDs are used for primary keys, and foreign key constraints with cascading deletes are implemented.
+**This project uses Supabase (PostgreSQL) exclusively. Do NOT switch to Neon, Replit's built-in Postgres, or any other provider — every Replit import must keep using Supabase.** The runtime connection lives in `server/db.ts` and the migration tooling lives in `drizzle.config.ts`; both read the connection string from `SUPABASE_DATABASE_URL` (with `DATABASE_URL` only as a legacy fallback). Set `SUPABASE_DATABASE_URL` in Replit Secrets using the **Transaction pooler** URI from Supabase → Project Settings → Database → Connection string. Full details and rationale live in `DATABASE.md`.
+
+The schema includes core tables for users, providers, services, time slots, appointments, reviews, payments, and refresh tokens. Relationships are defined to link these entities, such as one-to-one for User-Provider and one-to-many for Provider-Services. Enums are used for user roles, provider types, appointment statuses, visit types, and payment statuses to ensure data integrity and consistency. UUIDs are used for primary keys, and foreign key constraints with cascading deletes are implemented.
 
 ### Build Process
 
@@ -36,8 +38,8 @@ The client-side React app is bundled using Vite, while the server-side Express a
 
 ### Database
 
-- **Neon Serverless PostgreSQL**: Primary data storage solution.
-- **@neondatabase/serverless**: For connection pooling and WebSocket-based database connections in serverless environments.
+- **Supabase (PostgreSQL)**: Sole, required data storage solution. The `SUPABASE_DATABASE_URL` secret must be set in Replit on every import. See `DATABASE.md` for setup instructions and enforcement details.
+- **`pg` + `drizzle-orm/node-postgres`**: Standard Postgres pool driver used to talk to Supabase.
 
 ### UI Component Libraries
 
