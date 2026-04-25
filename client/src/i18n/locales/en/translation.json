@@ -370,7 +370,18 @@
     "view_details": "View Details",
     "view_document": "View Document",
     "view_lab_result": "View Lab Result",
-    "view_provider": "View Provider"
+    "view_provider": "View Provider",
+    "approve": "Approve",
+    "reject": "Reject",
+    "confirm": "Confirm",
+    "mark_completed": "Mark Completed",
+    "mark_payment_received": "Mark payment received"
+  },
+  "appointments": {
+    "my_appointments": "My Appointments",
+    "none_yet": "No appointments yet",
+    "book_first": "Book your first appointment with a healthcare provider.",
+    "find_provider": "Find a Provider"
   },
   "validation": {
     "password_min": "Password must be at least 6 characters",

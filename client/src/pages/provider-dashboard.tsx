@@ -457,7 +457,7 @@ export default function ProviderDashboard() {
                   ) : (
                     <CheckCircle className="h-3 w-3 mr-1" />
                   )}
-                  Approve
+                  {t("dashboard.approve", "Approve")}
                 </Button>
                 <Button
                   size="sm"
@@ -471,7 +471,7 @@ export default function ProviderDashboard() {
                   ) : (
                     <X className="h-3 w-3 mr-1" />
                   )}
-                  Reject
+                  {t("dashboard.reject", "Reject")}
                 </Button>
               </>
             )}
@@ -487,7 +487,7 @@ export default function ProviderDashboard() {
                 ) : (
                   <CheckCircle className="h-3 w-3 mr-1" />
                 )}
-                Confirm
+                {t("dashboard.confirm", "Confirm")}
               </Button>
             )}
             {isConfirmed && (
@@ -502,7 +502,7 @@ export default function ProviderDashboard() {
                 ) : (
                   <CheckCircle className="h-3 w-3 mr-1" />
                 )}
-                Mark Completed
+                {t("dashboard.mark_completed", "Mark Completed")}
               </Button>
             )}
             {canMarkPaid && (
@@ -518,7 +518,7 @@ export default function ProviderDashboard() {
                 ) : (
                   <Banknote className="h-3 w-3 mr-1" />
                 )}
-                Mark payment received
+                {t("dashboard.mark_payment_received", "Mark payment received")}
               </Button>
             )}
             {!isPending && (
@@ -530,7 +530,7 @@ export default function ProviderDashboard() {
                 data-testid={`button-cancel-${appointment.id}`}
               >
                 <X className="h-3 w-3 mr-1" />
-                Cancel
+                {t("dashboard.cancel", "Cancel")}
               </Button>
             )}
           </div>

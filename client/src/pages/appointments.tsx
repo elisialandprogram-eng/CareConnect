@@ -3,6 +3,7 @@ import { Footer } from "@/components/footer";
 import { useAuth } from "@/lib/auth";
 import { useLocation } from "wouter";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
@@ -119,16 +120,21 @@ function RatingDialog({ appointment }: { appointment: Appointment }) {
 export default function Appointments() {
   const { isAuthenticated, user, isLoading: authLoading } = useAuth();
   const [, navigate] = useLocation();
+  const { t } = useTranslation();
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
       navigate("/login");
+    } else if (!authLoading && user?.role === "provider") {
+      navigate("/provider/dashboard");
+    } else if (!authLoading && user?.role === "admin") {
+      navigate("/admin");
     }
-  }, [isAuthenticated, authLoading, navigate]);
+  }, [isAuthenticated, authLoading, user?.role, navigate]);
 
   const { data: appointments, isLoading } = useQuery<Appointment[]>({
-    queryKey: [user?.role === "provider" ? "/api/appointments/provider" : "/api/appointments/patient"],
-    enabled: isAuthenticated,
+    queryKey: ["/api/appointments/patient"],
+    enabled: isAuthenticated && user?.role === "patient",
   });
 
   if (authLoading) {
@@ -187,10 +193,12 @@ export default function Appointments() {
       <Header />
       <main className="flex-1 container mx-auto px-4 py-8">
         <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold">My Appointments</h1>
-          <Button asChild>
-            <Link href="/providers">Book New Appointment</Link>
-          </Button>
+          <h1 className="text-3xl font-bold" data-testid="text-page-title">{t("appointments.my_appointments", "My Appointments")}</h1>
+          {user?.role === "patient" && (
+            <Button asChild data-testid="button-book-new">
+              <Link href="/providers">{t("dashboard.book_new")}</Link>
+            </Button>
+          )}
         </div>
 
         {isLoading ? (
@@ -245,13 +253,17 @@ export default function Appointments() {
           <Card>
             <CardContent className="py-12 text-center">
               <Calendar className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-              <h3 className="text-lg font-semibold mb-2">No appointments yet</h3>
-              <p className="text-muted-foreground mb-4">
-                Book your first appointment with a healthcare provider.
-              </p>
-              <Button asChild>
-                <Link href="/providers">Find a Provider</Link>
-              </Button>
+              <h3 className="text-lg font-semibold mb-2">{t("appointments.none_yet", "No appointments yet")}</h3>
+              {user?.role === "patient" && (
+                <>
+                  <p className="text-muted-foreground mb-4">
+                    {t("appointments.book_first", "Book your first appointment with a healthcare provider.")}
+                  </p>
+                  <Button asChild data-testid="button-find-provider">
+                    <Link href="/providers">{t("appointments.find_provider", "Find a Provider")}</Link>
+                  </Button>
+                </>
+              )}
             </CardContent>
           </Card>
         )}

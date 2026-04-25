@@ -363,7 +363,18 @@
     "view_details": "Részletek megtekintése",
     "view_document": "Dokumentum megtekintése",
     "view_lab_result": "Labor eredmény megtekintése",
-    "view_provider": "Szolgáltató megtekintése"
+    "view_provider": "Szolgáltató megtekintése",
+    "approve": "Jóváhagyás",
+    "reject": "Elutasítás",
+    "confirm": "Megerősítés",
+    "mark_completed": "Befejezettnek jelölés",
+    "mark_payment_received": "Fizetés beérkezve"
+  },
+  "appointments": {
+    "my_appointments": "Időpontjaim",
+    "none_yet": "Még nincsenek időpontok",
+    "book_first": "Foglaljon le első időpontját egy egészségügyi szolgáltatónál.",
+    "find_provider": "Szolgáltató keresése"
   },
   "validation": {
     "invalid_email": "Kérjük, adjon meg egy érvényes e-mail címet",

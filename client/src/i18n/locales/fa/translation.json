@@ -363,7 +363,18 @@
     "view_details": "مشاهده جزئیات",
     "view_document": "مشاهده سند",
     "view_lab_result": "مشاهده نتیجه آزمایش",
-    "view_provider": "مشاهده ارائه‌دهنده"
+    "view_provider": "مشاهده ارائه‌دهنده",
+    "approve": "تأیید",
+    "reject": "رد",
+    "confirm": "تایید نهایی",
+    "mark_completed": "علامت‌گذاری به عنوان تکمیل شده",
+    "mark_payment_received": "علامت‌گذاری پرداخت دریافت شده"
+  },
+  "appointments": {
+    "my_appointments": "نوبت‌های من",
+    "none_yet": "هنوز نوبتی ثبت نشده است",
+    "book_first": "اولین نوبت خود را با یک ارائه‌دهنده خدمات بهداشتی رزرو کنید.",
+    "find_provider": "یافتن ارائه‌دهنده"
   },
   "validation": {
     "invalid_email": "لطفاً یک آدرس ایمیل معتبر وارد کنید",
