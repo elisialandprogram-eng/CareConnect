@@ -200,6 +200,19 @@ export interface IStorage {
   getReviewsByProvider(providerId: string): Promise<ReviewWithPatient[]>;
   createReview(review: InsertReview): Promise<Review>;
   getReviewByAppointment(appointmentId: string): Promise<Review | undefined>;
+  replyToReview(reviewId: string, reply: string): Promise<Review | undefined>;
+
+  // Service helpers
+  duplicateService(id: string): Promise<Service | undefined>;
+  reorderServices(updates: { id: string; sortOrder: number }[]): Promise<void>;
+
+  // Time slot helpers
+  bulkCreateTimeSlots(slots: InsertTimeSlot[]): Promise<TimeSlot[]>;
+  deleteTimeSlotsByProviderAndDate(providerId: string, date: string): Promise<void>;
+
+  // Notification helpers
+  getUnreadNotificationCount(userId: string): Promise<number>;
+  markAllNotificationsRead(userId: string): Promise<void>;
 
   // Payments
   getPayment(id: string): Promise<Payment | undefined>;
@@ -838,6 +851,50 @@ export class DatabaseStorage implements IStorage {
   async getReviewByAppointment(appointmentId: string): Promise<Review | undefined> {
     const [review] = await db.select().from(reviews).where(eq(reviews.appointmentId, appointmentId));
     return review || undefined;
+  }
+
+  async replyToReview(reviewId: string, reply: string): Promise<Review | undefined> {
+    const [updated] = await db.update(reviews)
+      .set({ providerReply: reply, providerReplyAt: new Date() })
+      .where(eq(reviews.id, reviewId))
+      .returning();
+    return updated || undefined;
+  }
+
+  async duplicateService(id: string): Promise<Service | undefined> {
+    const [src] = await db.select().from(services).where(eq(services.id, id));
+    if (!src) return undefined;
+    const { id: _id, createdAt: _ca, ...rest } = src as any;
+    const [copy] = await db.insert(services).values({
+      ...rest,
+      name: `${src.name} (copy)`,
+    }).returning();
+    return copy;
+  }
+
+  async reorderServices(updates: { id: string; sortOrder: number }[]): Promise<void> {
+    for (const u of updates) {
+      await db.update(services).set({ sortOrder: u.sortOrder }).where(eq(services.id, u.id));
+    }
+  }
+
+  async bulkCreateTimeSlots(slots: InsertTimeSlot[]): Promise<TimeSlot[]> {
+    if (slots.length === 0) return [];
+    return db.insert(timeSlots).values(slots).returning();
+  }
+
+  async deleteTimeSlotsByProviderAndDate(providerId: string, date: string): Promise<void> {
+    await db.delete(timeSlots).where(and(eq(timeSlots.providerId, providerId), eq(timeSlots.date, date)));
+  }
+
+  async getUnreadNotificationCount(userId: string): Promise<number> {
+    const [row] = await db.select({ c: count() }).from(userNotifications)
+      .where(and(eq(userNotifications.userId, userId), eq(userNotifications.isRead, false)));
+    return Number(row?.c ?? 0);
+  }
+
+  async markAllNotificationsRead(userId: string): Promise<void> {
+    await db.update(userNotifications).set({ isRead: true }).where(eq(userNotifications.userId, userId));
   }
 
   // Payments

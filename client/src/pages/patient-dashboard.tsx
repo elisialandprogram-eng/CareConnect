@@ -1,6 +1,9 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { Link, useLocation } from "wouter";
+import { useState } from "react";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
 import { Button } from "@/components/ui/button";
@@ -161,6 +164,9 @@ export default function PatientDashboard() {
     },
   });
 
+  const [searchQuery, setSearchQuery] = useState("");
+  const [visitTypeFilter, setVisitTypeFilter] = useState<string>("all");
+
   const upcomingAppointments = appointments?.filter(
     (a) =>
       a.status === "pending" ||
@@ -169,12 +175,25 @@ export default function PatientDashboard() {
       a.status === "rescheduled"
   ) || [];
 
-  const pastAppointments = appointments?.filter(
-    (a) =>
-      a.status === "completed" ||
-      a.status === "cancelled" ||
-      a.status === "rejected"
+  const completedAppointments = appointments?.filter((a) => a.status === "completed") || [];
+  const cancelledAppointments = appointments?.filter(
+    (a) => a.status === "cancelled" || a.status === "rejected"
   ) || [];
+  const pastAppointments = [...completedAppointments, ...cancelledAppointments];
+
+  const filterList = (list: AppointmentWithDetails[]) => {
+    return list.filter((a) => {
+      const q = searchQuery.trim().toLowerCase();
+      const providerName = `${a.provider?.user?.firstName || ""} ${a.provider?.user?.lastName || ""}`.toLowerCase();
+      const matchesSearch =
+        !q ||
+        providerName.includes(q) ||
+        (a.service?.name?.toLowerCase().includes(q) ?? false) ||
+        (a.id?.toLowerCase().includes(q) ?? false);
+      const matchesVisit = visitTypeFilter === "all" || a.visitType === visitTypeFilter;
+      return matchesSearch && matchesVisit;
+    });
+  };
 
   const nextAppointment = upcomingAppointments[0];
 
@@ -426,12 +445,18 @@ export default function PatientDashboard() {
           </div>
 
           <Tabs defaultValue="upcoming" className="w-full">
-            <TabsList>
+            <TabsList className="flex flex-wrap h-auto">
               <TabsTrigger value="upcoming" data-testid="tab-upcoming">
                 {t("dashboard.upcoming")} ({upcomingAppointments.length})
               </TabsTrigger>
+              <TabsTrigger value="completed" data-testid="tab-completed">
+                {t("dashboard.completed")} ({completedAppointments.length})
+              </TabsTrigger>
+              <TabsTrigger value="cancelled" data-testid="tab-cancelled">
+                {t("dashboard.cancelled", "Cancelled")} ({cancelledAppointments.length})
+              </TabsTrigger>
               <TabsTrigger value="past" data-testid="tab-past">
-                {t("dashboard.past")} ({pastAppointments.length})
+                {t("dashboard.all_history", "All history")} ({pastAppointments.length})
               </TabsTrigger>
               <TabsTrigger value="medical" data-testid="tab-medical">
                 {t("dashboard.medical_records")}
@@ -441,16 +466,37 @@ export default function PatientDashboard() {
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="upcoming" className="mt-6">
+            <div className="mt-6 mb-4 flex flex-col sm:flex-row gap-3">
+              <Input
+                placeholder={t("dashboard.search_appointments_patient", "Search by provider, service, or ID...")}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="flex-1"
+                data-testid="input-search-appointments"
+              />
+              <Select value={visitTypeFilter} onValueChange={setVisitTypeFilter}>
+                <SelectTrigger className="w-full sm:w-[180px]" data-testid="select-visit-filter">
+                  <SelectValue placeholder="Visit type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All types</SelectItem>
+                  <SelectItem value="online">Online</SelectItem>
+                  <SelectItem value="home">Home visit</SelectItem>
+                  <SelectItem value="clinic">Clinic</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <TabsContent value="upcoming" className="mt-2">
               {isLoading ? (
                 <div className="space-y-4">
                   {[1, 2, 3].map((i) => (
                     <Skeleton key={i} className="h-32 w-full rounded-lg" />
                   ))}
                 </div>
-              ) : upcomingAppointments.length > 0 ? (
+              ) : filterList(upcomingAppointments).length > 0 ? (
                 <div className="space-y-4">
-                  {upcomingAppointments.map((appointment) => (
+                  {filterList(upcomingAppointments).map((appointment) => (
                     <AppointmentCard key={appointment.id} appointment={appointment} />
                   ))}
                 </div>
@@ -470,10 +516,42 @@ export default function PatientDashboard() {
               )}
             </TabsContent>
 
-            <TabsContent value="past" className="mt-6">
-              {pastAppointments.length > 0 ? (
+            <TabsContent value="completed" className="mt-2">
+              {filterList(completedAppointments).length > 0 ? (
                 <div className="space-y-4">
-                  {pastAppointments.map((appointment) => (
+                  {filterList(completedAppointments).map((appointment) => (
+                    <AppointmentCard key={appointment.id} appointment={appointment} />
+                  ))}
+                </div>
+              ) : (
+                <Card>
+                  <CardContent className="p-12 text-center text-muted-foreground" data-testid="empty-completed">
+                    No completed appointments match your filters
+                  </CardContent>
+                </Card>
+              )}
+            </TabsContent>
+
+            <TabsContent value="cancelled" className="mt-2">
+              {filterList(cancelledAppointments).length > 0 ? (
+                <div className="space-y-4">
+                  {filterList(cancelledAppointments).map((appointment) => (
+                    <AppointmentCard key={appointment.id} appointment={appointment} />
+                  ))}
+                </div>
+              ) : (
+                <Card>
+                  <CardContent className="p-12 text-center text-muted-foreground" data-testid="empty-cancelled">
+                    No cancelled or rejected appointments
+                  </CardContent>
+                </Card>
+              )}
+            </TabsContent>
+
+            <TabsContent value="past" className="mt-2">
+              {filterList(pastAppointments).length > 0 ? (
+                <div className="space-y-4">
+                  {filterList(pastAppointments).map((appointment) => (
                     <AppointmentCard key={appointment.id} appointment={appointment} />
                   ))}
                 </div>

@@ -1,7 +1,9 @@
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { ThemeToggle } from "./theme-toggle";
 import { useAuth } from "@/lib/auth";
+import { useQuery } from "@tanstack/react-query";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,6 +15,35 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { User, Calendar, LogOut, Settings, LayoutDashboard, Menu, X, Stethoscope, MessageSquare, Bell, Languages } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+
+function NotificationBell() {
+  const [, navigate] = useLocation();
+  const { data } = useQuery<{ count: number }>({
+    queryKey: ["/api/notifications/unread-count"],
+    refetchInterval: 30000,
+  });
+  const count = data?.count ?? 0;
+  return (
+    <Button
+      variant="ghost"
+      size="icon"
+      className="relative h-9 w-9"
+      onClick={() => navigate("/notifications")}
+      data-testid="button-notification-bell"
+      aria-label="Notifications"
+    >
+      <Bell className="h-4 w-4" />
+      {count > 0 && (
+        <Badge
+          className="absolute -top-1 -right-1 h-4 min-w-[1rem] px-1 text-[10px] leading-none flex items-center justify-center bg-destructive text-destructive-foreground"
+          data-testid="badge-notification-count"
+        >
+          {count > 99 ? "99+" : count}
+        </Badge>
+      )}
+    </Button>
+  );
+}
 
 export function Header() {
   const { user, isAuthenticated, logout } = useAuth();
@@ -98,6 +129,8 @@ export function Header() {
           </DropdownMenu>
 
           <ThemeToggle />
+
+          {isAuthenticated && <NotificationBell />}
 
           {isAuthenticated ? (
             <DropdownMenu>

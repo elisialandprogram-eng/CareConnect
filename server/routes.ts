@@ -1225,6 +1225,201 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/notifications/unread-count", authenticateToken, async (req: AuthRequest, res: Response) => {
+    try {
+      const c = await storage.getUnreadNotificationCount(req.user!.id);
+      res.json({ count: c });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get unread count" });
+    }
+  });
+
+  app.post("/api/notifications/mark-all-read", authenticateToken, async (req: AuthRequest, res: Response) => {
+    try {
+      await storage.markAllNotificationsRead(req.user!.id);
+      res.status(204).end();
+    } catch (error) {
+      res.status(500).json({ message: "Failed to mark all read" });
+    }
+  });
+
+  // Provider's own reviews list
+  app.get("/api/reviews/provider/me", authenticateToken, async (req: AuthRequest, res: Response) => {
+    try {
+      if (req.user?.role !== "provider") return res.status(403).json({ message: "Provider only" });
+      const provider = await storage.getProviderByUserId(req.user.id);
+      if (!provider) return res.status(404).json({ message: "Provider not found" });
+      const list = await storage.getReviewsByProvider(provider.id);
+      res.json(list);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to load reviews" });
+    }
+  });
+
+  // Reply to a review
+  app.patch("/api/reviews/:id/reply", authenticateToken, async (req: AuthRequest, res: Response) => {
+    try {
+      const { reply } = req.body as { reply?: string };
+      if (!reply || !reply.trim()) return res.status(400).json({ message: "Reply text required" });
+      const review = await storage.getReview(req.params.id);
+      if (!review) return res.status(404).json({ message: "Review not found" });
+      if (req.user?.role !== "admin") {
+        if (req.user?.role !== "provider") return res.status(403).json({ message: "Forbidden" });
+        const provider = await storage.getProviderByUserId(req.user.id);
+        if (!provider || provider.id !== review.providerId) {
+          return res.status(403).json({ message: "Not your review" });
+        }
+      }
+      const updated = await storage.replyToReview(req.params.id, reply.trim());
+      // notify the patient
+      try {
+        await storage.createUserNotification({
+          userId: review.patientId,
+          type: "review",
+          title: "Provider replied to your review",
+          message: reply.trim().slice(0, 140),
+          isRead: false,
+        });
+      } catch {}
+      res.json(updated);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to reply" });
+    }
+  });
+
+  // Duplicate service
+  app.post("/api/services/:id/duplicate", authenticateToken, async (req: AuthRequest, res: Response) => {
+    try {
+      const src = await storage.getService(req.params.id);
+      if (!src) return res.status(404).json({ message: "Service not found" });
+      if (req.user?.role !== "admin") {
+        const provider = await storage.getProviderByUserId(req.user!.id);
+        if (!provider || provider.id !== src.providerId) {
+          return res.status(403).json({ message: "Forbidden" });
+        }
+      }
+      const copy = await storage.duplicateService(req.params.id);
+      res.status(201).json(copy);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to duplicate service" });
+    }
+  });
+
+  // Reorder services
+  app.patch("/api/services/reorder", authenticateToken, async (req: AuthRequest, res: Response) => {
+    try {
+      const { updates } = req.body as { updates: { id: string; sortOrder: number }[] };
+      if (!Array.isArray(updates) || updates.length === 0) {
+        return res.status(400).json({ message: "Updates required" });
+      }
+      // Authorisation: every service must belong to caller (or admin)
+      if (req.user?.role !== "admin") {
+        const provider = await storage.getProviderByUserId(req.user!.id);
+        if (!provider) return res.status(403).json({ message: "Forbidden" });
+        for (const u of updates) {
+          const s = await storage.getService(u.id);
+          if (!s || s.providerId !== provider.id) {
+            return res.status(403).json({ message: "Not your service" });
+          }
+        }
+      }
+      await storage.reorderServices(updates);
+      res.status(204).end();
+    } catch (error) {
+      res.status(500).json({ message: "Failed to reorder" });
+    }
+  });
+
+  // Bulk availability (weekly slot generator)
+  app.post("/api/availability/bulk", authenticateToken, async (req: AuthRequest, res: Response) => {
+    try {
+      if (req.user?.role !== "provider" && req.user?.role !== "admin") {
+        return res.status(403).json({ message: "Provider only" });
+      }
+      const provider = await storage.getProviderByUserId(req.user!.id);
+      if (!provider && req.user?.role !== "admin") {
+        return res.status(404).json({ message: "Provider not found" });
+      }
+      const { dates, slots, replaceExisting } = req.body as {
+        dates: string[];
+        slots: { startTime: string; endTime: string }[];
+        replaceExisting?: boolean;
+      };
+      if (!Array.isArray(dates) || dates.length === 0 || !Array.isArray(slots) || slots.length === 0) {
+        return res.status(400).json({ message: "dates and slots required" });
+      }
+      const providerId = provider!.id;
+      if (replaceExisting) {
+        for (const d of dates) {
+          await storage.deleteTimeSlotsByProviderAndDate(providerId, d);
+        }
+      }
+      const toCreate = dates.flatMap((date) =>
+        slots.map((s) => ({
+          providerId,
+          date,
+          startTime: s.startTime,
+          endTime: s.endTime,
+          isBooked: false,
+          isBlocked: false,
+        })),
+      );
+      const created = await storage.bulkCreateTimeSlots(toCreate as any);
+      res.status(201).json({ count: created.length });
+    } catch (error) {
+      console.error("[availability/bulk] error:", error);
+      res.status(500).json({ message: "Failed to create slots" });
+    }
+  });
+
+  // Reschedule / edit appointment fields (date, time, privateNote)
+  app.patch("/api/appointments/:id", authenticateToken, async (req: AuthRequest, res: Response) => {
+    try {
+      const existing = await storage.getAppointment(req.params.id);
+      if (!existing) return res.status(404).json({ message: "Appointment not found" });
+
+      // Authorisation: admin OR provider owning the appointment
+      if (req.user?.role !== "admin") {
+        if (req.user?.role !== "provider") return res.status(403).json({ message: "Forbidden" });
+        const provider = await storage.getProviderByUserId(req.user.id);
+        if (!provider || provider.id !== existing.providerId) {
+          return res.status(403).json({ message: "Forbidden" });
+        }
+      }
+
+      const allowed: any = {};
+      const { date, startTime, endTime, privateNote, notes } = req.body as any;
+      if (date) allowed.date = String(date);
+      if (startTime) allowed.startTime = startTime;
+      if (endTime) allowed.endTime = endTime;
+      if (typeof privateNote === "string") allowed.privateNote = privateNote;
+      if (typeof notes === "string") allowed.notes = notes;
+
+      const isReschedule = !!(date || startTime || endTime);
+      if (isReschedule) {
+        allowed.status = "rescheduled";
+      }
+
+      const updated = await storage.updateAppointment(req.params.id, allowed);
+
+      if (isReschedule && updated) {
+        try {
+          await storage.createUserNotification({
+            userId: updated.patientId,
+            type: "appointment",
+            title: "Appointment rescheduled",
+            message: `Your appointment was rescheduled to ${updated.date} at ${updated.startTime}.`,
+            isRead: false,
+          });
+        } catch {}
+      }
+      res.json(updated);
+    } catch (error) {
+      console.error("[PATCH /api/appointments/:id] error:", error);
+      res.status(500).json({ message: "Failed to update appointment" });
+    }
+  });
+
   // Setup provider profile
   app.post("/api/provider/setup", authenticateToken, async (req: AuthRequest, res: Response) => {
     try {

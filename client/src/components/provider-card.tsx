@@ -72,8 +72,12 @@ export function ProviderCard({ provider, nextAvailable }: ProviderCardProps) {
                       initial={{ scale: 0 }}
                       animate={{ scale: 1 }}
                       transition={{ delay: 0.2, type: "spring" }}
+                      data-testid={`badge-verified-${provider.id}`}
                     >
-                      <CheckCircle className="h-5 w-5 text-primary flex-shrink-0" />
+                      <Badge className="bg-emerald-100 text-emerald-700 border border-emerald-300 hover:bg-emerald-100 flex items-center gap-1 px-2 py-0.5">
+                        <CheckCircle className="h-3.5 w-3.5" />
+                        <span className="text-xs font-semibold">Verified</span>
+                      </Badge>
                     </motion.div>
                   )}
                 </div>

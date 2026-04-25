@@ -42,6 +42,7 @@ export default function Providers() {
     priceRange: [0, 500] as [number, number],
     homeVisit: false,
     online: false,
+    verifiedOnly: false,
   });
   const [sortBy, setSortBy] = useState("rating");
 
@@ -87,6 +88,7 @@ export default function Providers() {
       if (fee < filters.priceRange[0] || fee > filters.priceRange[1]) return false;
     }
     if (filters.homeVisit && !p.homeVisitFee) return false;
+    if (filters.verifiedOnly && !p.isVerified) return false;
     if (filters.location && p.user.city) {
       if (!p.user.city.toLowerCase().includes(filters.location.toLowerCase())) return false;
     }
@@ -205,6 +207,17 @@ export default function Providers() {
               {t("providers.online_consultation")}
             </label>
           </div>
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="verifiedOnly"
+              checked={filters.verifiedOnly}
+              onCheckedChange={(checked) => setFilters({ ...filters, verifiedOnly: !!checked })}
+              data-testid="filter-verified-only"
+            />
+            <label htmlFor="verifiedOnly" className="text-sm cursor-pointer">
+              {t("providers.verified_only", "Verified providers only")}
+            </label>
+          </div>
         </div>
       </div>
 
@@ -218,6 +231,7 @@ export default function Providers() {
           priceRange: [0, 500],
           homeVisit: false,
           online: false,
+          verifiedOnly: false,
         })}
         data-testid="button-clear-filters"
       >
@@ -324,6 +338,7 @@ export default function Providers() {
                         priceRange: [0, 500],
                         homeVisit: false,
                         online: false,
+                        verifiedOnly: false,
                       })}
                       data-testid="button-reset-filters"
                     >

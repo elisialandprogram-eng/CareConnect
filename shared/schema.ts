@@ -199,6 +199,7 @@ export const appointments = pgTable("appointments", {
   visitType: visitTypeEnum("visit_type").notNull(),
   status: appointmentStatusEnum("status").notNull().default("pending"),
   notes: text("notes"),
+  privateNote: text("private_note"),
   patientAddress: text("patient_address"),
   patientLatitude: doublePrecision("patient_latitude"),
   patientLongitude: doublePrecision("patient_longitude"),
@@ -252,6 +253,8 @@ export const reviews = pgTable("reviews", {
   providerId: varchar("provider_id").notNull().references(() => providers.id),
   rating: integer("rating").notNull(),
   comment: text("comment"),
+  providerReply: text("provider_reply"),
+  providerReplyAt: timestamp("provider_reply_at"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
