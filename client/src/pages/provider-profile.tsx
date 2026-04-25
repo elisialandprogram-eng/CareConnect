@@ -37,10 +37,32 @@ export default function ProviderProfile() {
   const [selectedSessions, setSelectedSessions] = useState<{ date: Date; time: string }[]>([]);
   const [visitType, setVisitType] = useState<"online" | "home" | "clinic">("online");
 
-  const timeSlots = [
+  const dateStr = selectedDate ? selectedDate.toISOString().split("T")[0] : "";
+
+  // Default fallback catalogue used only when the provider hasn't published any
+  // explicit time slots for the selected day.
+  const DEFAULT_TIMES = [
     "09:00", "09:30", "10:00", "10:30", "11:00", "11:30",
     "14:00", "14:30", "15:00", "15:30", "16:00", "16:30", "17:00",
   ];
+
+  const { data: availableSlots = [] } = useQuery<{ startTime: string; isBooked: boolean; isBlocked: boolean }[]>({
+    queryKey: [`/api/providers/${id}/available-slots`, dateStr],
+    queryFn: async () => {
+      const res = await fetch(`/api/providers/${id}/available-slots?date=${dateStr}`);
+      if (!res.ok) return [];
+      return res.json();
+    },
+    enabled: !!id && !!dateStr,
+  });
+
+  // If the provider published their own slots, use those; otherwise show the default
+  // catalogue. Booked / blocked times are surfaced so the UI can disable them.
+  const publishedTimes = availableSlots.map(s => s.startTime);
+  const timeSlots = publishedTimes.length > 0 ? publishedTimes : DEFAULT_TIMES;
+  const unavailableTimes = new Set(
+    availableSlots.filter(s => s.isBooked || s.isBlocked).map(s => s.startTime),
+  );
 
   const toggleSession = (time: string) => {
     if (!selectedDate) return;
@@ -578,13 +600,17 @@ export default function ProviderProfile() {
                     <div className="grid grid-cols-3 gap-2">
                       {timeSlots.map((time) => {
                         const isSelected = selectedSessions.some(s => s.date.toISOString().split("T")[0] === (selectedDate?.toISOString().split("T")[0]) && s.time === time);
+                        const isUnavailable = unavailableTimes.has(time);
                         return (
                           <Button
                             key={time}
                             variant={isSelected ? "default" : "outline"}
                             size="sm"
                             onClick={() => toggleSession(time)}
+                            disabled={isUnavailable}
+                            title={isUnavailable ? t("profile.slot_unavailable", "Already booked") : undefined}
                             data-testid={`time-${time}`}
+                            className={isUnavailable ? "opacity-50 line-through" : ""}
                           >
                             {time}
                           </Button>

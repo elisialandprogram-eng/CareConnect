@@ -106,6 +106,9 @@ import {
   type InsertPatientConsent,
   type MedicalPractitioner,
   type InsertMedicalPractitioner,
+  savedProviders,
+  type SavedProvider,
+  type InsertSavedProvider,
   type Practitioner,
   type InsertPractitioner,
   type ServicePractitioner,
@@ -185,6 +188,16 @@ export interface IStorage {
   createTimeSlot(slot: InsertTimeSlot): Promise<TimeSlot>;
   updateTimeSlot(id: string, data: Partial<InsertTimeSlot>): Promise<TimeSlot | undefined>;
   deleteTimeSlot(id: string): Promise<void>;
+  reserveTimeSlot(providerId: string, date: string, startTime: string, endTime: string): Promise<TimeSlot>;
+
+  // Saved Providers (favourites)
+  addSavedProvider(patientId: string, providerId: string): Promise<SavedProvider>;
+  removeSavedProvider(patientId: string, providerId: string): Promise<void>;
+  listSavedProviders(patientId: string): Promise<ProviderWithUser[]>;
+  isProviderSaved(patientId: string, providerId: string): Promise<boolean>;
+
+  // Provider stats
+  getProviderResponseTimeMinutes(providerId: string): Promise<number | null>;
 
   // Appointments
   getAppointment(id: string): Promise<Appointment | undefined>;
@@ -1510,6 +1523,106 @@ export class DatabaseStorage implements IStorage {
   async getPendingInvoiceAppointments(): Promise<any[]> {
     return db.select().from(appointments)
       .where(and(eq(appointments.status, "completed"), eq(appointments.invoiceGenerated, false)));
+  }
+
+  // Find-or-create a time slot for an exact provider/date/time and atomically
+  // mark it as booked. If the slot is already booked, throws.
+  async reserveTimeSlot(providerId: string, date: string, startTime: string, endTime: string): Promise<TimeSlot> {
+    return await db.transaction(async (tx) => {
+      const existing = await tx
+        .select()
+        .from(timeSlots)
+        .where(and(
+          eq(timeSlots.providerId, providerId),
+          eq(timeSlots.date, date),
+          eq(timeSlots.startTime, startTime),
+        ))
+        .limit(1);
+
+      if (existing.length > 0) {
+        const slot = existing[0];
+        if (slot.isBooked) throw new Error("This time slot is already booked.");
+        if (slot.isBlocked) throw new Error("This time slot is unavailable.");
+        const [updated] = await tx.update(timeSlots)
+          .set({ isBooked: true })
+          .where(eq(timeSlots.id, slot.id))
+          .returning();
+        return updated;
+      }
+
+      const [created] = await tx.insert(timeSlots).values({
+        providerId,
+        date,
+        startTime,
+        endTime,
+        isBooked: true,
+        isBlocked: false,
+      }).returning();
+      return created;
+    });
+  }
+
+  async addSavedProvider(patientId: string, providerId: string): Promise<SavedProvider> {
+    const existing = await db.select().from(savedProviders).where(and(
+      eq(savedProviders.patientId, patientId),
+      eq(savedProviders.providerId, providerId),
+    )).limit(1);
+    if (existing.length > 0) return existing[0];
+    const [created] = await db.insert(savedProviders).values({ patientId, providerId }).returning();
+    return created;
+  }
+
+  async removeSavedProvider(patientId: string, providerId: string): Promise<void> {
+    await db.delete(savedProviders).where(and(
+      eq(savedProviders.patientId, patientId),
+      eq(savedProviders.providerId, providerId),
+    ));
+  }
+
+  async listSavedProviders(patientId: string): Promise<ProviderWithUser[]> {
+    const result = await db
+      .select({ providers: providers, users: users })
+      .from(savedProviders)
+      .innerJoin(providers, eq(savedProviders.providerId, providers.id))
+      .innerJoin(users, eq(providers.userId, users.id))
+      .where(eq(savedProviders.patientId, patientId))
+      .orderBy(desc(savedProviders.createdAt));
+    return result.map(r => ({ ...r.providers, user: r.users }));
+  }
+
+  async isProviderSaved(patientId: string, providerId: string): Promise<boolean> {
+    const rows = await db.select({ id: savedProviders.id }).from(savedProviders).where(and(
+      eq(savedProviders.patientId, patientId),
+      eq(savedProviders.providerId, providerId),
+    )).limit(1);
+    return rows.length > 0;
+  }
+
+  // Average minutes between appointment creation and the first non-pending status change.
+  // We approximate by using updatedAt - createdAt for appointments that left "pending".
+  async getProviderResponseTimeMinutes(providerId: string): Promise<number | null> {
+    const recent = await db.select({
+      createdAt: appointments.createdAt,
+      updatedAt: appointments.updatedAt,
+      status: appointments.status,
+    })
+      .from(appointments)
+      .where(and(
+        eq(appointments.providerId, providerId),
+      ))
+      .orderBy(desc(appointments.createdAt))
+      .limit(20);
+
+    const responded = recent.filter(a =>
+      a.status !== "pending" &&
+      a.createdAt && a.updatedAt &&
+      a.updatedAt.getTime() > a.createdAt.getTime()
+    );
+    if (responded.length === 0) return null;
+    const totalMinutes = responded.reduce((sum, a) =>
+      sum + Math.round((a.updatedAt!.getTime() - a.createdAt!.getTime()) / 60000)
+    , 0);
+    return Math.round(totalMinutes / responded.length);
   }
 }
 

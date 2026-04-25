@@ -32,6 +32,43 @@ import { eq, and, desc, or } from "drizzle-orm";
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 const FROM_EMAIL = "GoldenLife <no-reply@goldenlife.health>";
 
+async function sendAppointmentEmail(opts: {
+  to: string;
+  subject: string;
+  heading: string;
+  intro: string;
+  details: { label: string; value: string }[];
+  cta?: string;
+}) {
+  if (!resend) return;
+  try {
+    const detailRows = opts.details
+      .map(d => `<p style="margin: 5px 0;"><strong>${d.label}:</strong> ${d.value}</p>`)
+      .join("");
+    await resend.emails.send({
+      from: FROM_EMAIL,
+      to: opts.to,
+      subject: opts.subject,
+      html: `
+        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;">
+          <h2 style="color: #0f172a;">${opts.heading}</h2>
+          <p>${opts.intro}</p>
+          <div style="background-color: #f8fafc; padding: 15px; border-radius: 8px; margin: 20px 0;">
+            ${detailRows}
+          </div>
+          ${opts.cta ? `<p>${opts.cta}</p>` : ""}
+          <p style="color: #64748b; font-size: 0.875rem; margin-top: 30px;">
+            Thank you for choosing GoldenLife.<br>
+            <em>This is an automated message, please do not reply.</em>
+          </p>
+        </div>
+      `,
+    });
+  } catch (err) {
+    console.error(`Failed to send "${opts.subject}" email:`, err);
+  }
+}
+
 // Helper to hash OTP
 const hashOtp = (otp: string) => createHash('sha256').update(otp).digest('hex');
 
@@ -50,6 +87,7 @@ import {
   getStripeMode,
   createCheckoutSession,
 } from "./stripe";
+import { icsAttachment } from "./utils/ics";
 
 const JWT_SECRET = process.env.SESSION_SECRET || "careconnect-jwt-secret-key";
 const JWT_EXPIRES_IN = "15m";
@@ -1056,6 +1094,104 @@ export async function registerRoutes(
     }
   });
 
+  // Get provider's average response time (minutes)
+  app.get("/api/providers/:id/response-time", async (req: Request, res: Response) => {
+    try {
+      const minutes = await storage.getProviderResponseTimeMinutes(req.params.id);
+      res.json({ minutes });
+    } catch (error) {
+      console.error("Response time error:", error);
+      res.status(500).json({ message: "Failed to get response time" });
+    }
+  });
+
+  // Get available time slots for a provider on a given date.
+  // Combines the provider's published slots with their existing appointments
+  // so the booking UI can disable already-booked times.
+  app.get("/api/providers/:id/available-slots", async (req: Request, res: Response) => {
+    try {
+      const { date } = req.query as { date?: string };
+      if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+        return res.status(400).json({ message: "date query param required (YYYY-MM-DD)" });
+      }
+      const slots = await storage.getTimeSlotsByProvider(req.params.id, date);
+      const appointments = await storage.getAppointmentsByProvider(req.params.id);
+      const blockedTimes = new Set(
+        appointments
+          .filter(a => a.date === date && !["cancelled", "rejected"].includes(a.status))
+          .map(a => a.startTime),
+      );
+
+      // Mark each slot as available/booked. If provider hasn't published any slots,
+      // return an empty array — booking UI will fall back to the default catalogue.
+      const result = slots.map(s => ({
+        id: s.id,
+        date: s.date,
+        startTime: s.startTime,
+        endTime: s.endTime,
+        isBooked: s.isBooked || blockedTimes.has(s.startTime),
+        isBlocked: s.isBlocked,
+      }));
+      res.json(result);
+    } catch (error) {
+      console.error("Available slots error:", error);
+      res.status(500).json({ message: "Failed to get available slots" });
+    }
+  });
+
+  // ============ SAVED PROVIDERS (favourites) ============
+  app.get("/api/saved-providers", authenticateToken, async (req: AuthRequest, res: Response) => {
+    try {
+      if (req.user?.role !== "patient") {
+        return res.status(403).json({ message: "Patient access required" });
+      }
+      const list = await storage.listSavedProviders(req.user.id);
+      res.json(list);
+    } catch (error) {
+      console.error("List saved providers error:", error);
+      res.status(500).json({ message: "Failed to list saved providers" });
+    }
+  });
+
+  app.get("/api/saved-providers/:providerId", authenticateToken, async (req: AuthRequest, res: Response) => {
+    try {
+      if (req.user?.role !== "patient") return res.json({ saved: false });
+      const saved = await storage.isProviderSaved(req.user.id, req.params.providerId);
+      res.json({ saved });
+    } catch (error) {
+      console.error("Check saved provider error:", error);
+      res.status(500).json({ message: "Failed to check saved status" });
+    }
+  });
+
+  app.post("/api/saved-providers/:providerId", authenticateToken, async (req: AuthRequest, res: Response) => {
+    try {
+      if (req.user?.role !== "patient") {
+        return res.status(403).json({ message: "Patient access required" });
+      }
+      const provider = await storage.getProvider(req.params.providerId);
+      if (!provider) return res.status(404).json({ message: "Provider not found" });
+      const saved = await storage.addSavedProvider(req.user.id, req.params.providerId);
+      res.status(201).json(saved);
+    } catch (error) {
+      console.error("Add saved provider error:", error);
+      res.status(500).json({ message: "Failed to save provider" });
+    }
+  });
+
+  app.delete("/api/saved-providers/:providerId", authenticateToken, async (req: AuthRequest, res: Response) => {
+    try {
+      if (req.user?.role !== "patient") {
+        return res.status(403).json({ message: "Patient access required" });
+      }
+      await storage.removeSavedProvider(req.user.id, req.params.providerId);
+      res.status(204).end();
+    } catch (error) {
+      console.error("Remove saved provider error:", error);
+      res.status(500).json({ message: "Failed to remove saved provider" });
+    }
+  });
+
   // Create support ticket
   app.post("/api/support/tickets", optionalAuth, async (req: AuthRequest, res: Response) => {
     try {
@@ -1757,11 +1893,23 @@ export async function registerRoutes(
         totalAmount: fee.toString()
       });
 
+      // Reserve the time slot atomically (find-or-create then mark booked).
+      // If another patient already reserved this exact slot we abort with 409.
+      let reservedSlotId: string | null = null;
+      try {
+        const reserved = await storage.reserveTimeSlot(providerId, date, startTime, endTime);
+        reservedSlotId = reserved.id;
+      } catch (slotErr: any) {
+        console.warn("Slot reservation failed:", slotErr?.message);
+        return res.status(409).json({ message: slotErr?.message || "This time slot is no longer available." });
+      }
+
       const appointment = await storage.createAppointment({
         patientId: userId,
         providerId,
         serviceId: serviceId || null,
         practitionerId: practitionerId || null,
+        timeSlotId: reservedSlotId,
         date,
         startTime,
         endTime,
@@ -1773,6 +1921,19 @@ export async function registerRoutes(
         patientLongitude: typeof patientLongitude === "number" ? patientLongitude : null,
         totalAmount: fee.toString(),
       });
+
+      // Optionally save the address to the patient's profile for next time.
+      if (req.body.saveAddressToProfile === true && patientAddress) {
+        try {
+          await storage.updateUser(userId, {
+            address: patientAddress,
+            ...(typeof patientLatitude === "number" ? { savedLatitude: patientLatitude } : {}),
+            ...(typeof patientLongitude === "number" ? { savedLongitude: patientLongitude } : {}),
+          } as any);
+        } catch (saveErr) {
+          console.error("Failed to save address to profile:", saveErr);
+        }
+      }
 
       console.log("Appointment created:", appointment.id);
 
@@ -1855,6 +2016,18 @@ export async function registerRoutes(
           
           console.log(`Attempting to send booking confirmation to ${user.email}`);
           
+          const ics = icsAttachment(`appointment-${appointment.id}.ics`, {
+            uid: appointment.id,
+            title: `GoldenLife appointment with ${providerWithUser?.user.firstName} ${providerWithUser?.user.lastName}`,
+            description: `${service ? service.name + " — " : ""}${visitType === "home" ? "Home visit" : "Online consultation"}`,
+            location: visitType === "home" ? (patientAddress || "Patient address") : "Online",
+            date,
+            startTime,
+            endTime,
+            organizerName: "GoldenLife",
+            organizerEmail: "no-reply@goldenlife.health",
+          });
+
           const emailResult = await resend.emails.send({
             from: FROM_EMAIL,
             to: user.email,
@@ -1871,9 +2044,10 @@ export async function registerRoutes(
                   <p style="margin: 5px 0;"><strong>Time:</strong> ${startTime} - ${endTime}</p>
                   ${service ? `<p style="margin: 5px 0;"><strong>Service:</strong> ${service.name}</p>` : ''}
                   <p style="margin: 5px 0;"><strong>Visit Type:</strong> ${visitType === 'home' ? 'Home Visit' : 'Online Consultation'}</p>
-                  <p style="margin: 5px 0;"><strong>Total Amount:</strong> $${fee}</p>
+                  <p style="margin: 5px 0;"><strong>Total Amount:</strong> ${fee} HUF</p>
                 </div>
 
+                <p>A calendar invite (<code>.ics</code>) is attached — open it to add this appointment to your calendar.</p>
                 <p>You can view and manage your appointment in your patient dashboard.</p>
                 <p style="color: #64748b; font-size: 0.875rem; margin-top: 30px;">
                   Thank you for choosing GoldenLife.<br>
@@ -1881,6 +2055,7 @@ export async function registerRoutes(
                 </p>
               </div>
             `,
+            attachments: [ics as any],
           });
           console.log("Email send result:", emailResult);
         } catch (emailError) {
@@ -1949,7 +2124,7 @@ export async function registerRoutes(
         }
       }
 
-      const appointment = await storage.updateAppointment(req.params.id, { status });
+      const appointment = await storage.updateAppointment(req.params.id, { status: status as any });
       if (!appointment) {
         return res.status(404).json({ message: "Appointment not found" });
       }
@@ -1984,6 +2159,26 @@ export async function registerRoutes(
             message: statusMessages[status],
             isRead: false,
           });
+        }
+
+        // Email the patient when their appointment is completed (review request)
+        if (status === "completed") {
+          const patient = await storage.getUser(patientId);
+          const providerWithUser = await storage.getProviderWithUser(appointment.providerId);
+          if (patient) {
+            await sendAppointmentEmail({
+              to: patient.email,
+              subject: "How was your appointment? - GoldenLife",
+              heading: "Your appointment is complete",
+              intro: `Hello ${patient.firstName}, your appointment with ${providerWithUser?.user.firstName ?? ""} ${providerWithUser?.user.lastName ?? ""} on ${appointment.date} at ${appointment.startTime} has been marked as completed.`,
+              details: [
+                { label: "Date", value: appointment.date },
+                { label: "Time", value: `${appointment.startTime} - ${appointment.endTime}` },
+                ...(invoiceResult?.invoiceNumber ? [{ label: "Invoice", value: invoiceResult.invoiceNumber }] : []),
+              ],
+              cta: "Please take a moment to leave a review for your provider — your feedback helps other patients choose the right care.",
+            });
+          }
         }
       } catch (notifyError) {
         console.error("Failed to create status update notification:", notifyError);
@@ -2035,10 +2230,33 @@ export async function registerRoutes(
             userId: appointment.patientId,
             type: "payment",
             title: "Payment received",
-            message: `Your payment of $${Number(payment.amount).toFixed(2)} has been recorded.`,
+            message: `Your payment of ${Number(payment.amount).toFixed(0)} HUF has been recorded.`,
             isRead: false,
           });
         } catch {}
+
+        // Email payment receipt to the patient
+        try {
+          const patient = await storage.getUser(appointment.patientId);
+          const providerWithUser = await storage.getProviderWithUser(appointment.providerId);
+          if (patient) {
+            await sendAppointmentEmail({
+              to: patient.email,
+              subject: "Payment receipt - GoldenLife",
+              heading: "Payment received",
+              intro: `Hello ${patient.firstName}, we've recorded your payment for your appointment with ${providerWithUser?.user.firstName ?? ""} ${providerWithUser?.user.lastName ?? ""}.`,
+              details: [
+                { label: "Date", value: appointment.date },
+                { label: "Time", value: `${appointment.startTime} - ${appointment.endTime}` },
+                { label: "Amount", value: `${Number(payment.amount).toFixed(0)} HUF` },
+                { label: "Method", value: payment.paymentMethod || "card" },
+              ],
+              cta: "An invoice for your records is available in your patient dashboard.",
+            });
+          }
+        } catch (e) {
+          console.error("Payment receipt email failed:", e);
+        }
       }
 
       res.json(updated);
@@ -2153,9 +2371,10 @@ export async function registerRoutes(
         }
       }
 
-      // Notify the other party
+      // Notify the other party + send cancellation emails to both sides
       try {
         const providerWithUser = await storage.getProviderWithUser(appointment.providerId);
+        const patient = await storage.getUser(appointment.patientId);
         const cancelledBy = req.user?.role === "patient" ? "patient" : req.user?.role === "provider" ? "provider" : "admin";
         const recipientUserId = cancelledBy === "patient" ? providerWithUser?.userId : appointment.patientId;
         if (recipientUserId) {
@@ -2167,8 +2386,36 @@ export async function registerRoutes(
             isRead: false,
           });
         }
+
+        const details = [
+          { label: "Date", value: appointment.date },
+          { label: "Time", value: `${appointment.startTime} - ${appointment.endTime}` },
+          { label: "Cancelled by", value: cancelledBy },
+        ];
+        if (patient) {
+          await sendAppointmentEmail({
+            to: patient.email,
+            subject: "Appointment cancelled - GoldenLife",
+            heading: "Appointment cancelled",
+            intro: `Hello ${patient.firstName}, your appointment with ${providerWithUser?.user.firstName ?? ""} ${providerWithUser?.user.lastName ?? ""} has been cancelled.`,
+            details,
+            cta: cancelledBy === "patient" ? undefined : "If this was unexpected, you can rebook from your patient dashboard.",
+          });
+        }
+        if (providerWithUser?.user?.email) {
+          await sendAppointmentEmail({
+            to: providerWithUser.user.email,
+            subject: "Appointment cancelled - GoldenLife",
+            heading: "Appointment cancelled",
+            intro: `Hello ${providerWithUser.user.firstName}, an appointment in your schedule has been cancelled.`,
+            details: [
+              ...details,
+              { label: "Patient", value: patient ? `${patient.firstName} ${patient.lastName}` : "Patient" },
+            ],
+          });
+        }
       } catch (e) {
-        console.error("Cancel notification failed:", e);
+        console.error("Cancel notification/email failed:", e);
       }
 
       res.json(appointment);

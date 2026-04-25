@@ -77,19 +77,25 @@ export default function Booking() {
   const [paymentMethod, setPaymentMethod] = useState("card");
   const [location, setLocation] = useState<PickedLocation>({
     address: user?.address || "",
-    latitude: null,
-    longitude: null,
+    latitude: (user as any)?.savedLatitude ?? null,
+    longitude: (user as any)?.savedLongitude ?? null,
   });
   const [contactPerson, setContactPerson] = useState(`${user?.firstName || ""} ${user?.lastName || ""}`.trim());
   const [contactMobile, setContactMobile] = useState(user?.mobileNumber || user?.phone || "");
-  const [notes, setNotes] = useState("");
+  const [notes, setNotes] = useState(params.get("notes") || "");
+  const [saveAddressToProfile, setSaveAddressToProfile] = useState(false);
   const [step, setStep] = useState<"details" | "confirmed">("details");
   const [consentChecked, setConsentChecked] = useState(false);
 
   useEffect(() => {
     if (user) {
       if (!location.address) {
-        setLocation((prev) => ({ ...prev, address: user.address || "" }));
+        setLocation((prev) => ({
+          ...prev,
+          address: user.address || "",
+          latitude: (user as any).savedLatitude ?? prev.latitude,
+          longitude: (user as any).savedLongitude ?? prev.longitude,
+        }));
       }
       if (!contactPerson) {
         const name = `${user.firstName || ""} ${user.lastName || ""}`.trim();
@@ -226,6 +232,7 @@ export default function Booking() {
       date: finalSessions[0].date,
       startTime: finalSessions[0].time,
       endTime: "10:00", // Simplified for fast mode
+      saveAddressToProfile,
     };
 
     bookingMutation.mutate({ sessions: [bookingData] });
@@ -476,6 +483,20 @@ export default function Booking() {
                       required={visitType === "home"}
                       label={`${t("booking.address")}${visitType !== "home" ? ` ${t("booking.optional")}` : ""}`}
                     />
+
+                    {location.address && location.address !== user?.address && (
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id="save-address"
+                          checked={saveAddressToProfile}
+                          onCheckedChange={(v) => setSaveAddressToProfile(v === true)}
+                          data-testid="checkbox-save-address"
+                        />
+                        <Label htmlFor="save-address" className="text-sm font-normal cursor-pointer">
+                          {t("booking.save_address_to_profile", "Save this address to my profile for next time")}
+                        </Label>
+                      </div>
+                    )}
 
                   </div>
 

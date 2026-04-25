@@ -32,6 +32,8 @@ export const users = pgTable("users", {
   city: text("city"),
   state: text("state"),
   zipCode: text("zip_code"),
+  savedLatitude: doublePrecision("saved_latitude"),
+  savedLongitude: doublePrecision("saved_longitude"),
   gender: text("gender"),
   socialNumber: text("social_number"),
   emergencyContactName: text("emergency_contact_name"),
@@ -564,8 +566,18 @@ export const medicalPractitioners = pgTable("medical_practitioners", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const savedProviders = pgTable("saved_providers", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  patientId: varchar("patient_id").notNull().references(() => users.id),
+  providerId: varchar("provider_id").notNull().references(() => providers.id),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => ({
+  unq: sql`UNIQUE(${table.patientId}, ${table.providerId})`,
+}));
+
 // Schemas
 export const insertUserSchema = createInsertSchema(users).omit({ id: true, createdAt: true });
+export const insertSavedProviderSchema = createInsertSchema(savedProviders).omit({ id: true, createdAt: true });
 export const insertProviderSchema = createInsertSchema(providers).omit({ id: true, createdAt: true, rating: true, totalReviews: true });
 export const insertServiceSchema = createInsertSchema(services).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertPractitionerSchema = createInsertSchema(practitioners).omit({ id: true, createdAt: true, updatedAt: true });
@@ -691,6 +703,8 @@ export type PatientConsent = typeof patientConsents.$inferSelect;
 export type InsertPatientConsent = z.infer<typeof insertPatientConsentSchema>;
 export type MedicalPractitioner = typeof medicalPractitioners.$inferSelect;
 export type InsertMedicalPractitioner = z.infer<typeof insertMedicalPractitionerSchema>;
+export type SavedProvider = typeof savedProviders.$inferSelect;
+export type InsertSavedProvider = z.infer<typeof insertSavedProviderSchema>;
 
 export type ProviderWithUser = Provider & { user: User };
 export type ProviderWithServices = ProviderWithUser & { 

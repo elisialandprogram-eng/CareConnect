@@ -42,7 +42,9 @@ import {
   Building2,
   Banknote,
 } from "lucide-react";
-import type { AppointmentWithDetails, Prescription, MedicalHistory } from "@shared/schema";
+import type { AppointmentWithDetails, Prescription, MedicalHistory, ProviderWithUser } from "@shared/schema";
+import { ProviderCard } from "@/components/provider-card";
+import { Heart, RefreshCw } from "lucide-react";
 
 const PrescriptionList = ({ patientId }: { patientId?: string }) => {
   const { t } = useTranslation();
@@ -138,6 +140,11 @@ export default function PatientDashboard() {
 
   const { data: invoices, isLoading: isLoadingInvoices } = useQuery<any[]>({
     queryKey: ["/api/invoices/me"],
+  });
+
+  const { data: savedProviders, isLoading: isLoadingSaved } = useQuery<ProviderWithUser[]>({
+    queryKey: ["/api/saved-providers"],
+    enabled: user?.role === "patient",
   });
 
   const cancelMutation = useMutation({
@@ -309,11 +316,24 @@ export default function PatientDashboard() {
             )}
 
             {appointment.status === "completed" && (
-              <div className="mt-4">
+              <div className="mt-4 flex flex-wrap gap-2">
                 <Button size="sm" variant="outline" asChild>
                   <Link href={`/review/${appointment.id}`}>
                     <Star className="h-4 w-4 mr-1" />
                     {t("dashboard.leave_review")}
+                  </Link>
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  asChild
+                  data-testid={`button-rebook-${appointment.id}`}
+                >
+                  <Link
+                    href={`/booking?providerId=${appointment.providerId}${appointment.serviceId ? `&serviceId=${appointment.serviceId}` : ""}&visitType=${appointment.visitType}`}
+                  >
+                    <RefreshCw className="h-4 w-4 mr-1" />
+                    {t("dashboard.book_again", "Book again")}
                   </Link>
                 </Button>
               </div>
@@ -458,6 +478,9 @@ export default function PatientDashboard() {
               <TabsTrigger value="past" data-testid="tab-past">
                 {t("dashboard.all_history", "All history")} ({pastAppointments.length})
               </TabsTrigger>
+              <TabsTrigger value="saved" data-testid="tab-saved">
+                {t("dashboard.saved", "Saved")} ({savedProviders?.length ?? 0})
+              </TabsTrigger>
               <TabsTrigger value="medical" data-testid="tab-medical">
                 {t("dashboard.medical_records")}
               </TabsTrigger>
@@ -563,6 +586,37 @@ export default function PatientDashboard() {
                     <p className="text-muted-foreground">
                       {t("patient_dashboard.empty_past_desc", "Your completed appointments will appear here")}
                     </p>
+                  </CardContent>
+                </Card>
+              )}
+            </TabsContent>
+
+            <TabsContent value="saved" className="mt-2">
+              {isLoadingSaved ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {[1, 2].map((i) => (
+                    <Skeleton key={i} className="h-64 w-full rounded-lg" />
+                  ))}
+                </div>
+              ) : savedProviders && savedProviders.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4" data-testid="grid-saved-providers">
+                  {savedProviders.map((p) => (
+                    <ProviderCard key={p.id} provider={p} />
+                  ))}
+                </div>
+              ) : (
+                <Card>
+                  <CardContent className="p-12 text-center" data-testid="empty-saved">
+                    <Heart className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                    <h3 className="font-semibold text-lg mb-2">
+                      {t("patient_dashboard.empty_saved_title", "No saved providers yet")}
+                    </h3>
+                    <p className="text-muted-foreground mb-4">
+                      {t("patient_dashboard.empty_saved_desc", "Tap the heart icon on any provider card to save them for later.")}
+                    </p>
+                    <Button asChild>
+                      <Link href="/providers">{t("patient_dashboard.find_providers_btn", "Find Providers")}</Link>
+                    </Button>
                   </CardContent>
                 </Card>
               )}

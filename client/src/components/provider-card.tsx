@@ -4,10 +4,13 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Star, MapPin, Clock, CheckCircle, Video, Home } from "lucide-react";
+import { Star, MapPin, Clock, CheckCircle, Video, Home, Heart, MessageSquare, Zap } from "lucide-react";
 import { motion } from "framer-motion";
-import type { ProviderWithUser } from "@shared/schema";
+import type { ProviderWithUser, ReviewWithPatient } from "@shared/schema";
 import { useAuth } from "@/lib/auth";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 interface ProviderCardProps {
   provider: ProviderWithUser;
@@ -16,8 +19,64 @@ interface ProviderCardProps {
 
 export function ProviderCard({ provider, nextAvailable }: ProviderCardProps) {
   const { t } = useTranslation();
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const canBook = !user || user.role === "patient";
+  const { toast } = useToast();
+  const isPatient = isAuthenticated && user?.role === "patient";
+
+  // Lightweight extras only fetched when the card is on screen
+  const { data: savedRes } = useQuery<{ saved: boolean }>({
+    queryKey: ["/api/saved-providers", provider.id, "status"],
+    queryFn: async () => {
+      const r = await fetch(`/api/saved-providers/${provider.id}`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem("token") || ""}` },
+      });
+      if (!r.ok) return { saved: false };
+      return r.json();
+    },
+    enabled: isPatient,
+  });
+  const isSaved = savedRes?.saved === true;
+
+  const { data: responseTime } = useQuery<{ minutes: number | null }>({
+    queryKey: [`/api/providers/${provider.id}/response-time`],
+  });
+
+  const { data: reviewList } = useQuery<ReviewWithPatient[]>({
+    queryKey: [`/api/providers/${provider.id}/reviews`],
+    enabled: Number(provider.totalReviews) > 0,
+  });
+  const topReview = reviewList && reviewList.length > 0 ? reviewList[0] : null;
+
+  const toggleSavedMutation = useMutation({
+    mutationFn: async () => {
+      const method = isSaved ? "DELETE" : "POST";
+      const res = await apiRequest(method, `/api/saved-providers/${provider.id}`);
+      if (!res.ok && res.status !== 204) {
+        throw new Error("Failed to update saved status");
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/saved-providers", provider.id, "status"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/saved-providers"] });
+      toast({
+        title: isSaved
+          ? t("provider_card.removed_from_saved", "Removed from saved")
+          : t("provider_card.added_to_saved", "Added to your saved providers"),
+      });
+    },
+    onError: () => {
+      toast({ title: t("common.error", "Error"), description: t("provider_card.save_failed", "Could not update saved providers"), variant: "destructive" });
+    },
+  });
+
+  const formatResponseTime = (minutes: number) => {
+    if (minutes < 60) return t("provider_card.responds_in_minutes", "{{minutes}} min", { minutes });
+    const hours = Math.round(minutes / 60);
+    if (hours < 24) return t("provider_card.responds_in_hours", "{{hours}}h", { hours });
+    const days = Math.round(hours / 24);
+    return t("provider_card.responds_in_days", "{{days}}d", { days });
+  };
   const getTypeLabel = (type: string) => {
     return t(`common_service_type.${type}`);
   };
@@ -80,6 +139,27 @@ export function ProviderCard({ provider, nextAvailable }: ProviderCardProps) {
                       </Badge>
                     </motion.div>
                   )}
+                  {isPatient && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="ml-auto h-8 w-8 -mr-1 -mt-1"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        toggleSavedMutation.mutate();
+                      }}
+                      disabled={toggleSavedMutation.isPending}
+                      aria-label={isSaved
+                        ? t("provider_card.unsave", "Remove from saved")
+                        : t("provider_card.save", "Save provider")}
+                      data-testid={`button-save-${provider.id}`}
+                    >
+                      <Heart
+                        className={`h-5 w-5 transition-colors ${isSaved ? "fill-red-500 text-red-500" : "text-muted-foreground"}`}
+                      />
+                    </Button>
+                  )}
                 </div>
                 <p className="text-sm text-muted-foreground font-medium">{provider.specialization}</p>
                 <div className="flex items-center gap-2 mt-2">
@@ -127,7 +207,40 @@ export function ProviderCard({ provider, nextAvailable }: ProviderCardProps) {
                   <span className="font-medium">Home Visit</span>
                 </div>
               )}
+              {responseTime?.minutes !== null && responseTime?.minutes !== undefined && (
+                <div
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-50 text-amber-800 dark:bg-amber-900/30 dark:text-amber-200"
+                  data-testid={`response-time-${provider.id}`}
+                  title={t("provider_card.avg_response_time", "Average response time")}
+                >
+                  <Zap className="h-4 w-4" />
+                  <span className="font-medium">{formatResponseTime(responseTime.minutes)}</span>
+                </div>
+              )}
             </div>
+
+            {topReview && topReview.comment && (
+              <div
+                className="rounded-lg border border-border/50 bg-muted/30 p-3 text-xs space-y-1"
+                data-testid={`review-preview-${provider.id}`}
+              >
+                <div className="flex items-center gap-1 text-amber-500">
+                  <MessageSquare className="h-3.5 w-3.5 text-muted-foreground" />
+                  {[...Array(5)].map((_, i) => (
+                    <Star
+                      key={i}
+                      className={`h-3 w-3 ${i < topReview.rating ? "fill-amber-400 text-amber-400" : "fill-muted text-muted"}`}
+                    />
+                  ))}
+                </div>
+                <p className="text-muted-foreground line-clamp-2 italic">
+                  "{topReview.comment}"
+                </p>
+                <p className="text-[11px] text-muted-foreground">
+                  — {topReview.patient?.firstName ?? t("common.patient", "Patient")}
+                </p>
+              </div>
+            )}
 
             <div className="flex items-center justify-between pt-4 border-t">
               <div>

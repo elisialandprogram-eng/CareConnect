@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
@@ -113,6 +114,7 @@ export default function ProviderDashboard() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
+  const [activeTab, setActiveTab] = useState<string>("upcoming");
   const [, setLocation] = useLocation();
 
   const { data: providerData, isLoading: isLoadingProvider } = useQuery<ProviderWithServices>({
@@ -121,23 +123,26 @@ export default function ProviderDashboard() {
 
   const { data: practitioners } = useQuery<Practitioner[]>({
     queryKey: [`/api/providers/${providerData?.id}/practitioners`],
-    enabled: !!providerData?.id,
+    enabled: !!providerData?.id && (activeTab === "services" || activeTab === "upcoming"),
   });
 
+  // Appointments are needed on most tabs and for live counts; poll only when an
+  // appointment-centric tab is active so background tabs don't hammer the API.
+  const appointmentTabs = new Set(["upcoming", "completed", "cancelled", "history", "calendar", "analytics"]);
   const { data: appointments } = useQuery<AppointmentWithDetails[]>({
     queryKey: ["/api/appointments/provider"],
     enabled: !!providerData?.id,
-    refetchInterval: 5000,
+    refetchInterval: appointmentTabs.has(activeTab) ? 5000 : false,
   });
 
   const { data: providerWithServices } = useQuery<ProviderWithServices>({
     queryKey: ["/api/providers", providerData?.id],
-    enabled: !!providerData?.id,
+    enabled: !!providerData?.id && activeTab === "services",
   });
 
   const { data: subServices } = useQuery<any[]>({
     queryKey: ["/api/sub-services", providerData?.providerType],
-    enabled: !!providerData?.providerType,
+    enabled: !!providerData?.providerType && activeTab === "services",
   });
 
   const addPractitionerMutation = useMutation({
@@ -191,6 +196,49 @@ export default function ProviderDashboard() {
     },
     onError: () => {
       toast({ title: t("provider_dashboard.toast_failed_update_appt", "Failed to update appointment"), variant: "destructive" });
+    },
+  });
+
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const toggleSelected = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+  const clearSelected = () => setSelectedIds(new Set());
+
+  const bulkStatusMutation = useMutation({
+    mutationFn: async ({ ids, status }: { ids: string[]; status: "approved" | "rejected" | "cancelled" }) => {
+      const results = await Promise.allSettled(
+        ids.map((id) => apiRequest("PATCH", `/api/appointments/${id}/status`, { status })),
+      );
+      const failed = results.filter((r) => r.status === "rejected").length;
+      return { total: ids.length, failed };
+    },
+    onSuccess: ({ total, failed }, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/appointments/provider"] });
+      clearSelected();
+      const ok = total - failed;
+      if (failed === 0) {
+        toast({
+          title: t("provider_dashboard.toast_bulk_done", "{{count}} appointments updated", { count: ok }),
+        });
+      } else {
+        toast({
+          title: t("provider_dashboard.toast_bulk_partial", "Updated {{ok}} of {{total}}", { ok, total }),
+          description: t("provider_dashboard.toast_bulk_some_failed", "Some updates failed. Please retry."),
+          variant: "destructive",
+        });
+      }
+    },
+    onError: () => {
+      toast({
+        title: t("provider_dashboard.toast_bulk_failed", "Bulk update failed"),
+        variant: "destructive",
+      });
     },
   });
 
@@ -933,7 +981,7 @@ export default function ProviderDashboard() {
             </Card>
           )}
 
-          <Tabs defaultValue="upcoming" className="w-full">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="flex flex-wrap h-auto">
               <TabsTrigger value="upcoming" data-testid="tab-upcoming">
                 {t("provider_dashboard.tab_upcoming", "Upcoming")}
@@ -1021,8 +1069,108 @@ export default function ProviderDashboard() {
             <TabsContent value="upcoming" className="mt-2 space-y-3">
               {(() => {
                 const list = sortByDateAsc(filterAppointments(upcomingAppointments));
+                const pendingList = list.filter((a) => a.status === "pending");
+                const allPendingSelected =
+                  pendingList.length > 0 && pendingList.every((a) => selectedIds.has(a.id));
+                const selectedPendingIds = pendingList
+                  .filter((a) => selectedIds.has(a.id))
+                  .map((a) => a.id);
+                const isBulking = bulkStatusMutation.isPending;
                 return list.length > 0 ? (
-                  list.map((a) => <AppointmentRow key={a.id} appointment={a} />)
+                  <>
+                    {pendingList.length > 0 && (
+                      <div
+                        className="flex flex-wrap items-center gap-3 rounded-lg border bg-muted/30 px-4 py-3"
+                        data-testid="bulk-action-bar"
+                      >
+                        <div className="flex items-center gap-2">
+                          <Checkbox
+                            id="bulk-select-all"
+                            checked={allPendingSelected}
+                            onCheckedChange={(checked) => {
+                              setSelectedIds((prev) => {
+                                const next = new Set(prev);
+                                if (checked) pendingList.forEach((a) => next.add(a.id));
+                                else pendingList.forEach((a) => next.delete(a.id));
+                                return next;
+                              });
+                            }}
+                            data-testid="checkbox-bulk-select-all"
+                          />
+                          <label
+                            htmlFor="bulk-select-all"
+                            className="text-sm font-medium cursor-pointer select-none"
+                          >
+                            {selectedPendingIds.length > 0
+                              ? t("provider_dashboard.bulk_selected", "{{count}} selected", { count: selectedPendingIds.length })
+                              : t("provider_dashboard.bulk_select_all_pending", "Select all pending ({{count}})", { count: pendingList.length })}
+                          </label>
+                        </div>
+                        {selectedPendingIds.length > 0 && (
+                          <div className="flex flex-wrap items-center gap-2 ms-auto">
+                            <Button
+                              size="sm"
+                              disabled={isBulking}
+                              onClick={() =>
+                                bulkStatusMutation.mutate({ ids: selectedPendingIds, status: "approved" })
+                              }
+                              data-testid="button-bulk-approve"
+                            >
+                              {isBulking && bulkStatusMutation.variables?.status === "approved" ? (
+                                <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                              ) : (
+                                <CheckCircle className="h-3 w-3 mr-1" />
+                              )}
+                              {t("provider_dashboard.bulk_approve", "Approve selected")}
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              disabled={isBulking}
+                              onClick={() =>
+                                bulkStatusMutation.mutate({ ids: selectedPendingIds, status: "rejected" })
+                              }
+                              data-testid="button-bulk-reject"
+                            >
+                              {isBulking && bulkStatusMutation.variables?.status === "rejected" ? (
+                                <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                              ) : (
+                                <X className="h-3 w-3 mr-1" />
+                              )}
+                              {t("provider_dashboard.bulk_reject", "Reject selected")}
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              disabled={isBulking}
+                              onClick={clearSelected}
+                              data-testid="button-bulk-clear"
+                            >
+                              {t("provider_dashboard.bulk_clear", "Clear")}
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    {list.map((a) => (
+                      <div key={a.id} className="flex items-start gap-3">
+                        {a.status === "pending" ? (
+                          <div className="pt-6">
+                            <Checkbox
+                              checked={selectedIds.has(a.id)}
+                              onCheckedChange={() => toggleSelected(a.id)}
+                              data-testid={`checkbox-select-${a.id}`}
+                            />
+                          </div>
+                        ) : (
+                          <div className="w-4" />
+                        )}
+                        <div className="flex-1">
+                          <AppointmentRow appointment={a} />
+                        </div>
+                      </div>
+                    ))}
+                  </>
                 ) : (
                   <div className="text-center py-12 text-muted-foreground" data-testid="empty-upcoming">
                     {t("provider_dashboard.empty_upcoming", "No upcoming appointments match your filters")}
