@@ -1,4 +1,5 @@
 import type { Express, Request, Response, NextFunction } from "express";
+import express from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { z } from "zod";
@@ -88,6 +89,14 @@ import {
   createCheckoutSession,
 } from "./stripe";
 import { icsAttachment } from "./utils/ics";
+import { dispatchNotification, notify } from "./services/notification-dispatcher";
+import { VAPID_PUBLIC_KEY, isPushConfigured } from "./services/channels/push";
+import { isSmsConfigured } from "./services/channels/sms";
+import { isWhatsAppConfigured } from "./services/channels/whatsapp";
+import { isEmailConfigured } from "./services/channels/email";
+import { saveChatUpload } from "./services/uploads";
+import { getOrCreateVideoSession } from "./services/video";
+import { pushToUser } from "./chat/ws";
 
 const JWT_SECRET = process.env.SESSION_SECRET || "careconnect-jwt-secret-key";
 const JWT_EXPIRES_IN = "15m";
@@ -1405,6 +1414,14 @@ export async function registerRoutes(
           isRead: false,
         });
       } catch {}
+      try {
+        const provWithUser = await storage.getProviderWithUser(review.providerId);
+        const provName = provWithUser ? `${provWithUser.user.firstName} ${provWithUser.user.lastName}` : "Your provider";
+        notify.reviewReplied(review.patientId, {
+          providerName: provName,
+          reviewId: review.id,
+        }).catch(err => console.error("[notify] reviewReplied", err));
+      } catch (e) { console.error("[notify] reviewReplied dispatch failed:", e); }
       res.json(updated);
     } catch (error) {
       res.status(500).json({ message: "Failed to reply" });
@@ -2008,6 +2025,40 @@ export async function registerRoutes(
         console.error("Failed to create booking notifications:", notifyError);
       }
 
+      // Multi-channel dispatch (email/SMS/WhatsApp/push) for both parties
+      try {
+        const providerWithUser = await storage.getProviderWithUser(providerId);
+        const service = serviceId ? await storage.getService(serviceId) : null;
+        const provName = providerWithUser ? `${providerWithUser.user.firstName} ${providerWithUser.user.lastName}` : "your provider";
+        notify.appointmentBooked(userId, {
+          providerName: provName,
+          date, time: startTime, service: service?.name,
+          appointmentId: appointment.id,
+        }).catch(err => console.error("[notify] appointmentBooked patient", err));
+        if (providerWithUser?.userId) {
+          dispatchNotification({
+            userId: providerWithUser.userId,
+            eventKey: "appointment.booked",
+            title: "New booking received",
+            body: `${user.firstName} ${user.lastName} booked ${date} at ${startTime}.`,
+            email: {
+              subject: "New booking - GoldenLife",
+              headingKey: "appt.confirm.heading",
+              intro: `${user.firstName} ${user.lastName} booked an appointment with you.`,
+              details: [
+                { label: "Date", value: date },
+                { label: "Time", value: `${startTime} - ${endTime}` },
+                ...(service ? [{ label: "Service", value: service.name }] : []),
+              ],
+            },
+            data: { appointmentId: appointment.id },
+            push: { url: `/provider/appointments/${appointment.id}` },
+          }).catch(err => console.error("[notify] appointmentBooked provider", err));
+        }
+      } catch (e) {
+        console.error("[notify] booking dispatch failed:", e);
+      }
+
       // Send booking confirmation email
       if (resend) {
         try {
@@ -2254,6 +2305,11 @@ export async function registerRoutes(
               cta: "An invoice for your records is available in your patient dashboard.",
             });
           }
+          notify.paymentReceived(appointment.patientId, {
+            amount: Number(payment.amount).toFixed(0),
+            currency: "HUF",
+            appointmentId: appointment.id,
+          }).catch(err => console.error("[notify] paymentReceived", err));
         } catch (e) {
           console.error("Payment receipt email failed:", e);
         }
@@ -2416,6 +2472,21 @@ export async function registerRoutes(
         }
       } catch (e) {
         console.error("Cancel notification/email failed:", e);
+      }
+
+      // Multi-channel cancellation dispatch
+      try {
+        const providerWithUser = await storage.getProviderWithUser(appointment.providerId);
+        notify.appointmentCancelled(appointment.patientId, {
+          date: appointment.date, time: appointment.startTime, appointmentId: appointment.id,
+        }).catch(err => console.error("[notify] cancel patient", err));
+        if (providerWithUser?.userId) {
+          notify.appointmentCancelled(providerWithUser.userId, {
+            date: appointment.date, time: appointment.startTime, appointmentId: appointment.id,
+          }).catch(err => console.error("[notify] cancel provider", err));
+        }
+      } catch (e) {
+        console.error("[notify] cancel dispatch failed:", e);
       }
 
       res.json(appointment);
@@ -2915,6 +2986,284 @@ export async function registerRoutes(
     } catch (error) {
       res.status(500).json({ message: "Failed to remove practitioner from service" });
     }
+  });
+
+  // ═══════════════ COMMUNICATIONS ═══════════════
+
+  // ----- Capability check (lets the UI hide/disable channels we can't deliver) -----
+  app.get("/api/comms/capabilities", (_req, res) => {
+    res.json({
+      email: isEmailConfigured(),
+      sms: isSmsConfigured(),
+      whatsapp: isWhatsAppConfigured(),
+      push: isPushConfigured(),
+      vapidPublicKey: VAPID_PUBLIC_KEY || null,
+    });
+  });
+
+  // ----- Notification preferences -----
+  app.get("/api/notification-preferences", authenticateToken, async (req: AuthRequest, res: Response) => {
+    try {
+      const prefs = (await storage.getNotificationPreferences(req.user!.id)) ||
+        (await storage.upsertNotificationPreferences(req.user!.id, {} as any));
+      res.json(prefs);
+    } catch (e) {
+      res.status(500).json({ message: "Failed to load preferences" });
+    }
+  });
+
+  app.patch("/api/notification-preferences", authenticateToken, async (req: AuthRequest, res: Response) => {
+    try {
+      const allowed = [
+        "emailEnabled","smsEnabled","whatsappEnabled","pushEnabled","inAppEnabled",
+        "eventOverrides","quietHoursStart","quietHoursEnd","emailDigest","language",
+      ];
+      const patch: Record<string, any> = {};
+      for (const k of allowed) if (req.body[k] !== undefined) patch[k] = req.body[k];
+      const updated = await storage.upsertNotificationPreferences(req.user!.id, patch);
+      res.json(updated);
+    } catch (e) {
+      res.status(500).json({ message: "Failed to update preferences" });
+    }
+  });
+
+  // ----- Web Push subscriptions -----
+  app.get("/api/push/vapid-public-key", (_req, res) => {
+    res.json({ key: VAPID_PUBLIC_KEY || null, configured: isPushConfigured() });
+  });
+
+  app.post("/api/push/subscribe", authenticateToken, async (req: AuthRequest, res: Response) => {
+    try {
+      const { endpoint, keys, userAgent } = req.body || {};
+      if (!endpoint || !keys?.p256dh || !keys?.auth) return res.status(400).json({ message: "Invalid subscription" });
+      const sub = await storage.addPushSubscription({
+        userId: req.user!.id,
+        endpoint,
+        p256dh: keys.p256dh,
+        authKey: keys.auth,
+        userAgent: userAgent || req.headers["user-agent"] || null,
+      } as any);
+      res.json(sub);
+    } catch (e) {
+      res.status(500).json({ message: "Failed to save subscription" });
+    }
+  });
+
+  app.post("/api/push/unsubscribe", authenticateToken, async (req: AuthRequest, res: Response) => {
+    try {
+      if (!req.body?.endpoint) return res.status(400).json({ message: "endpoint required" });
+      await storage.removePushSubscription(req.body.endpoint);
+      res.json({ ok: true });
+    } catch (e) {
+      res.status(500).json({ message: "Failed to unsubscribe" });
+    }
+  });
+
+  // ----- Chat: unread counts (per-conversation badges + total dot) -----
+  app.get("/api/chat/unread-counts", authenticateToken, async (req: AuthRequest, res: Response) => {
+    try {
+      const counts = await storage.getUnreadChatCounts(req.user!.id);
+      const total = Object.values(counts).reduce((a, b) => a + b, 0);
+      res.json({ counts, total });
+    } catch (e) {
+      res.status(500).json({ counts: {}, total: 0 });
+    }
+  });
+
+  // ----- Chat: mute / pin a conversation -----
+  app.post("/api/chat/conversations/:id/mute", authenticateToken, async (req: AuthRequest, res: Response) => {
+    try {
+      await storage.toggleConversationFlag(req.params.id, req.user!.id, "mute", !!req.body?.muted);
+      res.json({ ok: true });
+    } catch { res.status(500).json({ message: "Failed" }); }
+  });
+  app.post("/api/chat/conversations/:id/pin", authenticateToken, async (req: AuthRequest, res: Response) => {
+    try {
+      await storage.toggleConversationFlag(req.params.id, req.user!.id, "pin", !!req.body?.pinned);
+      res.json({ ok: true });
+    } catch { res.status(500).json({ message: "Failed" }); }
+  });
+
+  // ----- Chat: file uploads (attachments + voice notes) -----
+  // Client sends raw bytes; metadata in headers.
+  app.post(
+    "/api/chat/upload",
+    authenticateToken,
+    express.raw({ type: "*/*", limit: "12mb" }),
+    async (req: AuthRequest, res: Response) => {
+      try {
+        const buf: Buffer = Buffer.isBuffer(req.body) ? req.body : Buffer.from(req.body);
+        if (!buf?.length) return res.status(400).json({ message: "Empty upload" });
+        const mimetype = (req.headers["content-type"] as string) || "application/octet-stream";
+        const filename = decodeURIComponent((req.headers["x-filename"] as string) || "upload");
+        const saved = await saveChatUpload(buf, filename, mimetype.split(";")[0].trim());
+        res.json(saved);
+      } catch (e: any) {
+        res.status(400).json({ message: e?.message || "Upload failed" });
+      }
+    },
+  );
+
+  // ----- Video sessions for telemedicine appointments -----
+  app.get("/api/video/room/:appointmentId", authenticateToken, async (req: AuthRequest, res: Response) => {
+    try {
+      const appt = await storage.getAppointment(req.params.appointmentId);
+      if (!appt) return res.status(404).json({ message: "Appointment not found" });
+      const provUser = await storage.getProviderWithUser(appt.providerId);
+      const isParticipant =
+        appt.patientId === req.user!.id ||
+        (provUser && provUser.userId === req.user!.id) ||
+        req.user!.role === "admin";
+      if (!isParticipant) return res.status(403).json({ message: "Not allowed" });
+      if (appt.visitType !== "online") {
+        return res.status(400).json({ message: "Video room only available for online visits" });
+      }
+      const session = await getOrCreateVideoSession(appt.id);
+      res.json(session);
+    } catch (e: any) {
+      console.error("video room error", e);
+      res.status(500).json({ message: "Failed to create video session" });
+    }
+  });
+
+  // ----- Provider office hours + auto-reply config -----
+  app.get("/api/provider/office-hours", authenticateToken, async (req: AuthRequest, res: Response) => {
+    try {
+      const cfg = await storage.getProviderOfficeHours(req.user!.id);
+      res.json(cfg || null);
+    } catch { res.status(500).json({ message: "Failed" }); }
+  });
+  app.patch("/api/provider/office-hours", authenticateToken, async (req: AuthRequest, res: Response) => {
+    try {
+      if (req.user!.role !== "provider" && req.user!.role !== "admin") {
+        return res.status(403).json({ message: "Provider only" });
+      }
+      const allowed = ["weeklySchedule", "timezone", "autoReplyEnabled", "autoReplyMessage", "emergencyContact"];
+      const patch: Record<string, any> = {};
+      for (const k of allowed) if (req.body[k] !== undefined) patch[k] = req.body[k];
+      const updated = await storage.upsertProviderOfficeHours(req.user!.id, patch);
+      res.json(updated);
+    } catch { res.status(500).json({ message: "Failed to save" }); }
+  });
+
+  // ----- Support tickets: two-way messaging from the user side -----
+  app.get("/api/support/tickets", authenticateToken, async (req: AuthRequest, res: Response) => {
+    try {
+      const all = await storage.getAllSupportTickets();
+      const mine = req.user!.role === "admin" ? all : all.filter(t => t.userId === req.user!.id);
+      res.json(mine);
+    } catch { res.status(500).json({ message: "Failed" }); }
+  });
+  app.get("/api/support/tickets/:id", authenticateToken, async (req: AuthRequest, res: Response) => {
+    try {
+      const t = await storage.getSupportTicket(req.params.id);
+      if (!t) return res.status(404).json({ message: "Not found" });
+      if (req.user!.role !== "admin" && t.userId !== req.user!.id) return res.status(403).json({ message: "Forbidden" });
+      const messages = await storage.getTicketMessages(req.params.id);
+      res.json({ ticket: t, messages });
+    } catch { res.status(500).json({ message: "Failed" }); }
+  });
+  app.post("/api/support/tickets/:id/messages", authenticateToken, async (req: AuthRequest, res: Response) => {
+    try {
+      const t = await storage.getSupportTicket(req.params.id);
+      if (!t) return res.status(404).json({ message: "Not found" });
+      const isAdmin = req.user!.role === "admin";
+      if (!isAdmin && t.userId !== req.user!.id) return res.status(403).json({ message: "Forbidden" });
+      if (!req.body?.message) return res.status(400).json({ message: "Message required" });
+      const m = await storage.createTicketMessage({
+        ticketId: req.params.id,
+        userId: req.user!.id,
+        message: req.body.message,
+        isInternal: !!req.body.isInternal && isAdmin,
+      } as any);
+      // Notify the other party
+      const otherUserId = isAdmin ? t.userId : (t.assignedTo || null);
+      if (otherUserId && !m.isInternal) {
+        notify.ticketReplied(otherUserId, { ticketId: t.id, subject: t.subject }).catch(() => {});
+      }
+      res.json(m);
+    } catch (e) { console.error(e); res.status(500).json({ message: "Failed" }); }
+  });
+
+  // ----- Admin → user direct message (creates a realtime conversation + message) -----
+  app.post("/api/admin/messages", authenticateToken, requireAdmin, async (req: AuthRequest, res: Response) => {
+    try {
+      const { recipientId, message } = req.body || {};
+      if (!recipientId || !message) return res.status(400).json({ message: "recipientId and message required" });
+      const conv = await storage.getOrCreateRealtimeConversation(req.user!.id, recipientId);
+      const m = await storage.createRealtimeMessage({
+        conversationId: conv.id,
+        senderId: req.user!.id,
+        content: message,
+      } as any);
+      pushToUser(recipientId, { type: "message", data: m });
+      const sender = await storage.getUser(req.user!.id);
+      notify.chatMessage(recipientId, {
+        senderName: sender ? `${sender.firstName} ${sender.lastName} (Admin)` : "GoldenLife Admin",
+        preview: message,
+        conversationId: conv.id,
+      }).catch(() => {});
+      res.json({ conversation: conv, message: m });
+    } catch (e) {
+      res.status(500).json({ message: "Failed to send admin message" });
+    }
+  });
+
+  // ----- Admin broadcast -----
+  app.post("/api/admin/broadcasts", authenticateToken, requireAdmin, async (req: AuthRequest, res: Response) => {
+    try {
+      const { title, message, audience = "all", channels = ["in_app", "email"] } = req.body || {};
+      if (!title || !message) return res.status(400).json({ message: "title and message required" });
+      const allUsers = await storage.getAllUsers();
+      let recipients = allUsers;
+      if (audience === "patients") recipients = allUsers.filter(u => u.role === "patient");
+      else if (audience === "providers") recipients = allUsers.filter(u => u.role === "provider");
+      else if (audience.startsWith?.("role:")) {
+        const role = audience.slice(5);
+        recipients = allUsers.filter(u => u.role === role);
+      }
+
+      // Persist broadcast record
+      const broadcast = await storage.createAdminBroadcast({
+        senderId: req.user!.id,
+        title,
+        message,
+        audience,
+        channels,
+        recipientCount: recipients.length,
+      } as any);
+
+      // Fan out asynchronously — don't block the request
+      (async () => {
+        for (const u of recipients) {
+          await dispatchNotification({
+            userId: u.id,
+            eventKey: "system.broadcast",
+            title,
+            body: message,
+            email: { subject: title, headingKey: "system.broadcast.heading", intro: message },
+          }).catch(err => console.error("[broadcast] dispatch failed for", u.id, err));
+        }
+      })();
+
+      res.json({ broadcast, recipientCount: recipients.length });
+    } catch (e) {
+      console.error("broadcast error", e);
+      res.status(500).json({ message: "Failed to broadcast" });
+    }
+  });
+
+  app.get("/api/admin/broadcasts", authenticateToken, requireAdmin, async (_req: AuthRequest, res: Response) => {
+    try {
+      res.json(await storage.getRecentAdminBroadcasts(50));
+    } catch { res.status(500).json({ message: "Failed" }); }
+  });
+
+  // ----- Admin: notification delivery logs -----
+  app.get("/api/admin/notification-logs", authenticateToken, requireAdmin, async (_req: AuthRequest, res: Response) => {
+    try {
+      res.json(await storage.getRecentDeliveryLogs(200));
+    } catch { res.status(500).json({ message: "Failed" }); }
   });
 
   // Default return

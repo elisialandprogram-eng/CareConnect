@@ -64,3 +64,13 @@ The client-side React app is bundled using Vite, while the server-side Express a
 ### Location Services
 
 - **Google Maps JavaScript API**: Used for interactive map functionalities, including address search (Places Autocomplete) and location picking in the booking flow. This requires enabling Maps JavaScript API, Places API, and Geocoding API on the Google Cloud project.
+
+### Communications System
+
+The platform now has a unified communications layer (`server/services/notification-dispatcher.ts`) covering email, SMS, WhatsApp, web-push, and in-app channels. Per-user preferences (channels enabled, quiet hours, language) live in the `notification_preferences` table and are honored on every send; quiet hours suppress non-urgent notifications. The dispatcher is wired into booking creation, cancellation, payment receipt, and review reply events, and triggers a 24-hour, 1-hour, 15-minute, and post-visit reminder cadence via `reminderCron`.
+
+Channel adapters live in `server/services/channels/*` (email via Resend, SMS/WhatsApp via Twilio REST, push via Web Push). Each adapter logs a single warning and no-ops when its environment keys are missing so the app keeps running without third-party setup. `GET /api/comms/capabilities` reports which channels are live so the settings UI can hide disabled toggles.
+
+Two-way messaging in `server/chat/ws.ts` supports per-conversation read receipts, typing indicators, mute/pin, attachments and voice notes (uploaded via `POST /api/chat/upload` using `X-Filename`-tagged raw bodies), and unread badge counts. Patient and admin support tickets share the same conversation thread model. Providers can configure weekly office hours and an offline auto-reply via `GET/PATCH /api/provider/office-hours`. Online appointments expose `GET /api/video/room/:appointmentId` which returns a Daily.co room URL when `DAILY_API_KEY` is set, otherwise a graceful placeholder. Admins can broadcast announcements (`/api/admin/broadcasts`) and inspect per-message delivery logs (`/api/admin/notification-logs`) from the admin dashboard.
+
+Required environment variables (all optional; channels degrade gracefully): `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_FROM_NUMBER`, `TWILIO_WHATSAPP_FROM`, `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`, `DAILY_API_KEY`, and the frontend `VITE_PUBLIC_VAPID_KEY`. See `.env.example`.

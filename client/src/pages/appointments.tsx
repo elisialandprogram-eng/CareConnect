@@ -121,6 +121,7 @@ export default function Appointments() {
   const { isAuthenticated, user, isLoading: authLoading } = useAuth();
   const [, navigate] = useLocation();
   const { t } = useTranslation();
+  const { toast } = useToast();
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -241,9 +242,32 @@ export default function Appointments() {
                         {getVisitTypeLabel(appointment.visitType)}
                       </div>
                     </div>
-                    {appointment.status === "completed" && !appointment.hasReview && (
-                      <RatingDialog appointment={appointment} />
-                    )}
+                    <div className="flex items-center gap-2">
+                      {appointment.visitType === "online" &&
+                        ["confirmed", "approved", "rescheduled"].includes(appointment.status) && (
+                          <Button
+                            size="sm"
+                            variant="default"
+                            className="gap-1"
+                            data-testid={`button-join-call-${appointment.id}`}
+                            onClick={async () => {
+                              try {
+                                const res = await fetch(`/api/video/room/${appointment.id}`, { credentials: "include" });
+                                const j = await res.json();
+                                if (j.url) window.open(j.url, "_blank", "noopener,noreferrer");
+                                else throw new Error(j.message || "Could not open call");
+                              } catch (e: any) {
+                                toast({ title: "Cannot join call", description: e.message, variant: "destructive" });
+                              }
+                            }}
+                          >
+                            <Video className="h-3 w-3" /> Join call
+                          </Button>
+                        )}
+                      {appointment.status === "completed" && !appointment.hasReview && (
+                        <RatingDialog appointment={appointment} />
+                      )}
+                    </div>
                   </div>
                 </CardContent>
               </Card>

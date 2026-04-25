@@ -116,6 +116,22 @@ import {
   type Invoice,
   type InsertInvoice,
   type InsertInvoiceItem,
+  notificationPreferences,
+  pushSubscriptions,
+  videoSessions,
+  providerOfficeHours,
+  notificationDeliveryLogs,
+  adminBroadcasts,
+  type NotificationPreferences,
+  type InsertNotificationPreferences,
+  type PushSubscription,
+  type InsertPushSubscription,
+  type VideoSession,
+  type ProviderOfficeHours,
+  type InsertProviderOfficeHours,
+  type NotificationDeliveryLog,
+  type AdminBroadcast,
+  type InsertAdminBroadcast,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, or, sql, count, asc, aliasedTable } from "drizzle-orm";
@@ -403,6 +419,25 @@ export interface IStorage {
   getAllInvoices(): Promise<Invoice[]>;
   createInvoice(invoice: InsertInvoice, items: InsertInvoiceItem[]): Promise<Invoice>;
   getPendingInvoiceAppointments(): Promise<any[]>;
+
+  // Notification preferences
+  getNotificationPreferences(userId: string): Promise<NotificationPreferences | undefined>;
+  upsertNotificationPreferences(userId: string, data: Partial<InsertNotificationPreferences>): Promise<NotificationPreferences>;
+  // Push subscriptions
+  addPushSubscription(data: InsertPushSubscription): Promise<PushSubscription>;
+  removePushSubscription(endpoint: string): Promise<void>;
+  getPushSubscriptions(userId: string): Promise<PushSubscription[]>;
+  // Provider office hours
+  getProviderOfficeHours(providerUserId: string): Promise<ProviderOfficeHours | undefined>;
+  upsertProviderOfficeHours(providerUserId: string, data: Partial<InsertProviderOfficeHours>): Promise<ProviderOfficeHours>;
+  // Realtime conversation mute/pin
+  toggleConversationFlag(conversationId: string, userId: string, flag: "mute" | "pin", on: boolean): Promise<void>;
+  // Admin broadcasts + delivery logs
+  createAdminBroadcast(data: InsertAdminBroadcast & { recipientCount?: number }): Promise<AdminBroadcast>;
+  getRecentAdminBroadcasts(limit?: number): Promise<AdminBroadcast[]>;
+  getRecentDeliveryLogs(limit?: number): Promise<NotificationDeliveryLog[]>;
+  // Unread chat counts
+  getUnreadChatCounts(userId: string): Promise<Record<string, number>>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1623,6 +1658,102 @@ export class DatabaseStorage implements IStorage {
       sum + Math.round((a.updatedAt!.getTime() - a.createdAt!.getTime()) / 60000)
     , 0);
     return Math.round(totalMinutes / responded.length);
+  }
+
+  // ──────────── Notification preferences ────────────
+  async getNotificationPreferences(userId: string): Promise<NotificationPreferences | undefined> {
+    const [r] = await db.select().from(notificationPreferences).where(eq(notificationPreferences.userId, userId));
+    return r;
+  }
+  async upsertNotificationPreferences(userId: string, data: Partial<InsertNotificationPreferences>): Promise<NotificationPreferences> {
+    const existing = await this.getNotificationPreferences(userId);
+    if (existing) {
+      const [updated] = await db.update(notificationPreferences)
+        .set({ ...data, updatedAt: new Date() } as any)
+        .where(eq(notificationPreferences.userId, userId))
+        .returning();
+      return updated;
+    }
+    const [created] = await db.insert(notificationPreferences).values({ userId, ...data } as any).returning();
+    return created;
+  }
+
+  // ──────────── Push subscriptions ────────────
+  async addPushSubscription(data: InsertPushSubscription): Promise<PushSubscription> {
+    // Replace if endpoint already exists for this user
+    await db.delete(pushSubscriptions).where(eq(pushSubscriptions.endpoint, data.endpoint));
+    const [created] = await db.insert(pushSubscriptions).values(data).returning();
+    return created;
+  }
+  async removePushSubscription(endpoint: string): Promise<void> {
+    await db.delete(pushSubscriptions).where(eq(pushSubscriptions.endpoint, endpoint));
+  }
+  async getPushSubscriptions(userId: string): Promise<PushSubscription[]> {
+    return db.select().from(pushSubscriptions).where(eq(pushSubscriptions.userId, userId));
+  }
+
+  // ──────────── Provider office hours ────────────
+  async getProviderOfficeHours(providerUserId: string): Promise<ProviderOfficeHours | undefined> {
+    const [r] = await db.select().from(providerOfficeHours).where(eq(providerOfficeHours.providerUserId, providerUserId));
+    return r;
+  }
+  async upsertProviderOfficeHours(providerUserId: string, data: Partial<InsertProviderOfficeHours>): Promise<ProviderOfficeHours> {
+    const existing = await this.getProviderOfficeHours(providerUserId);
+    if (existing) {
+      const [updated] = await db.update(providerOfficeHours)
+        .set({ ...data, updatedAt: new Date() } as any)
+        .where(eq(providerOfficeHours.providerUserId, providerUserId))
+        .returning();
+      return updated;
+    }
+    const [created] = await db.insert(providerOfficeHours).values({ providerUserId, ...data } as any).returning();
+    return created;
+  }
+
+  // ──────────── Mute / pin a realtime conversation ────────────
+  async toggleConversationFlag(conversationId: string, userId: string, flag: "mute" | "pin", on: boolean): Promise<void> {
+    const [c] = await db.select().from(realtimeConversations).where(eq(realtimeConversations.id, conversationId));
+    if (!c) return;
+    const col = flag === "mute" ? "mutedBy" : "pinnedBy";
+    const cur = (c as any)[col] as string[] | null;
+    const set = new Set(cur || []);
+    if (on) set.add(userId); else set.delete(userId);
+    const next = Array.from(set);
+    await db.update(realtimeConversations)
+      .set(flag === "mute" ? { mutedBy: next } : { pinnedBy: next })
+      .where(eq(realtimeConversations.id, conversationId));
+  }
+
+  // ──────────── Admin broadcasts + delivery logs ────────────
+  async createAdminBroadcast(data: InsertAdminBroadcast & { recipientCount?: number }): Promise<AdminBroadcast> {
+    const [created] = await db.insert(adminBroadcasts).values(data as any).returning();
+    return created;
+  }
+  async getRecentAdminBroadcasts(limit = 50): Promise<AdminBroadcast[]> {
+    return db.select().from(adminBroadcasts).orderBy(desc(adminBroadcasts.createdAt)).limit(limit);
+  }
+  async getRecentDeliveryLogs(limit = 200): Promise<NotificationDeliveryLog[]> {
+    return db.select().from(notificationDeliveryLogs).orderBy(desc(notificationDeliveryLogs.createdAt)).limit(limit);
+  }
+
+  // ──────────── Unread chat counts per conversation ────────────
+  async getUnreadChatCounts(userId: string): Promise<Record<string, number>> {
+    const rows = await db
+      .select({ conversationId: realtimeMessages.conversationId, c: count() })
+      .from(realtimeMessages)
+      .innerJoin(realtimeConversations, eq(realtimeMessages.conversationId, realtimeConversations.id))
+      .where(and(
+        eq(realtimeMessages.isRead, false),
+        sql`${realtimeMessages.senderId} <> ${userId}`,
+        or(
+          eq(realtimeConversations.participant1Id, userId),
+          eq(realtimeConversations.participant2Id, userId),
+        ),
+      ))
+      .groupBy(realtimeMessages.conversationId);
+    const out: Record<string, number> = {};
+    for (const r of rows) out[r.conversationId] = Number(r.c);
+    return out;
   }
 }
 

@@ -1992,6 +1992,9 @@ function ContentManagement() {
             </CardContent>
           </Card>
 
+          <BroadcastPanel />
+          <DeliveryLogsPanel />
+
           <Card>
             <CardHeader>
               <CardTitle>{t("admin_dashboard.all_announcements")}</CardTitle>
@@ -3932,5 +3935,106 @@ export default function AdminDashboard() {
 
       <Footer />
     </div>
+  );
+}
+
+// ───── Broadcast / direct-message panel for admin → all users ─────
+function BroadcastPanel() {
+  const { toast } = useToast();
+  const [title, setTitle] = useState("");
+  const [message, setMessage] = useState("");
+  const [audience, setAudience] = useState("all");
+  const [channels, setChannels] = useState<string[]>(["in_app", "email"]);
+  const { data: history } = useQuery<any[]>({ queryKey: ["/api/admin/broadcasts"] });
+  const send = useMutation({
+    mutationFn: () => apiRequest("POST", "/api/admin/broadcasts", { title, message, audience, channels }),
+    onSuccess: (r: any) => {
+      toast({ title: "Broadcast queued", description: `Will be sent to ${r?.recipientCount ?? 0} users` });
+      setTitle(""); setMessage("");
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/broadcasts"] });
+    },
+    onError: (e: any) => toast({ title: "Broadcast failed", description: e?.message, variant: "destructive" }),
+  });
+  const toggle = (c: string) => setChannels(channels.includes(c) ? channels.filter(x => x !== c) : [...channels, c]);
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Broadcast message</CardTitle>
+        <CardDescription>Send a multi-channel announcement to all patients, providers or everyone.</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <Input data-testid="input-broadcast-title" placeholder="Subject / title" value={title} onChange={(e) => setTitle(e.target.value)} />
+        <Textarea data-testid="input-broadcast-message" rows={4} placeholder="Message body" value={message} onChange={(e) => setMessage(e.target.value)} />
+        <div className="flex flex-wrap items-center gap-3">
+          <Select value={audience} onValueChange={setAudience}>
+            <SelectTrigger className="w-48" data-testid="select-broadcast-audience"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All users</SelectItem>
+              <SelectItem value="patients">Patients only</SelectItem>
+              <SelectItem value="providers">Providers only</SelectItem>
+            </SelectContent>
+          </Select>
+          {(["in_app", "email", "sms", "whatsapp", "push"] as const).map((c) => (
+            <label key={c} className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                data-testid={`checkbox-channel-${c}`}
+                checked={channels.includes(c)}
+                onChange={() => toggle(c)}
+              />
+              {c}
+            </label>
+          ))}
+          <Button
+            data-testid="button-send-broadcast"
+            disabled={!title || !message || send.isPending}
+            onClick={() => send.mutate()}
+          >
+            {send.isPending ? "Sending..." : "Send broadcast"}
+          </Button>
+        </div>
+        {history && history.length > 0 && (
+          <div className="pt-3 border-t mt-3">
+            <p className="text-sm font-medium mb-2">Recent broadcasts</p>
+            <div className="space-y-1 max-h-48 overflow-auto">
+              {history.slice(0, 10).map((b) => (
+                <div key={b.id} className="text-xs flex justify-between gap-2 border-b pb-1" data-testid={`row-broadcast-${b.id}`}>
+                  <span className="font-medium truncate">{b.title}</span>
+                  <span className="text-muted-foreground shrink-0">
+                    {b.audience} · {b.recipientCount ?? 0} recipients · {b.createdAt ? new Date(b.createdAt).toLocaleString() : ""}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+// ───── Recent notification delivery logs (success/failure across all channels) ─────
+function DeliveryLogsPanel() {
+  const { data: logs } = useQuery<any[]>({ queryKey: ["/api/admin/notification-logs"] });
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Notification delivery log</CardTitle>
+        <CardDescription>Most recent dispatches across email, SMS, WhatsApp and push.</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="text-xs space-y-1 max-h-80 overflow-auto">
+          {logs && logs.length > 0 ? logs.map((l) => (
+            <div key={l.id} className="grid grid-cols-12 gap-2 border-b py-1" data-testid={`row-log-${l.id}`}>
+              <span className="col-span-2 font-mono text-[10px]">{l.channel}</span>
+              <span className="col-span-3">{l.eventKey}</span>
+              <span className={`col-span-2 ${l.status === "sent" ? "text-green-600" : l.status === "skipped" ? "text-amber-600" : "text-red-600"}`}>{l.status}</span>
+              <span className="col-span-3 truncate" title={l.errorMessage || ""}>{l.errorMessage || ""}</span>
+              <span className="col-span-2 text-muted-foreground">{l.createdAt ? new Date(l.createdAt).toLocaleString() : ""}</span>
+            </div>
+          )) : <p className="text-muted-foreground">No deliveries yet.</p>}
+        </div>
+      </CardContent>
+    </Card>
   );
 }

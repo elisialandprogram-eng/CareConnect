@@ -11,19 +11,59 @@ import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
-import { useMutation } from "@tanstack/react-query";
-import { Bell, Lock, Shield, Eye, EyeOff } from "lucide-react";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { subscribeToPush, unsubscribeFromPush, getPushCapability } from "@/lib/push";
+import { Bell, Lock, Shield, Eye, EyeOff, Smartphone, MessageSquare, Mail, Monitor } from "lucide-react";
 
 export default function Settings() {
   const { isAuthenticated, user, isLoading: authLoading } = useAuth();
   const [, navigate] = useLocation();
   const { toast } = useToast();
 
-  const [notifications, setNotifications] = useState({
-    emailAppointments: true,
-    emailMarketing: false,
-    smsReminders: true,
+  const [pushCap, setPushCap] = useState<{ supported: boolean; configured: boolean }>({ supported: false, configured: false });
+  const [pushSubscribed, setPushSubscribed] = useState(false);
+
+  const { data: prefs } = useQuery<any>({ queryKey: ["/api/notification-preferences"], enabled: isAuthenticated });
+  const { data: caps } = useQuery<any>({ queryKey: ["/api/comms/capabilities"] });
+
+  useEffect(() => {
+    getPushCapability().then((c) => setPushCap({ supported: c.supported, configured: c.configured }));
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.getRegistration().then(async (reg) => {
+        const sub = await reg?.pushManager.getSubscription();
+        setPushSubscribed(!!sub);
+      });
+    }
+  }, []);
+
+  const updatePrefs = useMutation({
+    mutationFn: async (patch: Record<string, any>) => apiRequest("PATCH", "/api/notification-preferences", patch),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/notification-preferences"] }),
+    onError: () => toast({ title: "Failed to save preference", variant: "destructive" }),
   });
+
+  const togglePush = async (on: boolean) => {
+    try {
+      if (on) {
+        const r = await subscribeToPush();
+        if (!r.ok) {
+          toast({ title: "Push not enabled", description: r.reason, variant: "destructive" });
+          return;
+        }
+        setPushSubscribed(true);
+        updatePrefs.mutate({ pushEnabled: true });
+        toast({ title: "Push notifications enabled" });
+      } else {
+        await unsubscribeFromPush();
+        setPushSubscribed(false);
+        updatePrefs.mutate({ pushEnabled: false });
+        toast({ title: "Push notifications disabled" });
+      }
+    } catch (e: any) {
+      toast({ title: "Push toggle failed", description: e?.message, variant: "destructive" });
+    }
+  };
 
   const [passwordForm, setPasswordForm] = useState({
     currentPassword: "",
@@ -130,48 +170,140 @@ export default function Settings() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium">Appointment Emails</p>
-                  <p className="text-sm text-muted-foreground">
-                    Receive email confirmations and reminders
-                  </p>
+                <div className="flex items-start gap-3">
+                  <Mail className="h-5 w-5 text-muted-foreground mt-0.5" />
+                  <div>
+                    <p className="font-medium">Email</p>
+                    <p className="text-sm text-muted-foreground">
+                      Booking confirmations, reminders, receipts {caps?.email === false && "(server email not configured)"}
+                    </p>
+                  </div>
                 </div>
                 <Switch
-                  checked={notifications.emailAppointments}
-                  onCheckedChange={(checked) =>
-                    setNotifications({ ...notifications, emailAppointments: checked })
-                  }
+                  data-testid="switch-email"
+                  checked={prefs?.emailEnabled !== false}
+                  disabled={caps?.email === false}
+                  onCheckedChange={(c) => updatePrefs.mutate({ emailEnabled: c })}
                 />
               </div>
               <Separator />
               <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium">SMS Reminders</p>
-                  <p className="text-sm text-muted-foreground">
-                    Get SMS reminders before appointments
-                  </p>
+                <div className="flex items-start gap-3">
+                  <MessageSquare className="h-5 w-5 text-muted-foreground mt-0.5" />
+                  <div>
+                    <p className="font-medium">SMS reminders</p>
+                    <p className="text-sm text-muted-foreground">
+                      Text-message reminders before appointments {caps?.sms === false && "(SMS not configured)"}
+                    </p>
+                  </div>
                 </div>
                 <Switch
-                  checked={notifications.smsReminders}
-                  onCheckedChange={(checked) =>
-                    setNotifications({ ...notifications, smsReminders: checked })
-                  }
+                  data-testid="switch-sms"
+                  checked={!!prefs?.smsEnabled}
+                  disabled={caps?.sms === false}
+                  onCheckedChange={(c) => updatePrefs.mutate({ smsEnabled: c })}
                 />
               </div>
               <Separator />
               <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium">Marketing Emails</p>
-                  <p className="text-sm text-muted-foreground">
-                    Receive news and promotional offers
-                  </p>
+                <div className="flex items-start gap-3">
+                  <MessageSquare className="h-5 w-5 text-muted-foreground mt-0.5" />
+                  <div>
+                    <p className="font-medium">WhatsApp</p>
+                    <p className="text-sm text-muted-foreground">
+                      Reminders via WhatsApp {caps?.whatsapp === false && "(WhatsApp not configured)"}
+                    </p>
+                  </div>
                 </div>
                 <Switch
-                  checked={notifications.emailMarketing}
-                  onCheckedChange={(checked) =>
-                    setNotifications({ ...notifications, emailMarketing: checked })
-                  }
+                  data-testid="switch-whatsapp"
+                  checked={!!prefs?.whatsappEnabled}
+                  disabled={caps?.whatsapp === false}
+                  onCheckedChange={(c) => updatePrefs.mutate({ whatsappEnabled: c })}
                 />
+              </div>
+              <Separator />
+              <div className="flex items-center justify-between">
+                <div className="flex items-start gap-3">
+                  <Smartphone className="h-5 w-5 text-muted-foreground mt-0.5" />
+                  <div>
+                    <p className="font-medium">Browser push notifications</p>
+                    <p className="text-sm text-muted-foreground">
+                      {pushCap.supported
+                        ? pushCap.configured
+                          ? "Get instant alerts even when this tab is closed"
+                          : "Server not configured for push (admin must set VAPID keys)"
+                        : "Not supported in this browser"}
+                    </p>
+                  </div>
+                </div>
+                <Switch
+                  data-testid="switch-push"
+                  checked={pushSubscribed}
+                  disabled={!pushCap.supported || !pushCap.configured}
+                  onCheckedChange={togglePush}
+                />
+              </div>
+              <Separator />
+              <div className="flex items-center justify-between">
+                <div className="flex items-start gap-3">
+                  <Monitor className="h-5 w-5 text-muted-foreground mt-0.5" />
+                  <div>
+                    <p className="font-medium">In-app notifications</p>
+                    <p className="text-sm text-muted-foreground">Show alerts in the bell icon while you're using GoldenLife</p>
+                  </div>
+                </div>
+                <Switch
+                  data-testid="switch-inapp"
+                  checked={prefs?.inAppEnabled !== false}
+                  onCheckedChange={(c) => updatePrefs.mutate({ inAppEnabled: c })}
+                />
+              </div>
+              <Separator />
+              <div>
+                <p className="font-medium mb-2">Quiet hours</p>
+                <p className="text-sm text-muted-foreground mb-3">
+                  Don't deliver SMS, WhatsApp or push during these hours (HH:MM, 24-hour). Email and in-app still work.
+                </p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label htmlFor="qhStart" className="text-xs">From</Label>
+                    <Input
+                      id="qhStart"
+                      type="time"
+                      data-testid="input-quiet-start"
+                      defaultValue={prefs?.quietHoursStart || ""}
+                      onBlur={(e) => updatePrefs.mutate({ quietHoursStart: e.target.value || null })}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="qhEnd" className="text-xs">To</Label>
+                    <Input
+                      id="qhEnd"
+                      type="time"
+                      data-testid="input-quiet-end"
+                      defaultValue={prefs?.quietHoursEnd || ""}
+                      onBlur={(e) => updatePrefs.mutate({ quietHoursEnd: e.target.value || null })}
+                    />
+                  </div>
+                </div>
+              </div>
+              <Separator />
+              <div>
+                <p className="font-medium mb-2">Language</p>
+                <p className="text-sm text-muted-foreground mb-3">
+                  Choose the language for emails, SMS and notifications.
+                </p>
+                <select
+                  data-testid="select-language"
+                  className="w-full border border-input rounded-md h-10 px-3 bg-background"
+                  defaultValue={prefs?.language || "en"}
+                  onChange={(e) => updatePrefs.mutate({ language: e.target.value })}
+                >
+                  <option value="en">English</option>
+                  <option value="hu">Magyar (Hungarian)</option>
+                  <option value="fa">فارسی (Persian)</option>
+                </select>
               </div>
             </CardContent>
           </Card>

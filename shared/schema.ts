@@ -53,6 +53,7 @@ export const users = pgTable("users", {
   emailOtpExpiresAt: timestamp("email_otp_expires_at"),
   otpAttempts: integer("otp_attempts").notNull().default(0),
   lastOtpSentAt: timestamp("last_otp_sent_at"),
+  languagePreference: text("language_preference").default("en"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -527,6 +528,8 @@ export const realtimeConversations = pgTable("realtime_conversations", {
   participant2Id: varchar("participant2_id").notNull().references(() => users.id),
   lastMessage: text("last_message"),
   lastMessageAt: timestamp("last_message_at").defaultNow(),
+  mutedBy: text("muted_by").array().notNull().default(sql`'{}'::text[]`),
+  pinnedBy: text("pinned_by").array().notNull().default(sql`'{}'::text[]`),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -536,6 +539,12 @@ export const realtimeMessages = pgTable("realtime_messages", {
   senderId: varchar("sender_id").notNull().references(() => users.id),
   content: text("content").notNull(),
   isRead: boolean("is_read").default(false),
+  readAt: timestamp("read_at"),
+  attachmentUrl: text("attachment_url"),
+  attachmentType: text("attachment_type"),
+  attachmentName: text("attachment_name"),
+  voiceNoteUrl: text("voice_note_url"),
+  voiceDurationSec: integer("voice_duration_sec"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -574,6 +583,98 @@ export const savedProviders = pgTable("saved_providers", {
 }, (table) => ({
   unq: sql`UNIQUE(${table.patientId}, ${table.providerId})`,
 }));
+
+// ──────────────── Communications additions ────────────────
+
+// Per-user, per-event, per-channel notification preferences + quiet hours
+export const notificationPreferences = pgTable("notification_preferences", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id).unique(),
+  // channel master toggles
+  emailEnabled: boolean("email_enabled").notNull().default(true),
+  smsEnabled: boolean("sms_enabled").notNull().default(false),
+  whatsappEnabled: boolean("whatsapp_enabled").notNull().default(false),
+  pushEnabled: boolean("push_enabled").notNull().default(true),
+  inAppEnabled: boolean("in_app_enabled").notNull().default(true),
+  // per-event toggles (JSON map { eventKey: { email, sms, whatsapp, push, inApp } })
+  eventOverrides: text("event_overrides"),
+  // quiet hours (24h, "HH:mm", user local). If set, suppress non-urgent notifications.
+  quietHoursStart: text("quiet_hours_start"),
+  quietHoursEnd: text("quiet_hours_end"),
+  // email digest cadence: off | daily | weekly
+  emailDigest: text("email_digest").notNull().default("off"),
+  // language preference override
+  language: text("language").default("en"),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Web Push subscriptions
+export const pushSubscriptions = pgTable("push_subscriptions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  endpoint: text("endpoint").notNull().unique(),
+  p256dh: text("p256dh").notNull(),
+  authKey: text("auth_key").notNull(),
+  userAgent: text("user_agent"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Telemedicine video sessions per appointment
+export const videoSessions = pgTable("video_sessions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  appointmentId: varchar("appointment_id").notNull().references(() => appointments.id).unique(),
+  // provider key for the room (e.g. "daily.co", "twilio_video", "jitsi", "stub")
+  provider: text("provider").notNull().default("stub"),
+  roomUrl: text("room_url").notNull(),
+  roomName: text("room_name"),
+  patientToken: text("patient_token"),
+  providerToken: text("provider_token"),
+  expiresAt: timestamp("expires_at"),
+  startedAt: timestamp("started_at"),
+  endedAt: timestamp("ended_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Provider office hours and auto-reply config
+export const providerOfficeHours = pgTable("provider_office_hours", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  providerUserId: varchar("provider_user_id").notNull().references(() => users.id).unique(),
+  // JSON map { mon: { start, end }, tue: ... } in 24h "HH:mm"
+  weeklySchedule: text("weekly_schedule"),
+  timezone: text("timezone").default("UTC"),
+  // toggle and templates
+  autoReplyEnabled: boolean("auto_reply_enabled").notNull().default(false),
+  autoReplyMessage: text("auto_reply_message").default(
+    "Thanks for your message. I'm currently outside my office hours and will reply as soon as possible."
+  ),
+  emergencyContact: text("emergency_contact"),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Delivery tracking across channels (admin visibility into what was sent)
+export const notificationDeliveryLogs = pgTable("notification_delivery_logs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  eventKey: text("event_key").notNull(),
+  channel: text("channel").notNull(), // email | sms | whatsapp | push | in_app
+  status: text("status").notNull(), // queued | sent | delivered | failed | skipped
+  externalId: text("external_id"),
+  errorMessage: text("error_message"),
+  payload: text("payload"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Admin broadcasts (track who fired, audience filter, summary)
+export const adminBroadcasts = pgTable("admin_broadcasts", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  senderId: varchar("sender_id").notNull().references(() => users.id),
+  title: text("title").notNull(),
+  message: text("message").notNull(),
+  audience: text("audience").notNull().default("all"), // all | patients | providers | role:xx
+  channels: text("channels").array().notNull().default(sql`'{in_app}'::text[]`), // any of email,sms,push,in_app,whatsapp
+  recipientCount: integer("recipient_count").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+});
 
 // Schemas
 export const insertUserSchema = createInsertSchema(users).omit({ id: true, createdAt: true });
@@ -615,6 +716,12 @@ export const insertPatientConsentSchema = createInsertSchema(patientConsents).om
 export const insertMedicalPractitionerSchema = createInsertSchema(medicalPractitioners).omit({ id: true, createdAt: true });
 export const insertRealtimeConversationSchema = createInsertSchema(realtimeConversations).omit({ id: true, createdAt: true });
 export const insertRealtimeMessageSchema = createInsertSchema(realtimeMessages).omit({ id: true, createdAt: true });
+export const insertNotificationPreferencesSchema = createInsertSchema(notificationPreferences).omit({ id: true, updatedAt: true });
+export const insertPushSubscriptionSchema = createInsertSchema(pushSubscriptions).omit({ id: true, createdAt: true });
+export const insertVideoSessionSchema = createInsertSchema(videoSessions).omit({ id: true, createdAt: true });
+export const insertProviderOfficeHoursSchema = createInsertSchema(providerOfficeHours).omit({ id: true, updatedAt: true });
+export const insertNotificationDeliveryLogSchema = createInsertSchema(notificationDeliveryLogs).omit({ id: true, createdAt: true });
+export const insertAdminBroadcastSchema = createInsertSchema(adminBroadcasts).omit({ id: true, createdAt: true, recipientCount: true });
 
 export const loginSchema = z.object({
   email: z.string().email(),
@@ -705,6 +812,18 @@ export type MedicalPractitioner = typeof medicalPractitioners.$inferSelect;
 export type InsertMedicalPractitioner = z.infer<typeof insertMedicalPractitionerSchema>;
 export type SavedProvider = typeof savedProviders.$inferSelect;
 export type InsertSavedProvider = z.infer<typeof insertSavedProviderSchema>;
+export type NotificationPreferences = typeof notificationPreferences.$inferSelect;
+export type InsertNotificationPreferences = z.infer<typeof insertNotificationPreferencesSchema>;
+export type PushSubscription = typeof pushSubscriptions.$inferSelect;
+export type InsertPushSubscription = z.infer<typeof insertPushSubscriptionSchema>;
+export type VideoSession = typeof videoSessions.$inferSelect;
+export type InsertVideoSession = z.infer<typeof insertVideoSessionSchema>;
+export type ProviderOfficeHours = typeof providerOfficeHours.$inferSelect;
+export type InsertProviderOfficeHours = z.infer<typeof insertProviderOfficeHoursSchema>;
+export type NotificationDeliveryLog = typeof notificationDeliveryLogs.$inferSelect;
+export type InsertNotificationDeliveryLog = z.infer<typeof insertNotificationDeliveryLogSchema>;
+export type AdminBroadcast = typeof adminBroadcasts.$inferSelect;
+export type InsertAdminBroadcast = z.infer<typeof insertAdminBroadcastSchema>;
 
 export type ProviderWithUser = Provider & { user: User };
 export type ProviderWithServices = ProviderWithUser & { 

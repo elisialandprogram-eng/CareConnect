@@ -1,12 +1,13 @@
 import { useLocation } from "wouter";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { Link } from "wouter";
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -1345,7 +1346,7 @@ export default function ProviderDashboard() {
               )}
             </TabsContent>
 
-            <TabsContent value="availability" className="mt-2">
+            <TabsContent value="availability" className="mt-2 space-y-4">
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center justify-between">
@@ -1361,6 +1362,7 @@ export default function ProviderDashboard() {
                   </p>
                 </CardContent>
               </Card>
+              <ProviderOfficeHoursCard />
             </TabsContent>
 
             <TabsContent value="analytics" className="mt-2 space-y-4">
@@ -1838,5 +1840,122 @@ function WeeklyAvailabilityForm({
         </Button>
       </DialogFooter>
     </div>
+  );
+}
+// ───────── Office hours + auto-reply card ─────────
+const DAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] as const;
+type DayKey = typeof DAYS[number];
+type WeeklySchedule = Record<DayKey, { start: string; end: string; enabled: boolean }>;
+
+const DEFAULT_SCHEDULE: WeeklySchedule = DAYS.reduce((acc, d) => {
+  acc[d] = { start: "09:00", end: "17:00", enabled: d !== "sat" && d !== "sun" };
+  return acc;
+}, {} as WeeklySchedule);
+
+function ProviderOfficeHoursCard() {
+  const { toast } = useToast();
+  const { data, isLoading } = useQuery<any>({ queryKey: ["/api/provider/office-hours"] });
+  const [schedule, setSchedule] = useState<WeeklySchedule>(DEFAULT_SCHEDULE);
+  const [autoReplyEnabled, setAutoReplyEnabled] = useState(false);
+  const [autoReplyMessage, setAutoReplyMessage] = useState("Thanks for your message — I'll respond during my office hours.");
+  const [emergencyContact, setEmergencyContact] = useState("");
+
+  useEffect(() => {
+    if (data) {
+      if (data.weeklySchedule) {
+        setSchedule({ ...DEFAULT_SCHEDULE, ...data.weeklySchedule });
+      }
+      setAutoReplyEnabled(!!data.autoReplyEnabled);
+      if (data.autoReplyMessage) setAutoReplyMessage(data.autoReplyMessage);
+      if (data.emergencyContact) setEmergencyContact(data.emergencyContact);
+    }
+  }, [data]);
+
+  const save = useMutation({
+    mutationFn: () => apiRequest("PATCH", "/api/provider/office-hours", {
+      weeklySchedule: schedule,
+      autoReplyEnabled,
+      autoReplyMessage,
+      emergencyContact: emergencyContact || null,
+    }),
+    onSuccess: () => {
+      toast({ title: "Office hours saved" });
+      queryClient.invalidateQueries({ queryKey: ["/api/provider/office-hours"] });
+    },
+    onError: () => toast({ title: "Failed to save", variant: "destructive" }),
+  });
+
+  if (isLoading) return null;
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Office hours & auto-reply</CardTitle>
+        <CardDescription>
+          When patients message you outside these hours, they'll get an automatic reply.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="space-y-2">
+          {DAYS.map(d => (
+            <div key={d} className="flex items-center gap-3" data-testid={`row-officehours-${d}`}>
+              <label className="flex items-center gap-2 w-24">
+                <input
+                  type="checkbox"
+                  checked={schedule[d].enabled}
+                  onChange={(e) => setSchedule({ ...schedule, [d]: { ...schedule[d], enabled: e.target.checked } })}
+                />
+                <span className="capitalize text-sm">{d}</span>
+              </label>
+              <Input
+                type="time"
+                className="w-28 h-8"
+                disabled={!schedule[d].enabled}
+                value={schedule[d].start}
+                onChange={(e) => setSchedule({ ...schedule, [d]: { ...schedule[d], start: e.target.value } })}
+              />
+              <span>–</span>
+              <Input
+                type="time"
+                className="w-28 h-8"
+                disabled={!schedule[d].enabled}
+                value={schedule[d].end}
+                onChange={(e) => setSchedule({ ...schedule, [d]: { ...schedule[d], end: e.target.value } })}
+              />
+            </div>
+          ))}
+        </div>
+        <Separator />
+        <div className="flex items-center gap-3">
+          <input
+            id="autoReply"
+            type="checkbox"
+            checked={autoReplyEnabled}
+            onChange={(e) => setAutoReplyEnabled(e.target.checked)}
+            data-testid="checkbox-auto-reply"
+          />
+          <label htmlFor="autoReply" className="font-medium text-sm">Send an auto-reply when I'm offline</label>
+        </div>
+        <Textarea
+          rows={3}
+          placeholder="Auto-reply message"
+          value={autoReplyMessage}
+          onChange={(e) => setAutoReplyMessage(e.target.value)}
+          disabled={!autoReplyEnabled}
+          data-testid="input-auto-reply-message"
+        />
+        <div>
+          <label className="text-sm font-medium">Emergency contact (shown in auto-reply)</label>
+          <Input
+            placeholder="e.g. Call +36 1 234 5678 for urgent care"
+            value={emergencyContact}
+            onChange={(e) => setEmergencyContact(e.target.value)}
+            data-testid="input-emergency-contact"
+          />
+        </div>
+        <Button onClick={() => save.mutate()} disabled={save.isPending} data-testid="button-save-office-hours">
+          {save.isPending ? "Saving..." : "Save office hours"}
+        </Button>
+      </CardContent>
+    </Card>
   );
 }
