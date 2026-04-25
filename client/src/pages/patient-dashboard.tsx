@@ -133,6 +133,10 @@ export default function PatientDashboard() {
     }
   });
 
+  const { data: invoices, isLoading: isLoadingInvoices } = useQuery<any[]>({
+    queryKey: ["/api/invoices/me"],
+  });
+
   const cancelMutation = useMutation({
     mutationFn: async (appointmentId: string) => {
       const response = await apiRequest("PATCH", `/api/appointments/${appointmentId}/cancel`, {});
@@ -504,11 +508,81 @@ export default function PatientDashboard() {
               </div>
             </TabsContent>
 
-            <TabsContent value="invoices" className="mt-6">
+            <TabsContent value="invoices" className="mt-6 space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Invoices</CardTitle>
+                  <CardDescription>Download invoices issued for your completed appointments</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {isLoadingInvoices ? (
+                    <Skeleton className="h-32 w-full" />
+                  ) : invoices && invoices.length > 0 ? (
+                    <div className="divide-y">
+                      {invoices.map((inv: any) => (
+                        <div
+                          key={inv.id}
+                          className="flex items-center justify-between py-4"
+                          data-testid={`row-invoice-${inv.id}`}
+                        >
+                          <div className="flex items-center gap-4 min-w-0">
+                            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                              <FileText className="h-5 w-5" />
+                            </div>
+                            <div className="min-w-0">
+                              <p className="font-medium truncate" data-testid={`text-invoice-number-${inv.id}`}>
+                                {inv.invoiceNumber}
+                              </p>
+                              <p className="text-sm text-muted-foreground">
+                                {inv.issueDate ? new Date(inv.issueDate).toLocaleDateString() : "—"}
+                                {inv.dueDate ? ` • Due ${new Date(inv.dueDate).toLocaleDateString()}` : ""}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-3 shrink-0">
+                            <div className="text-right">
+                              <p className="font-semibold">${Number(inv.totalAmount).toFixed(2)}</p>
+                              <Badge
+                                variant={inv.status === "paid" ? "default" : inv.status === "due" ? "outline" : "secondary"}
+                                data-testid={`status-invoice-${inv.id}`}
+                              >
+                                {inv.status}
+                              </Badge>
+                            </div>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              asChild
+                              data-testid={`button-download-invoice-${inv.id}`}
+                            >
+                              <a
+                                href={`/api/invoices/${inv.id}/download`}
+                                target="_blank"
+                                rel="noreferrer"
+                              >
+                                Download PDF
+                              </a>
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="py-12 text-center">
+                      <FileText className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                      <h3 className="font-semibold text-lg mb-2">No invoices yet</h3>
+                      <p className="text-muted-foreground">
+                        Invoices appear here once your appointments are marked completed by the provider.
+                      </p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
               <Card>
                 <CardHeader>
                   <CardTitle>Payment History</CardTitle>
-                  <CardDescription>View your past payment transactions</CardDescription>
+                  <CardDescription>All payment transactions linked to your appointments</CardDescription>
                 </CardHeader>
                 <CardContent>
                   {isLoading ? (
@@ -552,11 +626,8 @@ export default function PatientDashboard() {
                     </div>
                   ) : (
                     <div className="py-12 text-center">
-                      <FileText className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                      <h3 className="font-semibold text-lg mb-2">No invoices yet</h3>
-                      <p className="text-muted-foreground">
-                        Your payment invoices will appear here after completed appointments
-                      </p>
+                      <Banknote className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                      <p className="text-muted-foreground">No payment activity yet.</p>
                     </div>
                   )}
                 </CardContent>

@@ -50,6 +50,11 @@ import {
   Trash2,
   MapPin,
   Navigation,
+  Banknote,
+  CreditCard,
+  Building2,
+  Bitcoin,
+  Loader2,
 } from "lucide-react";
 import type { AppointmentWithDetails, Provider, ProviderWithServices, Practitioner, Service } from "@shared/schema";
 
@@ -154,9 +159,33 @@ export default function ProviderDashboard() {
       const response = await apiRequest("PATCH", `/api/appointments/${id}/status`, { status });
       return response.json();
     },
+    onSuccess: (data: any, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/appointments/provider"] });
+      if (variables.status === "completed" && data?.invoice?.created) {
+        toast({
+          title: "Appointment completed",
+          description: `Invoice ${data.invoice.invoiceNumber} was generated and emailed to the patient.`,
+        });
+      } else {
+        toast({ title: "Appointment updated" });
+      }
+    },
+    onError: () => {
+      toast({ title: "Failed to update appointment", variant: "destructive" });
+    },
+  });
+
+  const markPaymentMutation = useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: "completed" }) => {
+      const response = await apiRequest("PATCH", `/api/appointments/${id}/payment-status`, { status });
+      return response.json();
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/appointments/provider"] });
-      toast({ title: "Appointment updated" });
+      toast({ title: "Payment marked as received" });
+    },
+    onError: () => {
+      toast({ title: "Failed to update payment", variant: "destructive" });
     },
   });
 
@@ -322,8 +351,33 @@ export default function ProviderDashboard() {
       : null;
     const isHomeVisit = appointment.visitType === "home";
 
+    const payment = (appointment as any).payment;
+    const paymentMethod = payment?.paymentMethod as string | undefined;
+    const paymentStatus = payment?.status as string | undefined;
+    const PaymentIcon =
+      paymentMethod === "card"
+        ? CreditCard
+        : paymentMethod === "bank_transfer"
+        ? Building2
+        : paymentMethod === "crypto"
+        ? Bitcoin
+        : Banknote;
+
+    const isFinal = appointment.status === "completed" || appointment.status === "cancelled";
+    const isPending = appointment.status === "pending";
+    const isConfirmed = appointment.status === "confirmed";
+    const canMarkPaid =
+      paymentStatus === "pending" &&
+      paymentMethod !== "card" &&
+      appointment.status !== "cancelled";
+
+    const isUpdating =
+      updateStatusMutation.isPending && updateStatusMutation.variables?.id === appointment.id;
+    const isMarkingPaid =
+      markPaymentMutation.isPending && markPaymentMutation.variables?.id === appointment.id;
+
     return (
-      <div className="flex flex-col gap-3 p-4 border rounded-lg hover-elevate">
+      <div className="flex flex-col gap-3 p-4 border rounded-lg hover-elevate" data-testid={`row-appointment-${appointment.id}`}>
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-4">
             <Avatar className="h-10 w-10">
@@ -334,7 +388,7 @@ export default function ProviderDashboard() {
               <p className="font-medium">
                 {appointment.patient?.firstName} {appointment.patient?.lastName}
               </p>
-              <div className="flex items-center gap-3 text-sm text-muted-foreground">
+              <div className="flex items-center gap-3 text-sm text-muted-foreground flex-wrap">
                 <span className="flex items-center gap-1">
                   <Clock className="h-3 w-3" /> {appointment.startTime}
                 </span>
@@ -342,10 +396,22 @@ export default function ProviderDashboard() {
                   {isHomeVisit ? <Home className="h-3 w-3" /> : <Video className="h-3 w-3" />}
                   {appointment.visitType}
                 </span>
+                {payment && (
+                  <span className="flex items-center gap-1">
+                    <PaymentIcon className="h-3 w-3" />
+                    <span className="capitalize">
+                      {paymentMethod?.replace("_", " ") || "cash"}
+                    </span>
+                    <span>•</span>
+                    <span className="capitalize">{paymentStatus}</span>
+                  </span>
+                )}
               </div>
             </div>
           </div>
-          <Badge className={getStatusColor(appointment.status)}>{appointment.status}</Badge>
+          <Badge className={getStatusColor(appointment.status)} data-testid={`badge-status-${appointment.id}`}>
+            {appointment.status}
+          </Badge>
         </div>
 
         {(a.patientAddress || hasCoords) && (
@@ -369,6 +435,67 @@ export default function ProviderDashboard() {
                 </Button>
               </a>
             )}
+          </div>
+        )}
+
+        {!isFinal && (
+          <div className="flex flex-wrap items-center gap-2 pl-14 pt-1">
+            {isPending && (
+              <Button
+                size="sm"
+                disabled={isUpdating}
+                onClick={() => updateStatusMutation.mutate({ id: appointment.id, status: "confirmed" })}
+                data-testid={`button-confirm-${appointment.id}`}
+              >
+                {isUpdating && updateStatusMutation.variables?.status === "confirmed" ? (
+                  <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                ) : (
+                  <CheckCircle className="h-3 w-3 mr-1" />
+                )}
+                Confirm
+              </Button>
+            )}
+            {isConfirmed && (
+              <Button
+                size="sm"
+                disabled={isUpdating}
+                onClick={() => updateStatusMutation.mutate({ id: appointment.id, status: "completed" })}
+                data-testid={`button-complete-${appointment.id}`}
+              >
+                {isUpdating && updateStatusMutation.variables?.status === "completed" ? (
+                  <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                ) : (
+                  <CheckCircle className="h-3 w-3 mr-1" />
+                )}
+                Mark Completed
+              </Button>
+            )}
+            {canMarkPaid && (
+              <Button
+                size="sm"
+                variant="secondary"
+                disabled={isMarkingPaid}
+                onClick={() => markPaymentMutation.mutate({ id: appointment.id, status: "completed" })}
+                data-testid={`button-mark-paid-${appointment.id}`}
+              >
+                {isMarkingPaid ? (
+                  <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                ) : (
+                  <Banknote className="h-3 w-3 mr-1" />
+                )}
+                Mark payment received
+              </Button>
+            )}
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={isUpdating}
+              onClick={() => updateStatusMutation.mutate({ id: appointment.id, status: "cancelled" })}
+              data-testid={`button-cancel-${appointment.id}`}
+            >
+              <X className="h-3 w-3 mr-1" />
+              Cancel
+            </Button>
           </div>
         )}
       </div>

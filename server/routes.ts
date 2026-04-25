@@ -44,6 +44,7 @@ const OTP_COOLDOWN = 60 * 1000; // 60 seconds
 import { registerChatRoutes } from "./replit_integrations/chat";
 import { registerImageRoutes } from "./replit_integrations/image";
 import { generateInvoicePDF } from "./utils/invoice-gen";
+import { createInvoiceForAppointment } from "./utils/invoice-helper";
 import {
   isStripeConfigured,
   getStripeMode,
@@ -132,6 +133,27 @@ export async function registerRoutes(
   };
 
   // ============ INVOICE ROUTES ============
+
+  // Get all invoices for the current user (patient or provider)
+  app.get("/api/invoices/me", authenticateToken, async (req: AuthRequest, res: Response) => {
+    try {
+      if (!req.user) return res.status(401).json({ message: "Unauthorized" });
+
+      if (req.user.role === "patient") {
+        const invoices = await storage.getInvoicesByPatient(req.user.id);
+        return res.json(invoices);
+      }
+      if (req.user.role === "provider") {
+        const invoices = await storage.getInvoicesByProvider(req.user.id);
+        return res.json(invoices);
+      }
+      return res.json([]);
+    } catch (error) {
+      console.error("Get my invoices error:", error);
+      res.status(500).json({ message: "Failed to fetch invoices" });
+    }
+  });
+
   app.get("/api/invoices/appointment/:appointmentId", authenticateToken, async (req: AuthRequest, res: Response) => {
     try {
       const invoice = await storage.getInvoiceByAppointment(req.params.appointmentId);
@@ -1717,13 +1739,25 @@ export async function registerRoutes(
         return res.status(404).json({ message: "Appointment not found" });
       }
 
+      // Auto-generate invoice when an appointment is completed (provider/admin path).
+      let invoiceResult: { created: boolean; invoiceNumber?: string } | undefined;
+      if (status === "completed") {
+        try {
+          invoiceResult = await createInvoiceForAppointment(req.params.id);
+        } catch (invErr) {
+          console.error("[routes] auto invoice generation failed:", invErr);
+        }
+      }
+
       // Create notification for patient about status change
       try {
         const patientId = appointment.patientId;
         const statusMessages: Record<string, string> = {
           confirmed: "Your appointment has been confirmed by the provider.",
           cancelled: "Your appointment has been cancelled.",
-          completed: "Your appointment has been marked as completed. Please leave a review!",
+          completed: invoiceResult?.created
+            ? `Your appointment has been completed. Invoice ${invoiceResult.invoiceNumber} is now available in your dashboard.`
+            : "Your appointment has been marked as completed. Please leave a review!",
           rescheduled: "Your appointment has been rescheduled."
         };
 
@@ -1740,9 +1774,62 @@ export async function registerRoutes(
         console.error("Failed to create status update notification:", notifyError);
       }
 
-      res.json(appointment);
+      res.json({ ...appointment, invoice: invoiceResult });
     } catch (error) {
       res.status(500).json({ message: "Failed to update appointment status" });
+    }
+  });
+
+  // Mark a cash/bank-transfer payment as received (provider or admin only)
+  app.patch("/api/appointments/:id/payment-status", authenticateToken, async (req: AuthRequest, res: Response) => {
+    try {
+      const { status } = req.body as { status: "completed" | "pending" | "refunded" | "failed" };
+      if (!["completed", "pending", "refunded", "failed"].includes(status)) {
+        return res.status(400).json({ message: "Invalid payment status" });
+      }
+
+      const appointment = await storage.getAppointment(req.params.id);
+      if (!appointment) return res.status(404).json({ message: "Appointment not found" });
+
+      // Authorisation: admin OR the provider who owns the appointment
+      if (req.user?.role !== "admin") {
+        const provider = await storage.getProviderByUserId(req.user!.id);
+        if (!provider || provider.id !== appointment.providerId) {
+          return res.status(403).json({ message: "Access denied" });
+        }
+      }
+
+      const payment = await storage.getPaymentByAppointment(req.params.id);
+      if (!payment) return res.status(404).json({ message: "Payment record not found" });
+
+      const updated = await storage.updatePayment(payment.id, { status });
+
+      // If we just marked it paid AND the appointment is already completed, regenerate / refresh the invoice status.
+      if (status === "completed" && appointment.status === "completed" && !appointment.invoiceGenerated) {
+        try {
+          await createInvoiceForAppointment(appointment.id);
+        } catch (invErr) {
+          console.error("[routes] invoice generation after payment update failed:", invErr);
+        }
+      }
+
+      // Notify patient that payment was recorded
+      if (status === "completed") {
+        try {
+          await storage.createUserNotification({
+            userId: appointment.patientId,
+            type: "payment",
+            title: "Payment received",
+            message: `Your payment of $${Number(payment.amount).toFixed(2)} has been recorded.`,
+            isRead: false,
+          });
+        } catch {}
+      }
+
+      res.json(updated);
+    } catch (error) {
+      console.error("Update payment status error:", error);
+      res.status(500).json({ message: "Failed to update payment status" });
     }
   });
 
