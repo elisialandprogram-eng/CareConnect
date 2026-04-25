@@ -588,10 +588,10 @@ export default function Booking() {
                       <span className="text-muted-foreground">Consultation Fee</span>
                       <span>${baseFee.toFixed(2)}</span>
                     </div>
-                    {platformFee > 0 && (
+                    {platformFeeAmount > 0 && (
                       <div className="flex justify-between text-sm">
                         <span className="text-muted-foreground">Platform Fee</span>
-                        <span>+${platformFee.toFixed(2)}</span>
+                        <span>+${platformFeeAmount.toFixed(2)}</span>
                       </div>
                     )}
                     <div className="flex justify-between text-sm">
