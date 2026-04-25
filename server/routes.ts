@@ -852,18 +852,6 @@ export async function registerRoutes(
   });
 
   // Booking
-  app.post("/api/booking", authenticateToken, async (req: AuthRequest, res) => {
-    try {
-      const appointment = await storage.createAppointment({
-        ...req.body,
-        patientId: req.user!.id,
-        status: "pending"
-      });
-      res.status(201).json(appointment);
-    } catch (error) {
-      res.status(400).json({ message: "Booking failed" });
-    }
-  });
   app.get("/api/providers/:id/with-fees", async (req: Request, res: Response) => {
     try {
       const provider = await storage.getProviderWithServices(req.params.id);
@@ -1709,6 +1697,38 @@ export async function registerRoutes(
         return res.status(404).json({ message: "Provider not found" });
       }
 
+      // Prevent double-booking: refuse if the same provider already has an active
+      // appointment overlapping this exact date+time (any non-terminal status).
+      try {
+        const existingForProvider = await storage.getAppointmentsByProvider(providerId);
+        const conflict = existingForProvider.find(a =>
+          a.date === date &&
+          a.startTime === startTime &&
+          !["cancelled", "rejected"].includes(a.status)
+        );
+        if (conflict) {
+          return res.status(409).json({ message: "This time slot is no longer available. Please pick another time." });
+        }
+      } catch (conflictErr) {
+        console.error("Conflict check failed (continuing):", conflictErr);
+      }
+
+      // Prevent the same patient from booking themselves twice into the same slot
+      try {
+        const patientAppointments = await storage.getAppointmentsByPatient(userId);
+        const dup = patientAppointments.find(a =>
+          a.providerId === providerId &&
+          a.date === date &&
+          a.startTime === startTime &&
+          !["cancelled", "rejected"].includes(a.status)
+        );
+        if (dup) {
+          return res.status(409).json({ message: "You already have an appointment at this time." });
+        }
+      } catch (dupErr) {
+        console.error("Duplicate check failed (continuing):", dupErr);
+      }
+
       // Validate practitioner and fee if provided
       let fee = totalAmount;
       if (serviceId && practitionerId) {
@@ -1899,32 +1919,6 @@ export async function registerRoutes(
     },
   );
 
-  app.get("/api/appointments/patient", authenticateToken, async (req: AuthRequest, res: Response) => {
-    try {
-      const appointments = await storage.getAppointmentsByPatient(req.user!.id);
-      res.json(appointments);
-    } catch (error) {
-      res.status(500).json({ message: "Failed to get appointments" });
-    }
-  });
-
-  // Get provider appointments
-  app.get("/api/appointments/provider", authenticateToken, async (req: AuthRequest, res: Response) => {
-    try {
-      const provider = await storage.getProviderByUserId(req.user!.id);
-      if (!provider) {
-        return res.status(404).json({ message: "Provider not found" });
-      }
-
-      const appointments = await storage.getAppointmentsByProvider(provider.id);
-      console.log(`[DEBUG] Found ${appointments.length} appointments for provider ${provider.id}`);
-      res.json(appointments);
-    } catch (error) {
-      console.error("[ERROR] Get provider appointments:", error);
-      res.status(500).json({ message: "Failed to get appointments" });
-    }
-  });
-
   // Update appointment status
   app.patch("/api/appointments/:id/status", authenticateToken, async (req: AuthRequest, res: Response) => {
     try {
@@ -2083,18 +2077,35 @@ export async function registerRoutes(
     try {
       const appointments = await storage.getAppointmentsByPatient(req.user!.id);
       const now = new Date();
-      
+      let cancelledCount = 0;
+
+      // Anything still 'pending' past its start time → cancelled (no-show / never confirmed)
+      // Anything 'approved'/'confirmed'/'rescheduled' that is more than 24h past end time
+      // and never marked completed → silently cancelled so it doesn't clutter dashboards.
       for (const apt of appointments) {
-        const aptDate = new Date(apt.date);
-        const [hours, minutes] = apt.startTime.split(':');
-        aptDate.setHours(parseInt(hours), parseInt(minutes));
-        
-        if (aptDate < now && apt.status === 'pending') {
+        const [hh, mm] = apt.startTime.split(':');
+        const aptStart = new Date(apt.date);
+        aptStart.setHours(parseInt(hh), parseInt(mm), 0, 0);
+
+        const [eh, em] = (apt.endTime || apt.startTime).split(':');
+        const aptEnd = new Date(apt.date);
+        aptEnd.setHours(parseInt(eh), parseInt(em), 0, 0);
+        const dayAfterEnd = new Date(aptEnd.getTime() + 24 * 60 * 60 * 1000);
+
+        if (apt.status === 'pending' && aptStart < now) {
           await storage.updateAppointment(apt.id, { status: 'cancelled' });
+          cancelledCount++;
+        } else if (
+          ['approved', 'confirmed', 'rescheduled'].includes(apt.status) &&
+          dayAfterEnd < now
+        ) {
+          await storage.updateAppointment(apt.id, { status: 'cancelled' });
+          cancelledCount++;
         }
       }
-      res.json({ message: "Past appointments cleaned up" });
+      res.json({ message: "Past appointments cleaned up", cancelledCount });
     } catch (error) {
+      console.error("Cleanup error:", error);
       res.status(500).json({ message: "Failed to cleanup appointments" });
     }
   });
@@ -2102,34 +2113,68 @@ export async function registerRoutes(
   // Cancel appointment
   app.patch("/api/appointments/:id/cancel", authenticateToken, async (req: AuthRequest, res: Response) => {
     try {
+      const existing = await storage.getAppointment(req.params.id);
+      if (!existing) {
+        return res.status(404).json({ message: "Appointment not found" });
+      }
+
+      // Authorisation: admin OR the patient who owns the appointment OR the provider who owns it
+      if (req.user?.role !== "admin") {
+        if (req.user?.role === "patient") {
+          if (existing.patientId !== req.user.id) {
+            return res.status(403).json({ message: "Access denied" });
+          }
+        } else if (req.user?.role === "provider") {
+          const provider = await storage.getProviderByUserId(req.user.id);
+          if (!provider || provider.id !== existing.providerId) {
+            return res.status(403).json({ message: "Access denied" });
+          }
+        } else {
+          return res.status(403).json({ message: "Access denied" });
+        }
+      }
+
+      // Don't re-cancel terminal-state appointments
+      if (["cancelled", "completed", "rejected"].includes(existing.status)) {
+        return res.status(400).json({ message: `Cannot cancel an appointment in '${existing.status}' state` });
+      }
+
       const appointment = await storage.updateAppointment(req.params.id, { status: "cancelled" });
       if (!appointment) {
         return res.status(404).json({ message: "Appointment not found" });
       }
+
+      // Free the time slot if one was reserved
+      if (appointment.timeSlotId) {
+        try {
+          await storage.updateTimeSlot(appointment.timeSlotId, { isBooked: false });
+        } catch (e) {
+          console.error("Failed to free time slot on cancel:", e);
+        }
+      }
+
+      // Notify the other party
+      try {
+        const providerWithUser = await storage.getProviderWithUser(appointment.providerId);
+        const cancelledBy = req.user?.role === "patient" ? "patient" : req.user?.role === "provider" ? "provider" : "admin";
+        const recipientUserId = cancelledBy === "patient" ? providerWithUser?.userId : appointment.patientId;
+        if (recipientUserId) {
+          await storage.createUserNotification({
+            userId: recipientUserId,
+            type: "appointment",
+            title: "Appointment cancelled",
+            message: `An appointment on ${appointment.date} at ${appointment.startTime} was cancelled by the ${cancelledBy}.`,
+            isRead: false,
+          });
+        }
+      } catch (e) {
+        console.error("Cancel notification failed:", e);
+      }
+
       res.json(appointment);
     } catch (error) {
+      console.error("Cancel appointment error:", error);
       res.status(500).json({ message: "Failed to cancel appointment" });
-    }
-  });
-
-  // ============ REVIEW ROUTES ============
-
-  // Create review
-  app.post("/api/reviews", authenticateToken, async (req: AuthRequest, res: Response) => {
-    try {
-      const { appointmentId, providerId, rating, comment } = req.body;
-
-      const review = await storage.createReview({
-        appointmentId,
-        patientId: req.user!.id,
-        providerId,
-        rating,
-        comment,
-      });
-
-      res.status(201).json(review);
-    } catch (error) {
-      res.status(500).json({ message: "Failed to create review" });
     }
   });
 
