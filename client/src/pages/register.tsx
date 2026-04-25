@@ -188,7 +188,7 @@ export default function Register() {
                           <FormLabel>{t("common.first_name")}</FormLabel>
                           <FormControl>
                             <Input
-                              placeholder="John"
+                              placeholder={t("auth.first_name_placeholder")}
                               {...field}
                               data-testid="input-first-name"
                             />
@@ -206,7 +206,7 @@ export default function Register() {
                           <FormLabel>{t("common.last_name")}</FormLabel>
                           <FormControl>
                             <Input
-                              placeholder="Doe"
+                              placeholder={t("auth.last_name_placeholder")}
                               {...field}
                               data-testid="input-last-name"
                             />
@@ -216,82 +216,6 @@ export default function Register() {
                       )}
                     />
                   </div>
-
-                  {selectedRole === "patient" && (
-                    <div className="space-y-4 border-t pt-4">
-                      <p className="text-sm font-semibold">Consents & Authorizations</p>
-                      <FormField
-                        control={form.control}
-                        name="treatmentConsent"
-                        render={({ field }) => (
-                          <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                            <FormControl>
-                              <Checkbox checked={field.value} onCheckedChange={field.onChange} />
-                            </FormControl>
-                            <div className="space-y-1 leading-none">
-                              <FormLabel className="text-xs">I consent to receive professional medical treatment.</FormLabel>
-                            </div>
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="privacyConsent"
-                        render={({ field }) => (
-                          <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                            <FormControl>
-                              <Checkbox checked={field.value} onCheckedChange={field.onChange} />
-                            </FormControl>
-                            <div className="space-y-1 leading-none">
-                              <FormLabel className="text-xs">I consent to the collection and processing of my health data.</FormLabel>
-                            </div>
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="telemedicineConsent"
-                        render={({ field }) => (
-                          <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                            <FormControl>
-                              <Checkbox checked={field.value} onCheckedChange={field.onChange} />
-                            </FormControl>
-                            <div className="space-y-1 leading-none">
-                              <FormLabel className="text-xs">I consent to receive telemedicine and remote healthcare services.</FormLabel>
-                            </div>
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="termsConsent"
-                        render={({ field }) => (
-                          <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                            <FormControl>
-                              <Checkbox checked={field.value} onCheckedChange={field.onChange} />
-                            </FormControl>
-                            <div className="space-y-1 leading-none">
-                              <FormLabel className="text-xs">I agree to the Golden Life Terms & Conditions.</FormLabel>
-                            </div>
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="declarationConsent"
-                        render={({ field }) => (
-                          <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                            <FormControl>
-                              <Checkbox checked={field.value} onCheckedChange={field.onChange} />
-                            </FormControl>
-                            <div className="space-y-1 leading-none">
-                              <FormLabel className="text-xs">I confirm that all provided information is accurate.</FormLabel>
-                            </div>
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                  )}
 
                   <FormField
                     control={form.control}
@@ -340,7 +264,7 @@ export default function Register() {
                         <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
                           <FormControl>
                             <SelectTrigger data-testid="select-role">
-                              <SelectValue placeholder="Select your role" />
+                              <SelectValue placeholder={t("auth.select_role_placeholder")} />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
@@ -382,23 +306,26 @@ export default function Register() {
                             <div className="relative">
                               <Input
                                 type={showPassword ? "text" : "password"}
-                                placeholder="Create a password"
+                                placeholder={t("auth.create_password_placeholder")}
+                                autoComplete="new-password"
                                 {...field}
                                 data-testid="input-password"
+                                className="pr-10"
                               />
-                              <Button
+                              <button
                                 type="button"
-                                variant="ghost"
-                                size="icon"
-                                className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                                tabIndex={-1}
+                                aria-label={showPassword ? "Hide password" : "Show password"}
+                                className="absolute right-2 top-1/2 -translate-y-1/2 inline-flex items-center justify-center h-8 w-8 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
                                 onClick={() => setShowPassword(!showPassword)}
+                                data-testid="button-toggle-password"
                               >
                                 {showPassword ? (
-                                  <EyeOff className="h-4 w-4 text-muted-foreground" />
+                                  <EyeOff className="h-4 w-4" />
                                 ) : (
-                                  <Eye className="h-4 w-4 text-muted-foreground" />
+                                  <Eye className="h-4 w-4" />
                                 )}
-                              </Button>
+                              </button>
                             </div>
                           </FormControl>
                           <FormMessage />
@@ -416,23 +343,26 @@ export default function Register() {
                             <div className="relative">
                               <Input
                                 type={showConfirmPassword ? "text" : "password"}
-                                placeholder="Confirm your password"
+                                placeholder={t("auth.confirm_password_placeholder")}
+                                autoComplete="new-password"
                                 {...field}
                                 data-testid="input-confirm-password"
+                                className="pr-10"
                               />
-                              <Button
+                              <button
                                 type="button"
-                                variant="ghost"
-                                size="icon"
-                                className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                                tabIndex={-1}
+                                aria-label={showConfirmPassword ? "Hide password" : "Show password"}
+                                className="absolute right-2 top-1/2 -translate-y-1/2 inline-flex items-center justify-center h-8 w-8 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
                                 onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                data-testid="button-toggle-confirm-password"
                               >
                                 {showConfirmPassword ? (
-                                  <EyeOff className="h-4 w-4 text-muted-foreground" />
+                                  <EyeOff className="h-4 w-4" />
                                 ) : (
-                                  <Eye className="h-4 w-4 text-muted-foreground" />
+                                  <Eye className="h-4 w-4" />
                                 )}
-                              </Button>
+                              </button>
                             </div>
                           </FormControl>
                           <FormMessage />
@@ -440,6 +370,76 @@ export default function Register() {
                       )}
                     />
                   </div>
+
+                  {selectedRole === "patient" && (
+                    <div className="space-y-3 rounded-lg border bg-muted/30 p-4">
+                      <div>
+                        <p className="text-sm font-semibold">{t("auth.consents_authorizations")}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">{t("auth.consents_intro")}</p>
+                      </div>
+                      <FormField
+                        control={form.control}
+                        name="treatmentConsent"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                            <FormControl>
+                              <Checkbox checked={field.value} onCheckedChange={field.onChange} data-testid="checkbox-treatment-consent" />
+                            </FormControl>
+                            <FormLabel className="text-xs font-normal leading-snug cursor-pointer">{t("auth.consent_treatment")}</FormLabel>
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="privacyConsent"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                            <FormControl>
+                              <Checkbox checked={field.value} onCheckedChange={field.onChange} data-testid="checkbox-privacy-consent" />
+                            </FormControl>
+                            <FormLabel className="text-xs font-normal leading-snug cursor-pointer">{t("auth.consent_privacy")}</FormLabel>
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="telemedicineConsent"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                            <FormControl>
+                              <Checkbox checked={field.value} onCheckedChange={field.onChange} data-testid="checkbox-telemedicine-consent" />
+                            </FormControl>
+                            <FormLabel className="text-xs font-normal leading-snug cursor-pointer">{t("auth.consent_telemedicine")}</FormLabel>
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="termsConsent"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                            <FormControl>
+                              <Checkbox checked={field.value} onCheckedChange={field.onChange} data-testid="checkbox-terms-consent" />
+                            </FormControl>
+                            <FormLabel className="text-xs font-normal leading-snug cursor-pointer">{t("auth.consent_terms")}</FormLabel>
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="declarationConsent"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                            <FormControl>
+                              <Checkbox checked={field.value} onCheckedChange={field.onChange} data-testid="checkbox-declaration-consent" />
+                            </FormControl>
+                            <FormLabel className="text-xs font-normal leading-snug cursor-pointer">{t("auth.consent_declaration")}</FormLabel>
+                          </FormItem>
+                        )}
+                      />
+                      <FormMessage>{form.formState.errors.declarationConsent?.message}</FormMessage>
+                    </div>
+                  )}
 
                   <Button
                     type="submit"

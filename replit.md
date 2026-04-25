@@ -147,6 +147,13 @@ Languages: English (`en`, default), Hungarian (`hu`, formal tone), Persian (`fa`
 
 ## Recent Changes
 
+- UI polish on auth pages (`client/src/pages/login.tsx`, `client/src/pages/register.tsx`):
+  - Fixed the password show/hide eye toggle on Login, Register, and Confirm-password fields. The previous `<Button size="icon" className="absolute right-0 top-0 h-full">` overlay rendered as a separate row below the input. Replaced with a plain `<button>` positioned at `right-2 top-1/2 -translate-y-1/2` over a `pr-10` padded input — icon now sits cleanly inside the field on the right.
+  - Reorganised the Register form: First/Last name → Email → Phone → Role → Password/Confirm password → **Consents & Authorizations** (was previously placed *between* the name fields and the email field). Consents are now wrapped in a soft `bg-muted/30` panel with a one-line intro for clarity.
+  - Replaced hardcoded English strings on Register (placeholders for first/last name, password, confirm password, role select, and the consent labels & section header) with `t("auth.*")` calls. Added the new keys to the `en.auth` block in `client/src/lib/i18n.ts` (HU/FA still fall back to EN until the auth block is localised).
+  - Header (`client/src/components/header.tsx`) profile menu now uses `t("common.profile")` instead of the missing `common.profile_label` key, so admins no longer see the raw key string.
+  - Footer (`client/src/components/footer.tsx`) Privacy / Terms / Cookie policy links now go through `t()`, with EN + HU translations added to `client/src/lib/i18n.ts`.
+
 - Integrated real Stripe Checkout payments (replaces the previous mock/placeholder UI):
   - New `server/stripe.ts` (lazy-initialised Stripe client) and `server/stripeWebhook.ts` (raw-body webhook handler registered in `server/index.ts` BEFORE `express.json`).
   - `POST /api/appointments` now also creates a Stripe Checkout Session when `paymentMethod === "card"` and Stripe is configured, returning `checkoutUrl` alongside the appointment. The booking page redirects the patient to Stripe and handles the `?stripe=success`/`?stripe=cancelled` return URLs.

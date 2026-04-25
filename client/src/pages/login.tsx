@@ -151,22 +151,25 @@ export default function Login() {
                           <Input
                             type={showPassword ? "text" : "password"}
                             placeholder={t("auth.enter_password")}
+                            autoComplete="current-password"
                             {...field}
                             data-testid="input-password"
+                            className="pr-10"
                           />
-                          <Button
+                          <button
                             type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                            tabIndex={-1}
+                            aria-label={showPassword ? "Hide password" : "Show password"}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 inline-flex items-center justify-center h-8 w-8 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
                             onClick={() => setShowPassword(!showPassword)}
+                            data-testid="button-toggle-password"
                           >
                             {showPassword ? (
-                              <EyeOff className="h-4 w-4 text-muted-foreground" />
+                              <EyeOff className="h-4 w-4" />
                             ) : (
-                              <Eye className="h-4 w-4 text-muted-foreground" />
+                              <Eye className="h-4 w-4" />
                             )}
-                          </Button>
+                          </button>
                         </div>
                       </FormControl>
                       <FormMessage />
