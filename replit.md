@@ -145,6 +145,8 @@ Preferred communication style: Simple, everyday language.
 
 Languages: English (`en`, default), Hungarian (`hu`, formal tone), Persian (`fa`, RTL). Detection order: localStorage → cookie → htmlTag. Persisted to localStorage as `i18nextLng`.
 
+**Auth + validation localization status**: As of the latest pass, both HU and FA have full `auth` and `validation` blocks (login screen, register screen, OTP verify, consents & authorizations panel, form validation messages, role placeholder, name placeholders). FA also now has its own `footer` block (was missing before). Other still-missing HU/FA blocks (hero, features, payment, service_categories, how_it_works, stats, cta, testimonials, chat, dashboard) continue to fall back to EN until they are localized in a future pass.
+
 ## Recent Changes
 
 - Booking-flow & invoicing fixes:
