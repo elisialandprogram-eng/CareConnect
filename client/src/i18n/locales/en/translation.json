@@ -519,7 +519,32 @@
   "payment": {
     "accept_title": "We accept all major payment methods",
     "credit_debit": "Credit & Debit Cards",
+    "e_wallet": "E-Wallet",
     "net_banking": "Net Banking"
+  },
+  "contact": {
+    "title": "Contact Us",
+    "subtitle": "Have questions? We're here to help you.",
+    "email_us": "Email Us",
+    "call_us": "Call Us",
+    "visit_us": "Visit Us",
+    "full_name": "Full Name",
+    "full_name_placeholder": "John Doe",
+    "mobile_number": "Mobile Number",
+    "mobile_placeholder": "+1 234 567 890",
+    "location": "Location",
+    "location_placeholder": "City, Country",
+    "subject": "Subject",
+    "subject_placeholder": "How can we help?",
+    "message": "Message",
+    "message_placeholder": "Tell us more about your inquiry...",
+    "send_message": "Send Message",
+    "sending": "Sending...",
+    "message_sent": "Message Sent",
+    "message_sent_desc": "Thank you for contacting us. We'll get back to you soon.",
+    "error": "Error",
+    "send_failed": "Failed to send message",
+    "unknown_error": "Unknown error occurred"
   },
   "profile": {
     "authority": "Authority",
@@ -618,6 +643,14 @@
   "testimonials": {
     "description": "Hear from patients who have experienced quality healthcare through our platform.",
     "patient": "Patient",
-    "title": "What Our Patients Say"
+    "title": "What Our Patients Say",
+    "items": {
+      "t1_name": "Sarah Mitchell",
+      "t1_comment": "Golden Life made it so easy to find a physiotherapist after my surgery. The home visits were incredibly convenient, and my recovery was faster than expected.",
+      "t2_name": "James Peterson",
+      "t2_comment": "Having a nurse come to my elderly mother's home for regular check-ups gives our family peace of mind. The booking process is simple and the staff is always professional.",
+      "t3_name": "Emily Chen",
+      "t3_comment": "I was able to book a doctor's home visit within hours when my child got sick. The doctor was thorough and caring. Highly recommend this service!"
+    }
   }
 }

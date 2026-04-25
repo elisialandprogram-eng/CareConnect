@@ -505,7 +505,32 @@
   "payment": {
     "accept_title": "Minden főbb fizetési módot elfogadunk",
     "credit_debit": "Hitel- és bankkártyák",
+    "e_wallet": "E-pénztárca",
     "net_banking": "Netbank"
+  },
+  "contact": {
+    "title": "Kapcsolat",
+    "subtitle": "Kérdése van? Itt vagyunk, hogy segítsünk.",
+    "email_us": "Írjon nekünk",
+    "call_us": "Hívjon minket",
+    "visit_us": "Látogasson meg minket",
+    "full_name": "Teljes név",
+    "full_name_placeholder": "Kovács János",
+    "mobile_number": "Mobilszám",
+    "mobile_placeholder": "+36 70 123 4567",
+    "location": "Helyszín",
+    "location_placeholder": "Város, ország",
+    "subject": "Tárgy",
+    "subject_placeholder": "Miben segíthetünk?",
+    "message": "Üzenet",
+    "message_placeholder": "Mondja el bővebben, miben segíthetünk...",
+    "send_message": "Üzenet küldése",
+    "sending": "Küldés...",
+    "message_sent": "Üzenet elküldve",
+    "message_sent_desc": "Köszönjük, hogy felvette velünk a kapcsolatot. Hamarosan válaszolunk.",
+    "error": "Hiba",
+    "send_failed": "Az üzenet küldése nem sikerült",
+    "unknown_error": "Ismeretlen hiba történt"
   },
   "profile": {
     "authority": "Hatóság",
@@ -604,6 +629,14 @@
   "testimonials": {
     "description": "Hallgassa meg azokat a betegeket, akik minőségi egészségügyi ellátást tapasztaltak platformunkon keresztül.",
     "patient": "Beteg",
-    "title": "Mit mondanak a betegeink"
+    "title": "Mit mondanak a betegeink",
+    "items": {
+      "t1_name": "Sarah Mitchell",
+      "t1_comment": "A Golden Life segítségével könnyedén találtam fizioterapeutát a műtétem után. Az otthoni vizitek hihetetlenül kényelmesek voltak, és a gyógyulásom gyorsabb volt a vártnál.",
+      "t2_name": "James Peterson",
+      "t2_comment": "Megnyugtató, hogy egy nővér rendszeres ellenőrzésekre eljön az idős édesanyámhoz. A foglalási folyamat egyszerű, a személyzet pedig mindig profi.",
+      "t3_name": "Emily Chen",
+      "t3_comment": "Órákon belül tudtam orvosi otthoni vizitet foglalni, amikor a gyermekem megbetegedett. Az orvos alapos és gondoskodó volt. Erősen ajánlom ezt a szolgáltatást!"
+    }
   }
 }

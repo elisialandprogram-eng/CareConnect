@@ -33,27 +33,27 @@ export function Testimonials() {
   const testimonials = [
     {
       id: 1,
-      name: "Sarah Mitchell",
+      name: t("testimonials.items.t1_name"),
       role: t("testimonials.patient"),
       avatar: "",
       rating: 5,
-      comment: "Golden Life made it so easy to find a physiotherapist after my surgery. The home visits were incredibly convenient, and my recovery was faster than expected.",
+      comment: t("testimonials.items.t1_comment"),
     },
     {
       id: 2,
-      name: "James Peterson",
+      name: t("testimonials.items.t2_name"),
       role: t("testimonials.patient"),
       avatar: "",
       rating: 5,
-      comment: "Having a nurse come to my elderly mother's home for regular check-ups gives our family peace of mind. The booking process is simple and the staff is always professional.",
+      comment: t("testimonials.items.t2_comment"),
     },
     {
       id: 3,
-      name: "Emily Chen",
+      name: t("testimonials.items.t3_name"),
       role: t("testimonials.patient"),
       avatar: "",
       rating: 5,
-      comment: "I was able to book a doctor's home visit within hours when my child got sick. The doctor was thorough and caring. Highly recommend this service!",
+      comment: t("testimonials.items.t3_comment"),
     },
   ];
 

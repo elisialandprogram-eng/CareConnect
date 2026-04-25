@@ -11,9 +11,11 @@ import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent } from "@/components/ui/card";
 import { motion } from "framer-motion";
 import { Mail, Phone, MapPin } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 export function ContactForm() {
   const { toast } = useToast();
+  const { t } = useTranslation();
   const form = useForm({
     resolver: zodResolver(insertSupportTicketSchema),
     defaultValues: {
@@ -30,21 +32,21 @@ export function ContactForm() {
     mutationFn: async (values: any) => {
       const res = await apiRequest("POST", "/api/support/tickets", values);
       if (!res.ok) {
-        const errorData = await res.json().catch(() => ({ message: "Unknown error occurred" }));
-        throw new Error(errorData.message || "Failed to send message");
+        const errorData = await res.json().catch(() => ({ message: t("contact.unknown_error") }));
+        throw new Error(errorData.message || t("contact.send_failed"));
       }
       return res.json();
     },
     onSuccess: () => {
       toast({
-        title: "Message Sent",
-        description: "Thank you for contacting us. We'll get back to you soon.",
+        title: t("contact.message_sent"),
+        description: t("contact.message_sent_desc"),
       });
       form.reset();
     },
     onError: (error: Error) => {
       toast({
-        title: "Error",
+        title: t("contact.error"),
         description: error.message,
         variant: "destructive",
       });
@@ -56,8 +58,8 @@ export function ContactForm() {
       <div className="container mx-auto px-4">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold mb-4">Contact Us</h2>
-            <p className="text-muted-foreground">Have questions? We're here to help you.</p>
+            <h2 className="text-3xl font-bold mb-4">{t("contact.title")}</h2>
+            <p className="text-muted-foreground">{t("contact.subtitle")}</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
@@ -72,7 +74,7 @@ export function ContactForm() {
                   <Mail className="w-6 h-6 text-primary" />
                 </div>
                 <div>
-                  <h4 className="font-semibold">Email Us</h4>
+                  <h4 className="font-semibold">{t("contact.email_us")}</h4>
                   <div className="flex flex-col">
                     <p className="text-muted-foreground">Info@GoldenLife.Health</p>
                     <p className="text-muted-foreground">Admin@GoldenLife.Health</p>
@@ -85,7 +87,7 @@ export function ContactForm() {
                   <Phone className="w-6 h-6 text-primary" />
                 </div>
                 <div>
-                  <h4 className="font-semibold">Call Us</h4>
+                  <h4 className="font-semibold">{t("contact.call_us")}</h4>
                   <p className="text-muted-foreground">+36702370103</p>
                 </div>
               </div>
@@ -95,7 +97,7 @@ export function ContactForm() {
                   <MapPin className="w-6 h-6 text-primary" />
                 </div>
                 <div>
-                  <h4 className="font-semibold">Visit Us</h4>
+                  <h4 className="font-semibold">{t("contact.visit_us")}</h4>
                   <p className="text-muted-foreground">Hungary, 3060 Pásztó, Semmelweis utca 10</p>
                 </div>
               </div>
@@ -116,9 +118,9 @@ export function ContactForm() {
                           name="name"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>Full Name</FormLabel>
+                              <FormLabel>{t("contact.full_name")}</FormLabel>
                               <FormControl>
-                                <Input placeholder="John Doe" {...field} data-testid="input-contact-name" />
+                                <Input placeholder={t("contact.full_name_placeholder")} {...field} data-testid="input-contact-name" />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
@@ -129,9 +131,9 @@ export function ContactForm() {
                           name="mobileNumber"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>Mobile Number</FormLabel>
+                              <FormLabel>{t("contact.mobile_number")}</FormLabel>
                               <FormControl>
-                                <Input placeholder="+1 234 567 890" {...field} data-testid="input-contact-mobile" />
+                                <Input placeholder={t("contact.mobile_placeholder")} {...field} data-testid="input-contact-mobile" />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
@@ -143,9 +145,9 @@ export function ContactForm() {
                         name="location"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Location</FormLabel>
+                            <FormLabel>{t("contact.location")}</FormLabel>
                             <FormControl>
-                              <Input placeholder="City, Country" {...field} data-testid="input-contact-location" />
+                              <Input placeholder={t("contact.location_placeholder")} {...field} data-testid="input-contact-location" />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -156,9 +158,9 @@ export function ContactForm() {
                         name="subject"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Subject</FormLabel>
+                            <FormLabel>{t("contact.subject")}</FormLabel>
                             <FormControl>
-                              <Input placeholder="How can we help?" {...field} data-testid="input-contact-subject" />
+                              <Input placeholder={t("contact.subject_placeholder")} {...field} data-testid="input-contact-subject" />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -169,10 +171,10 @@ export function ContactForm() {
                         name="description"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Message</FormLabel>
+                            <FormLabel>{t("contact.message")}</FormLabel>
                             <FormControl>
                               <Textarea
-                                placeholder="Tell us more about your inquiry..."
+                                placeholder={t("contact.message_placeholder")}
                                 className="min-h-[120px]"
                                 {...field}
                                 data-testid="input-contact-description"
@@ -188,7 +190,7 @@ export function ContactForm() {
                         disabled={mutation.isPending}
                         data-testid="button-contact-submit"
                       >
-                        {mutation.isPending ? "Sending..." : "Send Message"}
+                        {mutation.isPending ? t("contact.sending") : t("contact.send_message")}
                       </Button>
                     </form>
                   </Form>
