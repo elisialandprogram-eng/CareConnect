@@ -69,7 +69,7 @@ function ServiceStaffList({ serviceId, onDelete, onToggle }: { serviceId: string
       {practitioners?.length === 0 && <p className="text-sm text-muted-foreground italic">No staff assigned</p>}
       {practitioners?.map((sp) => (
         <div key={sp.id} className="flex items-center justify-between p-2 bg-muted/50 rounded border text-sm">
-          <span>{sp.practitioner.name} (${Number(sp.fee).toFixed(0)})</span>
+          <span>{sp.practitioner.name} ({new Intl.NumberFormat("hu-HU", { style: "currency", currency: "HUF", maximumFractionDigits: 0 }).format(Number(sp.fee))})</span>
           <div className="flex items-center gap-1">
             <Button 
               size="sm" 
@@ -248,6 +248,9 @@ export default function ProviderDashboard() {
 
   const [selectedSubServiceId, setSelectedSubServiceId] = useState("");
   const [servicePrice, setServicePrice] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [visitTypeFilter, setVisitTypeFilter] = useState<string>("all");
 
   const handleAddService = () => {
     const sub = subServices?.find(s => s.id === selectedSubServiceId);
@@ -315,26 +318,94 @@ export default function ProviderDashboard() {
   }
 
   const upcomingAppointments = appointments?.filter(
-    (a) => a.status === "pending" || a.status === "confirmed"
+    (a) => a.status === "pending" || a.status === "approved" || a.status === "confirmed" || a.status === "rescheduled"
   ) || [];
 
   const completedAppointments = appointments?.filter(
     (a) => a.status === "completed"
   ) || [];
 
-  const weeklyEarnings = completedAppointments
-    .filter((a) => {
+  const cancelledAppointments = appointments?.filter(
+    (a) => a.status === "cancelled" || a.status === "rejected"
+  ) || [];
+
+  const allAppointments = appointments || [];
+
+  const formatHUF = (amount: number) =>
+    new Intl.NumberFormat("hu-HU", { style: "currency", currency: "HUF", maximumFractionDigits: 0 }).format(amount);
+
+  const sumAmount = (list: AppointmentWithDetails[]) =>
+    list.reduce((sum, a) => sum + Number(a.totalAmount || 0), 0);
+
+  const weeklyEarnings = sumAmount(
+    completedAppointments.filter((a) => {
       const appointmentDate = new Date(a.date);
       const weekAgo = new Date();
       weekAgo.setDate(weekAgo.getDate() - 7);
       return appointmentDate >= weekAgo;
     })
-    .reduce((sum, a) => sum + Number(a.totalAmount || 0), 0);
+  );
+
+  const monthlyEarnings = sumAmount(
+    completedAppointments.filter((a) => {
+      const appointmentDate = new Date(a.date);
+      const monthAgo = new Date();
+      monthAgo.setDate(monthAgo.getDate() - 30);
+      return appointmentDate >= monthAgo;
+    })
+  );
+
+  const totalEarnings = sumAmount(completedAppointments);
+
+  const uniquePatientCount = new Set(
+    allAppointments.map((a) => a.patientId).filter(Boolean)
+  ).size;
+
+  const todayStr = new Date().toISOString().split("T")[0];
+  const todayAppointments = upcomingAppointments.filter((a) => {
+    const d = new Date(a.date).toISOString().split("T")[0];
+    return d === todayStr;
+  });
+
+  const pendingCount = appointments?.filter((a) => a.status === "pending").length || 0;
+  const completionRate = allAppointments.length > 0
+    ? Math.round((completedAppointments.length / allAppointments.length) * 100)
+    : 0;
+
+  const filterAppointments = (list: AppointmentWithDetails[]) => {
+    return list.filter((a) => {
+      const q = searchQuery.trim().toLowerCase();
+      const fullName = `${a.patient?.firstName || ""} ${a.patient?.lastName || ""}`.toLowerCase();
+      const matchesSearch =
+        !q ||
+        fullName.includes(q) ||
+        (a.service?.name?.toLowerCase().includes(q) ?? false) ||
+        (a.id?.toLowerCase().includes(q) ?? false);
+      const matchesStatus = statusFilter === "all" || a.status === statusFilter;
+      const matchesVisit = visitTypeFilter === "all" || a.visitType === visitTypeFilter;
+      return matchesSearch && matchesStatus && matchesVisit;
+    });
+  };
+
+  const sortByDateDesc = (list: AppointmentWithDetails[]) =>
+    [...list].sort(
+      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+    );
+
+  const sortByDateAsc = (list: AppointmentWithDetails[]) =>
+    [...list].sort(
+      (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+    );
 
   const getStatusColor = (status: string) => {
     switch (status) {
       case "pending": return "bg-orange-100 text-orange-700";
+      case "approved": return "bg-blue-100 text-blue-700";
       case "confirmed": return "bg-green-100 text-green-700";
+      case "rescheduled": return "bg-purple-100 text-purple-700";
+      case "completed": return "bg-emerald-100 text-emerald-700";
+      case "cancelled": return "bg-red-100 text-red-700";
+      case "rejected": return "bg-rose-100 text-rose-700";
       default: return "bg-gray-100 text-gray-700";
     }
   };
@@ -521,7 +592,7 @@ export default function ProviderDashboard() {
                 {t("dashboard.mark_payment_received", "Mark payment received")}
               </Button>
             )}
-            {!isPending && (
+            {(isApproved || isConfirmed) && (
               <Button
                 size="sm"
                 variant="outline"
@@ -555,29 +626,229 @@ export default function ProviderDashboard() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-            <Card><CardContent className="p-6">
-              <p className="text-sm text-muted-foreground">Upcoming</p>
-              <p className="text-3xl font-bold">{upcomingAppointments.length}</p>
-            </CardContent></Card>
-            <Card><CardContent className="p-6">
-              <p className="text-sm text-muted-foreground">Weekly Earnings</p>
-              <p className="text-3xl font-bold">${weeklyEarnings.toFixed(0)}</p>
-            </CardContent></Card>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            <Card data-testid="card-stat-today">
+              <CardContent className="p-5">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm text-muted-foreground">Today</p>
+                  <CalendarIcon className="h-4 w-4 text-muted-foreground" />
+                </div>
+                <p className="text-3xl font-bold mt-1" data-testid="text-today-count">{todayAppointments.length}</p>
+                <p className="text-xs text-muted-foreground mt-1">appointments scheduled</p>
+              </CardContent>
+            </Card>
+            <Card data-testid="card-stat-pending">
+              <CardContent className="p-5">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm text-muted-foreground">Pending</p>
+                  <Clock className="h-4 w-4 text-orange-600" />
+                </div>
+                <p className="text-3xl font-bold mt-1 text-orange-600" data-testid="text-pending-count">{pendingCount}</p>
+                <p className="text-xs text-muted-foreground mt-1">awaiting your action</p>
+              </CardContent>
+            </Card>
+            <Card data-testid="card-stat-upcoming">
+              <CardContent className="p-5">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm text-muted-foreground">Upcoming</p>
+                  <TrendingUp className="h-4 w-4 text-blue-600" />
+                </div>
+                <p className="text-3xl font-bold mt-1" data-testid="text-upcoming-count">{upcomingAppointments.length}</p>
+                <p className="text-xs text-muted-foreground mt-1">in your queue</p>
+              </CardContent>
+            </Card>
+            <Card data-testid="card-stat-patients">
+              <CardContent className="p-5">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm text-muted-foreground">Patients</p>
+                  <Users className="h-4 w-4 text-muted-foreground" />
+                </div>
+                <p className="text-3xl font-bold mt-1" data-testid="text-patients-count">{uniquePatientCount}</p>
+                <p className="text-xs text-muted-foreground mt-1">unique patients</p>
+              </CardContent>
+            </Card>
           </div>
 
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            <Card data-testid="card-stat-weekly">
+              <CardContent className="p-5">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm text-muted-foreground">Weekly Revenue</p>
+                  <DollarSign className="h-4 w-4 text-emerald-600" />
+                </div>
+                <p className="text-2xl font-bold mt-1" data-testid="text-weekly-earnings">{formatHUF(weeklyEarnings)}</p>
+                <p className="text-xs text-muted-foreground mt-1">last 7 days</p>
+              </CardContent>
+            </Card>
+            <Card data-testid="card-stat-monthly">
+              <CardContent className="p-5">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm text-muted-foreground">Monthly Revenue</p>
+                  <DollarSign className="h-4 w-4 text-emerald-600" />
+                </div>
+                <p className="text-2xl font-bold mt-1" data-testid="text-monthly-earnings">{formatHUF(monthlyEarnings)}</p>
+                <p className="text-xs text-muted-foreground mt-1">last 30 days</p>
+              </CardContent>
+            </Card>
+            <Card data-testid="card-stat-total-revenue">
+              <CardContent className="p-5">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm text-muted-foreground">Total Revenue</p>
+                  <Banknote className="h-4 w-4 text-emerald-600" />
+                </div>
+                <p className="text-2xl font-bold mt-1" data-testid="text-total-earnings">{formatHUF(totalEarnings)}</p>
+                <p className="text-xs text-muted-foreground mt-1">{completedAppointments.length} completed</p>
+              </CardContent>
+            </Card>
+            <Card data-testid="card-stat-rating">
+              <CardContent className="p-5">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm text-muted-foreground">Rating</p>
+                  <Star className="h-4 w-4 text-amber-500" />
+                </div>
+                <p className="text-2xl font-bold mt-1" data-testid="text-rating">
+                  {Number(providerData?.rating || 0).toFixed(1)}
+                  <span className="text-base text-muted-foreground font-normal"> / 5</span>
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {providerData?.totalReviews || 0} reviews · {completionRate}% completion
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+
+          {todayAppointments.length > 0 && (
+            <Card className="mb-6 border-primary/30 bg-primary/5" data-testid="card-today-section">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <CalendarIcon className="h-5 w-5 text-primary" />
+                  Today's Schedule
+                  <Badge variant="secondary" className="ml-auto">{todayAppointments.length}</Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {sortByDateAsc(todayAppointments).map((a) => (
+                  <AppointmentRow key={a.id} appointment={a} />
+                ))}
+              </CardContent>
+            </Card>
+          )}
+
           <Tabs defaultValue="upcoming" className="w-full">
-            <TabsList>
-              <TabsTrigger value="upcoming">Appointments</TabsTrigger>
-              <TabsTrigger value="services">Services & Staff</TabsTrigger>
+            <TabsList className="flex flex-wrap h-auto">
+              <TabsTrigger value="upcoming" data-testid="tab-upcoming">
+                Upcoming
+                {upcomingAppointments.length > 0 && (
+                  <Badge variant="secondary" className="ml-2">{upcomingAppointments.length}</Badge>
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="completed" data-testid="tab-completed">
+                Completed
+                {completedAppointments.length > 0 && (
+                  <Badge variant="secondary" className="ml-2">{completedAppointments.length}</Badge>
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="cancelled" data-testid="tab-cancelled">
+                Cancelled
+                {cancelledAppointments.length > 0 && (
+                  <Badge variant="secondary" className="ml-2">{cancelledAppointments.length}</Badge>
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="history" data-testid="tab-history">
+                All History
+                {allAppointments.length > 0 && (
+                  <Badge variant="secondary" className="ml-2">{allAppointments.length}</Badge>
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="services" data-testid="tab-services">Services & Staff</TabsTrigger>
             </TabsList>
 
-            <TabsContent value="upcoming" className="mt-6 space-y-3">
-              {upcomingAppointments.length > 0 ? (
-                upcomingAppointments.map((a) => <AppointmentRow key={a.id} appointment={a} />)
-              ) : (
-                <div className="text-center py-12 text-muted-foreground">No upcoming appointments</div>
-              )}
+            <div className="mt-6 mb-4 flex flex-col sm:flex-row gap-3">
+              <Input
+                placeholder="Search by patient name, service, or ID..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="flex-1"
+                data-testid="input-search-appointments"
+              />
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-full sm:w-[180px]" data-testid="select-status-filter">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Statuses</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="approved">Approved</SelectItem>
+                  <SelectItem value="confirmed">Confirmed</SelectItem>
+                  <SelectItem value="rescheduled">Rescheduled</SelectItem>
+                  <SelectItem value="completed">Completed</SelectItem>
+                  <SelectItem value="cancelled">Cancelled</SelectItem>
+                  <SelectItem value="rejected">Rejected</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={visitTypeFilter} onValueChange={setVisitTypeFilter}>
+                <SelectTrigger className="w-full sm:w-[160px]" data-testid="select-visit-filter">
+                  <SelectValue placeholder="Visit Type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Types</SelectItem>
+                  <SelectItem value="online">Online</SelectItem>
+                  <SelectItem value="home">Home Visit</SelectItem>
+                  <SelectItem value="clinic">Clinic</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <TabsContent value="upcoming" className="mt-2 space-y-3">
+              {(() => {
+                const list = sortByDateAsc(filterAppointments(upcomingAppointments));
+                return list.length > 0 ? (
+                  list.map((a) => <AppointmentRow key={a.id} appointment={a} />)
+                ) : (
+                  <div className="text-center py-12 text-muted-foreground" data-testid="empty-upcoming">
+                    No upcoming appointments match your filters
+                  </div>
+                );
+              })()}
+            </TabsContent>
+
+            <TabsContent value="completed" className="mt-2 space-y-3">
+              {(() => {
+                const list = sortByDateDesc(filterAppointments(completedAppointments));
+                return list.length > 0 ? (
+                  list.map((a) => <AppointmentRow key={a.id} appointment={a} />)
+                ) : (
+                  <div className="text-center py-12 text-muted-foreground" data-testid="empty-completed">
+                    No completed appointments yet
+                  </div>
+                );
+              })()}
+            </TabsContent>
+
+            <TabsContent value="cancelled" className="mt-2 space-y-3">
+              {(() => {
+                const list = sortByDateDesc(filterAppointments(cancelledAppointments));
+                return list.length > 0 ? (
+                  list.map((a) => <AppointmentRow key={a.id} appointment={a} />)
+                ) : (
+                  <div className="text-center py-12 text-muted-foreground" data-testid="empty-cancelled">
+                    No cancelled or rejected appointments
+                  </div>
+                );
+              })()}
+            </TabsContent>
+
+            <TabsContent value="history" className="mt-2 space-y-3">
+              {(() => {
+                const list = sortByDateDesc(filterAppointments(allAppointments));
+                return list.length > 0 ? (
+                  list.map((a) => <AppointmentRow key={a.id} appointment={a} />)
+                ) : (
+                  <div className="text-center py-12 text-muted-foreground" data-testid="empty-history">
+                    No appointments in your history
+                  </div>
+                );
+              })()}
             </TabsContent>
 
             <TabsContent value="services" className="mt-6 space-y-6">
@@ -596,7 +867,7 @@ export default function ProviderDashboard() {
                     <div className="space-y-2">
                       {providerWithServices?.services?.map(s => (
                         <div key={s.id} className="flex justify-between items-center p-3 border rounded-lg">
-                          <span>{s.name} (${Number(s.price).toFixed(0)})</span>
+                          <span>{s.name} ({formatHUF(Number(s.price))})</span>
                           <div className="flex gap-1">
                             <Button size="sm" variant={s.isActive ? "default" : "outline"} onClick={() => toggleServiceMutation.mutate({ id: s.id, isActive: !s.isActive })}>{s.isActive ? "Active" : "Paused"}</Button>
                             <Button size="icon" variant="ghost" className="text-destructive" onClick={() => deleteServiceMutation.mutate(s.id)}><Trash2 className="h-4 w-4" /></Button>

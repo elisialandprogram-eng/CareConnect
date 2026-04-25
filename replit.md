@@ -14,6 +14,8 @@ Preferred communication style: Simple, everyday language.
 
 The frontend is built with React and TypeScript, utilizing Wouter for routing and TanStack Query for server state management. Styling is handled with Tailwind CSS, leveraging Radix UI primitives and shadcn/ui for accessible UI components. Forms are managed with React Hook Form and Zod for validation. The design system incorporates Inter and DM Sans fonts, supports light/dark modes, and follows a mobile-first responsive approach. Key pages include Home, Provider listing, Provider Profile, Patient Dashboard, Provider Dashboard, and Authentication flows.
 
+The Provider Dashboard offers comprehensive booking management with eight key statistics (Today's appointments, Pending actions, Upcoming, Unique patients, Weekly/Monthly/Total revenue in HUF, and Rating with completion rate), a dedicated "Today's Schedule" highlight section, and five tabs: Upcoming, Completed, Cancelled, All History, and Services & Staff. Appointments can be searched by patient name/service/ID and filtered by status and visit type, with status-aware action buttons (Approve, Reject, Confirm, Mark Completed, Mark Payment Received, Cancel) and color-coded status badges across all seven appointment states.
+
 ### Backend
 
 The backend is developed with Node.js and TypeScript, using Express.js as the framework and Drizzle ORM for database interactions. Authentication is JWT-based with bcrypt for password hashing, supporting role-based access control (patient, provider, admin). The API is RESTful, uses JSON for communication, and includes centralized error handling and request logging. A Data Access Layer (DAL) abstracts database operations for various entities, providing enriched data types for complex queries.
