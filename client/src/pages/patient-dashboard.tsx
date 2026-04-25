@@ -151,14 +151,14 @@ export default function PatientDashboard() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/appointments/patient"] });
       toast({
-        title: "Appointment cancelled",
-        description: "Your appointment has been cancelled successfully.",
+        title: t("dashboard.appointment_cancelled_title", "Appointment cancelled"),
+        description: t("dashboard.appointment_cancelled_desc", "Your appointment has been cancelled successfully."),
       });
     },
     onError: () => {
       toast({
-        title: "Error",
-        description: "Failed to cancel appointment. Please try again.",
+        title: t("dashboard.error", "Error"),
+        description: t("dashboard.cancel_failed_desc", "Failed to cancel appointment. Please try again."),
         variant: "destructive",
       });
     },
@@ -476,13 +476,13 @@ export default function PatientDashboard() {
               />
               <Select value={visitTypeFilter} onValueChange={setVisitTypeFilter}>
                 <SelectTrigger className="w-full sm:w-[180px]" data-testid="select-visit-filter">
-                  <SelectValue placeholder="Visit type" />
+                  <SelectValue placeholder={t("patient_dashboard.visit_type", "Visit type")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All types</SelectItem>
-                  <SelectItem value="online">Online</SelectItem>
-                  <SelectItem value="home">Home visit</SelectItem>
-                  <SelectItem value="clinic">Clinic</SelectItem>
+                  <SelectItem value="all">{t("patient_dashboard.all_types", "All types")}</SelectItem>
+                  <SelectItem value="online">{t("patient_dashboard.type_online", "Online")}</SelectItem>
+                  <SelectItem value="home">{t("patient_dashboard.type_home", "Home visit")}</SelectItem>
+                  <SelectItem value="clinic">{t("patient_dashboard.type_clinic", "Clinic")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -504,12 +504,12 @@ export default function PatientDashboard() {
                 <Card>
                   <CardContent className="p-12 text-center">
                     <Calendar className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                    <h3 className="font-semibold text-lg mb-2">No upcoming appointments</h3>
+                    <h3 className="font-semibold text-lg mb-2">{t("patient_dashboard.empty_upcoming_title", "No upcoming appointments")}</h3>
                     <p className="text-muted-foreground mb-4">
-                      Book an appointment with a healthcare provider
+                      {t("patient_dashboard.empty_upcoming_desc", "Book an appointment with a healthcare provider")}
                     </p>
                     <Button asChild>
-                      <Link href="/providers">Find Providers</Link>
+                      <Link href="/providers">{t("patient_dashboard.find_providers_btn", "Find Providers")}</Link>
                     </Button>
                   </CardContent>
                 </Card>
@@ -526,7 +526,7 @@ export default function PatientDashboard() {
               ) : (
                 <Card>
                   <CardContent className="p-12 text-center text-muted-foreground" data-testid="empty-completed">
-                    No completed appointments match your filters
+                    {t("patient_dashboard.empty_completed", "No completed appointments match your filters")}
                   </CardContent>
                 </Card>
               )}
@@ -542,7 +542,7 @@ export default function PatientDashboard() {
               ) : (
                 <Card>
                   <CardContent className="p-12 text-center text-muted-foreground" data-testid="empty-cancelled">
-                    No cancelled or rejected appointments
+                    {t("patient_dashboard.empty_cancelled", "No cancelled or rejected appointments")}
                   </CardContent>
                 </Card>
               )}
@@ -559,9 +559,9 @@ export default function PatientDashboard() {
                 <Card>
                   <CardContent className="p-12 text-center">
                     <FileText className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                    <h3 className="font-semibold text-lg mb-2">No past appointments</h3>
+                    <h3 className="font-semibold text-lg mb-2">{t("patient_dashboard.empty_past_title", "No past appointments")}</h3>
                     <p className="text-muted-foreground">
-                      Your completed appointments will appear here
+                      {t("patient_dashboard.empty_past_desc", "Your completed appointments will appear here")}
                     </p>
                   </CardContent>
                 </Card>
@@ -574,7 +574,7 @@ export default function PatientDashboard() {
                   <CardHeader>
                     <CardTitle className="text-lg flex items-center gap-2">
                       <FileText className="h-5 w-5 text-primary" />
-                      Prescriptions
+                      {t("patient_dashboard.prescriptions", "Prescriptions")}
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
@@ -585,7 +585,7 @@ export default function PatientDashboard() {
                   <CardHeader>
                     <CardTitle className="text-lg flex items-center gap-2">
                       <Clock className="h-5 w-5 text-primary" />
-                      Medical History
+                      {t("patient_dashboard.medical_history", "Medical History")}
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
@@ -598,8 +598,8 @@ export default function PatientDashboard() {
             <TabsContent value="invoices" className="mt-6 space-y-6">
               <Card>
                 <CardHeader>
-                  <CardTitle>Invoices</CardTitle>
-                  <CardDescription>Download invoices issued for your completed appointments</CardDescription>
+                  <CardTitle>{t("patient_dashboard.invoices_title", "Invoices")}</CardTitle>
+                  <CardDescription>{t("patient_dashboard.invoices_desc", "Download invoices issued for your completed appointments")}</CardDescription>
                 </CardHeader>
                 <CardContent>
                   {isLoadingInvoices ? (
@@ -622,7 +622,7 @@ export default function PatientDashboard() {
                               </p>
                               <p className="text-sm text-muted-foreground">
                                 {inv.issueDate ? new Date(inv.issueDate).toLocaleDateString() : "—"}
-                                {inv.dueDate ? ` • Due ${new Date(inv.dueDate).toLocaleDateString()}` : ""}
+                                {inv.dueDate ? ` • ${t("patient_dashboard.due_label", "Due")} ${new Date(inv.dueDate).toLocaleDateString()}` : ""}
                               </p>
                             </div>
                           </div>
@@ -647,7 +647,7 @@ export default function PatientDashboard() {
                                 target="_blank"
                                 rel="noreferrer"
                               >
-                                Download PDF
+                                {t("patient_dashboard.download_pdf", "Download PDF")}
                               </a>
                             </Button>
                           </div>
@@ -657,9 +657,9 @@ export default function PatientDashboard() {
                   ) : (
                     <div className="py-12 text-center">
                       <FileText className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                      <h3 className="font-semibold text-lg mb-2">No invoices yet</h3>
+                      <h3 className="font-semibold text-lg mb-2">{t("patient_dashboard.empty_invoices_title", "No invoices yet")}</h3>
                       <p className="text-muted-foreground">
-                        Invoices appear here once your appointments are marked completed by the provider.
+                        {t("patient_dashboard.empty_invoices_desc", "Invoices appear here once your appointments are marked completed by the provider.")}
                       </p>
                     </div>
                   )}
@@ -668,8 +668,8 @@ export default function PatientDashboard() {
 
               <Card>
                 <CardHeader>
-                  <CardTitle>Payment History</CardTitle>
-                  <CardDescription>All payment transactions linked to your appointments</CardDescription>
+                  <CardTitle>{t("patient_dashboard.payment_history", "Payment History")}</CardTitle>
+                  <CardDescription>{t("patient_dashboard.payment_history_desc", "All payment transactions linked to your appointments")}</CardDescription>
                 </CardHeader>
                 <CardContent>
                   {isLoading ? (
@@ -714,7 +714,7 @@ export default function PatientDashboard() {
                   ) : (
                     <div className="py-12 text-center">
                       <Banknote className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                      <p className="text-muted-foreground">No payment activity yet.</p>
+                      <p className="text-muted-foreground">{t("patient_dashboard.empty_payments", "No payment activity yet.")}</p>
                     </div>
                   )}
                 </CardContent>

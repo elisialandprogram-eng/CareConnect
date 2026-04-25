@@ -77,6 +77,7 @@ import {
 } from "recharts";
 
 function ServiceStaffList({ serviceId, onDelete, onToggle }: { serviceId: string; onDelete: (id: string) => void; onToggle: (args: {id: string, isActive: boolean}) => void }) {
+  const { t } = useTranslation();
   const { data: practitioners } = useQuery<any[]>({
     queryKey: [`/api/services/${serviceId}/practitioners`],
     enabled: !!serviceId,
@@ -84,7 +85,7 @@ function ServiceStaffList({ serviceId, onDelete, onToggle }: { serviceId: string
 
   return (
     <div className="space-y-2 mt-2">
-      {practitioners?.length === 0 && <p className="text-sm text-muted-foreground italic">No staff assigned</p>}
+      {practitioners?.length === 0 && <p className="text-sm text-muted-foreground italic">{t("provider_dashboard.no_staff_assigned", "No staff assigned")}</p>}
       {practitioners?.map((sp) => (
         <div key={sp.id} className="flex items-center justify-between p-2 bg-muted/50 rounded border text-sm">
           <span>{sp.practitioner.name} ({new Intl.NumberFormat("hu-HU", { style: "currency", currency: "HUF", maximumFractionDigits: 0 }).format(Number(sp.fee))})</span>
@@ -95,7 +96,7 @@ function ServiceStaffList({ serviceId, onDelete, onToggle }: { serviceId: string
               className={sp.isActive ? "text-primary" : "text-muted-foreground"}
               onClick={() => onToggle({ id: sp.id, isActive: !sp.isActive })}
             >
-              {sp.isActive ? "Active" : "Paused"}
+              {sp.isActive ? t("provider_dashboard.active", "Active") : t("provider_dashboard.paused", "Paused")}
             </Button>
             <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => onDelete(sp.id)}>
               <Trash2 className="h-4 w-4" />
@@ -146,7 +147,7 @@ export default function ProviderDashboard() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/providers/${providerData?.id}/practitioners`] });
-      toast({ title: "Practitioner added" });
+      toast({ title: t("provider_dashboard.toast_practitioner_added", "Practitioner added") });
     },
   });
 
@@ -157,7 +158,7 @@ export default function ProviderDashboard() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [/api\/services\/.*\/practitioners/] });
-      toast({ title: "Practitioner assigned to service" });
+      toast({ title: t("provider_dashboard.toast_practitioner_assigned", "Practitioner assigned to service") });
     },
   });
 
@@ -168,7 +169,7 @@ export default function ProviderDashboard() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/providers", providerData?.id] });
-      toast({ title: "Service added successfully" });
+      toast({ title: t("provider_dashboard.toast_service_added", "Service added successfully") });
     },
   });
 
@@ -181,15 +182,15 @@ export default function ProviderDashboard() {
       queryClient.invalidateQueries({ queryKey: ["/api/appointments/provider"] });
       if (variables.status === "completed" && data?.invoice?.created) {
         toast({
-          title: "Appointment completed",
-          description: `Invoice ${data.invoice.invoiceNumber} was generated and emailed to the patient.`,
+          title: t("provider_dashboard.toast_appt_completed", "Appointment completed"),
+          description: t("provider_dashboard.toast_appt_completed_desc", "Invoice {{invoiceNumber}} was generated and emailed to the patient.", { invoiceNumber: data.invoice.invoiceNumber }),
         });
       } else {
-        toast({ title: "Appointment updated" });
+        toast({ title: t("provider_dashboard.toast_appt_updated", "Appointment updated") });
       }
     },
     onError: () => {
-      toast({ title: "Failed to update appointment", variant: "destructive" });
+      toast({ title: t("provider_dashboard.toast_failed_update_appt", "Failed to update appointment"), variant: "destructive" });
     },
   });
 
@@ -200,10 +201,10 @@ export default function ProviderDashboard() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/appointments/provider"] });
-      toast({ title: "Payment marked as received" });
+      toast({ title: t("provider_dashboard.toast_payment_marked", "Payment marked as received") });
     },
     onError: () => {
-      toast({ title: "Failed to update payment", variant: "destructive" });
+      toast({ title: t("provider_dashboard.toast_failed_payment", "Failed to update payment"), variant: "destructive" });
     },
   });
 
@@ -213,7 +214,7 @@ export default function ProviderDashboard() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/providers", providerData?.id] });
-      toast({ title: "Service deleted" });
+      toast({ title: t("provider_dashboard.toast_service_deleted", "Service deleted") });
     },
   });
 
@@ -232,7 +233,7 @@ export default function ProviderDashboard() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/providers/${providerData?.id}/practitioners`] });
-      toast({ title: "Practitioner deleted" });
+      toast({ title: t("provider_dashboard.toast_practitioner_deleted", "Practitioner deleted") });
     },
   });
 
@@ -251,7 +252,7 @@ export default function ProviderDashboard() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [/api\/services\/.*\/practitioners/] });
-      toast({ title: "Assignment removed" });
+      toast({ title: t("provider_dashboard.toast_assignment_removed", "Assignment removed") });
     },
   });
 
@@ -290,9 +291,9 @@ export default function ProviderDashboard() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/reviews/provider/me"] });
-      toast({ title: "Reply posted" });
+      toast({ title: t("provider_dashboard.toast_reply_posted", "Reply posted") });
     },
-    onError: () => toast({ title: "Failed to post reply", variant: "destructive" }),
+    onError: () => toast({ title: t("provider_dashboard.toast_failed_reply", "Failed to post reply"), variant: "destructive" }),
   });
 
   // Reschedule + edit (private note)
@@ -304,11 +305,11 @@ export default function ProviderDashboard() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/appointments/provider"] });
-      toast({ title: "Appointment updated" });
+      toast({ title: t("provider_dashboard.toast_appt_updated", "Appointment updated") });
       setRescheduleOpen(false);
       setSelectedAppt(null);
     },
-    onError: () => toast({ title: "Failed to update", variant: "destructive" }),
+    onError: () => toast({ title: t("provider_dashboard.toast_failed_update", "Failed to update"), variant: "destructive" }),
   });
 
   const savePrivateNoteMutation = useMutation({
@@ -318,7 +319,7 @@ export default function ProviderDashboard() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/appointments/provider"] });
-      toast({ title: "Note saved" });
+      toast({ title: t("provider_dashboard.toast_note_saved", "Note saved") });
     },
   });
 
@@ -329,11 +330,11 @@ export default function ProviderDashboard() {
       return res.json();
     },
     onSuccess: (data: any) => {
-      toast({ title: `Created ${data.count} time slots` });
+      toast({ title: t("provider_dashboard.toast_slots_created", "Created {{count}} time slots", { count: data.count }) });
       setAvailabilityOpen(false);
       setWeekSlots({});
     },
-    onError: () => toast({ title: "Failed to save availability", variant: "destructive" }),
+    onError: () => toast({ title: t("provider_dashboard.toast_failed_availability", "Failed to save availability"), variant: "destructive" }),
   });
 
   // Service reorder + duplicate
@@ -344,7 +345,7 @@ export default function ProviderDashboard() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/providers", providerData?.id] });
-      toast({ title: "Service duplicated" });
+      toast({ title: t("provider_dashboard.toast_service_duplicated", "Service duplicated") });
     },
   });
 
@@ -401,7 +402,7 @@ export default function ProviderDashboard() {
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
-    toast({ title: `Exported ${list.length} appointments` });
+    toast({ title: t("provider_dashboard.toast_exported", "Exported {{count}} appointments", { count: list.length }) });
   };
 
   const openApptDetails = (a: AppointmentWithDetails) => {
@@ -455,16 +456,16 @@ export default function ProviderDashboard() {
             <div className="h-16 w-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6">
               <Users className="h-8 w-8 text-primary" />
             </div>
-            <h1 className="text-2xl font-bold mb-3 text-foreground tracking-tight">Complete Your Profile</h1>
+            <h1 className="text-2xl font-bold mb-3 text-foreground tracking-tight">{t("provider_dashboard.complete_profile_title", "Complete Your Profile")}</h1>
             <p className="text-muted-foreground mb-8 text-balance leading-relaxed">
-              To start managing appointments and services, you'll need to set up your professional profile first.
+              {t("provider_dashboard.complete_profile_desc", "To start managing appointments and services, you'll need to set up your professional profile first.")}
             </p>
             <div className="flex flex-col gap-3">
               <Button size="lg" className="w-full font-semibold shadow-sm" onClick={() => setLocation("/provider/setup")}>
-                Setup Provider Profile
+                {t("provider_dashboard.setup_profile_btn", "Setup Provider Profile")}
               </Button>
               <Button variant="ghost" size="sm" className="w-full text-muted-foreground" onClick={() => setLocation("/providers")}>
-                Browse Other Providers
+                {t("provider_dashboard.browse_others", "Browse Other Providers")}
               </Button>
             </div>
           </div>
@@ -483,12 +484,12 @@ export default function ProviderDashboard() {
             <div className="h-16 w-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-6">
               <Clock className="h-8 w-8 text-orange-600" />
             </div>
-            <h1 className="text-2xl font-bold mb-3 text-foreground tracking-tight">Awaiting Approval</h1>
+            <h1 className="text-2xl font-bold mb-3 text-foreground tracking-tight">{t("provider_dashboard.awaiting_approval_title", "Awaiting Approval")}</h1>
             <p className="text-muted-foreground mb-8 text-balance leading-relaxed">
-              Your provider profile has been submitted and is currently awaiting administrator approval. You will have full access once your account is verified.
+              {t("provider_dashboard.awaiting_approval_desc", "Your provider profile has been submitted and is currently awaiting administrator approval. You will have full access once your account is verified.")}
             </p>
             <Button variant="outline" className="w-full" onClick={() => setLocation("/")}>
-              Back to Home
+              {t("provider_dashboard.back_to_home", "Back to Home")}
             </Button>
           </div>
         </main>
@@ -788,7 +789,7 @@ export default function ProviderDashboard() {
                   data-testid={`button-reschedule-${appointment.id}`}
                 >
                   <CalendarDays className="h-3 w-3 mr-1" />
-                  Reschedule
+                  {t("provider_dashboard.reschedule_btn", "Reschedule")}
                 </Button>
                 <Button
                   size="sm"
@@ -819,8 +820,8 @@ export default function ProviderDashboard() {
               <p className="text-muted-foreground">{t("dashboard.provider_desc")}</p>
             </div>
             <div className="flex flex-wrap gap-2">
-              <Button variant="outline" asChild><Link href={`/provider/${providerData?.id}`}><FileText className="h-4 w-4 mr-2" />Profile</Link></Button>
-              <Button variant="outline" asChild><Link href="/provider/settings"><Settings className="h-4 w-4 mr-2" />Settings</Link></Button>
+              <Button variant="outline" asChild><Link href={`/provider/${providerData?.id}`}><FileText className="h-4 w-4 mr-2" />{t("provider_dashboard.profile_button", "Profile")}</Link></Button>
+              <Button variant="outline" asChild><Link href="/provider/settings"><Settings className="h-4 w-4 mr-2" />{t("provider_dashboard.settings_button", "Settings")}</Link></Button>
             </div>
           </div>
 
@@ -828,41 +829,41 @@ export default function ProviderDashboard() {
             <Card data-testid="card-stat-today">
               <CardContent className="p-5">
                 <div className="flex items-center justify-between">
-                  <p className="text-sm text-muted-foreground">Today</p>
+                  <p className="text-sm text-muted-foreground">{t("provider_dashboard.stat_today", "Today")}</p>
                   <CalendarIcon className="h-4 w-4 text-muted-foreground" />
                 </div>
                 <p className="text-3xl font-bold mt-1" data-testid="text-today-count">{todayAppointments.length}</p>
-                <p className="text-xs text-muted-foreground mt-1">appointments scheduled</p>
+                <p className="text-xs text-muted-foreground mt-1">{t("provider_dashboard.stat_today_desc", "appointments scheduled")}</p>
               </CardContent>
             </Card>
             <Card data-testid="card-stat-pending">
               <CardContent className="p-5">
                 <div className="flex items-center justify-between">
-                  <p className="text-sm text-muted-foreground">Pending</p>
+                  <p className="text-sm text-muted-foreground">{t("provider_dashboard.stat_pending", "Pending")}</p>
                   <Clock className="h-4 w-4 text-orange-600" />
                 </div>
                 <p className="text-3xl font-bold mt-1 text-orange-600" data-testid="text-pending-count">{pendingCount}</p>
-                <p className="text-xs text-muted-foreground mt-1">awaiting your action</p>
+                <p className="text-xs text-muted-foreground mt-1">{t("provider_dashboard.stat_pending_desc", "awaiting your action")}</p>
               </CardContent>
             </Card>
             <Card data-testid="card-stat-upcoming">
               <CardContent className="p-5">
                 <div className="flex items-center justify-between">
-                  <p className="text-sm text-muted-foreground">Upcoming</p>
+                  <p className="text-sm text-muted-foreground">{t("provider_dashboard.stat_upcoming", "Upcoming")}</p>
                   <TrendingUp className="h-4 w-4 text-blue-600" />
                 </div>
                 <p className="text-3xl font-bold mt-1" data-testid="text-upcoming-count">{upcomingAppointments.length}</p>
-                <p className="text-xs text-muted-foreground mt-1">in your queue</p>
+                <p className="text-xs text-muted-foreground mt-1">{t("provider_dashboard.stat_upcoming_desc", "in your queue")}</p>
               </CardContent>
             </Card>
             <Card data-testid="card-stat-patients">
               <CardContent className="p-5">
                 <div className="flex items-center justify-between">
-                  <p className="text-sm text-muted-foreground">Patients</p>
+                  <p className="text-sm text-muted-foreground">{t("provider_dashboard.stat_patients", "Patients")}</p>
                   <Users className="h-4 w-4 text-muted-foreground" />
                 </div>
                 <p className="text-3xl font-bold mt-1" data-testid="text-patients-count">{uniquePatientCount}</p>
-                <p className="text-xs text-muted-foreground mt-1">unique patients</p>
+                <p className="text-xs text-muted-foreground mt-1">{t("provider_dashboard.stat_patients_desc", "unique patients")}</p>
               </CardContent>
             </Card>
           </div>
@@ -871,37 +872,37 @@ export default function ProviderDashboard() {
             <Card data-testid="card-stat-weekly">
               <CardContent className="p-5">
                 <div className="flex items-center justify-between">
-                  <p className="text-sm text-muted-foreground">Weekly Revenue</p>
+                  <p className="text-sm text-muted-foreground">{t("provider_dashboard.stat_weekly", "Weekly Revenue")}</p>
                   <DollarSign className="h-4 w-4 text-emerald-600" />
                 </div>
                 <p className="text-2xl font-bold mt-1" data-testid="text-weekly-earnings">{formatHUF(weeklyEarnings)}</p>
-                <p className="text-xs text-muted-foreground mt-1">last 7 days</p>
+                <p className="text-xs text-muted-foreground mt-1">{t("provider_dashboard.stat_weekly_desc", "last 7 days")}</p>
               </CardContent>
             </Card>
             <Card data-testid="card-stat-monthly">
               <CardContent className="p-5">
                 <div className="flex items-center justify-between">
-                  <p className="text-sm text-muted-foreground">Monthly Revenue</p>
+                  <p className="text-sm text-muted-foreground">{t("provider_dashboard.stat_monthly", "Monthly Revenue")}</p>
                   <DollarSign className="h-4 w-4 text-emerald-600" />
                 </div>
                 <p className="text-2xl font-bold mt-1" data-testid="text-monthly-earnings">{formatHUF(monthlyEarnings)}</p>
-                <p className="text-xs text-muted-foreground mt-1">last 30 days</p>
+                <p className="text-xs text-muted-foreground mt-1">{t("provider_dashboard.stat_monthly_desc", "last 30 days")}</p>
               </CardContent>
             </Card>
             <Card data-testid="card-stat-total-revenue">
               <CardContent className="p-5">
                 <div className="flex items-center justify-between">
-                  <p className="text-sm text-muted-foreground">Total Revenue</p>
+                  <p className="text-sm text-muted-foreground">{t("provider_dashboard.stat_total", "Total Revenue")}</p>
                   <Banknote className="h-4 w-4 text-emerald-600" />
                 </div>
                 <p className="text-2xl font-bold mt-1" data-testid="text-total-earnings">{formatHUF(totalEarnings)}</p>
-                <p className="text-xs text-muted-foreground mt-1">{completedAppointments.length} completed</p>
+                <p className="text-xs text-muted-foreground mt-1">{t("provider_dashboard.stat_total_desc", "{{count}} completed", { count: completedAppointments.length })}</p>
               </CardContent>
             </Card>
             <Card data-testid="card-stat-rating">
               <CardContent className="p-5">
                 <div className="flex items-center justify-between">
-                  <p className="text-sm text-muted-foreground">Rating</p>
+                  <p className="text-sm text-muted-foreground">{t("provider_dashboard.stat_rating", "Rating")}</p>
                   <Star className="h-4 w-4 text-amber-500" />
                 </div>
                 <p className="text-2xl font-bold mt-1" data-testid="text-rating">
@@ -909,7 +910,7 @@ export default function ProviderDashboard() {
                   <span className="text-base text-muted-foreground font-normal"> / 5</span>
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  {providerData?.totalReviews || 0} reviews · {completionRate}% completion
+                  {t("provider_dashboard.stat_rating_desc", "{{reviews}} reviews · {{rate}}% completion", { reviews: providerData?.totalReviews || 0, rate: completionRate })}
                 </p>
               </CardContent>
             </Card>
@@ -920,7 +921,7 @@ export default function ProviderDashboard() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-lg">
                   <CalendarIcon className="h-5 w-5 text-primary" />
-                  Today's Schedule
+                  {t("provider_dashboard.todays_schedule", "Today's Schedule")}
                   <Badge variant="secondary" className="ml-auto">{todayAppointments.length}</Badge>
                 </CardTitle>
               </CardHeader>
@@ -935,48 +936,48 @@ export default function ProviderDashboard() {
           <Tabs defaultValue="upcoming" className="w-full">
             <TabsList className="flex flex-wrap h-auto">
               <TabsTrigger value="upcoming" data-testid="tab-upcoming">
-                Upcoming
+                {t("provider_dashboard.tab_upcoming", "Upcoming")}
                 {upcomingAppointments.length > 0 && (
                   <Badge variant="secondary" className="ml-2">{upcomingAppointments.length}</Badge>
                 )}
               </TabsTrigger>
               <TabsTrigger value="completed" data-testid="tab-completed">
-                Completed
+                {t("provider_dashboard.tab_completed", "Completed")}
                 {completedAppointments.length > 0 && (
                   <Badge variant="secondary" className="ml-2">{completedAppointments.length}</Badge>
                 )}
               </TabsTrigger>
               <TabsTrigger value="cancelled" data-testid="tab-cancelled">
-                Cancelled
+                {t("provider_dashboard.tab_cancelled", "Cancelled")}
                 {cancelledAppointments.length > 0 && (
                   <Badge variant="secondary" className="ml-2">{cancelledAppointments.length}</Badge>
                 )}
               </TabsTrigger>
               <TabsTrigger value="history" data-testid="tab-history">
-                All History
+                {t("provider_dashboard.tab_history", "All History")}
                 {allAppointments.length > 0 && (
                   <Badge variant="secondary" className="ml-2">{allAppointments.length}</Badge>
                 )}
               </TabsTrigger>
               <TabsTrigger value="calendar" data-testid="tab-calendar">
-                <CalendarDays className="h-4 w-4 mr-1" /> Calendar
+                <CalendarDays className="h-4 w-4 mr-1" /> {t("provider_dashboard.tab_calendar", "Calendar")}
               </TabsTrigger>
               <TabsTrigger value="reviews" data-testid="tab-reviews">
-                <Star className="h-4 w-4 mr-1" /> Reviews
+                <Star className="h-4 w-4 mr-1" /> {t("provider_dashboard.tab_reviews", "Reviews")}
                 {providerReviews && providerReviews.length > 0 && (
                   <Badge variant="secondary" className="ml-2">{providerReviews.length}</Badge>
                 )}
               </TabsTrigger>
-              <TabsTrigger value="availability" data-testid="tab-availability">Availability</TabsTrigger>
+              <TabsTrigger value="availability" data-testid="tab-availability">{t("provider_dashboard.tab_availability", "Availability")}</TabsTrigger>
               <TabsTrigger value="analytics" data-testid="tab-analytics">
-                <TrendingUp className="h-4 w-4 mr-1" /> Analytics
+                <TrendingUp className="h-4 w-4 mr-1" /> {t("provider_dashboard.tab_analytics", "Analytics")}
               </TabsTrigger>
-              <TabsTrigger value="services" data-testid="tab-services">Services & Staff</TabsTrigger>
+              <TabsTrigger value="services" data-testid="tab-services">{t("provider_dashboard.tab_services", "Services & Staff")}</TabsTrigger>
             </TabsList>
 
             <div className="mt-6 mb-4 flex flex-col sm:flex-row gap-3">
               <Input
-                placeholder="Search by patient name, service, or ID..."
+                placeholder={t("provider_dashboard.search_placeholder", "Search by patient name, service, or ID...")}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="flex-1"
@@ -984,28 +985,28 @@ export default function ProviderDashboard() {
               />
               <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger className="w-full sm:w-[180px]" data-testid="select-status-filter">
-                  <SelectValue placeholder="Status" />
+                  <SelectValue placeholder={t("provider_dashboard.status", "Status")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Statuses</SelectItem>
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="approved">Approved</SelectItem>
-                  <SelectItem value="confirmed">Confirmed</SelectItem>
-                  <SelectItem value="rescheduled">Rescheduled</SelectItem>
-                  <SelectItem value="completed">Completed</SelectItem>
-                  <SelectItem value="cancelled">Cancelled</SelectItem>
-                  <SelectItem value="rejected">Rejected</SelectItem>
+                  <SelectItem value="all">{t("provider_dashboard.all_statuses", "All Statuses")}</SelectItem>
+                  <SelectItem value="pending">{t("provider_dashboard.status_pending", "Pending")}</SelectItem>
+                  <SelectItem value="approved">{t("provider_dashboard.status_approved", "Approved")}</SelectItem>
+                  <SelectItem value="confirmed">{t("provider_dashboard.status_confirmed", "Confirmed")}</SelectItem>
+                  <SelectItem value="rescheduled">{t("provider_dashboard.status_rescheduled", "Rescheduled")}</SelectItem>
+                  <SelectItem value="completed">{t("provider_dashboard.status_completed", "Completed")}</SelectItem>
+                  <SelectItem value="cancelled">{t("provider_dashboard.status_cancelled", "Cancelled")}</SelectItem>
+                  <SelectItem value="rejected">{t("provider_dashboard.status_rejected", "Rejected")}</SelectItem>
                 </SelectContent>
               </Select>
               <Select value={visitTypeFilter} onValueChange={setVisitTypeFilter}>
                 <SelectTrigger className="w-full sm:w-[160px]" data-testid="select-visit-filter">
-                  <SelectValue placeholder="Visit Type" />
+                  <SelectValue placeholder={t("provider_dashboard.visit_type", "Visit Type")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Types</SelectItem>
-                  <SelectItem value="online">Online</SelectItem>
-                  <SelectItem value="home">Home Visit</SelectItem>
-                  <SelectItem value="clinic">Clinic</SelectItem>
+                  <SelectItem value="all">{t("provider_dashboard.all_types", "All Types")}</SelectItem>
+                  <SelectItem value="online">{t("provider_dashboard.type_online", "Online")}</SelectItem>
+                  <SelectItem value="home">{t("provider_dashboard.type_home", "Home Visit")}</SelectItem>
+                  <SelectItem value="clinic">{t("provider_dashboard.type_clinic", "Clinic")}</SelectItem>
                 </SelectContent>
               </Select>
               <Button
@@ -1013,7 +1014,7 @@ export default function ProviderDashboard() {
                 onClick={() => exportAppointmentsCSV(filterAppointments(allAppointments))}
                 data-testid="button-export-csv"
               >
-                <Download className="h-4 w-4 mr-2" /> Export CSV
+                <Download className="h-4 w-4 mr-2" /> {t("provider_dashboard.export_csv", "Export CSV")}
               </Button>
             </div>
 
@@ -1024,7 +1025,7 @@ export default function ProviderDashboard() {
                   list.map((a) => <AppointmentRow key={a.id} appointment={a} />)
                 ) : (
                   <div className="text-center py-12 text-muted-foreground" data-testid="empty-upcoming">
-                    No upcoming appointments match your filters
+                    {t("provider_dashboard.empty_upcoming", "No upcoming appointments match your filters")}
                   </div>
                 );
               })()}
@@ -1037,7 +1038,7 @@ export default function ProviderDashboard() {
                   list.map((a) => <AppointmentRow key={a.id} appointment={a} />)
                 ) : (
                   <div className="text-center py-12 text-muted-foreground" data-testid="empty-completed">
-                    No completed appointments yet
+                    {t("provider_dashboard.empty_completed", "No completed appointments yet")}
                   </div>
                 );
               })()}
@@ -1050,7 +1051,7 @@ export default function ProviderDashboard() {
                   list.map((a) => <AppointmentRow key={a.id} appointment={a} />)
                 ) : (
                   <div className="text-center py-12 text-muted-foreground" data-testid="empty-cancelled">
-                    No cancelled or rejected appointments
+                    {t("provider_dashboard.empty_cancelled", "No cancelled or rejected appointments")}
                   </div>
                 );
               })()}
@@ -1063,7 +1064,7 @@ export default function ProviderDashboard() {
                   list.map((a) => <AppointmentRow key={a.id} appointment={a} />)
                 ) : (
                   <div className="text-center py-12 text-muted-foreground" data-testid="empty-history">
-                    No appointments in your history
+                    {t("provider_dashboard.empty_history", "No appointments in your history")}
                   </div>
                 );
               })()}
@@ -1095,7 +1096,7 @@ export default function ProviderDashboard() {
                           data-testid="calendar-view"
                         />
                         <p className="text-xs text-muted-foreground mt-2 text-center">
-                          Highlighted dates have appointments
+                          {t("provider_dashboard.highlighted_dates", "Highlighted dates have appointments")}
                         </p>
                       </CardContent>
                     </Card>
@@ -1113,7 +1114,7 @@ export default function ProviderDashboard() {
                         dayAppointments.map((a) => <AppointmentRow key={a.id} appointment={a} />)
                       ) : (
                         <div className="text-center py-8 text-muted-foreground" data-testid="empty-calendar-day">
-                          No appointments on this day
+                          {t("provider_dashboard.empty_calendar_day", "No appointments on this day")}
                         </div>
                       )}
                     </div>
@@ -1125,7 +1126,7 @@ export default function ProviderDashboard() {
             <TabsContent value="reviews" className="mt-2 space-y-3">
               {!providerReviews?.length ? (
                 <div className="text-center py-12 text-muted-foreground" data-testid="empty-reviews">
-                  No reviews yet
+                  {t("provider_dashboard.empty_reviews", "No reviews yet")}
                 </div>
               ) : (
                 providerReviews.map((r) => (
@@ -1159,7 +1160,7 @@ export default function ProviderDashboard() {
                       {(r as any).providerReply ? (
                         <div className="ml-6 p-3 bg-muted/50 rounded-md border-l-2 border-primary">
                           <p className="text-xs font-semibold text-primary mb-1 flex items-center gap-1">
-                            <Reply className="h-3 w-3" /> Your reply
+                            <Reply className="h-3 w-3" /> {t("provider_dashboard.your_reply", "Your reply")}
                             {(r as any).providerReplyAt && (
                               <span className="text-muted-foreground font-normal ml-1">
                                 · {new Date((r as any).providerReplyAt).toLocaleDateString()}
@@ -1171,7 +1172,7 @@ export default function ProviderDashboard() {
                       ) : (
                         <div className="flex gap-2 pt-2">
                           <Input
-                            placeholder="Reply to this review..."
+                            placeholder={t("provider_dashboard.reply_placeholder", "Reply to this review...")}
                             value={replyDrafts[r.id] || ""}
                             onChange={(e) =>
                               setReplyDrafts({ ...replyDrafts, [r.id]: e.target.value })
@@ -1186,7 +1187,7 @@ export default function ProviderDashboard() {
                             }
                             data-testid={`button-reply-${r.id}`}
                           >
-                            <Reply className="h-3 w-3 mr-1" /> Reply
+                            <Reply className="h-3 w-3 mr-1" /> {t("provider_dashboard.reply_btn", "Reply")}
                           </Button>
                         </div>
                       )}
@@ -1200,15 +1201,15 @@ export default function ProviderDashboard() {
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center justify-between">
-                    Weekly availability
+                    {t("provider_dashboard.weekly_availability", "Weekly availability")}
                     <Button onClick={() => setAvailabilityOpen(true)} data-testid="button-open-availability">
-                      <Plus className="h-4 w-4 mr-2" /> Add weekly slots
+                      <Plus className="h-4 w-4 mr-2" /> {t("provider_dashboard.add_weekly_slots", "Add weekly slots")}
                     </Button>
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <p className="text-muted-foreground text-sm">
-                    Use the weekly slot manager to publish recurring availability across multiple days at once. Select the week start, define your time slots, and apply to chosen weekdays.
+                    {t("provider_dashboard.availability_desc", "Use the weekly slot manager to publish recurring availability across multiple days at once. Select the week start, define your time slots, and apply to chosen weekdays.")}
                   </p>
                 </CardContent>
               </Card>
@@ -1239,7 +1240,7 @@ export default function ProviderDashboard() {
                   <>
                     <Card>
                       <CardHeader>
-                        <CardTitle className="text-base">Revenue · last 30 days (HUF)</CardTitle>
+                        <CardTitle className="text-base">{t("provider_dashboard.revenue_30days", "Revenue · last 30 days (HUF)")}</CardTitle>
                       </CardHeader>
                       <CardContent style={{ height: 280 }}>
                         <ResponsiveContainer width="100%" height="100%">
@@ -1261,7 +1262,7 @@ export default function ProviderDashboard() {
                     </Card>
                     <Card>
                       <CardHeader>
-                        <CardTitle className="text-base">Appointments · last 30 days</CardTitle>
+                        <CardTitle className="text-base">{t("provider_dashboard.appointments_30days", "Appointments · last 30 days")}</CardTitle>
                       </CardHeader>
                       <CardContent style={{ height: 240 }}>
                         <ResponsiveContainer width="100%" height="100%">
@@ -1283,22 +1284,22 @@ export default function ProviderDashboard() {
             <TabsContent value="services" className="mt-6 space-y-6">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <Card>
-                  <CardHeader><CardTitle>Services</CardTitle></CardHeader>
+                  <CardHeader><CardTitle>{t("provider_dashboard.services", "Services")}</CardTitle></CardHeader>
                   <CardContent className="space-y-4">
                     <div className="flex gap-2">
                       <Select value={selectedSubServiceId} onValueChange={setSelectedSubServiceId}>
-                        <SelectTrigger><SelectValue placeholder="Type" /></SelectTrigger>
+                        <SelectTrigger><SelectValue placeholder={t("provider_dashboard.type_placeholder", "Type")} /></SelectTrigger>
                         <SelectContent>{subServices?.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent>
                       </Select>
-                      <Input type="number" placeholder="Fee" value={servicePrice} onChange={e => setServicePrice(e.target.value)} />
-                      <Button onClick={handleAddService}>Add</Button>
+                      <Input type="number" placeholder={t("provider_dashboard.fee_placeholder", "Fee")} value={servicePrice} onChange={e => setServicePrice(e.target.value)} />
+                      <Button onClick={handleAddService}>{t("provider_dashboard.add_btn", "Add")}</Button>
                     </div>
                     <div className="space-y-2">
                       {providerWithServices?.services?.map(s => (
                         <div key={s.id} className="flex justify-between items-center p-3 border rounded-lg">
                           <span>{s.name} ({formatHUF(Number(s.price))})</span>
                           <div className="flex gap-1">
-                            <Button size="sm" variant={s.isActive ? "default" : "outline"} onClick={() => toggleServiceMutation.mutate({ id: s.id, isActive: !s.isActive })}>{s.isActive ? "Active" : "Paused"}</Button>
+                            <Button size="sm" variant={s.isActive ? "default" : "outline"} onClick={() => toggleServiceMutation.mutate({ id: s.id, isActive: !s.isActive })}>{s.isActive ? t("provider_dashboard.active", "Active") : t("provider_dashboard.paused", "Paused")}</Button>
                             <Button size="icon" variant="ghost" className="text-destructive" onClick={() => deleteServiceMutation.mutate(s.id)}><Trash2 className="h-4 w-4" /></Button>
                           </div>
                         </div>
@@ -1308,7 +1309,7 @@ export default function ProviderDashboard() {
                 </Card>
 
                 <Card>
-                  <CardHeader><CardTitle>Staff</CardTitle></CardHeader>
+                  <CardHeader><CardTitle>{t("provider_dashboard.staff", "Staff")}</CardTitle></CardHeader>
                   <CardContent className="space-y-4">
                     <form className="flex gap-2" onSubmit={e => {
                       e.preventDefault();
@@ -1316,9 +1317,9 @@ export default function ProviderDashboard() {
                       addPractitionerMutation.mutate({ name: fd.get("name"), title: fd.get("title"), providerId: providerData?.id });
                       e.currentTarget.reset();
                     }}>
-                      <Input name="name" placeholder="Name" required />
-                      <Input name="title" placeholder="Title" />
-                      <Button type="submit">Add</Button>
+                      <Input name="name" placeholder={t("provider_dashboard.name_placeholder", "Name")} required />
+                      <Input name="title" placeholder={t("provider_dashboard.title_placeholder", "Title")} />
+                      <Button type="submit">{t("provider_dashboard.add_btn", "Add")}</Button>
                     </form>
                     <div className="space-y-2">
                       {practitioners?.map(p => (
@@ -1330,7 +1331,7 @@ export default function ProviderDashboard() {
                               variant={(p as any).isActive ? "default" : "outline"} 
                               onClick={() => togglePractitionerMutation.mutate({ id: p.id, isActive: !(p as any).isActive })}
                             >
-                              {(p as any).isActive ? "Active" : "Paused"}
+                              {(p as any).isActive ? t("provider_dashboard.active", "Active") : t("provider_dashboard.paused", "Paused")}
                             </Button>
                             <Button size="icon" variant="ghost" className="text-destructive" onClick={() => deletePractitionerMutation.mutate(p.id)}><Trash2 className="h-4 w-4" /></Button>
                           </div>
@@ -1342,21 +1343,21 @@ export default function ProviderDashboard() {
               </div>
 
               <Card>
-                <CardHeader><CardTitle>Staff Assignments</CardTitle></CardHeader>
+                <CardHeader><CardTitle>{t("provider_dashboard.staff_assignments", "Staff Assignments")}</CardTitle></CardHeader>
                 <CardContent className="space-y-4">
                   <form className="grid grid-cols-1 md:grid-cols-4 gap-2" onSubmit={e => {
                     e.preventDefault();
                     const fd = new FormData(e.currentTarget);
                     assignMutation.mutate({ serviceId: fd.get("serviceId"), practitionerId: fd.get("practitionerId"), fee: fd.get("fee") });
                   }}>
-                    <Select name="serviceId"><SelectTrigger><SelectValue placeholder="Service" /></SelectTrigger>
+                    <Select name="serviceId"><SelectTrigger><SelectValue placeholder={t("provider_dashboard.service_placeholder", "Service")} /></SelectTrigger>
                       <SelectContent>{providerWithServices?.services?.filter(s => s.isActive).map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent>
                     </Select>
-                    <Select name="practitionerId"><SelectTrigger><SelectValue placeholder="Staff" /></SelectTrigger>
+                    <Select name="practitionerId"><SelectTrigger><SelectValue placeholder={t("provider_dashboard.staff_placeholder", "Staff")} /></SelectTrigger>
                       <SelectContent>{practitioners?.filter(p => p.isActive).map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}</SelectContent>
                     </Select>
-                    <Input name="fee" type="number" placeholder="Fee" required />
-                    <Button type="submit">Assign</Button>
+                    <Input name="fee" type="number" placeholder={t("provider_dashboard.fee_placeholder", "Fee")} required />
+                    <Button type="submit">{t("provider_dashboard.assign_btn", "Assign")}</Button>
                   </form>
                   <div className="space-y-4">
                     {providerWithServices?.services?.filter(s => s.isActive).map(s => (
@@ -1380,62 +1381,62 @@ export default function ProviderDashboard() {
           >
             <DialogContent className="max-w-lg" data-testid="dialog-appointment-details">
               <DialogHeader>
-                <DialogTitle>Appointment details</DialogTitle>
+                <DialogTitle>{t("provider_dashboard.appointment_details", "Appointment details")}</DialogTitle>
               </DialogHeader>
               {selectedAppt && (
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 gap-3 text-sm">
                     <div>
-                      <p className="text-muted-foreground">Patient</p>
+                      <p className="text-muted-foreground">{t("provider_dashboard.patient_label", "Patient")}</p>
                       <p className="font-medium">
                         {selectedAppt.patient?.firstName} {selectedAppt.patient?.lastName}
                       </p>
                     </div>
                     <div>
-                      <p className="text-muted-foreground">Status</p>
+                      <p className="text-muted-foreground">{t("provider_dashboard.status_label", "Status")}</p>
                       <Badge className={getStatusColor(selectedAppt.status)}>{selectedAppt.status}</Badge>
                     </div>
                     <div>
-                      <p className="text-muted-foreground">Date & time</p>
+                      <p className="text-muted-foreground">{t("provider_dashboard.date_time_label", "Date & time")}</p>
                       <p className="font-medium">
                         {selectedAppt.date} · {selectedAppt.startTime}
                         {(selectedAppt as any).endTime && ` - ${(selectedAppt as any).endTime}`}
                       </p>
                     </div>
                     <div>
-                      <p className="text-muted-foreground">Visit type</p>
+                      <p className="text-muted-foreground">{t("provider_dashboard.visit_type_label", "Visit type")}</p>
                       <p className="font-medium capitalize">{selectedAppt.visitType}</p>
                     </div>
                     <div>
-                      <p className="text-muted-foreground">Service</p>
+                      <p className="text-muted-foreground">{t("provider_dashboard.service_label", "Service")}</p>
                       <p className="font-medium">{(selectedAppt as any).service?.name || "—"}</p>
                     </div>
                     <div>
-                      <p className="text-muted-foreground">Total</p>
+                      <p className="text-muted-foreground">{t("provider_dashboard.total_label", "Total")}</p>
                       <p className="font-medium">{fmtHUF(Number((selectedAppt as any).totalAmount || 0))}</p>
                     </div>
                   </div>
                   {(selectedAppt as any).patientAddress && (
                     <div>
-                      <p className="text-muted-foreground text-sm">Address</p>
+                      <p className="text-muted-foreground text-sm">{t("provider_dashboard.address_label", "Address")}</p>
                       <p className="text-sm">{(selectedAppt as any).patientAddress}</p>
                     </div>
                   )}
                   {selectedAppt.notes && (
                     <div>
-                      <p className="text-muted-foreground text-sm">Patient notes</p>
+                      <p className="text-muted-foreground text-sm">{t("provider_dashboard.patient_notes", "Patient notes")}</p>
                       <p className="text-sm">{selectedAppt.notes}</p>
                     </div>
                   )}
                   <div className="space-y-2">
                     <p className="text-sm font-medium flex items-center gap-1">
-                      <MessageSquare className="h-4 w-4" /> Private note (only you)
+                      <MessageSquare className="h-4 w-4" /> {t("provider_dashboard.private_note_label", "Private note (only you)")}
                     </p>
                     <Textarea
                       value={privateNoteDraft}
                       onChange={(e) => setPrivateNoteDraft(e.target.value)}
                       rows={3}
-                      placeholder="Internal notes about this appointment..."
+                      placeholder={t("provider_dashboard.private_note_placeholder", "Internal notes about this appointment...")}
                       data-testid="textarea-private-note"
                     />
                     <Button
@@ -1450,7 +1451,7 @@ export default function ProviderDashboard() {
                       data-testid="button-save-private-note"
                     >
                       {savePrivateNoteMutation.isPending && <Loader2 className="h-3 w-3 mr-1 animate-spin" />}
-                      Save note
+                      {t("provider_dashboard.save_note_btn", "Save note")}
                     </Button>
                   </div>
                 </div>
@@ -1465,10 +1466,10 @@ export default function ProviderDashboard() {
                       onClick={() => openReschedule(selectedAppt)}
                       data-testid="button-open-reschedule"
                     >
-                      <CalendarDays className="h-4 w-4 mr-2" /> Reschedule
+                      <CalendarDays className="h-4 w-4 mr-2" /> {t("provider_dashboard.reschedule_btn", "Reschedule")}
                     </Button>
                   )}
-                <Button variant="ghost" onClick={() => setSelectedAppt(null)}>Close</Button>
+                <Button variant="ghost" onClick={() => setSelectedAppt(null)}>{t("provider_dashboard.close_btn", "Close")}</Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
@@ -1477,11 +1478,11 @@ export default function ProviderDashboard() {
           <Dialog open={rescheduleOpen} onOpenChange={setRescheduleOpen}>
             <DialogContent data-testid="dialog-reschedule">
               <DialogHeader>
-                <DialogTitle>Reschedule appointment</DialogTitle>
+                <DialogTitle>{t("provider_dashboard.reschedule_title", "Reschedule appointment")}</DialogTitle>
               </DialogHeader>
               <div className="space-y-3">
                 <div>
-                  <Label>Date</Label>
+                  <Label>{t("provider_dashboard.date_label", "Date")}</Label>
                   <Input
                     type="date"
                     value={rescheduleData.date}
@@ -1491,7 +1492,7 @@ export default function ProviderDashboard() {
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <Label>Start time</Label>
+                    <Label>{t("provider_dashboard.start_time_label", "Start time")}</Label>
                     <Input
                       type="time"
                       value={rescheduleData.startTime}
@@ -1500,7 +1501,7 @@ export default function ProviderDashboard() {
                     />
                   </div>
                   <div>
-                    <Label>End time</Label>
+                    <Label>{t("provider_dashboard.end_time_label", "End time")}</Label>
                     <Input
                       type="time"
                       value={rescheduleData.endTime}
@@ -1511,7 +1512,7 @@ export default function ProviderDashboard() {
                 </div>
               </div>
               <DialogFooter>
-                <Button variant="ghost" onClick={() => setRescheduleOpen(false)}>Cancel</Button>
+                <Button variant="ghost" onClick={() => setRescheduleOpen(false)}>{t("provider_dashboard.cancel_btn", "Cancel")}</Button>
                 <Button
                   onClick={() => {
                     if (!selectedAppt) return;
@@ -1526,7 +1527,7 @@ export default function ProviderDashboard() {
                   data-testid="button-confirm-reschedule"
                 >
                   {rescheduleMutation.isPending && <Loader2 className="h-3 w-3 mr-1 animate-spin" />}
-                  Save changes
+                  {t("provider_dashboard.save_changes_btn", "Save changes")}
                 </Button>
               </DialogFooter>
             </DialogContent>
@@ -1536,7 +1537,7 @@ export default function ProviderDashboard() {
           <Dialog open={availabilityOpen} onOpenChange={setAvailabilityOpen}>
             <DialogContent className="max-w-2xl" data-testid="dialog-availability">
               <DialogHeader>
-                <DialogTitle>Weekly availability</DialogTitle>
+                <DialogTitle>{t("provider_dashboard.weekly_availability", "Weekly availability")}</DialogTitle>
               </DialogHeader>
               <WeeklyAvailabilityForm
                 onSubmit={(payload) => bulkAvailabilityMutation.mutate(payload)}
@@ -1558,6 +1559,7 @@ function WeeklyAvailabilityForm({
   onSubmit: (payload: { dates: string[]; slots: { startTime: string; endTime: string }[]; replaceExisting: boolean }) => void;
   isPending: boolean;
 }) {
+  const { t } = useTranslation();
   const [weekStart, setWeekStart] = useState<string>(() => {
     const d = new Date();
     d.setDate(d.getDate() - d.getDay() + 1);
@@ -1570,7 +1572,15 @@ function WeeklyAvailabilityForm({
   ]);
   const [replaceExisting, setReplaceExisting] = useState(false);
 
-  const dayLabels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+  const dayLabels = [
+    t("provider_dashboard.day_mon", "Mon"),
+    t("provider_dashboard.day_tue", "Tue"),
+    t("provider_dashboard.day_wed", "Wed"),
+    t("provider_dashboard.day_thu", "Thu"),
+    t("provider_dashboard.day_fri", "Fri"),
+    t("provider_dashboard.day_sat", "Sat"),
+    t("provider_dashboard.day_sun", "Sun"),
+  ];
 
   const handleSubmit = () => {
     const start = new Date(weekStart);
@@ -1588,7 +1598,7 @@ function WeeklyAvailabilityForm({
   return (
     <div className="space-y-4">
       <div>
-        <Label>Week starting (Monday)</Label>
+        <Label>{t("provider_dashboard.week_start_label", "Week starting (Monday)")}</Label>
         <Input
           type="date"
           value={weekStart}
@@ -1597,7 +1607,7 @@ function WeeklyAvailabilityForm({
         />
       </div>
       <div>
-        <Label className="mb-2 block">Days of the week</Label>
+        <Label className="mb-2 block">{t("provider_dashboard.days_of_week_label", "Days of the week")}</Label>
         <div className="flex flex-wrap gap-2">
           {dayLabels.map((label, i) => (
             <Button
@@ -1614,7 +1624,7 @@ function WeeklyAvailabilityForm({
         </div>
       </div>
       <div>
-        <Label className="mb-2 block">Time slots</Label>
+        <Label className="mb-2 block">{t("provider_dashboard.time_slots_label", "Time slots")}</Label>
         <div className="space-y-2">
           {slots.map((slot, idx) => (
             <div key={idx} className="flex items-center gap-2">
@@ -1628,7 +1638,7 @@ function WeeklyAvailabilityForm({
                 }}
                 data-testid={`input-slot-start-${idx}`}
               />
-              <span className="text-muted-foreground">to</span>
+              <span className="text-muted-foreground">{t("provider_dashboard.to_label", "to")}</span>
               <Input
                 type="time"
                 value={slot.endTime}
@@ -1657,7 +1667,7 @@ function WeeklyAvailabilityForm({
             onClick={() => setSlots([...slots, { startTime: "09:00", endTime: "10:00" }])}
             data-testid="button-add-slot"
           >
-            <Plus className="h-4 w-4 mr-1" /> Add slot
+            <Plus className="h-4 w-4 mr-1" /> {t("provider_dashboard.add_slot_btn", "Add slot")}
           </Button>
         </div>
       </div>
@@ -1670,13 +1680,13 @@ function WeeklyAvailabilityForm({
           data-testid="checkbox-replace-existing"
         />
         <label htmlFor="replaceExisting" className="text-sm">
-          Replace existing slots on selected dates
+          {t("provider_dashboard.replace_existing", "Replace existing slots on selected dates")}
         </label>
       </div>
       <DialogFooter>
         <Button onClick={handleSubmit} disabled={isPending} data-testid="button-save-availability">
           {isPending && <Loader2 className="h-3 w-3 mr-1 animate-spin" />}
-          Save weekly availability
+          {t("provider_dashboard.save_availability_btn", "Save weekly availability")}
         </Button>
       </DialogFooter>
     </div>

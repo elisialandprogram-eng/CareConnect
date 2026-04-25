@@ -134,12 +134,12 @@ export default function Profile() {
         const res = await apiRequest("POST", "/api/upload", { image: base64 });
         const data = await res.json();
         setFormData(prev => ({ ...prev, avatarUrl: data.url }));
-        toast({ title: "Image uploaded", description: "Click save to update your profile." });
+        toast({ title: t("profile_page.toast_image_uploaded", "Image uploaded"), description: t("profile_page.toast_image_uploaded_desc", "Click save to update your profile.") });
         setIsUploading(false);
       };
       reader.readAsDataURL(file);
     } catch (error) {
-      toast({ title: "Upload failed", variant: "destructive" });
+      toast({ title: t("profile_page.toast_upload_failed", "Upload failed"), variant: "destructive" });
       setIsUploading(false);
     }
   };
@@ -176,11 +176,11 @@ export default function Profile() {
       queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
       
       toast({ 
-        title: "Gallery updated", 
-        description: `${urls.length} image(s) uploaded successfully.` 
+        title: t("profile_page.toast_gallery_updated", "Gallery updated"), 
+        description: t("profile_page.toast_gallery_updated_desc", "{{count}} image(s) uploaded successfully.", { count: urls.length }) 
       });
     } catch (error) {
-      toast({ title: "Upload failed", variant: "destructive" });
+      toast({ title: t("profile_page.toast_upload_failed", "Upload failed"), variant: "destructive" });
     } finally {
       setIsGalleryUploading(false);
     }
@@ -194,9 +194,9 @@ export default function Profile() {
       await apiRequest("PATCH", "/api/auth/profile", { gallery: updatedGallery });
       queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
       
-      toast({ title: "Image removed" });
+      toast({ title: t("profile_page.toast_image_removed", "Image removed") });
     } catch (error) {
-      toast({ title: "Failed to remove image", variant: "destructive" });
+      toast({ title: t("profile_page.toast_failed_remove", "Failed to remove image"), variant: "destructive" });
     }
   };
 
@@ -218,14 +218,14 @@ export default function Profile() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
       toast({
-        title: "Profile updated",
-        description: "Your profile has been updated successfully.",
+        title: t("profile_page.toast_profile_updated", "Profile updated"),
+        description: t("profile_page.toast_profile_updated_desc", "Your profile has been updated successfully."),
       });
     },
     onError: () => {
       toast({
-        title: "Error",
-        description: "Failed to update profile. Please try again.",
+        title: t("dashboard.error", "Error"),
+        description: t("profile_page.toast_profile_failed", "Failed to update profile. Please try again."),
         variant: "destructive",
       });
     },
@@ -234,7 +234,7 @@ export default function Profile() {
   const updatePasswordMutation = useMutation({
     mutationFn: async (data: typeof passwordData) => {
       if (data.newPassword !== data.confirmPassword) {
-        throw new Error("New passwords do not match");
+        throw new Error(t("profile_page.toast_passwords_no_match", "New passwords do not match"));
       }
       const response = await apiRequest("POST", "/api/auth/reset-password", {
         currentPassword: data.currentPassword,
@@ -249,13 +249,13 @@ export default function Profile() {
     onSuccess: () => {
       setPasswordData({ currentPassword: "", newPassword: "", confirmPassword: "" });
       toast({
-        title: "Password reset",
-        description: "Your password has been reset successfully.",
+        title: t("profile_page.toast_password_reset", "Password reset"),
+        description: t("profile_page.toast_password_reset_desc", "Your password has been reset successfully."),
       });
     },
     onError: (error: Error) => {
       toast({
-        title: "Error",
+        title: t("dashboard.error", "Error"),
         description: error.message,
         variant: "destructive",
       });
@@ -309,7 +309,7 @@ export default function Profile() {
                   className="absolute inset-0 flex items-center justify-center bg-black/40 text-white opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer rounded-full"
                 >
                   <span className="text-[10px] font-medium text-center px-1">
-                    {isUploading ? "..." : "Change Photo"}
+                    {isUploading ? "..." : t("profile_page.change_photo", "Change Photo")}
                   </span>
                   <input 
                     id="avatar-upload" 
@@ -330,10 +330,10 @@ export default function Profile() {
         {user.role === "provider" && (
           <div className="mt-4 flex flex-col gap-2">
             <div className="flex items-center gap-2">
-              <Badge variant="secondary">Healthcare Provider</Badge>
+              <Badge variant="secondary">{t("profile_page.healthcare_provider", "Healthcare Provider")}</Badge>
               {providerData?.isVerified && (
                 <Badge className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
-                  Verified
+                  {t("profile_page.verified", "Verified")}
                 </Badge>
               )}
             </div>
@@ -345,7 +345,7 @@ export default function Profile() {
             <Button variant="outline" size="sm" asChild className="mt-2">
               <Link href="/provider/dashboard">
                 <Settings className="h-4 w-4 mr-2" />
-                Go to Provider Dashboard
+                {t("profile_page.go_to_provider_dashboard", "Go to Provider Dashboard")}
               </Link>
             </Button>
           </div>
@@ -358,40 +358,40 @@ export default function Profile() {
 {user.role === "provider" && providerData && (
   <Card className="mb-6">
     <CardHeader>
-      <CardTitle className="text-lg">Professional Information</CardTitle>
-      <CardDescription>Details about your medical practice</CardDescription>
+      <CardTitle className="text-lg">{t("profile_page.professional_information", "Professional Information")}</CardTitle>
+      <CardDescription>{t("profile_page.professional_info_desc", "Details about your medical practice")}</CardDescription>
     </CardHeader>
     <CardContent className="space-y-4">
       <div className="grid grid-cols-2 gap-4 text-sm">
         <div className="space-y-1">
-          <p className="text-muted-foreground">Specialization</p>
+          <p className="text-muted-foreground">{t("profile_page.specialization", "Specialization")}</p>
           <p className="font-medium">{providerData.specialization}</p>
         </div>
         <div className="space-y-1">
-          <p className="text-muted-foreground">Experience</p>
-          <p className="font-medium">{providerData.yearsExperience} Years</p>
+          <p className="text-muted-foreground">{t("profile_page.experience", "Experience")}</p>
+          <p className="font-medium">{providerData.yearsExperience} {t("profile_page.years", "Years")}</p>
         </div>
         <div className="space-y-1">
-          <p className="text-muted-foreground">License Number</p>
+          <p className="text-muted-foreground">{t("profile_page.license_number", "License Number")}</p>
           <p className="font-medium">{providerData.licenseNumber}</p>
         </div>
         <div className="space-y-1">
-          <p className="text-muted-foreground">Consultation Fee</p>
+          <p className="text-muted-foreground">{t("profile_page.consultation_fee", "Consultation Fee")}</p>
           <p className="font-medium">{providerData.currency} {providerData.consultationFee}</p>
         </div>
       </div>
       <div className="grid grid-cols-2 gap-4 text-sm mt-4">
         <div className="space-y-1">
-          <p className="text-muted-foreground">Location</p>
+          <p className="text-muted-foreground">{t("profile_page.location", "Location")}</p>
           <p className="font-medium">{providerData.city}, {providerData.country}</p>
         </div>
         <div className="space-y-1">
-          <p className="text-muted-foreground">Preferred Contact</p>
+          <p className="text-muted-foreground">{t("profile_page.preferred_contact", "Preferred Contact")}</p>
           <p className="font-medium capitalize">{providerData.preferredContactMethod || "Email"}</p>
         </div>
       </div>
       <div className="space-y-1 pt-2">
-        <p className="text-muted-foreground text-sm">Bio</p>
+        <p className="text-muted-foreground text-sm">{t("profile_page.bio", "Bio")}</p>
         <p className="text-sm leading-relaxed line-clamp-3">{providerData.bio}</p>
       </div>
     </CardContent>
@@ -402,8 +402,8 @@ export default function Profile() {
   <Card className="mb-6">
     <CardHeader className="flex flex-row items-center justify-between gap-4">
       <div>
-        <CardTitle className="text-lg">Gallery & Certificates</CardTitle>
-        <CardDescription>Upload clinic photos, certificates, and other documents</CardDescription>
+        <CardTitle className="text-lg">{t("profile_page.gallery_certificates", "Gallery & Certificates")}</CardTitle>
+        <CardDescription>{t("profile_page.gallery_desc", "Upload clinic photos, certificates, and other documents")}</CardDescription>
       </div>
       <div className="relative">
         <Button size="sm" disabled={isGalleryUploading} className="relative overflow-hidden">
@@ -412,7 +412,7 @@ export default function Profile() {
           ) : (
             <Activity className="h-4 w-4 mr-2" />
           )}
-          Upload
+          {t("profile_page.upload", "Upload")}
           <input
             type="file"
             className="absolute inset-0 opacity-0 cursor-pointer"
@@ -443,7 +443,7 @@ export default function Profile() {
         ))}
         {(!(user as any).gallery || (user as any).gallery.length === 0) && (
           <div className="col-span-full py-8 text-center border-2 border-dashed rounded-lg text-muted-foreground">
-            No images uploaded yet. Upload clinic pics or certificates here.
+            {t("profile_page.empty_gallery", "No images uploaded yet. Upload clinic pics or certificates here.")}
           </div>
         )}
       </div>
@@ -453,8 +453,8 @@ export default function Profile() {
 
 <Card>
   <CardHeader>
-    <CardTitle className="text-lg">Edit Profile</CardTitle>
-            <CardDescription>Update your personal information</CardDescription>
+    <CardTitle className="text-lg">{t("profile_page.edit_profile_title", "Edit Profile")}</CardTitle>
+            <CardDescription>{t("profile_page.edit_profile_desc", "Update your personal information")}</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -489,7 +489,7 @@ export default function Profile() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="phone">Phone Number</Label>
+                  <Label htmlFor="phone">{t("profile_page.phone_number", "Phone Number")}</Label>
                   <div className="relative">
                     <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
@@ -498,12 +498,12 @@ export default function Profile() {
                       value={formData.phone}
                       onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                       className="pl-10"
-                      placeholder="Phone number"
+                      placeholder={t("profile_page.phone_placeholder", "Phone number")}
                     />
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="mobileNumber">Mobile Number</Label>
+                  <Label htmlFor="mobileNumber">{t("profile_page.mobile_number", "Mobile Number")}</Label>
                   <div className="relative">
                     <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
@@ -512,14 +512,14 @@ export default function Profile() {
                       value={formData.mobileNumber}
                       onChange={(e) => setFormData({ ...formData, mobileNumber: e.target.value })}
                       className="pl-10"
-                      placeholder="Mobile number"
+                      placeholder={t("profile_page.mobile_placeholder", "Mobile number")}
                     />
                   </div>
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="address">Address</Label>
+                <Label htmlFor="address">{t("profile_page.address", "Address")}</Label>
                 <div className="relative">
                   <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
@@ -527,66 +527,66 @@ export default function Profile() {
                     value={formData.address}
                     onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                     className="pl-10"
-                    placeholder="Your address"
+                    placeholder={t("profile_page.address_placeholder", "Your address")}
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-3 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="city">City</Label>
+                  <Label htmlFor="city">{t("profile_page.city", "City")}</Label>
                   <Input
                     id="city"
                     value={formData.city}
                     onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                    placeholder="City"
+                    placeholder={t("profile_page.city", "City")}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="state">State</Label>
+                  <Label htmlFor="state">{t("profile_page.state", "State")}</Label>
                   <Input
                     id="state"
                     value={formData.state}
                     onChange={(e) => setFormData({ ...formData, state: e.target.value })}
-                    placeholder="State"
+                    placeholder={t("profile_page.state", "State")}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="zipCode">Zip Code</Label>
+                  <Label htmlFor="zipCode">{t("profile_page.zip_code", "Zip Code")}</Label>
                   <Input
                     id="zipCode"
                     value={formData.zipCode}
                     onChange={(e) => setFormData({ ...formData, zipCode: e.target.value })}
-                    placeholder="Zip"
+                    placeholder={t("profile_page.zip_placeholder", "Zip")}
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="gender">Gender</Label>
+                  <Label htmlFor="gender">{t("profile_page.gender", "Gender")}</Label>
                   <Select 
                     value={formData.gender} 
                     onValueChange={(value) => setFormData({ ...formData, gender: value })}
                   >
                     <SelectTrigger id="gender">
-                      <SelectValue placeholder="Select gender" />
+                      <SelectValue placeholder={t("profile_page.select_gender", "Select gender")} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="male">Male</SelectItem>
-                      <SelectItem value="female">Female</SelectItem>
-                      <SelectItem value="other">Other</SelectItem>
-                      <SelectItem value="prefer_not_to_say">Prefer not to say</SelectItem>
+                      <SelectItem value="male">{t("profile_page.male", "Male")}</SelectItem>
+                      <SelectItem value="female">{t("profile_page.female", "Female")}</SelectItem>
+                      <SelectItem value="other">{t("profile_page.other", "Other")}</SelectItem>
+                      <SelectItem value="prefer_not_to_say">{t("profile_page.prefer_not_to_say", "Prefer not to say")}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="socialNumber">Social Security / ID Number</Label>
+                  <Label htmlFor="socialNumber">{t("profile_page.social_id", "Social Security / ID Number")}</Label>
                   <Input
                     id="socialNumber"
                     value={formData.socialNumber}
                     onChange={(e) => setFormData({ ...formData, socialNumber: e.target.value })}
-                    placeholder="ID Number"
+                    placeholder={t("profile_page.id_placeholder", "ID Number")}
                   />
                 </div>
               </div>
@@ -595,21 +595,21 @@ export default function Profile() {
                 <div className="pt-4 border-t">
                   <h3 className="text-sm font-medium mb-4 flex items-center gap-2">
                     <Activity className="h-4 w-4" />
-                    Medical Information
+                    {t("profile_page.medical_information", "Medical Information")}
                   </h3>
                   <p className="text-xs text-muted-foreground mb-4 italic">
-                    This information helps our healthcare professionals provide safe and personalized care.
+                    {t("profile_page.medical_information_desc", "This information helps our healthcare professionals provide safe and personalized care.")}
                   </p>
                   
                   <div className="space-y-4">
                     <div className="space-y-2">
-                      <Label htmlFor="bloodGroup">Blood Group</Label>
+                      <Label htmlFor="bloodGroup">{t("profile_page.blood_group", "Blood Group")}</Label>
                       <Select 
                         value={formData.bloodGroup} 
                         onValueChange={(value) => setFormData({ ...formData, bloodGroup: value })}
                       >
                         <SelectTrigger id="bloodGroup">
-                          <SelectValue placeholder="Select blood group" />
+                          <SelectValue placeholder={t("profile_page.select_blood_group", "Select blood group")} />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="A+">A+</SelectItem>
@@ -626,45 +626,45 @@ export default function Profile() {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="knownAllergies">Known Allergies</Label>
+                      <Label htmlFor="knownAllergies">{t("profile_page.known_allergies", "Known Allergies")}</Label>
                       <Textarea
                         id="knownAllergies"
                         value={formData.knownAllergies}
                         onChange={(e) => setFormData({ ...formData, knownAllergies: e.target.value })}
-                        placeholder="Please list any allergies to medications, food, or substances (e.g., penicillin, nuts, latex). If none, write “None”."
+                        placeholder={t("profile_page.allergies_placeholder", "Please list any allergies to medications, food, or substances (e.g., penicillin, nuts, latex). If none, write \u201CNone\u201D.")}
                         className="min-h-[80px]"
                       />
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="medicalConditions">Existing Medical Conditions</Label>
+                      <Label htmlFor="medicalConditions">{t("profile_page.existing_conditions", "Existing Medical Conditions")}</Label>
                       <Textarea
                         id="medicalConditions"
                         value={formData.medicalConditions}
                         onChange={(e) => setFormData({ ...formData, medicalConditions: e.target.value })}
-                        placeholder="Include any chronic or ongoing conditions such as diabetes, high blood pressure, asthma, heart disease, etc."
+                        placeholder={t("profile_page.conditions_placeholder", "Include any chronic or ongoing conditions such as diabetes, high blood pressure, asthma, heart disease, etc.")}
                         className="min-h-[80px]"
                       />
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="currentMedications">Current Medications</Label>
+                      <Label htmlFor="currentMedications">{t("profile_page.current_medications", "Current Medications")}</Label>
                       <Textarea
                         id="currentMedications"
                         value={formData.currentMedications}
                         onChange={(e) => setFormData({ ...formData, currentMedications: e.target.value })}
-                        placeholder="List all medications you are currently taking, including dosage if known. If none, write “None”."
+                        placeholder={t("profile_page.medications_placeholder", "List all medications you are currently taking, including dosage if known. If none, write \u201CNone\u201D.")}
                         className="min-h-[80px]"
                       />
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="pastSurgeries">Past Surgeries / Hospitalizations</Label>
+                      <Label htmlFor="pastSurgeries">{t("profile_page.past_surgeries", "Past Surgeries / Hospitalizations")}</Label>
                       <Textarea
                         id="pastSurgeries"
                         value={formData.pastSurgeries}
                         onChange={(e) => setFormData({ ...formData, pastSurgeries: e.target.value })}
-                        placeholder="Please mention any major surgeries or hospital stays and approximate dates."
+                        placeholder={t("profile_page.surgeries_placeholder", "Please mention any major surgeries or hospital stays and approximate dates.")}
                         className="min-h-[80px]"
                       />
                     </div>
@@ -673,24 +673,24 @@ export default function Profile() {
               )}
 
               <div className="pt-4 border-t">
-                <h3 className="text-sm font-medium mb-4">Emergency Contact</h3>
+                <h3 className="text-sm font-medium mb-4">{t("profile_page.emergency_contact", "Emergency Contact")}</h3>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="emergencyContactName">Contact Name</Label>
+                    <Label htmlFor="emergencyContactName">{t("profile_page.contact_name", "Contact Name")}</Label>
                     <Input
                       id="emergencyContactName"
                       value={formData.emergencyContactName}
                       onChange={(e) => setFormData({ ...formData, emergencyContactName: e.target.value })}
-                      placeholder="Contact name"
+                      placeholder={t("profile_page.contact_name_placeholder", "Contact name")}
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="emergencyContactPhone">Contact Phone</Label>
+                    <Label htmlFor="emergencyContactPhone">{t("profile_page.contact_phone", "Contact Phone")}</Label>
                     <Input
                       id="emergencyContactPhone"
                       value={formData.emergencyContactPhone}
                       onChange={(e) => setFormData({ ...formData, emergencyContactPhone: e.target.value })}
-                      placeholder="Contact phone"
+                      placeholder={t("profile_page.contact_phone_placeholder", "Contact phone")}
                     />
                   </div>
                 </div>
@@ -700,33 +700,33 @@ export default function Profile() {
                 <div className="pt-4 border-t space-y-4">
                   <h3 className="text-sm font-medium flex items-center gap-2">
                     <Activity className="h-4 w-4" />
-                    Professional Information
+                    {t("profile_page.professional_information", "Professional Information")}
                   </h3>
                   
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="professionalTitle">Professional Title</Label>
+                      <Label htmlFor="professionalTitle">{t("profile_page.professional_title_label", "Professional Title")}</Label>
                       <Input
                         id="professionalTitle"
                         value={formData.professionalTitle}
                         onChange={(e) => setFormData({ ...formData, professionalTitle: e.target.value })}
-                        placeholder="e.g. Dr., PT, RN"
+                        placeholder={t("profile_page.professional_title_placeholder", "e.g. Dr., PT, RN")}
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="specialization">Specialization</Label>
+                      <Label htmlFor="specialization">{t("profile_page.specialization", "Specialization")}</Label>
                       <Input
                         id="specialization"
                         value={formData.specialization}
                         onChange={(e) => setFormData({ ...formData, specialization: e.target.value })}
-                        placeholder="e.g. Orthopedics"
+                        placeholder={t("profile_page.specialization_placeholder", "e.g. Orthopedics")}
                       />
                     </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="yearsExperience">Years of Experience</Label>
+                      <Label htmlFor="yearsExperience">{t("profile_page.years_experience", "Years of Experience")}</Label>
                       <Input
                         id="yearsExperience"
                         type="number"
@@ -735,7 +735,7 @@ export default function Profile() {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="consultationFee">Consultation Fee</Label>
+                      <Label htmlFor="consultationFee">{t("profile_page.consultation_fee", "Consultation Fee")}</Label>
                       <Input
                         id="consultationFee"
                         value={formData.consultationFee}
@@ -745,7 +745,7 @@ export default function Profile() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="licenseNumber">License Number</Label>
+                    <Label htmlFor="licenseNumber">{t("profile_page.license_label", "License Number")}</Label>
                     <Input
                       id="licenseNumber"
                       value={formData.licenseNumber}
@@ -754,82 +754,12 @@ export default function Profile() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="bio">Professional Bio</Label>
+                    <Label htmlFor="bio">{t("profile_page.bio_label", "Professional Bio")}</Label>
                     <Textarea
                       id="bio"
                       value={formData.bio}
                       onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
-                      placeholder="Tell patients about your experience..."
-                      className="min-h-[100px]"
-                    />
-                  </div>
-                </div>
-              )}
-
-              {user.role === "provider" && (
-                <div className="pt-4 border-t space-y-4">
-                  <h3 className="text-sm font-medium flex items-center gap-2">
-                    <Activity className="h-4 w-4" />
-                    Professional Information
-                  </h3>
-                  
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="professionalTitle">Professional Title</Label>
-                      <Input
-                        id="professionalTitle"
-                        value={formData.professionalTitle}
-                        onChange={(e) => setFormData({ ...formData, professionalTitle: e.target.value })}
-                        placeholder="e.g. Dr., PT, RN"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="specialization">Specialization</Label>
-                      <Input
-                        id="specialization"
-                        value={formData.specialization}
-                        onChange={(e) => setFormData({ ...formData, specialization: e.target.value })}
-                        placeholder="e.g. Orthopedics"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="yearsExperience">Years of Experience</Label>
-                      <Input
-                        id="yearsExperience"
-                        type="number"
-                        value={formData.yearsExperience}
-                        onChange={(e) => setFormData({ ...formData, yearsExperience: parseInt(e.target.value) || 0 })}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="consultationFee">Consultation Fee</Label>
-                      <Input
-                        id="consultationFee"
-                        value={formData.consultationFee}
-                        onChange={(e) => setFormData({ ...formData, consultationFee: e.target.value })}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="licenseNumber">License Number</Label>
-                    <Input
-                      id="licenseNumber"
-                      value={formData.licenseNumber}
-                      onChange={(e) => setFormData({ ...formData, licenseNumber: e.target.value })}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="bio">Professional Bio</Label>
-                    <Textarea
-                      id="bio"
-                      value={formData.bio}
-                      onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
-                      placeholder="Tell patients about your experience..."
+                      placeholder={t("profile_page.bio_placeholder", "Tell patients about your experience...")}
                       className="min-h-[100px]"
                     />
                   </div>
@@ -842,7 +772,7 @@ export default function Profile() {
                 disabled={updateProfileMutation.isPending}
               >
                 <Save className="h-4 w-4 mr-2" />
-                {updateProfileMutation.isPending ? "Saving..." : "Save Changes"}
+                {updateProfileMutation.isPending ? t("profile_page.saving", "Saving...") : t("profile_page.save_changes", "Save Changes")}
               </Button>
             </form>
           </CardContent>
@@ -850,8 +780,8 @@ export default function Profile() {
 
         <Card className="mb-8">
           <CardHeader>
-            <CardTitle className="text-lg">Reset Password</CardTitle>
-            <CardDescription>Change your login password</CardDescription>
+            <CardTitle className="text-lg">{t("profile_page.reset_password_title", "Reset Password")}</CardTitle>
+            <CardDescription>{t("profile_page.reset_password_desc", "Change your login password")}</CardDescription>
           </CardHeader>
           <CardContent>
             <form 
@@ -862,7 +792,7 @@ export default function Profile() {
               className="space-y-4"
             >
               <div className="space-y-2">
-                <Label htmlFor="currentPassword">Current Password</Label>
+                <Label htmlFor="currentPassword">{t("profile_page.current_password", "Current Password")}</Label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
@@ -871,7 +801,7 @@ export default function Profile() {
                     value={passwordData.currentPassword}
                     onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
                     className="pl-10 pr-10"
-                    placeholder="Enter current password"
+                    placeholder={t("profile_page.current_password_placeholder", "Enter current password")}
                   />
                   <Button
                     type="button"
@@ -886,7 +816,7 @@ export default function Profile() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="newPassword">New Password</Label>
+                <Label htmlFor="newPassword">{t("profile_page.new_password", "New Password")}</Label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
@@ -895,7 +825,7 @@ export default function Profile() {
                     value={passwordData.newPassword}
                     onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
                     className="pl-10 pr-10"
-                    placeholder="Enter new password"
+                    placeholder={t("profile_page.new_password_placeholder", "Enter new password")}
                   />
                   <Button
                     type="button"
@@ -910,7 +840,7 @@ export default function Profile() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="confirmPassword">Confirm New Password</Label>
+                <Label htmlFor="confirmPassword">{t("profile_page.confirm_password", "Confirm New Password")}</Label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
@@ -919,7 +849,7 @@ export default function Profile() {
                     value={passwordData.confirmPassword}
                     onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
                     className="pl-10 pr-10"
-                    placeholder="Confirm new password"
+                    placeholder={t("profile_page.confirm_password_placeholder", "Confirm new password")}
                   />
                   <Button
                     type="button"
@@ -941,10 +871,10 @@ export default function Profile() {
                 {updatePasswordMutation.isPending ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Resetting...
+                    {t("profile_page.resetting", "Resetting...")}
                   </>
                 ) : (
-                  "Reset Password"
+                  t("profile_page.reset_password_btn", "Reset Password")
                 )}
               </Button>
             </form>

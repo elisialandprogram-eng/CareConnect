@@ -18,6 +18,10 @@ The Provider Dashboard offers comprehensive booking management with eight key st
 
 The Patient Dashboard mirrors the provider experience with Upcoming, Completed, Cancelled, All History, Medical Records, and Invoices tabs plus shared search and visit-type filters. The Providers listing surfaces a prominent emerald "Verified" badge on each card and offers a "Verified providers only" filter checkbox alongside the existing service/location/rating/price/visit-type filters. The site header shows a notification bell with an unread-count badge that polls every 30 seconds.
 
+### Internationalization (i18n)
+
+The app supports English (EN), Hungarian (HU), and Persian/Farsi (FA) via i18next, with locale JSON files at `client/src/i18n/locales/{en,hu,fa}/translation.json`. All hardcoded user-facing strings in the Provider Dashboard, Patient Dashboard, Profile page, and Admin Dashboard (Booking Statistics, FAQs, Announcements, Platform Settings, Audit Logs, Invoice Management, Support Tickets, Pricing Management, Promo Codes, Stripe Settings, External Integrations, and provider creation toasts) have been wired through `t("namespace.key", "English fallback")`. Currency is formatted via `Intl.NumberFormat` (HUF) and never translated. Status badge values, payment method names, and form `value` attributes remain untranslated to preserve API contracts.
+
 ### Backend
 
 The backend is developed with Node.js and TypeScript, using Express.js as the framework and Drizzle ORM for database interactions. Authentication is JWT-based with bcrypt for password hashing, supporting role-based access control (patient, provider, admin). The API is RESTful, uses JSON for communication, and includes centralized error handling and request logging. A Data Access Layer (DAL) abstracts database operations for various entities, providing enriched data types for complex queries.

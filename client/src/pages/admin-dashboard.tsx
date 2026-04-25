@@ -863,7 +863,7 @@ function BookingsManagementComponent() {
       refetch();
     },
     onError: (error: Error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: t("admin_dashboard.error"), description: error.message, variant: "destructive" });
     },
   });
 
@@ -1147,7 +1147,7 @@ function ProvidersManagement() {
       refetch();
     },
     onError: (error: Error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: t("admin_dashboard.error"), description: error.message, variant: "destructive" });
     },
   });
 
@@ -1641,10 +1641,10 @@ function ProvidersManagement() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
-              <CardTitle>Booking Statistics</CardTitle>
-              <CardDescription>Detailed overview for the selected provider</CardDescription>
+              <CardTitle>{t("admin_dashboard.booking_stats")}</CardTitle>
+              <CardDescription>{t("admin_dashboard.booking_stats_desc")}</CardDescription>
             </div>
-            <Button variant="ghost" size="sm" onClick={() => setSelectedProviderId(null)}>Close</Button>
+            <Button variant="ghost" size="sm" onClick={() => setSelectedProviderId(null)}>{t("admin_dashboard.close")}</Button>
           </CardHeader>
           <CardContent>
             {isLoadingStats ? (
@@ -1653,19 +1653,19 @@ function ProvidersManagement() {
               <div className="space-y-6">
                 <div className="grid gap-4 md:grid-cols-4">
                   <div className="p-4 rounded-lg bg-muted/50 border">
-                    <div className="text-sm font-medium text-muted-foreground">Total Bookings</div>
+                    <div className="text-sm font-medium text-muted-foreground">{t("admin_dashboard.total_bookings_label")}</div>
                     <div className="text-2xl font-bold">{providerStats?.total || 0}</div>
                   </div>
                   <div className="p-4 rounded-lg bg-orange-100 border border-orange-200 dark:bg-orange-950/20 dark:border-orange-900/50">
-                    <div className="text-sm font-medium text-orange-600 dark:text-orange-400">Pending</div>
+                    <div className="text-sm font-medium text-orange-600 dark:text-orange-400">{t("admin_dashboard.pending")}</div>
                     <div className="text-2xl font-bold">{providerStats?.pending || 0}</div>
                   </div>
                   <div className="p-4 rounded-lg bg-green-100 border border-green-200 dark:bg-green-950/20 dark:border-green-900/50">
-                    <div className="text-sm font-medium text-green-600 dark:text-green-400">Completed</div>
+                    <div className="text-sm font-medium text-green-600 dark:text-green-400">{t("admin_dashboard.completed")}</div>
                     <div className="text-2xl font-bold">{providerStats?.completed || 0}</div>
                   </div>
                   <div className="p-4 rounded-lg bg-red-100 border border-red-200 dark:bg-red-950/20 dark:border-red-900/50">
-                    <div className="text-sm font-medium text-red-600 dark:text-red-400">Cancelled</div>
+                    <div className="text-sm font-medium text-red-600 dark:text-red-400">{t("admin_dashboard.cancelled")}</div>
                     <div className="text-2xl font-bold">{providerStats?.cancelled || 0}</div>
                   </div>
                 </div>
@@ -1674,15 +1674,15 @@ function ProvidersManagement() {
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b bg-muted/50">
-                        <th className="h-10 px-4 text-left font-medium">Patient</th>
-                        <th className="h-10 px-4 text-left font-medium">Date</th>
-                        <th className="h-10 px-4 text-left font-medium">Amount</th>
-                        <th className="h-10 px-4 text-left font-medium">Status</th>
+                        <th className="h-10 px-4 text-left font-medium">{t("admin_dashboard.patient")}</th>
+                        <th className="h-10 px-4 text-left font-medium">{t("admin_dashboard.date")}</th>
+                        <th className="h-10 px-4 text-left font-medium">{t("admin_dashboard.amount")}</th>
+                        <th className="h-10 px-4 text-left font-medium">{t("admin_dashboard.status")}</th>
                       </tr>
                     </thead>
                     <tbody>
                       {providerStats?.bookings.length === 0 ? (
-                        <tr><td colSpan={4} className="p-8 text-center text-muted-foreground">No bookings found</td></tr>
+                        <tr><td colSpan={4} className="p-8 text-center text-muted-foreground">{t("admin_dashboard.no_bookings")}</td></tr>
                       ) : (
                         providerStats?.bookings.map((booking: any) => (
                           <tr key={booking.id} className="border-b last:border-0">
@@ -1732,16 +1732,16 @@ function ContentManagement() {
     mutationFn: async (data: any) => {
       const response = await apiRequest("POST", "/api/admin/faqs", data);
       const resData = await response.json();
-      if (!response.ok) throw new Error(resData.message || "Failed to create FAQ");
+      if (!response.ok) throw new Error(resData.message || t("admin_dashboard.faq_create_failed"));
       return resData;
     },
     onSuccess: () => {
-      toast({ title: "FAQ created!" });
+      toast({ title: t("admin_dashboard.faq_created") });
       faqForm.reset();
       refetchFaqs();
     },
     onError: (error: Error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: t("admin_dashboard.error"), description: error.message, variant: "destructive" });
     },
   });
 
@@ -1749,11 +1749,11 @@ function ContentManagement() {
     mutationFn: async (id: string) => {
       const response = await apiRequest("DELETE", `/api/admin/faqs/${id}`);
       const resData = await response.json();
-      if (!response.ok) throw new Error(resData.message || "Failed to delete");
+      if (!response.ok) throw new Error(resData.message || t("admin_dashboard.faq_delete_failed"));
       return resData;
     },
     onSuccess: () => {
-      toast({ title: "FAQ deleted" });
+      toast({ title: t("admin_dashboard.faq_deleted") });
       refetchFaqs();
     },
   });
@@ -1777,16 +1777,16 @@ function ContentManagement() {
     mutationFn: async (data: any) => {
       const response = await apiRequest("POST", "/api/admin/announcements", data);
       const resData = await response.json();
-      if (!response.ok) throw new Error(resData.message || "Failed to create announcement");
+      if (!response.ok) throw new Error(resData.message || t("admin_dashboard.announcement_create_failed"));
       return resData;
     },
     onSuccess: () => {
-      toast({ title: "Announcement created!" });
+      toast({ title: t("admin_dashboard.announcement_created") });
       announcementForm.reset();
       refetchAnnouncements();
     },
     onError: (error: Error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: t("admin_dashboard.error"), description: error.message, variant: "destructive" });
     },
   });
 
@@ -1794,11 +1794,11 @@ function ContentManagement() {
     mutationFn: async (id: string) => {
       const response = await apiRequest("DELETE", `/api/admin/announcements/${id}`);
       const resData = await response.json();
-      if (!response.ok) throw new Error(resData.message || "Failed to delete");
+      if (!response.ok) throw new Error(resData.message || t("admin_dashboard.faq_delete_failed"));
       return resData;
     },
     onSuccess: () => {
-      toast({ title: "Announcement deleted" });
+      toast({ title: t("admin_dashboard.announcement_deleted") });
       refetchAnnouncements();
     },
   });
@@ -1807,13 +1807,13 @@ function ContentManagement() {
     <div className="space-y-4">
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
-          <TabsTrigger value="providers" data-testid="tab-content-providers">Providers</TabsTrigger>
-          <TabsTrigger value="users" data-testid="tab-content-users">Users</TabsTrigger>
-          <TabsTrigger value="sub-services" data-testid="tab-sub-services">Sub-Services</TabsTrigger>
-          <TabsTrigger value="promo-codes" data-testid="tab-content-promo-codes">Promo Codes</TabsTrigger>
-          <TabsTrigger value="tickets" data-testid="tab-content-tickets">Support</TabsTrigger>
-          <TabsTrigger value="faqs" data-testid="tab-content-faqs">FAQs</TabsTrigger>
-          <TabsTrigger value="announcements" data-testid="tab-content-announcements">Announcements</TabsTrigger>
+          <TabsTrigger value="providers" data-testid="tab-content-providers">{t("admin_dashboard.tab_providers")}</TabsTrigger>
+          <TabsTrigger value="users" data-testid="tab-content-users">{t("admin_dashboard.tab_users")}</TabsTrigger>
+          <TabsTrigger value="sub-services" data-testid="tab-sub-services">{t("admin_dashboard.tab_sub_services")}</TabsTrigger>
+          <TabsTrigger value="promo-codes" data-testid="tab-content-promo-codes">{t("admin_dashboard.tab_promo_codes")}</TabsTrigger>
+          <TabsTrigger value="tickets" data-testid="tab-content-tickets">{t("admin_dashboard.tab_support")}</TabsTrigger>
+          <TabsTrigger value="faqs" data-testid="tab-content-faqs">{t("admin_dashboard.tab_faqs")}</TabsTrigger>
+          <TabsTrigger value="announcements" data-testid="tab-content-announcements">{t("admin_dashboard.tab_announcements")}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="sub-services">
@@ -1823,7 +1823,7 @@ function ContentManagement() {
         <TabsContent value="faqs" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Create FAQ</CardTitle>
+              <CardTitle>{t("admin_dashboard.create_faq")}</CardTitle>
             </CardHeader>
             <CardContent>
               <Form {...faqForm}>
@@ -1833,7 +1833,7 @@ function ContentManagement() {
                     name="question"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Question</FormLabel>
+                        <FormLabel>{t("admin_dashboard.question")}</FormLabel>
                         <FormControl>
                           <Input {...field} data-testid="input-faq-question" />
                         </FormControl>
@@ -1845,7 +1845,7 @@ function ContentManagement() {
                     name="answer"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Answer</FormLabel>
+                        <FormLabel>{t("admin_dashboard.answer")}</FormLabel>
                         <FormControl>
                           <Textarea {...field} data-testid="input-faq-answer" />
                         </FormControl>
@@ -1857,16 +1857,16 @@ function ContentManagement() {
                     name="category"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Category</FormLabel>
+                        <FormLabel>{t("admin_dashboard.category")}</FormLabel>
                         <FormControl>
-                          <Input {...field} placeholder="e.g., Booking, Payment, General" data-testid="input-faq-category" />
+                          <Input {...field} placeholder={t("admin_dashboard.faq_category_placeholder")} data-testid="input-faq-category" />
                         </FormControl>
                       </FormItem>
                     )}
                   />
                   <Button type="submit" disabled={createFaqMutation.isPending} data-testid="button-create-faq">
                     {createFaqMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Plus className="h-4 w-4 mr-2" />}
-                    Create FAQ
+                    {t("admin_dashboard.create_faq")}
                   </Button>
                 </form>
               </Form>
@@ -1875,7 +1875,7 @@ function ContentManagement() {
 
           <Card>
             <CardHeader>
-              <CardTitle>All FAQs</CardTitle>
+              <CardTitle>{t("admin_dashboard.all_faqs")}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
@@ -1906,7 +1906,7 @@ function ContentManagement() {
         <TabsContent value="announcements" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Create Announcement</CardTitle>
+              <CardTitle>{t("admin_dashboard.create_announcement")}</CardTitle>
             </CardHeader>
             <CardContent>
               <Form {...announcementForm}>
@@ -1916,7 +1916,7 @@ function ContentManagement() {
                     name="title"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Title</FormLabel>
+                        <FormLabel>{t("admin_dashboard.title")}</FormLabel>
                         <FormControl>
                           <Input {...field} data-testid="input-announcement-title" />
                         </FormControl>
@@ -1928,7 +1928,7 @@ function ContentManagement() {
                     name="content"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Content</FormLabel>
+                        <FormLabel>{t("admin_dashboard.content")}</FormLabel>
                         <FormControl>
                           <Textarea {...field} data-testid="input-announcement-content" />
                         </FormControl>
@@ -1941,7 +1941,7 @@ function ContentManagement() {
                       name="type"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Type</FormLabel>
+                          <FormLabel>{t("admin_dashboard.type")}</FormLabel>
                           <Select onValueChange={field.onChange} value={field.value}>
                             <FormControl>
                               <SelectTrigger data-testid="select-announcement-type">
@@ -1949,10 +1949,10 @@ function ContentManagement() {
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              <SelectItem value="info">Info</SelectItem>
-                              <SelectItem value="warning">Warning</SelectItem>
-                              <SelectItem value="success">Success</SelectItem>
-                              <SelectItem value="error">Error</SelectItem>
+                              <SelectItem value="info">{t("admin_dashboard.type_info")}</SelectItem>
+                              <SelectItem value="warning">{t("admin_dashboard.type_warning")}</SelectItem>
+                              <SelectItem value="success">{t("admin_dashboard.type_success")}</SelectItem>
+                              <SelectItem value="error">{t("admin_dashboard.type_error")}</SelectItem>
                             </SelectContent>
                           </Select>
                         </FormItem>
@@ -1963,7 +1963,7 @@ function ContentManagement() {
                       name="startDate"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Start Date</FormLabel>
+                          <FormLabel>{t("admin_dashboard.start_date")}</FormLabel>
                           <FormControl>
                             <Input type="date" {...field} data-testid="input-announcement-start" />
                           </FormControl>
@@ -1975,7 +1975,7 @@ function ContentManagement() {
                       name="endDate"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>End Date</FormLabel>
+                          <FormLabel>{t("admin_dashboard.end_date")}</FormLabel>
                           <FormControl>
                             <Input type="date" {...field} data-testid="input-announcement-end" />
                           </FormControl>
@@ -1985,7 +1985,7 @@ function ContentManagement() {
                   </div>
                   <Button type="submit" disabled={createAnnouncementMutation.isPending} data-testid="button-create-announcement">
                     {createAnnouncementMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Plus className="h-4 w-4 mr-2" />}
-                    Create Announcement
+                    {t("admin_dashboard.create_announcement")}
                   </Button>
                 </form>
               </Form>
@@ -1994,7 +1994,7 @@ function ContentManagement() {
 
           <Card>
             <CardHeader>
-              <CardTitle>All Announcements</CardTitle>
+              <CardTitle>{t("admin_dashboard.all_announcements")}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
@@ -2036,6 +2036,7 @@ function ContentManagement() {
 
 // Platform Settings Component
 function PlatformSettings() {
+  const { t } = useTranslation();
   const { toast } = useToast();
 
   const { data: settings, refetch } = useQuery<any[]>({
@@ -2050,16 +2051,16 @@ function PlatformSettings() {
     mutationFn: async (data: any) => {
       const response = await apiRequest("POST", "/api/admin/settings", data);
       const resData = await response.json();
-      if (!response.ok) throw new Error(resData.message || "Failed to save setting");
+      if (!response.ok) throw new Error(resData.message || t("admin_dashboard.setting_save_failed"));
       return resData;
     },
     onSuccess: () => {
-      toast({ title: "Setting saved!" });
+      toast({ title: t("admin_dashboard.setting_saved") });
       settingsForm.reset();
       refetch();
     },
     onError: (error: Error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: t("admin_dashboard.error"), description: error.message, variant: "destructive" });
     },
   });
 
@@ -2067,15 +2068,15 @@ function PlatformSettings() {
     mutationFn: async ({ key, value }: { key: string; value: string }) => {
       const response = await apiRequest("POST", "/api/admin/settings", { key, value });
       const resData = await response.json();
-      if (!response.ok) throw new Error(resData.message || "Failed to update setting");
+      if (!response.ok) throw new Error(resData.message || t("admin_dashboard.setting_update_failed"));
       return resData;
     },
     onSuccess: () => {
-      toast({ title: "Setting updated!" });
+      toast({ title: t("admin_dashboard.setting_updated") });
       refetch();
     },
     onError: (error: Error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: t("admin_dashboard.error"), description: error.message, variant: "destructive" });
     },
   });
 
@@ -2090,7 +2091,7 @@ function PlatformSettings() {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Add New Setting</CardTitle>
+          <CardTitle>{t("admin_dashboard.add_new_setting")}</CardTitle>
         </CardHeader>
         <CardContent>
           <Form {...settingsForm}>
@@ -2101,9 +2102,9 @@ function PlatformSettings() {
                   name="key"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Setting Key</FormLabel>
+                      <FormLabel>{t("admin_dashboard.setting_key")}</FormLabel>
                       <FormControl>
-                        <Input {...field} placeholder="e.g., site_name" data-testid="input-setting-key" />
+                        <Input {...field} placeholder={t("admin_dashboard.setting_key_placeholder")} data-testid="input-setting-key" />
                       </FormControl>
                     </FormItem>
                   )}
@@ -2121,10 +2122,10 @@ function PlatformSettings() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="general">General</SelectItem>
-                          <SelectItem value="booking">Booking</SelectItem>
-                          <SelectItem value="payment">Payment</SelectItem>
-                          <SelectItem value="notification">Notification</SelectItem>
+                          <SelectItem value="general">{t("admin_dashboard.cat_general")}</SelectItem>
+                          <SelectItem value="booking">{t("admin_dashboard.cat_booking")}</SelectItem>
+                          <SelectItem value="payment">{t("admin_dashboard.cat_payment")}</SelectItem>
+                          <SelectItem value="notification">{t("admin_dashboard.cat_notification")}</SelectItem>
                         </SelectContent>
                       </Select>
                     </FormItem>
@@ -2136,7 +2137,7 @@ function PlatformSettings() {
                 name="value"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Value</FormLabel>
+                    <FormLabel>{t("admin_dashboard.value")}</FormLabel>
                     <FormControl>
                       <Textarea {...field} data-testid="input-setting-value" />
                     </FormControl>
@@ -2148,16 +2149,16 @@ function PlatformSettings() {
                 name="description"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Description</FormLabel>
+                    <FormLabel>{t("admin_dashboard.description")}</FormLabel>
                     <FormControl>
-                      <Input {...field} placeholder="Description of this setting" data-testid="input-setting-description" />
+                      <Input {...field} placeholder={t("admin_dashboard.setting_description_placeholder")} data-testid="input-setting-description" />
                     </FormControl>
                   </FormItem>
                 )}
               />
               <Button type="submit" disabled={createSettingMutation.isPending} data-testid="button-create-setting">
                 {createSettingMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Plus className="h-4 w-4 mr-2" />}
-                Add Setting
+                {t("admin_dashboard.add_setting")}
               </Button>
             </form>
           </Form>
@@ -2167,7 +2168,7 @@ function PlatformSettings() {
       {Object.entries(groupedSettings).map(([category, catSettings]: [string, any]) => (
         <Card key={category}>
           <CardHeader>
-            <CardTitle className="capitalize">{category} Settings</CardTitle>
+            <CardTitle className="capitalize">{t("admin_dashboard.settings_suffix", { category })}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -2201,6 +2202,7 @@ function PlatformSettings() {
 
 // Audit Logs Component
 function AuditLogs() {
+  const { t } = useTranslation();
   const { data: logs, isLoading } = useQuery<any[]>({
     queryKey: ["/api/admin/audit-logs"],
   });
@@ -2216,15 +2218,15 @@ function AuditLogs() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Audit Logs</CardTitle>
-        <CardDescription>Track all administrative actions</CardDescription>
+        <CardTitle>{t("admin_dashboard.audit_logs")}</CardTitle>
+        <CardDescription>{t("admin_dashboard.audit_logs_desc")}</CardDescription>
       </CardHeader>
       <CardContent>
         <ScrollArea className="h-[600px]">
           <div className="divide-y">
             {logs?.length === 0 ? (
               <div className="p-8 text-center text-muted-foreground">
-                No audit logs found
+                {t("admin_dashboard.no_audit_logs")}
               </div>
             ) : (
               logs?.map((log: any) => (
@@ -2261,6 +2263,7 @@ function AuditLogs() {
 
 // Invoice Management Component
 function InvoiceManagement() {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const { data: invoices, isLoading, refetch } = useQuery<any[]>({
     queryKey: ["/api/admin/invoices"],
@@ -2272,7 +2275,7 @@ function InvoiceManagement() {
       return response.json();
     },
     onSuccess: () => {
-      toast({ title: "Pending invoices generated" });
+      toast({ title: t("admin_dashboard.pending_invoices_generated") });
       refetch();
     },
   });
@@ -2283,8 +2286,8 @@ function InvoiceManagement() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h3 className="text-lg font-medium">Invoice Management</h3>
-          <p className="text-sm text-muted-foreground">View and manage platform invoices</p>
+          <h3 className="text-lg font-medium">{t("admin_dashboard.invoice_management")}</h3>
+          <p className="text-sm text-muted-foreground">{t("admin_dashboard.invoice_management_desc")}</p>
         </div>
         <Button 
           onClick={() => generatePendingMutation.mutate()} 
@@ -2292,7 +2295,7 @@ function InvoiceManagement() {
           data-testid="button-generate-pending-invoices"
         >
           {generatePendingMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Plus className="h-4 w-4 mr-2" />}
-          Generate Pending
+          {t("admin_dashboard.generate_pending")}
         </Button>
       </div>
 
@@ -2302,18 +2305,18 @@ function InvoiceManagement() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b bg-muted/50">
-                  <th className="h-10 px-4 text-left font-medium">Invoice #</th>
-                  <th className="h-10 px-4 text-left font-medium">Date</th>
-                  <th className="h-10 px-4 text-left font-medium">Amount</th>
-                  <th className="h-10 px-4 text-left font-medium">Status</th>
-                  <th className="h-10 px-4 text-right font-medium">Actions</th>
+                  <th className="h-10 px-4 text-left font-medium">{t("admin_dashboard.invoice_number")}</th>
+                  <th className="h-10 px-4 text-left font-medium">{t("admin_dashboard.date")}</th>
+                  <th className="h-10 px-4 text-left font-medium">{t("admin_dashboard.amount")}</th>
+                  <th className="h-10 px-4 text-left font-medium">{t("admin_dashboard.status")}</th>
+                  <th className="h-10 px-4 text-right font-medium">{t("admin_dashboard.actions")}</th>
                 </tr>
               </thead>
               <tbody>
                 {invoices?.length === 0 ? (
                   <tr>
                     <td colSpan={5} className="p-8 text-center text-muted-foreground">
-                      No invoices found
+                      {t("admin_dashboard.no_invoices")}
                     </td>
                   </tr>
                 ) : (
@@ -2353,6 +2356,7 @@ function InvoiceManagement() {
 
 // Support Tickets Component
 function SupportTickets() {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const [selectedTicket, setSelectedTicket] = useState<any>(null);
 
@@ -2373,15 +2377,15 @@ function SupportTickets() {
     mutationFn: async ({ id, status, priority }: { id: string; status?: string; priority?: string }) => {
       const response = await apiRequest("PATCH", `/api/admin/support-tickets/${id}`, { status, priority });
       const resData = await response.json();
-      if (!response.ok) throw new Error(resData.message || "Failed to update ticket");
+      if (!response.ok) throw new Error(resData.message || t("admin_dashboard.ticket_update_failed"));
       return resData;
     },
     onSuccess: () => {
-      toast({ title: "Ticket updated!" });
+      toast({ title: t("admin_dashboard.ticket_updated") });
       refetch();
     },
     onError: (error: Error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: t("admin_dashboard.error"), description: error.message, variant: "destructive" });
     },
   });
 
@@ -2389,16 +2393,16 @@ function SupportTickets() {
     mutationFn: async ({ ticketId, message }: { ticketId: string; message: string }) => {
       const response = await apiRequest("POST", `/api/admin/support-tickets/${ticketId}/messages`, { message });
       const resData = await response.json();
-      if (!response.ok) throw new Error(resData.message || "Failed to send message");
+      if (!response.ok) throw new Error(resData.message || t("admin_dashboard.message_send_failed"));
       return resData;
     },
     onSuccess: () => {
-      toast({ title: "Message sent!" });
+      toast({ title: t("admin_dashboard.message_sent") });
       messageForm.reset();
       refetchMessages();
     },
     onError: (error: Error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: t("admin_dashboard.error"), description: error.message, variant: "destructive" });
     },
   });
 
@@ -2406,8 +2410,8 @@ function SupportTickets() {
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       <Card>
         <CardHeader>
-          <CardTitle>Support Tickets</CardTitle>
-          <CardDescription>Manage customer support requests</CardDescription>
+          <CardTitle>{t("admin_dashboard.support_tickets")}</CardTitle>
+          <CardDescription>{t("admin_dashboard.support_tickets_desc")}</CardDescription>
         </CardHeader>
         <CardContent>
           <ScrollArea className="h-[500px]">
@@ -2452,7 +2456,7 @@ function SupportTickets() {
       <Card>
         <CardHeader>
           <CardTitle>
-            {selectedTicket ? `Ticket: ${selectedTicket.subject}` : 'Select a Ticket'}
+            {selectedTicket ? t("admin_dashboard.ticket_prefix", { subject: selectedTicket.subject }) : t("admin_dashboard.select_ticket")}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -2470,10 +2474,10 @@ function SupportTickets() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="open">Open</SelectItem>
-                    <SelectItem value="in_progress">In Progress</SelectItem>
-                    <SelectItem value="resolved">Resolved</SelectItem>
-                    <SelectItem value="closed">Closed</SelectItem>
+                    <SelectItem value="open">{t("admin_dashboard.status_open")}</SelectItem>
+                    <SelectItem value="in_progress">{t("admin_dashboard.status_in_progress")}</SelectItem>
+                    <SelectItem value="resolved">{t("admin_dashboard.status_resolved")}</SelectItem>
+                    <SelectItem value="closed">{t("admin_dashboard.status_closed")}</SelectItem>
                   </SelectContent>
                 </Select>
                 <Select
@@ -2487,10 +2491,10 @@ function SupportTickets() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="low">Low</SelectItem>
-                    <SelectItem value="medium">Medium</SelectItem>
-                    <SelectItem value="high">High</SelectItem>
-                    <SelectItem value="urgent">Urgent</SelectItem>
+                    <SelectItem value="low">{t("admin_dashboard.priority_low")}</SelectItem>
+                    <SelectItem value="medium">{t("admin_dashboard.priority_medium")}</SelectItem>
+                    <SelectItem value="high">{t("admin_dashboard.priority_high")}</SelectItem>
+                    <SelectItem value="urgent">{t("admin_dashboard.priority_urgent")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -2526,20 +2530,20 @@ function SupportTickets() {
                     render={({ field }) => (
                       <FormItem className="flex-1">
                         <FormControl>
-                          <Input {...field} placeholder="Type your reply..." data-testid="input-ticket-reply" />
+                          <Input {...field} placeholder={t("admin_dashboard.reply_placeholder")} data-testid="input-ticket-reply" />
                         </FormControl>
                       </FormItem>
                     )}
                   />
                   <Button type="submit" disabled={sendMessageMutation.isPending} data-testid="button-send-reply">
-                    {sendMessageMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Send"}
+                    {sendMessageMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : t("admin_dashboard.send")}
                   </Button>
                 </form>
               </Form>
             </div>
           ) : (
             <div className="flex items-center justify-center h-[400px] text-muted-foreground">
-              Select a ticket to view details
+              {t("admin_dashboard.select_ticket_details")}
             </div>
           )}
         </CardContent>
@@ -2550,6 +2554,7 @@ function SupportTickets() {
 
 // Pricing Management Component
 function PricingManagement({ providers }: { providers: ProviderWithUser[] }) {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const [editingId, setEditingId] = useState<string | null>(null);
 
@@ -2583,7 +2588,7 @@ function PricingManagement({ providers }: { providers: ProviderWithUser[] }) {
       const contentType = response.headers.get("content-type");
       if (contentType && contentType.includes("application/json")) {
         const resData = await response.json();
-        if (!response.ok) throw new Error(resData.message || "Failed to save pricing override");
+        if (!response.ok) throw new Error(resData.message || t("admin_dashboard.pricing_save_failed"));
         return resData;
       } else {
         const text = await response.text();
@@ -2592,13 +2597,13 @@ function PricingManagement({ providers }: { providers: ProviderWithUser[] }) {
       }
     },
     onSuccess: () => {
-      toast({ title: editingId ? "Pricing updated!" : "Pricing override created!" });
+      toast({ title: editingId ? t("admin_dashboard.pricing_updated") : t("admin_dashboard.pricing_created") });
       pricingForm.reset();
       setEditingId(null);
       refetch();
     },
     onError: (error: Error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: t("admin_dashboard.error"), description: error.message, variant: "destructive" });
     },
   });
 
@@ -2606,11 +2611,11 @@ function PricingManagement({ providers }: { providers: ProviderWithUser[] }) {
     mutationFn: async (id: string) => {
       const response = await apiRequest("DELETE", `/api/admin/pricing-overrides/${id}`);
       const resData = await response.json();
-      if (!response.ok) throw new Error(resData.message || "Failed to delete");
+      if (!response.ok) throw new Error(resData.message || t("admin_dashboard.faq_delete_failed"));
       return resData;
     },
     onSuccess: () => {
-      toast({ title: "Pricing override deleted" });
+      toast({ title: t("admin_dashboard.pricing_deleted") });
       refetch();
     },
   });
@@ -2625,11 +2630,11 @@ function PricingManagement({ providers }: { providers: ProviderWithUser[] }) {
               name="providerId"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Provider</FormLabel>
+                  <FormLabel>{t("admin_dashboard.provider_label")}</FormLabel>
                   <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger data-testid="select-pricing-provider">
-                        <SelectValue placeholder="Select provider" />
+                        <SelectValue placeholder={t("admin_dashboard.select_provider")} />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
@@ -2650,11 +2655,11 @@ function PricingManagement({ providers }: { providers: ProviderWithUser[] }) {
               name="consultationFee"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Custom Consultation Fee ($)</FormLabel>
+                  <FormLabel>{t("admin_dashboard.custom_consultation_fee")}</FormLabel>
                   <FormControl>
                     <Input type="number" step="0.01" {...field} value={field.value || ""} onChange={e => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)} data-testid="input-pricing-consultation" />
                   </FormControl>
-                  <FormDescription>Leave empty to use provider's default</FormDescription>
+                  <FormDescription>{t("admin_dashboard.leave_empty_default")}</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -2665,11 +2670,11 @@ function PricingManagement({ providers }: { providers: ProviderWithUser[] }) {
               name="homeVisitFee"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Custom Home Visit Fee ($)</FormLabel>
+                  <FormLabel>{t("admin_dashboard.custom_homevisit_fee")}</FormLabel>
                   <FormControl>
                     <Input type="number" step="0.01" {...field} value={field.value || ""} onChange={e => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)} data-testid="input-pricing-homevisit" />
                   </FormControl>
-                  <FormDescription>Leave empty to use provider's default</FormDescription>
+                  <FormDescription>{t("admin_dashboard.leave_empty_default")}</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -2680,11 +2685,11 @@ function PricingManagement({ providers }: { providers: ProviderWithUser[] }) {
               name="discountPercentage"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Discount Percentage (%)</FormLabel>
+                  <FormLabel>{t("admin_dashboard.discount_percentage")}</FormLabel>
                   <FormControl>
                     <Input type="number" step="0.01" max="100" {...field} value={field.value || ""} onChange={e => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)} data-testid="input-pricing-discount" />
                   </FormControl>
-                  <FormDescription>Applies to all provider's services</FormDescription>
+                  <FormDescription>{t("admin_dashboard.applies_all_services")}</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -2696,7 +2701,7 @@ function PricingManagement({ providers }: { providers: ProviderWithUser[] }) {
             name="notes"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Notes</FormLabel>
+                <FormLabel>{t("admin_dashboard.notes")}</FormLabel>
                 <FormControl>
                   <Textarea {...field} data-testid="input-pricing-notes" />
                 </FormControl>
@@ -2708,11 +2713,11 @@ function PricingManagement({ providers }: { providers: ProviderWithUser[] }) {
           <div className="flex gap-2">
             <Button type="submit" disabled={createPricingMutation.isPending} data-testid="button-save-pricing">
               {createPricingMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-              <span className="ml-2">{editingId ? "Update" : "Create"} Override</span>
+              <span className="ml-2">{editingId ? t("admin_dashboard.update_override") : t("admin_dashboard.create_override")}</span>
             </Button>
             {editingId && (
               <Button type="button" variant="outline" onClick={() => { setEditingId(null); pricingForm.reset(); }} data-testid="button-cancel-pricing">
-                Cancel
+                {t("admin_dashboard.cancel")}
               </Button>
             )}
           </div>
@@ -2720,7 +2725,7 @@ function PricingManagement({ providers }: { providers: ProviderWithUser[] }) {
       </Form>
 
       <div className="space-y-4">
-        <h3 className="font-semibold">Active Pricing Overrides</h3>
+        <h3 className="font-semibold">{t("admin_dashboard.active_pricing_overrides")}</h3>
         {pricingOverrides?.map((override) => {
           const provider = providers.find(p => p.id === override.providerId);
           return (
@@ -2728,9 +2733,9 @@ function PricingManagement({ providers }: { providers: ProviderWithUser[] }) {
               <div>
                 <p className="font-medium">{provider?.user.firstName} {provider?.user.lastName}</p>
                 <div className="text-sm text-muted-foreground space-y-1">
-                  {override.consultationFee && <p>Consultation: ${Number(override.consultationFee).toFixed(2)}</p>}
-                  {override.homeVisitFee && <p>Home Visit: ${Number(override.homeVisitFee).toFixed(2)}</p>}
-                  {override.discountPercentage && <p>Discount: {Number(override.discountPercentage)}%</p>}
+                  {override.consultationFee && <p>{t("admin_dashboard.consultation")}: ${Number(override.consultationFee).toFixed(2)}</p>}
+                  {override.homeVisitFee && <p>{t("admin_dashboard.home_visit")}: ${Number(override.homeVisitFee).toFixed(2)}</p>}
+                  {override.discountPercentage && <p>{t("admin_dashboard.discount")}: {Number(override.discountPercentage)}%</p>}
                   {override.notes && <p className="italic">{override.notes}</p>}
                 </div>
               </div>
@@ -2810,17 +2815,17 @@ function PromoCodeManagement({ providers }: { providers: ProviderWithUser[] }) {
         data
       );
       const resData = await response.json();
-      if (!response.ok) throw new Error(resData.message || "Failed to save promo code");
+      if (!response.ok) throw new Error(resData.message || t("admin_dashboard.promo_save_failed"));
       return resData;
     },
     onSuccess: () => {
-      toast({ title: editingId ? "Promo code updated!" : "Promo code created!" });
+      toast({ title: editingId ? t("admin_dashboard.promo_updated") : t("admin_dashboard.promo_created") });
       promoForm.reset();
       setEditingId(null);
       refetch();
     },
     onError: (error: Error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: t("admin_dashboard.error"), description: error.message, variant: "destructive" });
     },
   });
 
@@ -2828,11 +2833,11 @@ function PromoCodeManagement({ providers }: { providers: ProviderWithUser[] }) {
     mutationFn: async (id: string) => {
       const response = await apiRequest("DELETE", `/api/admin/promo-codes/${id}`);
       const resData = await response.json();
-      if (!response.ok) throw new Error(resData.message || "Failed to delete");
+      if (!response.ok) throw new Error(resData.message || t("admin_dashboard.faq_delete_failed"));
       return resData;
     },
     onSuccess: () => {
-      toast({ title: "Promo code deleted" });
+      toast({ title: t("admin_dashboard.promo_deleted") });
       refetch();
     },
   });
@@ -2847,11 +2852,11 @@ function PromoCodeManagement({ providers }: { providers: ProviderWithUser[] }) {
               name="code"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Promo Code</FormLabel>
+                  <FormLabel>{t("admin_dashboard.promo_code_label")}</FormLabel>
                   <FormControl>
                     <Input {...field} placeholder="SUMMER2024" onChange={e => field.onChange(e.target.value.toUpperCase())} data-testid="input-promo-code" />
                   </FormControl>
-                  <FormDescription>Will be converted to uppercase</FormDescription>
+                  <FormDescription>{t("admin_dashboard.promo_code_uppercase_hint")}</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -2862,7 +2867,7 @@ function PromoCodeManagement({ providers }: { providers: ProviderWithUser[] }) {
               name="discountType"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Discount Type</FormLabel>
+                  <FormLabel>{t("admin_dashboard.discount_type")}</FormLabel>
                   <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger data-testid="select-promo-type">
@@ -2870,8 +2875,8 @@ function PromoCodeManagement({ providers }: { providers: ProviderWithUser[] }) {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="percentage">Percentage</SelectItem>
-                      <SelectItem value="fixed">Fixed Amount</SelectItem>
+                      <SelectItem value="percentage">{t("admin_dashboard.discount_percentage_label")}</SelectItem>
+                      <SelectItem value="fixed">{t("admin_dashboard.discount_fixed_label")}</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -2884,12 +2889,12 @@ function PromoCodeManagement({ providers }: { providers: ProviderWithUser[] }) {
               name="discountValue"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Discount Value</FormLabel>
+                  <FormLabel>{t("admin_dashboard.discount_value")}</FormLabel>
                   <FormControl>
                     <Input type="number" step="0.01" {...field} onChange={e => field.onChange(parseFloat(e.target.value))} data-testid="input-promo-value" />
                   </FormControl>
                   <FormDescription>
-                    {promoForm.watch("discountType") === "percentage" ? "Percentage (0-100)" : "Dollar amount"}
+                    {promoForm.watch("discountType") === "percentage" ? t("admin_dashboard.discount_value_pct_hint") : t("admin_dashboard.discount_value_dollar_hint")}
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -2901,11 +2906,11 @@ function PromoCodeManagement({ providers }: { providers: ProviderWithUser[] }) {
               name="maxUses"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Max Uses (Optional)</FormLabel>
+                  <FormLabel>{t("admin_dashboard.max_uses")}</FormLabel>
                   <FormControl>
                     <Input type="number" {...field} value={field.value || ""} onChange={e => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)} data-testid="input-promo-max-uses" />
                   </FormControl>
-                  <FormDescription>Leave empty for unlimited</FormDescription>
+                  <FormDescription>{t("admin_dashboard.leave_empty_unlimited")}</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -2916,7 +2921,7 @@ function PromoCodeManagement({ providers }: { providers: ProviderWithUser[] }) {
               name="validFrom"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Valid From</FormLabel>
+                  <FormLabel>{t("admin_dashboard.valid_from")}</FormLabel>
                   <FormControl>
                     <Input type="date" {...field} data-testid="input-promo-valid-from" />
                   </FormControl>
@@ -2930,7 +2935,7 @@ function PromoCodeManagement({ providers }: { providers: ProviderWithUser[] }) {
               name="validUntil"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Valid Until</FormLabel>
+                  <FormLabel>{t("admin_dashboard.valid_until")}</FormLabel>
                   <FormControl>
                     <Input type="date" {...field} data-testid="input-promo-valid-until" />
                   </FormControl>
@@ -2944,11 +2949,11 @@ function PromoCodeManagement({ providers }: { providers: ProviderWithUser[] }) {
               name="minAmount"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Minimum Amount ($)</FormLabel>
+                  <FormLabel>{t("admin_dashboard.min_amount")}</FormLabel>
                   <FormControl>
                     <Input type="number" step="0.01" {...field} value={field.value || ""} onChange={e => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)} data-testid="input-promo-min-amount" />
                   </FormControl>
-                  <FormDescription>Minimum booking amount required</FormDescription>
+                  <FormDescription>{t("admin_dashboard.min_amount_hint")}</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -2960,7 +2965,7 @@ function PromoCodeManagement({ providers }: { providers: ProviderWithUser[] }) {
             name="description"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Description</FormLabel>
+                <FormLabel>{t("admin_dashboard.description")}</FormLabel>
                 <FormControl>
                   <Textarea {...field} data-testid="input-promo-description" />
                 </FormControl>
@@ -2972,11 +2977,11 @@ function PromoCodeManagement({ providers }: { providers: ProviderWithUser[] }) {
           <div className="flex gap-2">
             <Button type="submit" disabled={createPromoMutation.isPending} data-testid="button-save-promo">
               {createPromoMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-              <span className="ml-2">{editingId ? "Update" : "Create"} Promo Code</span>
+              <span className="ml-2">{editingId ? t("admin_dashboard.update_promo") : t("admin_dashboard.create_promo")}</span>
             </Button>
             {editingId && (
               <Button type="button" variant="outline" onClick={() => { setEditingId(null); promoForm.reset(); }} data-testid="button-cancel-promo">
-                Cancel
+                {t("admin_dashboard.cancel")}
               </Button>
             )}
           </div>
@@ -2984,26 +2989,26 @@ function PromoCodeManagement({ providers }: { providers: ProviderWithUser[] }) {
       </Form>
 
       <div className="space-y-4">
-        <h3 className="font-semibold">Active Promo Codes</h3>
+        <h3 className="font-semibold">{t("admin_dashboard.active_promo_codes")}</h3>
         {promoCodes?.map((promo) => (
           <div key={promo.id} className="flex items-center justify-between p-4 border rounded-lg" data-testid={`row-promo-${promo.id}`}>
             <div>
               <div className="flex items-center gap-2 flex-wrap">
                 <p className="font-mono font-bold text-lg">{promo.code}</p>
                 <Badge variant={promo.isActive ? 'default' : 'secondary'}>
-                  {promo.isActive ? 'Active' : 'Inactive'}
+                  {promo.isActive ? t("admin_dashboard.active") : t("admin_dashboard.inactive")}
                 </Badge>
               </div>
               <p className="text-sm text-muted-foreground">{promo.description}</p>
               <div className="text-sm text-muted-foreground mt-2 space-y-1">
                 <p>
-                  Discount: {promo.discountType === "percentage" 
+                  {t("admin_dashboard.discount_label")}: {promo.discountType === "percentage" 
                     ? `${Number(promo.discountValue)}%` 
-                    : `$${Number(promo.discountValue)}`}
+                    : `${Number(promo.discountValue)}`}
                 </p>
-                <p>Valid: {new Date(promo.validFrom).toLocaleDateString()} - {new Date(promo.validUntil).toLocaleDateString()}</p>
-                {promo.maxUses && <p>Uses: {promo.usedCount || 0} / {promo.maxUses}</p>}
-                {promo.minAmount && <p>Min Amount: ${Number(promo.minAmount)}</p>}
+                <p>{t("admin_dashboard.valid_label")}: {new Date(promo.validFrom).toLocaleDateString()} - {new Date(promo.validUntil).toLocaleDateString()}</p>
+                {promo.maxUses && <p>{t("admin_dashboard.uses_label")}: {promo.usedCount || 0} / {promo.maxUses}</p>}
+                {promo.minAmount && <p>{t("admin_dashboard.min_amount_label")}: ${Number(promo.minAmount)}</p>}
               </div>
             </div>
             <div className="flex gap-2">
@@ -3519,7 +3524,7 @@ function StripeSettingsPanel() {
 
   if (isLoading) {
     return (
-      <div className="text-sm text-muted-foreground">Loading payment status…</div>
+      <div className="text-sm text-muted-foreground">{t("admin_dashboard.loading_payment_status")}</div>
     );
   }
 
@@ -3541,11 +3546,11 @@ function StripeSettingsPanel() {
       </div>
       {ok ? (
         <Badge className="bg-green-100 text-green-800 hover:bg-green-100">
-          <CheckCircle className="h-3 w-3 mr-1" /> Configured
+          <CheckCircle className="h-3 w-3 mr-1" /> {t("admin_dashboard.configured")}
         </Badge>
       ) : (
         <Badge variant="secondary" className="bg-amber-100 text-amber-800 hover:bg-amber-100">
-          <XCircle className="h-3 w-3 mr-1" /> Not set
+          <XCircle className="h-3 w-3 mr-1" /> {t("admin_dashboard.not_set")}
         </Badge>
       )}
     </div>
@@ -3555,9 +3560,9 @@ function StripeSettingsPanel() {
     <div className="space-y-4" data-testid="stripe-settings-panel">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-base font-semibold">Stripe Payments</h3>
+          <h3 className="text-base font-semibold">{t("admin_dashboard.stripe_payments")}</h3>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Card payments are processed via Stripe Checkout. Manage credentials in your environment secrets.
+            {t("admin_dashboard.stripe_intro")}
           </p>
         </div>
         {status?.configured ? (
@@ -3570,38 +3575,38 @@ function StripeSettingsPanel() {
             data-testid="badge-stripe-mode"
           >
             {status.mode === "live"
-              ? "LIVE MODE"
+              ? t("admin_dashboard.live_mode")
               : status.mode === "test"
-              ? "TEST MODE"
-              : "ACTIVE"}
+              ? t("admin_dashboard.test_mode")
+              : t("admin_dashboard.active_mode")}
           </Badge>
         ) : (
           <Badge variant="destructive" data-testid="badge-stripe-disabled">
-            Disabled
+            {t("admin_dashboard.disabled_mode")}
           </Badge>
         )}
       </div>
 
       <div className="grid gap-2">
         <StatusRow
-          label="Stripe Secret Key"
+          label={t("admin_dashboard.stripe_secret_key")}
           ok={!!status?.configured}
-          detail="STRIPE_SECRET_KEY — used by the server to create charges."
+          detail={t("admin_dashboard.stripe_secret_detail")}
         />
         <StatusRow
-          label="Stripe Publishable Key"
+          label={t("admin_dashboard.stripe_publishable_key")}
           ok={!!status?.publishableKeyConfigured}
-          detail="VITE_STRIPE_PUBLISHABLE_KEY — exposed to the browser."
+          detail={t("admin_dashboard.stripe_publishable_detail")}
         />
         <StatusRow
-          label="Webhook Signing Secret"
+          label={t("admin_dashboard.webhook_signing_secret")}
           ok={!!status?.webhookSecretConfigured}
-          detail="STRIPE_WEBHOOK_SECRET — verifies that webhook events are from Stripe."
+          detail={t("admin_dashboard.webhook_secret_detail")}
         />
       </div>
 
       <div className="rounded-md border bg-muted/30 p-4 text-sm space-y-2">
-        <div className="font-medium">Setup steps</div>
+        <div className="font-medium">{t("admin_dashboard.setup_steps")}</div>
         <ol className="list-decimal pl-5 space-y-1 text-muted-foreground">
           <li>
             Add <code>STRIPE_SECRET_KEY</code>, <code>VITE_STRIPE_PUBLISHABLE_KEY</code>, and <code>STRIPE_WEBHOOK_SECRET</code> to your environment secrets.
@@ -3627,7 +3632,7 @@ function StripeSettingsPanel() {
 
       {!status?.configured && (
         <div className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
-          Card payments will fall back to a pending state until Stripe is configured. Patients can still book — they will not be charged.
+          {t("admin_dashboard.stripe_warning")}
         </div>
       )}
     </div>
@@ -3676,14 +3681,14 @@ export default function AdminDashboard() {
       const response = await apiRequest("POST", "/api/admin/providers", data);
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.message || "Failed to create provider");
+        throw new Error(error.message || t("admin_dashboard.provider_create_failed"));
       }
       return response.json();
     },
     onSuccess: () => {
       toast({
-        title: "Provider created!",
-        description: "The provider has been successfully added.",
+        title: t("admin_dashboard.provider_created"),
+        description: t("admin_dashboard.provider_created_desc"),
       });
       form.reset();
       queryClient.invalidateQueries({ queryKey: ["/api/providers"] });
@@ -3691,7 +3696,7 @@ export default function AdminDashboard() {
     },
     onError: (error: Error) => {
       toast({
-        title: "Failed to create provider",
+        title: t("admin_dashboard.provider_create_failed"),
         description: error.message,
         variant: "destructive",
       });
@@ -3868,22 +3873,22 @@ export default function AdminDashboard() {
               <CardContent>
                 <Tabs defaultValue="google" className="w-full">
                   <TabsList className="grid w-full grid-cols-3">
-                    <TabsTrigger value="google">Google APIs</TabsTrigger>
-                    <TabsTrigger value="payments">Payments</TabsTrigger>
-                    <TabsTrigger value="messaging">Messaging</TabsTrigger>
+                    <TabsTrigger value="google">{t("admin_dashboard.google_apis")}</TabsTrigger>
+                    <TabsTrigger value="payments">{t("admin_dashboard.payments")}</TabsTrigger>
+                    <TabsTrigger value="messaging">{t("admin_dashboard.messaging")}</TabsTrigger>
                   </TabsList>
                   
                   <TabsContent value="google" className="space-y-4 py-4">
                     <div className="space-y-4">
                       <div className="grid gap-2">
-                        <Label htmlFor="google-api-key">Google Maps API Key</Label>
-                        <Input id="google-api-key" placeholder="Enter API Key" type="password" />
+                        <Label htmlFor="google-api-key">{t("admin_dashboard.google_maps_api_key")}</Label>
+                        <Input id="google-api-key" placeholder={t("admin_dashboard.enter_api_key")} type="password" />
                       </div>
                       <div className="grid gap-2">
-                        <Label htmlFor="google-client-id">Google Client ID (OAuth)</Label>
-                        <Input id="google-client-id" placeholder="Enter Client ID" />
+                        <Label htmlFor="google-client-id">{t("admin_dashboard.google_client_id")}</Label>
+                        <Input id="google-client-id" placeholder={t("admin_dashboard.enter_client_id")} />
                       </div>
-                      <Button onClick={() => toast({ title: t("common.success") })}>Save Google Settings</Button>
+                      <Button onClick={() => toast({ title: t("common.success") })}>{t("admin_dashboard.save_google_settings")}</Button>
                     </div>
                   </TabsContent>
 
@@ -3895,19 +3900,19 @@ export default function AdminDashboard() {
                     <div className="space-y-4">
                       <div className="grid gap-4 md:grid-cols-2">
                         <div className="space-y-2">
-                          <Label>WhatsApp (Twilio SID)</Label>
+                          <Label>{t("admin_dashboard.whatsapp_label")}</Label>
                           <Input placeholder="AC..." type="password" />
                         </div>
                         <div className="space-y-2">
-                          <Label>Telegram Bot Token</Label>
+                          <Label>{t("admin_dashboard.telegram_label")}</Label>
                           <Input placeholder="123456:ABC..." type="password" />
                         </div>
                         <div className="space-y-2">
-                          <Label>Viber Auth Token</Label>
-                          <Input placeholder="Enter token" type="password" />
+                          <Label>{t("admin_dashboard.viber_label")}</Label>
+                          <Input placeholder={t("admin_dashboard.enter_token")} type="password" />
                         </div>
                       </div>
-                      <Button onClick={() => toast({ title: t("common.success") })}>Save Messaging Settings</Button>
+                      <Button onClick={() => toast({ title: t("common.success") })}>{t("admin_dashboard.save_messaging_settings")}</Button>
                     </div>
                   </TabsContent>
                 </Tabs>
