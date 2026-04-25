@@ -294,7 +294,7 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/admin/tax-settings", authenticateToken, requireAdmin, async (req: AuthRequest, res: Response) => {
+  app.get("/api/admin/tax-settings", authenticateToken, async (req: AuthRequest, res: Response) => {
     try {
       const settings = await storage.getAllTaxSettings();
       res.json(settings || []);

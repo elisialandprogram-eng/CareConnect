@@ -706,7 +706,8 @@ export class DatabaseStorage implements IStorage {
         providers: providers,
         users_2: providerUsers,
         services: services,
-        practitioners: practitioners
+        practitioners: practitioners,
+        payments: payments,
       })
       .from(appointments)
       .innerJoin(patientUsers, eq(appointments.patientId, patientUsers.id))
@@ -714,6 +715,7 @@ export class DatabaseStorage implements IStorage {
       .innerJoin(providerUsers, eq(providers.userId, providerUsers.id))
       .leftJoin(services, eq(appointments.serviceId, services.id))
       .leftJoin(practitioners, eq(appointments.practitionerId, practitioners.id))
+      .leftJoin(payments, eq(payments.appointmentId, appointments.id))
       .where(eq(appointments.patientId, patientId))
       .orderBy(desc(appointments.createdAt));
 
@@ -726,6 +728,7 @@ export class DatabaseStorage implements IStorage {
       },
       service: r.services || undefined,
       practitioner: (r.practitioners as any) || undefined,
+      payment: r.payments || undefined,
     }));
   }
 
@@ -739,7 +742,8 @@ export class DatabaseStorage implements IStorage {
         providers: providers,
         users_2: providerUsers,
         services: services,
-        practitioners: practitioners
+        practitioners: practitioners,
+        payments: payments,
       })
       .from(appointments)
       .innerJoin(patientUsers, eq(appointments.patientId, patientUsers.id))
@@ -747,6 +751,7 @@ export class DatabaseStorage implements IStorage {
       .innerJoin(providerUsers, eq(providers.userId, providerUsers.id))
       .leftJoin(services, eq(appointments.serviceId, services.id))
       .leftJoin(practitioners, eq(appointments.practitionerId, practitioners.id))
+      .leftJoin(payments, eq(payments.appointmentId, appointments.id))
       .where(eq(appointments.providerId, providerId))
       .orderBy(desc(appointments.createdAt));
 
@@ -759,6 +764,7 @@ export class DatabaseStorage implements IStorage {
       },
       service: r.services || undefined,
       practitioner: (r.practitioners as any) || undefined,
+      payment: r.payments || undefined,
     }));
   }
 

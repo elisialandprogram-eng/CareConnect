@@ -700,5 +700,6 @@ export type AppointmentWithDetails = Appointment & {
   service?: Service; 
   practitioner?: Practitioner;
   timeSlot?: TimeSlot;
+  payment?: Payment;
 };
 export type ReviewWithPatient = Review & { patient: User };
