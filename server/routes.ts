@@ -1733,7 +1733,33 @@ export async function registerRoutes(
   // Update appointment status
   app.patch("/api/appointments/:id/status", authenticateToken, async (req: AuthRequest, res: Response) => {
     try {
-      const { status } = req.body;
+      const { status } = req.body as { status: string };
+      const validStatuses = ["pending", "approved", "confirmed", "completed", "cancelled", "rejected", "rescheduled"];
+      if (!validStatuses.includes(status)) {
+        return res.status(400).json({ message: "Invalid status" });
+      }
+
+      const existing = await storage.getAppointment(req.params.id);
+      if (!existing) {
+        return res.status(404).json({ message: "Appointment not found" });
+      }
+
+      // Authorisation: admin OR the provider who owns the appointment OR the patient (cancel-only)
+      if (req.user?.role !== "admin") {
+        if (req.user?.role === "provider") {
+          const provider = await storage.getProviderByUserId(req.user!.id);
+          if (!provider || provider.id !== existing.providerId) {
+            return res.status(403).json({ message: "Access denied" });
+          }
+        } else if (req.user?.role === "patient") {
+          if (existing.patientId !== req.user.id || status !== "cancelled") {
+            return res.status(403).json({ message: "Access denied" });
+          }
+        } else {
+          return res.status(403).json({ message: "Access denied" });
+        }
+      }
+
       const appointment = await storage.updateAppointment(req.params.id, { status });
       if (!appointment) {
         return res.status(404).json({ message: "Appointment not found" });

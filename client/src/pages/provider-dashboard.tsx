@@ -363,13 +363,17 @@ export default function ProviderDashboard() {
         ? Bitcoin
         : Banknote;
 
-    const isFinal = appointment.status === "completed" || appointment.status === "cancelled";
+    const isFinal =
+      appointment.status === "completed" ||
+      appointment.status === "cancelled" ||
+      appointment.status === "rejected";
     const isPending = appointment.status === "pending";
-    const isConfirmed = appointment.status === "confirmed";
+    const isApproved = appointment.status === "approved";
+    const isConfirmed = appointment.status === "confirmed" || appointment.status === "rescheduled";
     const canMarkPaid =
       paymentStatus === "pending" &&
       paymentMethod !== "card" &&
-      appointment.status !== "cancelled";
+      !isFinal;
 
     const isUpdating =
       updateStatusMutation.isPending && updateStatusMutation.variables?.id === appointment.id;
@@ -441,6 +445,37 @@ export default function ProviderDashboard() {
         {!isFinal && (
           <div className="flex flex-wrap items-center gap-2 pl-14 pt-1">
             {isPending && (
+              <>
+                <Button
+                  size="sm"
+                  disabled={isUpdating}
+                  onClick={() => updateStatusMutation.mutate({ id: appointment.id, status: "approved" })}
+                  data-testid={`button-approve-${appointment.id}`}
+                >
+                  {isUpdating && updateStatusMutation.variables?.status === "approved" ? (
+                    <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                  ) : (
+                    <CheckCircle className="h-3 w-3 mr-1" />
+                  )}
+                  Approve
+                </Button>
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  disabled={isUpdating}
+                  onClick={() => updateStatusMutation.mutate({ id: appointment.id, status: "rejected" })}
+                  data-testid={`button-reject-${appointment.id}`}
+                >
+                  {isUpdating && updateStatusMutation.variables?.status === "rejected" ? (
+                    <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                  ) : (
+                    <X className="h-3 w-3 mr-1" />
+                  )}
+                  Reject
+                </Button>
+              </>
+            )}
+            {isApproved && (
               <Button
                 size="sm"
                 disabled={isUpdating}
@@ -486,16 +521,18 @@ export default function ProviderDashboard() {
                 Mark payment received
               </Button>
             )}
-            <Button
-              size="sm"
-              variant="outline"
-              disabled={isUpdating}
-              onClick={() => updateStatusMutation.mutate({ id: appointment.id, status: "cancelled" })}
-              data-testid={`button-cancel-${appointment.id}`}
-            >
-              <X className="h-3 w-3 mr-1" />
-              Cancel
-            </Button>
+            {!isPending && (
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={isUpdating}
+                onClick={() => updateStatusMutation.mutate({ id: appointment.id, status: "cancelled" })}
+                data-testid={`button-cancel-${appointment.id}`}
+              >
+                <X className="h-3 w-3 mr-1" />
+                Cancel
+              </Button>
+            )}
           </div>
         )}
       </div>

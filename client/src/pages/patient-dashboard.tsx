@@ -162,11 +162,18 @@ export default function PatientDashboard() {
   });
 
   const upcomingAppointments = appointments?.filter(
-    (a) => a.status === "pending" || a.status === "confirmed"
+    (a) =>
+      a.status === "pending" ||
+      a.status === "approved" ||
+      a.status === "confirmed" ||
+      a.status === "rescheduled"
   ) || [];
 
   const pastAppointments = appointments?.filter(
-    (a) => a.status === "completed" || a.status === "cancelled"
+    (a) =>
+      a.status === "completed" ||
+      a.status === "cancelled" ||
+      a.status === "rejected"
   ) || [];
 
   const nextAppointment = upcomingAppointments[0];
@@ -309,12 +316,14 @@ export default function PatientDashboard() {
               <h1 className="text-3xl font-semibold">{t("dashboard.welcome")}, {user?.firstName}!</h1>
               <p className="text-muted-foreground">{t("dashboard.manage_appointments")}</p>
             </div>
-            <Button asChild data-testid="button-new-appointment">
-              <Link href="/providers">
-                <Plus className="h-4 w-4 mr-2" />
-                {t("dashboard.book_new")}
-              </Link>
-            </Button>
+            {user?.role === "patient" && (
+              <Button asChild data-testid="button-new-appointment">
+                <Link href="/providers">
+                  <Plus className="h-4 w-4 mr-2" />
+                  {t("dashboard.book_new")}
+                </Link>
+              </Button>
+            )}
           </div>
 
           {nextAppointment && (
