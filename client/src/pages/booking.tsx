@@ -40,7 +40,7 @@ export default function Booking() {
   const [, navigate] = useLocation();
   const searchParams = useSearch();
   const params = new URLSearchParams(searchParams);
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   const { toast } = useToast();
 
   const [taxPercentage, setTaxPercentage] = useState<number>(0);
@@ -107,10 +107,10 @@ export default function Booking() {
   ];
 
   useEffect(() => {
-    if (!isAuthenticated) {
-      navigate("/login?redirect=/booking?" + searchParams);
+    if (!authLoading && !isAuthenticated) {
+      navigate("/login?redirect=" + encodeURIComponent("/booking?" + searchParams));
     }
-  }, [isAuthenticated, navigate, searchParams]);
+  }, [authLoading, isAuthenticated, navigate, searchParams]);
 
   // Handle return from Stripe Checkout
   useEffect(() => {
@@ -627,7 +627,7 @@ export default function Booking() {
                     className="w-full"
                     size="lg"
                     onClick={handleConfirmBooking}
-                    disabled={bookingMutation.isPending || (visitType === "home" && !address) || !contactPerson || !contactMobile}
+                    disabled={bookingMutation.isPending || (visitType === "home" && !location.address) || !contactPerson || !contactMobile}
                     data-testid="button-confirm-booking"
                   >
                     {bookingMutation.isPending ? (
