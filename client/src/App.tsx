@@ -28,6 +28,7 @@ import Notifications from "@/pages/notifications";
 import VerifyEmail from "@/pages/verify-email";
 import ForgotPassword from "@/pages/forgot-password";
 import Consent from "@/pages/consent";
+import WalletPage from "@/pages/wallet";
 
 import { ChatBox } from "@/components/chat/ChatBox";
 import { ScrollProgress } from "@/components/scroll-progress";
@@ -83,6 +84,7 @@ function Router() {
       <Route path="/verify-email" component={VerifyEmail} />
       <Route path="/forgot-password" component={ForgotPassword} />
       <Route path="/consent" component={Consent} />
+      <Route path="/wallet" component={WalletPage} />
       <Route component={NotFound} />
     </Switch>
     </PageTransition>

@@ -505,6 +505,11 @@ export default function PatientDashboard() {
               <TabsTrigger value="invoices" data-testid="tab-invoices">
                 {t("dashboard.invoices")}
               </TabsTrigger>
+              <Link href="/wallet">
+                <Button variant="ghost" size="sm" className="ml-1" data-testid="link-wallet">
+                  {t("dashboard.wallet", "Wallet")}
+                </Button>
+              </Link>
             </TabsList>
 
             <div className="mt-6 mb-4 flex flex-col sm:flex-row gap-3">

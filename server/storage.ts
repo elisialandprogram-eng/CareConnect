@@ -122,6 +122,11 @@ import {
   providerOfficeHours,
   notificationDeliveryLogs,
   adminBroadcasts,
+  wallets,
+  walletTransactions,
+  type Wallet,
+  type WalletTransaction,
+  type InsertWalletTransaction,
   type NotificationPreferences,
   type InsertNotificationPreferences,
   type PushSubscription,
@@ -435,6 +440,37 @@ export interface IStorage {
   // Admin broadcasts + delivery logs
   createAdminBroadcast(data: InsertAdminBroadcast & { recipientCount?: number }): Promise<AdminBroadcast>;
   getRecentAdminBroadcasts(limit?: number): Promise<AdminBroadcast[]>;
+
+  // Wallet
+  getOrCreateWallet(userId: string): Promise<Wallet>;
+  getWalletByUserId(userId: string): Promise<Wallet | undefined>;
+  getAllWallets(): Promise<Array<Wallet & { user: User }>>;
+  getWalletTransactions(userId: string, limit?: number): Promise<WalletTransaction[]>;
+  getWalletTransactionByIdempotencyKey(key: string): Promise<WalletTransaction | undefined>;
+  topUpWallet(userId: string, amount: number, opts: {
+    description?: string;
+    referenceType?: string;
+    referenceId?: string | null;
+    idempotencyKey?: string;
+    createdById?: string | null;
+  }): Promise<{ wallet: Wallet; transaction: WalletTransaction }>;
+  debitWallet(userId: string, amount: number, opts: {
+    description: string;
+    referenceType?: string;
+    referenceId?: string | null;
+    idempotencyKey?: string;
+  }): Promise<{ wallet: Wallet; transaction: WalletTransaction }>;
+  refundWallet(userId: string, amount: number, opts: {
+    description: string;
+    referenceType?: string;
+    referenceId?: string | null;
+    idempotencyKey?: string;
+    createdById?: string | null;
+  }): Promise<{ wallet: Wallet; transaction: WalletTransaction }>;
+  adminAdjustWallet(userId: string, signedAmount: number, opts: {
+    reason: string;
+    adminId: string;
+  }): Promise<{ wallet: Wallet; transaction: WalletTransaction }>;
   getRecentDeliveryLogs(limit?: number): Promise<NotificationDeliveryLog[]>;
   // Unread chat counts
   getUnreadChatCounts(userId: string): Promise<Record<string, number>>;
@@ -1734,6 +1770,228 @@ export class DatabaseStorage implements IStorage {
   }
   async getRecentDeliveryLogs(limit = 200): Promise<NotificationDeliveryLog[]> {
     return db.select().from(notificationDeliveryLogs).orderBy(desc(notificationDeliveryLogs.createdAt)).limit(limit);
+  }
+
+  // ──────────── Wallet (transactional) ────────────
+
+  async getWalletByUserId(userId: string): Promise<Wallet | undefined> {
+    const [w] = await db.select().from(wallets).where(eq(wallets.userId, userId));
+    return w;
+  }
+
+  async getOrCreateWallet(userId: string): Promise<Wallet> {
+    const existing = await this.getWalletByUserId(userId);
+    if (existing) return existing;
+    try {
+      const [created] = await db
+        .insert(wallets)
+        .values({ userId, balance: "0.00", currency: "HUF" })
+        .returning();
+      return created;
+    } catch {
+      // Race: another caller just inserted; re-read.
+      const again = await this.getWalletByUserId(userId);
+      if (!again) throw new Error("Failed to create wallet");
+      return again;
+    }
+  }
+
+  async getAllWallets(): Promise<Array<Wallet & { user: User }>> {
+    const rows = await db
+      .select({ wallet: wallets, user: users })
+      .from(wallets)
+      .innerJoin(users, eq(wallets.userId, users.id))
+      .orderBy(desc(wallets.updatedAt));
+    return rows.map(r => ({ ...r.wallet, user: r.user }));
+  }
+
+  async getWalletTransactions(userId: string, limit = 100): Promise<WalletTransaction[]> {
+    return db
+      .select()
+      .from(walletTransactions)
+      .where(eq(walletTransactions.userId, userId))
+      .orderBy(desc(walletTransactions.createdAt))
+      .limit(limit);
+  }
+
+  async getWalletTransactionByIdempotencyKey(key: string): Promise<WalletTransaction | undefined> {
+    const [tx] = await db
+      .select()
+      .from(walletTransactions)
+      .where(eq(walletTransactions.idempotencyKey, key))
+      .limit(1);
+    return tx;
+  }
+
+  // Internal helper: applies a signed delta inside a transaction with row lock.
+  // Throws on insufficient funds or frozen wallet (for negative deltas).
+  // Idempotent when `idempotencyKey` is supplied — returns the prior row instead
+  // of double-applying.
+  private async applyWalletDelta(args: {
+    userId: string;
+    deltaCents: number; // signed integer cents
+    type: "topup" | "debit" | "refund" | "adjustment" | "reversal";
+    description?: string;
+    referenceType?: string;
+    referenceId?: string | null;
+    idempotencyKey?: string;
+    createdById?: string | null;
+    allowNegative?: boolean;
+  }): Promise<{ wallet: Wallet; transaction: WalletTransaction }> {
+    if (!Number.isFinite(args.deltaCents) || args.deltaCents === 0) {
+      throw new Error("Wallet delta must be a non-zero amount");
+    }
+    return await db.transaction(async (tx) => {
+      // Idempotency short-circuit (read inside the tx so we don't lose serialization).
+      if (args.idempotencyKey) {
+        const [existing] = await tx
+          .select()
+          .from(walletTransactions)
+          .where(eq(walletTransactions.idempotencyKey, args.idempotencyKey))
+          .limit(1);
+        if (existing) {
+          const [w] = await tx
+            .select()
+            .from(wallets)
+            .where(eq(wallets.id, existing.walletId));
+          return { wallet: w, transaction: existing };
+        }
+      }
+
+      // Get-or-create wallet inside the tx, then row-lock it.
+      let [wallet] = await tx
+        .select()
+        .from(wallets)
+        .where(eq(wallets.userId, args.userId))
+        .for("update");
+
+      if (!wallet) {
+        const [created] = await tx
+          .insert(wallets)
+          .values({ userId: args.userId, balance: "0.00", currency: "HUF" })
+          .returning();
+        // Re-lock the freshly created row so subsequent updates serialize.
+        const [locked] = await tx
+          .select()
+          .from(wallets)
+          .where(eq(wallets.id, created.id))
+          .for("update");
+        wallet = locked;
+      }
+
+      if (wallet.isFrozen && args.deltaCents < 0 && args.type !== "adjustment") {
+        throw new Error("Wallet is frozen");
+      }
+
+      const currentCents = Math.round(Number(wallet.balance) * 100);
+      const nextCents = currentCents + args.deltaCents;
+      if (nextCents < 0 && !args.allowNegative) {
+        throw new Error("Insufficient wallet balance");
+      }
+
+      const nextBalance = (nextCents / 100).toFixed(2);
+      const signedAmount = (args.deltaCents / 100).toFixed(2);
+
+      const [updated] = await tx
+        .update(wallets)
+        .set({ balance: nextBalance, updatedAt: new Date() })
+        .where(eq(wallets.id, wallet.id))
+        .returning();
+
+      const [txRow] = await tx
+        .insert(walletTransactions)
+        .values({
+          walletId: wallet.id,
+          userId: args.userId,
+          type: args.type,
+          status: "completed",
+          amount: signedAmount,
+          balanceAfter: nextBalance,
+          currency: wallet.currency,
+          description: args.description ?? null,
+          referenceType: args.referenceType ?? null,
+          referenceId: args.referenceId ?? null,
+          idempotencyKey: args.idempotencyKey ?? null,
+          createdById: args.createdById ?? null,
+        })
+        .returning();
+
+      return { wallet: updated, transaction: txRow };
+    });
+  }
+
+  async topUpWallet(userId: string, amount: number, opts: {
+    description?: string;
+    referenceType?: string;
+    referenceId?: string | null;
+    idempotencyKey?: string;
+    createdById?: string | null;
+  }) {
+    if (!(amount > 0)) throw new Error("Top-up amount must be positive");
+    return this.applyWalletDelta({
+      userId,
+      deltaCents: Math.round(amount * 100),
+      type: "topup",
+      description: opts.description ?? "Wallet top-up",
+      referenceType: opts.referenceType ?? "stripe_session",
+      referenceId: opts.referenceId ?? null,
+      idempotencyKey: opts.idempotencyKey,
+      createdById: opts.createdById ?? null,
+    });
+  }
+
+  async debitWallet(userId: string, amount: number, opts: {
+    description: string;
+    referenceType?: string;
+    referenceId?: string | null;
+    idempotencyKey?: string;
+  }) {
+    if (!(amount > 0)) throw new Error("Debit amount must be positive");
+    return this.applyWalletDelta({
+      userId,
+      deltaCents: -Math.round(amount * 100),
+      type: "debit",
+      description: opts.description,
+      referenceType: opts.referenceType ?? "appointment",
+      referenceId: opts.referenceId ?? null,
+      idempotencyKey: opts.idempotencyKey,
+    });
+  }
+
+  async refundWallet(userId: string, amount: number, opts: {
+    description: string;
+    referenceType?: string;
+    referenceId?: string | null;
+    idempotencyKey?: string;
+    createdById?: string | null;
+  }) {
+    if (!(amount > 0)) throw new Error("Refund amount must be positive");
+    return this.applyWalletDelta({
+      userId,
+      deltaCents: Math.round(amount * 100),
+      type: "refund",
+      description: opts.description,
+      referenceType: opts.referenceType ?? "appointment",
+      referenceId: opts.referenceId ?? null,
+      idempotencyKey: opts.idempotencyKey,
+      createdById: opts.createdById ?? null,
+    });
+  }
+
+  async adminAdjustWallet(userId: string, signedAmount: number, opts: { reason: string; adminId: string }) {
+    if (!Number.isFinite(signedAmount) || signedAmount === 0) {
+      throw new Error("Adjustment amount must be non-zero");
+    }
+    return this.applyWalletDelta({
+      userId,
+      deltaCents: Math.round(signedAmount * 100),
+      type: "adjustment",
+      description: opts.reason,
+      referenceType: "admin",
+      referenceId: opts.adminId,
+      createdById: opts.adminId,
+      allowNegative: false,
+    });
   }
 
   // ──────────── Unread chat counts per conversation ────────────

@@ -45,7 +45,8 @@ import {
 import { 
   Loader2, Shield, Users, Building, Trash2, Edit, Plus, Tag, DollarSign,
   Calendar, FileText, Settings, MessageSquare, Activity, BarChart3,
-  Bell, HelpCircle, CheckCircle, XCircle, Clock, Eye, ListTree, Search, UserCheck
+  Bell, HelpCircle, CheckCircle, XCircle, Clock, Eye, ListTree, Search, UserCheck,
+  Wallet as WalletIcon
 } from "lucide-react";
 import type { User, ProviderWithUser, PromoCode, ProviderPricingOverride, SubService, Practitioner, ServicePractitioner } from "@shared/schema";
 import { useLocation } from "wouter";
@@ -3765,6 +3766,10 @@ export default function AdminDashboard() {
               <DollarSign className="h-4 w-4 mr-2" />
               {t("admin.financial_reports")}
             </TabsTrigger>
+            <TabsTrigger value="wallets" data-testid="tab-wallets">
+              <WalletIcon className="h-4 w-4 mr-2" />
+              {t("admin.wallets", "Wallets")}
+            </TabsTrigger>
             <TabsTrigger value="tax" data-testid="tab-tax">
               <Shield className="h-4 w-4 mr-2" />
               {t("admin.tax_management")}
@@ -3829,6 +3834,10 @@ export default function AdminDashboard() {
 
           <TabsContent value="financial">
             <FinancialReports />
+          </TabsContent>
+
+          <TabsContent value="wallets">
+            <AdminWallets />
           </TabsContent>
 
           <TabsContent value="invoices">
@@ -3934,6 +3943,190 @@ export default function AdminDashboard() {
       </main>
 
       <Footer />
+    </div>
+  );
+}
+
+// ───── Admin wallet management ─────
+function AdminWallets() {
+  const { t } = useTranslation();
+  const { toast } = useToast();
+  const [search, setSearch] = useState("");
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [adjustAmount, setAdjustAmount] = useState<string>("");
+  const [adjustReason, setAdjustReason] = useState<string>("");
+
+  const { data: wallets, isLoading } = useQuery<any[]>({
+    queryKey: ["/api/admin/wallets"],
+  });
+
+  const { data: txs } = useQuery<any[]>({
+    queryKey: ["/api/admin/wallets", selectedUserId, "transactions"],
+    enabled: !!selectedUserId,
+  });
+
+  const adjustMutation = useMutation({
+    mutationFn: async () => {
+      const n = Number(adjustAmount);
+      if (!Number.isFinite(n) || n === 0) throw new Error("Amount must be a non-zero number");
+      if (!adjustReason.trim()) throw new Error("Reason is required");
+      const res = await apiRequest("POST", `/api/admin/wallets/${selectedUserId}/adjust`, {
+        amount: n,
+        reason: adjustReason.trim(),
+      });
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({ title: t("admin_wallets.adjust_success", "Adjustment applied") });
+      setAdjustAmount("");
+      setAdjustReason("");
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/wallets"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/wallets", selectedUserId, "transactions"] });
+    },
+    onError: (e: Error) => {
+      toast({ title: t("admin_wallets.adjust_failed", "Adjustment failed"), description: e.message, variant: "destructive" });
+    },
+  });
+
+  const fmt = (n: number | string) =>
+    new Intl.NumberFormat("hu-HU", { style: "currency", currency: "HUF", maximumFractionDigits: 0 }).format(Number(n));
+
+  const filtered = (wallets || []).filter((w: any) => {
+    const q = search.trim().toLowerCase();
+    if (!q) return true;
+    return (
+      w.user?.email?.toLowerCase().includes(q) ||
+      w.user?.firstName?.toLowerCase().includes(q) ||
+      w.user?.lastName?.toLowerCase().includes(q) ||
+      w.userId?.toLowerCase().includes(q)
+    );
+  });
+
+  return (
+    <div className="grid gap-6 md:grid-cols-2">
+      <Card>
+        <CardHeader>
+          <CardTitle>{t("admin_wallets.title", "User Wallets")}</CardTitle>
+          <CardDescription>{t("admin_wallets.desc", "Browse balances and inspect transactions.")}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Input
+            placeholder={t("admin_wallets.search_placeholder", "Search by email or name…")}
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="mb-3"
+            data-testid="input-admin-wallet-search"
+          />
+          {isLoading ? (
+            <p className="text-sm text-muted-foreground">{t("common.loading", "Loading…")}</p>
+          ) : !filtered.length ? (
+            <p className="text-sm text-muted-foreground">{t("admin_wallets.empty", "No wallets yet.")}</p>
+          ) : (
+            <ScrollArea className="h-[420px] pr-3">
+              <ul className="divide-y">
+                {filtered.map((w: any) => (
+                  <li
+                    key={w.id}
+                    className={`flex items-center justify-between py-2 px-2 cursor-pointer rounded hover:bg-muted ${selectedUserId === w.userId ? "bg-muted" : ""}`}
+                    onClick={() => setSelectedUserId(w.userId)}
+                    data-testid={`row-admin-wallet-${w.userId}`}
+                  >
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium truncate">
+                        {w.user?.firstName || ""} {w.user?.lastName || ""}{" "}
+                        <span className="text-muted-foreground">{w.user?.email}</span>
+                      </p>
+                      {w.isFrozen && <Badge variant="destructive" className="mt-1">Frozen</Badge>}
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-semibold">{fmt(w.balance)}</p>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </ScrollArea>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>{t("admin_wallets.detail_title", "Wallet Detail")}</CardTitle>
+          <CardDescription>
+            {selectedUserId
+              ? t("admin_wallets.detail_desc", "Adjust balance and review history.")
+              : t("admin_wallets.select_prompt", "Select a wallet to manage.")}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {selectedUserId && (
+            <>
+              <div className="space-y-2">
+                <Label htmlFor="adj-amount">
+                  {t("admin_wallets.amount_label", "Amount (HUF, negative to debit)")}
+                </Label>
+                <Input
+                  id="adj-amount"
+                  type="number"
+                  value={adjustAmount}
+                  onChange={(e) => setAdjustAmount(e.target.value)}
+                  placeholder="e.g. 5000 or -2500"
+                  data-testid="input-admin-wallet-amount"
+                />
+                <Label htmlFor="adj-reason">{t("admin_wallets.reason_label", "Reason (audit trail)")}</Label>
+                <Input
+                  id="adj-reason"
+                  value={adjustReason}
+                  onChange={(e) => setAdjustReason(e.target.value)}
+                  placeholder={t("admin_wallets.reason_placeholder", "Why this adjustment?")}
+                  data-testid="input-admin-wallet-reason"
+                />
+                <Button
+                  className="w-full"
+                  onClick={() => adjustMutation.mutate()}
+                  disabled={adjustMutation.isPending}
+                  data-testid="button-admin-wallet-adjust"
+                >
+                  {adjustMutation.isPending
+                    ? t("admin_wallets.adjusting", "Applying…")
+                    : t("admin_wallets.adjust_cta", "Apply adjustment")}
+                </Button>
+              </div>
+
+              <div>
+                <h4 className="text-sm font-semibold mb-2">{t("admin_wallets.history", "Transactions")}</h4>
+                {!txs?.length ? (
+                  <p className="text-sm text-muted-foreground">
+                    {t("admin_wallets.no_tx", "No transactions yet.")}
+                  </p>
+                ) : (
+                  <ScrollArea className="h-[260px] pr-3">
+                    <ul className="divide-y text-sm">
+                      {txs.map((t: any) => (
+                        <li key={t.id} className="py-2">
+                          <div className="flex justify-between">
+                            <span>{t.type}</span>
+                            <span className={Number(t.amount) >= 0 ? "text-emerald-600" : "text-red-600"}>
+                              {Number(t.amount) >= 0 ? "+" : ""}
+                              {fmt(t.amount)}
+                            </span>
+                          </div>
+                          {t.description && (
+                            <p className="text-xs text-muted-foreground">{t.description}</p>
+                          )}
+                          <p className="text-[11px] text-muted-foreground">
+                            {t.createdAt ? new Date(t.createdAt).toLocaleString() : ""} · bal {fmt(t.balanceAfter)}
+                          </p>
+                        </li>
+                      ))}
+                    </ul>
+                  </ScrollArea>
+                )}
+              </div>
+            </>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

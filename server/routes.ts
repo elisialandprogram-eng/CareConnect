@@ -1978,10 +1978,42 @@ export async function registerRoutes(
 
       console.log("Payment record created:", payment.id);
 
+      // If paying from in-app wallet, debit immediately and confirm the appointment.
+      let walletPaid = false;
+      if (paymentMethod === "wallet") {
+        try {
+          const wallet = await storage.getOrCreateWallet(userId);
+          if (wallet.isFrozen) {
+            throw new Error("Wallet is frozen");
+          }
+          const idempotencyKey = `appointment:${appointment.id}`;
+          await storage.debitWallet(userId, Number(fee), {
+            description: `Appointment payment`,
+            referenceType: "appointment",
+            referenceId: appointment.id,
+            idempotencyKey,
+          });
+          await storage.updatePayment(payment.id, {
+            status: "completed",
+            paymentMethod: "wallet",
+          });
+          await storage.updateAppointment(appointment.id, { status: "confirmed" });
+          walletPaid = true;
+        } catch (walletErr: any) {
+          // Mark the appointment cancelled so the patient can retry with another method.
+          try {
+            await storage.updateAppointment(appointment.id, { status: "cancelled" });
+            await storage.updatePayment(payment.id, { status: "failed" });
+          } catch {}
+          const msg = walletErr?.message || "Wallet payment failed";
+          return res.status(msg.toLowerCase().includes("insufficient") ? 402 : 400).json({ message: msg });
+        }
+      }
+
       // If paying by card AND Stripe is configured, create a Checkout Session
       // and capture the URL so we can redirect the patient to Stripe.
       let checkoutUrl: string | null = null;
-      if ((paymentMethod === "card" || !paymentMethod) && isStripeConfigured()) {
+      if (!walletPaid && (paymentMethod === "card" || !paymentMethod) && isStripeConfigured()) {
         try {
           const origin =
             (req.headers.origin as string) ||
@@ -2516,6 +2548,215 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Cancel appointment error:", error);
       res.status(500).json({ message: "Failed to cancel appointment" });
+    }
+  });
+
+  // ============ WALLET ROUTES ============
+
+  // Helper to round currency safely
+  const round2 = (n: number) => Math.round(n * 100) / 100;
+
+  // Get the current user's wallet (creates one on first read so the patient
+  // dashboard always has something to show).
+  app.get("/api/wallet", authenticateToken, async (req: AuthRequest, res: Response) => {
+    try {
+      if (!req.user) return res.status(401).json({ message: "Unauthorized" });
+      const wallet = await storage.getOrCreateWallet(req.user.id);
+      res.json(wallet);
+    } catch (error: any) {
+      console.error("Get wallet error:", error);
+      res.status(500).json({ message: "Failed to fetch wallet" });
+    }
+  });
+
+  // Get the current user's wallet transaction history (most recent first).
+  app.get("/api/wallet/transactions", authenticateToken, async (req: AuthRequest, res: Response) => {
+    try {
+      if (!req.user) return res.status(401).json({ message: "Unauthorized" });
+      const limitRaw = Number(req.query.limit);
+      const limit = Number.isFinite(limitRaw) && limitRaw > 0 ? Math.min(limitRaw, 500) : 100;
+      const txs = await storage.getWalletTransactions(req.user.id, limit);
+      res.json(txs);
+    } catch (error: any) {
+      console.error("Get wallet transactions error:", error);
+      res.status(500).json({ message: "Failed to fetch transactions" });
+    }
+  });
+
+  // Start a Stripe Checkout session that, when paid, will credit the wallet via
+  // the webhook. Refuses to run when Stripe isn't configured rather than silently
+  // failing — this keeps the wallet free of phantom credits.
+  app.post("/api/wallet/topup", authenticateToken, async (req: AuthRequest, res: Response) => {
+    try {
+      if (!req.user) return res.status(401).json({ message: "Unauthorized" });
+      const amount = Number(req.body?.amount);
+      if (!Number.isFinite(amount) || amount <= 0) {
+        return res.status(400).json({ message: "Amount must be a positive number" });
+      }
+      if (amount > 1_000_000) {
+        return res.status(400).json({ message: "Amount exceeds maximum allowed top-up" });
+      }
+      if (!isStripeConfigured()) {
+        return res.status(503).json({ message: "Online top-up is not available right now. Please contact support." });
+      }
+
+      const user = await storage.getUser(req.user.id);
+      if (!user) return res.status(404).json({ message: "User not found" });
+
+      // Make sure a wallet row exists so we have an id to reference.
+      const wallet = await storage.getOrCreateWallet(req.user.id);
+
+      const origin = (req.headers.origin as string) || `${req.protocol}://${req.get("host")}`;
+      const session = await createCheckoutSession({
+        appointmentId: `wallet:${wallet.id}`,
+        amount: round2(amount),
+        currency: (wallet.currency || "huf").toLowerCase(),
+        description: `Wallet top-up (${round2(amount)} ${wallet.currency})`,
+        customerEmail: user.email,
+        successUrl: `${origin}/wallet?topup=success`,
+        cancelUrl: `${origin}/wallet?topup=cancelled`,
+        metadata: {
+          type: "wallet_topup",
+          walletUserId: req.user.id,
+          walletId: wallet.id,
+          amount: String(round2(amount)),
+        },
+      });
+      res.json({ url: session.url, sessionId: session.sessionId });
+    } catch (error: any) {
+      console.error("Wallet topup error:", error);
+      res.status(500).json({ message: error?.message || "Failed to start top-up" });
+    }
+  });
+
+  // Pay for an appointment using wallet credit. Atomic — debits the wallet,
+  // marks the payment completed, and confirms the appointment in a single
+  // logical step. If the wallet is short, returns 402 with a precise message.
+  app.post("/api/wallet/pay-appointment", authenticateToken, async (req: AuthRequest, res: Response) => {
+    try {
+      if (!req.user) return res.status(401).json({ message: "Unauthorized" });
+      const appointmentId = String(req.body?.appointmentId || "");
+      if (!appointmentId) return res.status(400).json({ message: "appointmentId is required" });
+
+      const appointment = await storage.getAppointment(appointmentId);
+      if (!appointment) return res.status(404).json({ message: "Appointment not found" });
+      if (appointment.patientId !== req.user.id) {
+        return res.status(403).json({ message: "You can only pay for your own appointments" });
+      }
+      if (appointment.status === "cancelled" || appointment.status === "rejected") {
+        return res.status(400).json({ message: "This appointment cannot be paid for" });
+      }
+
+      const existingPayment = await storage.getPaymentByAppointment(appointmentId);
+      if (existingPayment && existingPayment.status === "completed") {
+        return res.status(400).json({ message: "This appointment is already paid" });
+      }
+
+      const amount = Number(appointment.totalAmount);
+      if (!Number.isFinite(amount) || amount <= 0) {
+        return res.status(400).json({ message: "Invalid appointment amount" });
+      }
+
+      const wallet = await storage.getOrCreateWallet(req.user.id);
+      if (Number(wallet.balance) + 1e-6 < amount) {
+        return res.status(402).json({
+          message: "Insufficient wallet balance",
+          balance: Number(wallet.balance),
+          required: amount,
+        });
+      }
+
+      // Idempotency key ties the debit to this specific appointment so retries
+      // can't double-charge the patient.
+      const idempotencyKey = `appointment:${appointmentId}`;
+      const { wallet: updatedWallet, transaction } = await storage.debitWallet(
+        req.user.id,
+        amount,
+        {
+          description: `Payment for appointment ${appointmentId}`,
+          referenceType: "appointment",
+          referenceId: appointmentId,
+          idempotencyKey,
+        },
+      );
+
+      // Mark payment + appointment as paid/confirmed.
+      if (existingPayment) {
+        await storage.updatePayment(existingPayment.id, {
+          status: "completed",
+          paymentMethod: "wallet",
+        });
+      } else {
+        await storage.createPayment({
+          appointmentId,
+          patientId: req.user.id,
+          amount: amount.toFixed(2),
+          paymentMethod: "wallet",
+          status: "completed",
+        });
+      }
+      await storage.updateAppointment(appointmentId, { status: "confirmed" });
+
+      res.json({
+        ok: true,
+        wallet: updatedWallet,
+        transaction,
+      });
+    } catch (error: any) {
+      console.error("Wallet pay-appointment error:", error);
+      const msg = error?.message || "Payment failed";
+      const code = msg.includes("Insufficient") ? 402 : 500;
+      res.status(code).json({ message: msg });
+    }
+  });
+
+  // Admin: list all wallets with the owning user.
+  app.get("/api/admin/wallets", authenticateToken, requireAdmin, async (_req: AuthRequest, res: Response) => {
+    try {
+      const list = await storage.getAllWallets();
+      res.json(list);
+    } catch (error) {
+      console.error("Admin list wallets error:", error);
+      res.status(500).json({ message: "Failed to list wallets" });
+    }
+  });
+
+  // Admin: list a specific user's transactions (for support/audit).
+  app.get("/api/admin/wallets/:userId/transactions", authenticateToken, requireAdmin, async (req: AuthRequest, res: Response) => {
+    try {
+      const txs = await storage.getWalletTransactions(req.params.userId, 500);
+      res.json(txs);
+    } catch (error) {
+      console.error("Admin list wallet txs error:", error);
+      res.status(500).json({ message: "Failed to list transactions" });
+    }
+  });
+
+  // Admin: manually adjust a wallet (positive credits, negative debits).
+  // Always recorded with a reason and the admin's user id for audit.
+  app.post("/api/admin/wallets/:userId/adjust", authenticateToken, requireAdmin, async (req: AuthRequest, res: Response) => {
+    try {
+      if (!req.user) return res.status(401).json({ message: "Unauthorized" });
+      const amount = Number(req.body?.amount);
+      const reason = String(req.body?.reason || "").trim();
+      if (!Number.isFinite(amount) || amount === 0) {
+        return res.status(400).json({ message: "Amount must be a non-zero number" });
+      }
+      if (!reason) return res.status(400).json({ message: "A reason is required" });
+
+      const targetUser = await storage.getUser(req.params.userId);
+      if (!targetUser) return res.status(404).json({ message: "User not found" });
+
+      const result = await storage.adminAdjustWallet(req.params.userId, round2(amount), {
+        reason,
+        adminId: req.user.id,
+      });
+      res.json(result);
+    } catch (error: any) {
+      console.error("Admin wallet adjust error:", error);
+      res.status(error?.message?.includes("Insufficient") ? 400 : 500).json({
+        message: error?.message || "Failed to adjust wallet",
+      });
     }
   });
 

@@ -33,7 +33,7 @@ import {
 } from "lucide-react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
-import type { ProviderWithServices, Service, TaxSetting } from "@shared/schema";
+import type { ProviderWithServices, Service, TaxSetting, Wallet as WalletType } from "@shared/schema";
 
 export default function Booking() {
   const { t } = useTranslation();
@@ -107,10 +107,17 @@ export default function Booking() {
 
   const paymentMethods = [
     { id: "card", label: "Credit/Debit Card", icon: CreditCard },
+    { id: "wallet", label: "Wallet", icon: Wallet },
     { id: "crypto", label: "Cryptocurrency", icon: Bitcoin },
     { id: "bank_transfer", label: "Bank Transfer", icon: Building2 },
     { id: "cash", label: "Cash After Visit", icon: Banknote },
   ];
+
+  const { data: walletData } = useQuery<WalletType>({
+    queryKey: ["/api/wallet"],
+    enabled: isAuthenticated,
+  });
+  const walletBalance = Number(walletData?.balance ?? 0);
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -517,6 +524,27 @@ export default function Booking() {
                           <div className="flex-1">
                             <p className="font-medium">Card</p>
                             <p className="text-xs text-muted-foreground">Credit/Debit</p>
+                          </div>
+                        </Label>
+                      </div>
+
+                      <div className="relative">
+                        <RadioGroupItem
+                          value="wallet"
+                          id="wallet"
+                          className="peer sr-only"
+                          disabled={walletBalance < totalAmount}
+                        />
+                        <Label
+                          htmlFor="wallet"
+                          className={`flex items-center gap-3 p-4 rounded-lg border-2 cursor-pointer transition-all w-full peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5 border-border hover:border-primary/50 ${walletBalance < totalAmount ? "opacity-50 cursor-not-allowed" : ""}`}
+                        >
+                          <Wallet className="h-5 w-5 text-primary" />
+                          <div className="flex-1">
+                            <p className="font-medium">{t("booking.pay_wallet", "Wallet")}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {t("booking.wallet_balance_short", "Balance")}: {new Intl.NumberFormat("hu-HU", { style: "currency", currency: "HUF", maximumFractionDigits: 0 }).format(walletBalance)}
+                            </p>
                           </div>
                         </Label>
                       </div>

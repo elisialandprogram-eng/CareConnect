@@ -16,6 +16,8 @@ export const auditActionEnum = pgEnum("audit_action", ["create", "update", "dele
 export const contentTypeEnum = pgEnum("content_type", ["homepage", "about", "terms", "privacy", "faq", "blog"]);
 export const announcementTypeEnum = pgEnum("announcement_type", ["info", "warning", "success", "error"]);
 export const medicalHistoryTypeEnum = pgEnum("medical_history_type", ["diagnosis", "procedure", "lab_result", "vaccination", "allergy"]);
+export const walletTxTypeEnum = pgEnum("wallet_tx_type", ["topup", "debit", "refund", "adjustment", "reversal"]);
+export const walletTxStatusEnum = pgEnum("wallet_tx_status", ["pending", "completed", "failed", "reversed"]);
 
 // Tables
 export const users = pgTable("users", {
@@ -664,6 +666,46 @@ export const notificationDeliveryLogs = pgTable("notification_delivery_logs", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// ──────────────── Internal wallet (patient credit balance) ────────────────
+
+// One wallet per user. `balance` is always non-negative and is the source of
+// truth — never compute it on the fly. Mutations always go through the
+// `walletTransactions` ledger inside a DB transaction with `SELECT ... FOR
+// UPDATE` to prevent double-spending and race conditions.
+export const wallets = pgTable("wallets", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id).unique(),
+  balance: decimal("balance", { precision: 14, scale: 2 }).notNull().default("0.00"),
+  currency: text("currency").notNull().default("HUF"),
+  isFrozen: boolean("is_frozen").notNull().default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Append-only ledger of wallet movements. `balanceAfter` snapshots the balance
+// right after this transaction was applied, so we can audit any drift.
+export const walletTransactions = pgTable("wallet_transactions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  walletId: varchar("wallet_id").notNull().references(() => wallets.id),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  type: walletTxTypeEnum("type").notNull(),
+  status: walletTxStatusEnum("status").notNull().default("completed"),
+  // Signed amount: positive for credits (topup/refund/adjustment+),
+  // negative for debits/reversals. Always recorded with two decimals.
+  amount: decimal("amount", { precision: 14, scale: 2 }).notNull(),
+  balanceAfter: decimal("balance_after", { precision: 14, scale: 2 }).notNull(),
+  currency: text("currency").notNull().default("HUF"),
+  description: text("description"),
+  // What this entry is tied to: "appointment" | "stripe_session" | "admin" | "manual"
+  referenceType: text("reference_type"),
+  referenceId: text("reference_id"),
+  // Idempotency: any external identifier we want to dedupe on (e.g. stripe
+  // checkout session id). Unique when present so retries can't double-credit.
+  idempotencyKey: text("idempotency_key").unique(),
+  createdById: varchar("created_by_id").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Admin broadcasts (track who fired, audience filter, summary)
 export const adminBroadcasts = pgTable("admin_broadcasts", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -722,6 +764,8 @@ export const insertVideoSessionSchema = createInsertSchema(videoSessions).omit({
 export const insertProviderOfficeHoursSchema = createInsertSchema(providerOfficeHours).omit({ id: true, updatedAt: true });
 export const insertNotificationDeliveryLogSchema = createInsertSchema(notificationDeliveryLogs).omit({ id: true, createdAt: true });
 export const insertAdminBroadcastSchema = createInsertSchema(adminBroadcasts).omit({ id: true, createdAt: true, recipientCount: true });
+export const insertWalletSchema = createInsertSchema(wallets).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertWalletTransactionSchema = createInsertSchema(walletTransactions).omit({ id: true, createdAt: true });
 
 export const loginSchema = z.object({
   email: z.string().email(),
@@ -824,6 +868,10 @@ export type NotificationDeliveryLog = typeof notificationDeliveryLogs.$inferSele
 export type InsertNotificationDeliveryLog = z.infer<typeof insertNotificationDeliveryLogSchema>;
 export type AdminBroadcast = typeof adminBroadcasts.$inferSelect;
 export type InsertAdminBroadcast = z.infer<typeof insertAdminBroadcastSchema>;
+export type Wallet = typeof wallets.$inferSelect;
+export type InsertWallet = z.infer<typeof insertWalletSchema>;
+export type WalletTransaction = typeof walletTransactions.$inferSelect;
+export type InsertWalletTransaction = z.infer<typeof insertWalletTransactionSchema>;
 
 export type ProviderWithUser = Provider & { user: User };
 export type ProviderWithServices = ProviderWithUser & { 

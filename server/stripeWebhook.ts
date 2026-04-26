@@ -45,6 +45,44 @@ export async function handleStripeWebhook(req: Request, res: Response) {
             ? session.payment_intent
             : session.payment_intent?.id;
 
+        // Wallet top-up: credit the user's internal balance idempotently. The
+        // Stripe session id doubles as the idempotency key so retries from
+        // Stripe (or manual webhook replays) can't double-credit the wallet.
+        if (session.metadata?.type === "wallet_topup") {
+          const walletUserId = session.metadata.walletUserId;
+          const amountFromMeta = Number(session.metadata.amount);
+          // Prefer Stripe's reported amount when present; fall back to metadata.
+          const amountFromStripe =
+            typeof session.amount_total === "number"
+              ? session.amount_total / 100
+              : NaN;
+          const creditAmount = Number.isFinite(amountFromStripe) && amountFromStripe > 0
+            ? amountFromStripe
+            : amountFromMeta;
+
+          if (walletUserId && Number.isFinite(creditAmount) && creditAmount > 0) {
+            try {
+              const result = await storage.topUpWallet(walletUserId, creditAmount, {
+                description: `Stripe top-up (${session.id})`,
+                referenceType: "stripe_session",
+                referenceId: session.id,
+                idempotencyKey: `stripe:${session.id}`,
+              });
+              console.log(
+                `[stripe webhook] wallet credited: user=${walletUserId} amount=${creditAmount} tx=${result.transaction.id}`,
+              );
+            } catch (err) {
+              console.error("[stripe webhook] wallet credit failed:", err);
+            }
+          } else {
+            console.warn(
+              "[stripe webhook] wallet_topup session missing user or amount:",
+              session.id,
+            );
+          }
+          break;
+        }
+
         if (appointmentId) {
           const existing = await storage.getPaymentByAppointment(appointmentId);
           if (existing) {
