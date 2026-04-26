@@ -1843,6 +1843,19 @@ export async function registerRoutes(
         return res.status(403).json({ message: "Email verification required to book" });
       }
 
+      // Reject past dates / past time slots
+      try {
+        const slotDate = new Date(`${date}T${startTime || "00:00"}:00`);
+        if (isNaN(slotDate.getTime())) {
+          return res.status(400).json({ message: "Invalid date or time." });
+        }
+        if (slotDate.getTime() < Date.now() - 60_000) {
+          return res.status(400).json({ message: "You cannot book an appointment in the past." });
+        }
+      } catch {
+        return res.status(400).json({ message: "Invalid date or time." });
+      }
+
       // Get provider to calculate fee if not provided
       const provider = await storage.getProvider(providerId);
       if (!provider) {
@@ -2023,6 +2036,16 @@ export async function registerRoutes(
         });
       } catch (notifyError) {
         console.error("Failed to create booking notifications:", notifyError);
+      }
+
+      // Auto-create a chat conversation between patient and provider so they can message immediately
+      try {
+        const pwu = await storage.getProviderWithUser(providerId);
+        if (pwu?.userId && pwu.userId !== userId) {
+          await storage.getOrCreateRealtimeConversation(userId, pwu.userId);
+        }
+      } catch (chatErr) {
+        console.error("[chat] auto-create conversation failed:", chatErr);
       }
 
       // Multi-channel dispatch (email/SMS/WhatsApp/push) for both parties
@@ -3056,6 +3079,68 @@ export async function registerRoutes(
       res.json({ ok: true });
     } catch (e) {
       res.status(500).json({ message: "Failed to unsubscribe" });
+    }
+  });
+
+  // ----- Chat: start a conversation with another user (patient↔provider, *-↔admin) -----
+  app.post("/api/chat/start", authenticateToken, async (req: AuthRequest, res: Response) => {
+    try {
+      const { participantId } = req.body || {};
+      if (!participantId) return res.status(400).json({ message: "participantId required" });
+      if (participantId === req.user!.id) return res.status(400).json({ message: "Cannot chat with yourself" });
+      const conv = await storage.getOrCreateRealtimeConversation(req.user!.id, participantId);
+      res.json(conv);
+    } catch (e) {
+      console.error("chat/start error:", e);
+      res.status(500).json({ message: "Failed to start conversation" });
+    }
+  });
+
+  // ----- Support: open a chat with an admin -----
+  app.post("/api/support/contact", authenticateToken, async (req: AuthRequest, res: Response) => {
+    try {
+      const allUsers = await storage.getAllUsers();
+      const admin = allUsers.find(u => u.role === "admin");
+      if (!admin) return res.status(503).json({ message: "No support agent available right now." });
+      const conv = await storage.getOrCreateRealtimeConversation(req.user!.id, admin.id);
+      res.json({ conversation: conv, adminId: admin.id });
+    } catch (e) {
+      console.error("support/contact error:", e);
+      res.status(500).json({ message: "Failed to contact support" });
+    }
+  });
+
+  // ----- Chat: list conversations enriched with the other participant's basic info -----
+  app.get("/api/chat/conversations-rich", authenticateToken, async (req: AuthRequest, res: Response) => {
+    try {
+      const me = req.user!.id;
+      const convs = await storage.getRealtimeConversations(me);
+      const counts = await storage.getUnreadChatCounts(me);
+      const otherIds = Array.from(new Set(convs.map(c => c.participant1Id === me ? c.participant2Id : c.participant1Id)));
+      const others = await Promise.all(otherIds.map(id => storage.getUser(id)));
+      const map = new Map(others.filter(Boolean).map(u => [u!.id, u!]));
+      const out = convs.map(c => {
+        const otherId = c.participant1Id === me ? c.participant2Id : c.participant1Id;
+        const u = map.get(otherId);
+        return {
+          ...c,
+          other: u ? {
+            id: u.id,
+            name: `${u.firstName ?? ""} ${u.lastName ?? ""}`.trim() || u.email,
+            role: u.role,
+            avatar: (u as any).avatarUrl ?? null,
+          } : { id: otherId, name: "Unknown", role: "user", avatar: null },
+          unread: counts[c.id] ?? 0,
+          pinned: (c.pinnedBy ?? []).includes(me),
+          muted: (c.mutedBy ?? []).includes(me),
+        };
+      });
+      out.sort((a, b) => Number(b.pinned) - Number(a.pinned)
+        || new Date(b.lastMessageAt ?? 0).getTime() - new Date(a.lastMessageAt ?? 0).getTime());
+      res.json(out);
+    } catch (e) {
+      console.error("conversations-rich error:", e);
+      res.status(500).json([]);
     }
   });
 

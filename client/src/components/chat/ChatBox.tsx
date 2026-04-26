@@ -22,6 +22,11 @@ export function ChatBox() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
+  useEffect(() => {
+    const handler = () => { setIsOpen(true); setIsMinimized(false); };
+    window.addEventListener("open-chat", handler);
+    return () => window.removeEventListener("open-chat", handler);
+  }, []);
   const [isMinimized, setIsMinimized] = useState(false);
   const [activeConversation, setActiveConversation] = useState<Conv | null>(null);
   const [message, setMessage] = useState("");
@@ -262,15 +267,22 @@ export function ChatBox() {
                   {showNewChatOptions && (
                     <div className="space-y-2 mb-4 p-2 bg-muted/30 rounded-lg border border-primary/5">
                       <p className="text-[10px] font-semibold uppercase text-muted-foreground px-1">Start New Chat with:</p>
-                      <Button variant="outline" className="w-full justify-start text-left h-auto py-2 px-3 text-xs hover-elevate"
+                      <Button
+                        variant="outline"
+                        className="w-full justify-start text-left h-auto py-2 px-3 text-xs hover-elevate"
+                        data-testid="button-contact-support"
                         onClick={async () => {
                           try {
-                            const conv: any = await apiRequest("POST", "/api/chat/conversations", { participantId: "support" });
+                            const res: any = await apiRequest("POST", "/api/support/contact", {});
+                            const conv = (res?.conversation ?? res) as Conv;
                             setActiveConversation(conv);
                             queryClient.invalidateQueries({ queryKey: ["/api/chat/conversations"] });
-                          } catch (e) { console.error(e); }
+                          } catch (e: any) {
+                            toast({ title: "Could not reach support", description: e?.message ?? "Try again later", variant: "destructive" });
+                          }
                           setShowNewChatOptions(false);
-                        }}>
+                        }}
+                      >
                         <div className="flex items-center gap-2">
                           <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center">
                             <UserIcon className="h-3 w-3 text-primary" />

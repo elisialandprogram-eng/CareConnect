@@ -589,7 +589,11 @@ export default function ProviderProfile() {
                       mode="single"
                       selected={selectedDate}
                       onSelect={setSelectedDate}
-                      disabled={(date) => date < new Date()}
+                      disabled={(date) => {
+                        const today = new Date();
+                        today.setHours(0, 0, 0, 0);
+                        return date < today;
+                      }}
                       className="rounded-md border"
                       data-testid="calendar-date"
                     />

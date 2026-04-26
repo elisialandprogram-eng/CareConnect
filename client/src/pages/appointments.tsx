@@ -7,7 +7,7 @@ import { useTranslation } from "react-i18next";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
-import { Calendar, Clock, User, MapPin, Video, Building, Star } from "lucide-react";
+import { Calendar, Clock, User, MapPin, Video, Building, Star, MessageSquare } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -242,7 +242,34 @@ export default function Appointments() {
                         {getVisitTypeLabel(appointment.visitType)}
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {!["cancelled", "rejected", "completed"].includes(appointment.status) && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="gap-1"
+                          data-testid={`button-message-provider-${appointment.id}`}
+                          onClick={async () => {
+                            try {
+                              const provider = await fetch(`/api/providers/${appointment.providerId}`, { credentials: "include" }).then(r => r.json());
+                              const participantId = provider?.userId;
+                              if (!participantId) throw new Error("Provider not available");
+                              await fetch("/api/chat/start", {
+                                method: "POST",
+                                credentials: "include",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({ participantId }),
+                              });
+                              window.dispatchEvent(new CustomEvent("open-chat"));
+                              toast({ title: "Chat opened", description: "You can message your provider now." });
+                            } catch (e: any) {
+                              toast({ title: "Could not start chat", description: e.message, variant: "destructive" });
+                            }
+                          }}
+                        >
+                          <MessageSquare className="h-3 w-3" /> Message
+                        </Button>
+                      )}
                       {appointment.visitType === "online" &&
                         ["confirmed", "approved", "rescheduled"].includes(appointment.status) && (
                           <Button

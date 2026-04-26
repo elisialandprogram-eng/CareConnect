@@ -982,6 +982,24 @@ export default function ProviderDashboard() {
             </Card>
           )}
 
+          <div className="flex justify-end mb-4">
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-2"
+              data-testid="button-provider-contact-support"
+              onClick={async () => {
+                try {
+                  await fetch("/api/support/contact", { method: "POST", credentials: "include" });
+                  window.dispatchEvent(new CustomEvent("open-chat"));
+                } catch {}
+              }}
+            >
+              <MessageSquare className="h-4 w-4" />
+              {t("provider_dashboard.contact_support", "Contact admin support")}
+            </Button>
+          </div>
+
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="flex flex-wrap h-auto">
               <TabsTrigger value="upcoming" data-testid="tab-upcoming">

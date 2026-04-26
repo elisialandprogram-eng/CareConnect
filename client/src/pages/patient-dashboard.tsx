@@ -464,6 +464,24 @@ export default function PatientDashboard() {
             </Card>
           </div>
 
+          <div className="flex justify-end mb-4">
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-2"
+              data-testid="button-patient-contact-support"
+              onClick={async () => {
+                try {
+                  await fetch("/api/support/contact", { method: "POST", credentials: "include" });
+                  window.dispatchEvent(new CustomEvent("open-chat"));
+                } catch {}
+              }}
+            >
+              <MessageSquare className="h-4 w-4" />
+              {t("dashboard.contact_support", "Contact support")}
+            </Button>
+          </div>
+
           <Tabs defaultValue="upcoming" className="w-full">
             <TabsList className="flex flex-wrap h-auto">
               <TabsTrigger value="upcoming" data-testid="tab-upcoming">
