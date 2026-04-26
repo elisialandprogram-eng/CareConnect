@@ -27,9 +27,11 @@ import {
 } from "@/components/ui/sheet";
 import { SlidersHorizontal, X, Star, MapPin } from "lucide-react";
 import type { ProviderWithUser } from "@shared/schema";
+import { useCurrency } from "@/lib/currency";
 
 export default function Providers() {
   const { t } = useTranslation();
+  const { symbol: currencySymbol } = useCurrency();
   const searchParams = useSearch();
   const params = new URLSearchParams(searchParams);
   const typeParam = params.get("type") || "";
@@ -169,7 +171,7 @@ export default function Providers() {
 
       <div className="space-y-3">
         <Label className="text-sm font-medium">
-          {t("providers.price_range")}: ${filters.priceRange[0]} - ${filters.priceRange[1]}
+          {t("providers.price_range")}: {currencySymbol}{filters.priceRange[0]} - {currencySymbol}{filters.priceRange[1]}
         </Label>
         <Slider
           value={filters.priceRange}

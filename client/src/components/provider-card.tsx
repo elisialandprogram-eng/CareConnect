@@ -11,6 +11,7 @@ import { useAuth } from "@/lib/auth";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useCurrency } from "@/lib/currency";
 
 interface ProviderCardProps {
   provider: ProviderWithUser;
@@ -23,6 +24,7 @@ export function ProviderCard({ provider, nextAvailable }: ProviderCardProps) {
   const canBook = !user || user.role === "patient";
   const { toast } = useToast();
   const isPatient = isAuthenticated && user?.role === "patient";
+  const { format: fmtMoney } = useCurrency();
 
   // Lightweight extras only fetched when the card is on screen
   const { data: savedRes } = useQuery<{ saved: boolean }>({
@@ -245,7 +247,7 @@ export function ProviderCard({ provider, nextAvailable }: ProviderCardProps) {
             <div className="flex items-center justify-between pt-4 border-t">
               <div>
                 <p className="text-xs text-muted-foreground font-medium">Starting from</p>
-                <p className="text-2xl font-bold text-primary">${Number(provider.consultationFee).toFixed(0)}</p>
+                <p className="text-2xl font-bold text-primary">{fmtMoney(provider.consultationFee)}</p>
               </div>
               <div className="text-right">
                 {nextAvailable && (

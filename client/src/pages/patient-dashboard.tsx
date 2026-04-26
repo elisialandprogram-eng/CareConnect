@@ -26,6 +26,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useCurrency } from "@/lib/currency";
 import {
   Calendar,
   Clock,
@@ -127,6 +128,7 @@ export default function PatientDashboard() {
   const [, navigate] = useLocation();
   const { user } = useAuth();
   const { toast } = useToast();
+  const { format: fmtMoney } = useCurrency();
 
   const { data: appointments, isLoading } = useQuery<AppointmentWithDetails[]>({
     queryKey: ["/api/appointments/patient"],
@@ -705,7 +707,7 @@ export default function PatientDashboard() {
                           </div>
                           <div className="flex items-center gap-3 shrink-0">
                             <div className="text-right">
-                              <p className="font-semibold">${Number(inv.totalAmount).toFixed(2)}</p>
+                              <p className="font-semibold">{fmtMoney(inv.totalAmount)}</p>
                               <Badge
                                 variant={inv.status === "paid" ? "default" : inv.status === "due" ? "outline" : "secondary"}
                                 data-testid={`status-invoice-${inv.id}`}
@@ -779,7 +781,7 @@ export default function PatientDashboard() {
               </div>
             </div>
             <div className="text-right">
-              <p className="font-semibold">${Number(payment.amount).toFixed(2)}</p>
+              <p className="font-semibold">{fmtMoney(payment.amount)}</p>
               <Badge variant={payment.status === 'completed' ? 'default' : 'outline'}>
                 {payment.status}
               </Badge>

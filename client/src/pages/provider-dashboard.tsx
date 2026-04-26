@@ -34,6 +34,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useCurrency } from "@/lib/currency";
 import {
   Calendar as CalendarIcon,
   Clock,
@@ -80,6 +81,7 @@ import {
 
 function ServiceStaffList({ serviceId, onDelete, onToggle }: { serviceId: string; onDelete: (id: string) => void; onToggle: (args: {id: string, isActive: boolean}) => void }) {
   const { t } = useTranslation();
+  const { format: fmtMoney } = useCurrency();
   const { data: practitioners } = useQuery<any[]>({
     queryKey: [`/api/services/${serviceId}/practitioners`],
     enabled: !!serviceId,
@@ -90,7 +92,7 @@ function ServiceStaffList({ serviceId, onDelete, onToggle }: { serviceId: string
       {practitioners?.length === 0 && <p className="text-sm text-muted-foreground italic">{t("provider_dashboard.no_staff_assigned", "No staff assigned")}</p>}
       {practitioners?.map((sp) => (
         <div key={sp.id} className="flex items-center justify-between p-2 bg-muted/50 rounded border text-sm">
-          <span>{sp.practitioner.name} ({new Intl.NumberFormat("hu-HU", { style: "currency", currency: "HUF", maximumFractionDigits: 0 }).format(Number(sp.fee))})</span>
+          <span>{sp.practitioner.name} ({fmtMoney(sp.fee)})</span>
           <div className="flex items-center gap-1">
             <Button 
               size="sm" 
@@ -407,8 +409,7 @@ export default function ProviderDashboard() {
     },
   });
 
-  const fmtHUF = (n: number) =>
-    new Intl.NumberFormat("hu-HU", { style: "currency", currency: "HUF", maximumFractionDigits: 0 }).format(n || 0);
+  const { format: fmtHUF } = useCurrency();
 
   const exportAppointmentsCSV = (list: AppointmentWithDetails[]) => {
     const headers = [
@@ -561,8 +562,7 @@ export default function ProviderDashboard() {
 
   const allAppointments = appointments || [];
 
-  const formatHUF = (amount: number) =>
-    new Intl.NumberFormat("hu-HU", { style: "currency", currency: "HUF", maximumFractionDigits: 0 }).format(amount);
+  const formatHUF = fmtHUF;
 
   const sumAmount = (list: AppointmentWithDetails[]) =>
     list.reduce((sum, a) => sum + Number(a.totalAmount || 0), 0);
@@ -1408,7 +1408,7 @@ export default function ProviderDashboard() {
                   <>
                     <Card>
                       <CardHeader>
-                        <CardTitle className="text-base">{t("provider_dashboard.revenue_30days", "Revenue · last 30 days (HUF)")}</CardTitle>
+                        <CardTitle className="text-base">{t("provider_dashboard.revenue_30days", "Revenue · last 30 days")}</CardTitle>
                       </CardHeader>
                       <CardContent style={{ height: 280 }}>
                         <ResponsiveContainer width="100%" height="100%">

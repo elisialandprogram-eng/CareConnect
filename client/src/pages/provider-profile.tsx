@@ -14,6 +14,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Star, MapPin, Clock, CheckCircle, Video, Home, GraduationCap, Award, Languages, Calendar as CalendarIcon, ChevronRight, Building2, X, ShieldCheck, Briefcase, FileText, Landmark, Users } from "lucide-react";
 import type { ProviderWithServices, Service, ReviewWithPatient } from "@shared/schema";
 import { useAuth } from "@/lib/auth";
+import { useCurrency } from "@/lib/currency";
 
 export default function ProviderProfile() {
   const { t } = useTranslation();
@@ -21,6 +22,7 @@ export default function ProviderProfile() {
   const [, navigate] = useLocation();
   const { isAuthenticated, user } = useAuth();
   const canBook = !user || user.role === "patient";
+  const { format: fmtMoney } = useCurrency();
 
   const { data: provider, isLoading: providerLoading } = useQuery<ProviderWithServices>({
     queryKey: ["/api/providers", id],
@@ -378,10 +380,10 @@ export default function ProviderProfile() {
                             <div>
                               <h4 className="font-medium mb-1">{t("profile.fees_pricing", "Fees & Pricing")}</h4>
                               <div className="text-sm text-muted-foreground space-y-1">
-                                <p>{t("profile.consultation", "Consultation")}: ${Number(provider.consultationFee).toFixed(0)}</p>
-                                {provider.homeVisitFee && <p>{t("profile.home_visit", "Home Visit")}: ${Number(provider.homeVisitFee).toFixed(0)}</p>}
-                                {provider.telemedicineFee && <p>{t("profile.telemedicine", "Telemedicine")}: ${Number(provider.telemedicineFee).toFixed(0)}</p>}
-                                {provider.emergencyCareFee && <p>{t("profile.emergency", "Emergency")}: ${Number(provider.emergencyCareFee).toFixed(0)}</p>}
+                                <p>{t("profile.consultation", "Consultation")}: {fmtMoney(provider.consultationFee)}</p>
+                                {provider.homeVisitFee && <p>{t("profile.home_visit", "Home Visit")}: {fmtMoney(provider.homeVisitFee)}</p>}
+                                {provider.telemedicineFee && <p>{t("profile.telemedicine", "Telemedicine")}: {fmtMoney(provider.telemedicineFee)}</p>}
+                                {provider.emergencyCareFee && <p>{t("profile.emergency", "Emergency")}: {fmtMoney(provider.emergencyCareFee)}</p>}
                               </div>
                             </div>
                           </div>
@@ -460,7 +462,7 @@ export default function ProviderProfile() {
                               </div>
                               <div className="text-right">
                                 <p className="text-lg font-semibold">
-                                  ${Number(service.adminPriceOverride || service.price).toFixed(0)}
+                                  {fmtMoney(service.adminPriceOverride || service.price)}
                                 </p>
                                 {service.adminPriceOverride && (
                                   <Badge variant="secondary" className="text-[10px] uppercase">{t("profile.special_offer")}</Badge>
@@ -475,7 +477,7 @@ export default function ProviderProfile() {
                           <div className="mt-4 p-4 bg-muted rounded-lg">
                             <p className="font-medium text-foreground">{t("profile.consultation_fee")}</p>
                             <p className="text-2xl font-semibold text-foreground mt-1">
-                              ${Number(provider.consultationFee).toFixed(0)}
+                              {fmtMoney(provider.consultationFee)}
                             </p>
                           </div>
                         </div>
@@ -642,18 +644,18 @@ export default function ProviderProfile() {
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-muted-foreground">{t("profile.consultation_fee")}</span>
                       <span className="font-semibold">
-                        ${visitType === "home" && provider.homeVisitFee
-                          ? Number(provider.homeVisitFee).toFixed(0)
-                          : Number(provider.consultationFee).toFixed(0)}
+                        {fmtMoney(visitType === "home" && provider.homeVisitFee
+                          ? provider.homeVisitFee
+                          : provider.consultationFee)}
                       </span>
                     </div>
                     {selectedSessions.length > 1 && (
                       <div className="flex items-center justify-between mb-4 text-primary font-bold">
                         <span>{t("profile.total_price")} ({selectedSessions.length} {t("dashboard.appointments")})</span>
                         <span>
-                          ${(selectedSessions.length * (visitType === "home" && provider.homeVisitFee
+                          {fmtMoney(selectedSessions.length * (visitType === "home" && provider.homeVisitFee
                             ? Number(provider.homeVisitFee)
-                            : Number(provider.consultationFee))).toFixed(0)}
+                            : Number(provider.consultationFee)))}
                         </span>
                       </div>
                     )}

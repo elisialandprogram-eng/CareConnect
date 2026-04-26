@@ -31,6 +31,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useCurrency } from "@/lib/currency";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -227,6 +228,7 @@ function ProviderEditDialog({ provider }: { provider: any }) {
   const { t } = useTranslation();
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
+  const { format: fmtMoney } = useCurrency();
   const { data: providerServices, refetch: refetchServices } = useQuery<any[]>({
     queryKey: [`/api/admin/providers/${provider.id}/services`],
     enabled: open,
@@ -521,7 +523,7 @@ function ProviderEditDialog({ provider }: { provider: any }) {
                   {providerServices?.map((service: any) => (
                     <div key={service.id} className="p-3 bg-muted/50 rounded-md border">
                       <div className="flex items-center justify-between mb-2">
-                        <span className="font-semibold">{service.name} - ${service.price}</span>
+                        <span className="font-semibold">{service.name} - {fmtMoney(service.price)}</span>
                         <Button 
                           variant="ghost" 
                           size="icon" 
@@ -550,6 +552,7 @@ function ProviderEditDialog({ provider }: { provider: any }) {
 // Provider Details Dialog Component
 function ProviderDetailsDialog({ provider }: { provider: any }) {
   const { t } = useTranslation();
+  const { format: fmtMoney } = useCurrency();
   return (
     <Dialog>
       <DialogTrigger asChild>
@@ -591,11 +594,11 @@ function ProviderDetailsDialog({ provider }: { provider: any }) {
               </div>
               <div>
                 <Label className="text-muted-foreground">{t("admin.consultation_fee_label")}</Label>
-                <p className="font-medium">${Number(provider.consultationFee).toFixed(2)}</p>
+                <p className="font-medium">{fmtMoney(provider.consultationFee)}</p>
               </div>
               <div>
                 <Label className="text-muted-foreground">{t("admin.home_visit_fee_label")}</Label>
-                <p className="font-medium">{provider.homeVisitFee ? `$${Number(provider.homeVisitFee).toFixed(2)}` : 'N/A'}</p>
+                <p className="font-medium">{provider.homeVisitFee ? fmtMoney(provider.homeVisitFee) : 'N/A'}</p>
               </div>
             </div>
 
@@ -705,6 +708,7 @@ function ProviderDetailsDialog({ provider }: { provider: any }) {
 // Analytics Overview Component
 function AnalyticsOverview() {
   const { t } = useTranslation();
+  const { format: fmtMoney } = useCurrency();
   const { data: analytics, isLoading } = useQuery<{
     totalUsers: number;
     totalProviders: number;
@@ -778,7 +782,7 @@ function AnalyticsOverview() {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold" data-testid="text-total-revenue">${Number(analytics?.totalRevenue || 0).toFixed(2)}</div>
+            <div className="text-2xl font-bold" data-testid="text-total-revenue">{fmtMoney(analytics?.totalRevenue || 0)}</div>
             <p className="text-xs text-muted-foreground">{t("admin.platform_earnings")}</p>
           </CardContent>
         </Card>
@@ -844,6 +848,7 @@ function AnalyticsOverview() {
 
 // Bookings Management Component
 function BookingsManagementComponent() {
+  const { format: fmtMoney } = useCurrency();
   const { t } = useTranslation();
   const { toast } = useToast();
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -926,7 +931,7 @@ function BookingsManagementComponent() {
                         {new Date(booking.appointmentDate).toLocaleDateString()} {t("admin.at")} {booking.startTime}
                       </p>
                       <p className="text-sm text-muted-foreground">
-                        {t("admin.type")}: {booking.appointmentType} | {t("admin.amount")}: ${Number(booking.totalAmount || 0).toFixed(2)}
+                        {t("admin.type")}: {booking.appointmentType} | {t("admin.amount")}: {fmtMoney(booking.totalAmount || 0)}
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
@@ -958,6 +963,7 @@ function BookingsManagementComponent() {
 
 // Financial Reports Component
 function FinancialReports() {
+  const { format: fmtMoney } = useCurrency();
   const { t } = useTranslation();
   const { data: analytics, isLoading } = useQuery<any>({
     queryKey: ["/api/admin/analytics"],
@@ -983,7 +989,7 @@ function FinancialReports() {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold" data-testid="text-financial-total">${totalRevenue.toFixed(2)}</div>
+            <div className="text-2xl font-bold" data-testid="text-financial-total">{fmtMoney(totalRevenue)}</div>
           </CardContent>
         </Card>
         <Card>
@@ -1032,7 +1038,7 @@ function FinancialReports() {
                   payments.map((payment: any) => (
                     <tr key={payment.id} className="border-b last:border-0">
                       <td className="p-4">{new Date(payment.createdAt).toLocaleDateString()}</td>
-                      <td className="p-4">${Number(payment.amount).toFixed(2)}</td>
+                      <td className="p-4">{fmtMoney(payment.amount)}</td>
                       <td className="p-4">
                         <Badge variant={payment.status === "completed" ? "default" : "secondary"}>
                           {payment.status}
@@ -1053,6 +1059,7 @@ function FinancialReports() {
 
 // Provider Management Component
 function ProvidersManagement() {
+  const { format: fmtMoney } = useCurrency();
   const { t } = useTranslation();
   const { toast } = useToast();
   const [, navigate] = useLocation();
@@ -1689,7 +1696,7 @@ function ProvidersManagement() {
                           <tr key={booking.id} className="border-b last:border-0">
                             <td className="p-4 font-medium">{booking.patientName}</td>
                             <td className="p-4">{new Date(booking.date).toLocaleDateString()} at {booking.startTime}</td>
-                            <td className="p-4">${Number(booking.amount).toFixed(2)}</td>
+                            <td className="p-4">{fmtMoney(booking.amount)}</td>
                             <td className="p-4">
                               <Badge variant={
                                 booking.status === 'completed' ? 'default' :
@@ -2267,6 +2274,7 @@ function AuditLogs() {
 
 // Invoice Management Component
 function InvoiceManagement() {
+  const { format: fmtMoney } = useCurrency();
   const { t } = useTranslation();
   const { toast } = useToast();
   const { data: invoices, isLoading, refetch } = useQuery<any[]>({
@@ -2328,7 +2336,7 @@ function InvoiceManagement() {
                     <tr key={invoice.id} className="border-b last:border-0" data-testid={`row-invoice-${invoice.id}`}>
                       <td className="p-4 font-medium">{invoice.invoiceNumber}</td>
                       <td className="p-4">{new Date(invoice.issueDate).toLocaleDateString()}</td>
-                      <td className="p-4">${Number(invoice.totalAmount).toFixed(2)}</td>
+                      <td className="p-4">{fmtMoney(invoice.totalAmount)}</td>
                       <td className="p-4">
                         <Badge variant={invoice.status === "paid" ? "default" : "secondary"}>
                           {invoice.status}
@@ -2558,6 +2566,7 @@ function SupportTickets() {
 
 // Pricing Management Component
 function PricingManagement({ providers }: { providers: ProviderWithUser[] }) {
+  const { format: fmtMoney } = useCurrency();
   const { t } = useTranslation();
   const { toast } = useToast();
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -2737,8 +2746,8 @@ function PricingManagement({ providers }: { providers: ProviderWithUser[] }) {
               <div>
                 <p className="font-medium">{provider?.user.firstName} {provider?.user.lastName}</p>
                 <div className="text-sm text-muted-foreground space-y-1">
-                  {override.consultationFee && <p>{t("admin_dashboard.consultation")}: ${Number(override.consultationFee).toFixed(2)}</p>}
-                  {override.homeVisitFee && <p>{t("admin_dashboard.home_visit")}: ${Number(override.homeVisitFee).toFixed(2)}</p>}
+                  {override.consultationFee && <p>{t("admin_dashboard.consultation")}: {fmtMoney(override.consultationFee)}</p>}
+                  {override.homeVisitFee && <p>{t("admin_dashboard.home_visit")}: {fmtMoney(override.homeVisitFee)}</p>}
                   {override.discountPercentage && <p>{t("admin_dashboard.discount")}: {Number(override.discountPercentage)}%</p>}
                   {override.notes && <p className="italic">{override.notes}</p>}
                 </div>
@@ -2780,6 +2789,7 @@ function PricingManagement({ providers }: { providers: ProviderWithUser[] }) {
 
 // Promo Code Management Component
 function PromoCodeManagement({ providers }: { providers: ProviderWithUser[] }) {
+  const { format: fmtMoney } = useCurrency();
   const { t } = useTranslation();
   const { toast } = useToast();
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -3008,11 +3018,11 @@ function PromoCodeManagement({ providers }: { providers: ProviderWithUser[] }) {
                 <p>
                   {t("admin_dashboard.discount_label")}: {promo.discountType === "percentage" 
                     ? `${Number(promo.discountValue)}%` 
-                    : `${Number(promo.discountValue)}`}
+                    : fmtMoney(promo.discountValue)}
                 </p>
                 <p>{t("admin_dashboard.valid_label")}: {new Date(promo.validFrom).toLocaleDateString()} - {new Date(promo.validUntil).toLocaleDateString()}</p>
                 {promo.maxUses && <p>{t("admin_dashboard.uses_label")}: {promo.usedCount || 0} / {promo.maxUses}</p>}
-                {promo.minAmount && <p>{t("admin_dashboard.min_amount_label")}: ${Number(promo.minAmount)}</p>}
+                {promo.minAmount && <p>{t("admin_dashboard.min_amount_label")}: {fmtMoney(promo.minAmount)}</p>}
               </div>
             </div>
             <div className="flex gap-2">
@@ -3988,8 +3998,7 @@ function AdminWallets() {
     },
   });
 
-  const fmt = (n: number | string) =>
-    new Intl.NumberFormat("hu-HU", { style: "currency", currency: "HUF", maximumFractionDigits: 0 }).format(Number(n));
+  const { format: fmt } = useCurrency();
 
   const filtered = (wallets || []).filter((w: any) => {
     const q = search.trim().toLowerCase();

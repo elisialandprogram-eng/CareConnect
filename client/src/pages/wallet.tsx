@@ -15,18 +15,9 @@ import { useAuth } from "@/lib/auth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Wallet as WalletIcon, ArrowDownCircle, ArrowUpCircle, RefreshCw, Sparkles, ShieldCheck } from "lucide-react";
 import type { Wallet, WalletTransaction } from "@shared/schema";
+import { useCurrency } from "@/lib/currency";
 
 const QUICK_AMOUNTS = [5000, 10000, 25000, 50000];
-
-function formatHUF(amount: number | string) {
-  const n = Number(amount);
-  if (!Number.isFinite(n)) return String(amount);
-  return new Intl.NumberFormat("hu-HU", {
-    style: "currency",
-    currency: "HUF",
-    maximumFractionDigits: 0,
-  }).format(n);
-}
 
 function txIcon(type: string) {
   switch (type) {
@@ -47,6 +38,7 @@ export default function WalletPage() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const [amount, setAmount] = useState<string>("10000");
+  const { format: formatHUF } = useCurrency();
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) navigate("/login?redirect=/wallet");

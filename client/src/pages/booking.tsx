@@ -16,6 +16,7 @@ import { LocationPicker, type PickedLocation } from "@/components/location-picke
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useCurrency } from "@/lib/currency";
 import {
   Calendar,
   Clock,
@@ -42,6 +43,7 @@ export default function Booking() {
   const params = new URLSearchParams(searchParams);
   const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   const { toast } = useToast();
+  const { format: fmtMoney } = useCurrency();
 
   const [taxPercentage, setTaxPercentage] = useState<number>(0);
 
@@ -431,7 +433,7 @@ export default function Booking() {
                               <p className="font-semibold">{service.name}</p>
                               <p className="text-sm opacity-80">{service.description}</p>
                             </div>
-                            <span className="font-bold">${Number(service.price).toFixed(0)}</span>
+                            <span className="font-bold">{fmtMoney(service.price)}</span>
                           </Button>
                         ))}
                       </div>
@@ -452,7 +454,7 @@ export default function Booking() {
                                 <p className="font-semibold">{sp.practitioner.name}</p>
                                 <p className="text-sm opacity-80">{sp.practitioner.title} - {sp.practitioner.specialization}</p>
                               </div>
-                              <span className="font-bold">${Number(sp.fee).toFixed(0)}</span>
+                              <span className="font-bold">{fmtMoney(sp.fee)}</span>
                             </Button>
                           ))}
                         </div>
@@ -543,7 +545,7 @@ export default function Booking() {
                           <div className="flex-1">
                             <p className="font-medium">{t("booking.pay_wallet", "Wallet")}</p>
                             <p className="text-xs text-muted-foreground">
-                              {t("booking.wallet_balance_short", "Balance")}: {new Intl.NumberFormat("hu-HU", { style: "currency", currency: "HUF", maximumFractionDigits: 0 }).format(walletBalance)}
+                              {t("booking.wallet_balance_short", "Balance")}: {fmtMoney(walletBalance)}
                             </p>
                           </div>
                         </Label>
@@ -635,12 +637,12 @@ export default function Booking() {
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Consultation Fee</span>
-                      <span>${baseFee.toFixed(2)}</span>
+                      <span>{fmtMoney(baseFee)}</span>
                     </div>
                     {platformFeeAmount > 0 && (
                       <div className="flex justify-between text-sm">
                         <span className="text-muted-foreground">Platform Fee</span>
-                        <span>+${platformFeeAmount.toFixed(2)}</span>
+                        <span>+{fmtMoney(platformFeeAmount)}</span>
                       </div>
                     )}
                     <div className="flex justify-between text-sm">
@@ -655,12 +657,12 @@ export default function Booking() {
                     )}
                     <div className="flex justify-between text-sm font-semibold">
                       <span>Subtotal</span>
-                      <span>${totalBaseAmount.toFixed(2)}</span>
+                      <span>{fmtMoney(totalBaseAmount)}</span>
                     </div>
                     {taxAmount > 0 && (
                       <div className="flex justify-between text-sm text-primary font-medium">
                         <span>Tax ({taxPercentage}%)</span>
-                        <span>+${taxAmount.toFixed(2)}</span>
+                        <span>+{fmtMoney(taxAmount)}</span>
                       </div>
                     )}
                   </div>
@@ -668,7 +670,7 @@ export default function Booking() {
                   <div className="pt-4 border-t">
                     <div className="flex justify-between font-semibold">
                       <span>Total</span>
-                      <span>${totalAmount.toFixed(2)}</span>
+                      <span>{fmtMoney(totalAmount)}</span>
                     </div>
                   </div>
 
