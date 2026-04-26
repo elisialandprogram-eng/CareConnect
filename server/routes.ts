@@ -2104,6 +2104,8 @@ export async function registerRoutes(
                 { label: "Date", value: date },
                 { label: "Time", value: `${startTime} - ${endTime}` },
                 ...(service ? [{ label: "Service", value: service.name }] : []),
+                { label: "Visit Type", value: visitType === "home" ? "Home Visit" : "Online Consultation" },
+                { label: "Address", value: visitType === "home" ? (patientAddress || "Patient will provide address") : "Online (link will be shared)" },
               ],
             },
             data: { appointmentId: appointment.id },

@@ -859,7 +859,7 @@ export default function ProviderSetup() {
                 </Card>
               )}
 
-              {step === 3 && (
+              {step === 5 && (
                 <Card>
                   <CardHeader>
                     <CardTitle>{t("setup.availability")}</CardTitle>
@@ -873,6 +873,7 @@ export default function ProviderSetup() {
                       name="availableDays"
                       render={() => (
                         <FormItem>
+                          <FormLabel>{t("setup.available_days", "Available Days")}</FormLabel>
                           <div className="grid grid-cols-1 gap-2">
                             {dayOptions.map((day) => (
                               <FormField
@@ -905,9 +906,217 @@ export default function ProviderSetup() {
                       )}
                     />
 
+                    <FormField
+                      control={form.control}
+                      name="ageGroupsServed"
+                      render={() => (
+                        <FormItem>
+                          <FormLabel>{t("setup.age_groups", "Age Groups Served")}</FormLabel>
+                          <div className="grid grid-cols-2 gap-2">
+                            {[
+                              { value: "infants", label: t("setup.age_infants", "Infants (0-2)") },
+                              { value: "children", label: t("setup.age_children", "Children (3-12)") },
+                              { value: "teens", label: t("setup.age_teens", "Teens (13-17)") },
+                              { value: "adults", label: t("setup.age_adults", "Adults (18-64)") },
+                              { value: "seniors", label: t("setup.age_seniors", "Seniors (65+)") },
+                            ].map((ag) => (
+                              <FormField
+                                key={ag.value}
+                                control={form.control}
+                                name="ageGroupsServed"
+                                render={({ field }) => (
+                                  <FormItem className="flex items-center space-x-2 space-y-0">
+                                    <FormControl>
+                                      <Checkbox
+                                        checked={field.value?.includes(ag.value)}
+                                        onCheckedChange={(checked) => {
+                                          const updated = checked
+                                            ? [...(field.value || []), ag.value]
+                                            : field.value?.filter((v) => v !== ag.value) || [];
+                                          field.onChange(updated);
+                                        }}
+                                      />
+                                    </FormControl>
+                                    <FormLabel className="font-normal cursor-pointer text-sm">
+                                      {ag.label}
+                                    </FormLabel>
+                                  </FormItem>
+                                )}
+                              />
+                            ))}
+                          </div>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="paymentMethods"
+                      render={() => (
+                        <FormItem>
+                          <FormLabel>{t("setup.payment_methods", "Payment Methods Accepted")}</FormLabel>
+                          <div className="grid grid-cols-2 gap-2">
+                            {[
+                              { value: "card", label: t("setup.pm_card", "Card") },
+                              { value: "cash", label: t("setup.pm_cash", "Cash") },
+                              { value: "bank_transfer", label: t("setup.pm_bank", "Bank Transfer") },
+                              { value: "insurance", label: t("setup.pm_insurance", "Insurance") },
+                            ].map((pm) => (
+                              <FormField
+                                key={pm.value}
+                                control={form.control}
+                                name="paymentMethods"
+                                render={({ field }) => (
+                                  <FormItem className="flex items-center space-x-2 space-y-0">
+                                    <FormControl>
+                                      <Checkbox
+                                        checked={field.value?.includes(pm.value)}
+                                        onCheckedChange={(checked) => {
+                                          const updated = checked
+                                            ? [...(field.value || []), pm.value]
+                                            : field.value?.filter((v) => v !== pm.value) || [];
+                                          field.onChange(updated);
+                                        }}
+                                      />
+                                    </FormControl>
+                                    <FormLabel className="font-normal cursor-pointer text-sm">
+                                      {pm.label}
+                                    </FormLabel>
+                                  </FormItem>
+                                )}
+                              />
+                            ))}
+                          </div>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
                     <div className="flex gap-4">
                       <Button type="button" variant="outline" className="flex-1" onClick={prevStep}>
-                        Back
+                        {t("setup.back")}
+                      </Button>
+                      <Button type="button" className="flex-1" onClick={nextStep} data-testid="button-next-5">
+                        {t("setup.continue")}
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {step === 6 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>{t("setup.consents_title", "Agreements & Consents")}</CardTitle>
+                    <CardDescription>
+                      {t("setup.consents_desc", "Please review and accept the following agreements to complete your provider setup.")}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    <FormField
+                      control={form.control}
+                      name="providerAgreementAccepted"
+                      render={({ field }) => (
+                        <FormItem className="flex items-start space-x-3 space-y-0 p-3 border rounded-md">
+                          <FormControl>
+                            <Checkbox
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                              data-testid="checkbox-provider-agreement"
+                            />
+                          </FormControl>
+                          <div className="space-y-1 leading-none">
+                            <FormLabel className="cursor-pointer">
+                              {t("setup.provider_agreement", "Provider Service Agreement")}
+                            </FormLabel>
+                            <FormDescription>
+                              {t("setup.provider_agreement_desc", "I agree to the terms of providing services on the GoldenLife platform.")}
+                            </FormDescription>
+                            <FormMessage />
+                          </div>
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="dataProcessingAgreementAccepted"
+                      render={({ field }) => (
+                        <FormItem className="flex items-start space-x-3 space-y-0 p-3 border rounded-md">
+                          <FormControl>
+                            <Checkbox
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                              data-testid="checkbox-data-processing"
+                            />
+                          </FormControl>
+                          <div className="space-y-1 leading-none">
+                            <FormLabel className="cursor-pointer">
+                              {t("setup.data_processing", "Data Processing Agreement (GDPR)")}
+                            </FormLabel>
+                            <FormDescription>
+                              {t("setup.data_processing_desc", "I consent to the processing of patient and personal data in accordance with applicable privacy laws.")}
+                            </FormDescription>
+                            <FormMessage />
+                          </div>
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="telemedicineAgreementAccepted"
+                      render={({ field }) => (
+                        <FormItem className="flex items-start space-x-3 space-y-0 p-3 border rounded-md">
+                          <FormControl>
+                            <Checkbox
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                              data-testid="checkbox-telemedicine"
+                            />
+                          </FormControl>
+                          <div className="space-y-1 leading-none">
+                            <FormLabel className="cursor-pointer">
+                              {t("setup.telemedicine_agreement", "Telemedicine Services Agreement")}
+                            </FormLabel>
+                            <FormDescription>
+                              {t("setup.telemedicine_desc", "I agree to the rules and clinical standards governing telemedicine consultations on this platform.")}
+                            </FormDescription>
+                            <FormMessage />
+                          </div>
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="codeOfConductAccepted"
+                      render={({ field }) => (
+                        <FormItem className="flex items-start space-x-3 space-y-0 p-3 border rounded-md">
+                          <FormControl>
+                            <Checkbox
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                              data-testid="checkbox-code-of-conduct"
+                            />
+                          </FormControl>
+                          <div className="space-y-1 leading-none">
+                            <FormLabel className="cursor-pointer">
+                              {t("setup.code_of_conduct", "Code of Conduct")}
+                            </FormLabel>
+                            <FormDescription>
+                              {t("setup.code_of_conduct_desc", "I will uphold professional standards, respect patient dignity, and follow GoldenLife's code of conduct at all times.")}
+                            </FormDescription>
+                            <FormMessage />
+                          </div>
+                        </FormItem>
+                      )}
+                    />
+
+                    <div className="flex gap-4">
+                      <Button type="button" variant="outline" className="flex-1" onClick={prevStep}>
+                        {t("setup.back")}
                       </Button>
                       <Button
                         type="submit"
