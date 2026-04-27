@@ -1099,6 +1099,14 @@ function ProvidersManagement() {
     name: "practitioners",
   });
 
+  const invalidateProviderCaches = () => {
+    queryClient.invalidateQueries({ queryKey: ["/api/admin/providers"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/admin/analytics"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/admin/bookings"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/providers"] });
+  };
+
   const createProviderMutation = useMutation({
     mutationFn: async (data: AdminProviderData) => {
       const response = await apiRequest("POST", "/api/admin/providers", data);
@@ -1111,7 +1119,7 @@ function ProvidersManagement() {
     onSuccess: () => {
       toast({ title: "Provider created successfully" });
       form.reset();
-      refetch();
+      invalidateProviderCaches();
     },
     onError: (error: Error) => {
       toast({
@@ -1122,7 +1130,7 @@ function ProvidersManagement() {
     },
   });
 
-  const { data: providers, isLoading, refetch } = useQuery<any[]>({
+  const { data: providers, isLoading } = useQuery<any[]>({
     queryKey: ["/api/admin/providers"],
     refetchOnWindowFocus: true,
   });
@@ -1142,7 +1150,7 @@ function ProvidersManagement() {
     },
     onSuccess: () => {
       toast({ title: "Provider updated successfully" });
-      refetch();
+      invalidateProviderCaches();
     },
   });
 
@@ -1150,11 +1158,22 @@ function ProvidersManagement() {
     mutationFn: async (id: string) => {
       await apiRequest("DELETE", `/api/admin/providers/${id}`);
     },
+    onMutate: async (id: string) => {
+      await queryClient.cancelQueries({ queryKey: ["/api/admin/providers"] });
+      const previous = queryClient.getQueryData<any[]>(["/api/admin/providers"]);
+      queryClient.setQueryData<any[]>(["/api/admin/providers"], (old) =>
+        (old || []).filter((p) => p.id !== id),
+      );
+      return { previous };
+    },
     onSuccess: () => {
       toast({ title: "Provider profile deleted" });
-      refetch();
+      invalidateProviderCaches();
     },
-    onError: (error: Error) => {
+    onError: (error: Error, _id, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(["/api/admin/providers"], context.previous);
+      }
       toast({ title: t("admin_dashboard.error"), description: error.message, variant: "destructive" });
     },
   });
@@ -3070,9 +3089,17 @@ function UsersManagement() {
   const [roleFilter, setRoleFilter] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState<string>("");
 
-  const { data: users, isLoading, refetch } = useQuery<User[]>({
+  const { data: users, isLoading } = useQuery<User[]>({
     queryKey: ["/api/admin/users"],
   });
+
+  const invalidateUserCaches = () => {
+    queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/admin/providers"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/admin/analytics"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/admin/bookings"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/admin/wallets"] });
+  };
 
   const suspendMutation = useMutation({
     mutationFn: async ({ id, isSuspended, reason }: { id: string; isSuspended: boolean; reason?: string }) => {
@@ -3085,7 +3112,7 @@ function UsersManagement() {
     },
     onSuccess: () => {
       toast({ title: t("admin.user_updated") });
-      refetch();
+      invalidateUserCaches();
     },
   });
 
@@ -3093,11 +3120,22 @@ function UsersManagement() {
     mutationFn: async (id: string) => {
       await apiRequest("DELETE", `/api/admin/users/${id}`);
     },
+    onMutate: async (id: string) => {
+      await queryClient.cancelQueries({ queryKey: ["/api/admin/users"] });
+      const previous = queryClient.getQueryData<User[]>(["/api/admin/users"]);
+      queryClient.setQueryData<User[]>(["/api/admin/users"], (old) =>
+        (old || []).filter((u) => u.id !== id),
+      );
+      return { previous };
+    },
     onSuccess: () => {
       toast({ title: t("admin.user_deleted") });
-      refetch();
+      invalidateUserCaches();
     },
-    onError: (error: Error) => {
+    onError: (error: Error, _id, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(["/api/admin/users"], context.previous);
+      }
       toast({ title: t("common.error"), description: error.message, variant: "destructive" });
     },
   });

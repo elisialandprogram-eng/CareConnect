@@ -422,10 +422,21 @@ export async function registerRoutes(
     try {
       const { email, password, firstName, lastName, phone, role } = req.body;
 
-      // Check if user exists
+      // Check if user exists. If they exist but haven't verified their email,
+      // we treat that record as an abandoned signup and replace it so the user
+      // can finish registering with the same email.
       const existingUser = await storage.getUserByEmail(email);
       if (existingUser) {
-        return res.status(400).json({ message: "Email already registered" });
+        if (existingUser.isEmailVerified) {
+          return res.status(400).json({ message: "Email already registered" });
+        }
+        // Abandoned/unverified signup — clean it up so re-registration works.
+        try {
+          await storage.deleteUser(existingUser.id);
+        } catch (cleanupErr) {
+          console.error("Failed to clean up unverified user:", cleanupErr);
+          return res.status(500).json({ message: "Registration failed. Please try again." });
+        }
       }
 
       // Hash password
@@ -992,19 +1003,39 @@ export async function registerRoutes(
 
   app.patch("/api/auth/profile", authenticateToken, async (req: AuthRequest, res: Response) => {
     try {
-      const { firstName, lastName, phone, address, avatarUrl, bloodGroup, knownAllergies, medicalConditions, currentMedications, pastSurgeries } = req.body;
-      
+      const allowedFields = [
+        "firstName", "lastName", "phone", "mobileNumber",
+        "address", "city", "state", "zipCode",
+        "avatarUrl", "gallery",
+        "gender", "dateOfBirth", "preferredPronouns", "occupation", "maritalStatus",
+        "socialNumber",
+        "emergencyContactName", "emergencyContactPhone", "emergencyContactRelation",
+        "bloodGroup", "heightCm", "weightKg",
+        "knownAllergies", "medicalConditions", "currentMedications", "pastSurgeries",
+        "insuranceProvider", "insurancePolicyNumber", "primaryCarePhysician",
+        "languagePreference",
+      ] as const;
+
       const updateData: any = {};
-      if (firstName !== undefined) updateData.firstName = firstName;
-      if (lastName !== undefined) updateData.lastName = lastName;
-      if (phone !== undefined) updateData.phone = phone;
-      if (address !== undefined) updateData.address = address;
-      if (avatarUrl !== undefined) updateData.avatarUrl = avatarUrl;
-      if (bloodGroup !== undefined) updateData.bloodGroup = bloodGroup;
-      if (knownAllergies !== undefined) updateData.knownAllergies = knownAllergies;
-      if (medicalConditions !== undefined) updateData.medicalConditions = medicalConditions;
-      if (currentMedications !== undefined) updateData.currentMedications = currentMedications;
-      if (pastSurgeries !== undefined) updateData.pastSurgeries = pastSurgeries;
+      for (const field of allowedFields) {
+        if (req.body[field] !== undefined) {
+          updateData[field] = req.body[field];
+        }
+      }
+      // Coerce date string -> Date for timestamp columns.
+      if (typeof updateData.dateOfBirth === "string" && updateData.dateOfBirth) {
+        updateData.dateOfBirth = new Date(updateData.dateOfBirth);
+      } else if (updateData.dateOfBirth === "") {
+        updateData.dateOfBirth = null;
+      }
+      // Coerce numeric fields.
+      if (updateData.heightCm !== undefined && updateData.heightCm !== null && updateData.heightCm !== "") {
+        const n = Number(updateData.heightCm);
+        updateData.heightCm = Number.isFinite(n) ? Math.round(n) : null;
+      } else if (updateData.heightCm === "") {
+        updateData.heightCm = null;
+      }
+      if (updateData.weightKg === "") updateData.weightKg = null;
 
       if (Object.keys(updateData).length === 0) {
         const user = await storage.getUser(req.user!.id);

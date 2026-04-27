@@ -46,7 +46,7 @@ function NotificationBell() {
 }
 
 export function Header() {
-  const { user, isAuthenticated, logout } = useAuth();
+  const { user, isAuthenticated, isLoading: authLoading, logout } = useAuth();
   const [, navigate] = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { t, i18n } = useTranslation();
@@ -132,7 +132,9 @@ export function Header() {
 
           {isAuthenticated && <NotificationBell />}
 
-          {isAuthenticated ? (
+          {authLoading ? (
+            <div className="h-9 w-9 rounded-full bg-muted animate-pulse" data-testid="auth-loading" />
+          ) : isAuthenticated ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative h-9 w-9 rounded-full" data-testid="button-user-menu">
@@ -272,7 +274,7 @@ export function Header() {
               {t("common.doctors")}
             </Link>
           </nav>
-          {!isAuthenticated && (
+          {!authLoading && !isAuthenticated && (
             <div className="flex flex-col gap-2 pt-2 border-t">
               <Button variant="outline" asChild className="w-full" data-testid="mobile-button-login">
                 <Link href="/login" onClick={() => setMobileMenuOpen(false)}>{t("common.login")}</Link>
