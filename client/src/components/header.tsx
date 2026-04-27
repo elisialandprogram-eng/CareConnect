@@ -12,9 +12,36 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { User, Calendar, LogOut, Settings, LayoutDashboard, Menu, X, Stethoscope, MessageSquare, Bell, Languages } from "lucide-react";
+import { User, Calendar, LogOut, Settings, LayoutDashboard, Menu, X, Stethoscope, MessageSquare, Bell, Languages, Wallet } from "lucide-react";
+import { useCurrency } from "@/lib/currency";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+
+function WalletBadge() {
+  const [, navigate] = useLocation();
+  const { format: formatCurrency } = useCurrency();
+  const { data, isLoading } = useQuery<{ balance: string; currency: string }>({
+    queryKey: ["/api/wallet"],
+    refetchInterval: 60000,
+    staleTime: 30000,
+  });
+  const balance = data ? Number(data.balance ?? 0) : 0;
+  return (
+    <Button
+      variant="ghost"
+      size="sm"
+      className="hidden sm:inline-flex h-9 gap-1.5 px-2.5"
+      onClick={() => navigate("/wallet")}
+      data-testid="button-header-wallet"
+      aria-label="Wallet"
+    >
+      <Wallet className="h-4 w-4" />
+      <span className="text-xs font-medium tabular-nums">
+        {isLoading ? "…" : formatCurrency(balance)}
+      </span>
+    </Button>
+  );
+}
 
 function NotificationBell() {
   const [, navigate] = useLocation();
@@ -139,6 +166,7 @@ export function Header() {
 
           <ThemeToggle />
 
+          {isAuthenticated && user?.role !== "provider" && <WalletBadge />}
           {isAuthenticated && <NotificationBell />}
 
           {authLoading ? (

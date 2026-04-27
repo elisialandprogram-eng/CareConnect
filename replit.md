@@ -20,6 +20,12 @@ Both Patient and Provider Dashboards offer comprehensive appointment management,
 
 The backend is developed with Node.js and TypeScript, using Express.js and Drizzle ORM for database interactions. Authentication is JWT-based with bcrypt for password hashing and supports role-based access control (patient, provider, admin). The API is RESTful, uses JSON, and includes centralized error handling and request logging. A Data Access Layer (DAL) abstracts database operations.
 
+### Performance & Response Sanitization
+
+To keep payloads small and avoid leaking sensitive data, list endpoints that return `User` objects pass them through `server/utils/sanitize.ts` before responding. `sanitizeUser` strips `password`, OTP fields, OAuth tokens, and similar credentials; the `public` strip mode also drops bulky/private fields (medical history, insurance, emergency contact, etc.) for list views, and inlined data-URL avatars longer than 2 KB are dropped from list responses (full-size avatars stay available on the user's own `/api/auth/me` and individual record reads). The providers list (`GET /api/providers`), provider detail (`GET /api/providers/:id`), and admin user list (`GET /api/admin/users`) all use these helpers; the providers list response went from ~5 MB to ~15 KB after this change.
+
+The cookie-parser middleware is registered at the top of `registerRoutes` so every auth-protected route (including the early invoice endpoints) can read the JWT cookie.
+
 ### Wallet System
 
 An in-app wallet allows patients to pre-load credits and pay for services. The system includes a `wallets` table and an append-only `wallet_transactions` ledger with snapshot balances and idempotency keys. Transaction operations are safeguarded by database transactions and row locking. The API supports wallet balance retrieval, transaction history, top-ups via Stripe, and payment for appointments. The frontend provides a dedicated wallet page, integrates wallet payment options into the booking flow, and the admin dashboard allows for wallet adjustments. A reminder cron generates in-app notifications for upcoming appointments.

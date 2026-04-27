@@ -115,6 +115,7 @@ import {
   type InsertServicePractitioner,
   type Invoice,
   type InsertInvoice,
+  type InvoiceItem,
   type InsertInvoiceItem,
   notificationPreferences,
   pushSubscriptions,
@@ -423,6 +424,7 @@ export interface IStorage {
   getInvoicesByProvider(providerId: string): Promise<Invoice[]>;
   getAllInvoices(): Promise<Invoice[]>;
   createInvoice(invoice: InsertInvoice, items: InsertInvoiceItem[]): Promise<Invoice>;
+  getInvoiceItems(invoiceId: string): Promise<InvoiceItem[]>;
   getPendingInvoiceAppointments(): Promise<any[]>;
 
   // Notification preferences
@@ -772,14 +774,14 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getAppointmentWithDetails(id: string): Promise<AppointmentWithDetails | undefined> {
-    const patientUsers = users;
-    const providerUsers = users;
+    const patientUsers = aliasedTable(users, "patientUsers");
+    const providerUsers = aliasedTable(users, "providerUsers");
     const result = await db
       .select({
         appointments: appointments,
-        users: patientUsers,
+        patientUser: patientUsers,
         providers: providers,
-        users_2: providerUsers,
+        providerUser: providerUsers,
         services: services,
         practitioners: practitioners
       })
@@ -796,10 +798,10 @@ export class DatabaseStorage implements IStorage {
     const r = result[0];
     return {
       ...r.appointments,
-      patient: r.users,
+      patient: r.patientUser,
       provider: {
         ...r.providers,
-        user: r.users_2,
+        user: r.providerUser,
       },
       service: r.services || undefined,
       practitioner: (r.practitioners as any) || undefined,
@@ -1602,6 +1604,10 @@ export class DatabaseStorage implements IStorage {
         .where(eq(appointments.id, invoice.appointmentId));
       return newInvoice;
     });
+  }
+
+  async getInvoiceItems(invoiceId: string): Promise<InvoiceItem[]> {
+    return db.select().from(invoiceItems).where(eq(invoiceItems.invoiceId, invoiceId));
   }
 
   async getPendingInvoiceAppointments(): Promise<any[]> {

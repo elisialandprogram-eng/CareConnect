@@ -83,6 +83,8 @@ import { registerChatRoutes } from "./replit_integrations/chat";
 import { registerImageRoutes } from "./replit_integrations/image";
 import { generateInvoicePDF } from "./utils/invoice-gen";
 import { createInvoiceForAppointment } from "./utils/invoice-helper";
+import { sanitizeUser, sanitizeProviderWithUser, sanitizeProviderListItem } from "./utils/sanitize";
+import cookieParserModule from "cookie-parser";
 import {
   isStripeConfigured,
   getStripeMode,
@@ -171,6 +173,10 @@ export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
+  // Cookie parser MUST be registered before any auth-protected route handlers
+  // so that req.cookies is available to authenticateToken / refresh-token logic.
+  app.use(cookieParserModule());
+
   // Middleware to require admin role
   const requireAdmin = async (req: AuthRequest, res: Response, next: NextFunction) => {
     if (!req.user || req.user.role !== "admin") {
@@ -228,18 +234,33 @@ export async function registerRoutes(
       const appointment = await storage.getAppointmentWithDetails(invoice.appointmentId);
       if (!appointment) return res.status(404).json({ message: "Appointment not found" });
 
-      // Check permission
+      // Permission: patient/provider must own it; admin always allowed
       if (req.user?.role === "patient" && invoice.patientId !== req.user.id) {
         return res.status(403).json({ message: "Access denied" });
       }
+      if (req.user?.role === "provider") {
+        const prov = await storage.getProviderByUserId(req.user.id);
+        if (!prov || prov.id !== invoice.providerId) {
+          return res.status(403).json({ message: "Access denied" });
+        }
+      }
 
-      // Mock items for now or fetch from DB if implemented
-      const items = [{
-        description: appointment.service?.name || "Healthcare Service",
-        quantity: 1,
-        unitPrice: appointment.totalAmount,
-        totalPrice: appointment.totalAmount
-      }];
+      // Pull the real line items; fall back to a single line from the appointment
+      // if the items table is empty (e.g. for invoices created before the fix).
+      const dbItems = await storage.getInvoiceItems(invoice.id);
+      const items = dbItems.length
+        ? dbItems.map((i) => ({
+            description: i.description,
+            quantity: i.quantity ?? 1,
+            unitPrice: i.unitPrice,
+            totalPrice: i.totalPrice,
+          }))
+        : [{
+            description: appointment.service?.name || "Healthcare Service",
+            quantity: 1,
+            unitPrice: appointment.totalAmount,
+            totalPrice: appointment.totalAmount,
+          }];
 
       const pdfBuffer = await generateInvoicePDF(
         invoice,
@@ -352,10 +373,6 @@ export async function registerRoutes(
   // Register AI integrations routes
   registerChatRoutes(app);
   registerImageRoutes(app);
-
-  // Cookie parser middleware
-  const cookieParser = await import("cookie-parser");
-  app.use(cookieParser.default());
 
   // ============ PATIENT CONSENT ROUTES ============
   app.post("/api/consents", optionalAuth, async (req: AuthRequest, res: Response) => {
@@ -1155,7 +1172,9 @@ export async function registerRoutes(
   app.get("/api/providers", async (req: Request, res: Response) => {
     try {
       const providers = await storage.getAllProviders();
-      res.json(providers);
+      const sanitized = providers.map(p => sanitizeProviderListItem(p));
+      res.set("Cache-Control", "public, max-age=30");
+      res.json(sanitized);
     } catch (error) {
       console.error("Get providers error:", error);
       res.status(500).json({ message: "Failed to get providers" });
@@ -1169,7 +1188,7 @@ export async function registerRoutes(
       if (!provider) {
         return res.status(404).json({ message: "Provider not found" });
       }
-      res.json(provider);
+      res.json(sanitizeProviderWithUser(provider));
     } catch (error) {
       console.error("Get provider error:", error);
       res.status(500).json({ message: "Failed to get provider" });
@@ -1329,7 +1348,7 @@ export async function registerRoutes(
         return res.status(403).json({ message: "Admin access required" });
       }
       const users = await storage.getAllUsers();
-      res.json(users);
+      res.json(users.map(u => sanitizeUser(u, { strip: "public" })));
     } catch (error) {
       res.status(500).json({ message: "Failed to get users" });
     }
