@@ -538,6 +538,19 @@ export class DatabaseStorage implements IStorage {
 
   async createRealtimeMessage(message: any): Promise<RealtimeMessage> {
     const [msg] = await db.insert(realtimeMessages).values(message).returning();
+    // Keep the conversation row's preview + timestamp in sync so the list view
+    // shows the latest snippet instead of "No messages yet".
+    try {
+      const preview =
+        message?.content?.toString().slice(0, 200) ||
+        (message?.voiceNoteUrl ? "🎤 Voice note" : message?.attachmentName ? `📎 ${message.attachmentName}` : "");
+      await db
+        .update(realtimeConversations)
+        .set({ lastMessage: preview, lastMessageAt: msg.createdAt ?? new Date() })
+        .where(eq(realtimeConversations.id, message.conversationId));
+    } catch {
+      // best-effort: never let preview update break the message insert path
+    }
     return msg;
   }
 

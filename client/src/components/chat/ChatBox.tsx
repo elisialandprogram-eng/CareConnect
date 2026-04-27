@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useAuth } from "@/lib/auth";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -7,30 +7,72 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Separator } from "@/components/ui/separator";
 import {
-  MessageSquare, Send, X, Minimize2, Maximize2, User as UserIcon,
-  Paperclip, Mic, Square, BellOff, Bell, Pin, PinOff, Check, CheckCheck, Image as ImageIcon, FileText
+  MessageSquare, Send, X, Minimize2, Maximize2, ArrowLeft, Search,
+  Paperclip, Mic, Square, BellOff, Bell, Pin, PinOff, Check, CheckCheck,
+  FileText, Headphones, Shield, Stethoscope, User as UserIcon, Plus,
 } from "lucide-react";
-import { RealtimeMessage, RealtimeConversation } from "@shared/schema";
+import { RealtimeMessage } from "@shared/schema";
 import { clsx } from "clsx";
-import { format } from "date-fns";
+import { format, formatDistanceToNowStrict, isToday, isYesterday, isThisWeek } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 
-type Conv = RealtimeConversation & { mutedBy?: string[] | null; pinnedBy?: string[] | null };
+type RichConv = {
+  id: string;
+  participant1Id: string;
+  participant2Id: string;
+  lastMessage: string | null;
+  lastMessageAt: string | null;
+  createdAt: string | null;
+  mutedBy: string[] | null;
+  pinnedBy: string[] | null;
+  other: { id: string; name: string; role: string; avatar: string | null };
+  unread: number;
+  pinned: boolean;
+  muted: boolean;
+};
+
+function initials(name: string) {
+  return name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((p) => p[0]?.toUpperCase())
+    .join("") || "?";
+}
+
+function formatListTime(iso: string | null | undefined) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (isToday(d)) return format(d, "HH:mm");
+  if (isYesterday(d)) return "Yesterday";
+  if (isThisWeek(d)) return format(d, "EEE");
+  return format(d, "MMM d");
+}
+
+function roleIcon(role: string) {
+  if (role === "admin") return <Shield className="h-3 w-3" />;
+  if (role === "provider") return <Stethoscope className="h-3 w-3" />;
+  return <UserIcon className="h-3 w-3" />;
+}
+
+function roleLabel(role: string) {
+  if (role === "admin") return "GoldenLife Support";
+  if (role === "provider") return "Provider";
+  return "Patient";
+}
 
 export function ChatBox() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
-  useEffect(() => {
-    const handler = () => { setIsOpen(true); setIsMinimized(false); };
-    window.addEventListener("open-chat", handler);
-    return () => window.removeEventListener("open-chat", handler);
-  }, []);
   const [isMinimized, setIsMinimized] = useState(false);
-  const [activeConversation, setActiveConversation] = useState<Conv | null>(null);
+  const [activeConversation, setActiveConversation] = useState<RichConv | null>(null);
   const [message, setMessage] = useState("");
   const [showNewChatOptions, setShowNewChatOptions] = useState(false);
+  const [searchQ, setSearchQ] = useState("");
   const [typingFrom, setTypingFrom] = useState<string | null>(null);
   const [isRecording, setIsRecording] = useState(false);
   const socketRef = useRef<WebSocket | null>(null);
@@ -41,9 +83,17 @@ export function ChatBox() {
   const recordStartTime = useRef<number>(0);
   const typingTimer = useRef<any>(null);
 
-  const { data: conversations } = useQuery<Conv[]>({
-    queryKey: ["/api/chat/conversations"],
-    enabled: !!user,
+  useEffect(() => {
+    const handler = () => { setIsOpen(true); setIsMinimized(false); };
+    window.addEventListener("open-chat", handler);
+    return () => window.removeEventListener("open-chat", handler);
+  }, []);
+
+  // Conversations: only fetch once the panel has been opened. Always-on
+  // unread-counts is a tiny call so we keep that hot for the badge.
+  const { data: conversations, isLoading: loadingConvs } = useQuery<RichConv[]>({
+    queryKey: ["/api/chat/conversations-rich"],
+    enabled: !!user && isOpen,
   });
 
   const { data: messages } = useQuery<RealtimeMessage[]>({
@@ -57,13 +107,28 @@ export function ChatBox() {
     refetchInterval: 30000,
   });
 
+  const otherIds = useMemo(
+    () => (conversations || []).map((c) => c.other.id).join(","),
+    [conversations]
+  );
+  const { data: presence } = useQuery<Record<string, boolean>>({
+    queryKey: ["/api/chat/online-status", otherIds],
+    queryFn: async () => {
+      if (!otherIds) return {};
+      const r = await fetch(`/api/chat/online-status?ids=${encodeURIComponent(otherIds)}`, { credentials: "include" });
+      if (!r.ok) return {};
+      return r.json();
+    },
+    enabled: !!user && isOpen && !!otherIds,
+    refetchInterval: 25000,
+  });
+
   const [isSocketReady, setIsSocketReady] = useState(false);
   const activeConvIdRef = useRef<string | null>(null);
   useEffect(() => { activeConvIdRef.current = activeConversation?.id ?? null; }, [activeConversation?.id]);
 
-  // One persistent socket per logged-in user. Reconnects with backoff if the
-  // server drops us. Auth happens server-side via the httpOnly cookie sent on
-  // the upgrade request, so we don't have to forward any token from JS.
+  // One persistent socket per logged-in user. Auth happens server-side via the
+  // httpOnly accessToken cookie sent on the upgrade request.
   useEffect(() => {
     if (!user) return;
     let closedByUs = false;
@@ -76,11 +141,7 @@ export function ChatBox() {
       socketRef.current = socket;
       setIsSocketReady(false);
 
-      socket.onopen = () => {
-        backoff = 1000;
-        setIsSocketReady(true);
-      };
-
+      socket.onopen = () => { backoff = 1000; setIsSocketReady(true); };
       socket.onmessage = (event) => {
         let data: any;
         try { data = JSON.parse(event.data); } catch { return; }
@@ -90,7 +151,7 @@ export function ChatBox() {
             break;
           case "message":
             queryClient.invalidateQueries({ queryKey: ["/api/chat/messages", data.data.conversationId] });
-            queryClient.invalidateQueries({ queryKey: ["/api/chat/conversations"] });
+            queryClient.invalidateQueries({ queryKey: ["/api/chat/conversations-rich"] });
             queryClient.invalidateQueries({ queryKey: ["/api/chat/unread-counts"] });
             break;
           case "typing":
@@ -110,7 +171,6 @@ export function ChatBox() {
             break;
         }
       };
-
       socket.onclose = () => {
         socketRef.current = null;
         setIsSocketReady(false);
@@ -119,9 +179,7 @@ export function ChatBox() {
           backoff = Math.min(backoff * 2, 15000);
         }
       };
-      socket.onerror = () => {
-        try { socket.close(); } catch {}
-      };
+      socket.onerror = () => { try { socket.close(); } catch {} };
     };
 
     connect();
@@ -131,16 +189,13 @@ export function ChatBox() {
       try { socketRef.current?.close(); } catch {}
       socketRef.current = null;
     };
-    // Only reconnect when the logged-in user changes, NOT when conversation changes.
   }, [user?.id]);
 
-  // Auto-scroll
   useEffect(() => { scrollRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
 
-  // Mark messages read when conversation is open
   useEffect(() => {
     if (!activeConversation || !messages || !socketRef.current || socketRef.current.readyState !== 1) return;
-    const myUnread = messages.filter(m => m.senderId !== user!.id && !m.isRead).map(m => m.id);
+    const myUnread = messages.filter((m) => m.senderId !== user!.id && !m.isRead).map((m) => m.id);
     if (myUnread.length === 0) return;
     socketRef.current.send(JSON.stringify({
       type: "read", conversationId: activeConversation.id, messageIds: myUnread,
@@ -150,20 +205,19 @@ export function ChatBox() {
 
   const sendTyping = () => {
     if (!activeConversation || !socketRef.current || socketRef.current.readyState !== 1) return;
-    if (typingTimer.current) return; // throttle
+    if (typingTimer.current) return;
     socketRef.current.send(JSON.stringify({ type: "typing", conversationId: activeConversation.id }));
     typingTimer.current = setTimeout(() => { typingTimer.current = null; }, 2000);
   };
 
-  const sendMessage = (extra?: Partial<{ attachmentUrl: string; attachmentType: string; attachmentName: string; voiceNoteUrl: string; voiceDurationSec: number }>) => {
+  const sendMessage = (extra?: Partial<{
+    attachmentUrl: string; attachmentType: string; attachmentName: string;
+    voiceNoteUrl: string; voiceDurationSec: number;
+  }>) => {
     if ((!message.trim() && !extra) || !activeConversation) return;
     const sock = socketRef.current;
     if (!sock || sock.readyState !== WebSocket.OPEN) {
-      toast({
-        title: "Reconnecting…",
-        description: "Chat is not connected yet. Please try again in a moment.",
-        variant: "destructive",
-      });
+      toast({ title: "Reconnecting…", description: "Chat is not connected yet. Please try again in a moment.", variant: "destructive" });
       return;
     }
     try {
@@ -182,12 +236,12 @@ export function ChatBox() {
   const muteMutation = useMutation({
     mutationFn: ({ id, muted }: { id: string; muted: boolean }) =>
       apiRequest("POST", `/api/chat/conversations/${id}/mute`, { muted }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/chat/conversations"] }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/chat/conversations-rich"] }),
   });
   const pinMutation = useMutation({
     mutationFn: ({ id, pinned }: { id: string; pinned: boolean }) =>
       apiRequest("POST", `/api/chat/conversations/${id}/pin`, { pinned }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/chat/conversations"] }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/chat/conversations-rich"] }),
   });
 
   const handleFileUpload = async (file: File) => {
@@ -221,14 +275,13 @@ export function ChatBox() {
       recordStartTime.current = Date.now();
       mr.ondataavailable = (e) => recordChunks.current.push(e.data);
       mr.onstop = async () => {
-        stream.getTracks().forEach(t => t.stop());
+        stream.getTracks().forEach((t) => t.stop());
         const blob = new Blob(recordChunks.current, { type: "audio/webm" });
         const file = new File([blob], `voice-${Date.now()}.webm`, { type: "audio/webm" });
         const seconds = Math.round((Date.now() - recordStartTime.current) / 1000);
         try {
           const r = await fetch("/api/chat/upload", {
-            method: "POST",
-            credentials: "include",
+            method: "POST", credentials: "include",
             headers: { "Content-Type": file.type, "X-Filename": encodeURIComponent(file.name) },
             body: file,
           });
@@ -248,17 +301,44 @@ export function ChatBox() {
   };
   const stopRecording = () => mediaRef.current?.stop();
 
+  // All hooks must run on every render — keep these BEFORE any early return.
+  const totalUnread = unread?.total || 0;
+
+  const sortedConvs: RichConv[] = useMemo(() => {
+    return (conversations || []).slice().sort((a, b) => {
+      const ap = a.pinned ? 1 : 0;
+      const bp = b.pinned ? 1 : 0;
+      if (ap !== bp) return bp - ap;
+      const aT = a.lastMessageAt ? new Date(a.lastMessageAt).getTime() : 0;
+      const bT = b.lastMessageAt ? new Date(b.lastMessageAt).getTime() : 0;
+      return bT - aT;
+    });
+  }, [conversations]);
+
+  const filteredConvs = useMemo(() => {
+    const q = searchQ.trim().toLowerCase();
+    if (!q) return sortedConvs;
+    return sortedConvs.filter((c) =>
+      c.other.name.toLowerCase().includes(q) ||
+      (c.lastMessage || "").toLowerCase().includes(q)
+    );
+  }, [sortedConvs, searchQ]);
+
+  const grouped = useMemo(() => {
+    const out: Array<{ day: string; items: RealtimeMessage[] }> = [];
+    (messages || []).forEach((m: any) => {
+      const d = m.createdAt ? new Date(m.createdAt) : new Date();
+      const day = isToday(d) ? "Today" : isYesterday(d) ? "Yesterday" : format(d, "EEEE, MMM d, yyyy");
+      const last = out[out.length - 1];
+      if (last && last.day === day) last.items.push(m);
+      else out.push({ day, items: [m] });
+    });
+    return out;
+  }, [messages]);
+
   if (!user) return null;
 
-  const totalUnread = unread?.total || 0;
-  const sortedConvs = (conversations || []).slice().sort((a, b) => {
-    const aPinned = a.pinnedBy?.includes(user.id) ? 1 : 0;
-    const bPinned = b.pinnedBy?.includes(user.id) ? 1 : 0;
-    if (aPinned !== bPinned) return bPinned - aPinned;
-    const aT = a.lastMessageAt ? new Date(a.lastMessageAt).getTime() : 0;
-    const bT = b.lastMessageAt ? new Date(b.lastMessageAt).getTime() : 0;
-    return bT - aT;
-  });
+  const otherOnline = activeConversation ? presence?.[activeConversation.other.id] : false;
 
   return (
     <div className="fixed bottom-4 left-4 z-50 flex flex-col items-start gap-2">
@@ -272,50 +352,145 @@ export function ChatBox() {
             <MessageSquare className="h-6 w-6" />
           </Button>
           {totalUnread > 0 && (
-            <span className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full text-[10px] min-w-[20px] h-5 px-1 flex items-center justify-center font-bold" data-testid="badge-unread-total">
+            <span
+              className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full text-[10px] min-w-[20px] h-5 px-1 flex items-center justify-center font-bold"
+              data-testid="badge-unread-total"
+            >
               {totalUnread > 99 ? "99+" : totalUnread}
             </span>
           )}
         </div>
       ) : (
         <Card className={clsx(
-          "w-80 shadow-2xl transition-all border-primary/10",
-          isMinimized ? "h-14" : "h-[500px]"
+          "w-[360px] shadow-2xl transition-all border-primary/10 overflow-hidden",
+          isMinimized ? "h-14" : "h-[560px]"
         )}>
-          <CardHeader className="p-3 border-b flex flex-row items-center justify-between space-y-0 bg-primary text-primary-foreground rounded-t-lg">
-            <CardTitle className="text-sm font-bold flex items-center gap-2">
-              <MessageSquare className="h-4 w-4" />
-              {activeConversation ? "Chat" : "Messages"}
-              {totalUnread > 0 && !activeConversation && (
-                <Badge variant="secondary" className="text-[9px] h-4 px-1.5">{totalUnread}</Badge>
+          <CardHeader className="p-3 border-b flex flex-row items-center justify-between space-y-0 bg-gradient-to-r from-primary to-primary/85 text-primary-foreground">
+            <CardTitle className="text-sm font-semibold flex items-center gap-2 min-w-0">
+              {activeConversation ? (
+                <>
+                  <Button
+                    size="icon" variant="ghost"
+                    className="h-7 w-7 text-primary-foreground hover:bg-primary-foreground/20 -ml-1"
+                    onClick={() => setActiveConversation(null)}
+                    data-testid="button-chat-back"
+                  >
+                    <ArrowLeft className="h-4 w-4" />
+                  </Button>
+                  <div className="relative">
+                    <Avatar className="h-8 w-8 ring-2 ring-primary-foreground/30">
+                      {activeConversation.other.avatar
+                        ? <AvatarImage src={activeConversation.other.avatar} />
+                        : null}
+                      <AvatarFallback className="text-xs bg-primary-foreground/20 text-primary-foreground">
+                        {initials(activeConversation.other.name)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <span className={clsx(
+                      "absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full ring-2 ring-primary",
+                      otherOnline ? "bg-green-400" : "bg-gray-400"
+                    )} />
+                  </div>
+                  <div className="flex flex-col min-w-0">
+                    <span className="truncate font-semibold leading-tight" data-testid="text-chat-name">
+                      {activeConversation.other.name}
+                    </span>
+                    <span className="text-[10px] opacity-90 flex items-center gap-1 leading-tight">
+                      {roleIcon(activeConversation.other.role)}
+                      {otherOnline ? "Online now" : (typingFrom ? "Typing…" : roleLabel(activeConversation.other.role))}
+                    </span>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <MessageSquare className="h-4 w-4" />
+                  <span>Messages</span>
+                  {totalUnread > 0 && (
+                    <Badge variant="secondary" className="text-[10px] h-4 px-1.5">{totalUnread}</Badge>
+                  )}
+                </>
               )}
             </CardTitle>
-            <div className="flex gap-1">
-              <Button size="icon" variant="ghost" className="h-7 w-7 text-primary-foreground hover:bg-primary-foreground/20"
-                onClick={() => setIsMinimized(!isMinimized)}>
-                {isMinimized ? <Maximize2 className="h-3 w-3" /> : <Minimize2 className="h-3 w-3" />}
+            <div className="flex gap-1 shrink-0">
+              {activeConversation && (
+                <>
+                  <Button
+                    size="icon" variant="ghost"
+                    className="h-7 w-7 text-primary-foreground hover:bg-primary-foreground/20"
+                    title={activeConversation.pinned ? "Unpin" : "Pin"}
+                    onClick={() => {
+                      const pinned = !activeConversation.pinned;
+                      pinMutation.mutate({ id: activeConversation.id, pinned });
+                      setActiveConversation({ ...activeConversation, pinned });
+                    }}
+                    data-testid="button-toggle-pin"
+                  >
+                    {activeConversation.pinned ? <PinOff className="h-3.5 w-3.5" /> : <Pin className="h-3.5 w-3.5" />}
+                  </Button>
+                  <Button
+                    size="icon" variant="ghost"
+                    className="h-7 w-7 text-primary-foreground hover:bg-primary-foreground/20"
+                    title={activeConversation.muted ? "Unmute" : "Mute"}
+                    onClick={() => {
+                      const muted = !activeConversation.muted;
+                      muteMutation.mutate({ id: activeConversation.id, muted });
+                      setActiveConversation({ ...activeConversation, muted });
+                    }}
+                    data-testid="button-toggle-mute"
+                  >
+                    {activeConversation.muted ? <Bell className="h-3.5 w-3.5" /> : <BellOff className="h-3.5 w-3.5" />}
+                  </Button>
+                </>
+              )}
+              <Button
+                size="icon" variant="ghost"
+                className="h-7 w-7 text-primary-foreground hover:bg-primary-foreground/20"
+                onClick={() => setIsMinimized(!isMinimized)}
+                data-testid="button-chat-minimize"
+              >
+                {isMinimized ? <Maximize2 className="h-3.5 w-3.5" /> : <Minimize2 className="h-3.5 w-3.5" />}
               </Button>
-              <Button size="icon" variant="ghost" className="h-7 w-7 text-primary-foreground hover:bg-primary-foreground/20"
-                onClick={() => { setIsOpen(false); setShowNewChatOptions(false); }}>
-                <X className="h-3 w-3" />
+              <Button
+                size="icon" variant="ghost"
+                className="h-7 w-7 text-primary-foreground hover:bg-primary-foreground/20"
+                onClick={() => { setIsOpen(false); setShowNewChatOptions(false); }}
+                data-testid="button-chat-close"
+              >
+                <X className="h-3.5 w-3.5" />
               </Button>
             </div>
           </CardHeader>
+
           {!isMinimized && (
-            <CardContent className="p-0 flex flex-col h-[calc(500px-57px)]">
+            <CardContent className="p-0 flex flex-col h-[calc(560px-57px)]">
               {!activeConversation ? (
-                <ScrollArea className="flex-1 p-4">
-                  <div className="flex justify-between items-center mb-4">
-                    <p className="text-xs text-muted-foreground">Recent Conversations</p>
-                    <Button size="sm" variant="ghost" className="h-7 text-[10px]"
-                      onClick={() => setShowNewChatOptions(!showNewChatOptions)}>
-                      {showNewChatOptions ? "Cancel" : "New Chat"}
+                <>
+                  <div className="p-3 border-b bg-muted/30 flex items-center gap-2">
+                    <div className="relative flex-1">
+                      <Search className="h-3.5 w-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                      <Input
+                        placeholder="Search conversations…"
+                        className="h-8 pl-8 text-xs"
+                        value={searchQ}
+                        onChange={(e) => setSearchQ(e.target.value)}
+                        data-testid="input-chat-search"
+                      />
+                    </div>
+                    <Button
+                      size="sm" variant="default" className="h-8 px-2 text-xs"
+                      onClick={() => setShowNewChatOptions(!showNewChatOptions)}
+                      data-testid="button-chat-new"
+                    >
+                      <Plus className="h-3.5 w-3.5 mr-1" />
+                      New
                     </Button>
                   </div>
 
                   {showNewChatOptions && (
-                    <div className="space-y-2 mb-4 p-2 bg-muted/30 rounded-lg border border-primary/5">
-                      <p className="text-[10px] font-semibold uppercase text-muted-foreground px-1">Start New Chat with:</p>
+                    <div className="p-3 border-b bg-primary/5">
+                      <p className="text-[10px] font-semibold uppercase text-muted-foreground mb-2">
+                        Start New Chat
+                      </p>
                       <Button
                         variant="outline"
                         className="w-full justify-start text-left h-auto py-2 px-3 text-xs hover-elevate"
@@ -323,9 +498,22 @@ export function ChatBox() {
                         onClick={async () => {
                           try {
                             const res: any = await apiRequest("POST", "/api/support/contact", {});
-                            const conv = (res?.conversation ?? res) as Conv;
-                            setActiveConversation(conv);
-                            queryClient.invalidateQueries({ queryKey: ["/api/chat/conversations"] });
+                            const json = await res.json();
+                            const conv = json?.conversation ?? json;
+                            queryClient.invalidateQueries({ queryKey: ["/api/chat/conversations-rich"] });
+                            // Build a minimal RichConv so we can open it immediately
+                            setActiveConversation({
+                              id: conv.id,
+                              participant1Id: conv.participant1Id,
+                              participant2Id: conv.participant2Id,
+                              lastMessage: conv.lastMessage ?? null,
+                              lastMessageAt: conv.lastMessageAt ?? null,
+                              createdAt: conv.createdAt ?? null,
+                              mutedBy: conv.mutedBy ?? [],
+                              pinnedBy: conv.pinnedBy ?? [],
+                              other: { id: json.adminId || "", name: "GoldenLife Support", role: "admin", avatar: null },
+                              unread: 0, pinned: false, muted: false,
+                            });
                           } catch (e: any) {
                             toast({ title: "Could not reach support", description: e?.message ?? "Try again later", variant: "destructive" });
                           }
@@ -333,148 +521,255 @@ export function ChatBox() {
                         }}
                       >
                         <div className="flex items-center gap-2">
-                          <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center">
-                            <UserIcon className="h-3 w-3 text-primary" />
+                          <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center">
+                            <Headphones className="h-3.5 w-3.5 text-primary" />
                           </div>
-                          <span>GoldenLife Support</span>
+                          <div>
+                            <div className="font-semibold">GoldenLife Support</div>
+                            <div className="text-[10px] text-muted-foreground">Get help from our team</div>
+                          </div>
                         </div>
                       </Button>
                     </div>
                   )}
 
-                  <div className="space-y-2">
-                    {sortedConvs.map((conv) => {
-                      const count = unread?.counts[conv.id] || 0;
-                      const isMuted = !!conv.mutedBy?.includes(user.id);
-                      const isPinned = !!conv.pinnedBy?.includes(user.id);
-                      return (
-                        <div key={conv.id} className="flex items-center gap-1">
-                          <Button
-                            variant="outline"
-                            className="flex-1 justify-start text-left h-auto py-2 px-3 hover-elevate"
-                            onClick={() => setActiveConversation(conv)}
-                            data-testid={`button-conversation-${conv.id}`}
-                          >
-                            <div className="flex items-center gap-2 w-full">
-                              {isPinned && <Pin className="h-3 w-3 text-primary shrink-0" />}
-                              <div className="truncate flex-1">
-                                <div className="font-medium text-xs flex items-center gap-1">
-                                  Conversation
-                                  {isMuted && <BellOff className="h-3 w-3 text-muted-foreground" />}
-                                </div>
-                                <div className="text-[10px] text-muted-foreground truncate">{conv.lastMessage || "No messages yet"}</div>
+                  <ScrollArea className="flex-1">
+                    {loadingConvs ? (
+                      <div className="p-4 text-center text-xs text-muted-foreground">Loading…</div>
+                    ) : filteredConvs.length === 0 ? (
+                      <div className="text-center py-12 px-4 text-muted-foreground">
+                        <MessageSquare className="h-10 w-10 mx-auto mb-3 opacity-20" />
+                        <p className="text-sm font-medium">
+                          {searchQ ? "No matches" : "No conversations yet"}
+                        </p>
+                        <p className="text-[11px] mt-1">
+                          {searchQ ? "Try a different search" : "Start a new chat to get help"}
+                        </p>
+                      </div>
+                    ) : (
+                      <div>
+                        {filteredConvs.map((conv) => {
+                          const isOnline = !!presence?.[conv.other.id];
+                          return (
+                            <button
+                              key={conv.id}
+                              className="w-full px-3 py-3 flex items-center gap-3 hover:bg-muted/50 transition-colors text-left border-b last:border-b-0"
+                              onClick={() => setActiveConversation(conv)}
+                              data-testid={`button-conversation-${conv.id}`}
+                            >
+                              <div className="relative shrink-0">
+                                <Avatar className="h-10 w-10">
+                                  {conv.other.avatar ? <AvatarImage src={conv.other.avatar} /> : null}
+                                  <AvatarFallback className="text-xs bg-primary/10 text-primary font-semibold">
+                                    {initials(conv.other.name)}
+                                  </AvatarFallback>
+                                </Avatar>
+                                {isOnline && (
+                                  <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-green-500 ring-2 ring-background" />
+                                )}
                               </div>
-                              {count > 0 && (
-                                <Badge className="text-[9px] h-4 px-1.5 bg-red-500" data-testid={`badge-unread-${conv.id}`}>
-                                  {count}
-                                </Badge>
-                              )}
-                            </div>
-                          </Button>
-                        </div>
-                      );
-                    })}
-                    {sortedConvs.length === 0 && (
-                      <div className="text-center py-8 text-muted-foreground">
-                        <MessageSquare className="h-8 w-8 mx-auto mb-2 opacity-20" />
-                        <p className="text-xs">No active conversations</p>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center justify-between gap-2">
+                                  <div className="flex items-center gap-1 min-w-0">
+                                    {conv.pinned && <Pin className="h-3 w-3 text-primary shrink-0" />}
+                                    <span
+                                      className="font-semibold text-sm truncate"
+                                      data-testid={`text-conversation-name-${conv.id}`}
+                                    >
+                                      {conv.other.name}
+                                    </span>
+                                    {conv.muted && <BellOff className="h-3 w-3 text-muted-foreground shrink-0" />}
+                                  </div>
+                                  <span className="text-[10px] text-muted-foreground shrink-0">
+                                    {formatListTime(conv.lastMessageAt || conv.createdAt)}
+                                  </span>
+                                </div>
+                                <div className="flex items-center justify-between gap-2 mt-0.5">
+                                  <p
+                                    className={clsx(
+                                      "text-xs truncate",
+                                      conv.unread > 0 ? "text-foreground font-medium" : "text-muted-foreground"
+                                    )}
+                                    data-testid={`text-conversation-preview-${conv.id}`}
+                                  >
+                                    {conv.lastMessage || (
+                                      <span className="italic opacity-70">No messages yet</span>
+                                    )}
+                                  </p>
+                                  {conv.unread > 0 && (
+                                    <Badge
+                                      className="text-[10px] h-5 min-w-[20px] px-1.5 bg-red-500 hover:bg-red-500 shrink-0"
+                                      data-testid={`badge-unread-${conv.id}`}
+                                    >
+                                      {conv.unread > 99 ? "99+" : conv.unread}
+                                    </Badge>
+                                  )}
+                                </div>
+                                <div className="flex items-center gap-1 mt-0.5 text-[10px] text-muted-foreground">
+                                  {roleIcon(conv.other.role)}
+                                  <span>
+                                    {roleLabel(conv.other.role)}
+                                    {conv.createdAt && (
+                                      <> · since {format(new Date(conv.createdAt), "MMM d, yyyy")}</>
+                                    )}
+                                  </span>
+                                </div>
+                              </div>
+                            </button>
+                          );
+                        })}
                       </div>
                     )}
-                  </div>
-                </ScrollArea>
+                  </ScrollArea>
+                </>
               ) : (
                 <>
-                  <div className="p-2 border-b bg-muted/50 flex items-center gap-2">
-                    <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => setActiveConversation(null)}>
-                      <BackArrow className="h-3 w-3" />
-                    </Button>
-                    <span className="text-xs font-medium flex-1">Conversation</span>
-                    <Button size="icon" variant="ghost" className="h-6 w-6"
-                      title={activeConversation.pinnedBy?.includes(user.id) ? "Unpin" : "Pin"}
-                      onClick={() => {
-                        const pinned = !activeConversation.pinnedBy?.includes(user.id);
-                        pinMutation.mutate({ id: activeConversation.id, pinned });
-                        setActiveConversation({
-                          ...activeConversation,
-                          pinnedBy: pinned ? [...(activeConversation.pinnedBy || []), user.id] : (activeConversation.pinnedBy || []).filter(x => x !== user.id),
-                        });
-                      }}
-                      data-testid="button-toggle-pin"
-                    >
-                      {activeConversation.pinnedBy?.includes(user.id) ? <PinOff className="h-3 w-3" /> : <Pin className="h-3 w-3" />}
-                    </Button>
-                    <Button size="icon" variant="ghost" className="h-6 w-6"
-                      title={activeConversation.mutedBy?.includes(user.id) ? "Unmute" : "Mute"}
-                      onClick={() => {
-                        const muted = !activeConversation.mutedBy?.includes(user.id);
-                        muteMutation.mutate({ id: activeConversation.id, muted });
-                        setActiveConversation({
-                          ...activeConversation,
-                          mutedBy: muted ? [...(activeConversation.mutedBy || []), user.id] : (activeConversation.mutedBy || []).filter(x => x !== user.id),
-                        });
-                      }}
-                      data-testid="button-toggle-mute"
-                    >
-                      {activeConversation.mutedBy?.includes(user.id) ? <Bell className="h-3 w-3" /> : <BellOff className="h-3 w-3" />}
-                    </Button>
-                  </div>
-                  <ScrollArea className="flex-1 p-4">
-                    <div className="space-y-4">
-                      {messages?.map((msg: any) => {
-                        const mine = msg.senderId === user.id;
-                        return (
-                          <div key={msg.id} className={clsx("flex flex-col max-w-[85%]", mine ? "ml-auto items-end" : "mr-auto items-start")}>
-                            <div className={clsx(
-                              "rounded-lg px-3 py-2 text-xs shadow-sm",
-                              mine ? "bg-primary text-primary-foreground rounded-tr-none" : "bg-muted rounded-tl-none"
-                            )}>
-                              {msg.attachmentUrl && msg.attachmentType?.startsWith("image/") ? (
-                                <a href={msg.attachmentUrl} target="_blank" rel="noopener" className="block">
-                                  <img src={msg.attachmentUrl} alt={msg.attachmentName || "image"} className="max-w-[200px] rounded mb-1" />
-                                </a>
-                              ) : msg.attachmentUrl ? (
-                                <a href={msg.attachmentUrl} target="_blank" rel="noopener" className="flex items-center gap-1 underline">
-                                  <FileText className="h-3 w-3" /> {msg.attachmentName || "file"}
-                                </a>
-                              ) : null}
-                              {msg.voiceNoteUrl && (
-                                <audio controls src={msg.voiceNoteUrl} className="max-w-[200px] mt-1" />
-                              )}
-                              {msg.content && <div>{msg.content}</div>}
-                            </div>
-                            <span className="text-[9px] text-muted-foreground mt-1 px-1 flex items-center gap-1">
-                              {msg.createdAt ? format(new Date(msg.createdAt), "HH:mm") : ""}
-                              {mine && (
-                                msg.readAt
-                                  ? <CheckCheck className="h-3 w-3 text-blue-500" />
-                                  : msg.isRead ? <CheckCheck className="h-3 w-3" /> : <Check className="h-3 w-3" />
-                              )}
+                  <ScrollArea className="flex-1 px-3 py-3 bg-muted/20">
+                    <div className="space-y-3">
+                      {grouped.length === 0 && (
+                        <div className="text-center py-8">
+                          <Avatar className="h-14 w-14 mx-auto mb-3">
+                            {activeConversation.other.avatar
+                              ? <AvatarImage src={activeConversation.other.avatar} />
+                              : null}
+                            <AvatarFallback className="bg-primary/10 text-primary font-semibold">
+                              {initials(activeConversation.other.name)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <p className="text-sm font-semibold">{activeConversation.other.name}</p>
+                          <p className="text-[11px] text-muted-foreground flex items-center justify-center gap-1 mt-0.5">
+                            {roleIcon(activeConversation.other.role)}
+                            {roleLabel(activeConversation.other.role)}
+                          </p>
+                          {activeConversation.createdAt && (
+                            <p className="text-[10px] text-muted-foreground mt-2">
+                              Conversation started {formatDistanceToNowStrict(new Date(activeConversation.createdAt), { addSuffix: true })}
+                            </p>
+                          )}
+                          <p className="text-xs text-muted-foreground mt-3 italic">No messages yet — say hello 👋</p>
+                        </div>
+                      )}
+
+                      {grouped.map((group) => (
+                        <div key={group.day} className="space-y-2">
+                          <div className="flex items-center gap-2 my-2">
+                            <Separator className="flex-1" />
+                            <span className="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold">
+                              {group.day}
                             </span>
+                            <Separator className="flex-1" />
                           </div>
-                        );
-                      })}
+
+                          {group.items.map((msg: any, idx) => {
+                            const mine = msg.senderId === user.id;
+                            const prev = idx > 0 ? group.items[idx - 1] as any : null;
+                            const sameAuthorBefore = prev && prev.senderId === msg.senderId
+                              && (new Date(msg.createdAt).getTime() - new Date(prev.createdAt).getTime() < 5 * 60 * 1000);
+                            return (
+                              <div key={msg.id} className={clsx("flex gap-2", mine ? "justify-end" : "justify-start")}>
+                                {!mine && (
+                                  <div className="w-7 shrink-0">
+                                    {!sameAuthorBefore && (
+                                      <Avatar className="h-7 w-7">
+                                        {activeConversation.other.avatar
+                                          ? <AvatarImage src={activeConversation.other.avatar} />
+                                          : null}
+                                        <AvatarFallback className="text-[10px] bg-primary/10 text-primary">
+                                          {initials(activeConversation.other.name)}
+                                        </AvatarFallback>
+                                      </Avatar>
+                                    )}
+                                  </div>
+                                )}
+                                <div className={clsx("flex flex-col max-w-[75%]", mine ? "items-end" : "items-start")}>
+                                  <div className={clsx(
+                                    "rounded-2xl px-3 py-2 text-xs shadow-sm break-words",
+                                    mine
+                                      ? "bg-primary text-primary-foreground rounded-br-sm"
+                                      : "bg-background border rounded-bl-sm"
+                                  )}>
+                                    {msg.attachmentUrl && msg.attachmentType?.startsWith("image/") ? (
+                                      <a href={msg.attachmentUrl} target="_blank" rel="noopener" className="block">
+                                        <img
+                                          src={msg.attachmentUrl}
+                                          alt={msg.attachmentName || "image"}
+                                          className="max-w-[220px] rounded-lg mb-1"
+                                        />
+                                      </a>
+                                    ) : msg.attachmentUrl ? (
+                                      <a
+                                        href={msg.attachmentUrl}
+                                        target="_blank"
+                                        rel="noopener"
+                                        className={clsx(
+                                          "flex items-center gap-1.5 underline",
+                                          mine ? "text-primary-foreground" : "text-primary"
+                                        )}
+                                      >
+                                        <FileText className="h-3.5 w-3.5" /> {msg.attachmentName || "file"}
+                                      </a>
+                                    ) : null}
+                                    {msg.voiceNoteUrl && (
+                                      <audio controls src={msg.voiceNoteUrl} className="max-w-[220px] mt-1" />
+                                    )}
+                                    {msg.content && <div className="whitespace-pre-wrap">{msg.content}</div>}
+                                  </div>
+                                  <span className="text-[9px] text-muted-foreground mt-0.5 px-1 flex items-center gap-1">
+                                    {msg.createdAt ? format(new Date(msg.createdAt), "HH:mm") : ""}
+                                    {mine && (
+                                      msg.readAt
+                                        ? <CheckCheck className="h-3 w-3 text-blue-500" />
+                                        : msg.isRead ? <CheckCheck className="h-3 w-3" /> : <Check className="h-3 w-3" />
+                                    )}
+                                  </span>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ))}
+
                       {typingFrom && (
-                        <div className="text-[10px] text-muted-foreground italic" data-testid="text-typing">typing…</div>
+                        <div className="flex items-center gap-2 ml-9">
+                          <div className="bg-background border rounded-2xl rounded-bl-sm px-3 py-2 inline-flex items-center gap-1">
+                            <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/60 animate-bounce" style={{ animationDelay: "0ms" }} />
+                            <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/60 animate-bounce" style={{ animationDelay: "150ms" }} />
+                            <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/60 animate-bounce" style={{ animationDelay: "300ms" }} />
+                          </div>
+                        </div>
                       )}
                       <div ref={scrollRef} />
                     </div>
                   </ScrollArea>
+
                   <div className="p-2 border-t flex gap-1 bg-background items-center">
-                    <input ref={fileRef} type="file" hidden
+                    <input
+                      ref={fileRef}
+                      type="file"
+                      hidden
                       onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFileUpload(f); e.target.value = ""; }}
                     />
-                    <Button size="icon" variant="ghost" className="h-9 w-9 shrink-0" onClick={() => fileRef.current?.click()} data-testid="button-attach">
+                    <Button
+                      size="icon" variant="ghost"
+                      className="h-9 w-9 shrink-0"
+                      onClick={() => fileRef.current?.click()}
+                      data-testid="button-attach"
+                      title="Attach file"
+                    >
                       <Paperclip className="h-4 w-4" />
                     </Button>
-                    <Button size="icon" variant="ghost" className="h-9 w-9 shrink-0"
+                    <Button
+                      size="icon" variant="ghost"
+                      className="h-9 w-9 shrink-0"
                       onClick={isRecording ? stopRecording : startRecording}
                       data-testid="button-voice"
+                      title={isRecording ? "Stop recording" : "Record voice note"}
                     >
                       {isRecording ? <Square className="h-4 w-4 text-red-500" /> : <Mic className="h-4 w-4" />}
                     </Button>
                     <Input
                       className="h-9 text-xs flex-1"
-                      placeholder={isSocketReady ? "Type a message..." : "Connecting…"}
+                      placeholder={isSocketReady ? "Type a message…" : "Connecting…"}
                       value={message}
                       onChange={(e) => { setMessage(e.target.value); sendTyping(); }}
                       onKeyDown={(e) => e.key === "Enter" && sendMessage()}
@@ -485,8 +780,8 @@ export function ChatBox() {
                       className="h-9 w-9 shrink-0"
                       onClick={() => sendMessage()}
                       disabled={!isSocketReady || !message.trim()}
-                      title={isSocketReady ? "Send" : "Reconnecting…"}
-                      data-testid="button-chat-send"
+                      data-testid="button-send"
+                      title="Send"
                     >
                       <Send className="h-4 w-4" />
                     </Button>
@@ -498,11 +793,5 @@ export function ChatBox() {
         </Card>
       )}
     </div>
-  );
-}
-
-function BackArrow({ className }: { className?: string }) {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
   );
 }

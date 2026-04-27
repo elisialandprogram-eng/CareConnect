@@ -130,8 +130,11 @@ export default function PatientDashboard() {
   const { toast } = useToast();
   const { format: fmtMoney } = useCurrency();
 
+  const [activeTab, setActiveTab] = useState<string>("upcoming");
+
   const { data: appointments, isLoading } = useQuery<AppointmentWithDetails[]>({
     queryKey: ["/api/appointments/patient"],
+    enabled: !!user,
   });
 
   // Fire-and-forget cleanup of stale appointments — runs once after the dashboard
@@ -161,11 +164,12 @@ export default function PatientDashboard() {
 
   const { data: invoices, isLoading: isLoadingInvoices } = useQuery<any[]>({
     queryKey: ["/api/invoices/me"],
+    enabled: !!user && activeTab === "invoices",
   });
 
   const { data: savedProviders, isLoading: isLoadingSaved } = useQuery<ProviderWithUser[]>({
     queryKey: ["/api/saved-providers"],
-    enabled: user?.role === "patient",
+    enabled: user?.role === "patient" && activeTab === "saved",
   });
 
   const generateInvoiceMutation = useMutation({
@@ -558,7 +562,7 @@ export default function PatientDashboard() {
             </Button>
           </div>
 
-          <Tabs defaultValue="upcoming" className="w-full">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="flex flex-wrap h-auto">
               <TabsTrigger value="upcoming" data-testid="tab-upcoming">
                 {t("dashboard.upcoming")} ({upcomingAppointments.length})

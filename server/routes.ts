@@ -96,7 +96,7 @@ import { isWhatsAppConfigured } from "./services/channels/whatsapp";
 import { isEmailConfigured } from "./services/channels/email";
 import { saveChatUpload } from "./services/uploads";
 import { getOrCreateVideoSession } from "./services/video";
-import { pushToUser } from "./chat/ws";
+import { pushToUser, isUserOnline } from "./chat/ws";
 
 const JWT_SECRET = process.env.SESSION_SECRET || "careconnect-jwt-secret-key";
 const JWT_EXPIRES_IN = "15m";
@@ -3467,6 +3467,19 @@ export async function registerRoutes(
     } catch (e) {
       console.error("conversations-rich error:", e);
       res.status(500).json([]);
+    }
+  });
+
+  // ----- Chat: presence — which of the listed user ids currently have a live socket -----
+  app.get("/api/chat/online-status", authenticateToken, async (req: AuthRequest, res: Response) => {
+    try {
+      const idsParam = (req.query.ids as string) || "";
+      const ids = idsParam.split(",").map(s => s.trim()).filter(Boolean);
+      const out: Record<string, boolean> = {};
+      for (const id of ids) out[id] = isUserOnline(id);
+      res.json(out);
+    } catch {
+      res.json({});
     }
   });
 

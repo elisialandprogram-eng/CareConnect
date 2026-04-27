@@ -229,3 +229,12 @@ export function setupChatWS(server: Server) {
 export function pushToUser(userId: string, payload: any) {
   sendTo(userId, payload);
 }
+
+/** True if the given user has at least one open socket. */
+export function isUserOnline(userId: string): boolean {
+  const set = sockets.get(userId);
+  if (!set) return false;
+  let online = false;
+  set.forEach((s) => { if (s.readyState === WebSocket.OPEN) online = true; });
+  return online;
+}

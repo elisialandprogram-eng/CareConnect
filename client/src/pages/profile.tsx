@@ -18,6 +18,7 @@ import {
   Activity, Settings, Heart, Shield, Camera, Briefcase, X, CheckCircle2, Calendar,
 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
+import i18n from "@/lib/i18n";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -266,8 +267,13 @@ export default function Profile() {
       if (!response.ok) throw new Error("Failed to update profile");
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (_data, variables: any) => {
       queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+      // Apply the new preferred language right away so the UI reflects it
+      // without forcing a refresh.
+      if (variables?.languagePreference && variables.languagePreference !== i18n.language) {
+        void i18n.changeLanguage(variables.languagePreference);
+      }
       toast({
         title: t("profile_page.toast_profile_updated", "Profile updated"),
         description: t("profile_page.toast_profile_updated_desc", "Your profile has been updated successfully."),
