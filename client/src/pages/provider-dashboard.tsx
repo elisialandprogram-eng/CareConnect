@@ -202,6 +202,31 @@ export default function ProviderDashboard() {
     },
   });
 
+  const generateInvoiceMutation = useMutation({
+    mutationFn: async (appointmentId: string) => {
+      const res = await apiRequest("POST", `/api/invoices/generate/${appointmentId}`, {});
+      return res.json();
+    },
+    onSuccess: (data: any, appointmentId) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/appointments/provider"] });
+      toast({
+        title: t("provider_dashboard.invoice_ready_title", "Invoice ready"),
+        description: t("provider_dashboard.invoice_ready_desc", "The invoice has been generated."),
+      });
+      const url = data?.invoice?.id
+        ? `/api/invoices/${data.invoice.id}/download`
+        : `/api/invoices/by-appointment/${appointmentId}/download`;
+      window.open(url, "_blank", "noopener");
+    },
+    onError: (e: any) => {
+      toast({
+        title: t("provider_dashboard.invoice_failed_title", "Could not generate invoice"),
+        description: e?.message || t("provider_dashboard.invoice_failed_desc", "Please try again later."),
+        variant: "destructive",
+      });
+    },
+  });
+
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const toggleSelected = (id: string) => {
     setSelectedIds((prev) => {
@@ -851,6 +876,40 @@ export default function ProviderDashboard() {
                   {t("dashboard.cancel", "Cancel")}
                 </Button>
               </>
+            )}
+            {appointment.status === "completed" && (
+              (appointment as any).invoiceGenerated ? (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  asChild
+                  data-testid={`button-download-invoice-${appointment.id}`}
+                >
+                  <a
+                    href={`/api/invoices/by-appointment/${appointment.id}/download`}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    <FileText className="h-3 w-3 mr-1" />
+                    {t("provider_dashboard.download_invoice", "Download invoice")}
+                  </a>
+                </Button>
+              ) : (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={generateInvoiceMutation.isPending && generateInvoiceMutation.variables === appointment.id}
+                  onClick={() => generateInvoiceMutation.mutate(appointment.id)}
+                  data-testid={`button-generate-invoice-${appointment.id}`}
+                >
+                  {generateInvoiceMutation.isPending && generateInvoiceMutation.variables === appointment.id ? (
+                    <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                  ) : (
+                    <FileText className="h-3 w-3 mr-1" />
+                  )}
+                  {t("provider_dashboard.generate_invoice", "Generate invoice")}
+                </Button>
+              )
             )}
           </div>
         )}

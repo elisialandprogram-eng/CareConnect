@@ -1,7 +1,7 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { Link, useLocation } from "wouter";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Header } from "@/components/header";
@@ -132,13 +132,32 @@ export default function PatientDashboard() {
 
   const { data: appointments, isLoading } = useQuery<AppointmentWithDetails[]>({
     queryKey: ["/api/appointments/patient"],
-    queryFn: async () => {
-      await apiRequest("POST", "/api/appointments/cleanup", {});
-      const res = await apiRequest("GET", "/api/appointments/patient");
-      if (!res.ok) throw new Error("Failed to fetch appointments");
-      return res.json();
-    }
   });
+
+  // Fire-and-forget cleanup of stale appointments — runs once after the dashboard
+  // mounts, not as part of the appointments fetch. Refreshes the list when done.
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    apiRequest("POST", "/api/appointments/cleanup", {})
+      .then(async (res) => {
+        if (cancelled) return;
+        try {
+          const body = await res.json();
+          if (body && typeof body.cancelledCount === "number" && body.cancelledCount > 0) {
+            queryClient.invalidateQueries({ queryKey: ["/api/appointments/patient"] });
+          }
+        } catch {
+          // ignore parse errors
+        }
+      })
+      .catch(() => {
+        // ignore — cleanup is best-effort
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id]);
 
   const { data: invoices, isLoading: isLoadingInvoices } = useQuery<any[]>({
     queryKey: ["/api/invoices/me"],
@@ -147,6 +166,33 @@ export default function PatientDashboard() {
   const { data: savedProviders, isLoading: isLoadingSaved } = useQuery<ProviderWithUser[]>({
     queryKey: ["/api/saved-providers"],
     enabled: user?.role === "patient",
+  });
+
+  const generateInvoiceMutation = useMutation({
+    mutationFn: async (appointmentId: string) => {
+      const res = await apiRequest("POST", `/api/invoices/generate/${appointmentId}`, {});
+      return res.json();
+    },
+    onSuccess: (data: any, appointmentId) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/invoices/me"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/appointments/patient"] });
+      toast({
+        title: t("dashboard.invoice_ready_title", "Invoice ready"),
+        description: t("dashboard.invoice_ready_desc", "Your invoice has been generated."),
+      });
+      if (data?.invoice?.id) {
+        window.open(`/api/invoices/${data.invoice.id}/download`, "_blank", "noopener");
+      } else {
+        window.open(`/api/invoices/by-appointment/${appointmentId}/download`, "_blank", "noopener");
+      }
+    },
+    onError: (e: any) => {
+      toast({
+        title: t("dashboard.invoice_failed_title", "Could not generate invoice"),
+        description: e?.message || t("dashboard.invoice_failed_desc", "Please try again later."),
+        variant: "destructive",
+      });
+    },
   });
 
   const cancelMutation = useMutation({
@@ -338,6 +384,34 @@ export default function PatientDashboard() {
                     {t("dashboard.book_again", "Book again")}
                   </Link>
                 </Button>
+                {appointment.invoiceGenerated ? (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    asChild
+                    data-testid={`button-download-invoice-appt-${appointment.id}`}
+                  >
+                    <a
+                      href={`/api/invoices/by-appointment/${appointment.id}/download`}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      <FileText className="h-4 w-4 mr-1" />
+                      {t("dashboard.download_invoice", "Download invoice")}
+                    </a>
+                  </Button>
+                ) : (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => generateInvoiceMutation.mutate(appointment.id)}
+                    disabled={generateInvoiceMutation.isPending && generateInvoiceMutation.variables === appointment.id}
+                    data-testid={`button-generate-invoice-${appointment.id}`}
+                  >
+                    <FileText className="h-4 w-4 mr-1" />
+                    {t("dashboard.generate_invoice", "Generate invoice")}
+                  </Button>
+                )}
               </div>
             )}
           </div>

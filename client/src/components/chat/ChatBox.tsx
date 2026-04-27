@@ -57,46 +57,82 @@ export function ChatBox() {
     refetchInterval: 30000,
   });
 
-  // Connect once per user, keep socket open across UI minimise/close
+  const [isSocketReady, setIsSocketReady] = useState(false);
+  const activeConvIdRef = useRef<string | null>(null);
+  useEffect(() => { activeConvIdRef.current = activeConversation?.id ?? null; }, [activeConversation?.id]);
+
+  // One persistent socket per logged-in user. Reconnects with backoff if the
+  // server drops us. Auth happens server-side via the httpOnly cookie sent on
+  // the upgrade request, so we don't have to forward any token from JS.
   useEffect(() => {
     if (!user) return;
-    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    const socket = new WebSocket(`${protocol}//${window.location.host}/ws/chat`);
-    socketRef.current = socket;
+    let closedByUs = false;
+    let reconnectTimer: any = null;
+    let backoff = 1000;
 
-    socket.onopen = () => {
-      const token = document.cookie.split("; ").find(r => r.startsWith("accessToken="))?.split("=")[1];
-      socket.send(JSON.stringify({ type: "auth", token }));
+    const connect = () => {
+      const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+      const socket = new WebSocket(`${protocol}//${window.location.host}/ws/chat`);
+      socketRef.current = socket;
+      setIsSocketReady(false);
+
+      socket.onopen = () => {
+        backoff = 1000;
+        setIsSocketReady(true);
+      };
+
+      socket.onmessage = (event) => {
+        let data: any;
+        try { data = JSON.parse(event.data); } catch { return; }
+        switch (data.type) {
+          case "auth_ok":
+            setIsSocketReady(true);
+            break;
+          case "message":
+            queryClient.invalidateQueries({ queryKey: ["/api/chat/messages", data.data.conversationId] });
+            queryClient.invalidateQueries({ queryKey: ["/api/chat/conversations"] });
+            queryClient.invalidateQueries({ queryKey: ["/api/chat/unread-counts"] });
+            break;
+          case "typing":
+            if (activeConvIdRef.current && data.conversationId === activeConvIdRef.current && data.userId !== user.id) {
+              setTypingFrom(data.userId);
+              setTimeout(() => setTypingFrom(null), 4000);
+            }
+            break;
+          case "read":
+            queryClient.invalidateQueries({ queryKey: ["/api/chat/messages", data.conversationId] });
+            break;
+          case "auto_reply":
+            queryClient.invalidateQueries({ queryKey: ["/api/chat/messages", data.conversationId] });
+            break;
+          case "error":
+            toast({ title: "Chat error", description: data.message || "Something went wrong", variant: "destructive" });
+            break;
+        }
+      };
+
+      socket.onclose = () => {
+        socketRef.current = null;
+        setIsSocketReady(false);
+        if (!closedByUs) {
+          reconnectTimer = setTimeout(connect, backoff);
+          backoff = Math.min(backoff * 2, 15000);
+        }
+      };
+      socket.onerror = () => {
+        try { socket.close(); } catch {}
+      };
     };
 
-    socket.onmessage = (event) => {
-      let data: any;
-      try { data = JSON.parse(event.data); } catch { return; }
-      switch (data.type) {
-        case "message":
-          queryClient.invalidateQueries({ queryKey: ["/api/chat/messages", data.data.conversationId] });
-          queryClient.invalidateQueries({ queryKey: ["/api/chat/conversations"] });
-          queryClient.invalidateQueries({ queryKey: ["/api/chat/unread-counts"] });
-          break;
-        case "typing":
-          if (activeConversation && data.conversationId === activeConversation.id && data.userId !== user.id) {
-            setTypingFrom(data.userId);
-            setTimeout(() => setTypingFrom(null), 4000);
-          }
-          break;
-        case "read":
-          queryClient.invalidateQueries({ queryKey: ["/api/chat/messages", data.conversationId] });
-          break;
-        case "auto_reply":
-          // Provider out-of-office reply already comes through as a normal message
-          queryClient.invalidateQueries({ queryKey: ["/api/chat/messages", data.conversationId] });
-          break;
-      }
+    connect();
+    return () => {
+      closedByUs = true;
+      if (reconnectTimer) clearTimeout(reconnectTimer);
+      try { socketRef.current?.close(); } catch {}
+      socketRef.current = null;
     };
-
-    socket.onclose = () => { socketRef.current = null; };
-    return () => socket.close();
-  }, [user, activeConversation?.id]);
+    // Only reconnect when the logged-in user changes, NOT when conversation changes.
+  }, [user?.id]);
 
   // Auto-scroll
   useEffect(() => { scrollRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
@@ -120,14 +156,27 @@ export function ChatBox() {
   };
 
   const sendMessage = (extra?: Partial<{ attachmentUrl: string; attachmentType: string; attachmentName: string; voiceNoteUrl: string; voiceDurationSec: number }>) => {
-    if ((!message.trim() && !extra) || !activeConversation || !socketRef.current) return;
-    socketRef.current.send(JSON.stringify({
-      type: "message",
-      conversationId: activeConversation.id,
-      content: message || (extra?.attachmentName ? `📎 ${extra.attachmentName}` : extra?.voiceNoteUrl ? "🎤 Voice note" : ""),
-      ...extra,
-    }));
-    setMessage("");
+    if ((!message.trim() && !extra) || !activeConversation) return;
+    const sock = socketRef.current;
+    if (!sock || sock.readyState !== WebSocket.OPEN) {
+      toast({
+        title: "Reconnecting…",
+        description: "Chat is not connected yet. Please try again in a moment.",
+        variant: "destructive",
+      });
+      return;
+    }
+    try {
+      sock.send(JSON.stringify({
+        type: "message",
+        conversationId: activeConversation.id,
+        content: message || (extra?.attachmentName ? `📎 ${extra.attachmentName}` : extra?.voiceNoteUrl ? "🎤 Voice note" : ""),
+        ...extra,
+      }));
+      setMessage("");
+    } catch (e: any) {
+      toast({ title: "Send failed", description: e?.message || "Try again", variant: "destructive" });
+    }
   };
 
   const muteMutation = useMutation({
@@ -425,13 +474,20 @@ export function ChatBox() {
                     </Button>
                     <Input
                       className="h-9 text-xs flex-1"
-                      placeholder="Type a message..."
+                      placeholder={isSocketReady ? "Type a message..." : "Connecting…"}
                       value={message}
                       onChange={(e) => { setMessage(e.target.value); sendTyping(); }}
                       onKeyDown={(e) => e.key === "Enter" && sendMessage()}
                       data-testid="input-chat-message"
                     />
-                    <Button size="icon" className="h-9 w-9 shrink-0" onClick={() => sendMessage()} data-testid="button-chat-send">
+                    <Button
+                      size="icon"
+                      className="h-9 w-9 shrink-0"
+                      onClick={() => sendMessage()}
+                      disabled={!isSocketReady || !message.trim()}
+                      title={isSocketReady ? "Send" : "Reconnecting…"}
+                      data-testid="button-chat-send"
+                    >
                       <Send className="h-4 w-4" />
                     </Button>
                   </div>

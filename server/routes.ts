@@ -257,6 +257,57 @@ export async function registerRoutes(
     }
   });
 
+  // Manually (re-)generate the invoice for a single completed appointment.
+  // Allowed for the owning provider, the patient on that appointment, or admin.
+  // Idempotent: if an invoice already exists, returns it.
+  app.post("/api/invoices/generate/:appointmentId", authenticateToken, async (req: AuthRequest, res: Response) => {
+    try {
+      const appointment = await storage.getAppointmentWithDetails(req.params.appointmentId);
+      if (!appointment) return res.status(404).json({ message: "Appointment not found" });
+
+      const isAdmin = req.user?.role === "admin";
+      const isPatient = req.user?.role === "patient" && appointment.patientId === req.user?.id;
+      let isOwningProvider = false;
+      if (req.user?.role === "provider") {
+        const prov = await storage.getProviderByUserId(req.user.id);
+        isOwningProvider = !!prov && prov.id === appointment.providerId;
+      }
+      if (!isAdmin && !isPatient && !isOwningProvider) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      if (appointment.status !== "completed") {
+        return res.status(400).json({ message: "Invoice can only be generated for completed appointments" });
+      }
+
+      const existing = await storage.getInvoiceByAppointment(appointment.id);
+      if (existing) {
+        return res.json({ created: false, invoice: existing });
+      }
+
+      const result = await createInvoiceForAppointment(appointment.id);
+      const invoice = await storage.getInvoiceByAppointment(appointment.id);
+      return res.json({ ...result, invoice });
+    } catch (err) {
+      console.error("Manual invoice generation error:", err);
+      res.status(500).json({ message: "Failed to generate invoice" });
+    }
+  });
+
+  // Convenience: download an invoice PDF directly by appointmentId so the
+  // patient dashboard doesn't have to fetch the invoice list first.
+  app.get("/api/invoices/by-appointment/:appointmentId/download", authenticateToken, async (req: AuthRequest, res: Response) => {
+    try {
+      const invoice = await storage.getInvoiceByAppointment(req.params.appointmentId);
+      if (!invoice) return res.status(404).json({ message: "Invoice not found" });
+      // Reuse the existing access checks by redirecting to the standard endpoint.
+      return res.redirect(`/api/invoices/${invoice.id}/download`);
+    } catch (err) {
+      console.error("Invoice by-appointment download error:", err);
+      res.status(500).json({ message: "Failed to download invoice" });
+    }
+  });
+
   app.post("/api/admin/invoices/generate-pending", authenticateToken, async (req: AuthRequest, res: Response) => {
     if (req.user?.role !== "admin") return res.status(403).json({ message: "Admin access required" });
     

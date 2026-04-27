@@ -29,7 +29,11 @@ function sendTo(userId: string, payload: any) {
   const set = sockets.get(userId);
   if (!set) return;
   const json = JSON.stringify(payload);
-  for (const s of set) if (s.readyState === WebSocket.OPEN) s.send(json);
+  set.forEach((s) => {
+    if (s.readyState === WebSocket.OPEN) {
+      try { s.send(json); } catch {}
+    }
+  });
 }
 
 async function getConversationParticipants(conversationId: string): Promise<{ p1: string; p2: string } | null> {
@@ -55,6 +59,16 @@ async function isWithinOfficeHours(providerUserId: string): Promise<boolean> {
   return cur >= s && cur < e;
 }
 
+function parseCookie(header: string | undefined, name: string): string | undefined {
+  if (!header) return undefined;
+  const parts = header.split(";");
+  for (const part of parts) {
+    const [k, ...rest] = part.trim().split("=");
+    if (k === name) return decodeURIComponent(rest.join("="));
+  }
+  return undefined;
+}
+
 export function setupChatWS(server: Server) {
   const wss = new WebSocketServer({ server, path: "/ws/chat" });
 
@@ -67,9 +81,33 @@ export function setupChatWS(server: Server) {
     });
   }, 30000).unref();
 
-  wss.on("connection", (ws: AuthenticatedWebSocket) => {
+  wss.on("connection", (ws: AuthenticatedWebSocket, req) => {
     ws.isAlive = true;
     ws.on("pong", () => { ws.isAlive = true; });
+
+    // Authenticate immediately from the httpOnly accessToken cookie sent during
+    // the upgrade handshake. Falls back to a `?token=` query param so older
+    // clients (or environments where the cookie is unavailable) still work.
+    try {
+      const cookieHeader = req.headers.cookie;
+      let token = parseCookie(cookieHeader, "accessToken");
+      if (!token && req.url) {
+        try {
+          const u = new URL(req.url, "http://localhost");
+          const qp = u.searchParams.get("token");
+          if (qp) token = qp;
+        } catch {}
+      }
+      if (token) {
+        const decoded = jwt.verify(token, JWT_SECRET) as { id: string };
+        ws.userId = decoded.id;
+        attach(ws.userId, ws);
+        try { ws.send(JSON.stringify({ type: "auth_ok" })); } catch {}
+      }
+    } catch {
+      // bad/expired token — leave ws.userId unset; the client may still send
+      // an explicit auth message below.
+    }
 
     ws.on("message", async (data) => {
       let msg: any;
@@ -78,6 +116,7 @@ export function setupChatWS(server: Server) {
       if (msg.type === "auth") {
         try {
           const decoded = jwt.verify(msg.token, JWT_SECRET) as { id: string };
+          if (ws.userId && ws.userId !== decoded.id) detach(ws.userId, ws);
           ws.userId = decoded.id;
           attach(ws.userId, ws);
           ws.send(JSON.stringify({ type: "auth_ok" }));
@@ -87,7 +126,10 @@ export function setupChatWS(server: Server) {
         return;
       }
 
-      if (!ws.userId) return;
+      if (!ws.userId) {
+        try { ws.send(JSON.stringify({ type: "error", message: "not authenticated" })); } catch {}
+        return;
+      }
 
       try {
         switch (msg.type) {
