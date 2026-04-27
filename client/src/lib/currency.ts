@@ -67,17 +67,48 @@ export function getCurrencyConfig(language: string | undefined): CurrencyConfig 
   return resolveConfig(language);
 }
 
+function resolveByCode(code: SupportedCurrency | string | null | undefined): CurrencyConfig | null {
+  if (!code) return null;
+  const upper = String(code).toUpperCase();
+  for (const cfg of Object.values(CURRENCY_BY_LANG)) {
+    if (cfg.code === upper) return cfg;
+  }
+  return null;
+}
+
 export function useCurrency() {
   const { i18n } = useTranslation();
   const lang = i18n.language;
-  const config = resolveConfig(lang);
+  // Allow per-user override saved in localStorage (mirrored from user.preferredCurrency)
+  let overrideCode: string | null = null;
+  if (typeof window !== "undefined") {
+    try {
+      overrideCode = window.localStorage.getItem("preferredCurrency");
+    } catch {
+      overrideCode = null;
+    }
+  }
+  const config = resolveByCode(overrideCode) ?? resolveConfig(lang);
   return {
     config,
     code: config.code,
     symbol: config.symbol,
     locale: config.locale,
-    format: (amountInHUF: number | string | null | undefined) =>
-      formatCurrency(amountInHUF, lang),
+    format: (amountInHUF: number | string | null | undefined) => {
+      const numeric = Number(amountInHUF ?? 0);
+      const safe = Number.isFinite(numeric) ? numeric : 0;
+      const converted = safe * config.rateFromHUF;
+      try {
+        return new Intl.NumberFormat(config.locale, {
+          style: "currency",
+          currency: config.code,
+          maximumFractionDigits: config.fractionDigits,
+          minimumFractionDigits: config.fractionDigits === 0 ? 0 : 2,
+        }).format(converted);
+      } catch {
+        return `${config.symbol}${converted.toFixed(config.fractionDigits)}`;
+      }
+    },
     convert: (amountInHUF: number | string | null | undefined) => {
       const numeric = Number(amountInHUF ?? 0);
       const safe = Number.isFinite(numeric) ? numeric : 0;

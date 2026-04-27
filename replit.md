@@ -2,7 +2,7 @@
 
 ## Overview
 
-CareConnect is a healthcare booking platform designed to connect patients with verified physiotherapists, doctors, and home care nurses. It facilitates searching for healthcare providers, booking various types of appointments (online or home visits), secure online payments, and submitting patient reviews. Healthcare providers can utilize a dedicated dashboard to manage their profiles, services offered, availability, and scheduled appointments. The platform aims to provide a reliable and aesthetically pleasing user experience, drawing inspiration from leading booking platforms.
+CareConnect is a healthcare booking platform designed to connect patients with verified physiotherapists, doctors, and home care nurses. It facilitates searching for healthcare providers, booking various types of appointments (online or home visits), secure online payments, and submitting patient reviews. Healthcare providers can utilize a dedicated dashboard to manage their profiles, services offered, availability, and scheduled appointments. The platform aims to provide a reliable and aesthetically pleasing user experience, drawing inspiration from leading booking platforms, and includes a business vision to capture a significant share of the healthcare booking market by offering a seamless and trustworthy service.
 
 ## User Preferences
 
@@ -12,79 +12,39 @@ Preferred communication style: Simple, everyday language.
 
 ### Frontend
 
-The frontend is built with React and TypeScript, utilizing Wouter for routing and TanStack Query for server state management. Styling is handled with Tailwind CSS, leveraging Radix UI primitives and shadcn/ui for accessible UI components. Forms are managed with React Hook Form and Zod for validation. The design system incorporates Inter and DM Sans fonts, supports light/dark modes, and follows a mobile-first responsive approach. Key pages include Home, Provider listing, Provider Profile, Patient Dashboard, Provider Dashboard, and Authentication flows.
+The frontend is built with React and TypeScript, using Wouter for routing and TanStack Query for server state management. Tailwind CSS, Radix UI primitives, and shadcn/ui are used for styling and accessible UI components. Forms are managed with React Hook Form and Zod for validation. The design system features Inter and DM Sans fonts, supports light/dark modes, and is mobile-first responsive. Key pages include Home, Provider listing, Provider Profile, Patient Dashboard, Provider Dashboard, and Authentication flows. The platform supports English, Hungarian, and Persian/Farsi via i18next, with currency formatting based on user preferences or language. User language and currency preferences are persistent and applied dynamically.
 
-The Provider Dashboard offers comprehensive booking management with eight key statistics (Today's appointments, Pending actions, Upcoming, Unique patients, Weekly/Monthly/Total revenue in HUF, and Rating with completion rate), a dedicated "Today's Schedule" highlight section, and nine tabs: Upcoming, Completed, Cancelled, All History, Calendar, Reviews, Availability, Analytics, and Services & Staff. Appointments can be searched by patient name/service/ID, filtered by status and visit type, exported to CSV, and clicked to open a detail modal with private internal notes and a reschedule dialog. The Calendar tab highlights days with appointments and lists them per selected date. The Reviews tab fetches the provider's reviews with inline reply support. The Availability tab opens a weekly slot manager that bulk-creates time slots across selected weekdays. The Analytics tab renders 30-day revenue (line) and appointment-count (bar) charts via recharts. Status-aware action buttons (Approve, Reject, Confirm, Mark Completed, Mark Payment Received, Cancel, Reschedule) appear contextually across all seven appointment states.
-
-The Patient Dashboard mirrors the provider experience with Upcoming, Completed, Cancelled, All History, Medical Records, and Invoices tabs plus shared search and visit-type filters. The Providers listing surfaces a prominent emerald "Verified" badge on each card and offers a "Verified providers only" filter checkbox alongside the existing service/location/rating/price/visit-type filters. The site header shows a notification bell with an unread-count badge that polls every 30 seconds. The header also gates its login/avatar UI on the auth context's `isLoading` flag (rendering a small skeleton during `/api/auth/me`) so reloads no longer flash the logged-out state before resolving.
-
-The profile page (`client/src/pages/profile.tsx`) is organized as shadcn Tabs (Personal / Address / Medical / Insurance / Emergency / Provider / Gallery / Security) with a hero card showing avatar, role/verification badges, and a profile-completion meter. Personal info captures first/last name, date of birth, gender, preferred pronouns, marital status, occupation, ID number, phone and mobile. Address is split into street/city/state/zip. Medical (patient-only) covers blood group, height (cm), weight (kg), allergies, conditions, medications, and surgeries. Insurance (patient-only) captures provider, policy number, and primary care physician. Emergency contact captures name, phone, and relationship. The provider tab is read-only and links to the Provider Dashboard for editing professional details. A sticky save bar at the bottom of editable tabs submits to `PATCH /api/auth/profile`, which now whitelists the full set of profile fields and coerces date/numeric values.
-
-Registration (`POST /api/auth/register`) treats unverified accounts as abandoned signups: if a user record exists for the email but `isEmailVerified === false`, the prior record (which cascades to provider rows) is deleted before creating the fresh one, so users can no longer get permanently locked out by walking away from OTP. Verified accounts still hit a clean "email already registered" error.
-
-The admin dashboard's Users and Providers management mutations now use TanStack Query's `invalidateQueries` plus optimistic cache updates instead of the local `refetch`. Deletes immediately remove rows from the cache (with rollback on error) and invalidate cross-cutting keys (`/api/admin/users`, `/api/admin/providers`, `/api/admin/analytics`, `/api/admin/bookings`, `/api/admin/wallets`, `/api/providers`) so dependent panels stay in sync without a page reload.
-
-### Internationalization (i18n)
-
-The app supports English (EN), Hungarian (HU), and Persian/Farsi (FA) via i18next, with locale JSON files at `client/src/i18n/locales/{en,hu,fa}/translation.json`. All hardcoded user-facing strings in the Provider Dashboard, Patient Dashboard, Profile page, and Admin Dashboard (Booking Statistics, FAQs, Announcements, Platform Settings, Audit Logs, Invoice Management, Support Tickets, Pricing Management, Promo Codes, Stripe Settings, External Integrations, and provider creation toasts) have been wired through `t("namespace.key", "English fallback")`. Currency is formatted via the shared `useCurrency()` hook in `client/src/lib/currency.ts`: USD ($) is the main display currency for English, Hungarian switches to HUF (Ft), and Persian switches to IRR (﷼). Stored prices remain in HUF in the database and the hook converts on the fly using the rates declared in `currency.ts` (update those constants when FX rates drift). Status badge values, payment method names, and form `value` attributes remain untranslated to preserve API contracts.
+Both Patient and Provider Dashboards offer comprehensive appointment management, search, filtering, and export capabilities. The Provider Dashboard includes statistics, a "Today's Schedule" highlight, calendar view, reviews management with inline replies, availability management with bulk slot creation, and analytics for revenue and appointment counts. The Patient Dashboard includes medical records and invoices. Profile management is organized into tabs (Personal, Address, Medical, Insurance, Emergency, Provider, Gallery, Security) with a sticky save bar for updates. Registration handles unverified accounts by deleting prior records to prevent lockouts. Admin dashboard management mutations use TanStack Query for efficient cache invalidation and optimistic updates.
 
 ### Backend
 
-The backend is developed with Node.js and TypeScript, using Express.js as the framework and Drizzle ORM for database interactions. Authentication is JWT-based with bcrypt for password hashing, supporting role-based access control (patient, provider, admin). The API is RESTful, uses JSON for communication, and includes centralized error handling and request logging. A Data Access Layer (DAL) abstracts database operations for various entities, providing enriched data types for complex queries.
+The backend is developed with Node.js and TypeScript, using Express.js and Drizzle ORM for database interactions. Authentication is JWT-based with bcrypt for password hashing and supports role-based access control (patient, provider, admin). The API is RESTful, uses JSON, and includes centralized error handling and request logging. A Data Access Layer (DAL) abstracts database operations.
 
 ### Wallet System
 
-CareConnect ships with an in-app wallet so patients can pre-load HUF credits and pay any service in one tap. The schema lives in `shared/schema.ts` (`wallets` + append-only `wallet_transactions` ledger with snapshot `balanceAfter` and a unique `idempotency_key`). Storage helpers in `server/storage.ts` (`getOrCreateWallet`, `topUpWallet`, `debitWallet`, `refundWallet`, `adminAdjustWallet`) all funnel through `applyWalletDelta`, which runs inside a `db.transaction` with `SELECT … FOR UPDATE` row locking and a short-circuit on duplicate idempotency keys. Insufficient-balance debits throw cleanly without mutating state.
-
-API surface (in `server/routes.ts`): `GET /api/wallet`, `GET /api/wallet/transactions`, `POST /api/wallet/topup` (Stripe Checkout, `metadata.type=wallet_topup`, success URL `/wallet?topup=success`), `POST /api/wallet/pay-appointment`, `GET /api/admin/wallets`, `GET /api/admin/wallets/:userId/transactions`, `POST /api/admin/wallets/:userId/adjust`. `server/stripeWebhook.ts` recognizes `wallet_topup` sessions and credits the wallet idempotently with `idempotencyKey=stripe:<sessionId>`. The booking endpoint (`POST /api/appointments`) accepts `paymentMethod: "wallet"` and atomically debits the wallet, marks the payment `completed`, and confirms the appointment; failures cancel the appointment and mark the payment `failed` so the patient can retry with another method.
-
-Frontend: a dedicated `/wallet` page (`client/src/pages/wallet.tsx`) exposes balance, quick top-up amounts (5k/10k/25k/50k HUF) plus custom amount, and the full transaction history with credit/debit colour coding. The patient dashboard surfaces a Wallet link, the booking page adds a "Wallet" payment radio that auto-disables when the balance is insufficient, and the admin dashboard gets a Wallets tab with a searchable user list and signed adjustments (positive credit, negative debit) backed by mandatory reason notes for the audit trail. i18n keys (`wallet.*`, `admin_wallets.*`) are present for EN/HU/FA. Currency is always formatted as HUF via `Intl.NumberFormat`.
-
-A lightweight in-process reminder cron (`server/reminderCron.ts`) starts after the HTTP server binds; every hour it scans for confirmed/approved/rescheduled appointments occurring ~24h ahead and creates in-app reminder notifications for both the patient and the provider's user account, deduplicating in-memory by appointment ID. The provider dashboard exposes additional endpoints: `GET /api/notifications/unread-count`, `POST /api/notifications/mark-all-read`, `GET /api/reviews/provider/me`, `PATCH /api/reviews/:id/reply`, `POST /api/services/:id/duplicate`, `PATCH /api/services/reorder`, `POST /api/availability/bulk`, and `PATCH /api/appointments/:id` (reschedule + private note).
+An in-app wallet allows patients to pre-load credits and pay for services. The system includes a `wallets` table and an append-only `wallet_transactions` ledger with snapshot balances and idempotency keys. Transaction operations are safeguarded by database transactions and row locking. The API supports wallet balance retrieval, transaction history, top-ups via Stripe, and payment for appointments. The frontend provides a dedicated wallet page, integrates wallet payment options into the booking flow, and the admin dashboard allows for wallet adjustments. A reminder cron generates in-app notifications for upcoming appointments.
 
 ### Database
 
-**This project uses Supabase (PostgreSQL) exclusively. Do NOT switch to Neon, Replit's built-in Postgres, or any other provider — every Replit import must keep using Supabase.** The runtime connection lives in `server/db.ts` and the migration tooling lives in `drizzle.config.ts`; both read the connection string from `SUPABASE_DATABASE_URL` (with `DATABASE_URL` only as a legacy fallback). Set `SUPABASE_DATABASE_URL` in Replit Secrets using the **Transaction pooler** URI from Supabase → Project Settings → Database → Connection string. Full details and rationale live in `DATABASE.md`.
-
-The schema includes core tables for users, providers, services, time slots, appointments, reviews, payments, and refresh tokens. Relationships are defined to link these entities, such as one-to-one for User-Provider and one-to-many for Provider-Services. Enums are used for user roles, provider types, appointment statuses, visit types, and payment statuses to ensure data integrity and consistency. UUIDs are used for primary keys, and foreign key constraints with cascading deletes are implemented.
+The project exclusively uses Supabase (PostgreSQL) for all data storage. The schema includes core tables for users, providers, services, time slots, appointments, reviews, payments, and refresh tokens, with UUID primary keys, foreign key constraints, and cascading deletes. Enums are used for data integrity.
 
 ### Build Process
 
-The client-side React app is bundled using Vite, while the server-side Express app is bundled with esbuild. Shared types and schemas are maintained in a `shared/` directory to ensure consistency across the stack.
+The client-side React app is bundled using Vite, and the server-side Express app with esbuild. Shared types and schemas are maintained in a `shared/` directory.
 
 ## External Dependencies
 
-### Database
-
-- **Supabase (PostgreSQL)**: Sole, required data storage solution. The `SUPABASE_DATABASE_URL` secret must be set in Replit on every import. See `DATABASE.md` for setup instructions and enforcement details.
-- **`pg` + `drizzle-orm/node-postgres`**: Standard Postgres pool driver used to talk to Supabase.
-
-### UI Component Libraries
-
-- **Radix UI**: Provides accessible, unstyled UI primitives.
-- **shadcn/ui**: Configured on top of Radix UI for styled component variants.
-
-### Development Tools
-
-- **Vite**: Frontend bundling and Hot Module Replacement (HMR).
-- **esbuild**: Server-side bundling for production.
-- **Drizzle Kit**: Database migrations.
-- **TypeScript**: Ensures type safety across the entire codebase.
-
-### Payment Processing
-
-- **Stripe**: For secure online card payments. Integrated for creating Checkout Sessions and handling webhooks for payment status updates.
-
-### Location Services
-
-- **Google Maps JavaScript API**: Used for interactive map functionalities, including address search (Places Autocomplete) and location picking in the booking flow. This requires enabling Maps JavaScript API, Places API, and Geocoding API on the Google Cloud project.
-
-### Communications System
-
-The platform now has a unified communications layer (`server/services/notification-dispatcher.ts`) covering email, SMS, WhatsApp, web-push, and in-app channels. Per-user preferences (channels enabled, quiet hours, language) live in the `notification_preferences` table and are honored on every send; quiet hours suppress non-urgent notifications. The dispatcher is wired into booking creation, cancellation, payment receipt, and review reply events, and triggers a 24-hour, 1-hour, 15-minute, and post-visit reminder cadence via `reminderCron`.
-
-Channel adapters live in `server/services/channels/*` (email via Resend, SMS/WhatsApp via Twilio REST, push via Web Push). Each adapter logs a single warning and no-ops when its environment keys are missing so the app keeps running without third-party setup. `GET /api/comms/capabilities` reports which channels are live so the settings UI can hide disabled toggles.
-
-Two-way messaging in `server/chat/ws.ts` supports per-conversation read receipts, typing indicators, mute/pin, attachments and voice notes (uploaded via `POST /api/chat/upload` using `X-Filename`-tagged raw bodies), and unread badge counts. Patient and admin support tickets share the same conversation thread model. Providers can configure weekly office hours and an offline auto-reply via `GET/PATCH /api/provider/office-hours`. Online appointments expose `GET /api/video/room/:appointmentId` which returns a Daily.co room URL when `DAILY_API_KEY` is set, otherwise a graceful placeholder. Admins can broadcast announcements (`/api/admin/broadcasts`) and inspect per-message delivery logs (`/api/admin/notification-logs`) from the admin dashboard.
-
-Required environment variables (all optional; channels degrade gracefully): `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_FROM_NUMBER`, `TWILIO_WHATSAPP_FROM`, `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`, `DAILY_API_KEY`, and the frontend `VITE_PUBLIC_VAPID_KEY`. See `.env.example`.
+-   **Supabase (PostgreSQL)**: Primary database solution.
+-   **`pg` + `drizzle-orm/node-postgres`**: PostgreSQL driver for database interactions.
+-   **Radix UI**: Accessible, unstyled UI primitives.
+-   **shadcn/ui**: Styled UI components built on Radix UI.
+-   **Vite**: Frontend bundling.
+-   **esbuild**: Server-side bundling.
+-   **Drizzle Kit**: Database migrations.
+-   **TypeScript**: Type safety across the codebase.
+-   **Stripe**: Secure online payment processing.
+-   **Google Maps JavaScript API**: For map functionalities, address search (Places Autocomplete), and location picking.
+-   **Resend**: Email communication.
+-   **Twilio**: SMS and WhatsApp communication.
+-   **Web Push**: Web-push notifications.
+-   **Daily.co**: Video conferencing for online appointments.

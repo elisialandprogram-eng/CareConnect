@@ -58,6 +58,15 @@ export function Header() {
 
   const changeLanguage = (lng: string) => {
     i18n.changeLanguage(lng);
+    if (user) {
+      // Best-effort persist of language preference; ignore errors silently.
+      void fetch("/api/auth/profile", {
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ languagePreference: lng }),
+      }).catch(() => {});
+    }
   };
 
   const getInitials = (firstName?: string, lastName?: string) => {

@@ -54,6 +54,9 @@ type FormState = {
   insurancePolicyNumber: string;
   primaryCarePhysician: string;
   avatarUrl: string;
+  // Preferences
+  languagePreference: string;
+  preferredCurrency: string;
   // Provider fields
   professionalTitle: string;
   specialization: string;
@@ -73,6 +76,7 @@ const emptyForm: FormState = {
   knownAllergies: "", medicalConditions: "", currentMedications: "", pastSurgeries: "",
   insuranceProvider: "", insurancePolicyNumber: "", primaryCarePhysician: "",
   avatarUrl: "",
+  languagePreference: "en", preferredCurrency: "",
   professionalTitle: "", specialization: "", bio: "",
   yearsExperience: 0, licenseNumber: "", consultationFee: "0",
 };
@@ -136,6 +140,8 @@ export default function Profile() {
         insurancePolicyNumber: u.insurancePolicyNumber || "",
         primaryCarePhysician: u.primaryCarePhysician || "",
         avatarUrl: u.avatarUrl || "",
+        languagePreference: u.languagePreference || "en",
+        preferredCurrency: u.preferredCurrency || "",
         professionalTitle: providerData?.professionalTitle || "",
         specialization: providerData?.specialization || "",
         bio: providerData?.bio || "",
@@ -253,6 +259,8 @@ export default function Profile() {
         insuranceProvider: data.insuranceProvider || null,
         insurancePolicyNumber: data.insurancePolicyNumber || null,
         primaryCarePhysician: data.primaryCarePhysician || null,
+        languagePreference: data.languagePreference || null,
+        preferredCurrency: data.preferredCurrency || null,
       };
       const response = await apiRequest("PATCH", "/api/auth/profile", payload);
       if (!response.ok) throw new Error("Failed to update profile");
@@ -514,6 +522,10 @@ export default function Profile() {
                   {t("profile_page.tab_gallery", "Gallery")}
                 </TabsTrigger>
               )}
+              <TabsTrigger value="preferences" data-testid="tab-preferences">
+                <Settings className="h-4 w-4 mr-2" />
+                {t("profile_page.tab_preferences", "Preferences")}
+              </TabsTrigger>
               <TabsTrigger value="security" data-testid="tab-security">
                 <Lock className="h-4 w-4 mr-2" />
                 {t("profile_page.tab_security", "Security")}
@@ -969,6 +981,79 @@ export default function Profile() {
             )}
 
             {/* SECURITY */}
+            <TabsContent value="preferences" className="mt-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle>{t("profile_page.preferences_title", "Language & Currency")}</CardTitle>
+                  <CardDescription>
+                    {t(
+                      "profile_page.preferences_desc",
+                      "Choose how the app should appear when you sign in. Currency is shown across the app while prices stay stored in HUF.",
+                    )}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="grid gap-6 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label>{t("profile_page.preferred_language", "Preferred language")}</Label>
+                    <Select
+                      value={formData.languagePreference || "en"}
+                      onValueChange={(v) => set("languagePreference", v)}
+                    >
+                      <SelectTrigger data-testid="select-preferred-language">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="en">English</SelectItem>
+                        <SelectItem value="hu">Magyar</SelectItem>
+                        <SelectItem value="fa">فارسی</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">
+                      {t(
+                        "profile_page.preferred_language_hint",
+                        "Auto-applied next time you sign in.",
+                      )}
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>{t("profile_page.preferred_currency", "Preferred currency")}</Label>
+                    <Select
+                      value={formData.preferredCurrency || "auto"}
+                      onValueChange={(v) => set("preferredCurrency", v === "auto" ? "" : v)}
+                    >
+                      <SelectTrigger data-testid="select-preferred-currency">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="auto">
+                          {t("profile_page.currency_auto", "Auto (match language)")}
+                        </SelectItem>
+                        <SelectItem value="USD">USD ($)</SelectItem>
+                        <SelectItem value="HUF">HUF (Ft)</SelectItem>
+                        <SelectItem value="IRR">IRR (﷼)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">
+                      {t(
+                        "profile_page.preferred_currency_hint",
+                        "Override the auto-selected currency. Saved on this device until you change it.",
+                      )}
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+              <div className="mt-4 flex justify-end">
+                <Button type="submit" disabled={updateProfileMutation.isPending} data-testid="button-save-preferences">
+                  {updateProfileMutation.isPending ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Save className="h-4 w-4 mr-2" />
+                  )}
+                  {t("profile_page.save", "Save changes")}
+                </Button>
+              </div>
+            </TabsContent>
+
             <TabsContent value="security" className="mt-4">
               <Card>
                 <CardHeader>

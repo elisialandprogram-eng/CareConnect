@@ -1,6 +1,23 @@
 import { createContext, useContext, useState, useEffect, useCallback } from "react";
 import type { User } from "@shared/schema";
 import { apiRequest } from "./queryClient";
+import i18n from "./i18n";
+
+function applyUserPreferences(user: Pick<User, "languagePreference" | "preferredCurrency"> | null) {
+  if (!user) return;
+  if (user.languagePreference && user.languagePreference !== i18n.language) {
+    void i18n.changeLanguage(user.languagePreference);
+  }
+  if (typeof window !== "undefined") {
+    try {
+      if (user.preferredCurrency) {
+        window.localStorage.setItem("preferredCurrency", user.preferredCurrency);
+      } else {
+        window.localStorage.removeItem("preferredCurrency");
+      }
+    } catch {}
+  }
+}
 
 interface AuthContextType {
   user: User | null;
@@ -36,6 +53,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (response.ok) {
         const data = await response.json();
         setUser(data.user);
+        applyUserPreferences(data.user);
       } else {
         setUser(null);
       }
@@ -62,6 +80,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       throw new Error(data.message || "Login failed");
     }
     setUser(data.user);
+    applyUserPreferences(data.user);
   };
 
   const register = async (data: RegisterData) => {

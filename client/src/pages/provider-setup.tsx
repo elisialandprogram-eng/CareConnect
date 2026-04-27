@@ -225,7 +225,85 @@ export default function ProviderSetup() {
     setupMutation.mutate(data);
   };
 
-  const nextStep = () => setStep(step + 1);
+  // Map each form field name to the wizard step where it lives so we can jump back
+  // to the offending step if validation blocks the final submit.
+  const STEP_FIELDS: Record<number, string[]> = {
+    1: [
+      "professionalTitle",
+      "type",
+      "specialization",
+      "subServices",
+      "yearsExperience",
+      "education",
+      "bio",
+    ],
+    2: [
+      "licenseNumber",
+      "licensingAuthority",
+      "licenseExpiryDate",
+    ],
+    3: [
+      "primaryServiceLocation",
+      "timezone",
+      "workingHoursStart",
+      "workingHoursEnd",
+    ],
+    4: [
+      "consultationFee",
+      "city",
+      "state",
+      "country",
+      "preferredContactMethod",
+      "languages",
+    ],
+    5: [
+      "availableDays",
+      "ageGroupsServed",
+      "paymentMethods",
+    ],
+    6: [
+      "providerAgreementAccepted",
+      "dataProcessingAgreementAccepted",
+      "telemedicineAgreementAccepted",
+      "codeOfConductAccepted",
+    ],
+  };
+
+  const onSubmitError = (errors: Record<string, any>) => {
+    const errorFields = Object.keys(errors);
+    const firstStep = Object.entries(STEP_FIELDS)
+      .map(([s, fields]) => Number(s))
+      .sort((a, b) => a - b)
+      .find((s) => STEP_FIELDS[s].some((f) => errorFields.includes(f)));
+
+    toast({
+      title: t("setup.fix_errors_title", "Please fix the highlighted fields"),
+      description: firstStep
+        ? t("setup.fix_errors_desc", "We'll take you back to step {{step}} so you can finish it.", {
+            step: firstStep,
+          })
+        : t("setup.fix_errors_generic", "Some required fields are missing."),
+      variant: "destructive",
+    });
+
+    if (firstStep && firstStep !== step) {
+      setStep(firstStep);
+    }
+  };
+
+  const nextStep = async () => {
+    const fields = STEP_FIELDS[step] ?? [];
+    const ok = fields.length === 0 ? true : await form.trigger(fields as any);
+    if (!ok) {
+      toast({
+        title: t("setup.fix_errors_title", "Please fix the highlighted fields"),
+        description: t("setup.fix_errors_step", "Complete this step before continuing."),
+        variant: "destructive",
+      });
+      return;
+    }
+    setStep(step + 1);
+  };
   const prevStep = () => setStep(step - 1);
 
   return (
@@ -272,7 +350,7 @@ export default function ProviderSetup() {
           </div>
 
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)}>
+            <form onSubmit={form.handleSubmit(onSubmit, onSubmitError)}>
               {step === 1 && (
                 <Card>
                   <CardHeader>

@@ -1014,6 +1014,7 @@ export async function registerRoutes(
         "knownAllergies", "medicalConditions", "currentMedications", "pastSurgeries",
         "insuranceProvider", "insurancePolicyNumber", "primaryCarePhysician",
         "languagePreference",
+        "preferredCurrency",
       ] as const;
 
       const updateData: any = {};

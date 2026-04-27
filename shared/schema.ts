@@ -66,6 +66,7 @@ export const users = pgTable("users", {
   otpAttempts: integer("otp_attempts").notNull().default(0),
   lastOtpSentAt: timestamp("last_otp_sent_at"),
   languagePreference: text("language_preference").default("en"),
+  preferredCurrency: text("preferred_currency"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
