@@ -47,7 +47,7 @@ import {
   Loader2, Shield, Users, Building, Trash2, Edit, Plus, Tag, DollarSign,
   Calendar, FileText, Settings, MessageSquare, Activity, BarChart3,
   Bell, HelpCircle, CheckCircle, XCircle, Clock, Eye, ListTree, Search, UserCheck,
-  Wallet as WalletIcon
+  Wallet as WalletIcon, Briefcase, Sparkles as SparklesIcon
 } from "lucide-react";
 import type { User, ProviderWithUser, PromoCode, ProviderPricingOverride, SubService, Practitioner, ServicePractitioner, Service } from "@shared/schema";
 import { ServiceFormDialog } from "@/components/service-form-dialog";
@@ -261,113 +261,188 @@ function AdminServicesPanel({
 
   return (
     <div className="space-y-4">
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>{t("admin.services", "Services")}</CardTitle>
-          <Button
-            size="sm"
-            onClick={() => {
-              setEditingService(null);
-              setServiceFormOpen(true);
-            }}
-            data-testid="button-admin-add-service"
-          >
-            <Plus className="h-4 w-4 mr-1" /> {t("admin.add", "Add")}
-          </Button>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          {!services?.length && (
-            <div
-              className="text-center py-6 text-sm text-muted-foreground"
-              data-testid="empty-admin-services"
-            >
-              {t("admin.no_services", "No services yet. Add the first one.")}
-            </div>
-          )}
-          {services?.map((s: any) => (
-            <div
-              key={s.id}
-              className="flex justify-between items-center p-3 border rounded-lg"
-              data-testid={`row-admin-service-${s.id}`}
-            >
-              <div className="flex items-center gap-3">
-                <div
-                  className="h-3 w-3 rounded-full"
-                  style={{ backgroundColor: s.calendarColor || "#10b981" }}
-                />
-                {s.imageUrl && (
-                  <img
-                    src={s.imageUrl}
-                    alt=""
-                    className="h-8 w-8 rounded-full object-cover"
-                  />
-                )}
-                <div>
-                  <p className="font-medium">{s.name}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {fmtMoney(s.price)} · {s.duration}m
-                  </p>
-                </div>
-              </div>
-              <div className="flex gap-1">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => {
-                    setEditingService(s);
-                    setServiceFormOpen(true);
-                  }}
-                  data-testid={`button-admin-edit-service-${s.id}`}
-                >
-                  {t("admin.edit", "Edit")}
-                </Button>
-                <Button
-                  size="sm"
-                  variant={s.isActive ? "default" : "outline"}
-                  onClick={() =>
-                    toggleMutation.mutate({ id: s.id, isActive: !s.isActive })
-                  }
-                  data-testid={`button-admin-toggle-service-${s.id}`}
-                >
-                  {s.isActive
-                    ? t("admin.active", "Active")
-                    : t("admin.paused", "Paused")}
-                </Button>
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  className="text-destructive"
-                  onClick={() => deleteMutation.mutate(s.id)}
-                  data-testid={`button-admin-delete-service-${s.id}`}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          ))}
-        </CardContent>
-      </Card>
+      <Tabs defaultValue="services" className="w-full">
+        <TabsList className="w-full justify-start overflow-x-auto" data-testid="tabs-admin-services">
+          <TabsTrigger value="services" data-testid="tab-admin-services">
+            <ListTree className="h-4 w-4 mr-1.5" />
+            {t("admin.services", "Services")}
+          </TabsTrigger>
+          <TabsTrigger value="staff" data-testid="tab-admin-staff">
+            <UserCheck className="h-4 w-4 mr-1.5" />
+            {t("admin.staff", "Staff")}
+          </TabsTrigger>
+          <TabsTrigger value="timesheet" data-testid="tab-admin-timesheet">
+            <Clock className="h-4 w-4 mr-1.5" />
+            {t("admin.time_sheet", "Time Sheet")}
+          </TabsTrigger>
+          <TabsTrigger value="extras" data-testid="tab-admin-extras">
+            <SparklesIcon className="h-4 w-4 mr-1.5" />
+            {t("admin.extras", "Extras")}
+          </TabsTrigger>
+          <TabsTrigger value="settings" data-testid="tab-admin-service-settings">
+            <Settings className="h-4 w-4 mr-1.5" />
+            {t("admin.settings", "Settings")}
+          </TabsTrigger>
+        </TabsList>
 
-      {services?.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>
-              {t("admin.staff_assignments", "Staff Assignments")}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {services.map((s: any) => (
-              <div key={s.id} className="p-4 border rounded-lg bg-card">
-                <p className="font-semibold mb-2">{s.name}</p>
-                <ServicePractitionerAssignment
-                  serviceId={s.id}
-                  providerId={providerId}
-                />
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-      )}
+        <TabsContent value="services" className="space-y-4 pt-4">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle>{t("admin.services", "Services")}</CardTitle>
+              <Button
+                size="sm"
+                onClick={() => {
+                  setEditingService(null);
+                  setServiceFormOpen(true);
+                }}
+                data-testid="button-admin-add-service"
+              >
+                <Plus className="h-4 w-4 mr-1" /> {t("admin.add", "Add")}
+              </Button>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {!services?.length && (
+                <div
+                  className="text-center py-6 text-sm text-muted-foreground"
+                  data-testid="empty-admin-services"
+                >
+                  {t("admin.no_services", "No services yet. Add the first one.")}
+                </div>
+              )}
+              {services?.map((s: any) => (
+                <div
+                  key={s.id}
+                  className="flex justify-between items-center p-3 border rounded-lg"
+                  data-testid={`row-admin-service-${s.id}`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div
+                      className="h-3 w-3 rounded-full"
+                      style={{ backgroundColor: s.calendarColor || "#10b981" }}
+                    />
+                    {s.imageUrl && (
+                      <img
+                        src={s.imageUrl}
+                        alt=""
+                        className="h-8 w-8 rounded-full object-cover"
+                      />
+                    )}
+                    <div>
+                      <p className="font-medium">{s.name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {fmtMoney(s.price)} · {s.duration}m
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex gap-1">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        setEditingService(s);
+                        setServiceFormOpen(true);
+                      }}
+                      data-testid={`button-admin-edit-service-${s.id}`}
+                    >
+                      {t("admin.edit", "Edit")}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant={s.isActive ? "default" : "outline"}
+                      onClick={() =>
+                        toggleMutation.mutate({ id: s.id, isActive: !s.isActive })
+                      }
+                      data-testid={`button-admin-toggle-service-${s.id}`}
+                    >
+                      {s.isActive
+                        ? t("admin.active", "Active")
+                        : t("admin.paused", "Paused")}
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="text-destructive"
+                      onClick={() => deleteMutation.mutate(s.id)}
+                      data-testid={`button-admin-delete-service-${s.id}`}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="staff" className="space-y-4 pt-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>
+                {t("admin.staff_assignments", "Staff Assignments")}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {!services?.length ? (
+                <div
+                  className="text-center py-10 text-sm text-muted-foreground"
+                  data-testid="empty-admin-staff"
+                >
+                  {t(
+                    "admin.no_services_for_staff",
+                    "Add a service first to assign staff to it.",
+                  )}
+                </div>
+              ) : (
+                services.map((s: any) => (
+                  <div key={s.id} className="p-4 border rounded-lg bg-card">
+                    <p className="font-semibold mb-2">{s.name}</p>
+                    <ServicePractitionerAssignment
+                      serviceId={s.id}
+                      providerId={providerId}
+                    />
+                  </div>
+                ))
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="timesheet" className="pt-4">
+          <EmptyTabCard
+            icon={<Clock className="h-10 w-10" />}
+            title={t("admin.time_sheet", "Time Sheet")}
+            description={t(
+              "admin.time_sheet_desc",
+              "Set per-service working hours and breaks. Coming soon.",
+            )}
+            testId="empty-admin-timesheet"
+          />
+        </TabsContent>
+
+        <TabsContent value="extras" className="pt-4">
+          <EmptyTabCard
+            icon={<SparklesIcon className="h-10 w-10" />}
+            title={t("admin.extras", "Extras")}
+            description={t(
+              "admin.extras_desc",
+              "Offer paid add-ons customers can attach to their booking. Coming soon.",
+            )}
+            testId="empty-admin-extras"
+          />
+        </TabsContent>
+
+        <TabsContent value="settings" className="pt-4">
+          <EmptyTabCard
+            icon={<Settings className="h-10 w-10" />}
+            title={t("admin.service_settings", "Service Settings")}
+            description={t(
+              "admin.service_settings_desc",
+              "Booking rules, buffer times and notifications for this service. Coming soon.",
+            )}
+            testId="empty-admin-service-settings"
+          />
+        </TabsContent>
+      </Tabs>
 
       <ServiceFormDialog
         open={serviceFormOpen}
@@ -380,6 +455,31 @@ function AdminServicesPanel({
         adminMode
       />
     </div>
+  );
+}
+
+function EmptyTabCard({
+  icon,
+  title,
+  description,
+  testId,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+  testId: string;
+}) {
+  return (
+    <Card>
+      <CardContent
+        className="flex flex-col items-center justify-center py-16 text-center gap-3"
+        data-testid={testId}
+      >
+        <div className="text-muted-foreground/60">{icon}</div>
+        <h4 className="text-lg font-semibold">{title}</h4>
+        <p className="text-sm text-muted-foreground max-w-md">{description}</p>
+      </CardContent>
+    </Card>
   );
 }
 
