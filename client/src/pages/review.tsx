@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Loader2, Star, ArrowLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { showErrorModal } from "@/components/error-modal";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/lib/auth";
 import { useTranslation } from "react-i18next";
@@ -63,10 +64,10 @@ export default function ReviewPage() {
       navigate("/dashboard");
     },
     onError: (err: Error) => {
-      toast({
+      showErrorModal({
         title: t("review.submit_failed", "Could not submit review"),
         description: err.message,
-        variant: "destructive",
+        context: "review.submit",
       });
     },
   });

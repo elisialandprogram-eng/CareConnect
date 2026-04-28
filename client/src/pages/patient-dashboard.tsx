@@ -24,6 +24,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
+import { showErrorModal } from "@/components/error-modal";
 import { useAuth } from "@/lib/auth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useCurrency } from "@/lib/currency";
@@ -191,10 +192,10 @@ export default function PatientDashboard() {
       }
     },
     onError: (e: any) => {
-      toast({
+      showErrorModal({
         title: t("dashboard.invoice_failed_title", "Could not generate invoice"),
         description: e?.message || t("dashboard.invoice_failed_desc", "Please try again later."),
-        variant: "destructive",
+        context: "patient-dashboard.generateInvoice",
       });
     },
   });
@@ -215,10 +216,10 @@ export default function PatientDashboard() {
       });
     },
     onError: () => {
-      toast({
+      showErrorModal({
         title: t("dashboard.error", "Error"),
         description: t("dashboard.cancel_failed_desc", "Failed to cancel appointment. Please try again."),
-        variant: "destructive",
+        context: "patient-dashboard.cancelAppointment",
       });
     },
   });

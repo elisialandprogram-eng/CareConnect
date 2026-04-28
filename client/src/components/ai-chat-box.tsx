@@ -8,6 +8,7 @@ import {
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
+import { showErrorModal } from "@/components/error-modal";
 import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -197,10 +198,10 @@ export function AIChatBox() {
         description: t("ai_chat.connected_desc"),
       });
     } catch (e: any) {
-      toast({
+      showErrorModal({
         title: t("ai_chat.connect_failed"),
         description: e?.message || "",
-        variant: "destructive",
+        context: "ai-chat-box.escalate",
       });
     } finally {
       setEscalating(false);

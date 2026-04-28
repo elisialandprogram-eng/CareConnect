@@ -19,6 +19,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
+import { showErrorModal } from "@/components/error-modal";
 import { apiRequest } from "@/lib/queryClient";
 import { Loader2, Stethoscope, Mail, ArrowLeft, CheckCircle } from "lucide-react";
 
@@ -58,10 +59,10 @@ export default function ForgotPassword() {
         description: "If an account exists with this email, you will receive a 6-digit reset code.",
       });
     } catch (error: any) {
-      toast({
-        title: "Error",
+      showErrorModal({
+        title: "Couldn't send reset email",
         description: error.message || "Failed to send reset email. Please try again.",
-        variant: "destructive",
+        context: "forgot-password.sendCode",
       });
     } finally {
       setIsLoading(false);
@@ -93,10 +94,10 @@ export default function ForgotPassword() {
       });
       navigate("/login");
     } catch (error: any) {
-      toast({
-        title: "Error",
+      showErrorModal({
+        title: "Couldn't reset password",
         description: error.message || "Failed to reset password. Please try again.",
-        variant: "destructive",
+        context: "forgot-password.completeReset",
       });
     } finally {
       setIsResetting(false);

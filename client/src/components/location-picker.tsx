@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { MapPin, LocateFixed, Search } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { showErrorModal } from "@/components/error-modal";
 
 export type PickedLocation = {
   address: string;
@@ -44,9 +45,9 @@ export function LocationPicker({
 
   const useMyLocation = () => {
     if (!navigator.geolocation) {
-      toast({
+      showErrorModal({
         title: t("location.geolocation_unsupported", "Geolocation not supported"),
-        variant: "destructive",
+        context: "location-picker.unsupported",
       });
       return;
     }
@@ -63,10 +64,10 @@ export function LocationPicker({
       },
       (err) => {
         setIsLocating(false);
-        toast({
+        showErrorModal({
           title: t("location.geolocation_failed", "Could not get location"),
           description: err.message,
-          variant: "destructive",
+          context: "location-picker.geolocation",
         });
       },
       { enableHighAccuracy: true, timeout: 10000 }

@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
+import { showErrorModal } from "@/components/error-modal";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -177,8 +178,12 @@ export default function Profile() {
         }
       };
       reader.readAsDataURL(file);
-    } catch (error) {
-      toast({ title: t("profile_page.toast_upload_failed", "Upload failed"), variant: "destructive" });
+    } catch (error: any) {
+      showErrorModal({
+        title: t("profile_page.toast_upload_failed", "Upload failed"),
+        description: error?.message,
+        context: "profile.uploadAvatar",
+      });
       setIsUploading(false);
     }
   };
@@ -210,8 +215,12 @@ export default function Profile() {
         title: t("profile_page.toast_gallery_updated", "Gallery updated"),
         description: t("profile_page.toast_gallery_updated_desc", "{{count}} image(s) uploaded successfully.", { count: urls.length }),
       });
-    } catch (error) {
-      toast({ title: t("profile_page.toast_upload_failed", "Upload failed"), variant: "destructive" });
+    } catch (error: any) {
+      showErrorModal({
+        title: t("profile_page.toast_upload_failed", "Upload failed"),
+        description: error?.message,
+        context: "profile.uploadGallery",
+      });
     } finally {
       setIsGalleryUploading(false);
     }
@@ -224,8 +233,12 @@ export default function Profile() {
       await apiRequest("PATCH", "/api/auth/profile", { gallery: updatedGallery });
       queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
       toast({ title: t("profile_page.toast_image_removed", "Image removed") });
-    } catch (error) {
-      toast({ title: t("profile_page.toast_failed_remove", "Failed to remove image"), variant: "destructive" });
+    } catch (error: any) {
+      showErrorModal({
+        title: t("profile_page.toast_failed_remove", "Failed to remove image"),
+        description: error?.message,
+        context: "profile.removeGalleryImage",
+      });
     }
   };
 
@@ -281,10 +294,10 @@ export default function Profile() {
       });
     },
     onError: () => {
-      toast({
+      showErrorModal({
         title: t("dashboard.error", "Error"),
         description: t("profile_page.toast_profile_failed", "Failed to update profile. Please try again."),
-        variant: "destructive",
+        context: "profile.updateProfile",
       });
     },
   });
@@ -312,7 +325,7 @@ export default function Profile() {
       });
     },
     onError: (error: Error) => {
-      toast({ title: t("dashboard.error", "Error"), description: error.message, variant: "destructive" });
+      showErrorModal({ title: t("dashboard.error", "Error"), description: error.message, context: "profile.updateProfile" });
     },
   });
 

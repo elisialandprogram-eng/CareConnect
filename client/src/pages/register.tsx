@@ -25,6 +25,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { showErrorModal } from "@/components/error-modal";
 import { useAuth } from "@/lib/auth";
 import { apiRequest } from "@/lib/queryClient";
 import { Loader2, Stethoscope, Eye, EyeOff } from "lucide-react";
@@ -128,10 +129,10 @@ export default function Register() {
       // Correctly use navigate with the route to the verification page
       navigate(`/verify-email?userId=${result.id}`);
     } catch (error: any) {
-      toast({
+      showErrorModal({
         title: t("auth.login_failed"),
         description: error.message || t("auth.invalid_credentials"),
-        variant: "destructive",
+        context: "register.submit",
       });
     } finally {
       setIsLoading(false);

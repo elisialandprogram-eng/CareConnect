@@ -7,6 +7,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { showErrorModal } from "@/components/error-modal";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/lib/auth";
 import { Header } from "@/components/header";
@@ -78,7 +79,11 @@ export default function Messages() {
       queryClient.invalidateQueries({ queryKey: ["/api/chat/conversations-rich"] });
     },
     onError: (e: any) => {
-      toast({ title: "Could not send", description: e?.message || "Try again", variant: "destructive" });
+      showErrorModal({
+        title: "Could not send message",
+        description: e?.message || "Please try again.",
+        context: "messages.send",
+      });
     },
   });
 
@@ -93,7 +98,11 @@ export default function Messages() {
       if (convId) setSelectedId(convId);
     },
     onError: (e: any) => {
-      toast({ title: "Could not reach support", description: e?.message || "Try again later", variant: "destructive" });
+      showErrorModal({
+        title: "Could not reach support",
+        description: e?.message || "Please try again later.",
+        context: "messages.contactSupport",
+      });
     },
   });
 

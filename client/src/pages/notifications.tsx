@@ -9,6 +9,7 @@ import { format } from "date-fns";
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
 import { useToast } from "@/hooks/use-toast";
+import { showErrorModal } from "@/components/error-modal";
 import { useTranslation } from "react-i18next";
 
 export default function Notifications() {
@@ -40,10 +41,10 @@ export default function Notifications() {
       });
     },
     onError: (e: any) => {
-      toast({
+      showErrorModal({
         title: t("notifications.all_marked_failed", "Couldn't mark all as read"),
         description: e?.message || "Please try again.",
-        variant: "destructive",
+        context: "notifications.markAllRead",
       });
     },
   });

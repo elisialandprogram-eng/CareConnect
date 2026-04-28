@@ -11,6 +11,7 @@ import { useAuth } from "@/lib/auth";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { showErrorModal } from "@/components/error-modal";
 import { useCurrency } from "@/lib/currency";
 
 interface ProviderCardProps {
@@ -68,7 +69,7 @@ export function ProviderCard({ provider, nextAvailable }: ProviderCardProps) {
       });
     },
     onError: () => {
-      toast({ title: t("common.error", "Error"), description: t("provider_card.save_failed", "Could not update saved providers"), variant: "destructive" });
+      showErrorModal({ title: t("common.error", "Error"), description: t("provider_card.save_failed", "Could not update saved providers"), context: "provider-card.save" });
     },
   });
 

@@ -14,6 +14,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
+import { showErrorModal } from "@/components/error-modal";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 
 interface Appointment {
@@ -64,7 +65,11 @@ function RatingDialog({ appointment }: { appointment: Appointment }) {
       setIsOpen(false);
     },
     onError: (error: Error) => {
-      toast({ title: "Failed to submit review", description: error.message, variant: "destructive" });
+      showErrorModal({
+        title: "Failed to submit review",
+        description: error.message,
+        context: "appointments.submitReview",
+      });
     },
   });
 
@@ -264,7 +269,11 @@ export default function Appointments() {
                               window.dispatchEvent(new CustomEvent("open-chat"));
                               toast({ title: "Chat opened", description: "You can message your provider now." });
                             } catch (e: any) {
-                              toast({ title: "Could not start chat", description: e.message, variant: "destructive" });
+                              showErrorModal({
+                                title: "Could not start chat",
+                                description: e.message,
+                                context: "appointments.startChat",
+                              });
                             }
                           }}
                         >
@@ -285,7 +294,11 @@ export default function Appointments() {
                                 if (j.url) window.open(j.url, "_blank", "noopener,noreferrer");
                                 else throw new Error(j.message || "Could not open call");
                               } catch (e: any) {
-                                toast({ title: "Cannot join call", description: e.message, variant: "destructive" });
+                                showErrorModal({
+                                  title: "Cannot join call",
+                                  description: e.message,
+                                  context: "appointments.joinCall",
+                                });
                               }
                             }}
                           >

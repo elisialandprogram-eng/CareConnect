@@ -29,6 +29,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import { showErrorModal } from "@/components/error-modal";
 import { apiRequest } from "@/lib/queryClient";
 import { Loader2, Stethoscope, CheckCircle, Plus, Trash2 } from "lucide-react";
 import type { SubService } from "@shared/schema";
@@ -206,10 +207,10 @@ export default function ProviderSetup() {
       navigate("/provider/dashboard");
     },
     onError: (error: Error) => {
-      toast({
+      showErrorModal({
         title: t("setup.setup_failed"),
         description: error.message,
-        variant: "destructive",
+        context: "provider-setup.create",
       });
     },
   });
@@ -276,14 +277,14 @@ export default function ProviderSetup() {
       .sort((a, b) => a - b)
       .find((s) => STEP_FIELDS[s].some((f) => errorFields.includes(f)));
 
-    toast({
+    showErrorModal({
       title: t("setup.fix_errors_title", "Please fix the highlighted fields"),
       description: firstStep
         ? t("setup.fix_errors_desc", "We'll take you back to step {{step}} so you can finish it.", {
             step: firstStep,
           })
         : t("setup.fix_errors_generic", "Some required fields are missing."),
-      variant: "destructive",
+      context: "provider-setup.validate",
     });
 
     if (firstStep && firstStep !== step) {
@@ -295,10 +296,10 @@ export default function ProviderSetup() {
     const fields = STEP_FIELDS[step] ?? [];
     const ok = fields.length === 0 ? true : await form.trigger(fields as any);
     if (!ok) {
-      toast({
+      showErrorModal({
         title: t("setup.fix_errors_title", "Please fix the highlighted fields"),
         description: t("setup.fix_errors_step", "Complete this step before continuing."),
-        variant: "destructive",
+        context: "provider-setup.nextStep",
       });
       return;
     }

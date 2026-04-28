@@ -9,6 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
+import { showErrorModal } from "@/components/error-modal";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Plus, Upload, X, Info, Check } from "lucide-react";
 import type { Service, SubService } from "@shared/schema";
@@ -129,7 +130,7 @@ export function ServiceFormDialog({ open, onOpenChange, service, providerId, adm
       };
       reader.onerror = () => {
         setUploading(false);
-        toast({ title: "Upload failed", variant: "destructive" });
+        showErrorModal({ title: "Upload failed", context: "service-form.upload" });
       };
       reader.readAsDataURL(file);
     } catch {
@@ -181,7 +182,7 @@ export function ServiceFormDialog({ open, onOpenChange, service, providerId, adm
       onOpenChange(false);
     },
     onError: (e: any) => {
-      toast({ title: "Save failed", description: e?.message || "Please try again", variant: "destructive" });
+      showErrorModal({ title: "Save failed", description: e?.message || "Please try again", context: "service-form.save" });
     },
   });
 

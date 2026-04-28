@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import { showErrorModal } from "@/components/error-modal";
 import { Mail, RefreshCw } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
@@ -49,10 +50,10 @@ export default function VerifyEmail() {
       });
       setLocation("/login");
     } catch (error: any) {
-      toast({
-        variant: "destructive",
+      showErrorModal({
         title: t("auth.verify_failed"),
         description: error.message,
+        context: "verify-email.verify",
       });
     } finally {
       setIsVerifying(false);
@@ -71,10 +72,10 @@ export default function VerifyEmail() {
       });
       setCooldown(60);
     } catch (error: any) {
-      toast({
-        variant: "destructive",
+      showErrorModal({
         title: t("auth.otp_resend_failed"),
         description: error.message,
+        context: "verify-email.resendOtp",
       });
     } finally {
       setIsResending(false);

@@ -4,6 +4,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/lib/auth";
+import { ErrorModalProvider } from "@/components/error-modal";
 import { lazy, Suspense, useEffect } from "react";
 import { Loader2 } from "lucide-react";
 
@@ -124,15 +125,17 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <AuthProvider>
-          <ScrollToTopOnRouteChange />
-          <ScrollProgress />
-          <Toaster />
-          <Router />
-          <Suspense fallback={null}>
-            <ChatBox />
-            <AIChatBox />
-          </Suspense>
-          <ScrollToTop />
+          <ErrorModalProvider>
+            <ScrollToTopOnRouteChange />
+            <ScrollProgress />
+            <Toaster />
+            <Router />
+            <Suspense fallback={null}>
+              <ChatBox />
+              <AIChatBox />
+            </Suspense>
+            <ScrollToTop />
+          </ErrorModalProvider>
         </AuthProvider>
       </TooltipProvider>
     </QueryClientProvider>

@@ -18,6 +18,7 @@ import { RealtimeMessage } from "@shared/schema";
 import { clsx } from "clsx";
 import { format, formatDistanceToNowStrict, isToday, isYesterday, isThisWeek } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
+import { showErrorModal } from "@/components/error-modal";
 
 type RichConv = {
   id: string;
@@ -167,7 +168,7 @@ export function ChatBox() {
             queryClient.invalidateQueries({ queryKey: ["/api/chat/messages", data.conversationId] });
             break;
           case "error":
-            toast({ title: "Chat error", description: data.message || "Something went wrong", variant: "destructive" });
+            showErrorModal({ title: "Chat error", description: data.message || "Something went wrong", context: "chat.socketError" });
             break;
         }
       };
@@ -217,7 +218,7 @@ export function ChatBox() {
     if ((!message.trim() && !extra) || !activeConversation) return;
     const sock = socketRef.current;
     if (!sock || sock.readyState !== WebSocket.OPEN) {
-      toast({ title: "Reconnecting…", description: "Chat is not connected yet. Please try again in a moment.", variant: "destructive" });
+      showErrorModal({ title: "Reconnecting…", description: "Chat is not connected yet. Please try again in a moment.", context: "chat.notConnected" });
       return;
     }
     try {

@@ -18,6 +18,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
+import { showErrorModal } from "@/components/error-modal";
 import { useAuth } from "@/lib/auth";
 import { Loader2, Stethoscope, Eye, EyeOff } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -82,19 +83,19 @@ export default function Login() {
           email: data.email,
         });
       } else if (error.message?.includes("verify your email")) {
-        toast({
+        showErrorModal({
           title: t("common.verification_required"),
           description: error.message,
-          variant: "destructive",
+          context: "login.unverifiedEmail",
         });
         setTimeout(() => {
           navigate("/verify-email");
         }, 2000);
       } else {
-        toast({
+        showErrorModal({
           title: t("auth.login_failed"),
           description: error.message || t("auth.invalid_credentials"),
-          variant: "destructive",
+          context: "login.invalidCredentials",
         });
       }
     } finally {

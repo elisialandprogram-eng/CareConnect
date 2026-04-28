@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
+import { showErrorModal } from "@/components/error-modal";
 import { useAuth } from "@/lib/auth";
 import { apiRequest } from "@/lib/queryClient";
 import {
@@ -115,7 +116,11 @@ export default function SupportTicketsPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/support/tickets"] });
     },
     onError: (e: Error) => {
-      toast({ title: t("support.send_failed", "Couldn't send"), description: e.message, variant: "destructive" });
+      showErrorModal({
+        title: t("support.send_failed", "Couldn't send"),
+        description: e.message,
+        context: "support-tickets.reply",
+      });
     },
   });
 

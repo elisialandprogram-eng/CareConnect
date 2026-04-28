@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { showErrorModal } from "@/components/error-modal";
 import { Card, CardContent } from "@/components/ui/card";
 import { motion } from "framer-motion";
 import { Mail, Phone, MapPin } from "lucide-react";
@@ -45,10 +46,10 @@ export function ContactForm() {
       form.reset();
     },
     onError: (error: Error) => {
-      toast({
+      showErrorModal({
         title: t("contact.error"),
         description: error.message,
-        variant: "destructive",
+        context: "contact-form.submit",
       });
     },
   });

@@ -15,6 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { LocationPicker, type PickedLocation } from "@/components/location-picker";
 import { useToast } from "@/hooks/use-toast";
+import { showErrorModal } from "@/components/error-modal";
 import { useAuth } from "@/lib/auth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useCurrency } from "@/lib/currency";
@@ -150,11 +151,11 @@ export default function Booking() {
       setStep("confirmed");
       queryClient.invalidateQueries({ queryKey: ["/api/appointments"] });
     } else if (stripeStatus === "cancelled") {
-      toast({
+      showErrorModal({
         title: "Payment cancelled",
         description:
-          "Your booking is on hold. You can pay later from your dashboard.",
-        variant: "destructive",
+          "Your booking is on hold. You can pay later from your dashboard or contact us if you need help.",
+        context: "booking.stripeCancelled",
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -218,10 +219,10 @@ export default function Booking() {
       setStep("confirmed");
     },
     onError: (error: Error) => {
-      toast({
-        title: "Error",
+      showErrorModal({
+        title: "Couldn't book appointment",
         description: error.message || "Failed to book appointment.",
-        variant: "destructive",
+        context: "booking.create",
       });
     },
   });

@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
+import { showErrorModal } from "@/components/error-modal";
 import { useAuth } from "@/lib/auth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Wallet as WalletIcon, ArrowDownCircle, ArrowUpCircle, RefreshCw, Sparkles, ShieldCheck } from "lucide-react";
@@ -63,10 +64,10 @@ export default function WalletPage() {
       );
       window.history.replaceState({}, "", "/wallet");
     } else if (status === "cancelled") {
-      toast({
+      showErrorModal({
         title: t("wallet.topup_cancelled_title", "Top-up cancelled"),
         description: t("wallet.topup_cancelled_desc", "No charge was made."),
-        variant: "destructive",
+        context: "wallet.topupCancelled",
       });
       window.history.replaceState({}, "", "/wallet");
     }
@@ -98,10 +99,10 @@ export default function WalletPage() {
       }
     },
     onError: (err: Error) => {
-      toast({
+      showErrorModal({
         title: t("wallet.topup_failed", "Top-up failed"),
         description: err.message,
-        variant: "destructive",
+        context: "wallet.topup",
       });
     },
   });
@@ -109,10 +110,10 @@ export default function WalletPage() {
   const handleTopUp = () => {
     const n = Number(amount);
     if (!Number.isFinite(n) || n <= 0) {
-      toast({
+      showErrorModal({
         title: t("wallet.invalid_amount", "Invalid amount"),
         description: t("wallet.invalid_amount_desc", "Enter a positive amount in HUF."),
-        variant: "destructive",
+        context: "wallet.invalidAmount",
       });
       return;
     }

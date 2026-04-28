@@ -12,6 +12,7 @@ import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
+import { showErrorModal } from "@/components/error-modal";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { subscribeToPush, unsubscribeFromPush, getPushCapability } from "@/lib/push";
@@ -42,7 +43,7 @@ export default function Settings() {
   const updatePrefs = useMutation({
     mutationFn: async (patch: Record<string, any>) => apiRequest("PATCH", "/api/notification-preferences", patch),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/notification-preferences"] }),
-    onError: () => toast({ title: "Failed to save preference", variant: "destructive" }),
+    onError: () => showErrorModal({ title: "Failed to save preference", context: "settings.updatePrefs" }),
   });
 
   const togglePush = async (on: boolean) => {
@@ -50,7 +51,7 @@ export default function Settings() {
       if (on) {
         const r = await subscribeToPush();
         if (!r.ok) {
-          toast({ title: "Push not enabled", description: r.reason, variant: "destructive" });
+          showErrorModal({ title: "Push not enabled", description: r.reason, context: "settings.subscribePush" });
           return;
         }
         setPushSubscribed(true);
@@ -63,7 +64,7 @@ export default function Settings() {
         toast({ title: "Push notifications disabled" });
       }
     } catch (e: any) {
-      toast({ title: "Push toggle failed", description: e?.message, variant: "destructive" });
+      showErrorModal({ title: "Push toggle failed", description: e?.message, context: "settings.togglePush" });
     }
   };
 
@@ -109,10 +110,10 @@ export default function Settings() {
       });
     },
     onError: (error: Error) => {
-      toast({
-        title: "Error",
+      showErrorModal({
+        title: "Couldn't change password",
         description: error.message,
-        variant: "destructive",
+        context: "settings.changePassword",
       });
     },
   });
@@ -120,18 +121,18 @@ export default function Settings() {
   const handlePasswordSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-      toast({
-        title: "Error",
+      showErrorModal({
+        title: "Passwords don't match",
         description: "New passwords do not match.",
-        variant: "destructive",
+        context: "settings.passwordMismatch",
       });
       return;
     }
     if (passwordForm.newPassword.length < 8) {
-      toast({
-        title: "Error",
+      showErrorModal({
+        title: "Password too short",
         description: "Password must be at least 8 characters long.",
-        variant: "destructive",
+        context: "settings.passwordTooShort",
       });
       return;
     }
