@@ -5273,7 +5273,13 @@ function UsersManagement() {
                 <div>
                   <div className="flex items-center gap-2">
                     <span className="font-medium">{user.firstName} {user.lastName}</span>
-                    {user.isSuspended && <Badge variant="destructive">{t("admin.cancelled")}</Badge>}
+                    {user.isSuspended ? (
+                      <Badge variant="destructive">{t("admin.suspended", "Suspended")}</Badge>
+                    ) : (
+                      <Badge variant="secondary" className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300 border-emerald-200">
+                        {t("admin.active", "Active")}
+                      </Badge>
+                    )}
                     <Badge variant="outline">{user.role}</Badge>
                   </div>
                   <p className="text-sm text-muted-foreground">{user.email}</p>
@@ -5293,21 +5299,23 @@ function UsersManagement() {
                       size="sm"
                       variant="outline"
                       onClick={() => suspendMutation.mutate({ id: user.id, isSuspended: false })}
+                      data-testid={`button-activate-user-${user.id}`}
                     >
-                      {t("admin.active")}
+                      {t("admin.activate", "Activate")}
                     </Button>
                   ) : (
                     <Button
                       size="sm"
                       variant="destructive"
                       onClick={() => {
-                        const reason = window.prompt(t("admin.bio"));
+                        const reason = window.prompt(t("admin.suspend_reason_prompt", "Reason for suspension (optional):"));
                         if (reason !== null) {
                           suspendMutation.mutate({ id: user.id, isSuspended: true, reason });
                         }
                       }}
+                      data-testid={`button-suspend-user-${user.id}`}
                     >
-                      {t("admin.cancelled")}
+                      {t("admin.suspend", "Suspend")}
                     </Button>
                   )}
                   <Button
