@@ -530,6 +530,43 @@ export async function registerRoutes(
     }
   });
 
+  // Create a new platform admin (Admin only)
+  app.post("/api/admin/admins", authenticateToken, async (req: AuthRequest, res: Response) => {
+    if (req.user?.role !== "admin") return res.status(403).json({ message: "Admin access required" });
+    try {
+      const { email, password, firstName, lastName, phone } = req.body || {};
+      if (!email || !password || !firstName || !lastName) {
+        return res.status(400).json({ message: "Email, password, first name and last name are required" });
+      }
+      if (typeof password !== "string" || password.length < 8) {
+        return res.status(400).json({ message: "Password must be at least 8 characters long" });
+      }
+
+      const normalizedEmail = String(email).trim().toLowerCase();
+      const existing = await storage.getUserByEmail(normalizedEmail);
+      if (existing) {
+        return res.status(400).json({ message: "Email already registered" });
+      }
+
+      const hashedPassword = await bcrypt.hash(password, 10);
+      const newAdmin = await storage.createUser({
+        email: normalizedEmail,
+        password: hashedPassword,
+        firstName: String(firstName).trim(),
+        lastName: String(lastName).trim(),
+        phone: phone ? String(phone).trim() : null,
+        role: "admin",
+        isEmailVerified: true,
+      });
+
+      const { password: _pw, ...safe } = newAdmin as any;
+      res.status(201).json(safe);
+    } catch (error: any) {
+      console.error("Failed to create admin user:", error);
+      res.status(500).json({ message: error?.message || "Failed to create admin" });
+    }
+  });
+
   app.delete("/api/admin/providers/:id", authenticateToken, async (req: AuthRequest, res: Response) => {
     if (req.user?.role !== "admin") return res.status(403).json({ message: "Admin access required" });
     try {

@@ -39,6 +39,7 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -3313,10 +3314,62 @@ function UsersManagement() {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [roleFilter, setRoleFilter] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const [addAdminOpen, setAddAdminOpen] = useState(false);
+  const [adminFirstName, setAdminFirstName] = useState("");
+  const [adminLastName, setAdminLastName] = useState("");
+  const [adminEmail, setAdminEmail] = useState("");
+  const [adminPhone, setAdminPhone] = useState("");
+  const [adminPassword, setAdminPassword] = useState("");
 
   const { data: users, isLoading } = useQuery<User[]>({
     queryKey: ["/api/admin/users"],
   });
+
+  const createAdminMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest("POST", "/api/admin/admins", {
+        firstName: adminFirstName,
+        lastName: adminLastName,
+        email: adminEmail,
+        phone: adminPhone || undefined,
+        password: adminPassword,
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(data?.message || "Failed to create admin");
+      }
+      return data;
+    },
+    onSuccess: () => {
+      toast({
+        title: t("admin.admin_created", "Admin created"),
+        description: t("admin.admin_created_desc", "The new admin can now log in with their email and password."),
+      });
+      setAddAdminOpen(false);
+      setAdminFirstName("");
+      setAdminLastName("");
+      setAdminEmail("");
+      setAdminPhone("");
+      setAdminPassword("");
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
+    },
+    onError: (error: Error) => {
+      toast({ title: t("common.error"), description: error.message, variant: "destructive" });
+    },
+  });
+
+  const handleCreateAdmin = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!adminFirstName.trim() || !adminLastName.trim() || !adminEmail.trim() || adminPassword.length < 8) {
+      toast({
+        title: t("common.error"),
+        description: t("admin.add_admin_validation", "Please provide a name, email and a password of at least 8 characters."),
+        variant: "destructive",
+      });
+      return;
+    }
+    createAdminMutation.mutate();
+  };
 
   const invalidateUserCaches = () => {
     queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
@@ -3403,7 +3456,110 @@ function UsersManagement() {
         <span className="text-sm text-muted-foreground">
           {t("admin.showing_bookings", { count: filteredUsers.length })}
         </span>
+        <Button
+          onClick={() => setAddAdminOpen(true)}
+          className="ml-auto"
+          data-testid="button-open-add-admin"
+        >
+          <Plus className="h-4 w-4 mr-2" />
+          {t("admin.add_admin", "Add Admin")}
+        </Button>
       </div>
+
+      <Dialog open={addAdminOpen} onOpenChange={setAddAdminOpen}>
+        <DialogContent className="sm:max-w-md" data-testid="dialog-add-admin">
+          <DialogHeader>
+            <DialogTitle>{t("admin.add_admin_title", "Add a new platform admin")}</DialogTitle>
+            <DialogDescription>
+              {t(
+                "admin.add_admin_desc",
+                "The new admin will receive full admin access and can sign in from the regular login page using the credentials below.",
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleCreateAdmin} className="space-y-4">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="admin-first-name">{t("admin.first_name", "First name")}</Label>
+                <Input
+                  id="admin-first-name"
+                  value={adminFirstName}
+                  onChange={(e) => setAdminFirstName(e.target.value)}
+                  data-testid="input-admin-first-name"
+                  required
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="admin-last-name">{t("admin.last_name", "Last name")}</Label>
+                <Input
+                  id="admin-last-name"
+                  value={adminLastName}
+                  onChange={(e) => setAdminLastName(e.target.value)}
+                  data-testid="input-admin-last-name"
+                  required
+                />
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="admin-email">{t("admin.email", "Email")}</Label>
+              <Input
+                id="admin-email"
+                type="email"
+                value={adminEmail}
+                onChange={(e) => setAdminEmail(e.target.value)}
+                data-testid="input-admin-email"
+                required
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="admin-phone">
+                {t("admin.phone_optional", "Phone (optional)")}
+              </Label>
+              <Input
+                id="admin-phone"
+                value={adminPhone}
+                onChange={(e) => setAdminPhone(e.target.value)}
+                data-testid="input-admin-phone"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="admin-password">{t("admin.password", "Password")}</Label>
+              <Input
+                id="admin-password"
+                type="password"
+                value={adminPassword}
+                onChange={(e) => setAdminPassword(e.target.value)}
+                data-testid="input-admin-password"
+                placeholder={t("admin.password_min", "At least 8 characters")}
+                required
+                minLength={8}
+              />
+            </div>
+            <DialogFooter className="gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setAddAdminOpen(false)}
+                data-testid="button-cancel-add-admin"
+              >
+                {t("common.cancel", "Cancel")}
+              </Button>
+              <Button
+                type="submit"
+                disabled={createAdminMutation.isPending}
+                data-testid="button-submit-add-admin"
+              >
+                {createAdminMutation.isPending ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Plus className="h-4 w-4 mr-2" />
+                )}
+                {t("admin.create_admin", "Create admin")}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       <Card>
         <CardHeader>
