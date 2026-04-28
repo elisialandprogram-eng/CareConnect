@@ -248,6 +248,15 @@ export default function Booking() {
       return;
     }
 
+    const durationMin = selectedService?.duration ?? 30;
+    const addMinutesToTime = (hhmm: string, mins: number) => {
+      const [h, m] = hhmm.split(":").map(Number);
+      const total = (h || 0) * 60 + (m || 0) + mins;
+      const eh = Math.floor(total / 60) % 24;
+      const em = total % 60;
+      return `${String(eh).padStart(2, "0")}:${String(em).padStart(2, "0")}`;
+    };
+
     const bookingData = {
       providerId: provider.id,
       serviceId: serviceId || null,
@@ -263,7 +272,7 @@ export default function Booking() {
       totalAmount: feeWithPlatform.toString(),
       date: finalSessions[0].date,
       startTime: finalSessions[0].time,
-      endTime: "10:00", // Simplified for fast mode
+      endTime: addMinutesToTime(finalSessions[0].time, durationMin),
       saveAddressToProfile,
       promoCode: appliedPromo?.code || null,
       familyMemberId: familyMemberId || null,
