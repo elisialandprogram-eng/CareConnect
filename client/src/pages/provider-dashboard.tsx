@@ -66,7 +66,6 @@ import {
   ChevronUp,
   ChevronDown,
   MessageSquare,
-  Plus,
 } from "lucide-react";
 import type { AppointmentWithDetails, Provider, ProviderWithServices, Practitioner, Service, ReviewWithPatient } from "@shared/schema";
 import {
