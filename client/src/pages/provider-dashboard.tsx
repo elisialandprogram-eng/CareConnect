@@ -343,8 +343,12 @@ export default function ProviderDashboard() {
     enabled: !!providerData?.id,
   });
 
+  const subServicesUrl = providerData?.providerType
+    ? `/api/sub-services?category=${providerData.providerType}`
+    : "/api/sub-services";
   const { data: subServices } = useQuery<any[]>({
     queryKey: ["/api/sub-services", providerData?.providerType],
+    queryFn: () => fetch(subServicesUrl, { credentials: "include" }).then(r => r.json()),
     enabled: !!providerData?.providerType && activeTab === "services",
   });
 
@@ -2534,6 +2538,7 @@ export default function ProviderDashboard() {
             onOpenChange={(o) => { setServiceFormOpen(o); if (!o) setEditingService(null); }}
             service={editingService}
             providerId={providerData?.id}
+            providerType={providerData?.providerType}
           />
         </div>
       </main>

@@ -266,9 +266,11 @@ export default function ProviderSetup() {
 
   const selectedType = form.watch("type");
 
+  const subServicesUrl = selectedType ? `/api/sub-services?category=${selectedType}` : null;
   const { data: subServicesData = [] } = useQuery<SubService[]>({
     queryKey: ["/api/sub-services", selectedType],
-    enabled: !!selectedType,
+    queryFn: () => fetch(subServicesUrl!, { credentials: "include" }).then(r => r.json()),
+    enabled: !!selectedType && !!subServicesUrl,
   });
 
   const { data: existingProvider } = useQuery<any>({

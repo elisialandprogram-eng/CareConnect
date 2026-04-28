@@ -5422,6 +5422,7 @@ function SubServicesManagement() {
       form.reset();
       refetch();
       queryClient.invalidateQueries({ queryKey: ["/api/admin/sub-services"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/sub-services"] });
     }
   });
 

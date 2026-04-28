@@ -1038,9 +1038,12 @@ export async function registerRoutes(
   });
 
   // Public list of sub-services (used by provider dashboard service-form to populate categories)
+  // Supports optional ?category= filter (e.g. physiotherapist, doctor, nurse)
   app.get("/api/sub-services", async (req, res) => {
     try {
-      const subServices = await storage.getAllSubServices();
+      const all = await storage.getAllSubServices();
+      const category = typeof req.query.category === "string" ? req.query.category.trim() : "";
+      const subServices = category ? all.filter((s: any) => s.category === category) : all;
       res.json(subServices);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch sub-services" });

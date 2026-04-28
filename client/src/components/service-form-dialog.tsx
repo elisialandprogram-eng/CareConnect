@@ -51,17 +51,25 @@ interface Props {
   service?: Service | null;
   providerId?: string;
   adminMode?: boolean;
+  providerType?: string;
 }
 
-export function ServiceFormDialog({ open, onOpenChange, service, providerId, adminMode }: Props) {
+export function ServiceFormDialog({ open, onOpenChange, service, providerId, adminMode, providerType }: Props) {
   const { t } = useTranslation();
   const { toast } = useToast();
   const isEdit = !!service;
 
-  const { data: subServices = [] } = useQuery<SubService[]>({
-    queryKey: ["/api/sub-services"],
+  const subServicesQueryKey = providerType && !adminMode
+    ? [`/api/sub-services?category=${providerType}`]
+    : ["/api/sub-services"];
+
+  const { data: allSubServices = [] } = useQuery<SubService[]>({
+    queryKey: subServicesQueryKey,
+    queryFn: () => fetch(subServicesQueryKey[0], { credentials: "include" }).then(r => r.json()),
     enabled: open,
   });
+
+  const subServices = allSubServices;
 
   const [imageUrl, setImageUrl] = useState("");
   const [color, setColor] = useState(CALENDAR_COLORS[0]);
@@ -162,6 +170,7 @@ export function ServiceFormDialog({ open, onOpenChange, service, providerId, adm
     onSuccess: (created: any) => {
       queryClient.invalidateQueries({ queryKey: ["/api/sub-services"] });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/sub-services"] });
+      if (providerType) queryClient.invalidateQueries({ queryKey: [`/api/sub-services?category=${providerType}`] });
       if (created?.id) {
         setSubServiceId(created.id);
         if (!name) setName(created.name);
@@ -187,6 +196,7 @@ export function ServiceFormDialog({ open, onOpenChange, service, providerId, adm
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/sub-services"] });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/sub-services"] });
+      if (providerType) queryClient.invalidateQueries({ queryKey: [`/api/sub-services?category=${providerType}`] });
       setEditingCategoryId(null);
       setEditingCategoryName("");
       toast({ title: "Category updated" });
@@ -204,6 +214,7 @@ export function ServiceFormDialog({ open, onOpenChange, service, providerId, adm
     onSuccess: (id) => {
       queryClient.invalidateQueries({ queryKey: ["/api/sub-services"] });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/sub-services"] });
+      if (providerType) queryClient.invalidateQueries({ queryKey: [`/api/sub-services?category=${providerType}`] });
       if (subServiceId === id) setSubServiceId("");
       toast({ title: "Category deleted" });
     },
