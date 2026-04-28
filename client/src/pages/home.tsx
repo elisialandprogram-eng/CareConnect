@@ -10,6 +10,7 @@ import { CTASection } from "@/components/cta-section";
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
 import { ContactForm } from "@/components/contact-form";
+import { RecentlyViewedProviders } from "@/components/recently-viewed-providers";
 import { Shield, Clock, Award, Sparkles, CreditCard, Wallet, Banknote, Mail, Phone, MapPin } from "lucide-react";
 import { SiVisa, SiMastercard, SiGooglepay, SiApplepay } from "react-icons/si";
 import { motion, useScroll, useTransform, useMotionValue, useSpring } from "framer-motion";
@@ -285,6 +286,7 @@ export default function Home() {
           </div>
         </section>
 
+        <RecentlyViewedProviders />
         <ServiceCategories />
         <HowItWorks />
         <StatsSection />

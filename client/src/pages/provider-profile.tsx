@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useLocation } from "wouter";
+import { useRecentlyViewed } from "@/hooks/use-recently-viewed";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { Header } from "@/components/header";
@@ -28,6 +29,11 @@ export default function ProviderProfile() {
     queryKey: ["/api/providers", id],
     enabled: !!id,
   });
+
+  const { add: trackRecentlyViewed } = useRecentlyViewed();
+  useEffect(() => {
+    if (provider?.id) trackRecentlyViewed(provider.id);
+  }, [provider?.id, trackRecentlyViewed]);
 
   const { data: reviews } = useQuery<ReviewWithPatient[]>({
     queryKey: [`/api/providers/${id}/reviews`],
