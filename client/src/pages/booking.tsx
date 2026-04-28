@@ -26,6 +26,10 @@ import {
   Home,
   CreditCard,
   CheckCircle,
+  Check,
+  CalendarPlus,
+  PlusCircle,
+  CalendarCheck,
   ArrowLeft,
   Loader2,
   Wallet,
@@ -90,6 +94,7 @@ export default function Booking() {
   const [notes, setNotes] = useState(params.get("notes") || "");
   const [saveAddressToProfile, setSaveAddressToProfile] = useState(false);
   const [step, setStep] = useState<"details" | "confirmed">("details");
+  const [bookedAppointments, setBookedAppointments] = useState<any[]>([]);
   const [consentChecked, setConsentChecked] = useState(false);
   const [promoInput, setPromoInput] = useState("");
   const [appliedPromo, setAppliedPromo] = useState<{ code: string; discount: number } | null>(null);
@@ -209,6 +214,7 @@ export default function Booking() {
         title: "Success",
         description: `Your appointment has been booked successfully!`,
       });
+      setBookedAppointments(results || []);
       setStep("confirmed");
     },
     onError: (error: Error) => {
@@ -349,65 +355,153 @@ export default function Booking() {
   };
 
   if (step === "confirmed") {
+    const providerName = `${provider.user.firstName} ${provider.user.lastName}`.trim();
+    const serviceTitle = selectedService?.name || provider.specialization || "Appointment";
+    const durationMin = selectedService?.duration ?? 30;
+    const locationText =
+      visitType === "online"
+        ? "Online consultation"
+        : visitType === "home"
+        ? "Home visit"
+        : provider.primaryServiceLocation || provider.city || "Clinic";
+
+    const seed = bookedAppointments[0]?.id || `${providerId}-${finalSessions[0]?.date}-${finalSessions[0]?.time}`;
+    let h = 0;
+    for (let i = 0; i < seed.length; i++) {
+      h = ((h << 5) - h) + seed.charCodeAt(i);
+      h |= 0;
+    }
+    const confirmationNumber = String(Math.abs(h) % 100000).padStart(5, "0");
+
+    const toFloatingStamp = (date: string, time: string, addMin = 0) => {
+      const [y, m, d] = date.split("-").map(Number);
+      const [hh, mm] = time.split(":").map(Number);
+      const dt = new Date(y, (m || 1) - 1, d || 1, hh || 0, mm || 0);
+      dt.setMinutes(dt.getMinutes() + addMin);
+      const pad = (n: number) => String(n).padStart(2, "0");
+      return (
+        `${dt.getFullYear()}${pad(dt.getMonth() + 1)}${pad(dt.getDate())}` +
+        `T${pad(dt.getHours())}${pad(dt.getMinutes())}00`
+      );
+    };
+
+    const first = finalSessions[0];
+    const googleStart = first ? toFloatingStamp(first.date, first.time) : "";
+    const googleEnd = first ? toFloatingStamp(first.date, first.time, durationMin) : "";
+    const googleTitle = `${serviceTitle} with ${providerName}`;
+    const googleDetails = `Confirmation #${confirmationNumber}\nVisit type: ${getVisitTypeLabel(visitType)}\nProvider: ${providerName}`;
+    const googleCalendarUrl = `https://www.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(
+      googleTitle
+    )}&dates=${googleStart}/${googleEnd}&details=${encodeURIComponent(googleDetails)}&location=${encodeURIComponent(locationText)}`;
+
+    const downloadIcs = () => {
+      const dtstamp = new Date()
+        .toISOString()
+        .replace(/[-:]/g, "")
+        .replace(/\.\d{3}Z$/, "Z");
+      const lines = [
+        "BEGIN:VCALENDAR",
+        "VERSION:2.0",
+        "PRODID:-//Golden Life//Booking//EN",
+        "CALSCALE:GREGORIAN",
+        "METHOD:PUBLISH",
+      ];
+      finalSessions.forEach((s: any, idx: number) => {
+        const start = toFloatingStamp(s.date, s.time);
+        const end = toFloatingStamp(s.date, s.time, durationMin);
+        const uid = `${bookedAppointments[idx]?.id || `${confirmationNumber}-${idx}`}@goldenlife.health`;
+        lines.push(
+          "BEGIN:VEVENT",
+          `UID:${uid}`,
+          `DTSTAMP:${dtstamp}`,
+          `DTSTART:${start}`,
+          `DTEND:${end}`,
+          `SUMMARY:${googleTitle}`,
+          `DESCRIPTION:${googleDetails.replace(/\n/g, "\\n")}`,
+          `LOCATION:${locationText}`,
+          "END:VEVENT"
+        );
+      });
+      lines.push("END:VCALENDAR");
+      const blob = new Blob([lines.join("\r\n")], { type: "text/calendar;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `golden-life-appointment-${confirmationNumber}.ics`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    };
+
     return (
       <div className="min-h-screen flex flex-col">
         <Header />
-        <main className="flex-1 py-12">
-          <div className="container mx-auto px-4 max-w-lg text-center">
-            <div className="w-20 h-20 rounded-full bg-green-100 dark:bg-green-900 mx-auto mb-6 flex items-center justify-center">
-              <CheckCircle className="h-10 w-10 text-green-600 dark:text-green-400" />
-            </div>
-            <h1 className="text-3xl font-semibold mb-2">{t("booking.confirmed_title")}</h1>
-            <p className="text-muted-foreground mb-8">
-              {finalSessions.length > 1 
-                ? t("booking.confirmed_desc_other", { count: finalSessions.length }) 
-                : t("booking.confirmed_desc_one")}
-            </p>
+        <main className="flex-1 py-12 bg-muted/30">
+          <div className="container mx-auto px-4 max-w-3xl">
+            <Card className="border shadow-sm">
+              <CardContent className="py-16 px-6 text-center">
+                <div className="inline-flex items-center justify-center w-20 h-20 rounded-full border-2 border-green-500 mx-auto mb-6">
+                  <Check className="h-10 w-10 text-green-500" strokeWidth={2.5} />
+                </div>
+                <h1
+                  className="text-2xl md:text-3xl font-semibold text-green-500 mb-8"
+                  data-testid="heading-thank-you"
+                >
+                  {t("booking.thank_you", "Thank you for your request!")}
+                </h1>
+                <p className="text-sm text-muted-foreground mb-3">
+                  {t("booking.confirmation_number_label", "Your confirmation number:")}
+                </p>
+                <p
+                  className="text-4xl md:text-5xl font-light tracking-[0.4em] mb-12 ml-[0.4em] text-foreground"
+                  data-testid="text-confirmation-number"
+                >
+                  {confirmationNumber}
+                </p>
 
-            <Card className="text-left mb-6">
-              <CardContent className="p-6 space-y-4">
-                <div className="flex items-center gap-4">
-                  <Avatar className="h-12 w-12">
-                    <AvatarImage src={provider.user.avatarUrl || undefined} />
-                    <AvatarFallback className="bg-primary text-primary-foreground">
-                      {provider.user.firstName?.charAt(0)}{provider.user.lastName?.charAt(0)}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <p className="font-semibold">{provider.user.firstName} {provider.user.lastName}</p>
-                    <p className="text-sm text-muted-foreground">{provider.specialization}</p>
-                  </div>
-                </div>
-                <div className="space-y-3 pt-2">
-                  {finalSessions.map((session: any, idx: number) => (
-                    <div key={idx} className="flex flex-col gap-1 pb-2 border-b last:border-0">
-                      <div className="flex items-center gap-2 text-sm">
-                        <Calendar className="h-4 w-4 text-muted-foreground" />
-                        <span>{formatDate(session.date)}</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-sm">
-                        <Clock className="h-4 w-4 text-muted-foreground" />
-                        <span>{session.time}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                <div className="flex items-center gap-2 text-sm pt-2">
-                  {getVisitTypeIcon(visitType)}
-                  <span>{getVisitTypeLabel(visitType)}</span>
+                <div className="flex flex-wrap items-center justify-center gap-3">
+                  <Button
+                    variant="outline"
+                    asChild
+                    className="text-xs uppercase tracking-wider text-muted-foreground hover-elevate"
+                    data-testid="button-add-google-calendar"
+                  >
+                    <a href={googleCalendarUrl} target="_blank" rel="noreferrer">
+                      <CalendarPlus className="h-4 w-4 mr-2" />
+                      {t("booking.add_to_google", "Add to Google Calendar")}
+                    </a>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={downloadIcs}
+                    className="text-xs uppercase tracking-wider text-muted-foreground hover-elevate"
+                    data-testid="button-add-ical"
+                  >
+                    <CalendarPlus className="h-4 w-4 mr-2" />
+                    {t("booking.add_to_ical", "Add to iCal Calendar")}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => navigate("/providers")}
+                    className="text-xs uppercase tracking-wider text-muted-foreground hover-elevate"
+                    data-testid="button-start-new-booking"
+                  >
+                    <PlusCircle className="h-4 w-4 mr-2" />
+                    {t("booking.start_new_booking", "Start New Booking")}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => navigate("/patient/dashboard")}
+                    className="text-xs uppercase tracking-wider text-muted-foreground hover-elevate"
+                    data-testid="button-finish-booking"
+                  >
+                    <CalendarCheck className="h-4 w-4 mr-2" />
+                    {t("booking.finish_booking", "Finish Booking")}
+                  </Button>
                 </div>
               </CardContent>
             </Card>
-
-
-            <div className="flex flex-col gap-3">
-              <Button onClick={() => navigate("/patient/dashboard")} data-testid="button-go-to-dashboard">
-                {t("booking.go_to_dashboard")}
-              </Button>
-              <Button variant="outline" onClick={() => navigate("/providers")} data-testid="button-browse-more">
-                {t("booking.book_another")}
-              </Button>
-            </div>
           </div>
         </main>
         <Footer />
