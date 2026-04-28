@@ -526,7 +526,8 @@ export async function registerRoutes(
       await storage.deleteUser(req.params.id);
       invalidateAuthCache(req.params.id);
       res.status(204).end();
-    } catch (error) {
+    } catch (error: any) {
+      console.error("[admin/deleteUser] failed:", error?.message);
       res.status(500).json({ message: "Failed to delete user" });
     }
   });

@@ -531,8 +531,96 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteUser(id: string): Promise<void> {
-    await db.delete(providers).where(eq(providers.userId, id));
-    await db.delete(users).where(eq(users.id, id));
+    await db.transaction(async (tx) => {
+      const providerRows = await tx
+        .select({ id: providers.id })
+        .from(providers)
+        .where(eq(providers.userId, id));
+      const providerIds = providerRows.map((r) => r.id);
+
+      const appointmentRows = await tx
+        .select({ id: appointments.id })
+        .from(appointments)
+        .where(
+          providerIds.length
+            ? or(eq(appointments.patientId, id), inArray(appointments.providerId, providerIds))
+            : eq(appointments.patientId, id),
+        );
+      const appointmentIds = appointmentRows.map((r) => r.id);
+
+      const idList = (arr: string[]) => sql.join(arr.map((v) => sql`${v}`), sql.raw(','));
+      const provIn = providerIds.length ? sql`(${idList(providerIds)})` : null;
+      const apptIn = appointmentIds.length ? sql`(${idList(appointmentIds)})` : null;
+
+      await tx.execute(sql`UPDATE support_tickets SET assigned_to = NULL WHERE assigned_to = ${id}`);
+      await tx.execute(sql`UPDATE wallet_transactions SET created_by_id = NULL WHERE created_by_id = ${id}`);
+      await tx.execute(sql`UPDATE blog_posts SET author_id = NULL WHERE author_id = ${id}`);
+      await tx.execute(sql`UPDATE audit_logs SET user_id = NULL WHERE user_id = ${id}`);
+
+      if (appointmentIds.length) {
+        await tx.execute(sql`DELETE FROM video_sessions WHERE appointment_id IN ${apptIn}`);
+        await tx.execute(sql`DELETE FROM invoice_items WHERE invoice_id IN (SELECT id FROM invoices WHERE appointment_id IN ${apptIn})`);
+        await tx.execute(sql`DELETE FROM invoices WHERE appointment_id IN ${apptIn}`);
+        await tx.execute(sql`DELETE FROM payments WHERE appointment_id IN ${apptIn}`);
+        await tx.execute(sql`DELETE FROM prescriptions WHERE appointment_id IN ${apptIn}`);
+        await tx.execute(sql`DELETE FROM reviews WHERE appointment_id IN ${apptIn}`);
+      }
+
+      await tx.execute(sql`DELETE FROM invoice_items WHERE invoice_id IN (SELECT id FROM invoices WHERE patient_id = ${id})`);
+      await tx.execute(sql`DELETE FROM invoices WHERE patient_id = ${id}`);
+      await tx.execute(sql`DELETE FROM payments WHERE patient_id = ${id}`);
+      await tx.execute(sql`DELETE FROM prescriptions WHERE patient_id = ${id}`);
+      await tx.execute(sql`DELETE FROM reviews WHERE patient_id = ${id}`);
+      await tx.execute(sql`DELETE FROM medical_history WHERE patient_id = ${id}`);
+      await tx.execute(sql`DELETE FROM saved_providers WHERE patient_id = ${id}`);
+      await tx.execute(sql`DELETE FROM chat_messages WHERE conversation_id IN (SELECT id FROM chat_conversations WHERE patient_id = ${id})`);
+      await tx.execute(sql`DELETE FROM chat_conversations WHERE patient_id = ${id}`);
+      await tx.execute(sql`DELETE FROM chat_messages WHERE sender_id = ${id}`);
+      await tx.execute(sql`DELETE FROM realtime_messages WHERE conversation_id IN (SELECT id FROM realtime_conversations WHERE participant1_id = ${id} OR participant2_id = ${id})`);
+      await tx.execute(sql`DELETE FROM realtime_conversations WHERE participant1_id = ${id} OR participant2_id = ${id}`);
+      await tx.execute(sql`DELETE FROM realtime_messages WHERE sender_id = ${id}`);
+      await tx.execute(sql`DELETE FROM ticket_messages WHERE ticket_id IN (SELECT id FROM support_tickets WHERE user_id = ${id})`);
+      await tx.execute(sql`DELETE FROM support_tickets WHERE user_id = ${id}`);
+      await tx.execute(sql`DELETE FROM ticket_messages WHERE user_id = ${id}`);
+      await tx.execute(sql`DELETE FROM appointments WHERE patient_id = ${id}`);
+      if (providerIds.length) {
+        await tx.execute(sql`DELETE FROM appointments WHERE provider_id IN ${provIn}`);
+      }
+      await tx.execute(sql`DELETE FROM patient_consents WHERE user_id = ${id}`);
+      await tx.execute(sql`DELETE FROM user_notifications WHERE user_id = ${id}`);
+      await tx.execute(sql`DELETE FROM notification_preferences WHERE user_id = ${id}`);
+      await tx.execute(sql`DELETE FROM notification_queue WHERE user_id = ${id}`);
+      await tx.execute(sql`DELETE FROM notification_delivery_logs WHERE user_id = ${id}`);
+      await tx.execute(sql`DELETE FROM push_subscriptions WHERE user_id = ${id}`);
+      await tx.execute(sql`DELETE FROM admin_broadcasts WHERE sender_id = ${id}`);
+      await tx.execute(sql`DELETE FROM wallet_transactions WHERE user_id = ${id}`);
+      await tx.execute(sql`DELETE FROM wallets WHERE user_id = ${id}`);
+      await tx.execute(sql`DELETE FROM conversations WHERE user_id = ${id}`);
+      await tx.execute(sql`DELETE FROM refresh_tokens WHERE user_id = ${id}`);
+      await tx.execute(sql`DELETE FROM provider_office_hours WHERE provider_user_id = ${id}`);
+
+      if (providerIds.length) {
+        await tx.execute(sql`DELETE FROM service_packages WHERE provider_id IN ${provIn}`);
+        await tx.execute(sql`DELETE FROM provider_pricing_overrides WHERE provider_id IN ${provIn}`);
+        await tx.execute(sql`DELETE FROM time_slots WHERE provider_id IN ${provIn}`);
+        await tx.execute(sql`DELETE FROM medical_history WHERE provider_id IN ${provIn}`);
+        await tx.execute(sql`DELETE FROM prescriptions WHERE provider_id IN ${provIn}`);
+        await tx.execute(sql`DELETE FROM reviews WHERE provider_id IN ${provIn}`);
+        await tx.execute(sql`DELETE FROM payments WHERE appointment_id IN (SELECT id FROM appointments WHERE provider_id IN ${provIn})`);
+        await tx.execute(sql`DELETE FROM chat_messages WHERE conversation_id IN (SELECT id FROM chat_conversations WHERE provider_id IN ${provIn})`);
+        await tx.execute(sql`DELETE FROM chat_conversations WHERE provider_id IN ${provIn}`);
+        await tx.execute(sql`DELETE FROM saved_providers WHERE provider_id IN ${provIn}`);
+        await tx.execute(sql`DELETE FROM medical_practitioners WHERE provider_id IN ${provIn}`);
+        await tx.execute(sql`DELETE FROM service_practitioners WHERE practitioner_id IN (SELECT id FROM practitioners WHERE provider_id IN ${provIn})`);
+        await tx.execute(sql`DELETE FROM practitioners WHERE provider_id IN ${provIn}`);
+        await tx.execute(sql`DELETE FROM services WHERE provider_id IN ${provIn}`);
+        await tx.execute(sql`DELETE FROM invoice_items WHERE invoice_id IN (SELECT id FROM invoices WHERE provider_id IN ${provIn})`);
+        await tx.execute(sql`DELETE FROM invoices WHERE provider_id IN ${provIn}`);
+      }
+
+      await tx.delete(providers).where(eq(providers.userId, id));
+      await tx.delete(users).where(eq(users.id, id));
+    });
   }
 
   async updateUserOtp(id: string, data: { 
