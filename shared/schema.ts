@@ -237,6 +237,7 @@ export const timeSlots = pgTable("time_slots", {
 export const appointments = pgTable("appointments", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   patientId: varchar("patient_id").notNull().references(() => users.id),
+  familyMemberId: varchar("family_member_id"),
   providerId: varchar("provider_id").notNull().references(() => providers.id),
   serviceId: varchar("service_id").references(() => services.id),
   practitionerId: varchar("practitioner_id").references(() => practitioners.id),
@@ -547,6 +548,25 @@ export const prescriptions = pgTable("prescriptions", {
   isActive: boolean("is_active").default(true),
 });
 
+export const familyMembers = pgTable("family_members", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  primaryUserId: varchar("primary_user_id").notNull().references(() => users.id),
+  firstName: text("first_name").notNull(),
+  lastName: text("last_name").notNull(),
+  relationship: text("relationship").notNull(),
+  dateOfBirth: text("date_of_birth"),
+  gender: text("gender"),
+  phone: text("phone"),
+  email: text("email"),
+  bloodType: text("blood_type"),
+  allergies: text("allergies"),
+  medicalConditions: text("medical_conditions"),
+  notes: text("notes"),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 export const healthMetrics = pgTable("health_metrics", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   patientId: varchar("patient_id").notNull().references(() => users.id),
@@ -817,6 +837,12 @@ export const insertDailyMetricSchema = createInsertSchema(dailyMetrics).omit({ i
 export const insertPrescriptionSchema = createInsertSchema(prescriptions).omit({ id: true, issuedAt: true });
 export const insertMedicalHistorySchema = createInsertSchema(medicalHistory).omit({ id: true, createdAt: true });
 export const insertHealthMetricSchema = createInsertSchema(healthMetrics).omit({ id: true, createdAt: true });
+export const insertFamilyMemberSchema = createInsertSchema(familyMembers).omit({
+  id: true,
+  primaryUserId: true,
+  createdAt: true,
+  updatedAt: true,
+});
 export const insertSubServiceSchema = createInsertSchema(subServices).omit({ id: true, createdAt: true });
 export const insertTaxSettingSchema = createInsertSchema(taxSettings).omit({ id: true });
 export const insertPatientConsentSchema = createInsertSchema(patientConsents).omit({ id: true, acceptedAt: true });
@@ -910,6 +936,9 @@ export type MedicalHistory = typeof medicalHistory.$inferSelect;
 export type InsertMedicalHistory = z.infer<typeof insertMedicalHistorySchema>;
 export type HealthMetric = typeof healthMetrics.$inferSelect;
 export type InsertHealthMetric = z.infer<typeof insertHealthMetricSchema>;
+
+export type FamilyMember = typeof familyMembers.$inferSelect;
+export type InsertFamilyMember = z.infer<typeof insertFamilyMemberSchema>;
 export type UserNotification = typeof userNotifications.$inferSelect;
 export type InsertUserNotification = z.infer<typeof insertUserNotificationSchema>;
 export type ChatConversation = typeof chatConversations.$inferSelect;

@@ -25,6 +25,7 @@ import {
   prescriptions,
   medicalHistory,
   healthMetrics,
+  familyMembers,
   userNotifications,
   chatConversations,
   chatMessages,
@@ -92,6 +93,8 @@ import {
   type InsertMedicalHistory,
   type HealthMetric,
   type InsertHealthMetric,
+  type FamilyMember,
+  type InsertFamilyMember,
   type UserNotification,
   type InsertUserNotification,
   type ChatConversation,
@@ -415,6 +418,13 @@ export interface IStorage {
   getHealthMetricsByPatient(patientId: string, limit?: number): Promise<HealthMetric[]>;
   createHealthMetric(data: InsertHealthMetric): Promise<HealthMetric>;
   deleteHealthMetric(id: string, patientId: string): Promise<boolean>;
+
+  // Family Members
+  getFamilyMembersByUser(primaryUserId: string): Promise<FamilyMember[]>;
+  getFamilyMember(id: string): Promise<FamilyMember | undefined>;
+  createFamilyMember(primaryUserId: string, data: InsertFamilyMember): Promise<FamilyMember>;
+  updateFamilyMember(id: string, primaryUserId: string, data: Partial<InsertFamilyMember>): Promise<FamilyMember | undefined>;
+  deleteFamilyMember(id: string, primaryUserId: string): Promise<boolean>;
 
   // Medical Practitioners
   createMedicalPractitioner(practitioner: InsertMedicalPractitioner): Promise<MedicalPractitioner>;
@@ -1733,6 +1743,49 @@ export class DatabaseStorage implements IStorage {
     const result = await db
       .delete(healthMetrics)
       .where(and(eq(healthMetrics.id, id), eq(healthMetrics.patientId, patientId)))
+      .returning();
+    return result.length > 0;
+  }
+
+  // Family Members
+  async getFamilyMembersByUser(primaryUserId: string): Promise<FamilyMember[]> {
+    return db
+      .select()
+      .from(familyMembers)
+      .where(eq(familyMembers.primaryUserId, primaryUserId))
+      .orderBy(desc(familyMembers.createdAt));
+  }
+
+  async getFamilyMember(id: string): Promise<FamilyMember | undefined> {
+    const [m] = await db.select().from(familyMembers).where(eq(familyMembers.id, id));
+    return m || undefined;
+  }
+
+  async createFamilyMember(primaryUserId: string, data: InsertFamilyMember): Promise<FamilyMember> {
+    const [m] = await db
+      .insert(familyMembers)
+      .values({ ...data, primaryUserId })
+      .returning();
+    return m;
+  }
+
+  async updateFamilyMember(
+    id: string,
+    primaryUserId: string,
+    data: Partial<InsertFamilyMember>,
+  ): Promise<FamilyMember | undefined> {
+    const [m] = await db
+      .update(familyMembers)
+      .set({ ...data, updatedAt: new Date() })
+      .where(and(eq(familyMembers.id, id), eq(familyMembers.primaryUserId, primaryUserId)))
+      .returning();
+    return m || undefined;
+  }
+
+  async deleteFamilyMember(id: string, primaryUserId: string): Promise<boolean> {
+    const result = await db
+      .delete(familyMembers)
+      .where(and(eq(familyMembers.id, id), eq(familyMembers.primaryUserId, primaryUserId)))
       .returning();
     return result.length > 0;
   }

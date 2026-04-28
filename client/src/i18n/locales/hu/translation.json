@@ -92,7 +92,10 @@
     "reset": "Alaphelyzet",
     "save": "Mentés",
     "something_went_wrong": "Hiba történt",
-    "support_tickets": "Saját ügyfélszolgálati jegyek"
+    "support_tickets": "Saját ügyfélszolgálati jegyek",
+    "edit": "Szerkesztés",
+    "delete": "Törlés",
+    "remove": "Eltávolítás"
   },
   "hero": {
     "trusted_badge": "Több mint 10 000 páciens bizalmával",
@@ -455,7 +458,10 @@
     "save_address_to_profile": "Cím mentése a profilomba a következő alkalomra",
     "start_new_booking": "Új foglalás indítása",
     "thank_you": "Köszönjük a foglalást!",
-    "wallet_balance_short": "Egyenleg"
+    "wallet_balance_short": "Egyenleg",
+    "booking_for": "Ez az időpont a következő számára szól",
+    "book_for_self": "Saját magamnak",
+    "booking_for_note": "Az időpontot az Ön fiókja alatt foglaljuk le, ennek a családtagnak a nevében."
   },
   "dashboard": {
     "welcome": "Üdvözöljük",
@@ -514,7 +520,8 @@
     "saved": "Mentve",
     "search_appointments_patient": "Keresés szolgáltató, szolgáltatás vagy azonosító szerint…",
     "starting_now": "Most kezdődik",
-    "wallet": "Pénztárca"
+    "wallet": "Pénztárca",
+    "family": "Család"
   },
   "appointments": {
     "my_appointments": "Időpontjaim",
@@ -1668,5 +1675,61 @@
     "hr_short": "Pulzus",
     "bg_short": "Cukor",
     "temp_short": "Hőm."
+  },
+  "family": {
+    "title": "Családi profilok",
+    "subtitle": "Kezelje a gondozott személyek profiljait, és foglaljon számukra időpontot.",
+    "add_member": "Tag hozzáadása",
+    "add_first": "Adja hozzá az első családtagot",
+    "empty": "Még nem adott hozzá családtagot.",
+    "added_title": "Családtag hozzáadva",
+    "updated_title": "Családtag frissítve",
+    "removed": "Családtag eltávolítva",
+    "save_failed": "Nem sikerült menteni a családtagot",
+    "remove_failed": "Nem sikerült eltávolítani a családtagot",
+    "name_required": "A név megadása kötelező",
+    "edit_title": "Családtag szerkesztése",
+    "add_title": "Családtag hozzáadása",
+    "dialog_desc": "Adja meg az adatokat, hogy a szolgáltatók pontos információt kapjanak, amikor a nevükben foglal.",
+    "first_name": "Keresztnév",
+    "last_name": "Vezetéknév",
+    "relationship": "Kapcsolat",
+    "date_of_birth": "Születési dátum",
+    "gender_label": "Nem",
+    "blood_type": "Vércsoport",
+    "blood_unknown": "Ismeretlen",
+    "phone": "Telefon",
+    "email": "E-mail",
+    "allergies": "Allergiák",
+    "allergies_short": "Allergiák",
+    "allergies_placeholder": "pl. penicillin, mogyoró…",
+    "conditions": "Betegségek",
+    "conditions_label": "Egészségi állapot",
+    "conditions_placeholder": "pl. asztma, cukorbetegség…",
+    "notes": "Megjegyzések",
+    "notes_placeholder": "Bármi más, amit a szolgáltatóknak tudniuk kell…",
+    "saving": "Mentés…",
+    "save_changes": "Módosítások mentése",
+    "save_member": "Tag hozzáadása",
+    "book_for": "Időpontfoglalás",
+    "age_years_one": "{{count}} éves",
+    "age_years_other": "{{count}} éves",
+    "confirm_delete_title": "Eltávolítja ezt a családtagot?",
+    "confirm_delete_desc": "Ez nem mondja le a már lefoglalt időpontokat, de nem tud újakat foglalni ennek a személynek.",
+    "rel": {
+      "spouse": "Házastárs",
+      "child": "Gyermek",
+      "parent": "Szülő",
+      "sibling": "Testvér",
+      "grandparent": "Nagyszülő",
+      "grandchild": "Unoka",
+      "other": "Egyéb"
+    },
+    "gender": {
+      "female": "Nő",
+      "male": "Férfi",
+      "other": "Egyéb",
+      "unspecified": "Nem kívánom megadni"
+    }
   }
 }

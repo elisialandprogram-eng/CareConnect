@@ -21,6 +21,7 @@ import {
   insertServiceSchema,
   insertServicePackageSchema,
   insertHealthMetricSchema,
+  insertFamilyMemberSchema,
   services,
   practitioners,
   servicePractitioners,
@@ -2223,8 +2224,18 @@ export async function registerRoutes(
   // Create appointment
   app.post("/api/appointments", authenticateToken, async (req: AuthRequest, res: Response) => {
     try {
-      const { providerId, serviceId, practitionerId, date, startTime, endTime, visitType, paymentMethod, notes, patientAddress, patientLatitude, patientLongitude, totalAmount, promoCode, contactMobile } = req.body;
+      const { providerId, serviceId, practitionerId, date, startTime, endTime, visitType, paymentMethod, notes, patientAddress, patientLatitude, patientLongitude, totalAmount, promoCode, contactMobile, familyMemberId } = req.body;
       const userId = req.user?.id;
+
+      // Validate family member ownership if provided
+      let validatedFamilyMemberId: string | null = null;
+      if (familyMemberId) {
+        const member = await storage.getFamilyMember(familyMemberId);
+        if (!member || member.primaryUserId !== userId) {
+          return res.status(403).json({ message: "Family member not found or not yours." });
+        }
+        validatedFamilyMemberId = member.id;
+      }
 
       // Log appointment request for debugging but keep it concise to avoid large base64 strings
       console.log(`Received appointment request for provider ${providerId} on ${date}`);
@@ -2381,6 +2392,7 @@ export async function registerRoutes(
 
       const appointment = await storage.createAppointment({
         patientId: userId,
+        familyMemberId: validatedFamilyMemberId,
         providerId,
         serviceId: serviceId || null,
         practitionerId: practitionerId || null,
@@ -2914,6 +2926,57 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Delete health metric error:", error);
       res.status(500).json({ message: "Failed to delete reading" });
+    }
+  });
+
+  // Family members
+  app.get("/api/family-members", authenticateToken, async (req: AuthRequest, res: Response) => {
+    try {
+      const members = await storage.getFamilyMembersByUser(req.user!.id);
+      res.json(members);
+    } catch (error) {
+      console.error("Get family members error:", error);
+      res.status(500).json({ message: "Failed to load family members" });
+    }
+  });
+
+  app.post("/api/family-members", authenticateToken, async (req: AuthRequest, res: Response) => {
+    try {
+      const parsed = insertFamilyMemberSchema.parse(req.body);
+      const member = await storage.createFamilyMember(req.user!.id, parsed);
+      res.status(201).json(member);
+    } catch (error: any) {
+      if (error?.name === "ZodError") {
+        return res.status(400).json({ message: "Invalid family member data", errors: error.errors });
+      }
+      console.error("Create family member error:", error);
+      res.status(500).json({ message: "Failed to add family member" });
+    }
+  });
+
+  app.patch("/api/family-members/:id", authenticateToken, async (req: AuthRequest, res: Response) => {
+    try {
+      const parsed = insertFamilyMemberSchema.partial().parse(req.body);
+      const updated = await storage.updateFamilyMember(req.params.id, req.user!.id, parsed);
+      if (!updated) return res.status(404).json({ message: "Family member not found" });
+      res.json(updated);
+    } catch (error: any) {
+      if (error?.name === "ZodError") {
+        return res.status(400).json({ message: "Invalid family member data", errors: error.errors });
+      }
+      console.error("Update family member error:", error);
+      res.status(500).json({ message: "Failed to update family member" });
+    }
+  });
+
+  app.delete("/api/family-members/:id", authenticateToken, async (req: AuthRequest, res: Response) => {
+    try {
+      const deleted = await storage.deleteFamilyMember(req.params.id, req.user!.id);
+      if (!deleted) return res.status(404).json({ message: "Family member not found" });
+      res.json({ ok: true });
+    } catch (error) {
+      console.error("Delete family member error:", error);
+      res.status(500).json({ message: "Failed to remove family member" });
     }
   });
 

@@ -42,7 +42,9 @@ import {
 } from "lucide-react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
-import type { ProviderWithServices, Service, TaxSetting, Wallet as WalletType } from "@shared/schema";
+import type { ProviderWithServices, Service, TaxSetting, Wallet as WalletType, FamilyMember } from "@shared/schema";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Users } from "lucide-react";
 
 export default function Booking() {
   const { t, i18n } = useTranslation();
@@ -85,6 +87,13 @@ export default function Booking() {
   const visitType = (params.get("visitType") || "online") as "online" | "home" | "clinic";
 
   const [paymentMethod, setPaymentMethod] = useState("card");
+  const initialFamilyMemberId = params.get("for") || params.get("familyMemberId") || "";
+  const [familyMemberId, setFamilyMemberId] = useState<string>(initialFamilyMemberId);
+
+  const { data: familyMembers } = useQuery<FamilyMember[]>({
+    queryKey: ["/api/family-members"],
+    enabled: isAuthenticated,
+  });
   const [location, setLocation] = useState<PickedLocation>({
     address: user?.address || "",
     latitude: (user as any)?.savedLatitude ?? null,
@@ -257,6 +266,7 @@ export default function Booking() {
       endTime: "10:00", // Simplified for fast mode
       saveAddressToProfile,
       promoCode: appliedPromo?.code || null,
+      familyMemberId: familyMemberId || null,
     };
 
     bookingMutation.mutate({ sessions: [bookingData] });
@@ -596,6 +606,54 @@ export default function Booking() {
                   </div>
 
                   <div className="space-y-4">
+                    {familyMembers && familyMembers.length > 0 && (
+                      <div className="space-y-2 rounded-lg border bg-muted/30 p-3">
+                        <Label htmlFor="bookingFor" className="flex items-center gap-1.5">
+                          <Users className="h-4 w-4 text-primary" />
+                          {t("booking.booking_for", "This appointment is for")}
+                        </Label>
+                        <Select
+                          value={familyMemberId || "self"}
+                          onValueChange={(v) => {
+                            const id = v === "self" ? "" : v;
+                            setFamilyMemberId(id);
+                            const m = id ? familyMembers.find((fm) => fm.id === id) : null;
+                            if (m) {
+                              setContactPerson(`${m.firstName} ${m.lastName}`.trim());
+                              if (m.phone) setContactMobile(m.phone);
+                            } else if (user) {
+                              setContactPerson(`${user.firstName || ""} ${user.lastName || ""}`.trim());
+                              setContactMobile(user.mobileNumber || user.phone || "");
+                            }
+                          }}
+                        >
+                          <SelectTrigger id="bookingFor" data-testid="select-booking-for">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="self">
+                              {t("booking.book_for_self", "Myself")}
+                            </SelectItem>
+                            {familyMembers.map((m) => (
+                              <SelectItem key={m.id} value={m.id}>
+                                {m.firstName} {m.lastName}
+                                {" — "}
+                                {t(`family.rel.${m.relationship}`, m.relationship)}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        {familyMemberId && (
+                          <p className="text-xs text-muted-foreground">
+                            {t(
+                              "booking.booking_for_note",
+                              "The appointment will be booked under your account on behalf of this family member."
+                            )}
+                          </p>
+                        )}
+                      </div>
+                    )}
+
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="contactPerson">{t("booking.contact_person")}</Label>

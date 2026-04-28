@@ -92,7 +92,10 @@
     "reset": "بازنشانی",
     "save": "ذخیره",
     "something_went_wrong": "خطایی رخ داد",
-    "support_tickets": "تیکت‌های پشتیبانی من"
+    "support_tickets": "تیکت‌های پشتیبانی من",
+    "edit": "ویرایش",
+    "delete": "حذف",
+    "remove": "حذف"
   },
   "hero": {
     "trusted_badge": "مورد اعتماد بیش از ۱۰,۰۰۰ بیمار",
@@ -455,7 +458,10 @@
     "save_address_to_profile": "این آدرس را برای دفعات بعدی در پروفایل من ذخیره کن",
     "start_new_booking": "شروع رزرو جدید",
     "thank_you": "از درخواست شما سپاسگزاریم!",
-    "wallet_balance_short": "موجودی"
+    "wallet_balance_short": "موجودی",
+    "booking_for": "این نوبت برای",
+    "book_for_self": "خودم",
+    "booking_for_note": "این نوبت تحت حساب شما و به نمایندگی از این عضو خانواده ثبت می‌شود."
   },
   "dashboard": {
     "welcome": "خوش آمدید",
@@ -514,7 +520,8 @@
     "saved": "ذخیره شد",
     "search_appointments_patient": "جستجو بر اساس ارائه‌دهنده، خدمت یا شناسه…",
     "starting_now": "هم‌اکنون شروع می‌شود",
-    "wallet": "کیف پول"
+    "wallet": "کیف پول",
+    "family": "خانواده"
   },
   "appointments": {
     "my_appointments": "نوبت‌های من",
@@ -1668,5 +1675,61 @@
     "hr_short": "ضربان",
     "bg_short": "قند",
     "temp_short": "دما"
+  },
+  "family": {
+    "title": "پروفایل‌های خانواده",
+    "subtitle": "پروفایل کسانی را که از آن‌ها مراقبت می‌کنید مدیریت کنید و به نمایندگی از آن‌ها نوبت بگیرید.",
+    "add_member": "افزودن عضو",
+    "add_first": "اولین عضو خانواده را اضافه کنید",
+    "empty": "هنوز هیچ عضوی از خانواده اضافه نکرده‌اید.",
+    "added_title": "عضو خانواده اضافه شد",
+    "updated_title": "عضو خانواده به‌روزرسانی شد",
+    "removed": "عضو خانواده حذف شد",
+    "save_failed": "ذخیره عضو خانواده ممکن نشد",
+    "remove_failed": "حذف عضو خانواده ممکن نشد",
+    "name_required": "نام الزامی است",
+    "edit_title": "ویرایش عضو خانواده",
+    "add_title": "افزودن عضو خانواده",
+    "dialog_desc": "اطلاعات را وارد کنید تا پزشکان هنگام نوبت‌گیری از طرف ایشان اطلاعات درستی داشته باشند.",
+    "first_name": "نام",
+    "last_name": "نام خانوادگی",
+    "relationship": "نسبت",
+    "date_of_birth": "تاریخ تولد",
+    "gender_label": "جنسیت",
+    "blood_type": "گروه خونی",
+    "blood_unknown": "نامشخص",
+    "phone": "تلفن",
+    "email": "ایمیل",
+    "allergies": "آلرژی‌ها",
+    "allergies_short": "آلرژی",
+    "allergies_placeholder": "مانند پنی‌سیلین، بادام‌زمینی…",
+    "conditions": "بیماری‌ها",
+    "conditions_label": "سوابق پزشکی",
+    "conditions_placeholder": "مانند آسم، دیابت…",
+    "notes": "یادداشت‌ها",
+    "notes_placeholder": "هر اطلاعات دیگری که پزشک باید بداند…",
+    "saving": "در حال ذخیره…",
+    "save_changes": "ذخیره تغییرات",
+    "save_member": "افزودن عضو",
+    "book_for": "رزرو نوبت",
+    "age_years_one": "{{count}} سال",
+    "age_years_other": "{{count}} سال",
+    "confirm_delete_title": "این عضو خانواده حذف شود؟",
+    "confirm_delete_desc": "این کار نوبت‌های قبلی را لغو نمی‌کند، اما دیگر نمی‌توانید برای این فرد نوبت جدیدی ثبت کنید.",
+    "rel": {
+      "spouse": "همسر",
+      "child": "فرزند",
+      "parent": "والد",
+      "sibling": "خواهر/برادر",
+      "grandparent": "پدربزرگ/مادربزرگ",
+      "grandchild": "نوه",
+      "other": "سایر"
+    },
+    "gender": {
+      "female": "زن",
+      "male": "مرد",
+      "other": "سایر",
+      "unspecified": "تمایل ندارم بگویم"
+    }
   }
 }
