@@ -3931,9 +3931,21 @@ export default function AdminDashboard() {
               <Users className="h-4 w-4 mr-2" />
               {t("admin.users")}
             </TabsTrigger>
+            <TabsTrigger value="calendar" data-testid="tab-calendar">
+              <Calendar className="h-4 w-4 mr-2" />
+              {t("admin.calendar", "Calendar")}
+            </TabsTrigger>
             <TabsTrigger value="bookings" data-testid="tab-bookings">
               <Calendar className="h-4 w-4 mr-2" />
               {t("admin.bookings")}
+            </TabsTrigger>
+            <TabsTrigger value="services-grid" data-testid="tab-services-grid">
+              <Activity className="h-4 w-4 mr-2" />
+              {t("admin.services", "Services")}
+            </TabsTrigger>
+            <TabsTrigger value="staff" data-testid="tab-staff">
+              <UserCheck className="h-4 w-4 mr-2" />
+              {t("admin.staff", "Staff")}
             </TabsTrigger>
             <TabsTrigger value="financial" data-testid="tab-financial">
               <DollarSign className="h-4 w-4 mr-2" />
@@ -3993,8 +4005,20 @@ export default function AdminDashboard() {
             <AnalyticsOverview />
           </TabsContent>
 
+          <TabsContent value="calendar">
+            <AdminCalendarView />
+          </TabsContent>
+
           <TabsContent value="bookings">
             <BookingsManagementComponent />
+          </TabsContent>
+
+          <TabsContent value="services-grid">
+            <AdminServicesOverview />
+          </TabsContent>
+
+          <TabsContent value="staff">
+            <AdminStaffOverview />
           </TabsContent>
 
           <TabsContent value="users">
@@ -4116,6 +4140,460 @@ export default function AdminDashboard() {
       </main>
 
       <Footer />
+    </div>
+  );
+}
+
+// ───── Admin appointments calendar (Booknetic-style week view) ─────
+function AdminCalendarView() {
+  const { t } = useTranslation();
+  const { format: fmtMoney } = useCurrency();
+  const [weekOffset, setWeekOffset] = useState(0);
+  const [providerFilter, setProviderFilter] = useState<string>("all");
+
+  const { data: bookings = [], isLoading } = useQuery<any[]>({
+    queryKey: ["/api/admin/bookings"],
+  });
+  const { data: providers = [] } = useQuery<any[]>({
+    queryKey: ["/api/admin/providers"],
+  });
+
+  const startOfWeek = useMemo(() => {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    const day = d.getDay();
+    const diff = (day === 0 ? -6 : 1) - day;
+    d.setDate(d.getDate() + diff + weekOffset * 7);
+    return d;
+  }, [weekOffset]);
+
+  const days = useMemo(
+    () =>
+      Array.from({ length: 7 }, (_, i) => {
+        const d = new Date(startOfWeek);
+        d.setDate(d.getDate() + i);
+        return d;
+      }),
+    [startOfWeek],
+  );
+
+  const filtered = useMemo(() => {
+    return (bookings || []).filter((b: any) => {
+      if (providerFilter !== "all" && b.providerId !== providerFilter) return false;
+      const bd = new Date(b.scheduledAt || b.date);
+      return bd >= days[0] && bd < new Date(days[6].getTime() + 86400000);
+    });
+  }, [bookings, providerFilter, days]);
+
+  const byDay = useMemo(() => {
+    const map: Record<string, any[]> = {};
+    days.forEach((d) => {
+      map[d.toDateString()] = [];
+    });
+    filtered.forEach((b: any) => {
+      const key = new Date(b.scheduledAt || b.date).toDateString();
+      if (map[key]) map[key].push(b);
+    });
+    Object.values(map).forEach((arr) =>
+      arr.sort(
+        (a, b) =>
+          new Date(a.scheduledAt || a.date).getTime() -
+          new Date(b.scheduledAt || b.date).getTime(),
+      ),
+    );
+    return map;
+  }, [filtered, days]);
+
+  const statusColor = (s: string) =>
+    s === "completed"
+      ? "bg-emerald-500"
+      : s === "confirmed"
+      ? "bg-blue-500"
+      : s === "cancelled"
+      ? "bg-red-400"
+      : s === "pending"
+      ? "bg-amber-500"
+      : "bg-slate-400";
+
+  const dayName = (d: Date) =>
+    d.toLocaleDateString(undefined, { weekday: "short" });
+  const isToday = (d: Date) => d.toDateString() === new Date().toDateString();
+
+  return (
+    <div className="space-y-4">
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between gap-2 flex-wrap">
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setWeekOffset((w) => w - 1)}
+              data-testid="button-cal-prev-week"
+            >
+              ‹
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setWeekOffset(0)}
+              data-testid="button-cal-today"
+            >
+              {t("admin.today", "Today")}
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setWeekOffset((w) => w + 1)}
+              data-testid="button-cal-next-week"
+            >
+              ›
+            </Button>
+            <span className="ml-2 font-medium" data-testid="text-cal-range">
+              {days[0].toLocaleDateString(undefined, {
+                month: "short",
+                day: "numeric",
+              })}{" "}
+              -{" "}
+              {days[6].toLocaleDateString(undefined, {
+                month: "short",
+                day: "numeric",
+                year: "numeric",
+              })}
+            </span>
+          </div>
+          <Select value={providerFilter} onValueChange={setProviderFilter}>
+            <SelectTrigger className="w-56" data-testid="select-cal-provider">
+              <SelectValue placeholder={t("admin.all_providers", "All providers")} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">
+                {t("admin.all_providers", "All providers")}
+              </SelectItem>
+              {providers.map((p: any) => (
+                <SelectItem key={p.id} value={p.id}>
+                  {p.businessName || p.user?.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-6 w-6 animate-spin" />
+            </div>
+          ) : (
+            <div className="grid grid-cols-7 gap-2">
+              {days.map((d) => (
+                <div
+                  key={d.toISOString()}
+                  className={`border rounded-lg p-2 min-h-[300px] ${
+                    isToday(d) ? "border-primary bg-primary/5" : "bg-card"
+                  }`}
+                  data-testid={`col-cal-${d.toDateString()}`}
+                >
+                  <div className="flex items-baseline justify-between mb-2">
+                    <span className="text-xs uppercase text-muted-foreground">
+                      {dayName(d)}
+                    </span>
+                    <span
+                      className={`text-lg font-semibold ${
+                        isToday(d) ? "text-primary" : ""
+                      }`}
+                    >
+                      {d.getDate()}
+                    </span>
+                  </div>
+                  <div className="space-y-1">
+                    {byDay[d.toDateString()]?.map((b: any) => (
+                      <div
+                        key={b.id}
+                        className={`p-2 rounded text-xs text-white ${statusColor(b.status)}`}
+                        data-testid={`event-cal-${b.id}`}
+                      >
+                        <div className="font-semibold">
+                          {new Date(b.scheduledAt || b.date).toLocaleTimeString(
+                            [],
+                            { hour: "2-digit", minute: "2-digit" },
+                          )}
+                        </div>
+                        <div className="truncate opacity-95">
+                          {b.serviceName || b.service?.name || "—"}
+                        </div>
+                        <div className="truncate opacity-80">
+                          {b.customerName || b.customer?.name || ""}
+                        </div>
+                      </div>
+                    ))}
+                    {(byDay[d.toDateString()]?.length ?? 0) === 0 && (
+                      <div className="text-xs text-muted-foreground/70 italic">
+                        —
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <div className="flex flex-wrap gap-3 text-xs">
+        <span className="flex items-center gap-1">
+          <span className="h-3 w-3 rounded bg-amber-500" /> {t("admin.pending", "Pending")}
+        </span>
+        <span className="flex items-center gap-1">
+          <span className="h-3 w-3 rounded bg-blue-500" /> {t("admin.confirmed", "Confirmed")}
+        </span>
+        <span className="flex items-center gap-1">
+          <span className="h-3 w-3 rounded bg-emerald-500" /> {t("admin.completed", "Completed")}
+        </span>
+        <span className="flex items-center gap-1">
+          <span className="h-3 w-3 rounded bg-red-400" /> {t("admin.cancelled", "Cancelled")}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+// ───── Admin services overview (card grid across all providers) ─────
+function AdminServicesOverview() {
+  const { t } = useTranslation();
+  const { format: fmtMoney } = useCurrency();
+  const [search, setSearch] = useState("");
+  const [providerFilter, setProviderFilter] = useState<string>("all");
+
+  const { data: services = [], isLoading } = useQuery<any[]>({
+    queryKey: ["/api/admin/services-overview"],
+  });
+  const { data: providers = [] } = useQuery<any[]>({
+    queryKey: ["/api/admin/providers"],
+  });
+
+  const filtered = useMemo(
+    () =>
+      (services || []).filter((s: any) => {
+        if (providerFilter !== "all" && s.providerId !== providerFilter)
+          return false;
+        if (
+          search &&
+          !s.name?.toLowerCase().includes(search.toLowerCase()) &&
+          !s.providerName?.toLowerCase().includes(search.toLowerCase())
+        )
+          return false;
+        return true;
+      }),
+    [services, providerFilter, search],
+  );
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap gap-2">
+        <div className="relative flex-1 min-w-[220px]">
+          <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder={t("admin.search_services", "Search services...")}
+            className="pl-8"
+            data-testid="input-services-search"
+          />
+        </div>
+        <Select value={providerFilter} onValueChange={setProviderFilter}>
+          <SelectTrigger className="w-56" data-testid="select-services-provider">
+            <SelectValue placeholder={t("admin.all_providers", "All providers")} />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">
+              {t("admin.all_providers", "All providers")}
+            </SelectItem>
+            {providers.map((p: any) => (
+              <SelectItem key={p.id} value={p.id}>
+                {p.businessName || p.user?.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {isLoading ? (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-6 w-6 animate-spin" />
+        </div>
+      ) : filtered.length === 0 ? (
+        <Card>
+          <CardContent className="py-12 text-center text-muted-foreground">
+            {t("admin.no_services_found", "No services match your filters.")}
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filtered.map((s: any) => (
+            <Card
+              key={s.id}
+              className="overflow-hidden hover-elevate"
+              data-testid={`card-service-${s.id}`}
+            >
+              <div className="h-32 bg-muted relative">
+                {s.imageUrl ? (
+                  <img
+                    src={s.imageUrl}
+                    alt={s.name}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div
+                    className="w-full h-full flex items-center justify-center"
+                    style={{ backgroundColor: s.calendarColor || "#10b981" }}
+                  >
+                    <Activity className="h-10 w-10 text-white/80" />
+                  </div>
+                )}
+                <Badge
+                  className="absolute top-2 right-2"
+                  variant={s.isActive ? "default" : "secondary"}
+                >
+                  {s.isActive
+                    ? t("admin.active", "Active")
+                    : t("admin.paused", "Paused")}
+                </Badge>
+              </div>
+              <CardContent className="p-4 space-y-2">
+                <div>
+                  <p className="font-semibold truncate">{s.name}</p>
+                  <p className="text-xs text-muted-foreground truncate">
+                    {s.providerName}
+                    {s.providerCity ? ` · ${s.providerCity}` : ""}
+                  </p>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="font-medium text-primary">
+                    {fmtMoney(s.price)}
+                  </span>
+                  <span className="text-muted-foreground">
+                    {s.duration} {t("admin.minutes_short", "min")}
+                  </span>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ───── Admin staff overview (all practitioners across providers) ─────
+function AdminStaffOverview() {
+  const { t } = useTranslation();
+  const [search, setSearch] = useState("");
+  const [providerFilter, setProviderFilter] = useState<string>("all");
+
+  const { data: staff = [], isLoading } = useQuery<any[]>({
+    queryKey: ["/api/admin/practitioners"],
+  });
+  const { data: providers = [] } = useQuery<any[]>({
+    queryKey: ["/api/admin/providers"],
+  });
+
+  const filtered = useMemo(
+    () =>
+      (staff || []).filter((p: any) => {
+        if (providerFilter !== "all" && p.providerId !== providerFilter)
+          return false;
+        if (
+          search &&
+          !(p.fullName || "").toLowerCase().includes(search.toLowerCase()) &&
+          !(p.providerName || "").toLowerCase().includes(search.toLowerCase()) &&
+          !(p.email || "").toLowerCase().includes(search.toLowerCase())
+        )
+          return false;
+        return true;
+      }),
+    [staff, search, providerFilter],
+  );
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap gap-2">
+        <div className="relative flex-1 min-w-[220px]">
+          <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder={t("admin.search_staff", "Search staff...")}
+            className="pl-8"
+            data-testid="input-staff-search"
+          />
+        </div>
+        <Select value={providerFilter} onValueChange={setProviderFilter}>
+          <SelectTrigger className="w-56" data-testid="select-staff-provider">
+            <SelectValue placeholder={t("admin.all_providers", "All providers")} />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">
+              {t("admin.all_providers", "All providers")}
+            </SelectItem>
+            {providers.map((p: any) => (
+              <SelectItem key={p.id} value={p.id}>
+                {p.businessName || p.user?.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {isLoading ? (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-6 w-6 animate-spin" />
+        </div>
+      ) : filtered.length === 0 ? (
+        <Card>
+          <CardContent className="py-12 text-center text-muted-foreground">
+            {t("admin.no_staff", "No staff members found.")}
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filtered.map((p: any) => (
+            <Card
+              key={p.id}
+              className="hover-elevate"
+              data-testid={`card-staff-${p.id}`}
+            >
+              <CardContent className="p-4 flex items-center gap-3">
+                <Avatar className="h-12 w-12">
+                  <AvatarImage src={p.avatarUrl || undefined} />
+                  <AvatarFallback>
+                    {(p.fullName || "?")
+                      .split(" ")
+                      .map((s: string) => s[0])
+                      .slice(0, 2)
+                      .join("")
+                      .toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold truncate">{p.fullName}</p>
+                  <p className="text-xs text-muted-foreground truncate">
+                    {p.role || t("admin.staff", "Staff")} · {p.providerName}
+                  </p>
+                  {p.email && (
+                    <p className="text-xs text-muted-foreground truncate">
+                      {p.email}
+                    </p>
+                  )}
+                </div>
+                <Badge variant={p.isActive ? "default" : "secondary"}>
+                  {p.isActive
+                    ? t("admin.active", "Active")
+                    : t("admin.inactive", "Inactive")}
+                </Badge>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

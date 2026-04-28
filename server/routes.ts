@@ -3341,6 +3341,45 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/admin/services-overview", authenticateToken, requireAdmin, async (_req: AuthRequest, res: Response) => {
+    try {
+      const allServices = await db.select().from(services);
+      const allProviders = await storage.getProviders();
+      const providerMap = new Map(allProviders.map((p: any) => [p.id, p]));
+      const enriched = allServices.map((s: any) => {
+        const prov: any = providerMap.get(s.providerId);
+        return {
+          ...s,
+          providerName: prov?.businessName || prov?.user?.name || "—",
+          providerCity: prov?.city || null,
+        };
+      });
+      res.json(enriched);
+    } catch (error) {
+      console.error("services-overview error", error);
+      res.status(500).json({ message: "Failed to fetch services overview" });
+    }
+  });
+
+  app.get("/api/admin/practitioners", authenticateToken, requireAdmin, async (_req: AuthRequest, res: Response) => {
+    try {
+      const allPractitioners = await db.select().from(practitioners);
+      const allProviders = await storage.getProviders();
+      const providerMap = new Map(allProviders.map((p: any) => [p.id, p]));
+      const enriched = allPractitioners.map((p: any) => {
+        const prov: any = providerMap.get(p.providerId);
+        return {
+          ...p,
+          providerName: prov?.businessName || prov?.user?.name || "—",
+        };
+      });
+      res.json(enriched);
+    } catch (error) {
+      console.error("practitioners list error", error);
+      res.status(500).json({ message: "Failed to fetch practitioners" });
+    }
+  });
+
   app.get("/api/admin/providers/:id/services", authenticateToken, requireAdmin, async (req: AuthRequest, res: Response) => {
     try {
       const services = await storage.getServicesByProvider(req.params.id);
