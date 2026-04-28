@@ -14,7 +14,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Star, MapPin, Clock, CheckCircle, Video, Home, GraduationCap, Award, Languages, Calendar as CalendarIcon, ChevronRight, Building2, X, ShieldCheck, Briefcase, FileText, Landmark, Users, Share2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import type { ProviderWithServices, Service, ReviewWithPatient } from "@shared/schema";
+import type { ProviderWithServices, Service, ReviewWithPatient, ServicePackageWithServices } from "@shared/schema";
 import { useAuth } from "@/lib/auth";
 import { useCurrency } from "@/lib/currency";
 
@@ -39,6 +39,11 @@ export default function ProviderProfile() {
 
   const { data: reviews } = useQuery<ReviewWithPatient[]>({
     queryKey: [`/api/providers/${id}/reviews`],
+    enabled: !!id,
+  });
+
+  const { data: providerPackages = [] } = useQuery<ServicePackageWithServices[]>({
+    queryKey: [`/api/providers/${id}/packages`],
     enabled: !!id,
   });
 
@@ -468,7 +473,85 @@ export default function ProviderProfile() {
                   </div>
                 </TabsContent>
 
-                <TabsContent value="services" className="mt-6">
+                <TabsContent value="services" className="mt-6 space-y-6">
+                  {providerPackages.length > 0 && (
+                    <Card data-testid="card-profile-packages">
+                      <CardHeader>
+                        <CardTitle className="text-lg flex items-center gap-2">
+                          <Award className="h-5 w-5 text-primary" />
+                          {t("profile.packages", "Packages")}
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        {providerPackages.map((pkg) => {
+                          const fullPrice = pkg.services.reduce((sum, s) => sum + Number(s.price), 0);
+                          const savings = Math.max(0, fullPrice - Number(pkg.price));
+                          return (
+                            <div
+                              key={pkg.id}
+                              className="p-4 rounded-lg border bg-gradient-to-br from-primary/5 to-transparent"
+                              data-testid={`profile-package-${pkg.id}`}
+                            >
+                              <div className="flex items-start justify-between gap-4 mb-2">
+                                <div className="flex-1 min-w-0">
+                                  <h4 className="font-semibold flex items-center gap-2" data-testid={`text-profile-package-name-${pkg.id}`}>
+                                    {pkg.name}
+                                    {savings > 0 && (
+                                      <Badge className="bg-green-600 hover:bg-green-600 text-white text-[10px] uppercase">
+                                        {t("profile.save", "Save")} {fmtMoney(savings)}
+                                      </Badge>
+                                    )}
+                                  </h4>
+                                  {pkg.description && (
+                                    <p className="text-sm text-muted-foreground mt-1">{pkg.description}</p>
+                                  )}
+                                </div>
+                                <div className="text-right shrink-0">
+                                  <p className="text-xl font-bold text-primary" data-testid={`text-profile-package-price-${pkg.id}`}>
+                                    {fmtMoney(Number(pkg.price))}
+                                  </p>
+                                  {savings > 0 && (
+                                    <p className="text-xs text-muted-foreground line-through">
+                                      {fmtMoney(fullPrice)}
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+
+                              <div className="space-y-1.5 mt-3">
+                                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                                  {t("profile.includes", "Includes")}
+                                </p>
+                                {pkg.services.map((s) => (
+                                  <div
+                                    key={s.id}
+                                    className="flex items-center justify-between text-sm py-1"
+                                    data-testid={`profile-package-service-${pkg.id}-${s.id}`}
+                                  >
+                                    <span className="flex items-center gap-2 min-w-0">
+                                      <CheckCircle className="h-3.5 w-3.5 text-green-600 shrink-0" />
+                                      <span className="truncate">{s.name}</span>
+                                    </span>
+                                    <span className="text-muted-foreground text-xs shrink-0 ml-2">
+                                      {s.duration} min
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+
+                              {pkg.duration && (
+                                <p className="text-xs text-muted-foreground mt-3 flex items-center gap-1">
+                                  <Clock className="h-3.5 w-3.5" />
+                                  {t("profile.total_duration", "Total duration:")} {pkg.duration} min
+                                </p>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </CardContent>
+                    </Card>
+                  )}
+
                   <Card>
                     <CardHeader>
                       <CardTitle className="text-lg">{t("profile.services_pricing")}</CardTitle>

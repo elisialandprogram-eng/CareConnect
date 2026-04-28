@@ -5,6 +5,8 @@ import { useTranslation } from "react-i18next";
 import { Link } from "wouter";
 import { Header } from "@/components/header";
 import { ServiceFormDialog } from "@/components/service-form-dialog";
+import { DialogDescription } from "@/components/ui/dialog";
+import type { ServicePackageWithServices } from "@shared/schema";
 import { Footer } from "@/components/footer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -52,6 +54,8 @@ import {
   Image as ImageIcon,
   Plus,
   Trash2,
+  Tag,
+  Edit,
   MapPin,
   Navigation,
   Banknote,
@@ -454,6 +458,91 @@ export default function ProviderDashboard() {
       queryClient.invalidateQueries({ queryKey: ["/api/providers", providerData?.id] });
     },
   });
+
+  // Service Packages
+  const { data: packages } = useQuery<ServicePackageWithServices[]>({
+    queryKey: ["/api/provider/packages"],
+    enabled: activeTab === "services",
+  });
+
+  const [packageDialogOpen, setPackageDialogOpen] = useState(false);
+  const [editingPackage, setEditingPackage] = useState<ServicePackageWithServices | null>(null);
+  const [pkgName, setPkgName] = useState("");
+  const [pkgDescription, setPkgDescription] = useState("");
+  const [pkgPrice, setPkgPrice] = useState("");
+  const [pkgDuration, setPkgDuration] = useState("");
+  const [pkgServiceIds, setPkgServiceIds] = useState<string[]>([]);
+
+  const openCreatePackage = () => {
+    setEditingPackage(null);
+    setPkgName("");
+    setPkgDescription("");
+    setPkgPrice("");
+    setPkgDuration("");
+    setPkgServiceIds([]);
+    setPackageDialogOpen(true);
+  };
+
+  const openEditPackage = (pkg: ServicePackageWithServices) => {
+    setEditingPackage(pkg);
+    setPkgName(pkg.name);
+    setPkgDescription(pkg.description || "");
+    setPkgPrice(String(pkg.price));
+    setPkgDuration(pkg.duration ? String(pkg.duration) : "");
+    setPkgServiceIds(pkg.services.map(s => s.id));
+    setPackageDialogOpen(true);
+  };
+
+  const savePackageMutation = useMutation({
+    mutationFn: async () => {
+      const payload = {
+        name: pkgName.trim(),
+        description: pkgDescription.trim() || null,
+        price: pkgPrice,
+        duration: pkgDuration ? Number(pkgDuration) : null,
+        serviceIds: pkgServiceIds,
+      };
+      if (editingPackage) {
+        return await apiRequest("PATCH", `/api/provider/packages/${editingPackage.id}`, payload);
+      }
+      return await apiRequest("POST", "/api/provider/packages", payload);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/provider/packages"] });
+      setPackageDialogOpen(false);
+      toast({ title: editingPackage ? t("provider_dashboard.package_updated", "Package updated") : t("provider_dashboard.package_created", "Package created") });
+    },
+    onError: (err: any) => {
+      toast({ title: t("common.error", "Error"), description: err?.message || "Failed to save package", variant: "destructive" });
+    },
+  });
+
+  const togglePackageMutation = useMutation({
+    mutationFn: async ({ id, isActive }: { id: string; isActive: boolean }) => {
+      return await apiRequest("PATCH", `/api/provider/packages/${id}`, { isActive });
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/provider/packages"] }),
+  });
+
+  const deletePackageMutation = useMutation({
+    mutationFn: async (id: string) => {
+      return await apiRequest("DELETE", `/api/provider/packages/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/provider/packages"] });
+      toast({ title: t("provider_dashboard.package_deleted", "Package deleted") });
+    },
+  });
+
+  const pkgServicesTotal = pkgServiceIds.reduce((sum, id) => {
+    const s = providerWithServices?.services?.find(x => x.id === id);
+    return sum + (s ? Number(s.price) : 0);
+  }, 0);
+  const pkgDurationTotal = pkgServiceIds.reduce((sum, id) => {
+    const s = providerWithServices?.services?.find(x => x.id === id);
+    return sum + (s ? s.duration : 0);
+  }, 0);
+  const pkgSavings = pkgPrice ? Math.max(0, pkgServicesTotal - Number(pkgPrice)) : 0;
 
   const { format: fmtHUF } = useCurrency();
 
@@ -1664,6 +1753,284 @@ export default function ProviderDashboard() {
                   </div>
                 </CardContent>
               </Card>
+
+              {/* Service Packages */}
+              <Card data-testid="card-service-packages">
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      <Tag className="h-5 w-5 text-primary" />
+                      {t("provider_dashboard.service_packages", "Service packages")}
+                    </CardTitle>
+                    <CardDescription>
+                      {t("provider_dashboard.service_packages_desc", "Bundle multiple services together at a special package price.")}
+                    </CardDescription>
+                  </div>
+                  <Button
+                    size="sm"
+                    onClick={openCreatePackage}
+                    disabled={!providerWithServices?.services?.filter(s => s.isActive).length || providerWithServices.services.filter(s => s.isActive).length < 2}
+                    data-testid="button-add-package"
+                  >
+                    <Plus className="h-4 w-4 mr-1" />
+                    {t("provider_dashboard.new_package", "New package")}
+                  </Button>
+                </CardHeader>
+                <CardContent>
+                  {(!providerWithServices?.services?.filter(s => s.isActive).length || providerWithServices.services.filter(s => s.isActive).length < 2) && (
+                    <div className="text-center py-8 text-sm text-muted-foreground" data-testid="empty-packages-need-services">
+                      {t("provider_dashboard.packages_need_services", "Add at least 2 active services before you can create a package.")}
+                    </div>
+                  )}
+                  {providerWithServices?.services?.filter(s => s.isActive).length! >= 2 && !packages?.length && (
+                    <div className="text-center py-8 text-sm text-muted-foreground" data-testid="empty-packages">
+                      {t("provider_dashboard.no_packages", "No packages yet. Create your first bundle to offer combined services at a discount.")}
+                    </div>
+                  )}
+                  {packages && packages.length > 0 && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {packages.map(pkg => {
+                        const fullPrice = pkg.services.reduce((sum, s) => sum + Number(s.price), 0);
+                        const savings = Math.max(0, fullPrice - Number(pkg.price));
+                        return (
+                          <div
+                            key={pkg.id}
+                            className="border rounded-lg p-4 bg-card hover-elevate"
+                            data-testid={`row-package-${pkg.id}`}
+                          >
+                            <div className="flex items-start justify-between gap-2 mb-2">
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <p className="font-semibold truncate" data-testid={`text-package-name-${pkg.id}`}>{pkg.name}</p>
+                                  {!pkg.isActive && (
+                                    <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
+                                      {t("provider_dashboard.paused", "Paused")}
+                                    </span>
+                                  )}
+                                </div>
+                                {pkg.description && (
+                                  <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{pkg.description}</p>
+                                )}
+                              </div>
+                              <div className="flex flex-col items-end shrink-0">
+                                <p className="font-bold text-primary text-lg" data-testid={`text-package-price-${pkg.id}`}>
+                                  {fmtHUF(Number(pkg.price))}
+                                </p>
+                                {savings > 0 && (
+                                  <p className="text-[11px] text-green-600 dark:text-green-400 line-through opacity-80">
+                                    {fmtHUF(fullPrice)}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+
+                            <div className="flex flex-wrap gap-1.5 my-3">
+                              {pkg.services.map(s => (
+                                <span
+                                  key={s.id}
+                                  className="text-[11px] px-2 py-1 rounded-md bg-muted text-foreground"
+                                  data-testid={`chip-package-service-${pkg.id}-${s.id}`}
+                                >
+                                  {s.name}
+                                </span>
+                              ))}
+                            </div>
+
+                            <div className="flex items-center justify-between text-xs text-muted-foreground mb-3">
+                              <span>{pkg.services.length} {t("provider_dashboard.services_count", "services")}</span>
+                              {pkg.duration ? (
+                                <span>{pkg.duration} {t("provider_dashboard.minutes_short", "min")}</span>
+                              ) : null}
+                              {savings > 0 && (
+                                <span className="text-green-600 dark:text-green-400 font-medium">
+                                  {t("provider_dashboard.save_amount", "Save {{amount}}", { amount: fmtHUF(savings) })}
+                                </span>
+                              )}
+                            </div>
+
+                            <div className="flex gap-1">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="flex-1"
+                                onClick={() => openEditPackage(pkg)}
+                                data-testid={`button-edit-package-${pkg.id}`}
+                              >
+                                <Edit className="h-3.5 w-3.5 mr-1" />
+                                {t("provider_dashboard.edit", "Edit")}
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant={pkg.isActive ? "default" : "outline"}
+                                onClick={() => togglePackageMutation.mutate({ id: pkg.id, isActive: !pkg.isActive })}
+                                data-testid={`button-toggle-package-${pkg.id}`}
+                              >
+                                {pkg.isActive ? t("provider_dashboard.active", "Active") : t("provider_dashboard.paused", "Paused")}
+                              </Button>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="text-destructive"
+                                onClick={() => {
+                                  if (confirm(t("provider_dashboard.confirm_delete_package", "Delete this package?"))) {
+                                    deletePackageMutation.mutate(pkg.id);
+                                  }
+                                }}
+                                data-testid={`button-delete-package-${pkg.id}`}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Package Create/Edit Dialog */}
+              <Dialog open={packageDialogOpen} onOpenChange={setPackageDialogOpen}>
+                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" data-testid="dialog-package-form">
+                  <DialogHeader>
+                    <DialogTitle>
+                      {editingPackage
+                        ? t("provider_dashboard.edit_package", "Edit package")
+                        : t("provider_dashboard.create_package", "Create package")}
+                    </DialogTitle>
+                    <DialogDescription>
+                      {t("provider_dashboard.package_form_desc", "Bundle multiple services into a single offer at a special price.")}
+                    </DialogDescription>
+                  </DialogHeader>
+
+                  <div className="space-y-4 py-2">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="pkg-name">{t("provider_dashboard.package_name", "Package name")}</Label>
+                      <Input
+                        id="pkg-name"
+                        value={pkgName}
+                        onChange={e => setPkgName(e.target.value)}
+                        placeholder={t("provider_dashboard.package_name_ph", "e.g. Wellness Bundle")}
+                        data-testid="input-package-name"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label htmlFor="pkg-desc">{t("provider_dashboard.description", "Description")}</Label>
+                      <Textarea
+                        id="pkg-desc"
+                        value={pkgDescription}
+                        onChange={e => setPkgDescription(e.target.value)}
+                        placeholder={t("provider_dashboard.package_desc_ph", "What's included and who is it for?")}
+                        rows={2}
+                        data-testid="input-package-description"
+                      />
+                    </div>
+
+                    <div>
+                      <Label className="mb-2 block">
+                        {t("provider_dashboard.included_services", "Included services")}
+                        <span className="text-xs text-muted-foreground ml-2">
+                          {t("provider_dashboard.select_at_least_2", "(select at least 2)")}
+                        </span>
+                      </Label>
+                      <div className="border rounded-lg max-h-56 overflow-y-auto divide-y">
+                        {providerWithServices?.services?.filter(s => s.isActive).map(s => {
+                          const checked = pkgServiceIds.includes(s.id);
+                          return (
+                            <label
+                              key={s.id}
+                              className="flex items-center gap-3 p-3 cursor-pointer hover-elevate"
+                              data-testid={`checkbox-package-service-${s.id}`}
+                            >
+                              <Checkbox
+                                checked={checked}
+                                onCheckedChange={(v) => {
+                                  if (v) {
+                                    setPkgServiceIds(prev => [...prev, s.id]);
+                                  } else {
+                                    setPkgServiceIds(prev => prev.filter(id => id !== s.id));
+                                  }
+                                }}
+                              />
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium truncate">{s.name}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  {fmtHUF(Number(s.price))} · {s.duration} {t("provider_dashboard.minutes_short", "min")}
+                                </p>
+                              </div>
+                            </label>
+                          );
+                        })}
+                      </div>
+                      {pkgServiceIds.length >= 2 && (
+                        <p className="text-xs text-muted-foreground mt-2">
+                          {t("provider_dashboard.individual_total", "Individual total:")} <span className="font-medium">{fmtHUF(pkgServicesTotal)}</span>
+                          {pkgDurationTotal > 0 && (
+                            <> · {pkgDurationTotal} {t("provider_dashboard.minutes_short", "min")}</>
+                          )}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-1.5">
+                        <Label htmlFor="pkg-price">{t("provider_dashboard.package_price", "Package price")}</Label>
+                        <Input
+                          id="pkg-price"
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={pkgPrice}
+                          onChange={e => setPkgPrice(e.target.value)}
+                          placeholder="0.00"
+                          data-testid="input-package-price"
+                        />
+                        {pkgSavings > 0 && (
+                          <p className="text-xs text-green-600 dark:text-green-400">
+                            {t("provider_dashboard.customer_saves", "Customer saves {{amount}}", { amount: fmtHUF(pkgSavings) })}
+                          </p>
+                        )}
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="pkg-duration">
+                          {t("provider_dashboard.duration_minutes", "Duration (min)")}
+                          <span className="text-xs text-muted-foreground ml-1">{t("provider_dashboard.optional", "optional")}</span>
+                        </Label>
+                        <Input
+                          id="pkg-duration"
+                          type="number"
+                          min="0"
+                          value={pkgDuration}
+                          onChange={e => setPkgDuration(e.target.value)}
+                          placeholder={pkgDurationTotal ? String(pkgDurationTotal) : "60"}
+                          data-testid="input-package-duration"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setPackageDialogOpen(false)} data-testid="button-cancel-package">
+                      {t("common.cancel", "Cancel")}
+                    </Button>
+                    <Button
+                      onClick={() => savePackageMutation.mutate()}
+                      disabled={
+                        savePackageMutation.isPending ||
+                        !pkgName.trim() ||
+                        !pkgPrice ||
+                        Number(pkgPrice) <= 0 ||
+                        pkgServiceIds.length < 2
+                      }
+                      data-testid="button-save-package"
+                    >
+                      {savePackageMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                      {editingPackage ? t("common.save", "Save") : t("provider_dashboard.create", "Create")}
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
             </TabsContent>
           </Tabs>
 

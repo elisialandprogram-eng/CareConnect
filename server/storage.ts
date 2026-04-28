@@ -32,6 +32,8 @@ import {
   subServices,
   practitioners,
   servicePractitioners,
+  servicePackages,
+  packageServices,
   taxSettings,
   patientConsents,
   medicalPractitioners,
@@ -113,6 +115,9 @@ import {
   type InsertPractitioner,
   type ServicePractitioner,
   type InsertServicePractitioner,
+  type ServicePackage,
+  type InsertServicePackage,
+  type ServicePackageWithServices,
   type Invoice,
   type InsertInvoice,
   type InvoiceItem,
@@ -140,7 +145,7 @@ import {
   type InsertAdminBroadcast,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, desc, or, sql, count, asc, aliasedTable } from "drizzle-orm";
+import { eq, and, desc, or, sql, count, asc, aliasedTable, inArray } from "drizzle-orm";
 
 export interface IStorage {
   // Users
@@ -190,6 +195,13 @@ export interface IStorage {
   createService(service: InsertService): Promise<Service>;
   updateService(id: string, data: Partial<InsertService>): Promise<Service | undefined>;
   deleteService(id: string): Promise<void>;
+
+  // Service Packages
+  getServicePackage(id: string): Promise<ServicePackageWithServices | undefined>;
+  getPackagesByProvider(providerId: string, opts?: { activeOnly?: boolean }): Promise<ServicePackageWithServices[]>;
+  createServicePackage(pkg: InsertServicePackage, serviceIds: string[]): Promise<ServicePackageWithServices>;
+  updateServicePackage(id: string, data: Partial<InsertServicePackage>, serviceIds?: string[]): Promise<ServicePackageWithServices | undefined>;
+  deleteServicePackage(id: string): Promise<void>;
 
   // Practitioners
   getPractitioner(id: string): Promise<Practitioner | undefined>;
@@ -694,6 +706,71 @@ export class DatabaseStorage implements IStorage {
 
   async deleteService(id: string): Promise<void> {
     await db.delete(services).where(eq(services.id, id));
+  }
+
+  // Service Packages
+  async getServicePackage(id: string): Promise<ServicePackageWithServices | undefined> {
+    const [pkg] = await db.select().from(servicePackages).where(eq(servicePackages.id, id));
+    if (!pkg) return undefined;
+    const links = await db.select().from(packageServices).where(eq(packageServices.packageId, id));
+    const serviceIds = links.map(l => l.serviceId);
+    let pkgServices: Service[] = [];
+    if (serviceIds.length) {
+      pkgServices = await db.select().from(services).where(inArray(services.id, serviceIds));
+    }
+    return { ...pkg, services: pkgServices };
+  }
+
+  async getPackagesByProvider(providerId: string, opts?: { activeOnly?: boolean }): Promise<ServicePackageWithServices[]> {
+    const conds = [eq(servicePackages.providerId, providerId)];
+    if (opts?.activeOnly) conds.push(eq(servicePackages.isActive, true));
+    const pkgs = await db.select().from(servicePackages).where(and(...conds)).orderBy(servicePackages.sortOrder, servicePackages.createdAt);
+    if (!pkgs.length) return [];
+    const pkgIds = pkgs.map(p => p.id);
+    const links = await db.select().from(packageServices).where(inArray(packageServices.packageId, pkgIds));
+    const serviceIds = Array.from(new Set(links.map(l => l.serviceId)));
+    const allServices = serviceIds.length
+      ? await db.select().from(services).where(inArray(services.id, serviceIds))
+      : [];
+    const svcMap = new Map(allServices.map(s => [s.id, s]));
+    return pkgs.map(p => ({
+      ...p,
+      services: links
+        .filter(l => l.packageId === p.id)
+        .map(l => svcMap.get(l.serviceId))
+        .filter((s): s is Service => !!s),
+    }));
+  }
+
+  async createServicePackage(pkg: InsertServicePackage, serviceIds: string[]): Promise<ServicePackageWithServices> {
+    const [created] = await db.insert(servicePackages).values(pkg).returning();
+    if (serviceIds.length) {
+      await db.insert(packageServices).values(
+        serviceIds.map((serviceId, idx) => ({ packageId: created.id, serviceId, sortOrder: idx }))
+      );
+    }
+    return (await this.getServicePackage(created.id))!;
+  }
+
+  async updateServicePackage(id: string, data: Partial<InsertServicePackage>, serviceIds?: string[]): Promise<ServicePackageWithServices | undefined> {
+    const [updated] = await db.update(servicePackages)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(servicePackages.id, id))
+      .returning();
+    if (!updated) return undefined;
+    if (serviceIds) {
+      await db.delete(packageServices).where(eq(packageServices.packageId, id));
+      if (serviceIds.length) {
+        await db.insert(packageServices).values(
+          serviceIds.map((serviceId, idx) => ({ packageId: id, serviceId, sortOrder: idx }))
+        );
+      }
+    }
+    return await this.getServicePackage(id);
+  }
+
+  async deleteServicePackage(id: string): Promise<void> {
+    await db.delete(servicePackages).where(eq(servicePackages.id, id));
   }
 
   // Practitioners (Extended)

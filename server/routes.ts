@@ -19,6 +19,7 @@ import {
   insertPractitionerSchema,
   insertServicePractitionerSchema,
   insertServiceSchema,
+  insertServicePackageSchema,
   services,
   practitioners,
   servicePractitioners,
@@ -2049,6 +2050,104 @@ export async function registerRoutes(
       res.status(201).json(practitioner);
     } catch (error) {
       res.status(400).json({ message: "Invalid practitioner data" });
+    }
+  });
+
+  // ========== SERVICE PACKAGES ==========
+  // Public: list active packages for a provider (used on provider profile)
+  app.get("/api/providers/:providerId/packages", async (req: Request, res: Response) => {
+    try {
+      const packages = await storage.getPackagesByProvider(req.params.providerId, { activeOnly: true });
+      res.json(packages);
+    } catch (error) {
+      console.error("Error fetching provider packages:", error);
+      res.status(500).json({ message: "Failed to fetch packages" });
+    }
+  });
+
+  // Provider: list own packages (active + inactive)
+  app.get("/api/provider/packages", authenticateToken, async (req: AuthRequest, res: Response) => {
+    if (req.user?.role !== "provider") return res.status(403).json({ message: "Provider access required" });
+    try {
+      const provider = await storage.getProviderByUserId(req.user.id);
+      if (!provider) return res.status(404).json({ message: "Provider not found" });
+      const packages = await storage.getPackagesByProvider(provider.id);
+      res.json(packages);
+    } catch (error) {
+      console.error("Error fetching packages:", error);
+      res.status(500).json({ message: "Failed to fetch packages" });
+    }
+  });
+
+  // Provider: create a new package
+  app.post("/api/provider/packages", authenticateToken, async (req: AuthRequest, res: Response) => {
+    if (req.user?.role !== "provider") return res.status(403).json({ message: "Provider access required" });
+    try {
+      const provider = await storage.getProviderByUserId(req.user.id);
+      if (!provider) return res.status(404).json({ message: "Provider not found" });
+      const { serviceIds, ...rest } = req.body as { serviceIds?: string[]; [k: string]: any };
+      if (!Array.isArray(serviceIds) || serviceIds.length < 2) {
+        return res.status(400).json({ message: "A package must include at least 2 services" });
+      }
+      // Verify all services belong to this provider
+      const providerServices = await storage.getServicesByProvider(provider.id);
+      const ownedIds = new Set(providerServices.map(s => s.id));
+      if (!serviceIds.every(id => ownedIds.has(id))) {
+        return res.status(400).json({ message: "All services must belong to your account" });
+      }
+      const data = insertServicePackageSchema.parse({ ...rest, providerId: provider.id });
+      const pkg = await storage.createServicePackage(data, serviceIds);
+      res.status(201).json(pkg);
+    } catch (error: any) {
+      console.error("Error creating package:", error);
+      res.status(400).json({ message: error?.message || "Invalid package data" });
+    }
+  });
+
+  // Provider: update a package
+  app.patch("/api/provider/packages/:id", authenticateToken, async (req: AuthRequest, res: Response) => {
+    if (req.user?.role !== "provider") return res.status(403).json({ message: "Provider access required" });
+    try {
+      const provider = await storage.getProviderByUserId(req.user.id);
+      if (!provider) return res.status(404).json({ message: "Provider not found" });
+      const existing = await storage.getServicePackage(req.params.id);
+      if (!existing || existing.providerId !== provider.id) {
+        return res.status(404).json({ message: "Package not found" });
+      }
+      const { serviceIds, providerId: _ignored, ...rest } = req.body as { serviceIds?: string[]; providerId?: string; [k: string]: any };
+      if (serviceIds !== undefined) {
+        if (!Array.isArray(serviceIds) || serviceIds.length < 2) {
+          return res.status(400).json({ message: "A package must include at least 2 services" });
+        }
+        const providerServices = await storage.getServicesByProvider(provider.id);
+        const ownedIds = new Set(providerServices.map(s => s.id));
+        if (!serviceIds.every(id => ownedIds.has(id))) {
+          return res.status(400).json({ message: "All services must belong to your account" });
+        }
+      }
+      const updated = await storage.updateServicePackage(req.params.id, rest, serviceIds);
+      res.json(updated);
+    } catch (error: any) {
+      console.error("Error updating package:", error);
+      res.status(400).json({ message: error?.message || "Invalid package data" });
+    }
+  });
+
+  // Provider: delete a package
+  app.delete("/api/provider/packages/:id", authenticateToken, async (req: AuthRequest, res: Response) => {
+    if (req.user?.role !== "provider") return res.status(403).json({ message: "Provider access required" });
+    try {
+      const provider = await storage.getProviderByUserId(req.user.id);
+      if (!provider) return res.status(404).json({ message: "Provider not found" });
+      const existing = await storage.getServicePackage(req.params.id);
+      if (!existing || existing.providerId !== provider.id) {
+        return res.status(404).json({ message: "Package not found" });
+      }
+      await storage.deleteServicePackage(req.params.id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting package:", error);
+      res.status(500).json({ message: "Failed to delete package" });
     }
   });
 
