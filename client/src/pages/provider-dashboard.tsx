@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { Link } from "wouter";
 import { Header } from "@/components/header";
 import { ServiceFormDialog } from "@/components/service-form-dialog";
+import { NewTicketDialog } from "@/components/new-ticket-dialog";
 import { DialogDescription } from "@/components/ui/dialog";
 import type { ServicePackageWithServices } from "@shared/schema";
 import { Footer } from "@/components/footer";
@@ -369,6 +370,7 @@ export default function ProviderDashboard() {
   const [selectedSubServiceId, setSelectedSubServiceId] = useState("");
   const [servicePrice, setServicePrice] = useState("");
   const [serviceFormOpen, setServiceFormOpen] = useState(false);
+  const [newTicketOpen, setNewTicketOpen] = useState(false);
   const [editingService, setEditingService] = useState<any>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -1282,7 +1284,17 @@ export default function ProviderDashboard() {
             </Card>
           )}
 
-          <div className="flex justify-end mb-4">
+          <div className="flex justify-end mb-4 gap-2">
+            <Button
+              variant="default"
+              size="sm"
+              className="gap-2"
+              data-testid="button-provider-new-ticket"
+              onClick={() => setNewTicketOpen(true)}
+            >
+              <Plus className="h-4 w-4" />
+              {t("support.new_ticket", "New ticket")}
+            </Button>
             <Button
               variant="outline"
               size="sm"
@@ -1299,6 +1311,8 @@ export default function ProviderDashboard() {
               {t("provider_dashboard.contact_support", "Contact admin support")}
             </Button>
           </div>
+
+          <NewTicketDialog open={newTicketOpen} onOpenChange={setNewTicketOpen} />
 
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="tabs-colorful tabs-emerald flex flex-nowrap h-auto w-full overflow-x-auto whitespace-nowrap">

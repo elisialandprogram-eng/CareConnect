@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
+import { NewTicketDialog } from "@/components/new-ticket-dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -135,6 +136,7 @@ export default function PatientDashboard() {
   const { format: fmtMoney } = useCurrency();
 
   const [activeTab, setActiveTab] = useState<string>("upcoming");
+  const [newTicketOpen, setNewTicketOpen] = useState(false);
 
   const { data: appointments, isLoading } = useQuery<AppointmentWithDetails[]>({
     queryKey: ["/api/appointments/patient"],
@@ -614,7 +616,17 @@ export default function PatientDashboard() {
             </Card>
           </div>
 
-          <div className="flex justify-end mb-4">
+          <div className="flex justify-end mb-4 gap-2">
+            <Button
+              variant="default"
+              size="sm"
+              className="gap-2"
+              data-testid="button-patient-new-ticket"
+              onClick={() => setNewTicketOpen(true)}
+            >
+              <Plus className="h-4 w-4" />
+              {t("support.new_ticket", "New ticket")}
+            </Button>
             <Button
               variant="outline"
               size="sm"
@@ -631,6 +643,8 @@ export default function PatientDashboard() {
               {t("dashboard.contact_support", "Contact support")}
             </Button>
           </div>
+
+          <NewTicketDialog open={newTicketOpen} onOpenChange={setNewTicketOpen} />
 
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="tabs-colorful flex flex-nowrap h-auto w-full overflow-x-auto whitespace-nowrap">

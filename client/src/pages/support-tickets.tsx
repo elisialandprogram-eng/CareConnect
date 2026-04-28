@@ -14,6 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { showErrorModal } from "@/components/error-modal";
 import { useAuth } from "@/lib/auth";
 import { apiRequest } from "@/lib/queryClient";
+import { NewTicketDialog } from "@/components/new-ticket-dialog";
 import {
   LifeBuoy, ChevronRight, Send, ArrowLeft, MessageSquare,
   CheckCircle, Clock, AlertTriangle, Ban, Search, Plus, Loader2,
@@ -80,6 +81,7 @@ export default function SupportTicketsPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [newTicketOpen, setNewTicketOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [reply, setReply] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -155,13 +157,17 @@ export default function SupportTicketsPage() {
               {t("support.subtitle", "Track requests you've sent to our support team and reply to messages.")}
             </p>
           </div>
-          <Button asChild data-testid="button-new-ticket">
-            <Link href="/about#contact">
-              <Plus className="h-4 w-4 mr-2" />
-              {t("support.new_ticket", "New ticket")}
-            </Link>
+          <Button onClick={() => setNewTicketOpen(true)} data-testid="button-new-ticket">
+            <Plus className="h-4 w-4 mr-2" />
+            {t("support.new_ticket", "New ticket")}
           </Button>
         </div>
+
+        <NewTicketDialog
+          open={newTicketOpen}
+          onOpenChange={setNewTicketOpen}
+          onCreated={(id) => setSelectedId(id)}
+        />
 
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
           {(["open", "in_progress", "resolved", "closed"] as const).map(s => {
