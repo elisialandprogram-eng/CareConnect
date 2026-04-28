@@ -1361,13 +1361,12 @@ export async function registerRoutes(
       if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
         return res.status(400).json({ message: "date query param required (YYYY-MM-DD)" });
       }
-      const slots = await storage.getTimeSlotsByProvider(req.params.id, date);
-      const appointments = await storage.getAppointmentsByProvider(req.params.id);
-      const blockedTimes = new Set(
-        appointments
-          .filter(a => a.date === date && !["cancelled", "rejected"].includes(a.status))
-          .map(a => a.startTime),
-      );
+      // Run in parallel; the booked-times query is a lightweight scan with no joins.
+      const [slots, blockedList] = await Promise.all([
+        storage.getTimeSlotsByProvider(req.params.id, date),
+        storage.getProviderBookedStartTimes(req.params.id, date),
+      ]);
+      const blockedTimes = new Set(blockedList);
 
       // Mark each slot as available/booked. If provider hasn't published any slots,
       // return an empty array — booking UI will fall back to the default catalogue.
@@ -2207,7 +2206,7 @@ export async function registerRoutes(
   // Create appointment
   app.post("/api/appointments", authenticateToken, async (req: AuthRequest, res: Response) => {
     try {
-      const { providerId, serviceId, practitionerId, date, startTime, endTime, visitType, paymentMethod, notes, patientAddress, patientLatitude, patientLongitude, totalAmount, promoCode } = req.body;
+      const { providerId, serviceId, practitionerId, date, startTime, endTime, visitType, paymentMethod, notes, patientAddress, patientLatitude, patientLongitude, totalAmount, promoCode, contactMobile } = req.body;
       const userId = req.user?.id;
 
       // Log appointment request for debugging but keep it concise to avoid large base64 strings
@@ -3681,10 +3680,8 @@ export async function registerRoutes(
 
   app.get("/api/admin/providers/:id/revenue", authenticateToken, requireAdmin, async (req: AuthRequest, res: Response) => {
     try {
-      const appointments = await storage.getAppointmentsByProvider(req.params.id);
-      const totalRevenue = appointments
-        .filter(a => a.status === 'completed')
-        .reduce((sum, a) => sum + parseFloat(a.totalAmount), 0);
+      // SQL aggregate — no joins, no row hydration.
+      const totalRevenue = await storage.getProviderRevenueTotal(req.params.id);
       res.json({ totalRevenue: totalRevenue.toFixed(2) });
     } catch (error) {
       res.status(500).json({ message: "Failed to calculate revenue" });

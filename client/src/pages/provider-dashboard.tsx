@@ -1738,7 +1738,7 @@ export default function ProviderDashboard() {
                       <SelectContent>{providerWithServices?.services?.filter(s => s.isActive).map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent>
                     </Select>
                     <Select name="practitionerId"><SelectTrigger><SelectValue placeholder={t("provider_dashboard.staff_placeholder", "Staff")} /></SelectTrigger>
-                      <SelectContent>{practitioners?.filter(p => p.isActive).map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}</SelectContent>
+                      <SelectContent>{practitioners?.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}</SelectContent>
                     </Select>
                     <Input name="fee" type="number" placeholder={t("provider_dashboard.fee_placeholder", "Fee")} required />
                     <Button type="submit">{t("provider_dashboard.assign_btn", "Assign")}</Button>

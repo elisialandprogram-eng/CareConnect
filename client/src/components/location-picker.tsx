@@ -160,8 +160,8 @@ function LocationPickerInner({
   const placesLib = useMapsLibrary("places");
   const geocodingLib = useMapsLibrary("geocoding");
   const inputRef = useRef<HTMLInputElement>(null);
-  const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
-  const geocoderRef = useRef<google.maps.Geocoder | null>(null);
+  const autocompleteRef = useRef<any>(null);
+  const geocoderRef = useRef<any>(null);
   const [searchText, setSearchText] = useState(value.address || "");
 
   const center =
@@ -213,7 +213,7 @@ function LocationPickerInner({
     ) {
       geocoderRef.current.geocode(
         { location: { lat: value.latitude, lng: value.longitude } },
-        (results, status) => {
+        (results: any, status: any) => {
           if (status === "OK" && results && results[0]) {
             const addr = results[0].formatted_address;
             setSearchText(addr);
@@ -233,7 +233,7 @@ function LocationPickerInner({
     const lng = ev?.detail?.latLng?.lng;
     if (typeof lat !== "number" || typeof lng !== "number") return;
     if (geocoderRef.current) {
-      geocoderRef.current.geocode({ location: { lat, lng } }, (results, status) => {
+      geocoderRef.current.geocode({ location: { lat, lng } }, (results: any, status: any) => {
         const addr =
           status === "OK" && results && results[0] ? results[0].formatted_address : "";
         setSearchText(addr);
@@ -249,7 +249,7 @@ function LocationPickerInner({
     const lng = ev?.latLng?.lng?.();
     if (typeof lat !== "number" || typeof lng !== "number") return;
     if (geocoderRef.current) {
-      geocoderRef.current.geocode({ location: { lat, lng } }, (results, status) => {
+      geocoderRef.current.geocode({ location: { lat, lng } }, (results: any, status: any) => {
         const addr =
           status === "OK" && results && results[0] ? results[0].formatted_address : "";
         setSearchText(addr);

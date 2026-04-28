@@ -107,7 +107,7 @@ export default function Notifications() {
                         data-testid={`card-notification-${notif.id}`}
                       >
                         <div className="mt-1">
-                          {getIcon(notif.type)}
+                          {getIcon(notif.type ?? "")}
                         </div>
                         <div className="flex-1">
                           <div className="flex items-center justify-between mb-1">

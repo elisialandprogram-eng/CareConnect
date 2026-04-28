@@ -238,6 +238,10 @@ export interface IStorage {
   getAppointmentWithDetails(id: string): Promise<AppointmentWithDetails | undefined>;
   getAppointmentsByPatient(patientId: string): Promise<AppointmentWithDetails[]>;
   getAppointmentsByProvider(providerId: string): Promise<AppointmentWithDetails[]>;
+  /** Lightweight: returns startTimes of non-cancelled appointments on a given date. */
+  getProviderBookedStartTimes(providerId: string, date: string): Promise<string[]>;
+  /** Lightweight: SUM of completed appointment totals for a provider. */
+  getProviderRevenueTotal(providerId: string): Promise<number>;
   createAppointment(appointment: InsertAppointment): Promise<Appointment>;
   updateAppointment(id: string, data: Partial<InsertAppointment>): Promise<Appointment | undefined>;
   getAllAppointments(): Promise<AppointmentWithDetails[]>;
@@ -965,6 +969,37 @@ export class DatabaseStorage implements IStorage {
       practitioner: (r.practitioners as any) || undefined,
       payment: r.payments || undefined,
     }));
+  }
+
+  /**
+   * Lightweight: returns startTimes (HH:mm) of appointments that block a slot
+   * on `date` for `providerId`. Excludes cancelled / rejected. No joins.
+   */
+  async getProviderBookedStartTimes(providerId: string, date: string): Promise<string[]> {
+    const rows = await db
+      .select({ startTime: appointments.startTime })
+      .from(appointments)
+      .where(and(
+        eq(appointments.providerId, providerId),
+        eq(appointments.date, date),
+        sql`${appointments.status} NOT IN ('cancelled','rejected')`,
+      ));
+    return rows.map(r => r.startTime).filter(Boolean) as string[];
+  }
+
+  /**
+   * Lightweight: SUM of totalAmount across completed appointments for a provider.
+   * Done in SQL (single aggregate row) instead of loading every row + joins.
+   */
+  async getProviderRevenueTotal(providerId: string): Promise<number> {
+    const [row] = await db
+      .select({ total: sql<string>`COALESCE(SUM(${appointments.totalAmount}::numeric), 0)` })
+      .from(appointments)
+      .where(and(
+        eq(appointments.providerId, providerId),
+        eq(appointments.status, "completed"),
+      ));
+    return Number(row?.total ?? 0);
   }
 
   async createAppointment(appointment: InsertAppointment): Promise<Appointment> {

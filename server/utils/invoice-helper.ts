@@ -77,7 +77,7 @@ export async function createInvoiceForAppointment(appointmentId: string): Promis
         from: FROM_EMAIL,
         to: appointment.patient.email,
         subject: `Invoice ${invoiceNumber} for your appointment`,
-        text: `Dear ${appointment.patient.firstName},\n\nPlease find attached the invoice for your recent appointment with ${appointment.provider?.firstName || "your provider"}.\n\n${statusLine}\n\n— Golden Life`,
+        text: `Dear ${appointment.patient.firstName},\n\nPlease find attached the invoice for your recent appointment with ${appointment.provider?.user?.firstName || "your provider"}.\n\n${statusLine}\n\n— Golden Life`,
         attachments: [
           {
             filename: `invoice-${invoiceNumber}.pdf`,
