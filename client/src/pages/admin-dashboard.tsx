@@ -512,8 +512,8 @@ function ProviderEditDialog({ provider }: { provider: any }) {
                             </FormControl>
                             <SelectContent>
                               <SelectItem value="pending">{t("admin.pending")}</SelectItem>
-                              <SelectItem value="approved">Approved</SelectItem>
-                              <SelectItem value="rejected">Rejected</SelectItem>
+                              <SelectItem value="approved">{t("admin.approved")}</SelectItem>
+                              <SelectItem value="rejected">{t("admin.rejected")}</SelectItem>
                             </SelectContent>
                           </Select>
                         </FormItem>
@@ -806,7 +806,7 @@ function ProviderDetailsDialog({ provider }: { provider: any }) {
                         </div>
                       )) : null;
                     } catch (e) {
-                      return <p className="text-xs text-destructive">Error parsing practitioner data</p>;
+                      return <p className="text-xs text-destructive">{t("admin.error_parsing_practitioner")}</p>;
                     }
                   })()}
                 </div>
@@ -1773,10 +1773,10 @@ function ProvidersManagement() {
                             variant="outline"
                             className="h-9 px-3"
                             onClick={() => setSelectedProviderId(provider.id)}
-                            title="View Stats"
+                            title={t("admin.view_stats")}
                           >
                             <BarChart3 className="h-4 w-4 mr-2" />
-                            Stats
+                            {t("admin.stats")}
                           </Button>
                         </div>
                       </div>
@@ -2269,7 +2269,7 @@ function PlatformSettings() {
                   name="category"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Category</FormLabel>
+                      <FormLabel>{t("admin_dashboard.category")}</FormLabel>
                       <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                           <SelectTrigger data-testid="select-setting-category">
@@ -3297,7 +3297,7 @@ function UsersManagement() {
             <SelectItem value="all">{t("admin.all_bookings")}</SelectItem>
             <SelectItem value="patient">{t("common.patient_looking")}</SelectItem>
             <SelectItem value="provider">{t("common.healthcare_provider")}</SelectItem>
-            <SelectItem value="admin">Admin</SelectItem>
+            <SelectItem value="admin">{t("admin.role_admin")}</SelectItem>
           </SelectContent>
         </Select>
         <span className="text-sm text-muted-foreground">
@@ -4832,7 +4832,7 @@ function AdminWallets() {
                         {w.user?.firstName || ""} {w.user?.lastName || ""}{" "}
                         <span className="text-muted-foreground">{w.user?.email}</span>
                       </p>
-                      {w.isFrozen && <Badge variant="destructive" className="mt-1">Frozen</Badge>}
+                      {w.isFrozen && <Badge variant="destructive" className="mt-1">{t("admin.frozen")}</Badge>}
                     </div>
                     <div className="text-right">
                       <p className="text-sm font-semibold">{fmt(w.balance)}</p>
@@ -4930,6 +4930,7 @@ function AdminWallets() {
 // ───── Broadcast / direct-message panel for admin → all users ─────
 function BroadcastPanel() {
   const { toast } = useToast();
+  const { t } = useTranslation();
   const [title, setTitle] = useState("");
   const [message, setMessage] = useState("");
   const [audience, setAudience] = useState("all");
@@ -4948,19 +4949,19 @@ function BroadcastPanel() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Broadcast message</CardTitle>
-        <CardDescription>Send a multi-channel announcement to all patients, providers or everyone.</CardDescription>
+        <CardTitle>{t("admin.broadcast_title")}</CardTitle>
+        <CardDescription>{t("admin.broadcast_desc")}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
-        <Input data-testid="input-broadcast-title" placeholder="Subject / title" value={title} onChange={(e) => setTitle(e.target.value)} />
-        <Textarea data-testid="input-broadcast-message" rows={4} placeholder="Message body" value={message} onChange={(e) => setMessage(e.target.value)} />
+        <Input data-testid="input-broadcast-title" placeholder={t("admin.broadcast_subject_placeholder")} value={title} onChange={(e) => setTitle(e.target.value)} />
+        <Textarea data-testid="input-broadcast-message" rows={4} placeholder={t("admin.broadcast_body_placeholder")} value={message} onChange={(e) => setMessage(e.target.value)} />
         <div className="flex flex-wrap items-center gap-3">
           <Select value={audience} onValueChange={setAudience}>
             <SelectTrigger className="w-48" data-testid="select-broadcast-audience"><SelectValue /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All users</SelectItem>
-              <SelectItem value="patients">Patients only</SelectItem>
-              <SelectItem value="providers">Providers only</SelectItem>
+              <SelectItem value="all">{t("admin.audience_all")}</SelectItem>
+              <SelectItem value="patients">{t("admin.audience_patients")}</SelectItem>
+              <SelectItem value="providers">{t("admin.audience_providers")}</SelectItem>
             </SelectContent>
           </Select>
           {(["in_app", "email", "sms", "whatsapp", "push"] as const).map((c) => (
@@ -4984,7 +4985,7 @@ function BroadcastPanel() {
         </div>
         {history && history.length > 0 && (
           <div className="pt-3 border-t mt-3">
-            <p className="text-sm font-medium mb-2">Recent broadcasts</p>
+            <p className="text-sm font-medium mb-2">{t("admin.recent_broadcasts")}</p>
             <div className="space-y-1 max-h-48 overflow-auto">
               {history.slice(0, 10).map((b) => (
                 <div key={b.id} className="text-xs flex justify-between gap-2 border-b pb-1" data-testid={`row-broadcast-${b.id}`}>
@@ -5004,12 +5005,13 @@ function BroadcastPanel() {
 
 // ───── Recent notification delivery logs (success/failure across all channels) ─────
 function DeliveryLogsPanel() {
+  const { t } = useTranslation();
   const { data: logs } = useQuery<any[]>({ queryKey: ["/api/admin/notification-logs"] });
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Notification delivery log</CardTitle>
-        <CardDescription>Most recent dispatches across email, SMS, WhatsApp and push.</CardDescription>
+        <CardTitle>{t("admin.notification_log")}</CardTitle>
+        <CardDescription>{t("admin.notification_log_desc")}</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="text-xs space-y-1 max-h-80 overflow-auto">

@@ -669,7 +669,7 @@ export default function Booking() {
             <div className="lg:col-span-1">
               <Card className="sticky top-24">
                 <CardHeader>
-                  <CardTitle>Booking Summary</CardTitle>
+                  <CardTitle>{t("booking.summary_title")}</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-2">

@@ -1588,7 +1588,7 @@ export default function ProviderDashboard() {
                           </div>
                           <div className="flex gap-1">
                             <Button size="sm" variant="outline" onClick={() => { setEditingService(s); setServiceFormOpen(true); }} data-testid={`button-edit-service-${s.id}`}>
-                              Edit
+                              {t("provider_dashboard.edit")}
                             </Button>
                             <Button size="sm" variant={s.isActive ? "default" : "outline"} onClick={() => toggleServiceMutation.mutate({ id: s.id, isActive: !s.isActive })} data-testid={`button-toggle-service-${s.id}`}>
                               {s.isActive ? t("provider_dashboard.active", "Active") : t("provider_dashboard.paused", "Paused")}
@@ -2005,6 +2005,7 @@ const DEFAULT_SCHEDULE: WeeklySchedule = DAYS.reduce((acc, d) => {
 }, {} as WeeklySchedule);
 
 function ProviderOfficeHoursCard() {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const { data, isLoading } = useQuery<any>({ queryKey: ["/api/provider/office-hours"] });
   const [schedule, setSchedule] = useState<WeeklySchedule>(DEFAULT_SCHEDULE);
@@ -2041,9 +2042,9 @@ function ProviderOfficeHoursCard() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Office hours & auto-reply</CardTitle>
+        <CardTitle>{t("provider_dashboard.office_hours_title")}</CardTitle>
         <CardDescription>
-          When patients message you outside these hours, they'll get an automatic reply.
+          {t("provider_dashboard.office_hours_desc")}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -2085,27 +2086,27 @@ function ProviderOfficeHoursCard() {
             onChange={(e) => setAutoReplyEnabled(e.target.checked)}
             data-testid="checkbox-auto-reply"
           />
-          <label htmlFor="autoReply" className="font-medium text-sm">Send an auto-reply when I'm offline</label>
+          <label htmlFor="autoReply" className="font-medium text-sm">{t("provider_dashboard.auto_reply_toggle")}</label>
         </div>
         <Textarea
           rows={3}
-          placeholder="Auto-reply message"
+          placeholder={t("provider_dashboard.auto_reply_placeholder")}
           value={autoReplyMessage}
           onChange={(e) => setAutoReplyMessage(e.target.value)}
           disabled={!autoReplyEnabled}
           data-testid="input-auto-reply-message"
         />
         <div>
-          <label className="text-sm font-medium">Emergency contact (shown in auto-reply)</label>
+          <label className="text-sm font-medium">{t("provider_dashboard.emergency_contact_label")}</label>
           <Input
-            placeholder="e.g. Call +36 1 234 5678 for urgent care"
+            placeholder={t("provider_dashboard.emergency_contact_placeholder")}
             value={emergencyContact}
             onChange={(e) => setEmergencyContact(e.target.value)}
             data-testid="input-emergency-contact"
           />
         </div>
         <Button onClick={() => save.mutate()} disabled={save.isPending} data-testid="button-save-office-hours">
-          {save.isPending ? "Saving..." : "Save office hours"}
+          {save.isPending ? t("provider_dashboard.saving") : t("provider_dashboard.save_office_hours")}
         </Button>
       </CardContent>
     </Card>

@@ -3,6 +3,7 @@ import { Footer } from "@/components/footer";
 import { useAuth } from "@/lib/auth";
 import { useLocation } from "wouter";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,6 +21,7 @@ export default function Settings() {
   const { isAuthenticated, user, isLoading: authLoading } = useAuth();
   const [, navigate] = useLocation();
   const { toast } = useToast();
+  const { t } = useTranslation();
 
   const [pushCap, setPushCap] = useState<{ supported: boolean; configured: boolean }>({ supported: false, configured: false });
   const [pushSubscribed, setPushSubscribed] = useState(false);
@@ -157,25 +159,25 @@ export default function Settings() {
     <div className="min-h-screen flex flex-col">
       <Header />
       <main className="flex-1 container mx-auto px-4 py-8 max-w-2xl">
-        <h1 className="text-3xl font-bold mb-8">Settings</h1>
+        <h1 className="text-3xl font-bold mb-8">{t("settings_page.title")}</h1>
 
         <div className="space-y-6">
           <Card>
             <CardHeader>
               <div className="flex items-center gap-2">
                 <Bell className="h-5 w-5 text-primary" />
-                <CardTitle className="text-lg">Notifications</CardTitle>
+                <CardTitle className="text-lg">{t("settings_page.notifications_title")}</CardTitle>
               </div>
-              <CardDescription>Manage how you receive notifications</CardDescription>
+              <CardDescription>{t("settings_page.notifications_desc")}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-start gap-3">
                   <Mail className="h-5 w-5 text-muted-foreground mt-0.5" />
                   <div>
-                    <p className="font-medium">Email</p>
+                    <p className="font-medium">{t("settings_page.email")}</p>
                     <p className="text-sm text-muted-foreground">
-                      Booking confirmations, reminders, receipts {caps?.email === false && "(server email not configured)"}
+                      {t("settings_page.email_desc")} {caps?.email === false && t("settings_page.email_not_configured")}
                     </p>
                   </div>
                 </div>
@@ -191,9 +193,9 @@ export default function Settings() {
                 <div className="flex items-start gap-3">
                   <MessageSquare className="h-5 w-5 text-muted-foreground mt-0.5" />
                   <div>
-                    <p className="font-medium">SMS reminders</p>
+                    <p className="font-medium">{t("settings_page.sms")}</p>
                     <p className="text-sm text-muted-foreground">
-                      Text-message reminders before appointments {caps?.sms === false && "(SMS not configured)"}
+                      {t("settings_page.sms_desc")} {caps?.sms === false && t("settings_page.sms_not_configured")}
                     </p>
                   </div>
                 </div>
@@ -209,9 +211,9 @@ export default function Settings() {
                 <div className="flex items-start gap-3">
                   <MessageSquare className="h-5 w-5 text-muted-foreground mt-0.5" />
                   <div>
-                    <p className="font-medium">WhatsApp</p>
+                    <p className="font-medium">{t("settings_page.whatsapp")}</p>
                     <p className="text-sm text-muted-foreground">
-                      Reminders via WhatsApp {caps?.whatsapp === false && "(WhatsApp not configured)"}
+                      {t("settings_page.whatsapp_desc")} {caps?.whatsapp === false && t("settings_page.whatsapp_not_configured")}
                     </p>
                   </div>
                 </div>
@@ -227,13 +229,13 @@ export default function Settings() {
                 <div className="flex items-start gap-3">
                   <Smartphone className="h-5 w-5 text-muted-foreground mt-0.5" />
                   <div>
-                    <p className="font-medium">Browser push notifications</p>
+                    <p className="font-medium">{t("settings_page.push")}</p>
                     <p className="text-sm text-muted-foreground">
                       {pushCap.supported
                         ? pushCap.configured
-                          ? "Get instant alerts even when this tab is closed"
-                          : "Server not configured for push (admin must set VAPID keys)"
-                        : "Not supported in this browser"}
+                          ? t("settings_page.push_desc")
+                          : t("settings_page.push_not_configured")
+                        : t("settings_page.push_not_supported")}
                     </p>
                   </div>
                 </div>
@@ -249,8 +251,8 @@ export default function Settings() {
                 <div className="flex items-start gap-3">
                   <Monitor className="h-5 w-5 text-muted-foreground mt-0.5" />
                   <div>
-                    <p className="font-medium">In-app notifications</p>
-                    <p className="text-sm text-muted-foreground">Show alerts in the bell icon while you're using GoldenLife</p>
+                    <p className="font-medium">{t("settings_page.in_app")}</p>
+                    <p className="text-sm text-muted-foreground">{t("settings_page.in_app_desc")}</p>
                   </div>
                 </div>
                 <Switch
@@ -261,13 +263,13 @@ export default function Settings() {
               </div>
               <Separator />
               <div>
-                <p className="font-medium mb-2">Quiet hours</p>
+                <p className="font-medium mb-2">{t("settings_page.quiet_hours")}</p>
                 <p className="text-sm text-muted-foreground mb-3">
-                  Don't deliver SMS, WhatsApp or push during these hours (HH:MM, 24-hour). Email and in-app still work.
+                  {t("settings_page.quiet_hours_desc")}
                 </p>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <Label htmlFor="qhStart" className="text-xs">From</Label>
+                    <Label htmlFor="qhStart" className="text-xs">{t("settings_page.from")}</Label>
                     <Input
                       id="qhStart"
                       type="time"
@@ -277,7 +279,7 @@ export default function Settings() {
                     />
                   </div>
                   <div>
-                    <Label htmlFor="qhEnd" className="text-xs">To</Label>
+                    <Label htmlFor="qhEnd" className="text-xs">{t("settings_page.to")}</Label>
                     <Input
                       id="qhEnd"
                       type="time"
@@ -290,9 +292,9 @@ export default function Settings() {
               </div>
               <Separator />
               <div>
-                <p className="font-medium mb-2">Language</p>
+                <p className="font-medium mb-2">{t("settings_page.language")}</p>
                 <p className="text-sm text-muted-foreground mb-3">
-                  Choose the language for emails, SMS and notifications.
+                  {t("settings_page.language_desc")}
                 </p>
                 <select
                   data-testid="select-language"
@@ -312,14 +314,14 @@ export default function Settings() {
             <CardHeader>
               <div className="flex items-center gap-2">
                 <Lock className="h-5 w-5 text-primary" />
-                <CardTitle className="text-lg">Change Password</CardTitle>
+                <CardTitle className="text-lg">{t("settings_page.change_password_title")}</CardTitle>
               </div>
-              <CardDescription>Update your account password</CardDescription>
+              <CardDescription>{t("settings_page.change_password_desc")}</CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handlePasswordSubmit} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="currentPassword">Current Password</Label>
+                  <Label htmlFor="currentPassword">{t("settings_page.current_password")}</Label>
                   <div className="relative">
                     <Input
                       id="currentPassword"
@@ -328,7 +330,7 @@ export default function Settings() {
                       onChange={(e) =>
                         setPasswordForm({ ...passwordForm, currentPassword: e.target.value })
                       }
-                      placeholder="Enter current password"
+                      placeholder={t("settings_page.current_password_placeholder")}
                     />
                     <Button
                       type="button"
@@ -349,7 +351,7 @@ export default function Settings() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="newPassword">New Password</Label>
+                  <Label htmlFor="newPassword">{t("settings_page.new_password")}</Label>
                   <div className="relative">
                     <Input
                       id="newPassword"
@@ -358,7 +360,7 @@ export default function Settings() {
                       onChange={(e) =>
                         setPasswordForm({ ...passwordForm, newPassword: e.target.value })
                       }
-                      placeholder="Enter new password"
+                      placeholder={t("settings_page.new_password_placeholder")}
                     />
                     <Button
                       type="button"
@@ -379,7 +381,7 @@ export default function Settings() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="confirmPassword">Confirm New Password</Label>
+                  <Label htmlFor="confirmPassword">{t("settings_page.confirm_password")}</Label>
                   <div className="relative">
                     <Input
                       id="confirmPassword"
@@ -388,7 +390,7 @@ export default function Settings() {
                       onChange={(e) =>
                         setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })
                       }
-                      placeholder="Confirm new password"
+                      placeholder={t("settings_page.confirm_password_placeholder")}
                     />
                     <Button
                       type="button"
@@ -413,7 +415,7 @@ export default function Settings() {
                   className="w-full"
                   disabled={changePasswordMutation.isPending}
                 >
-                  {changePasswordMutation.isPending ? "Updating..." : "Update Password"}
+                  {changePasswordMutation.isPending ? t("settings_page.updating") : t("settings_page.update_password")}
                 </Button>
               </form>
             </CardContent>
@@ -423,24 +425,24 @@ export default function Settings() {
             <CardHeader>
               <div className="flex items-center gap-2">
                 <Shield className="h-5 w-5 text-primary" />
-                <CardTitle className="text-lg">Privacy & Security</CardTitle>
+                <CardTitle className="text-lg">{t("settings_page.privacy_title")}</CardTitle>
               </div>
-              <CardDescription>Manage your privacy settings</CardDescription>
+              <CardDescription>{t("settings_page.privacy_desc")}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-sm text-muted-foreground">
-                Your data is protected in accordance with our{" "}
+                {t("settings_page.privacy_paragraph_1_before")}{" "}
                 <a href="/privacy" className="text-primary hover:underline">
-                  Privacy Policy
+                  {t("settings_page.privacy_policy_link")}
                 </a>
-                . We use encryption and secure storage to protect your personal information.
+                {t("settings_page.privacy_paragraph_1_after")}
               </p>
               <p className="text-sm text-muted-foreground">
-                For data access, correction, or deletion requests, please contact us at{" "}
+                {t("settings_page.privacy_contact_intro")}{" "}
                 <a href="mailto:Info@GoldenLife.Health" className="text-primary hover:underline">
                   Info@GoldenLife.Health
                 </a>
-                {" "}or{" "}
+                {" "}{t("settings_page.or")}{" "}
                 <a href="mailto:Admin@GoldenLife.Health" className="text-primary hover:underline">
                   Admin@GoldenLife.Health
                 </a>

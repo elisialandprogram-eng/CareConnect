@@ -219,7 +219,7 @@ export function ServiceFormDialog({ open, onOpenChange, service, providerId, adm
                   )}
                 </div>
                 <div>
-                  <Label className="text-sm font-medium">Service Image</Label>
+                  <Label className="text-sm font-medium">{t("service_form.image_label")}</Label>
                   <div className="flex items-center gap-2 mt-2">
                     <label className="cursor-pointer">
                       <input
@@ -252,7 +252,7 @@ export function ServiceFormDialog({ open, onOpenChange, service, providerId, adm
               </div>
 
               <div>
-                <Label className="text-sm font-medium">Set colors for calendar</Label>
+                <Label className="text-sm font-medium">{t("service_form.calendar_colors_label")}</Label>
                 <div className="flex items-center gap-2 mt-2">
                   {CALENDAR_COLORS.map(c => (
                     <button
@@ -284,19 +284,19 @@ export function ServiceFormDialog({ open, onOpenChange, service, providerId, adm
             {/* Name + Category */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label className="text-sm">Service name <span className="text-destructive">*</span></Label>
+                <Label className="text-sm">{t("service_form.service_name_label")} <span className="text-destructive">*</span></Label>
                 <Input
                   value={name}
                   onChange={e => setName(e.target.value)}
-                  placeholder="e.g. Well-Baby Checkup"
+                  placeholder={t("service_form.service_name_placeholder")}
                   data-testid="input-service-name"
                 />
               </div>
               <div className="space-y-2">
-                <Label className="text-sm">Category <span className="text-destructive">*</span></Label>
+                <Label className="text-sm">{t("service_form.category_label")} <span className="text-destructive">*</span></Label>
                 <Select value={subServiceId} onValueChange={setSubServiceId}>
                   <SelectTrigger data-testid="select-service-category">
-                    <SelectValue placeholder="Select category" />
+                    <SelectValue placeholder={t("service_form.select_category_placeholder")} />
                   </SelectTrigger>
                   <SelectContent>
                     {subServices.map(s => (
@@ -310,7 +310,7 @@ export function ServiceFormDialog({ open, onOpenChange, service, providerId, adm
             {/* Price + Deposit */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label className="text-sm">Price ( $ ) <span className="text-destructive">*</span></Label>
+                <Label className="text-sm">{t("service_form.price_label")} <span className="text-destructive">*</span></Label>
                 <Input
                   type="number"
                   step="0.01"
@@ -405,11 +405,11 @@ export function ServiceFormDialog({ open, onOpenChange, service, providerId, adm
             {/* Hide toggles */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t">
               <div className="flex items-center justify-between">
-                <Label className="text-sm m-0">Hide price in booking panel:</Label>
+                <Label className="text-sm m-0">{t("service_form.hide_price_label")}</Label>
                 <Switch checked={hidePrice} onCheckedChange={setHidePrice} data-testid="switch-hide-price" />
               </div>
               <div className="flex items-center justify-between">
-                <Label className="text-sm m-0">Hide duration in booking panel:</Label>
+                <Label className="text-sm m-0">{t("service_form.hide_duration_label")}</Label>
                 <Switch checked={hideDuration} onCheckedChange={setHideDuration} data-testid="switch-hide-duration" />
               </div>
             </div>
@@ -418,8 +418,8 @@ export function ServiceFormDialog({ open, onOpenChange, service, providerId, adm
           <TabsContent value="settings" className="space-y-4 pt-6">
             <div className="flex items-center justify-between rounded-md border px-3 py-3">
               <div>
-                <Label className="text-sm m-0">Service is active</Label>
-                <p className="text-xs text-muted-foreground">Inactive services are hidden from bookings.</p>
+                <Label className="text-sm m-0">{t("service_form.is_active_label")}</Label>
+                <p className="text-xs text-muted-foreground">{t("service_form.is_active_desc")}</p>
               </div>
               <Switch checked={isActive} onCheckedChange={setIsActive} data-testid="switch-service-active" />
             </div>

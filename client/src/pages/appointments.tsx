@@ -43,6 +43,7 @@ interface Appointment {
 
 function RatingDialog({ appointment }: { appointment: Appointment }) {
   const { toast } = useToast();
+  const { t } = useTranslation();
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState("");
   const [isOpen, setIsOpen] = useState(false);
@@ -70,13 +71,13 @@ function RatingDialog({ appointment }: { appointment: Appointment }) {
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm" data-testid={`button-rate-${appointment.id}`}>Rate Service</Button>
+        <Button variant="outline" size="sm" data-testid={`button-rate-${appointment.id}`}>{t("appointments.rate_service")}</Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Rate your experience</DialogTitle>
+          <DialogTitle>{t("appointments.rate_dialog_title")}</DialogTitle>
           <DialogDescription>
-            How was your session with Dr. {appointment.provider.user.firstName} {appointment.provider.user.lastName}?
+            {t("appointments.rate_dialog_desc", { firstName: appointment.provider.user.firstName, lastName: appointment.provider.user.lastName })}
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-4">
@@ -95,9 +96,9 @@ function RatingDialog({ appointment }: { appointment: Appointment }) {
             ))}
           </div>
           <div className="space-y-2">
-            <label className="text-sm font-medium">Comments</label>
+            <label className="text-sm font-medium">{t("appointments.comments")}</label>
             <Textarea
-              placeholder="Tell us about your experience..."
+              placeholder={t("appointments.comments_placeholder")}
               value={comment}
               onChange={(e) => setComment(e.target.value)}
               data-testid="input-review-comment"
