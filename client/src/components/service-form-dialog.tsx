@@ -67,6 +67,7 @@ export function ServiceFormDialog({ open, onOpenChange, service, providerId, adm
     queryKey: subServicesQueryKey,
     queryFn: () => fetch(subServicesQueryKey[0], { credentials: "include" }).then(r => r.json()),
     enabled: open,
+    staleTime: 0,
   });
 
   const subServices = allSubServices;

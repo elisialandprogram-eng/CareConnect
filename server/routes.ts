@@ -1041,10 +1041,13 @@ export async function registerRoutes(
   // Supports optional ?category= filter (e.g. physiotherapist, doctor, nurse)
   app.get("/api/sub-services", async (req, res) => {
     try {
-      const all = await storage.getAllSubServices();
       const category = typeof req.query.category === "string" ? req.query.category.trim() : "";
-      const subServices = category ? all.filter((s: any) => s.category === category) : all;
-      res.json(subServices);
+      const result = category
+        ? await storage.getSubServicesByCategory(category)
+        : await storage.getAllSubServices();
+      // Cache-Control: no-store so providers always get fresh admin-defined categories
+      res.setHeader("Cache-Control", "no-store");
+      res.json(result);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch sub-services" });
     }

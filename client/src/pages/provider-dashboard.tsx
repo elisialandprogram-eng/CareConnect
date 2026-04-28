@@ -350,6 +350,7 @@ export default function ProviderDashboard() {
     queryKey: ["/api/sub-services", providerData?.providerType],
     queryFn: () => fetch(subServicesUrl, { credentials: "include" }).then(r => r.json()),
     enabled: !!providerData?.providerType && activeTab === "services",
+    staleTime: 0,
   });
 
   const addPractitionerMutation = useMutation({

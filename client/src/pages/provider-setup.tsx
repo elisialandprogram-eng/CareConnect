@@ -271,6 +271,7 @@ export default function ProviderSetup() {
     queryKey: ["/api/sub-services", selectedType],
     queryFn: () => fetch(subServicesUrl!, { credentials: "include" }).then(r => r.json()),
     enabled: !!selectedType && !!subServicesUrl,
+    staleTime: 0,
   });
 
   const { data: existingProvider } = useQuery<any>({
