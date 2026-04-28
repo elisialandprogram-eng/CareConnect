@@ -1071,6 +1071,66 @@ export async function registerRoutes(
     }
   });
 
+  // Allow any authenticated user to rename a sub-service category.
+  app.patch("/api/sub-services/:id", authenticateToken, async (req: AuthRequest, res: Response) => {
+    try {
+      const id = req.params.id;
+      const existing = await storage.getSubService(id);
+      if (!existing) return res.status(404).json({ message: "Category not found" });
+
+      const allowed: Record<string, any> = {};
+      if (typeof req.body?.name === "string") allowed.name = req.body.name.trim();
+      if (typeof req.body?.category === "string") allowed.category = req.body.category;
+      if (typeof req.body?.description === "string") allowed.description = req.body.description;
+      if (typeof req.body?.isActive === "boolean") allowed.isActive = req.body.isActive;
+
+      if (allowed.name !== undefined && !allowed.name) {
+        return res.status(400).json({ message: "Name cannot be empty" });
+      }
+
+      if (allowed.name || allowed.category) {
+        const all = await storage.getAllSubServices();
+        const newName = (allowed.name ?? existing.name).toString().trim().toLowerCase();
+        const newCategory = allowed.category ?? existing.category;
+        const collision = all.find(
+          (s) => s.id !== id && s.name.trim().toLowerCase() === newName && s.category === newCategory,
+        );
+        if (collision) {
+          return res.status(409).json({ message: `Category "${allowed.name ?? existing.name}" already exists for ${newCategory}.` });
+        }
+      }
+
+      const updated = await storage.updateSubService(id, allowed);
+      res.json(updated);
+    } catch (error: any) {
+      console.error("Update sub-service error:", error);
+      res.status(500).json({ message: "Failed to update category" });
+    }
+  });
+
+  // Allow any authenticated user to delete a sub-service category, but only if
+  // no services currently reference it.
+  app.delete("/api/sub-services/:id", authenticateToken, async (req: AuthRequest, res: Response) => {
+    try {
+      const id = req.params.id;
+      const existing = await storage.getSubService(id);
+      if (!existing) return res.status(404).json({ message: "Category not found" });
+
+      const inUse = await db.select({ id: services.id }).from(services).where(eq(services.subServiceId, id));
+      if (inUse.length > 0) {
+        return res.status(409).json({
+          message: `Cannot delete "${existing.name}" — it is used by ${inUse.length} service${inUse.length === 1 ? "" : "s"}.`,
+        });
+      }
+
+      await storage.deleteSubService(id);
+      res.status(204).end();
+    } catch (error: any) {
+      console.error("Delete sub-service error:", error);
+      res.status(500).json({ message: "Failed to delete category" });
+    }
+  });
+
   // Sub-services management
   app.get("/api/admin/sub-services", authenticateToken, async (req: AuthRequest, res: Response) => {
     if (req.user?.role !== "admin") return res.status(403).json({ message: "Admin access required" });

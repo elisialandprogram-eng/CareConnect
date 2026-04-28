@@ -11,7 +11,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { showErrorModal } from "@/components/error-modal";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Plus, Upload, X, Info, Check } from "lucide-react";
+import { Plus, Upload, X, Info, Check, Pencil, Trash2 } from "lucide-react";
 import type { Service, SubService } from "@shared/schema";
 
 const PROVIDER_TYPE_OPTIONS = [
@@ -82,6 +82,9 @@ export function ServiceFormDialog({ open, onOpenChange, service, providerId, adm
   const [showNewCategory, setShowNewCategory] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState("");
   const [newCategoryType, setNewCategoryType] = useState<string>("physiotherapist");
+  const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
+  const [editingCategoryName, setEditingCategoryName] = useState("");
+  const [editingCategoryType, setEditingCategoryType] = useState<string>("physiotherapist");
 
   useEffect(() => {
     if (open) {
@@ -171,6 +174,56 @@ export function ServiceFormDialog({ open, onOpenChange, service, providerId, adm
       showErrorModal({ title: "Could not add category", description: e?.message || "Please try again", context: "service-form.create-category" });
     },
   });
+
+  const updateCategoryMutation = useMutation({
+    mutationFn: async () => {
+      if (!editingCategoryId) throw new Error("No category selected");
+      const r = await apiRequest("PATCH", `/api/sub-services/${editingCategoryId}`, {
+        name: editingCategoryName.trim(),
+        category: editingCategoryType,
+      });
+      return r.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/sub-services"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/sub-services"] });
+      setEditingCategoryId(null);
+      setEditingCategoryName("");
+      toast({ title: "Category updated" });
+    },
+    onError: (e: any) => {
+      showErrorModal({ title: "Could not update category", description: e?.message || "Please try again", context: "service-form.update-category" });
+    },
+  });
+
+  const deleteCategoryMutation = useMutation({
+    mutationFn: async (id: string) => {
+      await apiRequest("DELETE", `/api/sub-services/${id}`);
+      return id;
+    },
+    onSuccess: (id) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/sub-services"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/sub-services"] });
+      if (subServiceId === id) setSubServiceId("");
+      toast({ title: "Category deleted" });
+    },
+    onError: (e: any) => {
+      showErrorModal({ title: "Could not delete category", description: e?.message || "Please try again", context: "service-form.delete-category" });
+    },
+  });
+
+  const startEditCategory = (s: SubService) => {
+    setEditingCategoryId(s.id);
+    setEditingCategoryName(s.name);
+    setEditingCategoryType(s.category);
+    setShowNewCategory(false);
+  };
+
+  const requestDeleteCategory = (s: SubService) => {
+    if (window.confirm(`Delete category "${s.name}"? This cannot be undone.`)) {
+      deleteCategoryMutation.mutate(s.id);
+    }
+  };
 
   const saveMutation = useMutation({
     mutationFn: async () => {
@@ -334,6 +387,7 @@ export function ServiceFormDialog({ open, onOpenChange, service, providerId, adm
                   onValueChange={(v) => {
                     if (v === "__add_new__") {
                       setShowNewCategory(true);
+                      setEditingCategoryId(null);
                       return;
                     }
                     setSubServiceId(v);
@@ -344,13 +398,91 @@ export function ServiceFormDialog({ open, onOpenChange, service, providerId, adm
                   </SelectTrigger>
                   <SelectContent>
                     {subServices.map(s => (
-                      <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                      <SelectItem key={s.id} value={s.id} className="pr-2">
+                        <div className="flex items-center justify-between gap-2 w-full">
+                          <span className="truncate">{s.name}</span>
+                          <span className="flex items-center gap-1 shrink-0 ml-2">
+                            <span
+                              role="button"
+                              tabIndex={0}
+                              aria-label={`Edit ${s.name}`}
+                              data-testid={`button-edit-category-${s.id}`}
+                              onPointerDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                startEditCategory(s);
+                              }}
+                              className="inline-flex h-6 w-6 items-center justify-center rounded hover:bg-accent text-muted-foreground hover:text-foreground"
+                            >
+                              <Pencil className="h-3.5 w-3.5" />
+                            </span>
+                            <span
+                              role="button"
+                              tabIndex={0}
+                              aria-label={`Delete ${s.name}`}
+                              data-testid={`button-delete-category-${s.id}`}
+                              onPointerDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                requestDeleteCategory(s);
+                              }}
+                              className="inline-flex h-6 w-6 items-center justify-center rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </span>
+                          </span>
+                        </div>
+                      </SelectItem>
                     ))}
                     <SelectItem value="__add_new__" className="text-primary font-medium" data-testid="select-add-new-category">
                       + Add new category
                     </SelectItem>
                   </SelectContent>
                 </Select>
+
+                {editingCategoryId && (
+                  <div className="rounded-md border bg-muted/30 p-3 space-y-2" data-testid="form-edit-category">
+                    <Label className="text-xs text-muted-foreground">Edit category</Label>
+                    <Input
+                      placeholder="Category name"
+                      value={editingCategoryName}
+                      onChange={(e) => setEditingCategoryName(e.target.value)}
+                      data-testid="input-edit-category-name"
+                    />
+                    <Select value={editingCategoryType} onValueChange={setEditingCategoryType}>
+                      <SelectTrigger data-testid="select-edit-category-type">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {PROVIDER_TYPE_OPTIONS.map((o) => (
+                          <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <div className="flex gap-2 justify-end">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => { setEditingCategoryId(null); setEditingCategoryName(""); }}
+                        data-testid="button-cancel-edit-category"
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        onClick={() => updateCategoryMutation.mutate()}
+                        disabled={updateCategoryMutation.isPending || !editingCategoryName.trim()}
+                        data-testid="button-save-edit-category"
+                      >
+                        {updateCategoryMutation.isPending ? "Saving..." : "Save"}
+                      </Button>
+                    </div>
+                  </div>
+                )}
 
                 {showNewCategory && (
                   <div className="rounded-md border bg-muted/30 p-3 space-y-2" data-testid="form-new-category">
