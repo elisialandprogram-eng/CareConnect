@@ -3813,7 +3813,7 @@ export async function registerRoutes(
 
   app.post("/api/admin/promo-codes", authenticateToken, requireAdmin, async (req: AuthRequest, res: Response) => {
     try {
-      const parsed = promoCodeInputSchema.parse(req.body);
+      const parsed = promoCodeCreateSchema.parse(req.body);
       // Reject duplicate codes with a clear message
       const existing = await storage.getPromoCodeByCode(parsed.code);
       if (existing) {
@@ -3846,7 +3846,7 @@ export async function registerRoutes(
 
   app.patch("/api/admin/promo-codes/:id", authenticateToken, requireAdmin, async (req: AuthRequest, res: Response) => {
     try {
-      const parsed = promoCodeInputSchema.partial().parse(req.body);
+      const parsed = promoCodeUpdateSchema.parse(req.body);
       // If code is being changed, ensure it doesn't collide
       if (parsed.code) {
         const existing = await storage.getPromoCodeByCode(parsed.code);
