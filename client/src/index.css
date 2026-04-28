@@ -457,6 +457,74 @@
     transform: translateY(0);
   }
 
+  /* ===== Colorful dashboard helpers ===== */
+
+  /* Stat card: subtle gradient background + colored icon chip + colored top border */
+  .stat-card {
+    @apply relative overflow-hidden border-l-4 transition-all duration-300;
+  }
+  .stat-card:hover {
+    @apply -translate-y-0.5 shadow-lg;
+  }
+  .stat-card .stat-icon {
+    @apply h-10 w-10 rounded-xl flex items-center justify-center shrink-0 shadow-sm;
+  }
+
+  .stat-blue        { @apply border-l-blue-500    bg-gradient-to-br from-blue-50    to-transparent dark:from-blue-950/40    dark:to-transparent; }
+  .stat-blue   .stat-icon { @apply bg-blue-100    text-blue-600    dark:bg-blue-900/60    dark:text-blue-300; }
+
+  .stat-emerald     { @apply border-l-emerald-500 bg-gradient-to-br from-emerald-50 to-transparent dark:from-emerald-950/40 dark:to-transparent; }
+  .stat-emerald .stat-icon{ @apply bg-emerald-100 text-emerald-600 dark:bg-emerald-900/60 dark:text-emerald-300; }
+
+  .stat-amber       { @apply border-l-amber-500   bg-gradient-to-br from-amber-50   to-transparent dark:from-amber-950/40   dark:to-transparent; }
+  .stat-amber  .stat-icon { @apply bg-amber-100   text-amber-600   dark:bg-amber-900/60   dark:text-amber-300; }
+
+  .stat-rose        { @apply border-l-rose-500    bg-gradient-to-br from-rose-50    to-transparent dark:from-rose-950/40    dark:to-transparent; }
+  .stat-rose   .stat-icon { @apply bg-rose-100    text-rose-600    dark:bg-rose-900/60    dark:text-rose-300; }
+
+  .stat-violet      { @apply border-l-violet-500  bg-gradient-to-br from-violet-50  to-transparent dark:from-violet-950/40  dark:to-transparent; }
+  .stat-violet .stat-icon { @apply bg-violet-100  text-violet-600  dark:bg-violet-900/60  dark:text-violet-300; }
+
+  .stat-sky         { @apply border-l-sky-500     bg-gradient-to-br from-sky-50     to-transparent dark:from-sky-950/40     dark:to-transparent; }
+  .stat-sky    .stat-icon { @apply bg-sky-100     text-sky-600     dark:bg-sky-900/60     dark:text-sky-300; }
+
+  .stat-indigo      { @apply border-l-indigo-500  bg-gradient-to-br from-indigo-50  to-transparent dark:from-indigo-950/40  dark:to-transparent; }
+  .stat-indigo .stat-icon { @apply bg-indigo-100  text-indigo-600  dark:bg-indigo-900/60  dark:text-indigo-300; }
+
+  .stat-teal        { @apply border-l-teal-500    bg-gradient-to-br from-teal-50    to-transparent dark:from-teal-950/40    dark:to-transparent; }
+  .stat-teal   .stat-icon { @apply bg-teal-100    text-teal-600    dark:bg-teal-900/60    dark:text-teal-300; }
+
+  .stat-fuchsia     { @apply border-l-fuchsia-500 bg-gradient-to-br from-fuchsia-50 to-transparent dark:from-fuchsia-950/40 dark:to-transparent; }
+  .stat-fuchsia .stat-icon{ @apply bg-fuchsia-100 text-fuchsia-600 dark:bg-fuchsia-900/60 dark:text-fuchsia-300; }
+
+  .stat-orange      { @apply border-l-orange-500  bg-gradient-to-br from-orange-50  to-transparent dark:from-orange-950/40  dark:to-transparent; }
+  .stat-orange .stat-icon { @apply bg-orange-100  text-orange-600  dark:bg-orange-900/60  dark:text-orange-300; }
+
+  /* Colorful tabs: gradient pill on active state, subtle hover, pop of color even when idle */
+  .tabs-colorful {
+    @apply gap-1 bg-gradient-to-r from-primary/5 via-fuchsia-500/5 to-emerald-500/5 p-1.5 rounded-xl border border-border/60;
+  }
+  .tabs-colorful [data-state="inactive"] {
+    @apply text-muted-foreground hover:text-foreground hover:bg-background/70 transition-colors;
+  }
+  .tabs-colorful [data-state="active"] {
+    @apply text-white shadow-md bg-gradient-to-r from-sky-500 via-blue-500 to-indigo-500;
+  }
+  .tabs-colorful.tabs-emerald [data-state="active"] {
+    @apply bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500;
+  }
+  .tabs-colorful.tabs-violet [data-state="active"] {
+    @apply bg-gradient-to-r from-violet-500 via-purple-500 to-fuchsia-500;
+  }
+  .tabs-colorful.tabs-warm [data-state="active"] {
+    @apply bg-gradient-to-r from-orange-500 via-amber-500 to-rose-500;
+  }
+  /* Make the colored badge inside an active tab readable on the gradient */
+  .tabs-colorful [data-state="active"] .badge,
+  .tabs-colorful [data-state="active"] [class*="bg-secondary"] {
+    @apply bg-white/25 text-white border-transparent;
+  }
+
   /* Reduce motion for users who prefer it */
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after {

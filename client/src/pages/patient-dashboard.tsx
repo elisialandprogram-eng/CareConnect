@@ -499,11 +499,11 @@ export default function PatientDashboard() {
           )}
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <Card data-testid="stat-upcoming">
+            <Card className="stat-card stat-blue" data-testid="stat-upcoming">
               <CardContent className="p-6">
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                    <Calendar className="h-6 w-6 text-primary" />
+                  <div className="stat-icon">
+                    <Calendar className="h-5 w-5" />
                   </div>
                   <div>
                     <p className="text-2xl font-bold">{upcomingAppointments.length}</p>
@@ -513,11 +513,11 @@ export default function PatientDashboard() {
               </CardContent>
             </Card>
 
-            <Card data-testid="stat-completed">
+            <Card className="stat-card stat-emerald" data-testid="stat-completed">
               <CardContent className="p-6">
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center">
-                    <Star className="h-6 w-6 text-green-600 dark:text-green-400" />
+                  <div className="stat-icon">
+                    <Star className="h-5 w-5" />
                   </div>
                   <div>
                     <p className="text-2xl font-bold">
@@ -529,11 +529,11 @@ export default function PatientDashboard() {
               </CardContent>
             </Card>
 
-            <Card data-testid="stat-messages">
+            <Card className="stat-card stat-violet" data-testid="stat-messages">
               <CardContent className="p-6">
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
-                    <MessageSquare className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                  <div className="stat-icon">
+                    <MessageSquare className="h-5 w-5" />
                   </div>
                   <div>
                     <p className="text-2xl font-bold">{upcomingAppointments.filter(a => a.status === 'confirmed').length}</p>
@@ -563,7 +563,7 @@ export default function PatientDashboard() {
           </div>
 
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="flex flex-wrap h-auto">
+            <TabsList className="tabs-colorful flex flex-wrap h-auto">
               <TabsTrigger value="upcoming" data-testid="tab-upcoming">
                 {t("dashboard.upcoming")} ({upcomingAppointments.length})
               </TabsTrigger>

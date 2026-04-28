@@ -871,40 +871,40 @@ function AnalyticsOverview() {
   return (
     <div className="space-y-6">
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
+        <Card className="stat-card stat-indigo">
           <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">{t("admin.total_users")}</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
+            <div className="stat-icon h-9 w-9"><Users className="h-4 w-4" /></div>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold" data-testid="text-total-users">{analytics?.totalUsers || 0}</div>
             <p className="text-xs text-muted-foreground">{t("admin.registered_users")}</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="stat-card stat-fuchsia">
           <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">{t("admin.total_providers")}</CardTitle>
-            <Building className="h-4 w-4 text-muted-foreground" />
+            <div className="stat-icon h-9 w-9"><Building className="h-4 w-4" /></div>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold" data-testid="text-total-providers">{analytics?.totalProviders || 0}</div>
             <p className="text-xs text-muted-foreground">{t("admin.active_providers")}</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="stat-card stat-sky">
           <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">{t("admin.total_bookings")}</CardTitle>
-            <Calendar className="h-4 w-4 text-muted-foreground" />
+            <div className="stat-icon h-9 w-9"><Calendar className="h-4 w-4" /></div>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold" data-testid="text-total-bookings">{analytics?.totalBookings || 0}</div>
             <p className="text-xs text-muted-foreground">{t("admin.all_time_bookings")}</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="stat-card stat-emerald">
           <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">{t("admin.total_revenue")}</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
+            <div className="stat-icon h-9 w-9"><DollarSign className="h-4 w-4" /></div>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold" data-testid="text-total-revenue">{fmtMoney(analytics?.totalRevenue || 0)}</div>
@@ -1108,28 +1108,28 @@ function FinancialReports() {
   return (
     <div className="space-y-6">
       <div className="grid gap-4 md:grid-cols-3">
-        <Card>
+        <Card className="stat-card stat-emerald">
           <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">{t("admin.total_revenue_label")}</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
+            <div className="stat-icon h-9 w-9"><DollarSign className="h-4 w-4" /></div>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold" data-testid="text-financial-total">{fmtMoney(totalRevenue)}</div>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="stat-card stat-teal">
           <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">{t("admin.completed")} {t("admin.bookings")}</CardTitle>
-            <CheckCircle className="h-4 w-4 text-muted-foreground" />
+            <div className="stat-icon h-9 w-9"><CheckCircle className="h-4 w-4" /></div>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold" data-testid="text-financial-completed">{analytics?.completedBookings || 0}</div>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="stat-card stat-indigo">
           <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">{t("admin.total_users_label")}</CardTitle>
-            <Plus className="h-4 w-4 text-muted-foreground" />
+            <div className="stat-icon h-9 w-9"><Plus className="h-4 w-4" /></div>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold" data-testid="text-financial-users">{analytics?.totalUsers || 0}</div>
@@ -1958,7 +1958,7 @@ function ContentManagement() {
   return (
     <div className="space-y-4">
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList>
+        <TabsList className="tabs-colorful tabs-violet flex flex-wrap h-auto">
           <TabsTrigger value="providers" data-testid="tab-content-providers">{t("admin_dashboard.tab_providers")}</TabsTrigger>
           <TabsTrigger value="users" data-testid="tab-content-users">{t("admin_dashboard.tab_users")}</TabsTrigger>
           <TabsTrigger value="sub-services" data-testid="tab-sub-services">{t("admin_dashboard.tab_sub_services")}</TabsTrigger>
@@ -3918,7 +3918,7 @@ export default function AdminDashboard() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="flex flex-wrap gap-1">
+          <TabsList className="tabs-colorful flex flex-wrap gap-1 h-auto">
             <TabsTrigger value="overview" data-testid="tab-overview">
               <BarChart3 className="h-4 w-4 mr-2" />
               {t("admin.analytics")}
@@ -4081,7 +4081,7 @@ export default function AdminDashboard() {
               </CardHeader>
               <CardContent>
                 <Tabs defaultValue="google" className="w-full">
-                  <TabsList className="grid w-full grid-cols-3">
+                  <TabsList className="tabs-colorful tabs-warm grid w-full grid-cols-3">
                     <TabsTrigger value="google">{t("admin_dashboard.google_apis")}</TabsTrigger>
                     <TabsTrigger value="payments">{t("admin_dashboard.payments")}</TabsTrigger>
                     <TabsTrigger value="messaging">{t("admin_dashboard.messaging")}</TabsTrigger>

@@ -958,41 +958,41 @@ export default function ProviderDashboard() {
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-            <Card data-testid="card-stat-today">
+            <Card className="stat-card stat-indigo" data-testid="card-stat-today">
               <CardContent className="p-5">
                 <div className="flex items-center justify-between">
                   <p className="text-sm text-muted-foreground">{t("provider_dashboard.stat_today", "Today")}</p>
-                  <CalendarIcon className="h-4 w-4 text-muted-foreground" />
+                  <div className="stat-icon h-9 w-9"><CalendarIcon className="h-4 w-4" /></div>
                 </div>
                 <p className="text-3xl font-bold mt-1" data-testid="text-today-count">{todayAppointments.length}</p>
                 <p className="text-xs text-muted-foreground mt-1">{t("provider_dashboard.stat_today_desc", "appointments scheduled")}</p>
               </CardContent>
             </Card>
-            <Card data-testid="card-stat-pending">
+            <Card className="stat-card stat-orange" data-testid="card-stat-pending">
               <CardContent className="p-5">
                 <div className="flex items-center justify-between">
                   <p className="text-sm text-muted-foreground">{t("provider_dashboard.stat_pending", "Pending")}</p>
-                  <Clock className="h-4 w-4 text-orange-600" />
+                  <div className="stat-icon h-9 w-9"><Clock className="h-4 w-4" /></div>
                 </div>
-                <p className="text-3xl font-bold mt-1 text-orange-600" data-testid="text-pending-count">{pendingCount}</p>
+                <p className="text-3xl font-bold mt-1 text-orange-600 dark:text-orange-400" data-testid="text-pending-count">{pendingCount}</p>
                 <p className="text-xs text-muted-foreground mt-1">{t("provider_dashboard.stat_pending_desc", "awaiting your action")}</p>
               </CardContent>
             </Card>
-            <Card data-testid="card-stat-upcoming">
+            <Card className="stat-card stat-sky" data-testid="card-stat-upcoming">
               <CardContent className="p-5">
                 <div className="flex items-center justify-between">
                   <p className="text-sm text-muted-foreground">{t("provider_dashboard.stat_upcoming", "Upcoming")}</p>
-                  <TrendingUp className="h-4 w-4 text-blue-600" />
+                  <div className="stat-icon h-9 w-9"><TrendingUp className="h-4 w-4" /></div>
                 </div>
                 <p className="text-3xl font-bold mt-1" data-testid="text-upcoming-count">{upcomingAppointments.length}</p>
                 <p className="text-xs text-muted-foreground mt-1">{t("provider_dashboard.stat_upcoming_desc", "in your queue")}</p>
               </CardContent>
             </Card>
-            <Card data-testid="card-stat-patients">
+            <Card className="stat-card stat-violet" data-testid="card-stat-patients">
               <CardContent className="p-5">
                 <div className="flex items-center justify-between">
                   <p className="text-sm text-muted-foreground">{t("provider_dashboard.stat_patients", "Patients")}</p>
-                  <Users className="h-4 w-4 text-muted-foreground" />
+                  <div className="stat-icon h-9 w-9"><Users className="h-4 w-4" /></div>
                 </div>
                 <p className="text-3xl font-bold mt-1" data-testid="text-patients-count">{uniquePatientCount}</p>
                 <p className="text-xs text-muted-foreground mt-1">{t("provider_dashboard.stat_patients_desc", "unique patients")}</p>
@@ -1001,41 +1001,41 @@ export default function ProviderDashboard() {
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-            <Card data-testid="card-stat-weekly">
+            <Card className="stat-card stat-emerald" data-testid="card-stat-weekly">
               <CardContent className="p-5">
                 <div className="flex items-center justify-between">
                   <p className="text-sm text-muted-foreground">{t("provider_dashboard.stat_weekly", "Weekly Revenue")}</p>
-                  <DollarSign className="h-4 w-4 text-emerald-600" />
+                  <div className="stat-icon h-9 w-9"><DollarSign className="h-4 w-4" /></div>
                 </div>
                 <p className="text-2xl font-bold mt-1" data-testid="text-weekly-earnings">{formatHUF(weeklyEarnings)}</p>
                 <p className="text-xs text-muted-foreground mt-1">{t("provider_dashboard.stat_weekly_desc", "last 7 days")}</p>
               </CardContent>
             </Card>
-            <Card data-testid="card-stat-monthly">
+            <Card className="stat-card stat-teal" data-testid="card-stat-monthly">
               <CardContent className="p-5">
                 <div className="flex items-center justify-between">
                   <p className="text-sm text-muted-foreground">{t("provider_dashboard.stat_monthly", "Monthly Revenue")}</p>
-                  <DollarSign className="h-4 w-4 text-emerald-600" />
+                  <div className="stat-icon h-9 w-9"><DollarSign className="h-4 w-4" /></div>
                 </div>
                 <p className="text-2xl font-bold mt-1" data-testid="text-monthly-earnings">{formatHUF(monthlyEarnings)}</p>
                 <p className="text-xs text-muted-foreground mt-1">{t("provider_dashboard.stat_monthly_desc", "last 30 days")}</p>
               </CardContent>
             </Card>
-            <Card data-testid="card-stat-total-revenue">
+            <Card className="stat-card stat-fuchsia" data-testid="card-stat-total-revenue">
               <CardContent className="p-5">
                 <div className="flex items-center justify-between">
                   <p className="text-sm text-muted-foreground">{t("provider_dashboard.stat_total", "Total Revenue")}</p>
-                  <Banknote className="h-4 w-4 text-emerald-600" />
+                  <div className="stat-icon h-9 w-9"><Banknote className="h-4 w-4" /></div>
                 </div>
                 <p className="text-2xl font-bold mt-1" data-testid="text-total-earnings">{formatHUF(totalEarnings)}</p>
                 <p className="text-xs text-muted-foreground mt-1">{t("provider_dashboard.stat_total_desc", "{{count}} completed", { count: completedAppointments.length })}</p>
               </CardContent>
             </Card>
-            <Card data-testid="card-stat-rating">
+            <Card className="stat-card stat-amber" data-testid="card-stat-rating">
               <CardContent className="p-5">
                 <div className="flex items-center justify-between">
                   <p className="text-sm text-muted-foreground">{t("provider_dashboard.stat_rating", "Rating")}</p>
-                  <Star className="h-4 w-4 text-amber-500" />
+                  <div className="stat-icon h-9 w-9"><Star className="h-4 w-4" /></div>
                 </div>
                 <p className="text-2xl font-bold mt-1" data-testid="text-rating">
                   {Number(providerData?.rating || 0).toFixed(1)}
@@ -1084,7 +1084,7 @@ export default function ProviderDashboard() {
           </div>
 
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="flex flex-wrap h-auto">
+            <TabsList className="tabs-colorful tabs-emerald flex flex-wrap h-auto">
               <TabsTrigger value="upcoming" data-testid="tab-upcoming">
                 {t("provider_dashboard.tab_upcoming", "Upcoming")}
                 {upcomingAppointments.length > 0 && (
