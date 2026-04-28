@@ -49,7 +49,8 @@ import {
   Bell, HelpCircle, CheckCircle, XCircle, Clock, Eye, ListTree, Search, UserCheck,
   Wallet as WalletIcon
 } from "lucide-react";
-import type { User, ProviderWithUser, PromoCode, ProviderPricingOverride, SubService, Practitioner, ServicePractitioner } from "@shared/schema";
+import type { User, ProviderWithUser, PromoCode, ProviderPricingOverride, SubService, Practitioner, ServicePractitioner, Service } from "@shared/schema";
+import { ServiceFormDialog } from "@/components/service-form-dialog";
 import { useLocation } from "wouter";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from "recharts";
 import type { TaxSetting, InsertTaxSetting } from "@shared/schema";
@@ -222,6 +223,165 @@ const dayOptions = [
   { value: "sunday", label: "Sunday" },
 ];
 
+
+function AdminServicesPanel({
+  providerId,
+  services,
+  refetchServices,
+  fmtMoney,
+}: {
+  providerId: string;
+  services: any[];
+  refetchServices: () => void;
+  fmtMoney: (n: any) => string;
+}) {
+  const { t } = useTranslation();
+  const { toast } = useToast();
+  const [serviceFormOpen, setServiceFormOpen] = useState(false);
+  const [editingService, setEditingService] = useState<Service | null>(null);
+
+  const toggleMutation = useMutation({
+    mutationFn: async ({ id, isActive }: { id: string; isActive: boolean }) => {
+      await apiRequest("PATCH", `/api/admin/services/${id}`, { isActive });
+    },
+    onSuccess: () => {
+      refetchServices();
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      await apiRequest("DELETE", `/api/admin/services/${id}`);
+    },
+    onSuccess: () => {
+      refetchServices();
+      toast({ title: t("admin.service_deleted", "Service deleted") });
+    },
+  });
+
+  return (
+    <div className="space-y-4">
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle>{t("admin.services", "Services")}</CardTitle>
+          <Button
+            size="sm"
+            onClick={() => {
+              setEditingService(null);
+              setServiceFormOpen(true);
+            }}
+            data-testid="button-admin-add-service"
+          >
+            <Plus className="h-4 w-4 mr-1" /> {t("admin.add", "Add")}
+          </Button>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          {!services?.length && (
+            <div
+              className="text-center py-6 text-sm text-muted-foreground"
+              data-testid="empty-admin-services"
+            >
+              {t("admin.no_services", "No services yet. Add the first one.")}
+            </div>
+          )}
+          {services?.map((s: any) => (
+            <div
+              key={s.id}
+              className="flex justify-between items-center p-3 border rounded-lg"
+              data-testid={`row-admin-service-${s.id}`}
+            >
+              <div className="flex items-center gap-3">
+                <div
+                  className="h-3 w-3 rounded-full"
+                  style={{ backgroundColor: s.calendarColor || "#10b981" }}
+                />
+                {s.imageUrl && (
+                  <img
+                    src={s.imageUrl}
+                    alt=""
+                    className="h-8 w-8 rounded-full object-cover"
+                  />
+                )}
+                <div>
+                  <p className="font-medium">{s.name}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {fmtMoney(s.price)} · {s.duration}m
+                  </p>
+                </div>
+              </div>
+              <div className="flex gap-1">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    setEditingService(s);
+                    setServiceFormOpen(true);
+                  }}
+                  data-testid={`button-admin-edit-service-${s.id}`}
+                >
+                  {t("admin.edit", "Edit")}
+                </Button>
+                <Button
+                  size="sm"
+                  variant={s.isActive ? "default" : "outline"}
+                  onClick={() =>
+                    toggleMutation.mutate({ id: s.id, isActive: !s.isActive })
+                  }
+                  data-testid={`button-admin-toggle-service-${s.id}`}
+                >
+                  {s.isActive
+                    ? t("admin.active", "Active")
+                    : t("admin.paused", "Paused")}
+                </Button>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="text-destructive"
+                  onClick={() => deleteMutation.mutate(s.id)}
+                  data-testid={`button-admin-delete-service-${s.id}`}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+
+      {services?.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>
+              {t("admin.staff_assignments", "Staff Assignments")}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {services.map((s: any) => (
+              <div key={s.id} className="p-4 border rounded-lg bg-card">
+                <p className="font-semibold mb-2">{s.name}</p>
+                <ServicePractitionerAssignment
+                  serviceId={s.id}
+                  providerId={providerId}
+                />
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+
+      <ServiceFormDialog
+        open={serviceFormOpen}
+        onOpenChange={(o) => {
+          setServiceFormOpen(o);
+          if (!o) refetchServices();
+        }}
+        service={editingService}
+        providerId={providerId}
+        adminMode
+      />
+    </div>
+  );
+}
 
 // Provider Edit Dialog Component
 function ProviderEditDialog({ provider }: { provider: any }) {
@@ -500,47 +660,12 @@ function ProviderEditDialog({ provider }: { provider: any }) {
               </Form>
             </TabsContent>
             <TabsContent value="services" className="space-y-4 py-4">
-              <div className="space-y-4">
-                <div className="grid grid-cols-3 gap-2">
-                  <Input id="new-service-name" placeholder={t("admin.service_name")} />
-                  <Input id="new-service-price" type="number" placeholder={t("admin.price")} />
-                  <Button 
-                    onClick={() => {
-                      const name = (document.getElementById('new-service-name') as HTMLInputElement).value;
-                      const price = (document.getElementById('new-service-price') as HTMLInputElement).value;
-                      if (name && price) {
-                        addServiceMutation.mutate({ name, price: parseFloat(price) });
-                        (document.getElementById('new-service-name') as HTMLInputElement).value = '';
-                        (document.getElementById('new-service-price') as HTMLInputElement).value = '';
-                      }
-                    }}
-                    disabled={addServiceMutation.isPending}
-                  >
-                    <Plus className="h-4 w-4 mr-2" /> {t("admin.add")}
-                  </Button>
-                </div>
-                <div className="space-y-2">
-                  {providerServices?.map((service: any) => (
-                    <div key={service.id} className="p-3 bg-muted/50 rounded-md border">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="font-semibold">{service.name} - {fmtMoney(service.price)}</span>
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          className="text-destructive h-8 w-8"
-                          onClick={async () => {
-                            await apiRequest("DELETE", `/api/admin/services/${service.id}`);
-                            refetchServices();
-                          }}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                      <ServicePractitionerAssignment serviceId={service.id} providerId={provider.id} />
-                    </div>
-                  ))}
-                </div>
-              </div>
+              <AdminServicesPanel
+                providerId={provider.id}
+                services={providerServices || []}
+                refetchServices={refetchServices}
+                fmtMoney={fmtMoney}
+              />
             </TabsContent>
           </Tabs>
         </ScrollArea>

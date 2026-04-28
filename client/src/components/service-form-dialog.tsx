@@ -43,9 +43,10 @@ interface Props {
   onOpenChange: (open: boolean) => void;
   service?: Service | null;
   providerId?: string;
+  adminMode?: boolean;
 }
 
-export function ServiceFormDialog({ open, onOpenChange, service, providerId }: Props) {
+export function ServiceFormDialog({ open, onOpenChange, service, providerId, adminMode }: Props) {
   const { t } = useTranslation();
   const { toast } = useToast();
   const isEdit = !!service;
@@ -156,17 +157,26 @@ export function ServiceFormDialog({ open, onOpenChange, service, providerId }: P
         isActive,
       };
       if (isEdit && service) {
-        const r = await apiRequest("PATCH", `/api/services/${service.id}`, payload);
+        const url = adminMode
+          ? `/api/admin/services/${service.id}`
+          : `/api/services/${service.id}`;
+        const r = await apiRequest("PATCH", url, payload);
         return r.json();
       } else {
         const sub = subServices.find(x => x.id === subServiceId);
         payload.description = sub?.description || "";
-        const r = await apiRequest("POST", "/api/services", payload);
+        const url = adminMode && providerId
+          ? `/api/admin/providers/${providerId}/services`
+          : "/api/services";
+        const r = await apiRequest("POST", url, payload);
         return r.json();
       }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/providers", providerId] });
+      if (adminMode && providerId) {
+        queryClient.invalidateQueries({ queryKey: [`/api/admin/providers/${providerId}/services`] });
+      }
       toast({ title: isEdit ? "Service updated" : "Service added" });
       onOpenChange(false);
     },
