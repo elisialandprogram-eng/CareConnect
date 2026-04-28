@@ -1,127 +1,258 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { ChatConversation, ChatMessage } from "@shared/schema";
-import { Send, User } from "lucide-react";
+import { useAuth } from "@/lib/auth";
+import { Header } from "@/components/header";
+import { Send, MessageCircle, Headphones, Loader2 } from "lucide-react";
+
+interface RichConversation {
+  id: string;
+  participant1Id: string;
+  participant2Id: string;
+  lastMessage: string | null;
+  lastMessageAt: string | null;
+  createdAt: string | null;
+  unread: number;
+  pinned: boolean;
+  muted: boolean;
+  other: {
+    id: string;
+    name: string;
+    role: string;
+    avatar: string | null;
+  } | null;
+}
+
+interface ChatMessage {
+  id: string;
+  conversationId: string;
+  senderId: string;
+  content: string;
+  createdAt: string;
+  readAt?: string | null;
+}
 
 export default function Messages() {
-  const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
-  const [message, setMessage] = useState("");
+  const { user } = useAuth();
   const { toast } = useToast();
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [text, setText] = useState("");
+  const scrollRef = useRef<HTMLDivElement>(null);
 
-  const { data: conversations, isLoading: loadingConversations } = useQuery<any[]>({
-    queryKey: ["/api/chat/conversations"],
+  const { data: conversations = [], isLoading: loadingConvs } = useQuery<RichConversation[]>({
+    queryKey: ["/api/chat/conversations-rich"],
+    refetchInterval: 5000,
   });
 
-  const { data: messages, isLoading: loadingMessages } = useQuery<ChatMessage[]>({
-    queryKey: ["/api/chat/messages", selectedConversation],
-    enabled: !!selectedConversation,
+  const { data: messages = [], isLoading: loadingMsgs } = useQuery<ChatMessage[]>({
+    queryKey: ["/api/chat/messages", selectedId],
+    enabled: !!selectedId,
+    refetchInterval: selectedId ? 3000 : false,
   });
 
-  const sendMessageMutation = useMutation({
+  useEffect(() => {
+    if (selectedId && scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [messages, selectedId]);
+
+  const sendMutation = useMutation({
     mutationFn: async () => {
-      if (!selectedConversation || !message.trim()) return;
-      return apiRequest("POST", "/api/chat/messages", {
-        conversationId: selectedConversation,
-        content: message,
+      if (!selectedId || !text.trim()) return;
+      const res = await apiRequest("POST", "/api/chat/messages", {
+        conversationId: selectedId,
+        content: text.trim(),
       });
+      return res.json();
     },
     onSuccess: () => {
-      setMessage("");
-      queryClient.invalidateQueries({ queryKey: ["/api/chat/messages", selectedConversation] });
-      queryClient.invalidateQueries({ queryKey: ["/api/chat/conversations"] });
+      setText("");
+      queryClient.invalidateQueries({ queryKey: ["/api/chat/messages", selectedId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/chat/conversations-rich"] });
     },
-    onError: () => {
-      toast({ title: "Error", description: "Failed to send message", variant: "destructive" });
+    onError: (e: any) => {
+      toast({ title: "Could not send", description: e?.message || "Try again", variant: "destructive" });
     },
   });
 
-  return (
-    <div className="flex h-[calc(100vh-4rem)] p-4 gap-4">
-      <Card className="w-80 flex flex-col">
-        <CardHeader>
-          <CardTitle>Conversations</CardTitle>
-        </CardHeader>
-        <CardContent className="flex-1 overflow-hidden p-0">
-          <ScrollArea className="h-full">
-            {conversations?.map((conv) => (
-              <button
-                key={conv.chat_conversations.id}
-                onClick={() => setSelectedConversation(conv.chat_conversations.id)}
-                className={`w-full p-4 text-left hover:bg-accent transition-colors border-b ${
-                  selectedConversation === conv.chat_conversations.id ? "bg-accent" : ""
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                    <User className="h-6 w-6 text-primary" />
-                  </div>
-                  <div className="flex-1 overflow-hidden">
-                    <p className="font-medium truncate">
-                      {conv.users?.fullName || conv.providers?.specialization || "Chat"}
-                    </p>
-                    <p className="text-xs text-muted-foreground truncate">
-                      {conv.chat_conversations.lastMessage || "No messages yet"}
-                    </p>
-                  </div>
-                </div>
-              </button>
-            ))}
-          </ScrollArea>
-        </CardContent>
-      </Card>
+  const contactSupportMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/support/contact", {});
+      return res.json();
+    },
+    onSuccess: (data: any) => {
+      const convId = data?.conversation?.id;
+      queryClient.invalidateQueries({ queryKey: ["/api/chat/conversations-rich"] });
+      if (convId) setSelectedId(convId);
+    },
+    onError: (e: any) => {
+      toast({ title: "Could not reach support", description: e?.message || "Try again later", variant: "destructive" });
+    },
+  });
 
-      <Card className="flex-1 flex flex-col">
-        {selectedConversation ? (
-          <>
-            <CardHeader className="border-b">
-              <CardTitle>Chat</CardTitle>
+  const sortedConvs = useMemo(() => {
+    return [...conversations].sort((a, b) => {
+      const at = a.lastMessageAt ? new Date(a.lastMessageAt).getTime() : 0;
+      const bt = b.lastMessageAt ? new Date(b.lastMessageAt).getTime() : 0;
+      return bt - at;
+    });
+  }, [conversations]);
+
+  const selected = sortedConvs.find(c => c.id === selectedId);
+
+  return (
+    <div className="min-h-screen flex flex-col">
+      <Header />
+      <main className="flex-1 container mx-auto px-4 py-6">
+        <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-4 h-[calc(100vh-9rem)]">
+          <Card className="flex flex-col overflow-hidden">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2">
+                  <MessageCircle className="h-5 w-5" />
+                  Conversations
+                </CardTitle>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => contactSupportMutation.mutate()}
+                  disabled={contactSupportMutation.isPending}
+                  data-testid="button-contact-support"
+                >
+                  {contactSupportMutation.isPending ? (
+                    <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                  ) : (
+                    <Headphones className="h-3 w-3 mr-1" />
+                  )}
+                  Support
+                </Button>
+              </div>
             </CardHeader>
-            <CardContent className="flex-1 overflow-hidden p-4">
-              <ScrollArea className="h-full pr-4">
-                <div className="flex flex-col gap-4">
-                  {messages?.map((msg) => (
-                    <div
-                      key={msg.id}
-                      className={`flex ${msg.senderId === "self" ? "justify-end" : "justify-start"}`}
-                    >
-                      <div
-                        className={`max-w-[70%] p-3 rounded-lg ${
-                          msg.senderId === "self"
-                            ? "bg-primary text-primary-foreground"
-                            : "bg-muted"
-                        }`}
+            <CardContent className="flex-1 overflow-hidden p-0">
+              <ScrollArea className="h-full">
+                {loadingConvs ? (
+                  <div className="p-4 flex items-center justify-center text-muted-foreground">
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" /> Loading...
+                  </div>
+                ) : sortedConvs.length === 0 ? (
+                  <div className="p-6 text-center text-sm text-muted-foreground">
+                    No conversations yet. Tap "Support" to chat with us.
+                  </div>
+                ) : (
+                  sortedConvs.map(conv => {
+                    const isActive = selectedId === conv.id;
+                    const name = conv.other?.name || "Conversation";
+                    return (
+                      <button
+                        key={conv.id}
+                        onClick={() => setSelectedId(conv.id)}
+                        className={`w-full text-left px-4 py-3 border-b hover:bg-accent transition-colors ${isActive ? "bg-accent" : ""}`}
+                        data-testid={`button-conversation-${conv.id}`}
                       >
-                        {msg.content}
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                        <div className="flex items-center gap-3">
+                          <Avatar className="h-10 w-10">
+                            <AvatarImage src={conv.other?.avatar || undefined} />
+                            <AvatarFallback>{name.charAt(0)}</AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between gap-2">
+                              <p className="font-medium truncate" data-testid={`text-conv-name-${conv.id}`}>{name}</p>
+                              {conv.unread > 0 && (
+                                <Badge variant="default" className="h-5 px-2">{conv.unread}</Badge>
+                              )}
+                            </div>
+                            <p className="text-xs text-muted-foreground truncate">
+                              {conv.lastMessage || "No messages yet"}
+                            </p>
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })
+                )}
               </ScrollArea>
             </CardContent>
-            <div className="p-4 border-t flex gap-2">
-              <Input
-                placeholder="Type a message..."
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                onKeyPress={(e) => e.key === "Enter" && sendMessageMutation.mutate()}
-              />
-              <Button onClick={() => sendMessageMutation.mutate()} disabled={sendMessageMutation.isPending}>
-                <Send className="h-4 w-4" />
-              </Button>
-            </div>
-          </>
-        ) : (
-          <div className="flex-1 flex items-center justify-center text-muted-foreground">
-            Select a conversation to start chatting
-          </div>
-        )}
-      </Card>
+          </Card>
+
+          <Card className="flex flex-col overflow-hidden">
+            {selected ? (
+              <>
+                <CardHeader className="border-b py-3">
+                  <div className="flex items-center gap-3">
+                    <Avatar className="h-9 w-9">
+                      <AvatarImage src={selected.other?.avatar || undefined} />
+                      <AvatarFallback>{(selected.other?.name || "?").charAt(0)}</AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <CardTitle className="text-base" data-testid="text-active-name">{selected.other?.name || "Chat"}</CardTitle>
+                      <p className="text-xs text-muted-foreground capitalize">{selected.other?.role}</p>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="flex-1 overflow-hidden p-0">
+                  <div ref={scrollRef} className="h-full overflow-y-auto p-4 space-y-3">
+                    {loadingMsgs ? (
+                      <div className="text-center text-muted-foreground py-12">
+                        <Loader2 className="h-5 w-5 animate-spin mx-auto" />
+                      </div>
+                    ) : messages.length === 0 ? (
+                      <div className="text-center text-muted-foreground py-12">
+                        Send the first message to start the conversation.
+                      </div>
+                    ) : (
+                      messages.map(msg => {
+                        const mine = msg.senderId === user?.id;
+                        return (
+                          <div key={msg.id} className={`flex ${mine ? "justify-end" : "justify-start"}`} data-testid={`message-${msg.id}`}>
+                            <div className={`max-w-[70%] px-3 py-2 rounded-lg ${mine ? "bg-primary text-primary-foreground" : "bg-muted"}`}>
+                              <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                              <p className={`text-[10px] mt-1 opacity-70 ${mine ? "text-primary-foreground" : "text-muted-foreground"}`}>
+                                {new Date(msg.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                              </p>
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                </CardContent>
+                <div className="p-3 border-t flex gap-2">
+                  <Input
+                    placeholder="Type a message..."
+                    value={text}
+                    onChange={e => setText(e.target.value)}
+                    onKeyDown={e => {
+                      if (e.key === "Enter" && !e.shiftKey) {
+                        e.preventDefault();
+                        sendMutation.mutate();
+                      }
+                    }}
+                    data-testid="input-message"
+                  />
+                  <Button
+                    onClick={() => sendMutation.mutate()}
+                    disabled={sendMutation.isPending || !text.trim()}
+                    data-testid="button-send-message"
+                  >
+                    {sendMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <div className="flex-1 flex items-center justify-center text-muted-foreground">
+                Select a conversation to start chatting
+              </div>
+            )}
+          </Card>
+        </div>
+      </main>
     </div>
   );
 }

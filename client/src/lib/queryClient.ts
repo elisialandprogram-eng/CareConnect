@@ -7,17 +7,42 @@ async function throwIfResNotOk(res: Response) {
   }
 }
 
+let refreshInFlight: Promise<boolean> | null = null;
+
+async function tryRefreshSession(): Promise<boolean> {
+  if (refreshInFlight) return refreshInFlight;
+  refreshInFlight = (async () => {
+    try {
+      const r = await fetch("/api/auth/refresh", { method: "POST", credentials: "include" });
+      return r.ok;
+    } catch {
+      return false;
+    } finally {
+      setTimeout(() => { refreshInFlight = null; }, 0);
+    }
+  })();
+  return refreshInFlight;
+}
+
 export async function apiRequest(
   method: string,
   url: string,
   data?: unknown | undefined,
 ): Promise<Response> {
-  const res = await fetch(url, {
+  const doFetch = () => fetch(url, {
     method,
     headers: data ? { "Content-Type": "application/json" } : {},
     body: data ? JSON.stringify(data) : undefined,
     credentials: "include",
   });
+
+  let res = await doFetch();
+  if (res.status === 401 && !url.includes("/api/auth/")) {
+    const refreshed = await tryRefreshSession();
+    if (refreshed) {
+      res = await doFetch();
+    }
+  }
 
   await throwIfResNotOk(res);
   return res;
@@ -29,9 +54,16 @@ export const getQueryFn: <T>(options: {
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
-    const res = await fetch(queryKey.join("/") as string, {
-      credentials: "include",
-    });
+    const url = queryKey.join("/") as string;
+    const doFetch = () => fetch(url, { credentials: "include" });
+
+    let res = await doFetch();
+    if (res.status === 401 && !url.includes("/api/auth/")) {
+      const refreshed = await tryRefreshSession();
+      if (refreshed) {
+        res = await doFetch();
+      }
+    }
 
     if (unauthorizedBehavior === "returnNull" && res.status === 401) {
       return null;

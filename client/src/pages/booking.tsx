@@ -1,4 +1,5 @@
 import { useTranslation } from "react-i18next";
+import { formatPersianDate } from "@/lib/persian-calendar";
 import { useState, useEffect } from "react";
 import { useLocation, useSearch } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -31,13 +32,15 @@ import {
   Banknote,
   Building2,
   Bitcoin,
+  Tag,
+  X,
 } from "lucide-react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import type { ProviderWithServices, Service, TaxSetting, Wallet as WalletType } from "@shared/schema";
 
 export default function Booking() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [, navigate] = useLocation();
   const searchParams = useSearch();
   const params = new URLSearchParams(searchParams);
@@ -88,6 +91,10 @@ export default function Booking() {
   const [saveAddressToProfile, setSaveAddressToProfile] = useState(false);
   const [step, setStep] = useState<"details" | "confirmed">("details");
   const [consentChecked, setConsentChecked] = useState(false);
+  const [promoInput, setPromoInput] = useState("");
+  const [appliedPromo, setAppliedPromo] = useState<{ code: string; discount: number } | null>(null);
+  const [promoError, setPromoError] = useState<string | null>(null);
+  const [validatingPromo, setValidatingPromo] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -242,6 +249,7 @@ export default function Booking() {
       startTime: finalSessions[0].time,
       endTime: "10:00", // Simplified for fast mode
       saveAddressToProfile,
+      promoCode: appliedPromo?.code || null,
     };
 
     bookingMutation.mutate({ sessions: [bookingData] });
@@ -249,6 +257,10 @@ export default function Booking() {
 
   const formatDate = (dateStr: string) => {
     const d = new Date(dateStr);
+    if (i18n.language === "fa") {
+      const weekdayFa = d.toLocaleDateString("fa-IR", { weekday: "long" });
+      return `${weekdayFa}، ${formatPersianDate(d, "fa")}`;
+    }
     return d.toLocaleDateString("en-US", {
       weekday: "long",
       year: "numeric",
@@ -305,10 +317,36 @@ export default function Booking() {
     );
   }
 
+  const subServiceFee = Number((selectedService as any)?.subService?.platformFee ?? 0);
+  const platformFeeAmount = subServiceFee * finalSessions.length;
   const totalBaseAmount = feeWithPlatform * finalSessions.length;
-  const taxAmount = paymentMethod !== "cash" ? totalBaseAmount * (taxPercentage / 100) : 0;
-  const platformFeeAmount = 0; // Simplified for now
-  const totalAmount = totalBaseAmount + taxAmount + platformFeeAmount;
+  const promoDiscount = appliedPromo?.discount || 0;
+  const subTotal = totalBaseAmount + platformFeeAmount;
+  const taxableAmount = Math.max(0, subTotal - promoDiscount);
+  const taxAmount = paymentMethod !== "cash" ? taxableAmount * (taxPercentage / 100) : 0;
+  const totalAmount = Math.max(0, taxableAmount + taxAmount);
+
+  const handleApplyPromo = async () => {
+    setPromoError(null);
+    if (!promoInput.trim()) return;
+    setValidatingPromo(true);
+    try {
+      const res = await apiRequest("POST", "/api/promo-codes/validate", {
+        code: promoInput.trim().toUpperCase(),
+        amount: subTotal,
+        providerId: provider?.id,
+      });
+      const data = await res.json();
+      setAppliedPromo({ code: data.code, discount: Number(data.discount) });
+      toast({ title: "Promo applied", description: `Discount: $${Number(data.discount).toFixed(2)}` });
+    } catch (e: any) {
+      const msg = (e?.message || "Invalid promo code").replace(/^\d+:\s*\{.*"message":"([^"]+)".*\}$/, "$1");
+      setPromoError(msg);
+      setAppliedPromo(null);
+    } finally {
+      setValidatingPromo(false);
+    }
+  };
 
   if (step === "confirmed") {
     return (
@@ -659,6 +697,12 @@ export default function Booking() {
                       <span>Subtotal</span>
                       <span>{fmtMoney(totalBaseAmount)}</span>
                     </div>
+                    {appliedPromo && (
+                      <div className="flex justify-between text-sm text-green-600 dark:text-green-400 font-medium">
+                        <span>Promo ({appliedPromo.code})</span>
+                        <span>-{fmtMoney(appliedPromo.discount)}</span>
+                      </div>
+                    )}
                     {taxAmount > 0 && (
                       <div className="flex justify-between text-sm text-primary font-medium">
                         <span>Tax ({taxPercentage}%)</span>
@@ -667,10 +711,52 @@ export default function Booking() {
                     )}
                   </div>
 
+                  <div className="space-y-2 pt-2 border-t">
+                    <Label className="text-xs text-muted-foreground flex items-center gap-1">
+                      <Tag className="h-3 w-3" />
+                      Promo Code
+                    </Label>
+                    {appliedPromo ? (
+                      <div className="flex items-center justify-between p-2 rounded-md border border-green-500/40 bg-green-500/5">
+                        <span className="text-sm font-medium" data-testid="text-applied-promo">{appliedPromo.code}</span>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => { setAppliedPromo(null); setPromoInput(""); setPromoError(null); }}
+                          data-testid="button-remove-promo"
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="flex gap-2">
+                        <Input
+                          placeholder="Enter code"
+                          value={promoInput}
+                          onChange={(e) => { setPromoInput(e.target.value.toUpperCase()); setPromoError(null); }}
+                          className="h-9"
+                          data-testid="input-promo-code"
+                        />
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={handleApplyPromo}
+                          disabled={validatingPromo || !promoInput.trim()}
+                          data-testid="button-apply-promo"
+                        >
+                          {validatingPromo ? <Loader2 className="h-3 w-3 animate-spin" /> : "Apply"}
+                        </Button>
+                      </div>
+                    )}
+                    {promoError && (
+                      <p className="text-xs text-destructive" data-testid="text-promo-error">{promoError}</p>
+                    )}
+                  </div>
+
                   <div className="pt-4 border-t">
                     <div className="flex justify-between font-semibold">
                       <span>Total</span>
-                      <span>{fmtMoney(totalAmount)}</span>
+                      <span data-testid="text-total-amount">{fmtMoney(totalAmount)}</span>
                     </div>
                   </div>
 

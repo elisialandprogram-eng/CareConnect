@@ -4,6 +4,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { Link } from "wouter";
 import { Header } from "@/components/header";
+import { ServiceFormDialog } from "@/components/service-form-dialog";
 import { Footer } from "@/components/footer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -65,6 +66,7 @@ import {
   ChevronUp,
   ChevronDown,
   MessageSquare,
+  Plus,
 } from "lucide-react";
 import type { AppointmentWithDetails, Provider, ProviderWithServices, Practitioner, Service, ReviewWithPatient } from "@shared/schema";
 import {
@@ -343,6 +345,8 @@ export default function ProviderDashboard() {
 
   const [selectedSubServiceId, setSelectedSubServiceId] = useState("");
   const [servicePrice, setServicePrice] = useState("");
+  const [serviceFormOpen, setServiceFormOpen] = useState(false);
+  const [editingService, setEditingService] = useState<any>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [visitTypeFilter, setVisitTypeFilter] = useState<string>("all");
@@ -743,9 +747,30 @@ export default function ProviderDashboard() {
               </div>
             </div>
           </div>
-          <Badge className={getStatusColor(appointment.status)} data-testid={`badge-status-${appointment.id}`}>
-            {appointment.status}
-          </Badge>
+          <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+            <Badge className={getStatusColor(appointment.status)} data-testid={`badge-status-${appointment.id}`}>
+              {appointment.status}
+            </Badge>
+            <Select
+              value={appointment.status}
+              onValueChange={(v) => updateStatusMutation.mutate({ id: appointment.id, status: v })}
+              disabled={isUpdating}
+            >
+              <SelectTrigger className="h-8 w-[150px]" data-testid={`select-status-${appointment.id}`}>
+                <SelectValue placeholder={t("provider_dashboard.change_status", "Change status")} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="pending">{t("status.pending", "Pending")}</SelectItem>
+                <SelectItem value="confirmed">{t("status.confirmed", "Confirmed")}</SelectItem>
+                <SelectItem value="approved">{t("status.approved", "Approved")}</SelectItem>
+                <SelectItem value="in_progress">{t("status.in_progress", "In Progress")}</SelectItem>
+                <SelectItem value="completed">{t("status.completed", "Completed")}</SelectItem>
+                <SelectItem value="cancelled">{t("status.cancelled", "Cancelled")}</SelectItem>
+                <SelectItem value="rejected">{t("status.rejected", "Rejected")}</SelectItem>
+                <SelectItem value="no_show">{t("status.no_show", "No-Show")}</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
         {(a.patientAddress || hasCoords) && (
@@ -1511,23 +1536,41 @@ export default function ProviderDashboard() {
             <TabsContent value="services" className="mt-6 space-y-6">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <Card>
-                  <CardHeader><CardTitle>{t("provider_dashboard.services", "Services")}</CardTitle></CardHeader>
+                  <CardHeader className="flex flex-row items-center justify-between">
+                    <CardTitle>{t("provider_dashboard.services", "Services")}</CardTitle>
+                    <Button size="sm" onClick={() => { setEditingService(null); setServiceFormOpen(true); }} data-testid="button-add-service">
+                      <Plus className="h-4 w-4 mr-1" /> {t("provider_dashboard.add_btn", "Add")}
+                    </Button>
+                  </CardHeader>
                   <CardContent className="space-y-4">
-                    <div className="flex gap-2">
-                      <Select value={selectedSubServiceId} onValueChange={setSelectedSubServiceId}>
-                        <SelectTrigger><SelectValue placeholder={t("provider_dashboard.type_placeholder", "Type")} /></SelectTrigger>
-                        <SelectContent>{subServices?.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent>
-                      </Select>
-                      <Input type="number" placeholder={t("provider_dashboard.fee_placeholder", "Fee")} value={servicePrice} onChange={e => setServicePrice(e.target.value)} />
-                      <Button onClick={handleAddService}>{t("provider_dashboard.add_btn", "Add")}</Button>
-                    </div>
                     <div className="space-y-2">
+                      {!providerWithServices?.services?.length && (
+                        <div className="text-center py-6 text-sm text-muted-foreground" data-testid="empty-services">
+                          No services yet. Add your first service.
+                        </div>
+                      )}
                       {providerWithServices?.services?.map(s => (
-                        <div key={s.id} className="flex justify-between items-center p-3 border rounded-lg">
-                          <span>{s.name} ({formatHUF(Number(s.price))})</span>
+                        <div key={s.id} className="flex justify-between items-center p-3 border rounded-lg" data-testid={`row-service-${s.id}`}>
+                          <div className="flex items-center gap-3">
+                            <div className="h-3 w-3 rounded-full" style={{ backgroundColor: (s as any).calendarColor || "#10b981" }} />
+                            {(s as any).imageUrl && (
+                              <img src={(s as any).imageUrl} alt="" className="h-8 w-8 rounded-full object-cover" />
+                            )}
+                            <div>
+                              <p className="font-medium">{s.name}</p>
+                              <p className="text-xs text-muted-foreground">${Number(s.price).toFixed(2)} · {s.duration}m</p>
+                            </div>
+                          </div>
                           <div className="flex gap-1">
-                            <Button size="sm" variant={s.isActive ? "default" : "outline"} onClick={() => toggleServiceMutation.mutate({ id: s.id, isActive: !s.isActive })}>{s.isActive ? t("provider_dashboard.active", "Active") : t("provider_dashboard.paused", "Paused")}</Button>
-                            <Button size="icon" variant="ghost" className="text-destructive" onClick={() => deleteServiceMutation.mutate(s.id)}><Trash2 className="h-4 w-4" /></Button>
+                            <Button size="sm" variant="outline" onClick={() => { setEditingService(s); setServiceFormOpen(true); }} data-testid={`button-edit-service-${s.id}`}>
+                              Edit
+                            </Button>
+                            <Button size="sm" variant={s.isActive ? "default" : "outline"} onClick={() => toggleServiceMutation.mutate({ id: s.id, isActive: !s.isActive })} data-testid={`button-toggle-service-${s.id}`}>
+                              {s.isActive ? t("provider_dashboard.active", "Active") : t("provider_dashboard.paused", "Paused")}
+                            </Button>
+                            <Button size="icon" variant="ghost" className="text-destructive" onClick={() => deleteServiceMutation.mutate(s.id)} data-testid={`button-delete-service-${s.id}`}>
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
                           </div>
                         </div>
                       ))}
@@ -1772,6 +1815,13 @@ export default function ProviderDashboard() {
               />
             </DialogContent>
           </Dialog>
+
+          <ServiceFormDialog
+            open={serviceFormOpen}
+            onOpenChange={(o) => { setServiceFormOpen(o); if (!o) setEditingService(null); }}
+            service={editingService}
+            providerId={providerData?.id}
+          />
         </div>
       </main>
       <Footer />

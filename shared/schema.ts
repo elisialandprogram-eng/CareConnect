@@ -6,7 +6,7 @@ import { z } from "zod";
 // Enums
 export const userRoleEnum = pgEnum("user_role", ["patient", "provider", "admin"]);
 export const providerTypeEnum = pgEnum("provider_type", ["physiotherapist", "doctor", "nurse"]);
-export const appointmentStatusEnum = pgEnum("appointment_status", ["pending", "approved", "confirmed", "completed", "cancelled", "rejected", "rescheduled"]);
+export const appointmentStatusEnum = pgEnum("appointment_status", ["pending", "approved", "confirmed", "in_progress", "completed", "cancelled", "rejected", "rescheduled", "no_show"]);
 export const visitTypeEnum = pgEnum("visit_type", ["online", "home", "clinic"]);
 export const paymentStatusEnum = pgEnum("payment_status", ["pending", "completed", "refunded", "failed"]);
 export const paymentMethodEnum = pgEnum("payment_method", ["card", "crypto", "cash", "bank_transfer"]);
@@ -165,6 +165,17 @@ export const services = pgTable("services", {
   duration: integer("duration").notNull(),
   price: decimal("price", { precision: 10, scale: 2 }).notNull(),
   adminPriceOverride: decimal("admin_price_override", { precision: 10, scale: 2 }),
+  imageUrl: text("image_url"),
+  calendarColor: text("calendar_color").default("#10b981"),
+  enableDeposit: boolean("enable_deposit").default(false),
+  depositAmount: decimal("deposit_amount", { precision: 10, scale: 2 }).default("0.00"),
+  timeSlotLength: integer("time_slot_length"),
+  bufferBefore: integer("buffer_before").default(0),
+  bufferAfter: integer("buffer_after").default(0),
+  customDuration: boolean("custom_duration").default(false),
+  hidePrice: boolean("hide_price").default(false),
+  hideDuration: boolean("hide_duration").default(false),
+  sortOrder: integer("sort_order").default(0),
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
@@ -222,6 +233,9 @@ export const appointments = pgTable("appointments", {
   contactPerson: text("contact_person"),
   contactMobile: text("contact_mobile"),
   totalAmount: decimal("total_amount", { precision: 10, scale: 2 }).notNull(),
+  platformFeeAmount: decimal("platform_fee_amount", { precision: 10, scale: 2 }).default("0.00"),
+  promoCode: text("promo_code"),
+  promoDiscount: decimal("promo_discount", { precision: 10, scale: 2 }).default("0.00"),
   invoiceGenerated: boolean("invoice_generated").default(false),
   googleCalendarEventId: text("google_calendar_event_id"),
   createdAt: timestamp("created_at").defaultNow(),

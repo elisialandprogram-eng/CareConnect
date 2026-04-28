@@ -6,7 +6,7 @@ type CurrencyConfig = {
   code: SupportedCurrency;
   locale: string;
   symbol: string;
-  rateFromHUF: number;
+  rateFromUSD: number;
   fractionDigits: number;
 };
 
@@ -15,21 +15,21 @@ const CURRENCY_BY_LANG: Record<string, CurrencyConfig> = {
     code: "USD",
     locale: "en-US",
     symbol: "$",
-    rateFromHUF: 1 / 360,
+    rateFromUSD: 1,
     fractionDigits: 2,
   },
   hu: {
     code: "HUF",
     locale: "hu-HU",
     symbol: "Ft",
-    rateFromHUF: 1,
+    rateFromUSD: 360,
     fractionDigits: 0,
   },
   fa: {
     code: "IRR",
     locale: "fa-IR",
     symbol: "﷼",
-    rateFromHUF: 235,
+    rateFromUSD: 84000,
     fractionDigits: 0,
   },
 };
@@ -42,31 +42,6 @@ function resolveConfig(language: string | undefined): CurrencyConfig {
   return CURRENCY_BY_LANG[base] ?? DEFAULT_CURRENCY;
 }
 
-export function formatCurrency(
-  amountInHUF: number | string | null | undefined,
-  language: string | undefined,
-): string {
-  const cfg = resolveConfig(language);
-  const numeric = Number(amountInHUF ?? 0);
-  const safe = Number.isFinite(numeric) ? numeric : 0;
-  const converted = safe * cfg.rateFromHUF;
-  try {
-    return new Intl.NumberFormat(cfg.locale, {
-      style: "currency",
-      currency: cfg.code,
-      maximumFractionDigits: cfg.fractionDigits,
-      minimumFractionDigits: cfg.fractionDigits === 0 ? 0 : 2,
-    }).format(converted);
-  } catch {
-    const rounded = converted.toFixed(cfg.fractionDigits);
-    return `${cfg.symbol}${rounded}`;
-  }
-}
-
-export function getCurrencyConfig(language: string | undefined): CurrencyConfig {
-  return resolveConfig(language);
-}
-
 function resolveByCode(code: SupportedCurrency | string | null | undefined): CurrencyConfig | null {
   if (!code) return null;
   const upper = String(code).toUpperCase();
@@ -76,10 +51,36 @@ function resolveByCode(code: SupportedCurrency | string | null | undefined): Cur
   return null;
 }
 
+function formatWith(cfg: CurrencyConfig, amountInUSD: number | string | null | undefined): string {
+  const numeric = Number(amountInUSD ?? 0);
+  const safe = Number.isFinite(numeric) ? numeric : 0;
+  const converted = safe * cfg.rateFromUSD;
+  try {
+    return new Intl.NumberFormat(cfg.locale, {
+      style: "currency",
+      currency: cfg.code,
+      maximumFractionDigits: cfg.fractionDigits,
+      minimumFractionDigits: cfg.fractionDigits === 0 ? 0 : 2,
+    }).format(converted);
+  } catch {
+    return `${cfg.symbol}${converted.toFixed(cfg.fractionDigits)}`;
+  }
+}
+
+export function formatCurrency(
+  amountInUSD: number | string | null | undefined,
+  language: string | undefined,
+): string {
+  return formatWith(resolveConfig(language), amountInUSD);
+}
+
+export function getCurrencyConfig(language: string | undefined): CurrencyConfig {
+  return resolveConfig(language);
+}
+
 export function useCurrency() {
   const { i18n } = useTranslation();
   const lang = i18n.language;
-  // Allow per-user override saved in localStorage (mirrored from user.preferredCurrency)
   let overrideCode: string | null = null;
   if (typeof window !== "undefined") {
     try {
@@ -94,25 +95,11 @@ export function useCurrency() {
     code: config.code,
     symbol: config.symbol,
     locale: config.locale,
-    format: (amountInHUF: number | string | null | undefined) => {
-      const numeric = Number(amountInHUF ?? 0);
+    format: (amountInUSD: number | string | null | undefined) => formatWith(config, amountInUSD),
+    convert: (amountInUSD: number | string | null | undefined) => {
+      const numeric = Number(amountInUSD ?? 0);
       const safe = Number.isFinite(numeric) ? numeric : 0;
-      const converted = safe * config.rateFromHUF;
-      try {
-        return new Intl.NumberFormat(config.locale, {
-          style: "currency",
-          currency: config.code,
-          maximumFractionDigits: config.fractionDigits,
-          minimumFractionDigits: config.fractionDigits === 0 ? 0 : 2,
-        }).format(converted);
-      } catch {
-        return `${config.symbol}${converted.toFixed(config.fractionDigits)}`;
-      }
-    },
-    convert: (amountInHUF: number | string | null | undefined) => {
-      const numeric = Number(amountInHUF ?? 0);
-      const safe = Number.isFinite(numeric) ? numeric : 0;
-      return safe * config.rateFromHUF;
+      return safe * config.rateFromUSD;
     },
   };
 }

@@ -101,8 +101,9 @@ import { getOrCreateVideoSession } from "./services/video";
 import { pushToUser, isUserOnline } from "./chat/ws";
 
 const JWT_SECRET = process.env.SESSION_SECRET || "careconnect-jwt-secret-key";
-const JWT_EXPIRES_IN = "15m";
-const REFRESH_TOKEN_EXPIRES_IN = 7 * 24 * 60 * 60 * 1000; // 7 days
+const JWT_EXPIRES_IN = "30d";
+const ACCESS_TOKEN_COOKIE_MAX_AGE = 30 * 24 * 60 * 60 * 1000; // 30 days
+const REFRESH_TOKEN_EXPIRES_IN = 90 * 24 * 60 * 60 * 1000; // 90 days
 
 interface AuthRequest extends Request {
   user?: { id: string; email: string; role: string };
@@ -614,7 +615,7 @@ export async function registerRoutes(
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
         sameSite: "lax",
-        maxAge: 15 * 60 * 1000,
+        maxAge: ACCESS_TOKEN_COOKIE_MAX_AGE,
       });
 
       res.cookie("refreshToken", refreshToken, {
@@ -677,7 +678,7 @@ export async function registerRoutes(
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
         sameSite: "lax",
-        maxAge: 15 * 60 * 1000,
+        maxAge: ACCESS_TOKEN_COOKIE_MAX_AGE,
       });
 
       res.json({ accessToken });
@@ -900,6 +901,16 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Complete password reset error:", error);
       res.status(500).json({ message: "Failed to reset password" });
+    }
+  });
+
+  // Public list of sub-services (used by provider dashboard service-form to populate categories)
+  app.get("/api/sub-services", async (req, res) => {
+    try {
+      const subServices = await storage.getAllSubServices();
+      res.json(subServices);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch sub-services" });
     }
   });
 
@@ -1925,10 +1936,52 @@ export async function registerRoutes(
     }
   });
 
+  // Validate / lookup a promo code (used by booking page)
+  app.post("/api/promo-codes/validate", optionalAuth, async (req: AuthRequest, res: Response) => {
+    try {
+      const { code, amount, providerId } = req.body as { code?: string; amount?: number; providerId?: string };
+      if (!code) return res.status(400).json({ message: "Code required" });
+      const promo = await storage.getPromoCodeByCode(String(code).trim().toUpperCase());
+      if (!promo || !promo.isActive) {
+        return res.status(404).json({ message: "Invalid promo code" });
+      }
+      const now = new Date();
+      if (new Date(promo.validFrom) > now || new Date(promo.validUntil) < now) {
+        return res.status(400).json({ message: "Promo code is not active" });
+      }
+      if (promo.maxUses != null && (promo.usedCount ?? 0) >= promo.maxUses) {
+        return res.status(400).json({ message: "Promo code has reached its usage limit" });
+      }
+      if (promo.applicableProviders && promo.applicableProviders.length > 0 && providerId && !promo.applicableProviders.includes(providerId)) {
+        return res.status(400).json({ message: "Promo code not valid for this provider" });
+      }
+      const baseAmount = Number(amount ?? 0);
+      if (promo.minAmount != null && baseAmount < Number(promo.minAmount)) {
+        return res.status(400).json({ message: `Minimum order amount is ${promo.minAmount}` });
+      }
+      let discount = 0;
+      if (promo.discountType === "percentage") {
+        discount = (baseAmount * Number(promo.discountValue)) / 100;
+      } else {
+        discount = Number(promo.discountValue);
+      }
+      if (discount > baseAmount) discount = baseAmount;
+      res.json({
+        code: promo.code,
+        discountType: promo.discountType,
+        discountValue: promo.discountValue,
+        discount: Number(discount.toFixed(2)),
+      });
+    } catch (e) {
+      console.error("Promo validate error:", e);
+      res.status(500).json({ message: "Failed to validate promo code" });
+    }
+  });
+
   // Create appointment
   app.post("/api/appointments", authenticateToken, async (req: AuthRequest, res: Response) => {
     try {
-      const { providerId, serviceId, practitionerId, date, startTime, endTime, visitType, paymentMethod, notes, patientAddress, patientLatitude, patientLongitude, totalAmount } = req.body;
+      const { providerId, serviceId, practitionerId, date, startTime, endTime, visitType, paymentMethod, notes, patientAddress, patientLatitude, patientLongitude, totalAmount, promoCode } = req.body;
       const userId = req.user?.id;
 
       // Log appointment request for debugging but keep it concise to avoid large base64 strings
@@ -1998,7 +2051,7 @@ export async function registerRoutes(
       }
 
       // Validate practitioner and fee if provided
-      let fee = totalAmount;
+      let fee: any = totalAmount;
       if (serviceId && practitionerId) {
         const servicePractitioners = await storage.getServicePractitioners(serviceId);
         const sp = servicePractitioners.find(p => p.practitionerId === practitionerId);
@@ -2011,6 +2064,54 @@ export async function registerRoutes(
           ? provider.homeVisitFee
           : provider.consultationFee;
       }
+
+      // Compute platform fee from sub-service the service points to (if any)
+      let platformFee = 0;
+      let promoDiscount = 0;
+      let appliedPromoCode: string | null = null;
+      try {
+        if (serviceId) {
+          const svc = await storage.getService(serviceId);
+          if (svc?.subServiceId) {
+            const sub = await storage.getSubService(svc.subServiceId);
+            if (sub?.platformFee) platformFee = Number(sub.platformFee);
+          }
+        }
+      } catch (e) {
+        console.error("[booking] platform fee lookup failed:", e);
+      }
+
+      // Apply promo code if provided
+      if (promoCode && typeof promoCode === "string" && promoCode.trim()) {
+        try {
+          const promo = await storage.getPromoCodeByCode(promoCode.trim().toUpperCase());
+          if (promo && promo.isActive) {
+            const now = new Date();
+            const okWindow = new Date(promo.validFrom) <= now && new Date(promo.validUntil) >= now;
+            const okUses = promo.maxUses == null || (promo.usedCount ?? 0) < promo.maxUses;
+            const okProvider = !promo.applicableProviders || promo.applicableProviders.length === 0 || promo.applicableProviders.includes(providerId);
+            const baseForDiscount = Number(fee) + platformFee;
+            const okMin = promo.minAmount == null || baseForDiscount >= Number(promo.minAmount);
+            if (okWindow && okUses && okProvider && okMin) {
+              if (promo.discountType === "percentage") {
+                promoDiscount = (baseForDiscount * Number(promo.discountValue)) / 100;
+              } else {
+                promoDiscount = Number(promo.discountValue);
+              }
+              if (promoDiscount > baseForDiscount) promoDiscount = baseForDiscount;
+              appliedPromoCode = promo.code;
+              try {
+                await storage.updatePromoCode(promo.id, { usedCount: (promo.usedCount ?? 0) + 1 } as any);
+              } catch {}
+            }
+          }
+        } catch (promoErr) {
+          console.error("[booking] promo apply failed:", promoErr);
+        }
+      }
+
+      const finalTotal = Math.max(0, Number(fee) + platformFee - promoDiscount);
+      fee = finalTotal;
 
       // Create appointment
       console.log("Creating appointment with data:", {
@@ -2052,7 +2153,10 @@ export async function registerRoutes(
         patientLatitude: typeof patientLatitude === "number" ? patientLatitude : null,
         patientLongitude: typeof patientLongitude === "number" ? patientLongitude : null,
         totalAmount: fee.toString(),
-      });
+        platformFeeAmount: platformFee.toFixed(2),
+        promoCode: appliedPromoCode,
+        promoDiscount: promoDiscount.toFixed(2),
+      } as any);
 
       // Optionally save the address to the patient's profile for next time.
       if (req.body.saveAddressToProfile === true && patientAddress) {
@@ -2206,8 +2310,17 @@ export async function registerRoutes(
                 { label: "Date", value: date },
                 { label: "Time", value: `${startTime} - ${endTime}` },
                 ...(service ? [{ label: "Service", value: service.name }] : []),
-                { label: "Visit Type", value: visitType === "home" ? "Home Visit" : "Online Consultation" },
-                { label: "Address", value: visitType === "home" ? (patientAddress || "Patient will provide address") : "Online (link will be shared)" },
+                { label: "Visit Type", value: visitType === "home" ? "Home Visit" : visitType === "clinic" ? "Clinic Visit" : "Online Consultation" },
+                { label: "Patient Name", value: `${user.firstName} ${user.lastName}` },
+                ...(contactMobile ? [{ label: "Patient Phone", value: contactMobile }] : (user.mobileNumber || user.phone) ? [{ label: "Patient Phone", value: (user.mobileNumber || user.phone)! }] : []),
+                ...(visitType === "home"
+                  ? [{ label: "Patient Address", value: patientAddress || user.address || "Patient will provide address" }]
+                  : visitType === "clinic"
+                  ? [{ label: "Clinic Address", value: provider.primaryServiceLocation || provider.city || "Clinic" }]
+                  : [{ label: "Address", value: "Online (link will be shared)" }]),
+                ...(platformFee > 0 ? [{ label: "Platform Fee", value: `$${platformFee.toFixed(2)}` }] : []),
+                ...(promoDiscount > 0 ? [{ label: `Promo${appliedPromoCode ? ' (' + appliedPromoCode + ')' : ''}`, value: `-$${promoDiscount.toFixed(2)}` }] : []),
+                { label: "Total", value: `$${Number(fee).toFixed(2)}` },
               ],
             },
             data: { appointmentId: appointment.id },
@@ -2238,6 +2351,8 @@ export async function registerRoutes(
             organizerEmail: "no-reply@goldenlife.health",
           });
 
+          const providerAddressLine = provider.primaryServiceLocation || provider.city || "";
+          const patientAddressLine = patientAddress || user.address || "";
           const emailResult = await resend.emails.send({
             from: FROM_EMAIL,
             to: user.email,
@@ -2253,8 +2368,12 @@ export async function registerRoutes(
                   <p style="margin: 5px 0;"><strong>Date:</strong> ${date}</p>
                   <p style="margin: 5px 0;"><strong>Time:</strong> ${startTime} - ${endTime}</p>
                   ${service ? `<p style="margin: 5px 0;"><strong>Service:</strong> ${service.name}</p>` : ''}
-                  <p style="margin: 5px 0;"><strong>Visit Type:</strong> ${visitType === 'home' ? 'Home Visit' : 'Online Consultation'}</p>
-                  <p style="margin: 5px 0;"><strong>Total Amount:</strong> ${fee} HUF</p>
+                  <p style="margin: 5px 0;"><strong>Visit Type:</strong> ${visitType === 'home' ? 'Home Visit' : visitType === 'clinic' ? 'Clinic Visit' : 'Online Consultation'}</p>
+                  ${visitType === 'home' && patientAddressLine ? `<p style="margin: 5px 0;"><strong>Visit Address:</strong> ${patientAddressLine}</p>` : ''}
+                  ${visitType === 'clinic' && providerAddressLine ? `<p style="margin: 5px 0;"><strong>Clinic Address:</strong> ${providerAddressLine}</p>` : ''}
+                  ${platformFee > 0 ? `<p style="margin: 5px 0;"><strong>Platform Fee:</strong> $${platformFee.toFixed(2)}</p>` : ''}
+                  ${promoDiscount > 0 ? `<p style="margin: 5px 0; color:#059669;"><strong>Promo Discount${appliedPromoCode ? ' (' + appliedPromoCode + ')' : ''}:</strong> -$${promoDiscount.toFixed(2)}</p>` : ''}
+                  <p style="margin: 5px 0;"><strong>Total Amount:</strong> $${Number(fee).toFixed(2)}</p>
                 </div>
 
                 <p>A calendar invite (<code>.ics</code>) is attached — open it to add this appointment to your calendar.</p>
@@ -3441,12 +3560,28 @@ export async function registerRoutes(
     }
   });
 
-  // ----- Support: open a chat with an admin -----
+  // ----- Support: open a chat with the GoldenLife support team -----
   app.post("/api/support/contact", authenticateToken, async (req: AuthRequest, res: Response) => {
     try {
       const allUsers = await storage.getAllUsers();
-      const admin = allUsers.find(u => u.role === "admin");
+      // Prefer dedicated support inboxes, then admin@goldenlife.com, then any admin.
+      const supportEmails = ["support@goldenlife.com", "support@goldenlife.health", "help@goldenlife.com"];
+      let admin = allUsers.find(u => u.role === "admin" && u.email && supportEmails.includes(u.email.toLowerCase()));
+      if (!admin) admin = allUsers.find(u => u.role === "admin" && u.email?.toLowerCase() === "admin@goldenlife.com");
+      if (!admin) admin = allUsers.find(u => u.role === "admin" && /goldenlife/i.test(u.email || ""));
+      if (!admin) admin = allUsers.find(u => u.role === "admin");
       if (!admin) return res.status(503).json({ message: "No support agent available right now." });
+
+      // Make sure the admin profile shows as GoldenLife Support, not their personal display name.
+      try {
+        if (admin.firstName !== "GoldenLife" || admin.lastName !== "Support") {
+          await storage.updateUser(admin.id, { firstName: "GoldenLife", lastName: "Support" } as any);
+          admin = { ...admin, firstName: "GoldenLife", lastName: "Support" };
+        }
+      } catch (renameErr) {
+        console.warn("[support] could not normalize support display name:", renameErr);
+      }
+
       const conv = await storage.getOrCreateRealtimeConversation(req.user!.id, admin.id);
       res.json({ conversation: conv, adminId: admin.id });
     } catch (e) {

@@ -26,6 +26,18 @@ To keep payloads small and avoid leaking sensitive data, list endpoints that ret
 
 The cookie-parser middleware is registered at the top of `registerRoutes` so every auth-protected route (including the early invoice endpoints) can read the JWT cookie.
 
+### Booking & Promo Codes
+
+The booking flow charges per-service platform fees (sourced from each service's sub-service `platformFee`) and supports promo codes. Patients can enter a promo code in the booking summary; the backend `/api/promo-codes/validate` endpoint validates the code (active state, expiration, min purchase, per-user usage cap) and returns the discount amount. The booking creation endpoint persists `promoCode`, `promoDiscount`, and `platformFeeAmount` on the appointment, increments `usedCount` on the promo, and includes the discount and platform fee in the patient confirmation and provider notification emails (which list patient and clinic addresses, all amounts in USD).
+
+### Solar Hijri Calendar
+
+The frontend includes a `client/src/lib/persian-calendar.ts` utility that converts between Gregorian and Persian (Jalali) dates using `Intl.DateTimeFormat` with the `persian` calendar. When the active language is `fa`, booking date displays render in Solar Hijri format with Persian digits.
+
+### Service Form
+
+Provider service add/edit uses `client/src/components/service-form-dialog.tsx`, a modal styled after the reference design with image upload, calendar color swatches, sub-service category, price + deposit toggle, duration / time-slot length / buffer-before / buffer-after, custom-duration toggle, and hide-price / hide-duration toggles. The schema's `services` table holds `imageUrl`, `calendarColor`, `enableDeposit`, `depositAmount`, `timeSlotLength`, `bufferBefore`, `bufferAfter`, `customDuration`, `hidePrice`, `hideDuration`, and `sortOrder`.
+
 ### Wallet System
 
 An in-app wallet allows patients to pre-load credits and pay for services. The system includes a `wallets` table and an append-only `wallet_transactions` ledger with snapshot balances and idempotency keys. Transaction operations are safeguarded by database transactions and row locking. The API supports wallet balance retrieval, transaction history, top-ups via Stripe, and payment for appointments. The frontend provides a dedicated wallet page, integrates wallet payment options into the booking flow, and the admin dashboard allows for wallet adjustments. A reminder cron generates in-app notifications for upcoming appointments.

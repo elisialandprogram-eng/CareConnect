@@ -380,6 +380,7 @@ export interface IStorage {
   // Sub-services
   getAllSubServices(): Promise<SubService[]>;
   getSubServicesByCategory(category: string): Promise<SubService[]>;
+  getSubService(id: string): Promise<SubService | undefined>;
   createSubService(data: InsertSubService): Promise<SubService>;
   updateSubService(id: string, data: Partial<SubService>): Promise<SubService | undefined>;
   deleteSubService(id: string): Promise<void>;
@@ -626,12 +627,21 @@ export class DatabaseStorage implements IStorage {
     const providerWithUser = await this.getProviderWithUser(id);
     if (!providerWithUser) return undefined;
     
-    // Direct query to services table to handle schema/table issues
-    const providerServices = await db.select().from(services).where(eq(services.providerId, id));
-    
+    // Direct query to services table joined with sub_services
+    const rows = await db
+      .select()
+      .from(services)
+      .leftJoin(subServices, eq(services.subServiceId, subServices.id))
+      .where(eq(services.providerId, id));
+
+    const providerServices = rows.map(r => ({
+      ...r.services,
+      subService: r.sub_services || undefined,
+    }));
+
     return {
       ...providerWithUser,
-      services: providerServices,
+      services: providerServices as any,
     };
   }
 
@@ -1443,6 +1453,11 @@ export class DatabaseStorage implements IStorage {
 
   async getSubServicesByCategory(category: string): Promise<SubService[]> {
     return db.select().from(subServices).where(eq(subServices.category, category as any)).orderBy(asc(subServices.name));
+  }
+
+  async getSubService(id: string): Promise<SubService | undefined> {
+    const [s] = await db.select().from(subServices).where(eq(subServices.id, id));
+    return s || undefined;
   }
 
   async createSubService(data: InsertSubService): Promise<SubService> {
