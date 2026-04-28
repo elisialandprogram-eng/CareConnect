@@ -500,6 +500,17 @@
   .stat-orange      { @apply border-l-orange-500  bg-gradient-to-br from-orange-50  to-transparent dark:from-orange-950/40  dark:to-transparent; }
   .stat-orange .stat-icon { @apply bg-orange-100  text-orange-600  dark:bg-orange-900/60  dark:text-orange-300; }
 
+  /* Scrollable tabs wrapper — allows horizontal scroll with a fade hint */
+  .tabs-scroll-wrapper {
+    @apply relative overflow-x-auto pb-1;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--border)) transparent;
+  }
+  .tabs-scroll-wrapper::-webkit-scrollbar { height: 4px; }
+  .tabs-scroll-wrapper::-webkit-scrollbar-track { background: transparent; }
+  .tabs-scroll-wrapper::-webkit-scrollbar-thumb { @apply bg-border rounded-full; }
+
   /* Colorful tabs: gradient pill on active state, subtle hover, pop of color even when idle */
   .tabs-colorful {
     @apply gap-1 bg-gradient-to-r from-primary/5 via-fuchsia-500/5 to-emerald-500/5 p-1.5 rounded-xl border border-border/60;

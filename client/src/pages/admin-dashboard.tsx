@@ -2765,15 +2765,17 @@ function ContentManagement() {
   return (
     <div className="space-y-4">
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="tabs-colorful tabs-violet flex flex-nowrap h-auto w-full overflow-x-auto whitespace-nowrap">
-          <TabsTrigger value="providers" data-testid="tab-content-providers">{t("admin_dashboard.tab_providers")}</TabsTrigger>
-          <TabsTrigger value="users" data-testid="tab-content-users">{t("admin_dashboard.tab_users")}</TabsTrigger>
-          <TabsTrigger value="sub-services" data-testid="tab-sub-services">{t("admin_dashboard.tab_sub_services")}</TabsTrigger>
-          <TabsTrigger value="promo-codes" data-testid="tab-content-promo-codes">{t("admin_dashboard.tab_promo_codes")}</TabsTrigger>
-          <TabsTrigger value="tickets" data-testid="tab-content-tickets">{t("admin_dashboard.tab_support")}</TabsTrigger>
-          <TabsTrigger value="faqs" data-testid="tab-content-faqs">{t("admin_dashboard.tab_faqs")}</TabsTrigger>
-          <TabsTrigger value="announcements" data-testid="tab-content-announcements">{t("admin_dashboard.tab_announcements")}</TabsTrigger>
-        </TabsList>
+        <div className="tabs-scroll-wrapper">
+          <TabsList className="tabs-colorful tabs-violet inline-flex flex-nowrap gap-1 h-auto w-max min-w-full">
+            <TabsTrigger value="providers" data-testid="tab-content-providers" className="shrink-0">{t("admin_dashboard.tab_providers")}</TabsTrigger>
+            <TabsTrigger value="users" data-testid="tab-content-users" className="shrink-0">{t("admin_dashboard.tab_users")}</TabsTrigger>
+            <TabsTrigger value="sub-services" data-testid="tab-sub-services" className="shrink-0">{t("admin_dashboard.tab_sub_services")}</TabsTrigger>
+            <TabsTrigger value="promo-codes" data-testid="tab-content-promo-codes" className="shrink-0">{t("admin_dashboard.tab_promo_codes")}</TabsTrigger>
+            <TabsTrigger value="tickets" data-testid="tab-content-tickets" className="shrink-0">{t("admin_dashboard.tab_support")}</TabsTrigger>
+            <TabsTrigger value="faqs" data-testid="tab-content-faqs" className="shrink-0">{t("admin_dashboard.tab_faqs")}</TabsTrigger>
+            <TabsTrigger value="announcements" data-testid="tab-content-announcements" className="shrink-0">{t("admin_dashboard.tab_announcements")}</TabsTrigger>
+          </TabsList>
+        </div>
 
         <TabsContent value="sub-services">
           <SubServicesManagement />
@@ -5883,80 +5885,87 @@ export default function AdminDashboard() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="tabs-colorful flex flex-nowrap gap-1 h-auto w-full overflow-x-auto whitespace-nowrap">
-            <TabsTrigger value="overview" data-testid="tab-overview">
-              <BarChart3 className="h-4 w-4 mr-2" />
-              {t("admin.analytics")}
-            </TabsTrigger>
-            <TabsTrigger value="providers" data-testid="tab-providers">
-              <Building className="h-4 w-4 mr-2" />
-              {t("admin.providers")}
-            </TabsTrigger>
-            <TabsTrigger value="users" data-testid="tab-users">
-              <Users className="h-4 w-4 mr-2" />
-              {t("admin.users")}
-            </TabsTrigger>
-            <TabsTrigger value="calendar" data-testid="tab-calendar">
-              <Calendar className="h-4 w-4 mr-2" />
-              {t("admin.calendar", "Calendar")}
-            </TabsTrigger>
-            <TabsTrigger value="bookings" data-testid="tab-bookings">
-              <Calendar className="h-4 w-4 mr-2" />
-              {t("admin.bookings")}
-            </TabsTrigger>
-            <TabsTrigger value="services-grid" data-testid="tab-services-grid">
-              <Activity className="h-4 w-4 mr-2" />
-              {t("admin.services", "Services")}
-            </TabsTrigger>
-            <TabsTrigger value="staff" data-testid="tab-staff">
-              <UserCheck className="h-4 w-4 mr-2" />
-              {t("admin.staff", "Staff")}
-            </TabsTrigger>
-            <TabsTrigger value="financial" data-testid="tab-financial">
-              <DollarSign className="h-4 w-4 mr-2" />
-              {t("admin.financial_reports")}
-            </TabsTrigger>
-            <TabsTrigger value="wallets" data-testid="tab-wallets">
-              <WalletIcon className="h-4 w-4 mr-2" />
-              {t("admin.wallets", "Wallets")}
-            </TabsTrigger>
-            <TabsTrigger value="tax" data-testid="tab-tax">
-              <Shield className="h-4 w-4 mr-2" />
-              {t("admin.tax_management")}
-            </TabsTrigger>
-                <TabsTrigger value="invoices" data-testid="tab-invoices">
-                  <FileText className="h-4 w-4 mr-2" />
-                  {t("admin.invoices")}
-                </TabsTrigger>
-            <TabsTrigger value="pricing" data-testid="tab-pricing">
-              <Tag className="h-4 w-4 mr-2" />
-              {t("admin.pricing_overrides")}
-            </TabsTrigger>
-            <TabsTrigger value="promos" data-testid="tab-promos">
-              <Tag className="h-4 w-4 mr-2" />
-              {t("admin.promo_codes")}
-            </TabsTrigger>
-            <TabsTrigger value="settings" data-testid="tab-settings">
-              <Settings className="h-4 w-4 mr-2" />
-              {t("common.settings")}
-            </TabsTrigger>
-            <TabsTrigger value="integrations" data-testid="tab-integrations">
-              <Plus className="h-4 w-4 mr-2" />
-              {t("admin.external_integrations")}
-            </TabsTrigger>
-            <TabsTrigger value="audit" data-testid="tab-audit">
-              <Activity className="h-4 w-4 mr-2" />
-              {t("admin.audit_logs")}
-            </TabsTrigger>
-            <TabsTrigger value="support" data-testid="tab-support">
-              <MessageSquare className="h-4 w-4 mr-2" />
-              {t("admin.support_tickets")}
-            </TabsTrigger>
-            <TabsTrigger value="sub-services" data-testid="tab-sub-services">
-              <ListTree className="h-4 w-4 mr-2" />
-              {t("admin.categories", "Categories")}
-            </TabsTrigger>
-          </TabsList>
+          <div className="tabs-scroll-wrapper -mx-1 px-1">
+            <TabsList className="tabs-colorful inline-flex flex-nowrap gap-1 h-auto w-max min-w-full">
+              {/* — Core — */}
+              <TabsTrigger value="overview" data-testid="tab-overview" className="shrink-0">
+                <BarChart3 className="h-4 w-4 mr-1.5" />
+                {t("admin.analytics")}
+              </TabsTrigger>
+              <TabsTrigger value="providers" data-testid="tab-providers" className="shrink-0">
+                <Building className="h-4 w-4 mr-1.5" />
+                {t("admin.providers")}
+              </TabsTrigger>
+              <TabsTrigger value="users" data-testid="tab-users" className="shrink-0">
+                <Users className="h-4 w-4 mr-1.5" />
+                {t("admin.users")}
+              </TabsTrigger>
+              <TabsTrigger value="bookings" data-testid="tab-bookings" className="shrink-0">
+                <Calendar className="h-4 w-4 mr-1.5" />
+                {t("admin.bookings")}
+              </TabsTrigger>
+              <TabsTrigger value="calendar" data-testid="tab-calendar" className="shrink-0">
+                <Calendar className="h-4 w-4 mr-1.5" />
+                {t("admin.calendar", "Calendar")}
+              </TabsTrigger>
+              <TabsTrigger value="services-grid" data-testid="tab-services-grid" className="shrink-0">
+                <Activity className="h-4 w-4 mr-1.5" />
+                {t("admin.services", "Services")}
+              </TabsTrigger>
+              <TabsTrigger value="staff" data-testid="tab-staff" className="shrink-0">
+                <UserCheck className="h-4 w-4 mr-1.5" />
+                {t("admin.staff", "Staff")}
+              </TabsTrigger>
+              {/* — Fees & Finance — */}
+              <span className="flex items-center px-1 text-muted-foreground/40 select-none shrink-0">|</span>
+              <TabsTrigger value="sub-services" data-testid="tab-sub-services" className="shrink-0">
+                <ListTree className="h-4 w-4 mr-1.5" />
+                Categories &amp; Fees
+              </TabsTrigger>
+              <TabsTrigger value="tax" data-testid="tab-tax" className="shrink-0">
+                <Shield className="h-4 w-4 mr-1.5" />
+                {t("admin.tax_management")}
+              </TabsTrigger>
+              <TabsTrigger value="pricing" data-testid="tab-pricing" className="shrink-0">
+                <Tag className="h-4 w-4 mr-1.5" />
+                {t("admin.pricing_overrides")}
+              </TabsTrigger>
+              <TabsTrigger value="financial" data-testid="tab-financial" className="shrink-0">
+                <DollarSign className="h-4 w-4 mr-1.5" />
+                {t("admin.financial_reports")}
+              </TabsTrigger>
+              <TabsTrigger value="wallets" data-testid="tab-wallets" className="shrink-0">
+                <WalletIcon className="h-4 w-4 mr-1.5" />
+                {t("admin.wallets", "Wallets")}
+              </TabsTrigger>
+              <TabsTrigger value="invoices" data-testid="tab-invoices" className="shrink-0">
+                <FileText className="h-4 w-4 mr-1.5" />
+                {t("admin.invoices")}
+              </TabsTrigger>
+              <TabsTrigger value="promos" data-testid="tab-promos" className="shrink-0">
+                <Tag className="h-4 w-4 mr-1.5" />
+                {t("admin.promo_codes")}
+              </TabsTrigger>
+              {/* — Config — */}
+              <span className="flex items-center px-1 text-muted-foreground/40 select-none shrink-0">|</span>
+              <TabsTrigger value="support" data-testid="tab-support" className="shrink-0">
+                <MessageSquare className="h-4 w-4 mr-1.5" />
+                {t("admin.support_tickets")}
+              </TabsTrigger>
+              <TabsTrigger value="settings" data-testid="tab-settings" className="shrink-0">
+                <Settings className="h-4 w-4 mr-1.5" />
+                {t("common.settings")}
+              </TabsTrigger>
+              <TabsTrigger value="integrations" data-testid="tab-integrations" className="shrink-0">
+                <Plus className="h-4 w-4 mr-1.5" />
+                {t("admin.external_integrations")}
+              </TabsTrigger>
+              <TabsTrigger value="audit" data-testid="tab-audit" className="shrink-0">
+                <Activity className="h-4 w-4 mr-1.5" />
+                {t("admin.audit_logs")}
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
           <TabsContent value="tax">
             <TaxManagement />
