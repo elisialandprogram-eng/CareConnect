@@ -58,7 +58,7 @@ export function ContactForm() {
       <div className="container mx-auto px-4">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold mb-4">{t("contact.title")}</h2>
+            <h2 className="text-3xl md:text-5xl font-extrabold mb-4 bg-gradient-to-r from-violet-600 via-purple-600 to-fuchsia-600 dark:from-violet-300 dark:via-purple-300 dark:to-fuchsia-300 bg-clip-text text-transparent">{t("contact.title")}</h2>
             <p className="text-muted-foreground">{t("contact.subtitle")}</p>
           </div>
 

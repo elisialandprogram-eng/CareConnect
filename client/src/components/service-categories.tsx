@@ -69,7 +69,7 @@ export function ServiceCategories() {
           viewport={{ once: true }}
           transition={{ duration: 0.5 }}
         >
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">{t("service_categories.title")}</h2>
+          <h2 className="text-3xl md:text-5xl font-extrabold mb-4 bg-gradient-to-r from-sky-600 via-blue-600 to-indigo-600 dark:from-sky-300 dark:via-blue-300 dark:to-indigo-300 bg-clip-text text-transparent">{t("service_categories.title")}</h2>
           <p className="text-muted-foreground max-w-2xl mx-auto text-lg">
             {t("service_categories.description")}
           </p>

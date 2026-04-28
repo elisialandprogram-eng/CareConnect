@@ -67,7 +67,7 @@ export function Testimonials() {
           viewport={{ once: true }}
           transition={{ duration: 0.5 }}
         >
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">{t("testimonials.title")}</h2>
+          <h2 className="text-3xl md:text-5xl font-extrabold mb-4 bg-gradient-to-r from-amber-500 via-rose-500 to-pink-600 dark:from-amber-300 dark:via-rose-300 dark:to-pink-300 bg-clip-text text-transparent">{t("testimonials.title")}</h2>
           <p className="text-muted-foreground max-w-2xl mx-auto text-lg">
             {t("testimonials.description")}
           </p>

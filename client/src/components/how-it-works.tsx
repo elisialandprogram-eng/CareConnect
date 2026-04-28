@@ -76,7 +76,7 @@ export function HowItWorks() {
           viewport={{ once: true }}
           transition={{ duration: 0.5 }}
         >
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">{t("how_it_works.title")}</h2>
+          <h2 className="text-3xl md:text-5xl font-extrabold mb-4 bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 dark:from-emerald-300 dark:via-teal-300 dark:to-cyan-300 bg-clip-text text-transparent">{t("how_it_works.title")}</h2>
           <p className="text-muted-foreground max-w-2xl mx-auto text-lg">
             {t("how_it_works.description")}
           </p>

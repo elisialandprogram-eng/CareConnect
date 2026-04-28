@@ -46,7 +46,7 @@ export function CTASection() {
             {t("cta.journey_badge")}
           </motion.div>
           
-          <h2 className="text-3xl md:text-5xl font-bold mb-6">
+          <h2 className="text-3xl md:text-5xl font-extrabold mb-6 bg-gradient-to-r from-yellow-300 via-amber-200 to-white bg-clip-text text-transparent drop-shadow-lg">
             {t("cta.ready_title")}
           </h2>
           <p className="text-lg md:text-xl text-muted-foreground mb-10 max-w-2xl mx-auto leading-relaxed">

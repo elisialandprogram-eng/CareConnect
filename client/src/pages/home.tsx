@@ -129,12 +129,12 @@ export default function Home() {
               </motion.div>
 
               <motion.h1
-                className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight"
+                className="text-4xl md:text-5xl lg:text-7xl font-extrabold tracking-tight bg-gradient-to-r from-sky-600 via-indigo-600 to-violet-600 dark:from-sky-300 dark:via-indigo-300 dark:to-violet-300 bg-clip-text text-transparent drop-shadow-sm"
                 variants={fadeInUp}
               >
                 {t("hero.title")}
                 <motion.span
-                  className="text-primary block mt-2"
+                  className="block mt-2 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 dark:from-emerald-300 dark:via-teal-300 dark:to-cyan-300 bg-clip-text text-transparent"
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: 0.3, duration: 0.5 }}
