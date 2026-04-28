@@ -256,6 +256,27 @@ export default function PatientDashboard() {
 
   const nextAppointment = upcomingAppointments[0];
 
+  const nextAppointmentCountdown = (() => {
+    if (!nextAppointment) return "";
+    try {
+      const dateStr = typeof nextAppointment.date === "string"
+        ? nextAppointment.date.slice(0, 10)
+        : new Date(nextAppointment.date).toISOString().slice(0, 10);
+      const target = new Date(`${dateStr}T${nextAppointment.startTime || "00:00"}:00`);
+      const diffMs = target.getTime() - Date.now();
+      if (Number.isNaN(diffMs)) return "";
+      if (diffMs <= 0) return t("dashboard.starting_now", "Starting now");
+      const minutes = Math.floor(diffMs / 60000);
+      const hours = Math.floor(minutes / 60);
+      const days = Math.floor(hours / 24);
+      if (days >= 1) return t("dashboard.in_n_days", "In {{count}} days", { count: days });
+      if (hours >= 1) return t("dashboard.in_n_hours", "In {{count}}h {{mins}}m", { count: hours, mins: minutes % 60 });
+      return t("dashboard.in_n_minutes", "In {{count}} min", { count: minutes });
+    } catch {
+      return "";
+    }
+  })();
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case "pending":
@@ -454,7 +475,13 @@ export default function PatientDashboard() {
                       <Calendar className="h-8 w-8 text-primary" />
                     </div>
                     <div>
-                      <p className="text-sm text-muted-foreground">{t("dashboard.next_appointment")}</p>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="text-sm text-muted-foreground">{t("dashboard.next_appointment")}</p>
+                        <Badge variant="secondary" className="text-xs" data-testid="badge-countdown">
+                          <Clock className="h-3 w-3 mr-1" />
+                          {nextAppointmentCountdown}
+                        </Badge>
+                      </div>
                       <h3 className="text-xl font-semibold">
                         {nextAppointment.provider?.user?.firstName} {nextAppointment.provider?.user?.lastName}
                       </h3>
@@ -487,12 +514,51 @@ export default function PatientDashboard() {
                     </div>
                   </div>
 
-                  <Button asChild>
-                    <Link href={`/provider/${nextAppointment.providerId}`}>
-                      {t("dashboard.view_details")}
-                      <ChevronRight className="h-4 w-4 ml-2" />
-                    </Link>
-                  </Button>
+                  <div className="flex gap-2">
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          data-testid="button-cancel-next-appointment"
+                          disabled={cancelMutation.isPending}
+                        >
+                          <X className="h-4 w-4 mr-2" />
+                          {t("dashboard.cancel", "Cancel")}
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>
+                            {t("dashboard.cancel_confirm_title", "Cancel this appointment?")}
+                          </AlertDialogTitle>
+                          <AlertDialogDescription>
+                            {t(
+                              "dashboard.cancel_confirm_desc",
+                              "This action cannot be undone. The provider will be notified.",
+                            )}
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel data-testid="button-cancel-cancel">
+                            {t("common.cancel", "Cancel")}
+                          </AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() => cancelMutation.mutate(nextAppointment.id)}
+                            data-testid="button-confirm-cancel"
+                          >
+                            {t("dashboard.confirm_cancel", "Yes, cancel")}
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                    <Button asChild>
+                      <Link href={`/provider/${nextAppointment.providerId}`}>
+                        {t("dashboard.view_details")}
+                        <ChevronRight className="h-4 w-4 ml-2" />
+                      </Link>
+                    </Button>
+                  </div>
                 </div>
               </CardContent>
             </Card>

@@ -12,7 +12,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Calendar } from "@/components/ui/calendar";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Star, MapPin, Clock, CheckCircle, Video, Home, GraduationCap, Award, Languages, Calendar as CalendarIcon, ChevronRight, Building2, X, ShieldCheck, Briefcase, FileText, Landmark, Users } from "lucide-react";
+import { Star, MapPin, Clock, CheckCircle, Video, Home, GraduationCap, Award, Languages, Calendar as CalendarIcon, ChevronRight, Building2, X, ShieldCheck, Briefcase, FileText, Landmark, Users, Share2 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 import type { ProviderWithServices, Service, ReviewWithPatient } from "@shared/schema";
 import { useAuth } from "@/lib/auth";
 import { useCurrency } from "@/lib/currency";
@@ -22,6 +23,7 @@ export default function ProviderProfile() {
   const { id } = useParams<{ id: string }>();
   const [, navigate] = useLocation();
   const { isAuthenticated, user } = useAuth();
+  const { toast } = useToast();
   const canBook = !user || user.role === "patient";
   const { format: fmtMoney } = useCurrency();
 
@@ -190,9 +192,40 @@ export default function ProviderProfile() {
                           </div>
                           <p className="text-muted-foreground">{provider.specialization}</p>
                         </div>
-                        <Badge variant="secondary" className="text-sm">
-                          {getTypeLabel(provider.providerType)}
-                        </Badge>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="secondary" className="text-sm">
+                            {getTypeLabel(provider.providerType)}
+                          </Badge>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={async () => {
+                              const url = window.location.href;
+                              const title = `${provider.user.firstName} ${provider.user.lastName} – ${provider.specialization || ""}`.trim();
+                              try {
+                                if (navigator.share) {
+                                  await navigator.share({ title, url });
+                                } else {
+                                  await navigator.clipboard.writeText(url);
+                                  toast({
+                                    title: t("profile.link_copied", "Link copied"),
+                                    description: t(
+                                      "profile.link_copied_desc",
+                                      "Provider link copied to your clipboard.",
+                                    ),
+                                  });
+                                }
+                              } catch {
+                                /* user cancelled share dialog */
+                              }
+                            }}
+                            data-testid="button-share-provider"
+                          >
+                            <Share2 className="h-4 w-4 mr-2" />
+                            {t("profile.share", "Share")}
+                          </Button>
+                        </div>
                       </div>
 
                       {/* Display Practitioners if available */}

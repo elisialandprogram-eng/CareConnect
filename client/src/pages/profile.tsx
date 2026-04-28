@@ -15,8 +15,9 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Badge } from "@/components/ui/badge";
 import {
   User as UserIcon, Mail, Phone, MapPin, Save, Lock, Eye, EyeOff, Loader2,
-  Activity, Settings, Heart, Shield, Camera, Briefcase, X, CheckCircle2, Calendar,
+  Activity, Settings, Heart, Shield, Camera, Briefcase, X, CheckCircle2, CheckCircle, Calendar,
 } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
 import { apiRequest } from "@/lib/queryClient";
 import i18n from "@/lib/i18n";
 import { Textarea } from "@/components/ui/textarea";
@@ -326,19 +327,33 @@ export default function Profile() {
   const set = <K extends keyof FormState>(k: K, v: FormState[K]) =>
     setFormData((p) => ({ ...p, [k]: v }));
 
-  const completion = useMemo(() => {
-    if (!user) return 0;
-    const fields = [
-      formData.firstName, formData.lastName, formData.phone, formData.address,
-      formData.city, formData.gender, formData.dateOfBirth,
-      formData.emergencyContactName, formData.emergencyContactPhone,
+  const { completion, missingFields } = useMemo(() => {
+    if (!user) return { completion: 0, missingFields: [] as string[] };
+    const fields: { value: string | undefined; label: string }[] = [
+      { value: formData.firstName, label: t("profile_page.first_name", "First name") },
+      { value: formData.lastName, label: t("profile_page.last_name", "Last name") },
+      { value: formData.phone, label: t("profile_page.phone", "Phone") },
+      { value: formData.address, label: t("profile_page.address", "Address") },
+      { value: formData.city, label: t("profile_page.city", "City") },
+      { value: formData.gender, label: t("profile_page.gender", "Gender") },
+      { value: formData.dateOfBirth, label: t("profile_page.date_of_birth", "Date of birth") },
+      { value: formData.emergencyContactName, label: t("profile_page.emergency_contact_name", "Emergency contact name") },
+      { value: formData.emergencyContactPhone, label: t("profile_page.emergency_contact_phone", "Emergency contact phone") },
     ];
     if (user.role === "patient") {
-      fields.push(formData.bloodGroup, formData.knownAllergies, formData.medicalConditions);
+      fields.push(
+        { value: formData.bloodGroup, label: t("profile_page.blood_group", "Blood group") },
+        { value: formData.knownAllergies, label: t("profile_page.allergies", "Allergies") },
+        { value: formData.medicalConditions, label: t("profile_page.medical_conditions", "Medical conditions") },
+      );
     }
-    const filled = fields.filter((f) => f && String(f).trim().length > 0).length;
-    return Math.round((filled / fields.length) * 100);
-  }, [formData, user]);
+    const missing = fields.filter((f) => !f.value || String(f.value).trim().length === 0);
+    const filled = fields.length - missing.length;
+    return {
+      completion: Math.round((filled / fields.length) * 100),
+      missingFields: missing.slice(0, 4).map((f) => f.label),
+    };
+  }, [formData, user, t]);
 
   if (authLoading) {
     return (
@@ -485,6 +500,40 @@ export default function Profile() {
                   <p className="font-medium mt-0.5">{providerData.currency} {providerData.consultationFee || "0"}</p>
                 </div>
               </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {completion < 100 && (
+          <Card className="mb-6 border-primary/30 bg-primary/5" data-testid="card-profile-completeness">
+            <CardContent className="p-5">
+              <div className="flex items-center justify-between gap-4 mb-3">
+                <div>
+                  <p className="text-sm font-semibold flex items-center gap-2">
+                    <CheckCircle className="h-4 w-4 text-primary" />
+                    {t("profile_page.completeness_title", "Profile completeness")}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {t(
+                      "profile_page.completeness_desc",
+                      "A complete profile helps providers serve you better.",
+                    )}
+                  </p>
+                </div>
+                <div
+                  className="text-2xl font-bold text-primary tabular-nums"
+                  data-testid="text-completeness-percent"
+                >
+                  {completion}%
+                </div>
+              </div>
+              <Progress value={completion} className="h-2" data-testid="progress-completeness" />
+              {missingFields.length > 0 && (
+                <p className="text-xs text-muted-foreground mt-3" data-testid="text-completeness-missing">
+                  {t("profile_page.completeness_missing", "Still to fill:")}{" "}
+                  <span className="font-medium text-foreground">{missingFields.join(", ")}</span>
+                </p>
+              )}
             </CardContent>
           </Card>
         )}
