@@ -74,18 +74,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [checkAuth]);
 
   const login = async (email: string, password: string) => {
-    const response = await apiRequest("POST", "/api/auth/login", { email, password });
-    const data = await response.json();
+    const response = await fetch("/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+      credentials: "include",
+    });
+    const data = await response.json().catch(() => ({} as any));
     if (!response.ok) {
-      const err = new Error(data.message || "Login failed") as Error & {
+      const err = new Error(data?.message || "Login failed") as Error & {
         code?: string;
         status?: string;
         reason?: string | null;
         details?: any;
       };
-      err.code = data.code;
-      err.status = data.status;
-      err.reason = data.reason;
+      err.code = data?.code;
+      err.status = data?.status;
+      err.reason = data?.reason;
       err.details = data;
       throw err;
     }

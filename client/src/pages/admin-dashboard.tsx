@@ -802,7 +802,7 @@ function ProviderDetailsDialog({ provider }: { provider: any }) {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label className="text-muted-foreground">{t("admin.type")}</Label>
-                <p className="font-medium capitalize">{provider.type}</p>
+                <p className="font-medium capitalize">{provider.providerType || provider.type || "—"}</p>
               </div>
               <div>
                 <Label className="text-muted-foreground">{t("admin.specialization_label")}</Label>
@@ -1798,7 +1798,7 @@ function ProvidersManagement() {
       const normalizedStatus = p.status === "approved" ? "active" : p.status;
       if (normalizedStatus !== providerStatusFilter) return false;
     }
-    if (providerTypeFilter !== "all" && p.type !== providerTypeFilter) return false;
+    if (providerTypeFilter !== "all" && (p.providerType || p.type) !== providerTypeFilter) return false;
     if (!providerSearch) return true;
     const q = providerSearch.toLowerCase();
     return (
@@ -2437,8 +2437,12 @@ function ProvidersManagement() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
               {filteredProviders.map((provider: any) => {
-                const TypeIcon = providerTypeIcon(provider.type);
+                const providerTypeKey = provider.providerType || provider.type || "";
+                const TypeIcon = providerTypeIcon(providerTypeKey);
                 const fullName = `${provider.user?.firstName || ""} ${provider.user?.lastName || ""}`.trim() || provider.user?.email || "Provider";
+                const typeLabel = providerTypeKey
+                  ? String(t(`common_service_type.${providerTypeKey}`, { defaultValue: providerTypeKey.charAt(0).toUpperCase() + providerTypeKey.slice(1) }))
+                  : t("admin.provider_type_unknown", "Unknown type");
                 return (
                   <div
                     key={provider.id}
@@ -2456,7 +2460,7 @@ function ProvidersManagement() {
                         <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
                           <Badge variant="outline" className="text-[10px] gap-1 px-1.5 h-5">
                             <TypeIcon className="h-2.5 w-2.5" />
-                            {String(t(`common_service_type.${provider.type}`, { defaultValue: provider.type }))}
+                            {typeLabel}
                           </Badge>
                           {provider.specialization && (
                             <Badge variant="outline" className="text-[10px] px-1.5 h-5">

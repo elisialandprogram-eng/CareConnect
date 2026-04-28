@@ -43,10 +43,50 @@ const ErrorModalContext = createContext<ErrorModalContextType | null>(null);
 
 let externalShowError: ((p: ShowErrorPayload) => void) | null = null;
 
+export function cleanErrorDescription(input?: string): string | undefined {
+  if (!input) return input;
+  let text = String(input).trim();
+
+  // Strip leading "<status>:" prefix from `${res.status}: ${text}` style errors.
+  const statusPrefix = text.match(/^\d{3}\s*:\s*/);
+  if (statusPrefix) {
+    text = text.slice(statusPrefix[0].length).trim();
+  }
+
+  // If the remainder looks like JSON, try to extract a friendly message.
+  if ((text.startsWith("{") && text.endsWith("}")) || (text.startsWith("[") && text.endsWith("]"))) {
+    try {
+      const parsed = JSON.parse(text);
+      if (parsed && typeof parsed === "object") {
+        const candidate =
+          (parsed as any).message ||
+          (parsed as any).reason ||
+          (parsed as any).error ||
+          (parsed as any).detail ||
+          (parsed as any).description;
+        if (candidate && typeof candidate === "string") return candidate;
+        // Fallback: format key/value pairs on separate lines instead of raw JSON.
+        const entries = Object.entries(parsed)
+          .filter(([, v]) => v != null && typeof v !== "object")
+          .map(([k, v]) => `${k}: ${String(v)}`);
+        if (entries.length > 0) return entries.join("\n");
+      }
+    } catch {
+      // not valid JSON, leave as-is
+    }
+  }
+
+  return text;
+}
+
 export function showErrorModal(payload: ShowErrorPayload) {
-  if (externalShowError) externalShowError(payload);
+  const cleaned: ShowErrorPayload = {
+    ...payload,
+    description: cleanErrorDescription(payload.description),
+  };
+  if (externalShowError) externalShowError(cleaned);
   else if (typeof console !== "undefined") {
-    console.warn("[error-modal] not mounted yet:", payload);
+    console.warn("[error-modal] not mounted yet:", cleaned);
   }
 }
 
