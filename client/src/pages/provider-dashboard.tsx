@@ -82,6 +82,8 @@ import {
   CartesianGrid,
   BarChart,
   Bar,
+  AreaChart,
+  Area,
 } from "recharts";
 
 function ServiceStaffList({ serviceId, onDelete, onToggle }: { serviceId: string; onDelete: (id: string) => void; onToggle: (args: {id: string, isActive: boolean}) => void }) {
@@ -722,6 +724,45 @@ export default function ProviderDashboard() {
 
   const totalEarnings = sumAmount(completedAppointments);
 
+  // Today's earnings, avg per booking, and previous-30-day comparison.
+  const todayStr2 = new Date().toISOString().split("T")[0];
+  const todayEarnings = sumAmount(
+    completedAppointments.filter((a) => {
+      const d = new Date(a.date).toISOString().split("T")[0];
+      return d === todayStr2;
+    }),
+  );
+  const avgPerBooking = completedAppointments.length
+    ? totalEarnings / completedAppointments.length
+    : 0;
+  const prevMonthEarnings = sumAmount(
+    completedAppointments.filter((a) => {
+      const appointmentDate = new Date(a.date);
+      const monthAgo = new Date();
+      monthAgo.setDate(monthAgo.getDate() - 30);
+      const twoMonthsAgo = new Date();
+      twoMonthsAgo.setDate(twoMonthsAgo.getDate() - 60);
+      return appointmentDate >= twoMonthsAgo && appointmentDate < monthAgo;
+    }),
+  );
+  const monthlyGrowthPct = prevMonthEarnings > 0
+    ? Math.round(((monthlyEarnings - prevMonthEarnings) / prevMonthEarnings) * 1000) / 10
+    : (monthlyEarnings > 0 ? 100 : 0);
+
+  // Mini-sparkline for last 14 days.
+  const sparkData: { d: string; v: number }[] = [];
+  {
+    const today0 = new Date();
+    today0.setHours(0, 0, 0, 0);
+    for (let i = 13; i >= 0; i--) {
+      const d = new Date(today0);
+      d.setDate(d.getDate() - i);
+      const key = d.toISOString().slice(0, 10);
+      const v = sumAmount(completedAppointments.filter((a) => a.date === key));
+      sparkData.push({ d: key, v });
+    }
+  }
+
   const uniquePatientCount = new Set(
     allAppointments.map((a) => a.patientId).filter(Boolean)
   ).size;
@@ -1107,53 +1148,122 @@ export default function ProviderDashboard() {
             </Card>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-            <Card className="stat-card stat-emerald" data-testid="card-stat-weekly">
-              <CardContent className="p-5">
-                <div className="flex items-center justify-between">
-                  <p className="text-sm text-muted-foreground">{t("provider_dashboard.stat_weekly", "Weekly Revenue")}</p>
-                  <div className="stat-icon h-9 w-9"><DollarSign className="h-4 w-4" /></div>
+          {/* Modern Revenue Hero with sparkline */}
+          <div className="relative overflow-hidden rounded-2xl mb-6 p-6 text-white shadow-xl bg-gradient-to-br from-emerald-500 via-teal-600 to-cyan-700" data-testid="card-revenue-hero">
+            <div className="absolute -right-12 -top-12 h-48 w-48 rounded-full bg-white/10 blur-3xl" />
+            <div className="absolute -bottom-16 -left-10 h-44 w-44 rounded-full bg-white/10 blur-3xl" />
+            <div className="relative grid grid-cols-1 md:grid-cols-3 gap-6 items-center">
+              <div className="md:col-span-1">
+                <div className="flex items-center gap-2 text-white/80">
+                  <Banknote className="h-4 w-4" />
+                  <p className="text-xs font-medium uppercase tracking-wider">
+                    {t("provider_dashboard.stat_total", "Total Revenue")}
+                  </p>
                 </div>
-                <p className="text-2xl font-bold mt-1" data-testid="text-weekly-earnings">{formatHUF(weeklyEarnings)}</p>
-                <p className="text-xs text-muted-foreground mt-1">{t("provider_dashboard.stat_weekly_desc", "last 7 days")}</p>
-              </CardContent>
-            </Card>
-            <Card className="stat-card stat-teal" data-testid="card-stat-monthly">
-              <CardContent className="p-5">
-                <div className="flex items-center justify-between">
-                  <p className="text-sm text-muted-foreground">{t("provider_dashboard.stat_monthly", "Monthly Revenue")}</p>
-                  <div className="stat-icon h-9 w-9"><DollarSign className="h-4 w-4" /></div>
-                </div>
-                <p className="text-2xl font-bold mt-1" data-testid="text-monthly-earnings">{formatHUF(monthlyEarnings)}</p>
-                <p className="text-xs text-muted-foreground mt-1">{t("provider_dashboard.stat_monthly_desc", "last 30 days")}</p>
-              </CardContent>
-            </Card>
-            <Card className="stat-card stat-fuchsia" data-testid="card-stat-total-revenue">
-              <CardContent className="p-5">
-                <div className="flex items-center justify-between">
-                  <p className="text-sm text-muted-foreground">{t("provider_dashboard.stat_total", "Total Revenue")}</p>
-                  <div className="stat-icon h-9 w-9"><Banknote className="h-4 w-4" /></div>
-                </div>
-                <p className="text-2xl font-bold mt-1" data-testid="text-total-earnings">{formatHUF(totalEarnings)}</p>
-                <p className="text-xs text-muted-foreground mt-1">{t("provider_dashboard.stat_total_desc", "{{count}} completed", { count: completedAppointments.length })}</p>
-              </CardContent>
-            </Card>
-            <Card className="stat-card stat-amber" data-testid="card-stat-rating">
-              <CardContent className="p-5">
-                <div className="flex items-center justify-between">
-                  <p className="text-sm text-muted-foreground">{t("provider_dashboard.stat_rating", "Rating")}</p>
-                  <div className="stat-icon h-9 w-9"><Star className="h-4 w-4" /></div>
-                </div>
-                <p className="text-2xl font-bold mt-1" data-testid="text-rating">
-                  {Number(providerData?.rating || 0).toFixed(1)}
-                  <span className="text-base text-muted-foreground font-normal"> / 5</span>
+                <p className="text-4xl md:text-5xl font-bold mt-2 tracking-tight" data-testid="text-total-earnings">
+                  {formatHUF(totalEarnings)}
                 </p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {t("provider_dashboard.stat_rating_desc", "{{reviews}} reviews · {{rate}}% completion", { reviews: providerData?.totalReviews || 0, rate: completionRate })}
+                <div className="mt-3 flex items-center gap-2">
+                  <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium ${monthlyGrowthPct >= 0 ? "bg-white/25 text-white" : "bg-black/25 text-white"}`}>
+                    {monthlyGrowthPct >= 0 ? "▲" : "▼"} {Math.abs(monthlyGrowthPct).toFixed(1)}%
+                  </span>
+                  <span className="text-xs text-white/80">
+                    {t("provider_dashboard.vs_prev_30", "vs previous 30 days")}
+                  </span>
+                </div>
+              </div>
+              <div className="md:col-span-2">
+                <ResponsiveContainer width="100%" height={110}>
+                  <AreaChart data={sparkData}>
+                    <defs>
+                      <linearGradient id="providerSparkGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#ffffff" stopOpacity={0.5} />
+                        <stop offset="100%" stopColor="#ffffff" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <Tooltip
+                      formatter={(v: any) => formatHUF(Number(v))}
+                      contentStyle={{ background: "rgba(0,0,0,0.7)", border: "none", borderRadius: 8, color: "white" }}
+                      labelStyle={{ color: "white" }}
+                    />
+                    <Area type="monotone" dataKey="v" stroke="#fff" strokeWidth={2} fill="url(#providerSparkGrad)" />
+                  </AreaChart>
+                </ResponsiveContainer>
+                <p className="text-[11px] text-white/70 text-center mt-1">
+                  {t("provider_dashboard.last_14_days", "Revenue · last 14 days")}
                 </p>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            <div className="relative overflow-hidden rounded-xl p-5 text-white shadow-md bg-gradient-to-br from-amber-500 to-orange-600" data-testid="card-stat-today-revenue">
+              <div className="absolute -right-6 -top-6 h-20 w-20 rounded-full bg-white/10 blur-xl" />
+              <div className="relative flex items-center justify-between">
+                <p className="text-xs font-medium uppercase tracking-wider text-white/80">
+                  {t("provider_dashboard.stat_today_revenue", "Today")}
+                </p>
+                <DollarSign className="h-4 w-4 text-white/80" />
+              </div>
+              <p className="text-2xl font-bold mt-2" data-testid="text-today-earnings">{formatHUF(todayEarnings)}</p>
+              <p className="text-[11px] text-white/70 mt-1">
+                {t("provider_dashboard.stat_today_revenue_desc", "earnings today")}
+              </p>
+            </div>
+            <div className="relative overflow-hidden rounded-xl p-5 text-white shadow-md bg-gradient-to-br from-emerald-500 to-green-600" data-testid="card-stat-weekly">
+              <div className="absolute -right-6 -top-6 h-20 w-20 rounded-full bg-white/10 blur-xl" />
+              <div className="relative flex items-center justify-between">
+                <p className="text-xs font-medium uppercase tracking-wider text-white/80">
+                  {t("provider_dashboard.stat_weekly", "Weekly Revenue")}
+                </p>
+                <TrendingUp className="h-4 w-4 text-white/80" />
+              </div>
+              <p className="text-2xl font-bold mt-2" data-testid="text-weekly-earnings">{formatHUF(weeklyEarnings)}</p>
+              <p className="text-[11px] text-white/70 mt-1">{t("provider_dashboard.stat_weekly_desc", "last 7 days")}</p>
+            </div>
+            <div className="relative overflow-hidden rounded-xl p-5 text-white shadow-md bg-gradient-to-br from-teal-500 to-cyan-600" data-testid="card-stat-monthly">
+              <div className="absolute -right-6 -top-6 h-20 w-20 rounded-full bg-white/10 blur-xl" />
+              <div className="relative flex items-center justify-between">
+                <p className="text-xs font-medium uppercase tracking-wider text-white/80">
+                  {t("provider_dashboard.stat_monthly", "Monthly Revenue")}
+                </p>
+                <Calendar className="h-4 w-4 text-white/80" />
+              </div>
+              <p className="text-2xl font-bold mt-2" data-testid="text-monthly-earnings">{formatHUF(monthlyEarnings)}</p>
+              <p className="text-[11px] text-white/70 mt-1">{t("provider_dashboard.stat_monthly_desc", "last 30 days")}</p>
+            </div>
+            <div className="relative overflow-hidden rounded-xl p-5 text-white shadow-md bg-gradient-to-br from-violet-500 to-fuchsia-600" data-testid="card-stat-avg-booking">
+              <div className="absolute -right-6 -top-6 h-20 w-20 rounded-full bg-white/10 blur-xl" />
+              <div className="relative flex items-center justify-between">
+                <p className="text-xs font-medium uppercase tracking-wider text-white/80">
+                  {t("provider_dashboard.stat_avg_booking", "Avg per Booking")}
+                </p>
+                <Banknote className="h-4 w-4 text-white/80" />
+              </div>
+              <p className="text-2xl font-bold mt-2" data-testid="text-avg-booking">{formatHUF(avgPerBooking)}</p>
+              <p className="text-[11px] text-white/70 mt-1">
+                {t("provider_dashboard.stat_avg_booking_desc", "{{count}} completed", { count: completedAppointments.length })}
+              </p>
+            </div>
+          </div>
+
+          <Card className="stat-card stat-amber mb-8" data-testid="card-stat-rating">
+            <CardContent className="p-5">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">{t("provider_dashboard.stat_rating", "Rating")}</p>
+                  <p className="text-2xl font-bold mt-1" data-testid="text-rating">
+                    {Number(providerData?.rating || 0).toFixed(1)}
+                    <span className="text-base text-muted-foreground font-normal"> / 5</span>
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {t("provider_dashboard.stat_rating_desc", "{{reviews}} reviews · {{rate}}% completion", { reviews: providerData?.totalReviews || 0, rate: completionRate })}
+                  </p>
+                </div>
+                <div className="stat-icon h-12 w-12"><Star className="h-5 w-5" /></div>
+              </div>
+            </CardContent>
+          </Card>
 
           {todayAppointments.length > 0 && (
             <Card className="mb-6 border-primary/30 bg-primary/5" data-testid="card-today-section">

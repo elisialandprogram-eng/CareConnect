@@ -52,7 +52,8 @@ import {
   Wallet as WalletIcon, Briefcase, Sparkles as SparklesIcon, Send, Lock, MapPin,
   UserPlus, RefreshCw, ChevronDown, ChevronUp, Stethoscope, GraduationCap,
   Mail, Phone, MoreVertical, AlertCircle, Inbox, UserCog, RotateCcw, CheckCheck,
-  Globe, CalendarDays, Hash, Timer
+  Globe, CalendarDays, Hash, Timer, TrendingUp, Banknote, ArrowUpRight, ArrowDownRight,
+  PiggyBank, Receipt, Wallet, CreditCard
 } from "lucide-react";
 import type { User, ProviderWithUser, PromoCode, ProviderPricingOverride, SubService, Practitioner, ServicePractitioner, Service } from "@shared/schema";
 import { ServiceFormDialog } from "@/components/service-form-dialog";
@@ -616,9 +617,10 @@ function ProviderEditDialog({ provider }: { provider: any }) {
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              <SelectItem value="pending">{t("admin.pending")}</SelectItem>
-                              <SelectItem value="approved">{t("admin.approved")}</SelectItem>
-                              <SelectItem value="rejected">{t("admin.rejected")}</SelectItem>
+                              <SelectItem value="active">{t("admin.active", "Active")}</SelectItem>
+                              <SelectItem value="suspended">{t("admin.suspended", "Suspended")}</SelectItem>
+                              <SelectItem value="pending">{t("admin.awaiting_approval", "Awaiting Approval")}</SelectItem>
+                              <SelectItem value="rejected">{t("admin.rejected", "Rejected")}</SelectItem>
                             </SelectContent>
                           </Select>
                         </FormItem>
@@ -935,6 +937,58 @@ function ProviderDetailsDialog({ provider }: { provider: any }) {
   );
 }
 
+// Modern Revenue KPI Card with gradient
+function RevenueKpiCard({
+  label,
+  value,
+  hint,
+  icon: Icon,
+  gradient,
+  trend,
+  testId,
+}: {
+  label: string;
+  value: string;
+  hint?: string;
+  icon: any;
+  gradient: string;
+  trend?: { pct: number; positive?: boolean } | null;
+  testId?: string;
+}) {
+  const trendPositive = trend ? (trend.positive ?? trend.pct >= 0) : true;
+  return (
+    <div
+      className={`relative overflow-hidden rounded-2xl p-5 text-white shadow-lg ${gradient}`}
+      data-testid={testId}
+    >
+      <div className="absolute -right-8 -top-8 h-32 w-32 rounded-full bg-white/10 blur-2xl" />
+      <div className="absolute -bottom-10 -left-6 h-28 w-28 rounded-full bg-white/10 blur-2xl" />
+      <div className="relative flex items-start justify-between">
+        <div>
+          <p className="text-xs font-medium uppercase tracking-wider text-white/80">{label}</p>
+          <p className="mt-2 text-3xl font-bold tracking-tight">{value}</p>
+          {hint && <p className="mt-1 text-xs text-white/70">{hint}</p>}
+        </div>
+        <div className="rounded-xl bg-white/20 p-2.5 backdrop-blur-sm">
+          <Icon className="h-5 w-5" />
+        </div>
+      </div>
+      {trend && (
+        <div className="relative mt-3 flex items-center gap-1.5 text-xs font-medium">
+          <span
+            className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 ${
+              trendPositive ? "bg-white/20 text-white" : "bg-black/20 text-white"
+            }`}
+          >
+            {trendPositive ? "▲" : "▼"} {Math.abs(trend.pct).toFixed(1)}%
+          </span>
+          <span className="text-white/70">vs last period</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // Analytics Overview Component
 function AnalyticsOverview() {
   const { t } = useTranslation();
@@ -947,22 +1001,23 @@ function AnalyticsOverview() {
     pendingBookings: number;
     completedBookings: number;
     recentPayments: any[];
+    revenueSeries: { name: string; revenue: number; bookings: number }[];
+    platformFees: string;
+    providerPayouts: string;
+    avgBookingValue: string;
+    revenueToday: string;
+    revenueThisMonth: string;
+    revenueLastMonth: string;
+    revenueGrowthPct: number;
+    activeProviders: number;
   }>({
     queryKey: ["/api/admin/analytics"],
   });
 
-  const mockChartData = [
-    { name: 'Jan', bookings: 40, revenue: 2400 },
-    { name: 'Feb', bookings: 30, revenue: 1398 },
-    { name: 'Mar', bookings: 50, revenue: 3800 },
-    { name: 'Apr', bookings: 47, revenue: 3908 },
-    { name: 'May', bookings: 65, revenue: 4800 },
-    { name: 'Jun', bookings: 59, revenue: 3800 },
-  ];
-
+  const series = analytics?.revenueSeries ?? [];
   const pieData = [
-    { name: 'Completed', value: analytics?.completedBookings || 0, color: '#22c55e' },
-    { name: 'Pending', value: analytics?.pendingBookings || 0, color: '#f59e0b' },
+    { name: t("admin.completed", "Completed"), value: analytics?.completedBookings || 0, color: '#10b981' },
+    { name: t("admin.pending", "Pending"), value: analytics?.pendingBookings || 0, color: '#f59e0b' },
   ];
 
   if (isLoading) {
@@ -975,6 +1030,7 @@ function AnalyticsOverview() {
 
   return (
     <div className="space-y-6">
+      {/* Operational stat cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card className="stat-card stat-indigo">
           <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
@@ -993,7 +1049,9 @@ function AnalyticsOverview() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold" data-testid="text-total-providers">{analytics?.totalProviders || 0}</div>
-            <p className="text-xs text-muted-foreground">{t("admin.active_providers")}</p>
+            <p className="text-xs text-muted-foreground">
+              {t("admin.active_providers_count", "{{n}} active", { n: analytics?.activeProviders || 0 })}
+            </p>
           </CardContent>
         </Card>
         <Card className="stat-card stat-sky">
@@ -1018,20 +1076,89 @@ function AnalyticsOverview() {
         </Card>
       </div>
 
+      {/* Modern Revenue Insights */}
+      <div>
+        <div className="flex items-center justify-between mb-3">
+          <div>
+            <h3 className="text-lg font-semibold">{t("admin.revenue_insights", "Revenue insights")}</h3>
+            <p className="text-sm text-muted-foreground">
+              {t("admin.revenue_insights_desc", "Live financial overview across the platform")}
+            </p>
+          </div>
+        </div>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <RevenueKpiCard
+            label={t("admin.gross_revenue", "Gross revenue")}
+            value={fmtMoney(analytics?.totalRevenue || 0)}
+            hint={t("admin.all_settled_payments", "All settled payments")}
+            icon={DollarSign}
+            gradient="bg-gradient-to-br from-emerald-500 via-emerald-600 to-teal-600"
+            trend={{ pct: analytics?.revenueGrowthPct || 0 }}
+            testId="kpi-gross-revenue"
+          />
+          <RevenueKpiCard
+            label={t("admin.platform_fees", "Platform fees")}
+            value={fmtMoney(analytics?.platformFees || 0)}
+            hint={t("admin.fees_collected", "Fees collected from completed bookings")}
+            icon={TrendingUp}
+            gradient="bg-gradient-to-br from-violet-500 via-purple-600 to-fuchsia-600"
+            testId="kpi-platform-fees"
+          />
+          <RevenueKpiCard
+            label={t("admin.provider_payouts", "Provider payouts")}
+            value={fmtMoney(analytics?.providerPayouts || 0)}
+            hint={t("admin.owed_to_providers", "Owed to providers")}
+            icon={Banknote}
+            gradient="bg-gradient-to-br from-sky-500 via-blue-600 to-indigo-600"
+            testId="kpi-provider-payouts"
+          />
+          <RevenueKpiCard
+            label={t("admin.avg_booking_value", "Avg booking value")}
+            value={fmtMoney(analytics?.avgBookingValue || 0)}
+            hint={t("admin.based_on_completed", "Based on completed bookings")}
+            icon={CheckCircle}
+            gradient="bg-gradient-to-br from-amber-500 via-orange-500 to-rose-500"
+            testId="kpi-avg-booking"
+          />
+        </div>
+      </div>
+
       <div className="grid gap-4 md:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>{t("admin.booking_trends")}</CardTitle>
-            <CardDescription>{t("admin.monthly_overview")}</CardDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>{t("admin.revenue_trend", "Revenue trend")}</CardTitle>
+                <CardDescription>{t("admin.last_12_months", "Last 12 months")}</CardDescription>
+              </div>
+              <Badge variant="secondary" className="text-xs">
+                {t("admin.this_month", "This month")}: {fmtMoney(analytics?.revenueThisMonth || 0)}
+              </Badge>
+            </div>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <AreaChart data={mockChartData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip />
-                <Area type="monotone" dataKey="bookings" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.3} />
+              <AreaChart data={series}>
+                <defs>
+                  <linearGradient id="revenueGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#10b981" stopOpacity={0.5} />
+                    <stop offset="100%" stopColor="#10b981" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" opacity={0.25} />
+                <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => fmtMoney(v).replace(/\.\d+/, "")} />
+                <Tooltip
+                  formatter={(v: any) => fmtMoney(Number(v))}
+                  contentStyle={{ borderRadius: 8, border: "1px solid hsl(var(--border))" }}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="revenue"
+                  stroke="#10b981"
+                  strokeWidth={2.5}
+                  fill="url(#revenueGradient)"
+                />
               </AreaChart>
             </ResponsiveContainer>
           </CardContent>
@@ -1039,35 +1166,97 @@ function AnalyticsOverview() {
 
         <Card>
           <CardHeader>
-            <CardTitle>{t("admin.appointment_status")}</CardTitle>
-            <CardDescription>{t("admin.current_distribution")}</CardDescription>
+            <CardTitle>{t("admin.bookings_trend", "Bookings trend")}</CardTitle>
+            <CardDescription>{t("admin.last_12_months", "Last 12 months")}</CardDescription>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={pieData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={100}
-                  paddingAngle={5}
-                  dataKey="value"
-                >
-                  {pieData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
+              <BarChart data={series}>
+                <CartesianGrid strokeDasharray="3 3" opacity={0.25} />
+                <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
+                <Tooltip contentStyle={{ borderRadius: 8, border: "1px solid hsl(var(--border))" }} />
+                <Bar dataKey="bookings" fill="#6366f1" radius={[6, 6, 0, 0]} />
+              </BarChart>
             </ResponsiveContainer>
-            <div className="flex justify-center gap-4 mt-4">
-              {pieData.map((entry, index) => (
-                <div key={index} className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: entry.color }} />
-                  <span className="text-sm">{entry.name}: {entry.value}</span>
-                </div>
-              ))}
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-3">
+        <Card className="md:col-span-2">
+          <CardHeader>
+            <CardTitle>{t("admin.appointment_status", "Appointment status")}</CardTitle>
+            <CardDescription>{t("admin.current_distribution", "Current distribution")}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between">
+              <ResponsiveContainer width="60%" height={220}>
+                <PieChart>
+                  <Pie
+                    data={pieData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={50}
+                    outerRadius={85}
+                    paddingAngle={4}
+                    dataKey="value"
+                  >
+                    {pieData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="flex flex-col gap-2">
+                {pieData.map((entry, index) => (
+                  <div key={index} className="flex items-center gap-2 text-sm">
+                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: entry.color }} />
+                    <span className="font-medium">{entry.name}</span>
+                    <span className="ml-auto text-muted-foreground tabular-nums">{entry.value}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">{t("admin.today_snapshot", "Today's snapshot")}</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-baseline justify-between">
+              <span className="text-sm text-muted-foreground">{t("admin.today_revenue", "Today's revenue")}</span>
+              <span className="text-xl font-bold tabular-nums" data-testid="text-revenue-today">
+                {fmtMoney(analytics?.revenueToday || 0)}
+              </span>
+            </div>
+            <div className="flex items-baseline justify-between">
+              <span className="text-sm text-muted-foreground">{t("admin.this_month", "This month")}</span>
+              <span className="text-base font-semibold tabular-nums">
+                {fmtMoney(analytics?.revenueThisMonth || 0)}
+              </span>
+            </div>
+            <div className="flex items-baseline justify-between">
+              <span className="text-sm text-muted-foreground">{t("admin.last_month", "Last month")}</span>
+              <span className="text-base font-semibold tabular-nums">
+                {fmtMoney(analytics?.revenueLastMonth || 0)}
+              </span>
+            </div>
+            <div className="border-t pt-3 flex items-center justify-between">
+              <span className="text-sm text-muted-foreground">{t("admin.growth", "Growth")}</span>
+              <Badge
+                variant="outline"
+                className={
+                  (analytics?.revenueGrowthPct || 0) >= 0
+                    ? "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300"
+                    : "bg-rose-100 text-rose-700 border-rose-200 dark:bg-rose-900/30 dark:text-rose-300"
+                }
+              >
+                {(analytics?.revenueGrowthPct || 0) >= 0 ? "▲" : "▼"} {Math.abs(analytics?.revenueGrowthPct || 0).toFixed(1)}%
+              </Badge>
             </div>
           </CardContent>
         </Card>
@@ -1209,80 +1398,206 @@ function FinancialReports() {
 
   const payments = analytics?.recentPayments || [];
   const totalRevenue = parseFloat(analytics?.totalRevenue || "0");
+  const platformFees = parseFloat(analytics?.platformFees || "0");
+  const providerPayouts = parseFloat(analytics?.providerPayouts || "0");
+  const avgBookingValue = parseFloat(analytics?.avgBookingValue || "0");
+  const series = analytics?.revenueSeries ?? [];
+  const growthPct = analytics?.revenueGrowthPct || 0;
+
+  // Build a payment method distribution from recent payments.
+  const methodMap: Record<string, { count: number; amount: number }> = {};
+  payments.forEach((p: any) => {
+    const m = (p.paymentMethod || "other").toString();
+    if (!methodMap[m]) methodMap[m] = { count: 0, amount: 0 };
+    methodMap[m].count += 1;
+    methodMap[m].amount += Number(p.amount || 0);
+  });
+  const methodEntries = Object.entries(methodMap)
+    .map(([method, v]) => ({ method, ...v }))
+    .sort((a, b) => b.amount - a.amount);
 
   return (
     <div className="space-y-6">
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card className="stat-card stat-emerald">
-          <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">{t("admin.total_revenue_label")}</CardTitle>
-            <div className="stat-icon h-9 w-9"><DollarSign className="h-4 w-4" /></div>
+      {/* Hero revenue card */}
+      <div className="relative overflow-hidden rounded-2xl p-6 text-white shadow-xl bg-gradient-to-br from-emerald-600 via-teal-600 to-cyan-700">
+        <div className="absolute -right-12 -top-12 h-48 w-48 rounded-full bg-white/10 blur-3xl" />
+        <div className="absolute -bottom-16 -left-10 h-44 w-44 rounded-full bg-white/10 blur-3xl" />
+        <div className="relative grid grid-cols-1 md:grid-cols-3 gap-6 items-center">
+          <div>
+            <div className="flex items-center gap-2 text-white/80">
+              <PiggyBank className="h-4 w-4" />
+              <p className="text-xs font-medium uppercase tracking-wider">
+                {t("admin.total_revenue_label", "Total revenue")}
+              </p>
+            </div>
+            <p className="text-4xl md:text-5xl font-bold mt-2 tracking-tight" data-testid="text-financial-total">
+              {fmtMoney(totalRevenue)}
+            </p>
+            <div className="mt-3 flex items-center gap-2">
+              <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium ${growthPct >= 0 ? "bg-white/25" : "bg-black/25"}`}>
+                {growthPct >= 0 ? "▲" : "▼"} {Math.abs(growthPct).toFixed(1)}%
+              </span>
+              <span className="text-xs text-white/80">{t("admin.month_over_month", "month over month")}</span>
+            </div>
+          </div>
+          <div className="md:col-span-2">
+            <ResponsiveContainer width="100%" height={120}>
+              <AreaChart data={series}>
+                <defs>
+                  <linearGradient id="finRevGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#ffffff" stopOpacity={0.5} />
+                    <stop offset="100%" stopColor="#ffffff" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <Tooltip
+                  formatter={(v: any) => fmtMoney(Number(v))}
+                  contentStyle={{ background: "rgba(0,0,0,0.7)", border: "none", borderRadius: 8, color: "white" }}
+                  labelStyle={{ color: "white" }}
+                />
+                <Area type="monotone" dataKey="revenue" stroke="#ffffff" strokeWidth={2} fill="url(#finRevGrad)" />
+              </AreaChart>
+            </ResponsiveContainer>
+            <p className="text-[11px] text-white/70 text-center mt-1">
+              {t("admin.last_12_months", "Last 12 months")}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* KPI cards */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <RevenueKpiCard
+          label={t("admin.platform_fees", "Platform fees")}
+          value={fmtMoney(platformFees)}
+          hint={t("admin.fees_collected", "Fees collected")}
+          icon={Receipt}
+          gradient="bg-gradient-to-br from-violet-500 via-purple-600 to-fuchsia-600"
+          testId="kpi-financial-fees"
+        />
+        <RevenueKpiCard
+          label={t("admin.provider_payouts", "Provider payouts")}
+          value={fmtMoney(providerPayouts)}
+          hint={t("admin.owed_to_providers", "Owed to providers")}
+          icon={Wallet}
+          gradient="bg-gradient-to-br from-sky-500 via-blue-600 to-indigo-600"
+          testId="kpi-financial-payouts"
+        />
+        <RevenueKpiCard
+          label={t("admin.avg_booking_value", "Avg booking value")}
+          value={fmtMoney(avgBookingValue)}
+          hint={t("admin.based_on_completed", "Based on completed bookings")}
+          icon={CheckCircle}
+          gradient="bg-gradient-to-br from-amber-500 via-orange-500 to-rose-500"
+          testId="kpi-financial-avg"
+        />
+        <RevenueKpiCard
+          label={t("admin.completed_bookings", "Completed bookings")}
+          value={String(analytics?.completedBookings || 0)}
+          hint={t("admin.settled_appointments", "Settled appointments")}
+          icon={CheckCircle}
+          gradient="bg-gradient-to-br from-emerald-500 via-emerald-600 to-teal-600"
+          testId="kpi-financial-completed"
+        />
+      </div>
+
+      {/* Payment method breakdown + recent payments */}
+      <div className="grid gap-6 lg:grid-cols-3">
+        <Card className="lg:col-span-1">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <CreditCard className="h-4 w-4" />
+              {t("admin.payment_methods", "Payment methods")}
+            </CardTitle>
+            <CardDescription>{t("admin.recent_payments_breakdown", "From recent payments")}</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold" data-testid="text-financial-total">{fmtMoney(totalRevenue)}</div>
+            {methodEntries.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-6">
+                {t("admin.no_payments", "No payments yet")}
+              </p>
+            ) : (
+              <div className="space-y-3">
+                {methodEntries.map((m) => {
+                  const pct = totalRevenue > 0 ? Math.min(100, (m.amount / Math.max(...methodEntries.map((x) => x.amount))) * 100) : 0;
+                  return (
+                    <div key={m.method} data-testid={`row-method-${m.method}`}>
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="capitalize font-medium">{m.method}</span>
+                        <span className="tabular-nums text-muted-foreground">{fmtMoney(m.amount)} · {m.count}</span>
+                      </div>
+                      <div className="mt-1 h-2 rounded-full bg-muted overflow-hidden">
+                        <div
+                          className="h-full bg-gradient-to-r from-indigo-500 to-fuchsia-500"
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </CardContent>
         </Card>
-        <Card className="stat-card stat-teal">
-          <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">{t("admin.completed")} {t("admin.bookings")}</CardTitle>
-            <div className="stat-icon h-9 w-9"><CheckCircle className="h-4 w-4" /></div>
+
+        <Card className="lg:col-span-2">
+          <CardHeader>
+            <CardTitle>{t("admin.recent_payments", "Recent payments")}</CardTitle>
+            <CardDescription>
+              {t("admin.recent_payments_desc", "Latest transactions across the platform")}
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold" data-testid="text-financial-completed">{analytics?.completedBookings || 0}</div>
-          </CardContent>
-        </Card>
-        <Card className="stat-card stat-indigo">
-          <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">{t("admin.total_users_label")}</CardTitle>
-            <div className="stat-icon h-9 w-9"><Plus className="h-4 w-4" /></div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold" data-testid="text-financial-users">{analytics?.totalUsers || 0}</div>
+            <div className="rounded-md border overflow-hidden">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b bg-muted/50">
+                    <th className="h-10 px-4 text-left font-medium">{t("admin.date", "Date")}</th>
+                    <th className="h-10 px-4 text-left font-medium">{t("admin.amount", "Amount")}</th>
+                    <th className="h-10 px-4 text-left font-medium">{t("admin.status", "Status")}</th>
+                    <th className="h-10 px-4 text-left font-medium">{t("booking.payment_method", "Method")}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {payments.length === 0 ? (
+                    <tr>
+                      <td colSpan={4} className="p-4 text-center text-muted-foreground">
+                        {t("admin.no_payments", "No payments yet")}
+                      </td>
+                    </tr>
+                  ) : (
+                    payments.map((payment: any) => {
+                      const isPaid = payment.status === "completed" || payment.status === "paid";
+                      return (
+                        <tr key={payment.id} className="border-b last:border-0 hover:bg-muted/30 transition" data-testid={`row-payment-${payment.id}`}>
+                          <td className="p-4 text-muted-foreground tabular-nums">
+                            {new Date(payment.createdAt).toLocaleDateString()}
+                          </td>
+                          <td className="p-4 font-semibold tabular-nums">{fmtMoney(payment.amount)}</td>
+                          <td className="p-4">
+                            <Badge
+                              variant="outline"
+                              className={
+                                isPaid
+                                  ? "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300"
+                                  : payment.status === "pending"
+                                    ? "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300"
+                                    : "bg-rose-100 text-rose-700 border-rose-200 dark:bg-rose-900/30 dark:text-rose-300"
+                              }
+                            >
+                              {payment.status}
+                            </Badge>
+                          </td>
+                          <td className="p-4 capitalize">{payment.paymentMethod || "—"}</td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
           </CardContent>
         </Card>
       </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>{t("admin.recent_payments")}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="rounded-md border overflow-hidden">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b bg-muted/50">
-                  <th className="h-10 px-4 text-left font-medium">{t("admin.date")}</th>
-                  <th className="h-10 px-4 text-left font-medium">{t("admin.amount")}</th>
-                  <th className="h-10 px-4 text-left font-medium">{t("admin.status")}</th>
-                  <th className="h-10 px-4 text-left font-medium">{t("booking.payment_method")}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {payments.length === 0 ? (
-                  <tr>
-                    <td colSpan={4} className="p-4 text-center text-muted-foreground">
-                      {t("admin.no_payments")}
-                    </td>
-                  </tr>
-                ) : (
-                  payments.map((payment: any) => (
-                    <tr key={payment.id} className="border-b last:border-0">
-                      <td className="p-4">{new Date(payment.createdAt).toLocaleDateString()}</td>
-                      <td className="p-4">{fmtMoney(payment.amount)}</td>
-                      <td className="p-4">
-                        <Badge variant={payment.status === "completed" ? "default" : "secondary"}>
-                          {payment.status}
-                        </Badge>
-                      </td>
-                      <td className="p-4 capitalize">{payment.paymentMethod}</td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }
@@ -1318,24 +1633,33 @@ function FormSection({
   );
 }
 
-function ProviderStatusPill({ status, t }: { status: string; t: (k: string, d?: string) => string }) {
+function ProviderStatusPill({ status, t }: { status: string; t: any }) {
+  const normalized = status === "approved" ? "active" : status;
   const cfg: Record<string, string> = {
     active:    "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300 border-emerald-200",
     pending:   "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300 border-amber-200",
     suspended: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300 border-red-200",
-    approved:  "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 border-blue-200",
     rejected:  "bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300 border-rose-200",
   };
   const dot: Record<string, string> = {
     active: "bg-emerald-500", pending: "bg-amber-500", suspended: "bg-red-500",
-    approved: "bg-blue-500", rejected: "bg-rose-500",
+    rejected: "bg-rose-500",
   };
-  const cls = cfg[status] || "bg-muted text-muted-foreground border-border";
-  const dotCls = dot[status] || "bg-slate-400";
+  const labelKey: Record<string, string> = {
+    active: "admin.active",
+    pending: "admin.awaiting_approval",
+    suspended: "admin.suspended",
+    rejected: "admin.rejected",
+  };
+  const cls = cfg[normalized] || "bg-muted text-muted-foreground border-border";
+  const dotCls = dot[normalized] || "bg-slate-400";
+  const label = labelKey[normalized]
+    ? t(labelKey[normalized], normalized.charAt(0).toUpperCase() + normalized.slice(1))
+    : t(`admin.${normalized}`, normalized);
   return (
     <Badge variant="outline" className={`${cls} text-[10px] gap-1.5 h-5`}>
       <span className={`h-1.5 w-1.5 rounded-full ${dotCls}`} />
-      {t(`admin.${status}`, status)}
+      {label}
     </Badge>
   );
 }
@@ -1470,7 +1794,10 @@ function ProvidersManagement() {
 
   const providersList = providers ?? [];
   const filteredProviders = providersList.filter((p: any) => {
-    if (providerStatusFilter !== "all" && p.status !== providerStatusFilter) return false;
+    if (providerStatusFilter !== "all") {
+      const normalizedStatus = p.status === "approved" ? "active" : p.status;
+      if (normalizedStatus !== providerStatusFilter) return false;
+    }
     if (providerTypeFilter !== "all" && p.type !== providerTypeFilter) return false;
     if (!providerSearch) return true;
     const q = providerSearch.toLowerCase();
@@ -2090,9 +2417,8 @@ function ProvidersManagement() {
               <SelectContent>
                 <SelectItem value="all">{t("admin.all_statuses", "All statuses")}</SelectItem>
                 <SelectItem value="active">{t("admin.active", "Active")}</SelectItem>
-                <SelectItem value="pending">{t("admin.pending", "Pending")}</SelectItem>
                 <SelectItem value="suspended">{t("admin.suspended", "Suspended")}</SelectItem>
-                <SelectItem value="approved">{t("admin.approved", "Approved")}</SelectItem>
+                <SelectItem value="pending">{t("admin.awaiting_approval", "Awaiting Approval")}</SelectItem>
                 <SelectItem value="rejected">{t("admin.rejected", "Rejected")}</SelectItem>
               </SelectContent>
             </Select>
@@ -2130,7 +2456,7 @@ function ProvidersManagement() {
                         <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
                           <Badge variant="outline" className="text-[10px] gap-1 px-1.5 h-5">
                             <TypeIcon className="h-2.5 w-2.5" />
-                            {t(`common_service_type.${provider.type}`, provider.type)}
+                            {String(t(`common_service_type.${provider.type}`, { defaultValue: provider.type }))}
                           </Badge>
                           {provider.specialization && (
                             <Badge variant="outline" className="text-[10px] px-1.5 h-5">
@@ -2215,13 +2541,8 @@ function ProvidersManagement() {
                         <SelectContent>
                           <SelectItem value="active">{t("admin.active", "Active")}</SelectItem>
                           <SelectItem value="suspended">{t("admin.suspended", "Suspended")}</SelectItem>
-                          <SelectItem value="pending">{t("admin.pending", "Pending")}</SelectItem>
-                          <SelectItem value="approved">{t("admin.approved", "Approved")}</SelectItem>
-                          <SelectItem value="confirmed">{t("admin.confirmed", "Confirmed")}</SelectItem>
-                          <SelectItem value="completed">{t("admin.completed", "Completed")}</SelectItem>
+                          <SelectItem value="pending">{t("admin.awaiting_approval", "Awaiting Approval")}</SelectItem>
                           <SelectItem value="rejected">{t("admin.rejected", "Rejected")}</SelectItem>
-                          <SelectItem value="cancelled">{t("admin.cancelled", "Cancelled")}</SelectItem>
-                          <SelectItem value="rescheduled">{t("admin.rescheduled", "Rescheduled")}</SelectItem>
                         </SelectContent>
                       </Select>
                       <Button

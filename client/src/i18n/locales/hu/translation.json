@@ -221,6 +221,7 @@
     "add_practitioner": "Szakember hozzáadása",
     "add_provider_desc": "Új szolgáltatói fiók létrehozása",
     "approved": "Jóváhagyva",
+    "awaiting_approval": "Jóváhagyásra vár",
     "available_days": "Elérhető napok",
     "city": "Város",
     "confirm_delete_provider": "Biztosan törli ezt a szolgáltatót?",

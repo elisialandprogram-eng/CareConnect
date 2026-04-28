@@ -269,6 +269,7 @@
     "add_practitioner": "Add Practitioner",
     "add_provider_desc": "Create a new healthcare provider account",
     "approved": "Approved",
+    "awaiting_approval": "Awaiting Approval",
     "available_days": "Available Days",
     "city": "City",
     "confirm_delete_provider": "Are you sure you want to delete this provider?",

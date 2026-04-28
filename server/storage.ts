@@ -432,6 +432,15 @@ export interface IStorage {
     pendingBookings: number;
     completedBookings: number;
     recentPayments: any[];
+    revenueSeries: { name: string; revenue: number; bookings: number }[];
+    platformFees: string;
+    providerPayouts: string;
+    avgBookingValue: string;
+    revenueToday: string;
+    revenueThisMonth: string;
+    revenueLastMonth: string;
+    revenueGrowthPct: number;
+    activeProviders: number;
   }>;
 
   // Invoices
@@ -1668,16 +1677,98 @@ export class DatabaseStorage implements IStorage {
     pendingBookings: number;
     completedBookings: number;
     recentPayments: any[];
+    revenueSeries: { name: string; revenue: number; bookings: number }[];
+    platformFees: string;
+    providerPayouts: string;
+    avgBookingValue: string;
+    revenueToday: string;
+    revenueThisMonth: string;
+    revenueLastMonth: string;
+    revenueGrowthPct: number;
+    activeProviders: number;
   }> {
     const [userCount] = await db.select({ count: count() }).from(users);
     const [providerCount] = await db.select({ count: count() }).from(providers);
     const [bookingCount] = await db.select({ count: count() }).from(appointments);
     const [pendingCount] = await db.select({ count: count() }).from(appointments).where(eq(appointments.status, "pending"));
     const [completedCount] = await db.select({ count: count() }).from(appointments).where(eq(appointments.status, "completed"));
-    
+
     const allPayments = await db.select().from(payments).orderBy(desc(payments.createdAt)).limit(10);
     const totalPayments = await db.select().from(payments);
-    const totalRevenue = totalPayments.reduce((sum, p) => sum + parseFloat(p.amount || "0"), 0);
+    const allAppointments = await db.select().from(appointments);
+    const allProviders = await db.select().from(providers);
+
+    // Only count payments that actually settled as revenue.
+    const settledPayments = totalPayments.filter((p: any) =>
+      p.status === "completed" || p.status === "paid"
+    );
+    const totalRevenue = settledPayments.reduce(
+      (sum, p: any) => sum + parseFloat(p.amount || "0"),
+      0,
+    );
+
+    // Platform fees come from completed bookings' platformFeeAmount.
+    const completedAppts = allAppointments.filter((a: any) => a.status === "completed");
+    const platformFees = completedAppts.reduce(
+      (sum, a: any) => sum + parseFloat(a.platformFeeAmount || "0"),
+      0,
+    );
+    const providerPayouts = Math.max(0, totalRevenue - platformFees);
+    const avgBookingValue = completedAppts.length
+      ? totalRevenue / completedAppts.length
+      : 0;
+
+    const activeProviders = allProviders.filter((p: any) =>
+      p.status === "active" || p.status === "approved"
+    ).length;
+
+    // Build a 12-month revenue + bookings series (oldest → newest).
+    const now = new Date();
+    const startOfMonth = (d: Date) => new Date(d.getFullYear(), d.getMonth(), 1);
+    const monthLabel = (d: Date) =>
+      d.toLocaleDateString("en-US", { month: "short", year: "2-digit" });
+
+    const revenueSeries: { name: string; revenue: number; bookings: number }[] = [];
+    for (let i = 11; i >= 0; i--) {
+      const monthStart = startOfMonth(new Date(now.getFullYear(), now.getMonth() - i, 1));
+      const monthEnd = startOfMonth(new Date(now.getFullYear(), now.getMonth() - i + 1, 1));
+      const monthPayments = settledPayments.filter((p: any) => {
+        const d = p.createdAt ? new Date(p.createdAt) : null;
+        return d && d >= monthStart && d < monthEnd;
+      });
+      const monthBookings = allAppointments.filter((a: any) => {
+        const d = a.createdAt ? new Date(a.createdAt) : null;
+        return d && d >= monthStart && d < monthEnd;
+      });
+      const revenue = monthPayments.reduce(
+        (s, p: any) => s + parseFloat(p.amount || "0"),
+        0,
+      );
+      revenueSeries.push({
+        name: monthLabel(monthStart),
+        revenue: Math.round(revenue * 100) / 100,
+        bookings: monthBookings.length,
+      });
+    }
+
+    // Today / this month / last month revenue and growth %.
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const thisMonthStart = startOfMonth(now);
+    const lastMonthStart = startOfMonth(new Date(now.getFullYear(), now.getMonth() - 1, 1));
+    const sumPaymentsBetween = (from: Date, to: Date) =>
+      settledPayments
+        .filter((p: any) => {
+          const d = p.createdAt ? new Date(p.createdAt) : null;
+          return d && d >= from && d < to;
+        })
+        .reduce((s, p: any) => s + parseFloat(p.amount || "0"), 0);
+
+    const revenueToday = sumPaymentsBetween(startOfToday, new Date(startOfToday.getTime() + 86400000));
+    const revenueThisMonth = sumPaymentsBetween(thisMonthStart, new Date(now.getFullYear(), now.getMonth() + 1, 1));
+    const revenueLastMonth = sumPaymentsBetween(lastMonthStart, thisMonthStart);
+    const revenueGrowthPct = revenueLastMonth > 0
+      ? Math.round(((revenueThisMonth - revenueLastMonth) / revenueLastMonth) * 1000) / 10
+      : (revenueThisMonth > 0 ? 100 : 0);
 
     return {
       totalUsers: userCount?.count || 0,
@@ -1687,6 +1778,15 @@ export class DatabaseStorage implements IStorage {
       pendingBookings: pendingCount?.count || 0,
       completedBookings: completedCount?.count || 0,
       recentPayments: allPayments,
+      revenueSeries,
+      platformFees: platformFees.toFixed(2),
+      providerPayouts: providerPayouts.toFixed(2),
+      avgBookingValue: avgBookingValue.toFixed(2),
+      revenueToday: revenueToday.toFixed(2),
+      revenueThisMonth: revenueThisMonth.toFixed(2),
+      revenueLastMonth: revenueLastMonth.toFixed(2),
+      revenueGrowthPct,
+      activeProviders,
     };
   }
 
