@@ -3207,7 +3207,18 @@ export async function registerRoutes(
   app.get("/api/admin/support-tickets", authenticateToken, requireAdmin, async (req: AuthRequest, res: Response) => {
     try {
       const tickets = await storage.getAllSupportTickets();
-      res.json(tickets);
+      const allUsers = await storage.getAllUsers();
+      const userMap = new Map(allUsers.map(u => [u.id, u]));
+      const enriched = tickets.map(t => {
+        const u = t.userId ? userMap.get(t.userId) : null;
+        const a = t.assignedTo ? userMap.get(t.assignedTo) : null;
+        return {
+          ...t,
+          creator: u ? { id: u.id, firstName: u.firstName, lastName: u.lastName, email: u.email, role: u.role } : null,
+          assignee: a ? { id: a.id, firstName: a.firstName, lastName: a.lastName } : null,
+        };
+      });
+      res.json(enriched);
     } catch (error) {
       res.status(500).json({ message: "Failed to get support tickets" });
     }
@@ -3216,7 +3227,16 @@ export async function registerRoutes(
   app.get("/api/admin/support-tickets/:id/messages", authenticateToken, requireAdmin, async (req: AuthRequest, res: Response) => {
     try {
       const messages = await storage.getTicketMessages(req.params.id);
-      res.json(messages);
+      const allUsers = await storage.getAllUsers();
+      const userMap = new Map(allUsers.map(u => [u.id, u]));
+      const enriched = messages.map(m => {
+        const u = userMap.get(m.userId);
+        return {
+          ...m,
+          sender: u ? { id: u.id, firstName: u.firstName, lastName: u.lastName, role: u.role } : null,
+        };
+      });
+      res.json(enriched);
     } catch (error) {
       res.status(500).json({ message: "Failed to get ticket messages" });
     }
@@ -3234,12 +3254,24 @@ export async function registerRoutes(
 
   app.post("/api/admin/support-tickets/:id/messages", authenticateToken, requireAdmin, async (req: AuthRequest, res: Response) => {
     try {
+      const ticket = await storage.getSupportTicket(req.params.id);
+      if (!ticket) return res.status(404).json({ message: "Ticket not found" });
+      if (!req.body?.message) return res.status(400).json({ message: "Message required" });
+      const isInternal = !!req.body.isInternal;
       const message = await storage.createTicketMessage({
         ticketId: req.params.id,
         userId: req.user!.id,
         message: req.body.message,
-        isInternal: true,
+        isInternal,
       });
+      // Auto-promote ticket from open → in_progress when admin first replies
+      if (!isInternal && ticket.status === "open") {
+        await storage.updateSupportTicket(ticket.id, { status: "in_progress" });
+      }
+      // Notify the ticket creator about the public reply
+      if (!isInternal && ticket.userId) {
+        notify.ticketReplied(ticket.userId, { ticketId: ticket.id, subject: ticket.subject }).catch(() => {});
+      }
       res.status(201).json(message);
     } catch (error) {
       res.status(500).json({ message: "Failed to send message" });
@@ -3896,16 +3928,42 @@ export async function registerRoutes(
     try {
       const all = await storage.getAllSupportTickets();
       const mine = req.user!.role === "admin" ? all : all.filter(t => t.userId === req.user!.id);
-      res.json(mine);
+      // Enrich with reply count + last reply timestamp (excludes internal notes)
+      const enriched = await Promise.all(mine.map(async (t) => {
+        const msgs = await storage.getTicketMessages(t.id);
+        const visible = msgs.filter(m => !m.isInternal);
+        const last = visible[visible.length - 1];
+        return {
+          ...t,
+          replyCount: visible.length,
+          lastMessageAt: last ? last.createdAt : t.createdAt,
+          lastMessagePreview: last ? last.message.slice(0, 80) : null,
+          hasAdminReply: visible.some(m => m.userId !== t.userId),
+        };
+      }));
+      res.json(enriched);
     } catch { res.status(500).json({ message: "Failed" }); }
   });
   app.get("/api/support/tickets/:id", authenticateToken, async (req: AuthRequest, res: Response) => {
     try {
       const t = await storage.getSupportTicket(req.params.id);
       if (!t) return res.status(404).json({ message: "Not found" });
-      if (req.user!.role !== "admin" && t.userId !== req.user!.id) return res.status(403).json({ message: "Forbidden" });
-      const messages = await storage.getTicketMessages(req.params.id);
-      res.json({ ticket: t, messages });
+      const isAdmin = req.user!.role === "admin";
+      if (!isAdmin && t.userId !== req.user!.id) return res.status(403).json({ message: "Forbidden" });
+      const allMessages = await storage.getTicketMessages(req.params.id);
+      // Hide internal notes from non-admins
+      const messages = isAdmin ? allMessages : allMessages.filter(m => !m.isInternal);
+      // Attach minimal sender info
+      const allUsers = await storage.getAllUsers();
+      const userMap = new Map(allUsers.map(u => [u.id, u]));
+      const withSenders = messages.map(m => {
+        const u = userMap.get(m.userId);
+        return {
+          ...m,
+          sender: u ? { id: u.id, firstName: u.firstName, lastName: u.lastName, role: u.role } : null,
+        };
+      });
+      res.json({ ticket: t, messages: withSenders });
     } catch { res.status(500).json({ message: "Failed" }); }
   });
   app.post("/api/support/tickets/:id/messages", authenticateToken, async (req: AuthRequest, res: Response) => {

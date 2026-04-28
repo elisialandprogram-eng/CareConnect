@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
@@ -48,7 +48,7 @@ import {
   Loader2, Shield, Users, Building, Trash2, Edit, Plus, Tag, DollarSign,
   Calendar, FileText, Settings, MessageSquare, Activity, BarChart3,
   Bell, HelpCircle, CheckCircle, XCircle, Clock, Eye, ListTree, Search, UserCheck,
-  Wallet as WalletIcon, Briefcase, Sparkles as SparklesIcon
+  Wallet as WalletIcon, Briefcase, Sparkles as SparklesIcon, Send, Lock, MapPin
 } from "lucide-react";
 import type { User, ProviderWithUser, PromoCode, ProviderPricingOverride, SubService, Practitioner, ServicePractitioner, Service } from "@shared/schema";
 import { ServiceFormDialog } from "@/components/service-form-dialog";
@@ -2615,7 +2615,13 @@ function InvoiceManagement() {
 function SupportTickets() {
   const { t } = useTranslation();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [selectedTicket, setSelectedTicket] = useState<any>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [priorityFilter, setPriorityFilter] = useState<string>("all");
+  const [reply, setReply] = useState("");
+  const [isInternalNote, setIsInternalNote] = useState(false);
 
   const { data: tickets, refetch } = useQuery<any[]>({
     queryKey: ["/api/admin/support-tickets"],
@@ -2626,185 +2632,355 @@ function SupportTickets() {
     enabled: !!selectedTicket,
   });
 
-  const messageForm = useForm({
-    defaultValues: { message: "" },
-  });
-
   const updateTicketMutation = useMutation({
     mutationFn: async ({ id, status, priority }: { id: string; status?: string; priority?: string }) => {
       const response = await apiRequest("PATCH", `/api/admin/support-tickets/${id}`, { status, priority });
       const resData = await response.json();
-      if (!response.ok) throw new Error(resData.message || t("admin_dashboard.ticket_update_failed"));
+      if (!response.ok) throw new Error(resData.message || t("admin_dashboard.ticket_update_failed", "Failed to update ticket"));
       return resData;
     },
     onSuccess: () => {
-      toast({ title: t("admin_dashboard.ticket_updated") });
+      toast({ title: t("admin_dashboard.ticket_updated", "Ticket updated") });
       refetch();
     },
     onError: (error: Error) => {
-      toast({ title: t("admin_dashboard.error"), description: error.message, variant: "destructive" });
+      toast({ title: t("admin_dashboard.error", "Error"), description: error.message, variant: "destructive" });
     },
   });
 
   const sendMessageMutation = useMutation({
-    mutationFn: async ({ ticketId, message }: { ticketId: string; message: string }) => {
-      const response = await apiRequest("POST", `/api/admin/support-tickets/${ticketId}/messages`, { message });
+    mutationFn: async ({ ticketId, message, isInternal }: { ticketId: string; message: string; isInternal: boolean }) => {
+      const response = await apiRequest("POST", `/api/admin/support-tickets/${ticketId}/messages`, { message, isInternal });
       const resData = await response.json();
-      if (!response.ok) throw new Error(resData.message || t("admin_dashboard.message_send_failed"));
+      if (!response.ok) throw new Error(resData.message || t("admin_dashboard.message_send_failed", "Failed to send message"));
       return resData;
     },
     onSuccess: () => {
-      toast({ title: t("admin_dashboard.message_sent") });
-      messageForm.reset();
+      toast({ title: isInternalNote ? t("admin_dashboard.note_added", "Internal note added") : t("admin_dashboard.message_sent", "Reply sent") });
+      setReply("");
+      setIsInternalNote(false);
       refetchMessages();
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/support-tickets"] });
     },
     onError: (error: Error) => {
-      toast({ title: t("admin_dashboard.error"), description: error.message, variant: "destructive" });
+      toast({ title: t("admin_dashboard.error", "Error"), description: error.message, variant: "destructive" });
     },
   });
 
+  const STATUS_CFG: Record<string, { label: string; cls: string }> = {
+    open:        { label: t("admin_dashboard.status_open", "Open"),               cls: "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300" },
+    in_progress: { label: t("admin_dashboard.status_in_progress", "In progress"), cls: "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300" },
+    resolved:    { label: t("admin_dashboard.status_resolved", "Resolved"),       cls: "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300" },
+    closed:      { label: t("admin_dashboard.status_closed", "Closed"),           cls: "bg-muted text-muted-foreground border-border" },
+  };
+  const PRIORITY_CFG: Record<string, string> = {
+    low:    "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300",
+    medium: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
+    high:   "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300",
+    urgent: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300",
+  };
+
+  const filtered = (tickets ?? []).filter((tk: any) => {
+    if (statusFilter !== "all" && tk.status !== statusFilter) return false;
+    if (priorityFilter !== "all" && tk.priority !== priorityFilter) return false;
+    if (!searchQuery) return true;
+    const q = searchQuery.toLowerCase();
+    const creatorName = `${tk.creator?.firstName || ""} ${tk.creator?.lastName || ""} ${tk.creator?.email || tk.name || ""}`.toLowerCase();
+    return (
+      tk.subject?.toLowerCase().includes(q) ||
+      tk.description?.toLowerCase().includes(q) ||
+      creatorName.includes(q)
+    );
+  });
+
+  const counts = (tickets ?? []).reduce((acc: Record<string, number>, tk: any) => {
+    acc[tk.status] = (acc[tk.status] || 0) + 1;
+    return acc;
+  }, {});
+
+  const sendReply = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedTicket || !reply.trim()) return;
+    sendMessageMutation.mutate({ ticketId: selectedTicket.id, message: reply.trim(), isInternal: isInternalNote });
+  };
+
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>{t("admin_dashboard.support_tickets")}</CardTitle>
-          <CardDescription>{t("admin_dashboard.support_tickets_desc")}</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ScrollArea className="h-[500px]">
-            <div className="space-y-2">
-              {tickets?.map((ticket: any) => (
-                <div
-                  key={ticket.id}
-                  className={`p-4 border rounded-lg cursor-pointer transition-colors ${
-                    selectedTicket?.id === ticket.id ? 'border-primary bg-muted/50' : 'hover-elevate'
-                  }`}
-                  onClick={() => setSelectedTicket(ticket)}
-                  data-testid={`card-ticket-${ticket.id}`}
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium truncate">{ticket.subject}</p>
-                      <p className="text-sm text-muted-foreground truncate">{ticket.description}</p>
-                    </div>
-                    <div className="flex flex-col items-end gap-1">
-                      <Badge variant={
-                        ticket.status === 'open' ? 'default' :
-                        ticket.status === 'in_progress' ? 'secondary' :
-                        ticket.status === 'resolved' ? 'outline' : 'destructive'
-                      }>
-                        {ticket.status?.replace('_', ' ')}
-                      </Badge>
-                      <Badge variant="outline" className="text-xs">
-                        {ticket.priority}
-                      </Badge>
-                    </div>
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-2">
-                    {new Date(ticket.createdAt).toLocaleDateString()}
-                  </p>
-                </div>
-              ))}
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {(["open", "in_progress", "resolved", "closed"] as const).map((s) => (
+          <Card key={s} className="cursor-pointer hover-elevate" onClick={() => setStatusFilter(s)} data-testid={`stat-${s}`}>
+            <CardContent className="p-4 flex items-center justify-between">
+              <div>
+                <p className="text-xs uppercase tracking-wide text-muted-foreground">{STATUS_CFG[s].label}</p>
+                <p className="text-2xl font-bold">{counts[s] || 0}</p>
+              </div>
+              <Badge variant="outline" className={`${STATUS_CFG[s].cls} h-7 px-2`}>{counts[s] || 0}</Badge>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-[400px_1fr] gap-6">
+        <Card>
+          <CardHeader className="pb-3 space-y-3">
+            <div className="flex items-center justify-between">
+              <CardTitle>{t("admin_dashboard.support_tickets", "Support tickets")}</CardTitle>
+              <Badge variant="secondary">{filtered.length}</Badge>
             </div>
-          </ScrollArea>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>
-            {selectedTicket ? t("admin_dashboard.ticket_prefix", { subject: selectedTicket.subject }) : t("admin_dashboard.select_ticket")}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {selectedTicket ? (
-            <div className="space-y-4">
-              <div className="flex items-center gap-4">
-                <Select
-                  value={selectedTicket.status}
-                  onValueChange={(status) => {
-                    updateTicketMutation.mutate({ id: selectedTicket.id, status });
-                    setSelectedTicket({ ...selectedTicket, status });
-                  }}
-                >
-                  <SelectTrigger className="w-36" data-testid="select-ticket-status">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="open">{t("admin_dashboard.status_open")}</SelectItem>
-                    <SelectItem value="in_progress">{t("admin_dashboard.status_in_progress")}</SelectItem>
-                    <SelectItem value="resolved">{t("admin_dashboard.status_resolved")}</SelectItem>
-                    <SelectItem value="closed">{t("admin_dashboard.status_closed")}</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Select
-                  value={selectedTicket.priority}
-                  onValueChange={(priority) => {
-                    updateTicketMutation.mutate({ id: selectedTicket.id, priority });
-                    setSelectedTicket({ ...selectedTicket, priority });
-                  }}
-                >
-                  <SelectTrigger className="w-28" data-testid="select-ticket-priority">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="low">{t("admin_dashboard.priority_low")}</SelectItem>
-                    <SelectItem value="medium">{t("admin_dashboard.priority_medium")}</SelectItem>
-                    <SelectItem value="high">{t("admin_dashboard.priority_high")}</SelectItem>
-                    <SelectItem value="urgent">{t("admin_dashboard.priority_urgent")}</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="p-4 bg-muted rounded-lg">
-                <p className="text-sm">{selectedTicket.description}</p>
-              </div>
-
-              <ScrollArea className="h-[250px] border rounded-lg p-4">
-                <div className="space-y-3">
-                  {ticketMessages?.map((msg: any) => (
-                    <div
-                      key={msg.id}
-                      className={`p-3 rounded-lg ${msg.isStaffReply ? 'bg-primary/10 ml-4' : 'bg-muted mr-4'}`}
-                      data-testid={`message-${msg.id}`}
-                    >
-                      <p className="text-sm">{msg.message}</p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {new Date(msg.createdAt).toLocaleString()}
-                      </p>
-                    </div>
+            <div className="relative">
+              <Search className="h-4 w-4 absolute left-2.5 top-2.5 text-muted-foreground" />
+              <Input
+                placeholder={t("admin_dashboard.search_tickets", "Search subject, user, email...")}
+                className="pl-8"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                data-testid="input-search-tickets"
+              />
+            </div>
+            <div className="flex gap-2">
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="flex-1 h-8" data-testid="select-filter-status">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">{t("admin_dashboard.all_statuses", "All statuses")}</SelectItem>
+                  {(["open", "in_progress", "resolved", "closed"] as const).map((s) => (
+                    <SelectItem key={s} value={s}>{STATUS_CFG[s].label}</SelectItem>
                   ))}
+                </SelectContent>
+              </Select>
+              <Select value={priorityFilter} onValueChange={setPriorityFilter}>
+                <SelectTrigger className="flex-1 h-8" data-testid="select-filter-priority">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">{t("admin_dashboard.all_priorities", "All priorities")}</SelectItem>
+                  <SelectItem value="low">{t("admin_dashboard.priority_low", "Low")}</SelectItem>
+                  <SelectItem value="medium">{t("admin_dashboard.priority_medium", "Medium")}</SelectItem>
+                  <SelectItem value="high">{t("admin_dashboard.priority_high", "High")}</SelectItem>
+                  <SelectItem value="urgent">{t("admin_dashboard.priority_urgent", "Urgent")}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </CardHeader>
+          <CardContent className="p-2">
+            <ScrollArea className="h-[520px]">
+              {filtered.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12 text-center text-muted-foreground space-y-2">
+                  <Activity className="h-10 w-10 text-muted-foreground/40" />
+                  <p className="text-sm">{t("admin_dashboard.no_tickets_match", "No tickets match the current filters.")}</p>
                 </div>
-              </ScrollArea>
+              ) : (
+                <div className="space-y-1">
+                  {filtered.map((ticket: any) => {
+                    const cfg = STATUS_CFG[ticket.status] || STATUS_CFG.open;
+                    const isActive = selectedTicket?.id === ticket.id;
+                    const creator = ticket.creator
+                      ? `${ticket.creator.firstName || ""} ${ticket.creator.lastName || ""}`.trim() || ticket.creator.email
+                      : ticket.name || t("admin_dashboard.guest", "Guest");
+                    return (
+                      <button
+                        key={ticket.id}
+                        onClick={() => setSelectedTicket(ticket)}
+                        className={`w-full text-left p-3 rounded-lg transition-colors ${
+                          isActive ? "bg-primary/10 border border-primary/30" : "hover:bg-muted/60 border border-transparent"
+                        }`}
+                        data-testid={`card-ticket-${ticket.id}`}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <p className="font-medium text-sm truncate flex-1">{ticket.subject}</p>
+                          <Badge variant="outline" className={`${cfg.cls} text-[10px] px-1.5 py-0 h-5 shrink-0`}>{cfg.label}</Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">{ticket.description}</p>
+                        <div className="flex items-center justify-between gap-2 mt-1.5">
+                          <p className="text-[11px] text-muted-foreground truncate">
+                            <Users className="inline h-3 w-3 mr-0.5 -mt-0.5" />{creator}
+                          </p>
+                          <Badge variant="outline" className={`${PRIORITY_CFG[ticket.priority] || ""} text-[10px] px-1.5 py-0 h-5`}>
+                            {ticket.priority}
+                          </Badge>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground mt-1">{new Date(ticket.createdAt).toLocaleString()}</p>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </ScrollArea>
+          </CardContent>
+        </Card>
 
-              <Form {...messageForm}>
-                <form onSubmit={messageForm.handleSubmit((data) => {
-                  sendMessageMutation.mutate({ ticketId: selectedTicket.id, message: data.message });
-                })} className="flex gap-2">
-                  <FormField
-                    control={messageForm.control}
-                    name="message"
-                    render={({ field }) => (
-                      <FormItem className="flex-1">
-                        <FormControl>
-                          <Input {...field} placeholder={t("admin_dashboard.reply_placeholder")} data-testid="input-ticket-reply" />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-                  <Button type="submit" disabled={sendMessageMutation.isPending} data-testid="button-send-reply">
-                    {sendMessageMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : t("admin_dashboard.send")}
-                  </Button>
-                </form>
-              </Form>
-            </div>
+        <Card>
+          {!selectedTicket ? (
+            <CardContent className="flex flex-col items-center justify-center min-h-[600px] text-center text-muted-foreground space-y-3">
+              <MessageSquare className="h-12 w-12 text-muted-foreground/40" />
+              <p>{t("admin_dashboard.select_ticket_details", "Select a ticket to view details and reply.")}</p>
+            </CardContent>
           ) : (
-            <div className="flex items-center justify-center h-[400px] text-muted-foreground">
-              {t("admin_dashboard.select_ticket_details")}
-            </div>
+            <>
+              <CardHeader className="border-b space-y-3">
+                <div className="flex items-start justify-between gap-3 flex-wrap">
+                  <div>
+                    <CardTitle className="text-lg">{selectedTicket.subject}</CardTitle>
+                    <CardDescription className="mt-1">
+                      {selectedTicket.creator
+                        ? `${selectedTicket.creator.firstName || ""} ${selectedTicket.creator.lastName || ""} · ${selectedTicket.creator.email}`
+                        : `${selectedTicket.name || t("admin_dashboard.guest", "Guest")}${selectedTicket.mobileNumber ? " · " + selectedTicket.mobileNumber : ""}`}
+                      {" · "}
+                      {new Date(selectedTicket.createdAt).toLocaleString()}
+                    </CardDescription>
+                  </div>
+                  <div className="flex gap-2">
+                    <Select
+                      value={selectedTicket.status}
+                      onValueChange={(status) => {
+                        updateTicketMutation.mutate({ id: selectedTicket.id, status });
+                        setSelectedTicket({ ...selectedTicket, status });
+                      }}
+                    >
+                      <SelectTrigger className="w-36 h-8" data-testid="select-ticket-status">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {(["open", "in_progress", "resolved", "closed"] as const).map((s) => (
+                          <SelectItem key={s} value={s}>{STATUS_CFG[s].label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Select
+                      value={selectedTicket.priority}
+                      onValueChange={(priority) => {
+                        updateTicketMutation.mutate({ id: selectedTicket.id, priority });
+                        setSelectedTicket({ ...selectedTicket, priority });
+                      }}
+                    >
+                      <SelectTrigger className="w-28 h-8" data-testid="select-ticket-priority">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="low">{t("admin_dashboard.priority_low", "Low")}</SelectItem>
+                        <SelectItem value="medium">{t("admin_dashboard.priority_medium", "Medium")}</SelectItem>
+                        <SelectItem value="high">{t("admin_dashboard.priority_high", "High")}</SelectItem>
+                        <SelectItem value="urgent">{t("admin_dashboard.priority_urgent", "Urgent")}</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </CardHeader>
+
+              <CardContent className="p-0">
+                <div className="p-5 bg-muted/30 border-b">
+                  <p className="text-xs font-semibold uppercase text-muted-foreground mb-1.5">{t("admin_dashboard.original_request", "Original request")}</p>
+                  <p className="text-sm whitespace-pre-wrap">{selectedTicket.description}</p>
+                  {selectedTicket.location && (
+                    <p className="text-xs text-muted-foreground mt-2">
+                      <MapPin className="inline h-3 w-3 mr-1 -mt-0.5" />
+                      {selectedTicket.location}
+                    </p>
+                  )}
+                </div>
+
+                <ScrollArea className="h-[330px] p-5">
+                  <div className="space-y-4">
+                    {(ticketMessages ?? []).length === 0 ? (
+                      <p className="text-sm text-muted-foreground text-center py-8">
+                        {t("admin_dashboard.no_messages", "No replies yet.")}
+                      </p>
+                    ) : (
+                      (ticketMessages ?? []).map((msg: any) => {
+                        const isStaff = msg.sender?.role === "admin";
+                        if (msg.isInternal) {
+                          return (
+                            <div key={msg.id} className="rounded-lg border border-amber-300 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-700 p-3" data-testid={`message-${msg.id}`}>
+                              <div className="flex items-center gap-2 mb-1">
+                                <Badge variant="outline" className="text-[10px] bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/40 dark:text-amber-300">
+                                  <Lock className="h-2.5 w-2.5 mr-1" />
+                                  {t("admin_dashboard.internal_note", "Internal note")}
+                                </Badge>
+                                <span className="text-xs font-medium">
+                                  {msg.sender ? `${msg.sender.firstName} ${msg.sender.lastName}` : t("admin_dashboard.staff", "Staff")}
+                                </span>
+                                <span className="text-[10px] text-muted-foreground">{new Date(msg.createdAt).toLocaleString()}</span>
+                              </div>
+                              <p className="text-sm whitespace-pre-wrap">{msg.message}</p>
+                            </div>
+                          );
+                        }
+                        return (
+                          <div key={msg.id} className={`flex ${isStaff ? "justify-end" : "justify-start"}`} data-testid={`message-${msg.id}`}>
+                            <div className={`max-w-[80%] rounded-2xl px-4 py-2.5 ${
+                              isStaff ? "bg-primary text-primary-foreground rounded-br-sm" : "bg-muted rounded-bl-sm"
+                            }`}>
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className="text-xs font-semibold">
+                                  {msg.sender
+                                    ? `${msg.sender.firstName} ${msg.sender.lastName}${isStaff ? " · " + t("admin_dashboard.staff", "Staff") : ""}`
+                                    : t("admin_dashboard.user", "User")}
+                                </span>
+                                <span className={`text-[10px] ${isStaff ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
+                                  {new Date(msg.createdAt).toLocaleString()}
+                                </span>
+                              </div>
+                              <p className="text-sm whitespace-pre-wrap">{msg.message}</p>
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                </ScrollArea>
+
+                {selectedTicket.status === "closed" ? (
+                  <div className="border-t p-4 text-center text-sm text-muted-foreground bg-muted/20">
+                    {t("admin_dashboard.ticket_closed_notice", "This ticket is closed. Reopen it to continue the conversation.")}
+                  </div>
+                ) : (
+                  <form onSubmit={sendReply} className="border-t p-4 space-y-2">
+                    <Textarea
+                      value={reply}
+                      onChange={(e) => setReply(e.target.value)}
+                      placeholder={
+                        isInternalNote
+                          ? t("admin_dashboard.internal_placeholder", "Add an internal note (only staff can see this)...")
+                          : t("admin_dashboard.reply_placeholder", "Reply to the user...")
+                      }
+                      rows={3}
+                      className="resize-none"
+                      data-testid="textarea-ticket-reply"
+                      onKeyDown={(e) => {
+                        if ((e.metaKey || e.ctrlKey) && e.key === "Enter") sendReply(e as any);
+                      }}
+                    />
+                    <div className="flex items-center justify-between flex-wrap gap-2">
+                      <label className="flex items-center gap-2 text-sm cursor-pointer">
+                        <Checkbox
+                          checked={isInternalNote}
+                          onCheckedChange={(v) => setIsInternalNote(!!v)}
+                          data-testid="checkbox-internal-note"
+                        />
+                        <Lock className="h-3.5 w-3.5 text-muted-foreground" />
+                        {t("admin_dashboard.mark_internal", "Internal note (hidden from user)")}
+                      </label>
+                      <Button type="submit" disabled={!reply.trim() || sendMessageMutation.isPending} data-testid="button-send-reply">
+                        {sendMessageMutation.isPending ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <>
+                            <Send className="h-4 w-4 mr-2" />
+                            {isInternalNote
+                              ? t("admin_dashboard.add_note", "Add note")
+                              : t("admin_dashboard.send_reply", "Send reply")}
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </form>
+                )}
+              </CardContent>
+            </>
           )}
-        </CardContent>
-      </Card>
+        </Card>
+      </div>
     </div>
   );
 }

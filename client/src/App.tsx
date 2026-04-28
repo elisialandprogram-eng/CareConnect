@@ -35,6 +35,7 @@ const ForgotPassword = lazy(() => import("@/pages/forgot-password"));
 const Consent = lazy(() => import("@/pages/consent"));
 const WalletPage = lazy(() => import("@/pages/wallet"));
 const Review = lazy(() => import("@/pages/review"));
+const SupportTickets = lazy(() => import("@/pages/support-tickets"));
 
 import { ScrollProgress } from "@/components/scroll-progress";
 import { ScrollToTop } from "@/components/scroll-to-top";
@@ -108,6 +109,7 @@ function Router() {
           <Route path="/consent" component={Consent} />
           <Route path="/wallet" component={WalletPage} />
           <Route path="/review/:id" component={Review} />
+          <Route path="/support/tickets" component={SupportTickets} />
           <Route component={NotFound} />
         </Switch>
       </Suspense>

@@ -12,7 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { User, Calendar, LogOut, Settings, LayoutDashboard, Menu, X, Stethoscope, MessageSquare, Bell, Languages, Wallet } from "lucide-react";
+import { User, Calendar, LogOut, Settings, LayoutDashboard, Menu, X, Stethoscope, MessageSquare, Bell, Languages, Wallet, LifeBuoy } from "lucide-react";
 import { useCurrency } from "@/lib/currency";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -243,6 +243,12 @@ export function Header() {
                   <Link href="/settings" className="cursor-pointer" data-testid="link-settings">
                     <Settings className="mr-2 h-4 w-4" />
                     {t("common.settings")}
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/support/tickets" className="cursor-pointer" data-testid="link-support-tickets">
+                    <LifeBuoy className="mr-2 h-4 w-4" />
+                    {t("common.support_tickets", "My support tickets")}
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
