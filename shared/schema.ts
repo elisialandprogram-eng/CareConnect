@@ -567,6 +567,36 @@ export const familyMembers = pgTable("family_members", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+export const medications = pgTable("medications", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  familyMemberId: varchar("family_member_id").references(() => familyMembers.id),
+  name: text("name").notNull(),
+  dosage: text("dosage"),
+  frequency: text("frequency"),
+  timesOfDay: text("times_of_day").array(),
+  startDate: text("start_date"),
+  endDate: text("end_date"),
+  instructions: text("instructions"),
+  prescriptionId: varchar("prescription_id").references(() => prescriptions.id),
+  reminderEnabled: boolean("reminder_enabled").notNull().default(true),
+  color: text("color"),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const medicationLogs = pgTable("medication_logs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  medicationId: varchar("medication_id").notNull().references(() => medications.id, { onDelete: "cascade" }),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  scheduledDate: text("scheduled_date").notNull(),
+  scheduledTime: text("scheduled_time").notNull(),
+  status: text("status").notNull().default("taken"),
+  takenAt: timestamp("taken_at").defaultNow(),
+  notes: text("notes"),
+});
+
 export const healthMetrics = pgTable("health_metrics", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   patientId: varchar("patient_id").notNull().references(() => users.id),
@@ -837,6 +867,19 @@ export const insertDailyMetricSchema = createInsertSchema(dailyMetrics).omit({ i
 export const insertPrescriptionSchema = createInsertSchema(prescriptions).omit({ id: true, issuedAt: true });
 export const insertMedicalHistorySchema = createInsertSchema(medicalHistory).omit({ id: true, createdAt: true });
 export const insertHealthMetricSchema = createInsertSchema(healthMetrics).omit({ id: true, createdAt: true });
+
+export const insertMedicationSchema = createInsertSchema(medications).omit({
+  id: true,
+  userId: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertMedicationLogSchema = createInsertSchema(medicationLogs).omit({
+  id: true,
+  userId: true,
+  takenAt: true,
+});
 export const insertFamilyMemberSchema = createInsertSchema(familyMembers).omit({
   id: true,
   primaryUserId: true,
@@ -939,6 +982,11 @@ export type InsertHealthMetric = z.infer<typeof insertHealthMetricSchema>;
 
 export type FamilyMember = typeof familyMembers.$inferSelect;
 export type InsertFamilyMember = z.infer<typeof insertFamilyMemberSchema>;
+
+export type Medication = typeof medications.$inferSelect;
+export type InsertMedication = z.infer<typeof insertMedicationSchema>;
+export type MedicationLog = typeof medicationLogs.$inferSelect;
+export type InsertMedicationLog = z.infer<typeof insertMedicationLogSchema>;
 export type UserNotification = typeof userNotifications.$inferSelect;
 export type InsertUserNotification = z.infer<typeof insertUserNotificationSchema>;
 export type ChatConversation = typeof chatConversations.$inferSelect;

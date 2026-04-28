@@ -49,6 +49,7 @@ import { ProviderCard } from "@/components/provider-card";
 import { Heart, RefreshCw, Activity } from "lucide-react";
 import { HealthMetricsTab } from "@/components/health-metrics-tab";
 import { FamilyMembersTab } from "@/components/family-members-tab";
+import { MedicationsTab } from "@/components/medications-tab";
 
 const PrescriptionList = ({ patientId }: { patientId?: string }) => {
   const { t } = useTranslation();
@@ -657,6 +658,9 @@ export default function PatientDashboard() {
               <TabsTrigger value="family" data-testid="tab-family">
                 {t("dashboard.family", "Family")}
               </TabsTrigger>
+              <TabsTrigger value="medications" data-testid="tab-medications">
+                {t("dashboard.medications", "Medications")}
+              </TabsTrigger>
               <TabsTrigger value="invoices" data-testid="tab-invoices">
                 {t("dashboard.invoices")}
               </TabsTrigger>
@@ -833,6 +837,10 @@ export default function PatientDashboard() {
 
             <TabsContent value="family" className="mt-6">
               <FamilyMembersTab />
+            </TabsContent>
+
+            <TabsContent value="medications" className="mt-6">
+              <MedicationsTab />
             </TabsContent>
 
             <TabsContent value="invoices" className="mt-6 space-y-6">

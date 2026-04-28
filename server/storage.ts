@@ -26,6 +26,8 @@ import {
   medicalHistory,
   healthMetrics,
   familyMembers,
+  medications,
+  medicationLogs,
   userNotifications,
   chatConversations,
   chatMessages,
@@ -95,6 +97,10 @@ import {
   type InsertHealthMetric,
   type FamilyMember,
   type InsertFamilyMember,
+  type Medication,
+  type InsertMedication,
+  type MedicationLog,
+  type InsertMedicationLog,
   type UserNotification,
   type InsertUserNotification,
   type ChatConversation,
@@ -151,7 +157,7 @@ import {
   type InsertAdminBroadcast,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, desc, or, sql, count, asc, aliasedTable, inArray } from "drizzle-orm";
+import { eq, and, desc, or, sql, count, asc, aliasedTable, inArray, gte, lte } from "drizzle-orm";
 
 export interface IStorage {
   // Users
@@ -424,6 +430,15 @@ export interface IStorage {
   getFamilyMember(id: string): Promise<FamilyMember | undefined>;
   createFamilyMember(primaryUserId: string, data: InsertFamilyMember): Promise<FamilyMember>;
   updateFamilyMember(id: string, primaryUserId: string, data: Partial<InsertFamilyMember>): Promise<FamilyMember | undefined>;
+  // Medications
+  getMedicationsByUser(userId: string): Promise<Medication[]>;
+  getMedication(id: string): Promise<Medication | undefined>;
+  createMedication(userId: string, data: InsertMedication): Promise<Medication>;
+  updateMedication(id: string, userId: string, data: Partial<InsertMedication>): Promise<Medication | undefined>;
+  deleteMedication(id: string, userId: string): Promise<boolean>;
+  getMedicationLogs(userId: string, opts?: { medicationId?: string; from?: string; to?: string }): Promise<MedicationLog[]>;
+  logMedicationDose(userId: string, data: InsertMedicationLog): Promise<MedicationLog>;
+  deleteMedicationLog(id: string, userId: string): Promise<boolean>;
   deleteFamilyMember(id: string, primaryUserId: string): Promise<boolean>;
 
   // Medical Practitioners
@@ -1786,6 +1801,80 @@ export class DatabaseStorage implements IStorage {
     const result = await db
       .delete(familyMembers)
       .where(and(eq(familyMembers.id, id), eq(familyMembers.primaryUserId, primaryUserId)))
+      .returning();
+    return result.length > 0;
+  }
+
+  // Medications
+  async getMedicationsByUser(userId: string): Promise<Medication[]> {
+    return db
+      .select()
+      .from(medications)
+      .where(eq(medications.userId, userId))
+      .orderBy(desc(medications.createdAt));
+  }
+
+  async getMedication(id: string): Promise<Medication | undefined> {
+    const [m] = await db.select().from(medications).where(eq(medications.id, id));
+    return m;
+  }
+
+  async createMedication(userId: string, data: InsertMedication): Promise<Medication> {
+    const [result] = await db
+      .insert(medications)
+      .values({ ...data, userId } as any)
+      .returning();
+    return result;
+  }
+
+  async updateMedication(
+    id: string,
+    userId: string,
+    data: Partial<InsertMedication>,
+  ): Promise<Medication | undefined> {
+    const [updated] = await db
+      .update(medications)
+      .set({ ...data, updatedAt: new Date() } as any)
+      .where(and(eq(medications.id, id), eq(medications.userId, userId)))
+      .returning();
+    return updated;
+  }
+
+  async deleteMedication(id: string, userId: string): Promise<boolean> {
+    const result = await db
+      .delete(medications)
+      .where(and(eq(medications.id, id), eq(medications.userId, userId)))
+      .returning();
+    return result.length > 0;
+  }
+
+  async getMedicationLogs(
+    userId: string,
+    opts?: { medicationId?: string; from?: string; to?: string },
+  ): Promise<MedicationLog[]> {
+    const conds: any[] = [eq(medicationLogs.userId, userId)];
+    if (opts?.medicationId) conds.push(eq(medicationLogs.medicationId, opts.medicationId));
+    if (opts?.from) conds.push(gte(medicationLogs.scheduledDate, opts.from));
+    if (opts?.to) conds.push(lte(medicationLogs.scheduledDate, opts.to));
+    return db
+      .select()
+      .from(medicationLogs)
+      .where(and(...conds))
+      .orderBy(desc(medicationLogs.takenAt));
+  }
+
+  async logMedicationDose(userId: string, data: InsertMedicationLog): Promise<MedicationLog> {
+    const [result] = await db
+      .insert(medicationLogs)
+      .values({ ...data, userId } as any)
+      .returning();
+    return result;
+  }
+
+  async deleteMedicationLog(id: string, userId: string): Promise<boolean> {
+    const result = await db
+      .delete(medicationLogs)
+      .where(and(eq(medicationLogs.id, id), eq(medicationLogs.userId, userId)))
       .returning();
     return result.length > 0;
   }

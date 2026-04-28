@@ -22,6 +22,8 @@ import {
   insertServicePackageSchema,
   insertHealthMetricSchema,
   insertFamilyMemberSchema,
+  insertMedicationSchema,
+  insertMedicationLogSchema,
   services,
   practitioners,
   servicePractitioners,
@@ -2977,6 +2979,111 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Delete family member error:", error);
       res.status(500).json({ message: "Failed to remove family member" });
+    }
+  });
+
+  // Medications
+  app.get("/api/medications", authenticateToken, async (req: AuthRequest, res: Response) => {
+    try {
+      const meds = await storage.getMedicationsByUser(req.user!.id);
+      res.json(meds);
+    } catch (error) {
+      console.error("Get medications error:", error);
+      res.status(500).json({ message: "Failed to load medications" });
+    }
+  });
+
+  app.post("/api/medications", authenticateToken, async (req: AuthRequest, res: Response) => {
+    try {
+      const parsed = insertMedicationSchema.parse(req.body);
+      // Validate family member ownership if provided
+      if (parsed.familyMemberId) {
+        const fm = await storage.getFamilyMember(parsed.familyMemberId);
+        if (!fm || fm.primaryUserId !== req.user!.id) {
+          return res.status(403).json({ message: "Family member not found or not yours." });
+        }
+      }
+      const med = await storage.createMedication(req.user!.id, parsed);
+      res.status(201).json(med);
+    } catch (error: any) {
+      if (error?.name === "ZodError") {
+        return res.status(400).json({ message: "Invalid medication data", errors: error.errors });
+      }
+      console.error("Create medication error:", error);
+      res.status(500).json({ message: "Failed to add medication" });
+    }
+  });
+
+  app.patch("/api/medications/:id", authenticateToken, async (req: AuthRequest, res: Response) => {
+    try {
+      const parsed = insertMedicationSchema.partial().parse(req.body);
+      if (parsed.familyMemberId) {
+        const fm = await storage.getFamilyMember(parsed.familyMemberId);
+        if (!fm || fm.primaryUserId !== req.user!.id) {
+          return res.status(403).json({ message: "Family member not found or not yours." });
+        }
+      }
+      const updated = await storage.updateMedication(req.params.id, req.user!.id, parsed);
+      if (!updated) return res.status(404).json({ message: "Medication not found" });
+      res.json(updated);
+    } catch (error: any) {
+      if (error?.name === "ZodError") {
+        return res.status(400).json({ message: "Invalid medication data", errors: error.errors });
+      }
+      console.error("Update medication error:", error);
+      res.status(500).json({ message: "Failed to update medication" });
+    }
+  });
+
+  app.delete("/api/medications/:id", authenticateToken, async (req: AuthRequest, res: Response) => {
+    try {
+      const deleted = await storage.deleteMedication(req.params.id, req.user!.id);
+      if (!deleted) return res.status(404).json({ message: "Medication not found" });
+      res.json({ ok: true });
+    } catch (error) {
+      console.error("Delete medication error:", error);
+      res.status(500).json({ message: "Failed to remove medication" });
+    }
+  });
+
+  app.get("/api/medication-logs", authenticateToken, async (req: AuthRequest, res: Response) => {
+    try {
+      const { medicationId, from, to } = req.query as Record<string, string | undefined>;
+      const logs = await storage.getMedicationLogs(req.user!.id, { medicationId, from, to });
+      res.json(logs);
+    } catch (error) {
+      console.error("Get medication logs error:", error);
+      res.status(500).json({ message: "Failed to load medication logs" });
+    }
+  });
+
+  app.post("/api/medication-logs", authenticateToken, async (req: AuthRequest, res: Response) => {
+    try {
+      const parsed = insertMedicationLogSchema.parse(req.body);
+      // Verify the medication belongs to this user
+      const med = await storage.getMedication(parsed.medicationId);
+      if (!med || med.userId !== req.user!.id) {
+        return res.status(404).json({ message: "Medication not found" });
+      }
+      const log = await storage.logMedicationDose(req.user!.id, parsed);
+      res.status(201).json(log);
+    } catch (error: any) {
+      if (error?.name === "ZodError") {
+        return res.status(400).json({ message: "Invalid log data", errors: error.errors });
+      }
+      console.error("Log dose error:", error);
+      res.status(500).json({ message: "Failed to log dose" });
+    }
+  });
+
+  app.delete("/api/medication-logs/:id", authenticateToken, async (req: AuthRequest, res: Response) => {
+    try {
+      const deleted = await storage.deleteMedicationLog(req.params.id, req.user!.id);
+      if (!deleted) return res.status(404).json({ message: "Log not found" });
+      res.json({ ok: true });
+    } catch (error) {
+      console.error("Delete log error:", error);
+      res.status(500).json({ message: "Failed to delete log" });
     }
   });
 
