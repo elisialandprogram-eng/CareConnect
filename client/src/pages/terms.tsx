@@ -7,14 +7,14 @@ export default function Terms() {
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
-      <main className="flex-1 container mx-auto px-4 py-8 max-w-4xl">
-        <h1 className="text-3xl font-bold mb-8">Terms & Conditions</h1>
-        
+      <main className="flex-1 container mx-auto px-4 py-12 max-w-4xl">
+        <h1 className="text-3xl md:text-4xl font-bold mb-8 text-center">Terms &amp; Conditions</h1>
+
         <Card className="mb-8">
           <CardHeader>
             <CardTitle>Golden Life Appointment Booking Platform</CardTitle>
           </CardHeader>
-          <CardContent className="prose prose-sm max-w-none dark:prose-invert space-y-6">
+          <CardContent className="space-y-6 [&_p+p]:mt-2 [&_section]:leading-relaxed">
             
             <section>
               <h2 className="text-xl font-semibold mb-4">1. Service Provider</h2>

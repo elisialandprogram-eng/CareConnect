@@ -9,7 +9,7 @@ export default function CookiePolicy() {
       <Header />
       <main className="flex-1 py-12">
         <div className="container mx-auto px-4 max-w-4xl">
-          <h1 className="text-4xl font-bold mb-8">Cookie Policy</h1>
+          <h1 className="text-3xl md:text-4xl font-bold mb-8 text-center">Cookie Policy</h1>
           
           <Card className="mb-6">
             <CardHeader>

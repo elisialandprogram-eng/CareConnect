@@ -19,11 +19,11 @@ export default function About() {
 
         <section className="py-16">
           <div className="container mx-auto px-4 max-w-4xl">
-            <div className="prose prose-lg max-w-none dark:prose-invert">
-              <h2 className="text-2xl font-semibold mb-6">Our Mission</h2>
-              <p className="text-muted-foreground mb-8">
-                Golden Life is dedicated to making healthcare accessible and convenient for everyone. 
-                Our platform connects patients with verified physiotherapists, doctors, and home care nurses, 
+            <div>
+              <h2 className="text-2xl font-semibold mb-4">Our Mission</h2>
+              <p className="text-muted-foreground mb-12 leading-relaxed">
+                Golden Life is dedicated to making healthcare accessible and convenient for everyone.
+                Our platform connects patients with verified physiotherapists, doctors, and home care nurses,
                 enabling seamless appointment booking for both online consultations and home visits.
               </p>
 
