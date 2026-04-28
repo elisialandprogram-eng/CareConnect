@@ -3,8 +3,29 @@ import { initReactI18next } from 'react-i18next';
 import LanguageDetector from 'i18next-browser-languagedetector';
 
 import enTranslation from '../i18n/locales/en/translation.json';
-import huTranslation from '../i18n/locales/hu/translation.json';
-import faTranslation from '../i18n/locales/fa/translation.json';
+
+const SUPPORTED = ['en', 'hu', 'fa'] as const;
+type Lang = (typeof SUPPORTED)[number];
+
+const loaders: Record<Lang, () => Promise<{ default: Record<string, unknown> }>> = {
+  en: () => Promise.resolve({ default: enTranslation as Record<string, unknown> }),
+  hu: () => import('../i18n/locales/hu/translation.json'),
+  fa: () => import('../i18n/locales/fa/translation.json'),
+};
+
+const loaded = new Set<Lang>(['en']);
+
+async function ensureLanguage(lng: string) {
+  const code = (SUPPORTED as readonly string[]).includes(lng) ? (lng as Lang) : 'en';
+  if (loaded.has(code)) return;
+  try {
+    const mod = await loaders[code]();
+    i18n.addResourceBundle(code, 'translation', mod.default, true, true);
+    loaded.add(code);
+  } catch {
+    // ignore — fallback language remains active
+  }
+}
 
 i18n
   .use(LanguageDetector)
@@ -12,10 +33,12 @@ i18n
   .init({
     resources: {
       en: { translation: enTranslation },
-      hu: { translation: huTranslation },
-      fa: { translation: faTranslation },
     },
     fallbackLng: 'en',
+    supportedLngs: SUPPORTED as unknown as string[],
+    nonExplicitSupportedLngs: true,
+    load: 'languageOnly',
+    partialBundledLanguages: true,
     interpolation: {
       escapeValue: false,
     },
@@ -26,7 +49,16 @@ i18n
     },
   });
 
+// Load the detected language asynchronously if it's not English.
+const initial = i18n.resolvedLanguage || i18n.language || 'en';
+if (initial !== 'en') {
+  void ensureLanguage(initial).then(() => {
+    if (i18n.language !== initial) void i18n.changeLanguage(initial);
+  });
+}
+
 i18n.on('languageChanged', (lng) => {
+  void ensureLanguage(lng);
   if (typeof document !== 'undefined') {
     document.dir = lng === 'fa' ? 'rtl' : 'ltr';
     document.documentElement.lang = lng;

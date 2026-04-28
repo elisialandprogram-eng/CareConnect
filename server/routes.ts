@@ -3435,7 +3435,7 @@ export async function registerRoutes(
   app.get("/api/admin/services-overview", authenticateToken, requireAdmin, async (_req: AuthRequest, res: Response) => {
     try {
       const allServices = await db.select().from(services);
-      const allProviders = await storage.getProviders();
+      const allProviders = await storage.getAllProviders();
       const providerMap = new Map(allProviders.map((p: any) => [p.id, p]));
       const enriched = allServices.map((s: any) => {
         const prov: any = providerMap.get(s.providerId);
@@ -3455,7 +3455,7 @@ export async function registerRoutes(
   app.get("/api/admin/practitioners", authenticateToken, requireAdmin, async (_req: AuthRequest, res: Response) => {
     try {
       const allPractitioners = await db.select().from(practitioners);
-      const allProviders = await storage.getProviders();
+      const allProviders = await storage.getAllProviders();
       const providerMap = new Map(allProviders.map((p: any) => [p.id, p]));
       const enriched = allPractitioners.map((p: any) => {
         const prov: any = providerMap.get(p.providerId);

@@ -36,11 +36,18 @@ const Consent = lazy(() => import("@/pages/consent"));
 const WalletPage = lazy(() => import("@/pages/wallet"));
 const Review = lazy(() => import("@/pages/review"));
 
-import { ChatBox } from "@/components/chat/ChatBox";
-import { AIChatBox } from "@/components/ai-chat-box";
 import { ScrollProgress } from "@/components/scroll-progress";
 import { ScrollToTop } from "@/components/scroll-to-top";
 import { PageTransition } from "@/components/page-transition";
+
+// Floating chat widgets are heavy and only render when opened — load them
+// after the initial page paints to keep first-render fast.
+const ChatBox = lazy(() =>
+  import("@/components/chat/ChatBox").then((m) => ({ default: m.ChatBox })),
+);
+const AIChatBox = lazy(() =>
+  import("@/components/ai-chat-box").then((m) => ({ default: m.AIChatBox })),
+);
 
 import "@/lib/i18n";
 
@@ -119,8 +126,10 @@ function App() {
           <ScrollProgress />
           <Toaster />
           <Router />
-          <ChatBox />
-          <AIChatBox />
+          <Suspense fallback={null}>
+            <ChatBox />
+            <AIChatBox />
+          </Suspense>
           <ScrollToTop />
         </AuthProvider>
       </TooltipProvider>
