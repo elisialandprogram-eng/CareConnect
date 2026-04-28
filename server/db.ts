@@ -32,5 +32,14 @@ if (!process.env.SUPABASE_DATABASE_URL) {
   );
 }
 
-export const pool = new Pool({ connectionString: databaseUrl });
+// Larger pool + sensible timeouts so concurrent requests aren't queued behind
+// a single connection. Supabase's pooled connection string supports this
+// because PgBouncer multiplexes our connections onto a smaller backend pool.
+export const pool = new Pool({
+  connectionString: databaseUrl,
+  max: 20,
+  idleTimeoutMillis: 30_000,
+  connectionTimeoutMillis: 10_000,
+  keepAlive: true,
+});
 export const db = drizzle(pool, { schema });

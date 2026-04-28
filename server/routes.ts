@@ -109,6 +109,38 @@ interface AuthRequest extends Request {
   user?: { id: string; email: string; role: string };
 }
 
+// Tiny in-process TTL cache to avoid hitting the DB for the user/provider
+// lookup on every authenticated request. With Supabase round-trips around
+// ~400ms this used to add 0.4–0.8s to every authenticated API call. Cached
+// entries expire after AUTH_CACHE_TTL_MS so role / verification changes still
+// take effect quickly. Cache is invalidated on logout, password change, email
+// verification, suspension, and provider verification updates via
+// `invalidateAuthCache`.
+const AUTH_CACHE_TTL_MS = 30_000;
+type CachedUser = {
+  isEmailVerified: boolean;
+  role: string;
+  isSuspended?: boolean | null;
+  // Full user record (without password) — used by /api/auth/me so we don't
+  // re-fetch the same row from Supabase on every page load.
+  full: any;
+  expires: number;
+};
+type CachedProviderVerified = { isVerified: boolean; expires: number };
+const userAuthCache = new Map<string, CachedUser>();
+const providerVerifiedCache = new Map<string, CachedProviderVerified>();
+
+export function invalidateAuthCache(userId: string): void {
+  userAuthCache.delete(userId);
+  providerVerifiedCache.delete(userId);
+}
+
+export function getCachedUser(userId: string): any | null {
+  const c = userAuthCache.get(userId);
+  if (!c || c.expires < Date.now()) return null;
+  return c.full;
+}
+
   // Middleware to verify JWT token
   const authenticateToken = async (req: AuthRequest, res: Response, next: NextFunction) => {
     const authHeader = req.headers.authorization;
@@ -124,20 +156,40 @@ interface AuthRequest extends Request {
 
     try {
       const decoded = jwt.verify(finalToken, JWT_SECRET) as { id: string; email: string; role: string };
-      
-      // Check if user exists and is verified
-      const user = await storage.getUser(decoded.id);
-      if (!user) {
-        return res.status(401).json({ message: "User not found" });
+
+      const now = Date.now();
+      let cached = userAuthCache.get(decoded.id);
+      if (!cached || cached.expires < now) {
+        const user = await storage.getUser(decoded.id);
+        if (!user) {
+          return res.status(401).json({ message: "User not found" });
+        }
+        const { password: _pw, ...full } = user as any;
+        cached = {
+          isEmailVerified: !!user.isEmailVerified,
+          role: user.role,
+          isSuspended: user.isSuspended,
+          full,
+          expires: now + AUTH_CACHE_TTL_MS,
+        };
+        userAuthCache.set(decoded.id, cached);
       }
-      
-      if (!user.isEmailVerified) {
+
+      if (!cached.isEmailVerified) {
         return res.status(403).json({ message: "Email verification required" });
       }
 
-      if (user.role === "provider") {
-        const provider = await storage.getProviderByUserId(user.id);
-        if (provider && !provider.isVerified) {
+      if (cached.role === "provider") {
+        let pv = providerVerifiedCache.get(decoded.id);
+        if (!pv || pv.expires < now) {
+          const provider = await storage.getProviderByUserId(decoded.id);
+          pv = {
+            isVerified: !!(provider && provider.isVerified),
+            expires: now + AUTH_CACHE_TTL_MS,
+          };
+          providerVerifiedCache.set(decoded.id, pv);
+        }
+        if (!pv.isVerified) {
           // Allow access to setup page but not other provider routes
           if (req.path !== "/api/provider/setup" && !req.path.startsWith("/api/auth")) {
              return res.status(403).json({ message: "Account awaiting admin approval" });
@@ -459,6 +511,7 @@ export async function registerRoutes(
     if (req.user?.role !== "admin") return res.status(403).json({ message: "Admin access required" });
     try {
       const provider = await storage.updateProvider(req.params.id, req.body);
+      if (provider?.userId) invalidateAuthCache(provider.userId);
       res.json(provider);
     } catch (error) {
       console.error("Failed to update provider:", error);
@@ -470,6 +523,7 @@ export async function registerRoutes(
     if (req.user?.role !== "admin") return res.status(403).json({ message: "Admin access required" });
     try {
       await storage.deleteUser(req.params.id);
+      invalidateAuthCache(req.params.id);
       res.status(204).end();
     } catch (error) {
       res.status(500).json({ message: "Failed to delete user" });
@@ -625,6 +679,8 @@ export async function registerRoutes(
         maxAge: REFRESH_TOKEN_EXPIRES_IN,
       });
 
+      invalidateAuthCache(user.id);
+
       const { password: _, ...userWithoutPassword } = user;
       res.json({ user: userWithoutPassword, accessToken });
     } catch (error: any) {
@@ -639,6 +695,18 @@ export async function registerRoutes(
       const refreshToken = req.cookies?.refreshToken;
       if (refreshToken) {
         await storage.deleteRefreshToken(refreshToken);
+      }
+
+      // Best-effort cache invalidation for the user that just logged out so
+      // their cached role / verification state isn't reused.
+      try {
+        const accessToken = req.cookies?.accessToken;
+        if (accessToken) {
+          const decoded = jwt.verify(accessToken, JWT_SECRET) as { id: string };
+          if (decoded?.id) invalidateAuthCache(decoded.id);
+        }
+      } catch {
+        // ignore — token may be expired/invalid, nothing to invalidate
       }
 
       res.clearCookie("accessToken");
@@ -690,6 +758,12 @@ export async function registerRoutes(
   // Get current user
   app.get("/api/auth/me", authenticateToken, async (req: AuthRequest, res: Response) => {
     try {
+      // Prefer the cached full user populated by authenticateToken so we don't
+      // make a second Supabase round-trip on every page load.
+      const cached = getCachedUser(req.user!.id);
+      if (cached) {
+        return res.json({ user: cached });
+      }
       const user = await storage.getUser(req.user!.id);
       if (!user) {
         return res.status(404).json({ message: "User not found" });
@@ -732,6 +806,7 @@ export async function registerRoutes(
 
       // Success
       await storage.verifyUserEmail(userId);
+      invalidateAuthCache(userId);
 
       // Send confirmation email
       if (resend) {
@@ -1130,6 +1205,7 @@ export async function registerRoutes(
         return res.status(404).json({ message: "User not found" });
       }
 
+      invalidateAuthCache(req.user!.id);
       const { password: _, ...userWithoutPassword } = user;
       res.json({ user: userWithoutPassword });
     } catch (error) {
@@ -1346,6 +1422,7 @@ export async function registerRoutes(
         suspensionReason: isSuspended ? suspensionReason : null
       });
       if (!user) return res.status(404).json({ message: "User not found" });
+      invalidateAuthCache(req.params.id);
       res.json(user);
     } catch (error) {
       res.status(500).json({ message: "Failed to update user status" });
@@ -1701,6 +1778,7 @@ export async function registerRoutes(
 
       // Update user role to provider
       await storage.updateUser(userId, { role: "provider" });
+      invalidateAuthCache(userId);
 
       // Create practitioners if provided
       if (practitioners && Array.isArray(practitioners)) {
@@ -1775,6 +1853,7 @@ export async function registerRoutes(
       if (!provider) {
         return res.status(404).json({ message: "Provider not found" });
       }
+      if (provider.userId) invalidateAuthCache(provider.userId);
       res.json(provider);
     } catch (error) {
       res.status(500).json({ message: "Failed to update provider" });
@@ -3335,6 +3414,7 @@ export async function registerRoutes(
     try {
       const provider = await storage.updateProvider(req.params.id, req.body);
       if (!provider) return res.status(404).json({ message: "Provider not found" });
+      if (provider.userId) invalidateAuthCache(provider.userId);
       res.json(provider);
     } catch (error) {
       res.status(500).json({ message: "Failed to update provider" });

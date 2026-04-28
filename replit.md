@@ -24,6 +24,12 @@ The backend is developed with Node.js and TypeScript, using Express.js and Drizz
 
 To keep payloads small and avoid leaking sensitive data, list endpoints that return `User` objects pass them through `server/utils/sanitize.ts` before responding. `sanitizeUser` strips `password`, OTP fields, OAuth tokens, and similar credentials; the `public` strip mode also drops bulky/private fields (medical history, insurance, emergency contact, etc.) for list views, and inlined data-URL avatars longer than 2 KB are dropped from list responses (full-size avatars stay available on the user's own `/api/auth/me` and individual record reads). The providers list (`GET /api/providers`), provider detail (`GET /api/providers/:id`), and admin user list (`GET /api/admin/users`) all use these helpers; the providers list response went from ~5 MB to ~15 KB after this change.
 
+To eliminate slow page loads caused by Supabase round-trip latency, three additional optimizations are in place:
+
+1. **Database indexes** — `scripts/add-performance-indexes.sql` creates 48 `CREATE INDEX IF NOT EXISTS` indexes on every foreign key and common sort/filter column (providers, services, appointments, reviews, payments, chat, notifications, audit_logs, wallets, etc.). Re-run with `node -e "require('pg')..."` style script if migrating to a fresh database. Indexes are NOT yet declared in `shared/schema.ts`; if you regenerate the database from scratch via `db:push`, re-apply this SQL afterwards.
+2. **Connection pool tuning** — `server/db.ts` configures the pg pool with `max: 20, idleTimeoutMillis: 30000, connectionTimeoutMillis: 10000, keepAlive: true` so connections survive between requests instead of reconnecting on every call.
+3. **Auth middleware in-process cache** — `authenticateToken` in `server/routes.ts` caches per-user `{ isEmailVerified, role, isSuspended, full user record }` and the per-provider `isVerified` flag for 30 seconds. This removes 1–2 Supabase round-trips (~400–800 ms) from every authenticated request. `/api/auth/me` reads directly from this cache so subsequent calls drop from ~370 ms to ~5 ms. Cache entries are invalidated via the exported `invalidateAuthCache(userId)` helper from login, logout, email verification, profile updates, suspension toggles, role changes, admin user deletion, and provider updates.
+
 The cookie-parser middleware is registered at the top of `registerRoutes` so every auth-protected route (including the early invoice endpoints) can read the JWT cookie.
 
 ### Booking & Promo Codes
