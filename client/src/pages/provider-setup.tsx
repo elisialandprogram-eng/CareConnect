@@ -55,7 +55,7 @@ export default function ProviderSetup() {
     professionalTitle: z.string().min(1, t("validation.field_required")),
     specialization: z.string().min(3, t("validation.specialization_required")),
     secondarySpecialties: z.array(z.string()).optional(),
-    subServices: z.array(z.string()).min(1, t("validation.sub_service_select")),
+    subServices: z.array(z.string()).optional(),
     bio: z.string().min(50, t("validation.bio_min")),
     // Experience & Education
     yearsExperience: z.coerce.number().min(0).max(50),
