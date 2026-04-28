@@ -353,13 +353,13 @@ export default function Home() {
               variants={staggerContainer}
             >
               <motion.div
-                className="flex items-center gap-4 p-4 rounded-xl hover:bg-muted/50 transition-colors duration-300 icon-bounce"
+                className="flex items-center gap-4 p-4 rounded-xl hover:bg-sky-50/70 dark:hover:bg-sky-950/30 transition-colors duration-300 icon-bounce"
                 data-testid="feature-verified"
                 variants={fadeInUp}
                 whileHover={{ scale: 1.02 }}
               >
-                <div className="flex-shrink-0 w-14 h-14 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center shadow-lg">
-                  <Shield className="h-7 w-7 text-primary" />
+                <div className="flex-shrink-0 w-14 h-14 rounded-2xl bg-gradient-to-br from-sky-200 to-sky-50 dark:from-sky-900 dark:to-sky-950 flex items-center justify-center shadow-lg ring-1 ring-sky-200/60 dark:ring-sky-800/40">
+                  <Shield className="h-7 w-7 text-sky-600 dark:text-sky-300" />
                 </div>
                 <div>
                   <h3 className="font-semibold text-lg">{t("features.verified_title")}</h3>
@@ -367,13 +367,13 @@ export default function Home() {
                 </div>
               </motion.div>
               <motion.div
-                className="flex items-center gap-4 p-4 rounded-xl hover:bg-muted/50 transition-colors duration-300 icon-bounce"
+                className="flex items-center gap-4 p-4 rounded-xl hover:bg-emerald-50/70 dark:hover:bg-emerald-950/30 transition-colors duration-300 icon-bounce"
                 data-testid="feature-booking"
                 variants={fadeInUp}
                 whileHover={{ scale: 1.02 }}
               >
-                <div className="flex-shrink-0 w-14 h-14 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center shadow-lg">
-                  <Clock className="h-7 w-7 text-primary" />
+                <div className="flex-shrink-0 w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-200 to-emerald-50 dark:from-emerald-900 dark:to-emerald-950 flex items-center justify-center shadow-lg ring-1 ring-emerald-200/60 dark:ring-emerald-800/40">
+                  <Clock className="h-7 w-7 text-emerald-600 dark:text-emerald-300" />
                 </div>
                 <div>
                   <h3 className="font-semibold text-lg">{t("features.booking_title")}</h3>
@@ -381,13 +381,13 @@ export default function Home() {
                 </div>
               </motion.div>
               <motion.div
-                className="flex items-center gap-4 p-4 rounded-xl hover:bg-muted/50 transition-colors duration-300 icon-bounce"
+                className="flex items-center gap-4 p-4 rounded-xl hover:bg-amber-50/70 dark:hover:bg-amber-950/30 transition-colors duration-300 icon-bounce"
                 data-testid="feature-quality"
                 variants={fadeInUp}
                 whileHover={{ scale: 1.02 }}
               >
-                <div className="flex-shrink-0 w-14 h-14 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center shadow-lg">
-                  <Award className="h-7 w-7 text-primary" />
+                <div className="flex-shrink-0 w-14 h-14 rounded-2xl bg-gradient-to-br from-amber-200 to-amber-50 dark:from-amber-900 dark:to-amber-950 flex items-center justify-center shadow-lg ring-1 ring-amber-200/60 dark:ring-amber-800/40">
+                  <Award className="h-7 w-7 text-amber-600 dark:text-amber-300" />
                 </div>
                 <div>
                   <h3 className="font-semibold text-lg">{t("features.quality_title")}</h3>

@@ -11,24 +11,36 @@ export function HowItWorks() {
       title: t("how_it_works.step1_title"),
       description: t("how_it_works.step1_desc"),
       step: 1,
+      bgClass: "bg-gradient-to-br from-sky-200 to-sky-50 dark:from-sky-900 dark:to-sky-950 ring-1 ring-sky-200/60 dark:ring-sky-800/40",
+      iconClass: "text-sky-600 dark:text-sky-300",
+      badgeClass: "bg-sky-600 dark:bg-sky-500",
     },
     {
       icon: Calendar,
       title: t("how_it_works.step2_title"),
       description: t("how_it_works.step2_desc"),
       step: 2,
+      bgClass: "bg-gradient-to-br from-violet-200 to-violet-50 dark:from-violet-900 dark:to-violet-950 ring-1 ring-violet-200/60 dark:ring-violet-800/40",
+      iconClass: "text-violet-600 dark:text-violet-300",
+      badgeClass: "bg-violet-600 dark:bg-violet-500",
     },
     {
       icon: CreditCard,
       title: t("how_it_works.step3_title"),
       description: t("how_it_works.step3_desc"),
       step: 3,
+      bgClass: "bg-gradient-to-br from-emerald-200 to-emerald-50 dark:from-emerald-900 dark:to-emerald-950 ring-1 ring-emerald-200/60 dark:ring-emerald-800/40",
+      iconClass: "text-emerald-600 dark:text-emerald-300",
+      badgeClass: "bg-emerald-600 dark:bg-emerald-500",
     },
     {
       icon: Star,
       title: t("how_it_works.step4_title"),
       description: t("how_it_works.step4_desc"),
       step: 4,
+      bgClass: "bg-gradient-to-br from-amber-200 to-amber-50 dark:from-amber-900 dark:to-amber-950 ring-1 ring-amber-200/60 dark:ring-amber-800/40",
+      iconClass: "text-amber-600 dark:text-amber-300",
+      badgeClass: "bg-amber-600 dark:bg-amber-500",
     },
   ];
 
@@ -95,13 +107,13 @@ export function HowItWorks() {
                 />
               )}
               <motion.div 
-                className="relative inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 text-primary mb-6 shadow-lg"
+                className={`relative inline-flex items-center justify-center w-20 h-20 rounded-2xl mb-6 shadow-lg ${step.bgClass}`}
                 whileHover={{ scale: 1.1, rotate: 5 }}
                 transition={{ type: "spring", stiffness: 300 }}
               >
-                <step.icon className="h-9 w-9" />
+                <step.icon className={`h-9 w-9 ${step.iconClass}`} />
                 <motion.span 
-                  className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-primary text-primary-foreground text-sm font-bold flex items-center justify-center shadow-lg"
+                  className={`absolute -top-2 -right-2 w-8 h-8 rounded-full text-white text-sm font-bold flex items-center justify-center shadow-lg ${step.badgeClass}`}
                   initial={{ scale: 0 }}
                   whileInView={{ scale: 1 }}
                   viewport={{ once: true }}
