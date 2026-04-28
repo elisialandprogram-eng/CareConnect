@@ -553,7 +553,7 @@ export default function Profile() {
 
         <form onSubmit={handleSubmit}>
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="w-full justify-start h-auto p-1 flex-wrap bg-card border" data-testid="tabs-profile">
+            <TabsList className="w-full justify-start h-auto p-1 overflow-x-auto whitespace-nowrap flex-nowrap bg-card border" data-testid="tabs-profile">
               <TabsTrigger value="personal" data-testid="tab-personal">
                 <UserIcon className="h-4 w-4 mr-2" />
                 {t("profile_page.tab_personal", "Personal")}
@@ -974,10 +974,10 @@ export default function Profile() {
                       <Label>{t("profile_page.bio_label", "Professional Bio")}</Label>
                       <Textarea value={formData.bio} disabled className="min-h-[100px]" data-testid="readonly-bio" />
                     </div>
-                    <Button type="button" variant="outline" asChild>
-                      <Link href="/provider/dashboard" data-testid="link-edit-provider">
+                    <Button type="button" asChild>
+                      <Link href="/provider/setup" data-testid="link-edit-provider">
                         <Settings className="h-4 w-4 mr-2" />
-                        {t("profile_page.edit_in_dashboard", "Edit in Provider Dashboard")}
+                        {t("profile_page.edit_professional_info", "Edit Professional Info")}
                       </Link>
                     </Button>
                   </CardContent>

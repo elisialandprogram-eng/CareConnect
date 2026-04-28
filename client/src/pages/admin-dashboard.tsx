@@ -2765,7 +2765,7 @@ function ContentManagement() {
   return (
     <div className="space-y-4">
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="tabs-colorful tabs-violet flex flex-wrap h-auto">
+        <TabsList className="tabs-colorful tabs-violet flex flex-nowrap h-auto w-full overflow-x-auto whitespace-nowrap">
           <TabsTrigger value="providers" data-testid="tab-content-providers">{t("admin_dashboard.tab_providers")}</TabsTrigger>
           <TabsTrigger value="users" data-testid="tab-content-users">{t("admin_dashboard.tab_users")}</TabsTrigger>
           <TabsTrigger value="sub-services" data-testid="tab-sub-services">{t("admin_dashboard.tab_sub_services")}</TabsTrigger>
@@ -5874,7 +5874,7 @@ export default function AdminDashboard() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="tabs-colorful flex flex-wrap gap-1 h-auto">
+          <TabsList className="tabs-colorful flex flex-nowrap gap-1 h-auto w-full overflow-x-auto whitespace-nowrap">
             <TabsTrigger value="overview" data-testid="tab-overview">
               <BarChart3 className="h-4 w-4 mr-2" />
               {t("admin.analytics")}

@@ -1301,7 +1301,7 @@ export default function ProviderDashboard() {
           </div>
 
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="tabs-colorful tabs-emerald flex flex-wrap h-auto">
+            <TabsList className="tabs-colorful tabs-emerald flex flex-nowrap h-auto w-full overflow-x-auto whitespace-nowrap">
               <TabsTrigger value="upcoming" data-testid="tab-upcoming">
                 {t("provider_dashboard.tab_upcoming", "Upcoming")}
                 {upcomingAppointments.length > 0 && (

@@ -633,7 +633,7 @@ export default function PatientDashboard() {
           </div>
 
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="tabs-colorful flex flex-wrap h-auto">
+            <TabsList className="tabs-colorful flex flex-nowrap h-auto w-full overflow-x-auto whitespace-nowrap">
               <TabsTrigger value="upcoming" data-testid="tab-upcoming">
                 {t("dashboard.upcoming")} ({upcomingAppointments.length})
               </TabsTrigger>
