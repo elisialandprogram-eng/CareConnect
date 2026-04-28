@@ -1213,5 +1213,29 @@
     "privacy_paragraph_1_after": ". Titkosítást és biztonságos tárolást használunk személyes adatainak védelmére.",
     "privacy_contact_intro": "Adatokhoz való hozzáféréssel, helyesbítéssel vagy törléssel kapcsolatos kérésekért lépjen velünk kapcsolatba:",
     "or": "vagy"
+  },
+  "ai_chat": {
+    "title": "GoldenLife MI",
+    "subtitle": "Egészségügyi asszisztens • Online",
+    "welcome": "Üdv! Segíthetek időpontot foglalni, szolgáltatót találni, vagy válaszolni a GoldenLife-fal kapcsolatos kérdéseidre. Miben segíthetek?",
+    "placeholder": "Kérdezz foglalásról, szolgáltatóról, fizetésről…",
+    "footer_note": "Az MI tévedhet — fiókkérdésekkel fordulj az Ügyfélszolgálathoz.",
+    "new_chat": "Új beszélgetés",
+    "minimize": "Kis méret",
+    "close": "Bezárás",
+    "qp_book": "Hogyan foglalhatok időpontot?",
+    "qp_find": "Találj orvost a közelemben",
+    "qp_pricing": "Árak és fizetés",
+    "qp_cancel": "Hogyan mondhatok le foglalást?",
+    "connect_support": "Kapcsolódás a GoldenLife Ügyfélszolgálathoz",
+    "connecting": "Kapcsolódás…",
+    "escalate_default": "Átadom az ügyet a GoldenLife Ügyfélszolgálatnak.",
+    "empty_reply": "Sajnos nem értettem. Hadd kapcsoljalak az Ügyfélszolgálathoz.",
+    "error_message": "Hiba történt nálam. Kapcsoljalak az Ügyfélszolgálathoz?",
+    "login_required_title": "Bejelentkezés szükséges",
+    "login_required_desc": "Kérlek, jelentkezz be, hogy kapcsolódhass az ügyfélszolgálatunkhoz.",
+    "connected_title": "Kapcsolódva az Ügyfélszolgálathoz",
+    "connected_desc": "Folytasd a beszélgetést az Üzenetek ablakban.",
+    "connect_failed": "Most nem érhető el az Ügyfélszolgálat"
   }
 }

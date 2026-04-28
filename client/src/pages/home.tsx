@@ -10,16 +10,11 @@ import { CTASection } from "@/components/cta-section";
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
 import { ContactForm } from "@/components/contact-form";
-import { Shield, Clock, Award, Sparkles, CreditCard, Wallet, Banknote, MessageCircle, Send, X, Bot, User as UserIcon, Mail, Phone, MapPin } from "lucide-react";
+import { Shield, Clock, Award, Sparkles, CreditCard, Wallet, Banknote, Mail, Phone, MapPin } from "lucide-react";
 import { SiVisa, SiMastercard, SiGooglepay, SiApplepay } from "react-icons/si";
-import { motion, AnimatePresence, useScroll, useTransform, useMotionValue, useSpring } from "framer-motion";
+import { motion, useScroll, useTransform, useMotionValue, useSpring } from "framer-motion";
 import { useAuth } from "@/lib/auth"; // Assuming useAuth is imported from here
-import { useState, useRef, useEffect } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { apiRequest, queryClient } from "@/lib/queryClient";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Input } from "@/components/ui/input";
-import { useToast } from "@/hooks/use-toast";
+import { useRef } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { useTranslation } from "react-i18next";
 
@@ -47,154 +42,6 @@ const floatingAnimation = {
     }
   }
 };
-
-function AIChatBox() {
-  const { t, i18n } = useTranslation();
-  const [isOpen, setIsOpen] = useState(false);
-  const [message, setMessage] = useState("");
-  const [conversationId, setConversationId] = useState<number | null>(null);
-  const scrollRef = useRef<HTMLDivElement>(null);
-
-  const { data: conversation } = useQuery<any>({
-    queryKey: ["/api/conversations", conversationId],
-    enabled: !!conversationId,
-  });
-
-  const createConversation = useMutation({
-    mutationFn: async () => {
-      const res = await apiRequest("POST", "/api/conversations", { title: "New Chat" });
-      return res.json();
-    },
-    onSuccess: (data) => {
-      setConversationId(data.id);
-    },
-  });
-
-  const sendMessage = useMutation({
-    mutationFn: async (content: string) => {
-      if (!conversationId) {
-        const conv = await createConversation.mutateAsync();
-        await apiRequest("POST", `/api/conversations/${conv.id}/messages`, { content });
-      } else {
-        await apiRequest("POST", `/api/conversations/${conversationId}/messages`, { content });
-      }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/conversations", conversationId] });
-      setMessage("");
-    },
-  });
-
-  useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
-  }, [conversation?.messages]);
-
-  return (
-    <div className="fixed bottom-6 right-6 z-50">
-      <AnimatePresence>
-        {isOpen && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.8, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.8, y: 20 }}
-            className="mb-4 w-80 md:w-96 h-[500px] bg-card border rounded-2xl shadow-2xl flex flex-col overflow-hidden"
-          >
-            <div className="p-4 bg-primary text-primary-foreground flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="p-2 bg-white/20 rounded-lg">
-                  <Bot className="w-5 h-5" />
-                </div>
-                <div className={i18n.language === 'fa' ? "text-right" : ""}>
-                  <h3 className="font-semibold text-sm">{t("chat.assistant_title")}</h3>
-                  <p className="text-[10px] opacity-80">{t("chat.assistant_status")}</p>
-                </div>
-              </div>
-              <Button
-                size="icon"
-                variant="ghost"
-                className="hover:bg-white/10 text-primary-foreground"
-                onClick={() => setIsOpen(false)}
-              >
-                <X className="w-4 h-4" />
-              </Button>
-            </div>
-
-            <ScrollArea className="flex-1 p-4">
-              <div className="space-y-4">
-                <div className="flex gap-2">
-                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                    <Bot className="w-4 h-4 text-primary" />
-                  </div>
-                  <div className="p-3 rounded-2xl rounded-tl-none bg-muted text-sm max-w-[85%]">
-                    {t("chat.welcome_message")}
-                  </div>
-                </div>
-
-                {conversation?.messages?.map((msg: any) => (
-                  <div
-                    key={msg.id}
-                    className={`flex gap-2 ${msg.role === "user" ? (i18n.language === 'fa' ? "flex-row" : "flex-row-reverse") : (i18n.language === 'fa' ? "flex-row-reverse" : "")}`}
-                  >
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
-                      msg.role === "user" ? "bg-primary" : "bg-primary/10"
-                    }`}>
-                      {msg.role === "user" ? (
-                        <UserIcon className="w-4 h-4 text-primary-foreground" />
-                      ) : (
-                        <Bot className="w-4 h-4 text-primary" />
-                      )}
-                    </div>
-                    <div className={`p-3 rounded-2xl text-sm max-w-[85%] ${
-                      msg.role === "user"
-                        ? "bg-primary text-primary-foreground " + (i18n.language === 'fa' ? "rounded-tl-none" : "rounded-tr-none")
-                        : "bg-muted " + (i18n.language === 'fa' ? "rounded-tr-none" : "rounded-tl-none")
-                    }`}>
-                      {msg.content}
-                    </div>
-                  </div>
-                ))}
-                <div ref={scrollRef} />
-              </div>
-            </ScrollArea>
-
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                if (message.trim()) sendMessage.mutate(message);
-              }}
-              className="p-4 border-t flex gap-2"
-            >
-              <Input
-                placeholder={t("chat.input_placeholder")}
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                className={`flex-1 ${i18n.language === 'fa' ? "text-right" : ""}`}
-                disabled={sendMessage.isPending}
-              />
-              <Button size="icon" type="submit" disabled={sendMessage.isPending || !message.trim()}>
-                <Send className="w-4 h-4" />
-              </Button>
-            </form>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      <Button
-        size="icon"
-        className="w-14 h-14 rounded-full shadow-lg hover:scale-110 transition-transform duration-300"
-        onClick={() => {
-          setIsOpen(!isOpen);
-          if (!conversationId && !isOpen) createConversation.mutate();
-        }}
-        data-testid="button-ai-chat"
-      >
-        <MessageCircle className="w-6 h-6" />
-      </Button>
-    </div>
-  );
-}
 
 export default function Home() {
   const { t, i18n } = useTranslation();
@@ -229,7 +76,6 @@ export default function Home() {
       <Header />
 
       <main className="flex-1">
-        <AIChatBox />
         <section
           ref={heroRef}
           onMouseMove={handleHeroMouseMove}

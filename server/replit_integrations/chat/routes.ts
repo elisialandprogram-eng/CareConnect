@@ -88,13 +88,60 @@ export function registerChatRoutes(app: Express): void {
       // Save user message
       await chatStorage.createMessage(conversationId, "user", content);
 
+      // ── Fast keyword guard: instantly escalate clearly off-topic / human-help requests
+      const lower = (content || "").toLowerCase().trim();
+      const humanTriggers = [
+        "human", "agent", "real person", "speak to support", "talk to support",
+        "talk to someone", "talk to a person", "live agent", "customer service",
+        "complaint", "refund my", "report a", "report bug", "speak with support",
+      ];
+      const offTopic = [
+        "weather", "stock price", "joke", "recipe", "football", "soccer",
+        "movie", "song", "lyrics", "math problem", "code in ", "write code",
+        "homework", "translate this", "diagnose me", "prescribe", "medication dose",
+      ];
+      const wantsHuman = humanTriggers.some((k) => lower.includes(k));
+      const isOffTopic = offTopic.some((k) => lower.includes(k));
+
+      if (wantsHuman || isOffTopic) {
+        const reason = wantsHuman
+          ? "Sure — let me connect you with the GoldenLife Support team."
+          : "That's outside what I can help with here. Let me hand you over to GoldenLife Support.";
+        const escalateMsg = `[REDIRECT_SUPPORT] ${reason}`;
+        await chatStorage.createMessage(conversationId, "assistant", escalateMsg);
+        res.setHeader("Content-Type", "text/event-stream");
+        res.setHeader("Cache-Control", "no-cache");
+        res.setHeader("Connection", "keep-alive");
+        res.write(`data: ${JSON.stringify({ content: escalateMsg })}\n\n`);
+        res.write(`data: ${JSON.stringify({ done: true, escalate: true })}\n\n`);
+        res.end();
+        return;
+      }
+
       // Get conversation history for context
       const messages = await chatStorage.getMessagesByConversation(conversationId);
+      const systemPrompt = [
+        "You are the GoldenLife AI Assistant for the GoldenLife healthcare marketplace.",
+        "",
+        "You ONLY answer questions about the GoldenLife platform. Topics you CAN help with:",
+        "• Booking, rescheduling, or cancelling appointments with physiotherapists, doctors, or home-care nurses",
+        "• Finding the right provider in a city or area",
+        "• Visit types (in-person, video call, home visit), pricing, and how payments work",
+        "• Wallet, refunds (general flow only), invoices",
+        "• Account, password, language, notifications, and privacy settings",
+        "• Becoming a provider on GoldenLife",
+        "",
+        "STRICT RULES:",
+        "1. Never give medical diagnoses, prescriptions, dosage advice, or emergency medical guidance — for medical emergencies tell the user to call local emergency services.",
+        "2. Never invent or guess answers, never look up specific account data (specific bookings, refunds, invoices, names, prices for individual cases).",
+        "3. If the user asks about anything OFF-TOPIC, asks for a human/agent/real person, asks about a SPECIFIC account/booking/refund issue, or you are not confident, you MUST respond with EXACTLY one line and nothing else, using this format:",
+        "   [REDIRECT_SUPPORT] <one short friendly sentence telling them you'll connect them with GoldenLife Support>",
+        "4. Otherwise, answer in 1–4 short sentences, friendly, professional, and concise. No markdown headings, no long lists.",
+        "5. Reply in the same language the user wrote in (English, Hungarian, or Persian).",
+      ].join("\n");
+
       const chatMessages: OpenAI.Chat.ChatCompletionMessageParam[] = [
-        {
-          role: "system",
-          content: "You are the CareConnect AI Assistant. You help users with healthcare bookings, finding providers (Physiotherapists, Doctors, Nurses), and explaining platform services. IMPORTANT: Only answer questions related to CareConnect's services, healthcare bookings, and platform features. If a user asks about anything else, politely explain that you can only assist with CareConnect-related healthcare services. Keep responses professional, empathetic, and concise."
-        },
+        { role: "system", content: systemPrompt },
         ...messages.map((m) => ({
           role: m.role as "user" | "assistant",
           content: m.content,

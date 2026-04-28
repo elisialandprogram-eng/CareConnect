@@ -1213,5 +1213,29 @@
     "privacy_paragraph_1_after": ". We use encryption and secure storage to protect your personal information.",
     "privacy_contact_intro": "For data access, correction, or deletion requests, please contact us at",
     "or": "or"
+  },
+  "ai_chat": {
+    "title": "GoldenLife AI",
+    "subtitle": "Healthcare assistant • Online",
+    "welcome": "Hi! I can help you book appointments, find providers, or answer questions about GoldenLife. What would you like to do?",
+    "placeholder": "Ask about bookings, providers, payments…",
+    "footer_note": "AI may make mistakes — for account issues use Support.",
+    "new_chat": "New chat",
+    "minimize": "Minimize",
+    "close": "Close",
+    "qp_book": "How do I book an appointment?",
+    "qp_find": "Find a doctor near me",
+    "qp_pricing": "Pricing & payments",
+    "qp_cancel": "How do I cancel a booking?",
+    "connect_support": "Connect with GoldenLife Support",
+    "connecting": "Connecting…",
+    "escalate_default": "Let me hand you over to GoldenLife Support.",
+    "empty_reply": "Sorry, I didn't get that. Let me connect you with Support.",
+    "error_message": "Something went wrong on my side. Want me to connect you with Support?",
+    "login_required_title": "Login required",
+    "login_required_desc": "Please log in so we can connect you with our Support team.",
+    "connected_title": "Connected to Support",
+    "connected_desc": "Continue your conversation in the Messages window.",
+    "connect_failed": "Couldn't reach Support right now"
   }
 }

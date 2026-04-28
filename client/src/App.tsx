@@ -37,6 +37,7 @@ const WalletPage = lazy(() => import("@/pages/wallet"));
 const Review = lazy(() => import("@/pages/review"));
 
 import { ChatBox } from "@/components/chat/ChatBox";
+import { AIChatBox } from "@/components/ai-chat-box";
 import { ScrollProgress } from "@/components/scroll-progress";
 import { ScrollToTop } from "@/components/scroll-to-top";
 import { PageTransition } from "@/components/page-transition";
@@ -119,6 +120,7 @@ function App() {
           <Toaster />
           <Router />
           <ChatBox />
+          <AIChatBox />
           <ScrollToTop />
         </AuthProvider>
       </TooltipProvider>
