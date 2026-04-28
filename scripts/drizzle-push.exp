@@ -1,0 +1,39 @@
+#!/usr/bin/env expect
+set timeout 240
+set env(TERM) "xterm-256color"
+
+log_user 1
+spawn -noecho npx drizzle-kit push --force
+
+expect {
+    -re {created or renamed from another column} {
+        sleep 0.2
+        send -- "\r"
+        exp_continue
+    }
+    -re {table created or renamed} {
+        sleep 0.2
+        send -- "\r"
+        exp_continue
+    }
+    -re {Are you sure you want to apply} {
+        sleep 0.2
+        send -- "\r"
+        exp_continue
+    }
+    -re {No, abort} {
+        sleep 0.2
+        send -- "\033\[A\r"
+        exp_continue
+    }
+    -re {data-loss} {
+        sleep 0.2
+        send -- "\r"
+        exp_continue
+    }
+    -re {applied} { exp_continue }
+    timeout { puts "TIMEOUT"; exit 2 }
+    eof
+}
+catch wait result
+exit [lindex $result 3]
