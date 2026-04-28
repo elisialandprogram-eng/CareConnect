@@ -42,76 +42,81 @@ export default function ProviderSetup() {
   const [step, setStep] = useState(1);
 
   const practitionerSchema = z.object({
-    name: z.string().min(2, t("validation.field_required")),
-    designation: z.string().min(2, t("validation.field_required")),
-    dob: z.string().min(1, t("validation.field_required")),
-    originCountry: z.string().min(2, t("validation.field_required")),
-    registrationNumber: z.string().min(2, t("validation.field_required")),
-    identityNumber: z.string().min(2, t("validation.field_required")),
-    mobileNumber: z.string().min(2, t("validation.field_required")),
+    name: z.string().optional(),
+    designation: z.string().optional(),
+    dob: z.string().optional(),
+    originCountry: z.string().optional(),
+    registrationNumber: z.string().optional(),
+    identityNumber: z.string().optional(),
+    mobileNumber: z.string().optional(),
   });
 
+  const optionalNumber = z.preprocess(
+    (v) => (v === "" || v === null || v === undefined ? undefined : v),
+    z.coerce.number().optional(),
+  );
+
   const providerSetupSchema = z.object({
-    type: z.enum(["physiotherapist", "doctor", "nurse"]),
-    professionalTitle: z.string().min(1, t("validation.field_required")),
-    specialization: z.string().min(3, t("validation.specialization_required")),
+    type: z.enum(["physiotherapist", "doctor", "nurse"]).optional().default("physiotherapist"),
+    professionalTitle: z.string().optional(),
+    specialization: z.string().optional(),
     secondarySpecialties: z.array(z.string()).optional(),
     subServices: z.array(z.string()).optional(),
-    bio: z.string().min(50, t("validation.bio_min")),
+    bio: z.string().optional(),
     // Experience & Education
-    yearsExperience: z.coerce.number().min(0).max(50),
-    education: z.string().min(3, t("validation.field_required")),
+    yearsExperience: optionalNumber,
+    education: z.string().optional(),
     qualifications: z.array(z.string()).optional(),
     certifications: z.array(z.string()).optional(),
-    languages: z.array(z.string()).min(1, t("validation.lang_select")),
-    
+    languages: z.array(z.string()).optional(),
+
     // Credentials
-    licenseNumber: z.string().min(2, t("validation.field_required")),
-    licensingAuthority: z.string().min(2, t("validation.field_required")),
-    licenseExpiryDate: z.string().min(1, t("validation.field_required")),
+    licenseNumber: z.string().optional(),
+    licensingAuthority: z.string().optional(),
+    licenseExpiryDate: z.string().optional(),
     nationalProviderId: z.string().optional(),
 
     // Services
-    ageGroupsServed: z.array(z.string()).min(1, t("validation.field_required")),
-    preferredContactMethod: z.enum(["email", "phone", "both"]).default("email"),
-    
+    ageGroupsServed: z.array(z.string()).optional(),
+    preferredContactMethod: z.enum(["email", "phone", "both"]).optional().default("email"),
+
     // Availability
-    availableDays: z.array(z.string()).min(1, t("validation.day_select")),
-    workingHoursStart: z.string().default("09:00"),
-    workingHoursEnd: z.string().default("18:00"),
-    maxPatientsPerDay: z.coerce.number().min(1).optional(),
-    timezone: z.string().min(1, t("validation.field_required")),
+    availableDays: z.array(z.string()).optional(),
+    workingHoursStart: z.string().optional().default("09:00"),
+    workingHoursEnd: z.string().optional().default("18:00"),
+    maxPatientsPerDay: optionalNumber,
+    timezone: z.string().optional(),
 
     // Service Area
-    primaryServiceLocation: z.string().min(2, t("validation.field_required")),
-    city: z.string().min(2, t("validation.field_required")),
-    state: z.string().min(2, t("validation.field_required")),
-    country: z.string().min(2, t("validation.field_required")),
-    serviceRadiusKm: z.coerce.number().min(1).optional(),
+    primaryServiceLocation: z.string().optional(),
+    city: z.string().optional(),
+    state: z.string().optional(),
+    country: z.string().optional(),
+    serviceRadiusKm: optionalNumber,
     googleMapsLocation: z.string().optional(),
     multipleServiceAreas: z.array(z.string()).optional(),
 
     // Pricing
-    consultationFee: z.coerce.number().min(1, t("validation.cons_fee_required")),
-    homeVisitFee: z.coerce.number().optional(),
-    telemedicineFee: z.coerce.number().optional(),
-    emergencyCareFee: z.coerce.number().optional(),
+    consultationFee: optionalNumber,
+    homeVisitFee: optionalNumber,
+    telemedicineFee: optionalNumber,
+    emergencyCareFee: optionalNumber,
     insuranceAccepted: z.array(z.string()).optional(),
-    currency: z.string().default("HUF"),
-    paymentMethods: z.array(z.string()).min(1, t("validation.field_required")),
+    currency: z.string().optional().default("HUF"),
+    paymentMethods: z.array(z.string()).optional(),
 
     // Compliance
     malpracticeCoverage: z.string().optional(),
-    
-    // Consents
-    providerAgreementAccepted: z.boolean().refine(v => v === true, t("validation.field_required")),
-    dataProcessingAgreementAccepted: z.boolean().refine(v => v === true, t("validation.field_required")),
-    telemedicineAgreementAccepted: z.boolean().refine(v => v === true, t("validation.field_required")),
-    codeOfConductAccepted: z.boolean().refine(v => v === true, t("validation.field_required")),
+
+    // Consents (no longer required)
+    providerAgreementAccepted: z.boolean().optional().default(false),
+    dataProcessingAgreementAccepted: z.boolean().optional().default(false),
+    telemedicineAgreementAccepted: z.boolean().optional().default(false),
+    codeOfConductAccepted: z.boolean().optional().default(false),
 
     // Custom
     affiliatedHospital: z.string().optional(),
-    onCallAvailability: z.boolean().default(false),
+    onCallAvailability: z.boolean().optional().default(false),
     emergencyContact: z.string().optional(),
     practitioners: z.array(practitionerSchema).optional(),
   });
