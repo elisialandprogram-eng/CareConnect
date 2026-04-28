@@ -148,20 +148,20 @@ export default function Providers() {
 
       <div className="space-y-3">
         <Label className="text-sm font-medium">{t("providers.min_rating")}</Label>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {[0, 3, 4, 4.5].map((rating) => (
             <Button
               key={rating}
               variant={filters.minRating === rating ? "default" : "outline"}
               size="sm"
               onClick={() => setFilters({ ...filters, minRating: rating })}
-              className="flex items-center gap-1"
+              className="flex items-center gap-1 px-2.5"
               data-testid={`filter-rating-${rating}`}
             >
               {rating === 0 ? t("providers.any_rating") : (
                 <>
-                  <Star className="h-3 w-3 fill-current" />
-                  {rating}+
+                  <Star className="h-3 w-3 fill-current shrink-0" />
+                  <span>{rating}+</span>
                 </>
               )}
             </Button>
