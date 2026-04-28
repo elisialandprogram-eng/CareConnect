@@ -113,6 +113,23 @@ function ServiceStaffList({ serviceId, onDelete, onToggle }: { serviceId: string
   );
 }
 
+function AppointmentsListSkeleton() {
+  return (
+    <div className="space-y-3" data-testid="skeleton-appointments">
+      {[0, 1, 2].map((i) => (
+        <div key={i} className="flex items-center gap-4 p-4 border rounded-lg">
+          <Skeleton className="h-10 w-10 rounded-full" />
+          <div className="flex-1 space-y-2">
+            <Skeleton className="h-4 w-32" />
+            <Skeleton className="h-3 w-48" />
+          </div>
+          <Skeleton className="h-6 w-20 rounded-full" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function ProviderDashboard() {
   const { t } = useTranslation();
   const { user } = useAuth();
@@ -131,12 +148,13 @@ export default function ProviderDashboard() {
   });
 
   // Appointments are needed on most tabs and for live counts; poll only when an
-  // appointment-centric tab is active so background tabs don't hammer the API.
+  // appointment-centric tab is active. 30s is plenty fresh and avoids hammering
+  // the connection pool (which previously caused 100s+ stalls under load).
   const appointmentTabs = new Set(["upcoming", "completed", "cancelled", "history", "calendar", "analytics"]);
-  const { data: appointments } = useQuery<AppointmentWithDetails[]>({
+  const { data: appointments, isLoading: isLoadingAppointments } = useQuery<AppointmentWithDetails[]>({
     queryKey: ["/api/appointments/provider"],
     enabled: !!providerData?.id,
-    refetchInterval: appointmentTabs.has(activeTab) ? 5000 : false,
+    refetchInterval: appointmentTabs.has(activeTab) ? 30000 : false,
   });
 
   const { data: providerWithServices } = useQuery<ProviderWithServices>({
@@ -1273,6 +1291,8 @@ export default function ProviderDashboard() {
                       </div>
                     ))}
                   </>
+                ) : isLoadingAppointments ? (
+                  <AppointmentsListSkeleton />
                 ) : (
                   <div className="text-center py-12 text-muted-foreground" data-testid="empty-upcoming">
                     {t("provider_dashboard.empty_upcoming", "No upcoming appointments match your filters")}
@@ -1286,6 +1306,8 @@ export default function ProviderDashboard() {
                 const list = sortByDateDesc(filterAppointments(completedAppointments));
                 return list.length > 0 ? (
                   list.map((a) => <AppointmentRow key={a.id} appointment={a} />)
+                ) : isLoadingAppointments ? (
+                  <AppointmentsListSkeleton />
                 ) : (
                   <div className="text-center py-12 text-muted-foreground" data-testid="empty-completed">
                     {t("provider_dashboard.empty_completed", "No completed appointments yet")}
@@ -1299,6 +1321,8 @@ export default function ProviderDashboard() {
                 const list = sortByDateDesc(filterAppointments(cancelledAppointments));
                 return list.length > 0 ? (
                   list.map((a) => <AppointmentRow key={a.id} appointment={a} />)
+                ) : isLoadingAppointments ? (
+                  <AppointmentsListSkeleton />
                 ) : (
                   <div className="text-center py-12 text-muted-foreground" data-testid="empty-cancelled">
                     {t("provider_dashboard.empty_cancelled", "No cancelled or rejected appointments")}
@@ -1312,6 +1336,8 @@ export default function ProviderDashboard() {
                 const list = sortByDateDesc(filterAppointments(allAppointments));
                 return list.length > 0 ? (
                   list.map((a) => <AppointmentRow key={a.id} appointment={a} />)
+                ) : isLoadingAppointments ? (
+                  <AppointmentsListSkeleton />
                 ) : (
                   <div className="text-center py-12 text-muted-foreground" data-testid="empty-history">
                     {t("provider_dashboard.empty_history", "No appointments in your history")}

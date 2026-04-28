@@ -1144,11 +1144,22 @@ export async function registerRoutes(
 
   // Get provider appointments
   app.get("/api/appointments/provider", authenticateToken, async (req: AuthRequest, res: Response) => {
+    const t0 = Date.now();
     try {
       const provider = await storage.getProviderByUserId(req.user!.id);
+      const t1 = Date.now();
       if (!provider) return res.status(404).json({ message: "Provider not found" });
       const appointments = await storage.getAppointmentsByProvider(provider.id);
+      const t2 = Date.now();
       res.json(appointments);
+      const t3 = Date.now();
+      if (t3 - t0 > 1000) {
+        console.warn(
+          `[slow] /api/appointments/provider total=${t3 - t0}ms ` +
+          `getProvider=${t1 - t0}ms getAppointments=${t2 - t1}ms ` +
+          `serialize=${t3 - t2}ms rows=${appointments.length}`
+        );
+      }
     } catch (error) {
       console.error("Get provider appointments error:", error);
       res.status(500).json({ message: "Failed to get appointments" });
