@@ -49,7 +49,10 @@ import {
   Loader2, Shield, Users, Building, Trash2, Edit, Plus, Tag, DollarSign,
   Calendar, FileText, Settings, MessageSquare, Activity, BarChart3,
   Bell, HelpCircle, CheckCircle, XCircle, Clock, Eye, ListTree, Search, UserCheck,
-  Wallet as WalletIcon, Briefcase, Sparkles as SparklesIcon, Send, Lock, MapPin
+  Wallet as WalletIcon, Briefcase, Sparkles as SparklesIcon, Send, Lock, MapPin,
+  UserPlus, RefreshCw, ChevronDown, ChevronUp, Stethoscope, GraduationCap,
+  Mail, Phone, MoreVertical, AlertCircle, Inbox, UserCog, RotateCcw, CheckCheck,
+  Globe, CalendarDays, Hash, Timer
 } from "lucide-react";
 import type { User, ProviderWithUser, PromoCode, ProviderPricingOverride, SubService, Practitioner, ServicePractitioner, Service } from "@shared/schema";
 import { ServiceFormDialog } from "@/components/service-form-dialog";
@@ -1284,12 +1287,70 @@ function FinancialReports() {
   );
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Modern Providers Management
+// ─────────────────────────────────────────────────────────────────────────────
+
+function FormSection({
+  icon: Icon,
+  title,
+  description,
+  children,
+}: {
+  icon: any;
+  title: string;
+  description?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="rounded-lg border bg-card overflow-hidden">
+      <header className="px-5 py-3 border-b bg-muted/30 flex items-center gap-3">
+        <div className="h-8 w-8 rounded-md bg-primary/10 text-primary flex items-center justify-center shrink-0">
+          <Icon className="h-4 w-4" />
+        </div>
+        <div className="min-w-0">
+          <h3 className="font-semibold text-sm">{title}</h3>
+          {description && <p className="text-xs text-muted-foreground">{description}</p>}
+        </div>
+      </header>
+      <div className="p-5">{children}</div>
+    </section>
+  );
+}
+
+function ProviderStatusPill({ status, t }: { status: string; t: (k: string, d?: string) => string }) {
+  const cfg: Record<string, string> = {
+    active:    "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300 border-emerald-200",
+    pending:   "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300 border-amber-200",
+    suspended: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300 border-red-200",
+    approved:  "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 border-blue-200",
+    rejected:  "bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300 border-rose-200",
+  };
+  const dot: Record<string, string> = {
+    active: "bg-emerald-500", pending: "bg-amber-500", suspended: "bg-red-500",
+    approved: "bg-blue-500", rejected: "bg-rose-500",
+  };
+  const cls = cfg[status] || "bg-muted text-muted-foreground border-border";
+  const dotCls = dot[status] || "bg-slate-400";
+  return (
+    <Badge variant="outline" className={`${cls} text-[10px] gap-1.5 h-5`}>
+      <span className={`h-1.5 w-1.5 rounded-full ${dotCls}`} />
+      {t(`admin.${status}`, status)}
+    </Badge>
+  );
+}
+
 // Provider Management Component
 function ProvidersManagement() {
   const { format: fmtMoney } = useCurrency();
   const { t } = useTranslation();
   const { toast } = useToast();
   const [, navigate] = useLocation();
+  const [showCreateForm, setShowCreateForm] = useState(true);
+  const [providerSearch, setProviderSearch] = useState("");
+  const [providerStatusFilter, setProviderStatusFilter] = useState<string>("all");
+  const [providerTypeFilter, setProviderTypeFilter] = useState<string>("all");
+
   const form = useForm<AdminProviderData & { practitioners: any[] }>({
     resolver: zodResolver(adminProviderSchema.extend({
       practitioners: z.array(z.object({
@@ -1407,487 +1468,793 @@ function ProvidersManagement() {
 
   if (isLoading) return <div className="flex justify-center p-12"><Loader2 className="h-8 w-8 animate-spin" /></div>;
 
+  const providersList = providers ?? [];
+  const filteredProviders = providersList.filter((p: any) => {
+    if (providerStatusFilter !== "all" && p.status !== providerStatusFilter) return false;
+    if (providerTypeFilter !== "all" && p.type !== providerTypeFilter) return false;
+    if (!providerSearch) return true;
+    const q = providerSearch.toLowerCase();
+    return (
+      `${p.user?.firstName || ""} ${p.user?.lastName || ""}`.toLowerCase().includes(q) ||
+      (p.user?.email || "").toLowerCase().includes(q) ||
+      (p.specialization || "").toLowerCase().includes(q) ||
+      (p.user?.city || "").toLowerCase().includes(q)
+    );
+  });
+  const providerCounts = providersList.reduce((acc: Record<string, number>, p: any) => {
+    acc[p.status] = (acc[p.status] || 0) + 1;
+    acc.all = (acc.all || 0) + 1;
+    return acc;
+  }, { all: 0 });
+
+  const providerTypeIcon = (type: string) => {
+    if (type === "doctor") return Stethoscope;
+    if (type === "nurse") return UserCheck;
+    return Briefcase;
+  };
+
   return (
     <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>{t("admin.create_new_provider")}</CardTitle>
-          <CardDescription>{t("admin.add_provider_desc")}</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit((data) => createProviderMutation.mutate(data))} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t("admin.email")}</FormLabel>
-                      <FormControl>
-                        <Input {...field} type="email" data-testid="input-provider-email" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="password"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t("admin.password")}</FormLabel>
-                      <FormControl>
-                        <Input {...field} type="password" data-testid="input-provider-password" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="firstName"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t("admin.first_name")}</FormLabel>
-                      <FormControl>
-                        <Input {...field} data-testid="input-provider-firstname" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="lastName"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t("admin.last_name")}</FormLabel>
-                      <FormControl>
-                        <Input {...field} data-testid="input-provider-lastname" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="phone"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t("admin.phone")}</FormLabel>
-                      <FormControl>
-                        <Input {...field} data-testid="input-provider-phone" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="city"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t("admin.city")}</FormLabel>
-                      <FormControl>
-                        <Input {...field} data-testid="input-provider-city" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="type"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t("admin.provider_type")}</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger data-testid="select-provider-type">
-                            <SelectValue />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="physiotherapist">{t("common_service_type.physiotherapist")}</SelectItem>
-                          <SelectItem value="doctor">{t("common_service_type.doctor")}</SelectItem>
-                          <SelectItem value="nurse">{t("common_service_type.nurse")}</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="specialization"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t("admin.specialization")}</FormLabel>
-                      <FormControl>
-                        <Input {...field} data-testid="input-provider-specialization" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="yearsExperience"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t("admin.years_experience")}</FormLabel>
-                      <FormControl>
-                        <Input type="number" {...field} data-testid="input-provider-experience" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="education"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t("admin.education")}</FormLabel>
-                      <FormControl>
-                        <Input {...field} data-testid="input-provider-education" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="consultationFee"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t("admin.consultation_fee")}</FormLabel>
-                      <FormControl>
-                        <Input type="number" step="0.01" {...field} data-testid="input-provider-fee" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="homeVisitFee"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t("admin.home_visit_fee")}</FormLabel>
-                      <FormControl>
-                        <Input type="number" step="0.01" {...field} value={field.value || ""} onChange={e => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)} data-testid="input-provider-homevisit-fee" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
+      {/* Toolbar header */}
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight">{t("admin.manage_providers", "Providers")}</h2>
+          <p className="text-sm text-muted-foreground">
+            {t("admin.providers_sub", "Create, manage, and monitor all healthcare providers in your platform.")}
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Badge variant="outline" className="h-8 px-2.5 text-xs gap-1.5">
+            <CheckCircle className="h-3.5 w-3.5 text-emerald-500" />
+            {t("admin.active", "Active")}: <span className="font-semibold">{providerCounts.active || 0}</span>
+          </Badge>
+          <Badge variant="outline" className="h-8 px-2.5 text-xs gap-1.5">
+            <Clock className="h-3.5 w-3.5 text-amber-500" />
+            {t("admin.pending", "Pending")}: <span className="font-semibold">{providerCounts.pending || 0}</span>
+          </Badge>
+          <Button
+            onClick={() => setShowCreateForm(v => !v)}
+            data-testid="button-toggle-create-form"
+            variant={showCreateForm ? "outline" : "default"}
+          >
+            {showCreateForm ? (
+              <>
+                <ChevronUp className="h-4 w-4 mr-2" />
+                {t("admin.hide_form", "Hide form")}
+              </>
+            ) : (
+              <>
+                <UserPlus className="h-4 w-4 mr-2" />
+                {t("admin.add_provider", "Add provider")}
+              </>
+            )}
+          </Button>
+        </div>
+      </div>
 
-              <div className="space-y-4 border-t pt-4">
-                <div className="flex items-center justify-between">
-                  <Label>{t("admin.medical_practitioners")}</Label>
-                  <Button type="button" variant="outline" size="sm" onClick={() => append({ name: "", dob: "", originCountry: "", registrationNumber: "", identityNumber: "", mobileNumber: "" })}>
-                    <Plus className="h-4 w-4 mr-2" /> {t("admin.add_practitioner")}
+      {/* Inline create form (open fields, sectioned) */}
+      {showCreateForm && (
+        <Card className="overflow-hidden">
+          <CardHeader className="bg-gradient-to-br from-primary/5 to-transparent border-b">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
+                <UserPlus className="h-5 w-5" />
+              </div>
+              <div>
+                <CardTitle>{t("admin.create_new_provider", "Create new provider")}</CardTitle>
+                <CardDescription>{t("admin.add_provider_desc", "Fill in the details below to add a new provider account.")}</CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="p-5">
+            <Form {...form}>
+              <form
+                onSubmit={form.handleSubmit((data) => createProviderMutation.mutate(data))}
+                className="space-y-5"
+              >
+                <FormSection
+                  icon={Lock}
+                  title={t("admin.section_account", "Account credentials")}
+                  description={t("admin.section_account_desc", "Login email and initial password for the provider.")}
+                >
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="email"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{t("admin.email", "Email")}</FormLabel>
+                          <FormControl>
+                            <div className="relative">
+                              <Mail className="h-4 w-4 absolute left-2.5 top-2.5 text-muted-foreground" />
+                              <Input {...field} type="email" className="pl-8" placeholder="provider@example.com" data-testid="input-provider-email" />
+                            </div>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="password"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{t("admin.password", "Password")}</FormLabel>
+                          <FormControl>
+                            <div className="relative">
+                              <Lock className="h-4 w-4 absolute left-2.5 top-2.5 text-muted-foreground" />
+                              <Input {...field} type="password" className="pl-8" placeholder="••••••••" data-testid="input-provider-password" />
+                            </div>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </FormSection>
+
+                <FormSection
+                  icon={UserCheck}
+                  title={t("admin.section_personal", "Personal info")}
+                  description={t("admin.section_personal_desc", "Basic contact details for the provider's account.")}
+                >
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="firstName"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{t("admin.first_name", "First name")}</FormLabel>
+                          <FormControl>
+                            <Input {...field} data-testid="input-provider-firstname" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="lastName"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{t("admin.last_name", "Last name")}</FormLabel>
+                          <FormControl>
+                            <Input {...field} data-testid="input-provider-lastname" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="phone"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{t("admin.phone", "Phone")}</FormLabel>
+                          <FormControl>
+                            <div className="relative">
+                              <Phone className="h-4 w-4 absolute left-2.5 top-2.5 text-muted-foreground" />
+                              <Input {...field} className="pl-8" data-testid="input-provider-phone" />
+                            </div>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="city"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{t("admin.city", "City")}</FormLabel>
+                          <FormControl>
+                            <div className="relative">
+                              <MapPin className="h-4 w-4 absolute left-2.5 top-2.5 text-muted-foreground" />
+                              <Input {...field} className="pl-8" data-testid="input-provider-city" />
+                            </div>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </FormSection>
+
+                <FormSection
+                  icon={Stethoscope}
+                  title={t("admin.section_professional", "Professional info")}
+                  description={t("admin.section_professional_desc", "Specialty, experience, and credentials.")}
+                >
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="type"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{t("admin.provider_type", "Provider type")}</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl>
+                              <SelectTrigger data-testid="select-provider-type">
+                                <SelectValue />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="physiotherapist">{t("common_service_type.physiotherapist", "Physiotherapist")}</SelectItem>
+                              <SelectItem value="doctor">{t("common_service_type.doctor", "Doctor")}</SelectItem>
+                              <SelectItem value="nurse">{t("common_service_type.nurse", "Nurse")}</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="specialization"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{t("admin.specialization", "Specialization")}</FormLabel>
+                          <FormControl>
+                            <Input {...field} placeholder={t("admin.specialization_placeholder", "e.g. Cardiology")} data-testid="input-provider-specialization" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="yearsExperience"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{t("admin.years_experience", "Years of experience")}</FormLabel>
+                          <FormControl>
+                            <Input type="number" {...field} data-testid="input-provider-experience" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="education"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{t("admin.education", "Education")}</FormLabel>
+                          <FormControl>
+                            <div className="relative">
+                              <GraduationCap className="h-4 w-4 absolute left-2.5 top-2.5 text-muted-foreground" />
+                              <Input {...field} className="pl-8" data-testid="input-provider-education" />
+                            </div>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  <div className="mt-4">
+                    <FormField
+                      control={form.control}
+                      name="bio"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{t("admin.bio", "Bio")}</FormLabel>
+                          <FormControl>
+                            <Textarea
+                              {...field}
+                              rows={3}
+                              placeholder={t("admin.bio_placeholder", "A short professional bio shown on the provider's public profile...")}
+                              data-testid="input-provider-bio"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </FormSection>
+
+                <FormSection
+                  icon={DollarSign}
+                  title={t("admin.section_pricing", "Pricing")}
+                  description={t("admin.section_pricing_desc", "Default fees for consultations and home visits.")}
+                >
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="consultationFee"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{t("admin.consultation_fee", "Consultation fee")}</FormLabel>
+                          <FormControl>
+                            <div className="relative">
+                              <DollarSign className="h-4 w-4 absolute left-2.5 top-2.5 text-muted-foreground" />
+                              <Input type="number" step="0.01" {...field} className="pl-8" data-testid="input-provider-fee" />
+                            </div>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="homeVisitFee"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{t("admin.home_visit_fee", "Home visit fee")}</FormLabel>
+                          <FormControl>
+                            <div className="relative">
+                              <DollarSign className="h-4 w-4 absolute left-2.5 top-2.5 text-muted-foreground" />
+                              <Input
+                                type="number"
+                                step="0.01"
+                                {...field}
+                                className="pl-8"
+                                value={field.value || ""}
+                                onChange={e => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
+                                data-testid="input-provider-homevisit-fee"
+                              />
+                            </div>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </FormSection>
+
+                <FormSection
+                  icon={Calendar}
+                  title={t("admin.section_schedule", "Schedule & languages")}
+                  description={t("admin.section_schedule_desc", "When the provider is available and which languages they speak.")}
+                >
+                  <FormField
+                    control={form.control}
+                    name="availableDays"
+                    render={() => (
+                      <FormItem>
+                        <FormLabel className="flex items-center gap-1.5">
+                          <CalendarDays className="h-3.5 w-3.5" />
+                          {t("admin.available_days", "Available days")}
+                        </FormLabel>
+                        <div className="flex flex-wrap gap-2">
+                          {dayOptions.map((day) => (
+                            <FormField
+                              key={day.value}
+                              control={form.control}
+                              name="availableDays"
+                              render={({ field }) => {
+                                const checked = field.value?.includes(day.value);
+                                return (
+                                  <FormItem className="m-0">
+                                    <FormLabel className={`cursor-pointer rounded-full border px-3 py-1 text-xs transition-colors select-none ${
+                                      checked
+                                        ? "bg-primary text-primary-foreground border-primary"
+                                        : "bg-background hover:bg-muted/60"
+                                    }`}>
+                                      <FormControl>
+                                        <Checkbox
+                                          checked={checked}
+                                          onCheckedChange={(c) => {
+                                            const updated = c
+                                              ? [...(field.value || []), day.value]
+                                              : (field.value || []).filter((v) => v !== day.value);
+                                            field.onChange(updated);
+                                          }}
+                                          className="sr-only"
+                                          data-testid={`checkbox-day-${day.value}`}
+                                        />
+                                      </FormControl>
+                                      {day.label}
+                                    </FormLabel>
+                                  </FormItem>
+                                );
+                              }}
+                            />
+                          ))}
+                        </div>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <div className="mt-4">
+                    <FormField
+                      control={form.control}
+                      name="languages"
+                      render={() => (
+                        <FormItem>
+                          <FormLabel className="flex items-center gap-1.5">
+                            <Globe className="h-3.5 w-3.5" />
+                            {t("admin.languages", "Languages")}
+                          </FormLabel>
+                          <div className="flex flex-wrap gap-2">
+                            {languageOptions.map((lang) => (
+                              <FormField
+                                key={lang.value}
+                                control={form.control}
+                                name="languages"
+                                render={({ field }) => {
+                                  const checked = field.value?.includes(lang.value);
+                                  return (
+                                    <FormItem className="m-0">
+                                      <FormLabel className={`cursor-pointer rounded-full border px-3 py-1 text-xs transition-colors select-none ${
+                                        checked
+                                          ? "bg-primary text-primary-foreground border-primary"
+                                          : "bg-background hover:bg-muted/60"
+                                      }`}>
+                                        <FormControl>
+                                          <Checkbox
+                                            checked={checked}
+                                            onCheckedChange={(c) => {
+                                              const updated = c
+                                                ? [...(field.value || []), lang.value]
+                                                : (field.value || []).filter((v) => v !== lang.value);
+                                              field.onChange(updated);
+                                            }}
+                                            className="sr-only"
+                                            data-testid={`checkbox-lang-${lang.value}`}
+                                          />
+                                        </FormControl>
+                                        {lang.label}
+                                      </FormLabel>
+                                    </FormItem>
+                                  );
+                                }}
+                              />
+                            ))}
+                          </div>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </FormSection>
+
+                <FormSection
+                  icon={Users}
+                  title={t("admin.medical_practitioners", "Medical practitioners")}
+                  description={t("admin.section_practitioners_desc", "Practitioners attached to this provider's account.")}
+                >
+                  <div className="space-y-3">
+                    {fields.map((field, index) => (
+                      <div key={field.id} className="rounded-lg border bg-muted/20 p-4 relative">
+                        <div className="flex items-center justify-between mb-3">
+                          <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                            {t("admin.practitioner", "Practitioner")} #{index + 1}
+                          </span>
+                          {fields.length > 1 && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 text-destructive hover:text-destructive"
+                              onClick={() => remove(index)}
+                              data-testid={`button-remove-practitioner-${index}`}
+                            >
+                              <Trash2 className="h-3.5 w-3.5 mr-1" />
+                              {t("admin.remove", "Remove")}
+                            </Button>
+                          )}
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                          <FormField
+                            control={form.control}
+                            name={`practitioners.${index}.name`}
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel className="text-xs">{t("admin.name", "Name")}</FormLabel>
+                                <FormControl><Input {...field} className="h-9" /></FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={form.control}
+                            name={`practitioners.${index}.dob`}
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel className="text-xs">{t("admin.dob_label", "Date of birth")}</FormLabel>
+                                <FormControl><Input type="date" {...field} className="h-9" /></FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={form.control}
+                            name={`practitioners.${index}.originCountry`}
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel className="text-xs">{t("admin.origin_country", "Origin country")}</FormLabel>
+                                <FormControl><Input {...field} className="h-9" /></FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={form.control}
+                            name={`practitioners.${index}.registrationNumber`}
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel className="text-xs">{t("admin.reg_number", "Registration #")}</FormLabel>
+                                <FormControl><Input {...field} className="h-9" /></FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={form.control}
+                            name={`practitioners.${index}.identityNumber`}
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel className="text-xs">{t("admin.identity_number", "Identity #")}</FormLabel>
+                                <FormControl><Input {...field} className="h-9" /></FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={form.control}
+                            name={`practitioners.${index}.mobileNumber`}
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel className="text-xs">{t("admin.mobile_number", "Mobile")}</FormLabel>
+                                <FormControl><Input {...field} className="h-9" /></FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="w-full border-dashed"
+                      onClick={() => append({ name: "", dob: "", originCountry: "", registrationNumber: "", identityNumber: "", mobileNumber: "" })}
+                      data-testid="button-add-practitioner"
+                    >
+                      <Plus className="h-4 w-4 mr-2" /> {t("admin.add_practitioner", "Add practitioner")}
+                    </Button>
+                  </div>
+                </FormSection>
+
+                <div className="sticky bottom-0 -mx-5 -mb-5 px-5 py-3 bg-background/95 backdrop-blur border-t flex items-center justify-end gap-2">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() => form.reset()}
+                    data-testid="button-reset-provider-form"
+                  >
+                    {t("common.reset", "Reset")}
+                  </Button>
+                  <Button
+                    type="submit"
+                    size="lg"
+                    disabled={createProviderMutation.isPending}
+                    data-testid="button-create-provider"
+                  >
+                    {createProviderMutation.isPending ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        {t("admin.creating", "Creating...")}
+                      </>
+                    ) : (
+                      <>
+                        <UserPlus className="mr-2 h-4 w-4" />
+                        {t("admin.create_provider", "Create provider")}
+                      </>
+                    )}
                   </Button>
                 </div>
-                {fields.map((field, index) => (
-                  <div key={field.id} className="p-4 border rounded-md space-y-4 relative">
-                    <Button type="button" variant="ghost" size="icon" className="absolute top-2 right-2 text-destructive" onClick={() => remove(index)}>
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <FormField
-                        control={form.control}
-                        name={`practitioners.${index}.name`}
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>{t("admin.name")}</FormLabel>
-                            <FormControl><Input {...field} /></FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name={`practitioners.${index}.dob`}
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>{t("admin.dob_label")}</FormLabel>
-                            <FormControl><Input type="date" {...field} /></FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name={`practitioners.${index}.originCountry`}
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>{t("admin.origin_country")}</FormLabel>
-                            <FormControl><Input {...field} /></FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name={`practitioners.${index}.registrationNumber`}
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>{t("admin.reg_number")}</FormLabel>
-                            <FormControl><Input {...field} /></FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name={`practitioners.${index}.identityNumber`}
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>{t("admin.identity_number")}</FormLabel>
-                            <FormControl><Input {...field} /></FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name={`practitioners.${index}.mobileNumber`}
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>{t("admin.mobile_number")}</FormLabel>
-                            <FormControl><Input {...field} /></FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
+              </form>
+            </Form>
+          </CardContent>
+        </Card>
+      )}
 
-              <FormField
-                control={form.control}
-                name="bio"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t("admin.bio")}</FormLabel>
-                    <FormControl>
-                      <Textarea {...field} rows={4} data-testid="input-provider-bio" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
+      {/* Provider list */}
+      <Card className="overflow-hidden">
+        <CardHeader className="border-b bg-muted/20 space-y-3">
+          <div className="flex items-center justify-between flex-wrap gap-3">
+            <div className="flex items-center gap-2">
+              <CardTitle>{t("admin.all_providers", "All providers")}</CardTitle>
+              <Badge variant="secondary" className="rounded-full">{filteredProviders.length}</Badge>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="relative flex-1 min-w-[220px]">
+              <Search className="h-4 w-4 absolute left-2.5 top-2.5 text-muted-foreground" />
+              <Input
+                placeholder={t("admin.search_providers", "Search by name, email, specialization, city...")}
+                value={providerSearch}
+                onChange={(e) => setProviderSearch(e.target.value)}
+                className="pl-8 h-9"
+                data-testid="input-search-providers"
               />
-
-              <FormField
-                control={form.control}
-                name="languages"
-                render={() => (
-                  <FormItem>
-                    <FormLabel>{t("admin.languages")}</FormLabel>
-                    <div className="flex flex-wrap gap-4">
-                      {languageOptions.map((lang) => (
-                        <FormField
-                          key={lang.value}
-                          control={form.control}
-                          name="languages"
-                          render={({ field }) => (
-                            <FormItem className="flex items-center gap-2">
-                              <FormControl>
-                                <Checkbox
-                                  checked={field.value?.includes(lang.value)}
-                                  onCheckedChange={(checked) => {
-                                    const updated = checked
-                                      ? [...(field.value || []), lang.value]
-                                      : (field.value || []).filter((v) => v !== lang.value);
-                                    field.onChange(updated);
-                                  }}
-                                  data-testid={`checkbox-lang-${lang.value}`}
-                                />
-                              </FormControl>
-                              <FormLabel className="font-normal cursor-pointer">{lang.label}</FormLabel>
-                            </FormItem>
-                          )}
-                        />
-                      ))}
-                    </div>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="availableDays"
-                render={() => (
-                  <FormItem>
-                    <FormLabel>{t("admin.available_days")}</FormLabel>
-                    <div className="flex flex-wrap gap-4">
-                      {dayOptions.map((day) => (
-                        <FormField
-                          key={day.value}
-                          control={form.control}
-                          name="availableDays"
-                          render={({ field }) => (
-                            <FormItem className="flex items-center gap-2">
-                              <FormControl>
-                                <Checkbox
-                                  checked={field.value?.includes(day.value)}
-                                  onCheckedChange={(checked) => {
-                                    const updated = checked
-                                      ? [...(field.value || []), day.value]
-                                      : (field.value || []).filter((v) => v !== day.value);
-                                    field.onChange(updated);
-                                  }}
-                                  data-testid={`checkbox-day-${day.value}`}
-                                />
-                              </FormControl>
-                              <FormLabel className="font-normal cursor-pointer">{day.label}</FormLabel>
-                            </FormItem>
-                          )}
-                        />
-                      ))}
-                    </div>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <Button type="submit" size="lg" disabled={createProviderMutation.isPending} className="w-full" data-testid="button-create-provider">
-                {createProviderMutation.isPending ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    {t("admin.creating")}
-                  </>
-                ) : (
-                  t("admin.create_provider")
-                )}
-              </Button>
-            </form>
-          </Form>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>{t("admin.manage_providers")}</CardTitle>
+            </div>
+            <Select value={providerTypeFilter} onValueChange={setProviderTypeFilter}>
+              <SelectTrigger className="w-44 h-9" data-testid="select-filter-provider-type">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{t("admin.all_types", "All types")}</SelectItem>
+                <SelectItem value="physiotherapist">{t("common_service_type.physiotherapist", "Physiotherapist")}</SelectItem>
+                <SelectItem value="doctor">{t("common_service_type.doctor", "Doctor")}</SelectItem>
+                <SelectItem value="nurse">{t("common_service_type.nurse", "Nurse")}</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={providerStatusFilter} onValueChange={setProviderStatusFilter}>
+              <SelectTrigger className="w-40 h-9" data-testid="select-filter-provider-status">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{t("admin.all_statuses", "All statuses")}</SelectItem>
+                <SelectItem value="active">{t("admin.active", "Active")}</SelectItem>
+                <SelectItem value="pending">{t("admin.pending", "Pending")}</SelectItem>
+                <SelectItem value="suspended">{t("admin.suspended", "Suspended")}</SelectItem>
+                <SelectItem value="approved">{t("admin.approved", "Approved")}</SelectItem>
+                <SelectItem value="rejected">{t("admin.rejected", "Rejected")}</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </CardHeader>
-        <CardContent>
-          <div className="rounded-md border overflow-hidden">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b bg-muted/50">
-                  <th className="h-10 px-4 text-left font-medium">{t("admin.provider")}</th>
-                  <th className="h-10 px-4 text-left font-medium">{t("admin.specialization")}</th>
-                  <th className="h-10 px-4 text-left font-medium">{t("admin.dates")}</th>
-                  <th className="h-10 px-4 text-left font-medium">{t("admin.status")}</th>
-                  <th className="h-10 px-4 text-left font-medium">{t("admin.actions")}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {providers?.map((provider: any) => (
-                  <tr key={provider.id} className="border-b last:border-0">
-                    <td className="p-4">
-                      <div className="font-medium">{provider.user?.firstName} {provider.user?.lastName}</div>
-                      <div className="text-sm text-muted-foreground">{provider.user?.email}</div>
-                    </td>
-                    <td className="p-4">{provider.specialization}</td>
-                    <td className="p-4">
-                      <div className="flex flex-col gap-1">
-                        <div className="flex items-center gap-1 text-xs">
-                          <span className="w-10 text-muted-foreground">Start:</span>
-                          <Input 
-                            type="date" 
-                            className="h-7 py-0 px-1 w-28 text-[10px]" 
+        <CardContent className="p-5">
+          {filteredProviders.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-center text-muted-foreground space-y-2">
+              <Briefcase className="h-12 w-12 text-muted-foreground/30" />
+              <p className="text-sm">
+                {providersList.length === 0
+                  ? t("admin.no_providers_yet", "No providers yet. Add your first one to get started.")
+                  : t("admin.no_providers_match", "No providers match your filters.")}
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+              {filteredProviders.map((provider: any) => {
+                const TypeIcon = providerTypeIcon(provider.type);
+                const fullName = `${provider.user?.firstName || ""} ${provider.user?.lastName || ""}`.trim() || provider.user?.email || "Provider";
+                return (
+                  <div
+                    key={provider.id}
+                    className="rounded-xl border bg-card overflow-hidden hover-elevate transition-all"
+                    data-testid={`card-provider-${provider.id}`}
+                  >
+                    <div className="p-4 flex items-start gap-3 border-b">
+                      <TicketAvatar name={fullName} seed={provider.id} size={44} />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between gap-2">
+                          <p className="font-semibold text-sm truncate">{fullName}</p>
+                          <ProviderStatusPill status={provider.status} t={t} />
+                        </div>
+                        <p className="text-xs text-muted-foreground truncate">{provider.user?.email}</p>
+                        <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+                          <Badge variant="outline" className="text-[10px] gap-1 px-1.5 h-5">
+                            <TypeIcon className="h-2.5 w-2.5" />
+                            {t(`common_service_type.${provider.type}`, provider.type)}
+                          </Badge>
+                          {provider.specialization && (
+                            <Badge variant="outline" className="text-[10px] px-1.5 h-5">
+                              {provider.specialization}
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="p-4 space-y-2 text-xs">
+                      {provider.user?.city && (
+                        <div className="flex items-center gap-1.5 text-muted-foreground">
+                          <MapPin className="h-3 w-3" />
+                          <span>{provider.user.city}</span>
+                        </div>
+                      )}
+                      {provider.user?.phone && (
+                        <div className="flex items-center gap-1.5 text-muted-foreground">
+                          <Phone className="h-3 w-3" />
+                          <span>{provider.user.phone}</span>
+                        </div>
+                      )}
+                      {provider.yearsExperience != null && (
+                        <div className="flex items-center gap-1.5 text-muted-foreground">
+                          <Briefcase className="h-3 w-3" />
+                          <span>{provider.yearsExperience} {t("admin.years", "years")}</span>
+                        </div>
+                      )}
+                      {provider.consultationFee != null && (
+                        <div className="flex items-center gap-1.5 text-muted-foreground">
+                          <DollarSign className="h-3 w-3" />
+                          <span>{fmtMoney(provider.consultationFee)} · {t("admin.consultation", "consultation")}</span>
+                        </div>
+                      )}
+                      <div className="grid grid-cols-2 gap-2 pt-1">
+                        <div>
+                          <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-0.5">
+                            {t("admin.start", "Start")}
+                          </p>
+                          <Input
+                            type="date"
+                            className="h-7 px-2 text-[11px]"
                             defaultValue={provider.startDate ? new Date(provider.startDate).toISOString().split('T')[0] : ""}
                             onBlur={(e) => {
                               if (e.target.value) {
                                 updateProviderMutation.mutate({ id: provider.id, startDate: new Date(e.target.value) });
                               }
                             }}
+                            data-testid={`input-start-${provider.id}`}
                           />
                         </div>
-                        <div className="flex items-center gap-1 text-xs">
-                          <span className="w-10 text-muted-foreground">End:</span>
-                          <Input 
-                            type="date" 
-                            className="h-7 py-0 px-1 w-28 text-[10px]" 
+                        <div>
+                          <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-0.5">
+                            {t("admin.end", "End")}
+                          </p>
+                          <Input
+                            type="date"
+                            className="h-7 px-2 text-[11px]"
                             defaultValue={provider.endDate ? new Date(provider.endDate).toISOString().split('T')[0] : ""}
                             onBlur={(e) => {
                               updateProviderMutation.mutate({ id: provider.id, endDate: e.target.value ? new Date(e.target.value) : null });
                             }}
+                            data-testid={`input-end-${provider.id}`}
                           />
                         </div>
                       </div>
-                    </td>
-                    <td className="p-4">
-                      <Badge variant={provider.status === 'active' ? 'default' : provider.status === 'suspended' ? 'destructive' : 'secondary'}>
-                        {t(`admin.${provider.status}`)}
-                      </Badge>
-                    </td>
-                    <td className="p-4">
-                      <div className="flex items-center gap-2">
-                        <Select
-                          value={provider.status}
-                          onValueChange={(status) => updateProviderMutation.mutate({ 
-                            id: provider.id, 
-                            status,
-                            isVerified: status === "active"
-                          })}
-                        >
-                          <SelectTrigger className="w-28">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="active">{t("admin.active")}</SelectItem>
-                            <SelectItem value="suspended">{t("admin.suspended")}</SelectItem>
-                            <SelectItem value="pending">{t("admin.pending")}</SelectItem>
-                            <SelectItem value="approved">{t("admin.approved")}</SelectItem>
-                            <SelectItem value="confirmed">{t("admin.confirmed")}</SelectItem>
-                            <SelectItem value="completed">{t("admin.completed")}</SelectItem>
-                            <SelectItem value="rejected">{t("admin.rejected")}</SelectItem>
-                            <SelectItem value="cancelled">{t("admin.cancelled")}</SelectItem>
-                            <SelectItem value="rescheduled">{t("admin.rescheduled")}</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <div className="flex items-center gap-1">
-                          <ProviderEditDialog provider={provider} />
-                          <ProviderDetailsDialog provider={provider} />
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="text-destructive"
-                            onClick={() => {
-                              if (confirm(t("admin.confirm_delete_provider"))) {
-                                deleteProviderMutation.mutate(provider.id);
-                              }
-                            }}
-                            data-testid={`button-delete-provider-${provider.id}`}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                          <Button 
-                            size="sm" 
-                            variant="outline"
-                            className="h-9 px-3"
-                            onClick={() => setSelectedProviderId(provider.id)}
-                            title={t("admin.view_stats")}
-                          >
-                            <BarChart3 className="h-4 w-4 mr-2" />
-                            {t("admin.stats")}
-                          </Button>
-                        </div>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                    </div>
+
+                    <div className="p-3 border-t bg-muted/20 flex items-center gap-2">
+                      <Select
+                        value={provider.status}
+                        onValueChange={(status) => updateProviderMutation.mutate({
+                          id: provider.id,
+                          status,
+                          isVerified: status === "active",
+                        })}
+                      >
+                        <SelectTrigger className="h-8 text-xs flex-1" data-testid={`select-status-${provider.id}`}>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="active">{t("admin.active", "Active")}</SelectItem>
+                          <SelectItem value="suspended">{t("admin.suspended", "Suspended")}</SelectItem>
+                          <SelectItem value="pending">{t("admin.pending", "Pending")}</SelectItem>
+                          <SelectItem value="approved">{t("admin.approved", "Approved")}</SelectItem>
+                          <SelectItem value="confirmed">{t("admin.confirmed", "Confirmed")}</SelectItem>
+                          <SelectItem value="completed">{t("admin.completed", "Completed")}</SelectItem>
+                          <SelectItem value="rejected">{t("admin.rejected", "Rejected")}</SelectItem>
+                          <SelectItem value="cancelled">{t("admin.cancelled", "Cancelled")}</SelectItem>
+                          <SelectItem value="rescheduled">{t("admin.rescheduled", "Rescheduled")}</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-8 px-2"
+                        onClick={() => setSelectedProviderId(provider.id)}
+                        title={t("admin.view_stats", "View stats")}
+                        data-testid={`button-stats-${provider.id}`}
+                      >
+                        <BarChart3 className="h-3.5 w-3.5" />
+                      </Button>
+                      <ProviderEditDialog provider={provider} />
+                      <ProviderDetailsDialog provider={provider} />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                        onClick={() => {
+                          if (confirm(t("admin.confirm_delete_provider", "Delete this provider?"))) {
+                            deleteProviderMutation.mutate(provider.id);
+                          }
+                        }}
+                        data-testid={`button-delete-provider-${provider.id}`}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -2612,30 +2979,91 @@ function InvoiceManagement() {
   );
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Modern complete ticketing system (admin)
+// ─────────────────────────────────────────────────────────────────────────────
+
+function ticketAgeLabel(iso: string | null | undefined): { label: string; tone: "fresh" | "warm" | "hot" } {
+  if (!iso) return { label: "—", tone: "fresh" };
+  const ms = Date.now() - new Date(iso).getTime();
+  const m = Math.floor(ms / 60000);
+  if (m < 60) return { label: `${m}m`, tone: "fresh" };
+  const h = Math.floor(m / 60);
+  if (h < 24) return { label: `${h}h`, tone: h >= 4 ? "warm" : "fresh" };
+  const d = Math.floor(h / 24);
+  return { label: `${d}d`, tone: d >= 3 ? "hot" : "warm" };
+}
+
+function ticketInitials(first?: string | null, last?: string | null, fallback?: string | null) {
+  const a = (first || "").trim()[0] || "";
+  const b = (last || "").trim()[0] || "";
+  const initials = (a + b).toUpperCase();
+  if (initials) return initials;
+  if (fallback) return fallback.trim()[0]?.toUpperCase() || "?";
+  return "?";
+}
+
+function ticketColorFor(seed: string): string {
+  const palette = [
+    "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300",
+    "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300",
+    "bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300",
+    "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300",
+    "bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300",
+    "bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300",
+  ];
+  let h = 0;
+  for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0;
+  return palette[h % palette.length];
+}
+
+function TicketAvatar({ name, seed, size = 32 }: { name: string; seed: string; size?: number }) {
+  const parts = name.trim().split(/\s+/);
+  const initials = ticketInitials(parts[0], parts[1], name);
+  const cls = ticketColorFor(seed || name);
+  return (
+    <div
+      className={`rounded-full flex items-center justify-center font-semibold ${cls}`}
+      style={{ width: size, height: size, fontSize: Math.round(size * 0.38) }}
+    >
+      {initials}
+    </div>
+  );
+}
+
 // Support Tickets Component
 function SupportTickets() {
   const { t } = useTranslation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { user: currentUser } = useAuth();
   const [selectedTicket, setSelectedTicket] = useState<any>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [priorityFilter, setPriorityFilter] = useState<string>("all");
+  const [assigneeFilter, setAssigneeFilter] = useState<string>("all");
   const [reply, setReply] = useState("");
   const [isInternalNote, setIsInternalNote] = useState(false);
 
-  const { data: tickets, refetch } = useQuery<any[]>({
+  const { data: tickets, refetch, isFetching } = useQuery<any[]>({
     queryKey: ["/api/admin/support-tickets"],
+    refetchInterval: 30000,
   });
 
   const { data: ticketMessages, refetch: refetchMessages } = useQuery<any[]>({
     queryKey: ["/api/admin/support-tickets", selectedTicket?.id, "messages"],
     enabled: !!selectedTicket,
+    refetchInterval: 15000,
   });
 
+  const { data: allUsers } = useQuery<any[]>({
+    queryKey: ["/api/admin/users"],
+  });
+  const adminUsers = (allUsers ?? []).filter(u => u.role === "admin");
+
   const updateTicketMutation = useMutation({
-    mutationFn: async ({ id, status, priority }: { id: string; status?: string; priority?: string }) => {
-      const response = await apiRequest("PATCH", `/api/admin/support-tickets/${id}`, { status, priority });
+    mutationFn: async ({ id, ...patch }: { id: string; status?: string; priority?: string; assignedTo?: string | null }) => {
+      const response = await apiRequest("PATCH", `/api/admin/support-tickets/${id}`, patch);
       const resData = await response.json();
       if (!response.ok) throw new Error(resData.message || t("admin_dashboard.ticket_update_failed", "Failed to update ticket"));
       return resData;
@@ -2668,11 +3096,11 @@ function SupportTickets() {
     },
   });
 
-  const STATUS_CFG: Record<string, { label: string; cls: string }> = {
-    open:        { label: t("admin_dashboard.status_open", "Open"),               cls: "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300" },
-    in_progress: { label: t("admin_dashboard.status_in_progress", "In progress"), cls: "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300" },
-    resolved:    { label: t("admin_dashboard.status_resolved", "Resolved"),       cls: "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300" },
-    closed:      { label: t("admin_dashboard.status_closed", "Closed"),           cls: "bg-muted text-muted-foreground border-border" },
+  const STATUS_CFG: Record<string, { label: string; cls: string; icon: any; pillCls: string }> = {
+    open:        { label: t("admin_dashboard.status_open", "Open"),               icon: Inbox,       cls: "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300",            pillCls: "bg-blue-500" },
+    in_progress: { label: t("admin_dashboard.status_in_progress", "In progress"), icon: Activity,    cls: "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300",       pillCls: "bg-amber-500" },
+    resolved:    { label: t("admin_dashboard.status_resolved", "Resolved"),       icon: CheckCircle, cls: "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300", pillCls: "bg-emerald-500" },
+    closed:      { label: t("admin_dashboard.status_closed", "Closed"),           icon: XCircle,     cls: "bg-muted text-muted-foreground border-border",                                                pillCls: "bg-slate-400" },
   };
   const PRIORITY_CFG: Record<string, string> = {
     low:    "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300",
@@ -2680,16 +3108,29 @@ function SupportTickets() {
     high:   "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300",
     urgent: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300",
   };
+  const ageToneCls = (tone: "fresh" | "warm" | "hot") =>
+    tone === "hot" ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300"
+    : tone === "warm" ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300"
+    : "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300";
+
+  const ticketCreatorName = (tk: any): string =>
+    tk?.creator
+      ? (`${tk.creator.firstName || ""} ${tk.creator.lastName || ""}`.trim() || tk.creator.email || t("admin_dashboard.guest", "Guest"))
+      : (tk?.name || t("admin_dashboard.guest", "Guest"));
 
   const filtered = (tickets ?? []).filter((tk: any) => {
     if (statusFilter !== "all" && tk.status !== statusFilter) return false;
     if (priorityFilter !== "all" && tk.priority !== priorityFilter) return false;
+    if (assigneeFilter === "me" && tk.assignedTo !== currentUser?.id) return false;
+    if (assigneeFilter === "unassigned" && tk.assignedTo) return false;
+    if (assigneeFilter !== "all" && assigneeFilter !== "me" && assigneeFilter !== "unassigned" && tk.assignedTo !== assigneeFilter) return false;
     if (!searchQuery) return true;
     const q = searchQuery.toLowerCase();
     const creatorName = `${tk.creator?.firstName || ""} ${tk.creator?.lastName || ""} ${tk.creator?.email || tk.name || ""}`.toLowerCase();
     return (
       tk.subject?.toLowerCase().includes(q) ||
       tk.description?.toLowerCase().includes(q) ||
+      tk.category?.toLowerCase().includes(q) ||
       creatorName.includes(q)
     );
   });
@@ -2698,6 +3139,8 @@ function SupportTickets() {
     acc[tk.status] = (acc[tk.status] || 0) + 1;
     return acc;
   }, {});
+  const myCount = (tickets ?? []).filter((tk: any) => tk.assignedTo === currentUser?.id && tk.status !== "closed").length;
+  const unassignedCount = (tickets ?? []).filter((tk: any) => !tk.assignedTo && tk.status !== "closed").length;
 
   const sendReply = (e: React.FormEvent) => {
     e.preventDefault();
@@ -2705,42 +3148,89 @@ function SupportTickets() {
     sendMessageMutation.mutate({ ticketId: selectedTicket.id, message: reply.trim(), isInternal: isInternalNote });
   };
 
+  const applyAction = (patch: { status?: string; priority?: string; assignedTo?: string | null }) => {
+    if (!selectedTicket) return;
+    updateTicketMutation.mutate({ id: selectedTicket.id, ...patch });
+    setSelectedTicket({ ...selectedTicket, ...patch });
+  };
+
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {(["open", "in_progress", "resolved", "closed"] as const).map((s) => (
-          <Card key={s} className="cursor-pointer hover-elevate" onClick={() => setStatusFilter(s)} data-testid={`stat-${s}`}>
-            <CardContent className="p-4 flex items-center justify-between">
-              <div>
-                <p className="text-xs uppercase tracking-wide text-muted-foreground">{STATUS_CFG[s].label}</p>
-                <p className="text-2xl font-bold">{counts[s] || 0}</p>
-              </div>
-              <Badge variant="outline" className={`${STATUS_CFG[s].cls} h-7 px-2`}>{counts[s] || 0}</Badge>
-            </CardContent>
-          </Card>
-        ))}
+      {/* Toolbar header */}
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight">{t("admin_dashboard.support_inbox", "Support inbox")}</h2>
+          <p className="text-sm text-muted-foreground">{t("admin_dashboard.support_inbox_sub", "Manage, assign, and reply to customer tickets.")}</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Badge variant="outline" className="h-8 px-2.5 text-xs gap-1.5">
+            <UserCog className="h-3.5 w-3.5" />
+            {t("admin_dashboard.assigned_to_me", "Assigned to me")}: <span className="font-semibold">{myCount}</span>
+          </Badge>
+          <Badge variant="outline" className="h-8 px-2.5 text-xs gap-1.5">
+            <AlertCircle className="h-3.5 w-3.5" />
+            {t("admin_dashboard.unassigned", "Unassigned")}: <span className="font-semibold">{unassignedCount}</span>
+          </Badge>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => refetch()}
+            disabled={isFetching}
+            data-testid="button-refresh-tickets"
+          >
+            <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
+            <span className="ml-2 hidden sm:inline">{t("common.refresh", "Refresh")}</span>
+          </Button>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[400px_1fr] gap-6">
-        <Card>
-          <CardHeader className="pb-3 space-y-3">
+      {/* Stat cards (click to filter) */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {(["open", "in_progress", "resolved", "closed"] as const).map((s) => {
+          const Icon = STATUS_CFG[s].icon;
+          const isActive = statusFilter === s;
+          return (
+            <Card
+              key={s}
+              className={`cursor-pointer hover-elevate transition-all ${isActive ? "ring-2 ring-primary border-primary" : ""}`}
+              onClick={() => setStatusFilter(isActive ? "all" : s)}
+              data-testid={`stat-${s}`}
+            >
+              <CardContent className="p-4 flex items-center gap-3">
+                <div className={`h-10 w-10 rounded-lg flex items-center justify-center ${STATUS_CFG[s].cls}`}>
+                  <Icon className="h-5 w-5" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground truncate">{STATUS_CFG[s].label}</p>
+                  <p className="text-2xl font-bold leading-tight">{counts[s] || 0}</p>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-[420px_1fr] gap-6">
+        {/* Ticket list */}
+        <Card className="overflow-hidden">
+          <CardHeader className="pb-3 space-y-3 bg-muted/30 border-b">
             <div className="flex items-center justify-between">
-              <CardTitle>{t("admin_dashboard.support_tickets", "Support tickets")}</CardTitle>
-              <Badge variant="secondary">{filtered.length}</Badge>
+              <CardTitle className="text-base">{t("admin_dashboard.tickets", "Tickets")}</CardTitle>
+              <Badge variant="secondary" className="rounded-full">{filtered.length}</Badge>
             </div>
             <div className="relative">
               <Search className="h-4 w-4 absolute left-2.5 top-2.5 text-muted-foreground" />
               <Input
                 placeholder={t("admin_dashboard.search_tickets", "Search subject, user, email...")}
-                className="pl-8"
+                className="pl-8 h-9"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 data-testid="input-search-tickets"
               />
             </div>
-            <div className="flex gap-2">
+            <div className="grid grid-cols-3 gap-2">
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="flex-1 h-8" data-testid="select-filter-status">
+                <SelectTrigger className="h-8 text-xs" data-testid="select-filter-status">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -2751,7 +3241,7 @@ function SupportTickets() {
                 </SelectContent>
               </Select>
               <Select value={priorityFilter} onValueChange={setPriorityFilter}>
-                <SelectTrigger className="flex-1 h-8" data-testid="select-filter-priority">
+                <SelectTrigger className="h-8 text-xs" data-testid="select-filter-priority">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -2762,46 +3252,79 @@ function SupportTickets() {
                   <SelectItem value="urgent">{t("admin_dashboard.priority_urgent", "Urgent")}</SelectItem>
                 </SelectContent>
               </Select>
+              <Select value={assigneeFilter} onValueChange={setAssigneeFilter}>
+                <SelectTrigger className="h-8 text-xs" data-testid="select-filter-assignee">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">{t("admin_dashboard.all_assignees", "All assignees")}</SelectItem>
+                  <SelectItem value="me">{t("admin_dashboard.me", "Me")}</SelectItem>
+                  <SelectItem value="unassigned">{t("admin_dashboard.unassigned", "Unassigned")}</SelectItem>
+                  {adminUsers.map(u => (
+                    <SelectItem key={u.id} value={u.id}>{u.firstName} {u.lastName}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </CardHeader>
-          <CardContent className="p-2">
-            <ScrollArea className="h-[520px]">
+          <CardContent className="p-0">
+            <ScrollArea className="h-[560px]">
               {filtered.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-12 text-center text-muted-foreground space-y-2">
-                  <Activity className="h-10 w-10 text-muted-foreground/40" />
+                <div className="flex flex-col items-center justify-center py-16 text-center text-muted-foreground space-y-2">
+                  <Inbox className="h-12 w-12 text-muted-foreground/30" />
                   <p className="text-sm">{t("admin_dashboard.no_tickets_match", "No tickets match the current filters.")}</p>
                 </div>
               ) : (
-                <div className="space-y-1">
+                <div className="divide-y">
                   {filtered.map((ticket: any) => {
                     const cfg = STATUS_CFG[ticket.status] || STATUS_CFG.open;
                     const isActive = selectedTicket?.id === ticket.id;
-                    const creator = ticket.creator
-                      ? `${ticket.creator.firstName || ""} ${ticket.creator.lastName || ""}`.trim() || ticket.creator.email
-                      : ticket.name || t("admin_dashboard.guest", "Guest");
+                    const creator = ticketCreatorName(ticket);
+                    const age = ticketAgeLabel(ticket.updatedAt || ticket.createdAt);
                     return (
                       <button
                         key={ticket.id}
                         onClick={() => setSelectedTicket(ticket)}
-                        className={`w-full text-left p-3 rounded-lg transition-colors ${
-                          isActive ? "bg-primary/10 border border-primary/30" : "hover:bg-muted/60 border border-transparent"
+                        className={`w-full text-left p-3 transition-colors flex gap-3 items-start ${
+                          isActive ? "bg-primary/10 border-l-4 border-l-primary" : "hover:bg-muted/60 border-l-4 border-l-transparent"
                         }`}
                         data-testid={`card-ticket-${ticket.id}`}
                       >
-                        <div className="flex items-start justify-between gap-2">
-                          <p className="font-medium text-sm truncate flex-1">{ticket.subject}</p>
-                          <Badge variant="outline" className={`${cfg.cls} text-[10px] px-1.5 py-0 h-5 shrink-0`}>{cfg.label}</Badge>
+                        <TicketAvatar name={creator} seed={ticket.createdBy || ticket.id} size={36} />
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-start justify-between gap-2">
+                            <p className="font-medium text-sm truncate flex-1">{ticket.subject}</p>
+                            <span className={`shrink-0 inline-flex items-center gap-1 text-[10px] font-semibold rounded-full px-1.5 py-0.5 ${ageToneCls(age.tone)}`}>
+                              <Timer className="h-2.5 w-2.5" />{age.label}
+                            </span>
+                          </div>
+                          <p className="text-xs text-muted-foreground truncate">{creator}</p>
+                          <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">{ticket.description}</p>
+                          <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+                            <Badge variant="outline" className={`${cfg.cls} text-[10px] px-1.5 py-0 h-5 gap-1`}>
+                              <span className={`h-1.5 w-1.5 rounded-full ${cfg.pillCls}`} />
+                              {cfg.label}
+                            </Badge>
+                            <Badge variant="outline" className={`${PRIORITY_CFG[ticket.priority] || ""} text-[10px] px-1.5 py-0 h-5`}>
+                              {ticket.priority}
+                            </Badge>
+                            {ticket.category && (
+                              <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-5">
+                                <Tag className="h-2.5 w-2.5 mr-0.5" />{ticket.category}
+                              </Badge>
+                            )}
+                            {ticket.assignee ? (
+                              <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-5 ml-auto bg-primary/5">
+                                <UserCheck className="h-2.5 w-2.5 mr-0.5" />
+                                {ticket.assignee.firstName}
+                              </Badge>
+                            ) : (
+                              <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-5 ml-auto bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-300">
+                                {t("admin_dashboard.unassigned", "Unassigned")}
+                              </Badge>
+                            )}
+                          </div>
                         </div>
-                        <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">{ticket.description}</p>
-                        <div className="flex items-center justify-between gap-2 mt-1.5">
-                          <p className="text-[11px] text-muted-foreground truncate">
-                            <Users className="inline h-3 w-3 mr-0.5 -mt-0.5" />{creator}
-                          </p>
-                          <Badge variant="outline" className={`${PRIORITY_CFG[ticket.priority] || ""} text-[10px] px-1.5 py-0 h-5`}>
-                            {ticket.priority}
-                          </Badge>
-                        </div>
-                        <p className="text-[10px] text-muted-foreground mt-1">{new Date(ticket.createdAt).toLocaleString()}</p>
                       </button>
                     );
                   })}
@@ -2811,71 +3334,141 @@ function SupportTickets() {
           </CardContent>
         </Card>
 
-        <Card>
+        {/* Ticket detail */}
+        <Card className="overflow-hidden">
           {!selectedTicket ? (
-            <CardContent className="flex flex-col items-center justify-center min-h-[600px] text-center text-muted-foreground space-y-3">
-              <MessageSquare className="h-12 w-12 text-muted-foreground/40" />
-              <p>{t("admin_dashboard.select_ticket_details", "Select a ticket to view details and reply.")}</p>
+            <CardContent className="flex flex-col items-center justify-center min-h-[640px] text-center text-muted-foreground space-y-3">
+              <MessageSquare className="h-14 w-14 text-muted-foreground/30" />
+              <p className="text-sm">{t("admin_dashboard.select_ticket_details", "Select a ticket to view details and reply.")}</p>
             </CardContent>
           ) : (
             <>
-              <CardHeader className="border-b space-y-3">
-                <div className="flex items-start justify-between gap-3 flex-wrap">
-                  <div>
-                    <CardTitle className="text-lg">{selectedTicket.subject}</CardTitle>
-                    <CardDescription className="mt-1">
-                      {selectedTicket.creator
-                        ? `${selectedTicket.creator.firstName || ""} ${selectedTicket.creator.lastName || ""} · ${selectedTicket.creator.email}`
-                        : `${selectedTicket.name || t("admin_dashboard.guest", "Guest")}${selectedTicket.mobileNumber ? " · " + selectedTicket.mobileNumber : ""}`}
-                      {" · "}
-                      {new Date(selectedTicket.createdAt).toLocaleString()}
-                    </CardDescription>
-                  </div>
-                  <div className="flex gap-2">
-                    <Select
-                      value={selectedTicket.status}
-                      onValueChange={(status) => {
-                        updateTicketMutation.mutate({ id: selectedTicket.id, status });
-                        setSelectedTicket({ ...selectedTicket, status });
-                      }}
-                    >
-                      <SelectTrigger className="w-36 h-8" data-testid="select-ticket-status">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {(["open", "in_progress", "resolved", "closed"] as const).map((s) => (
-                          <SelectItem key={s} value={s}>{STATUS_CFG[s].label}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <Select
-                      value={selectedTicket.priority}
-                      onValueChange={(priority) => {
-                        updateTicketMutation.mutate({ id: selectedTicket.id, priority });
-                        setSelectedTicket({ ...selectedTicket, priority });
-                      }}
-                    >
-                      <SelectTrigger className="w-28 h-8" data-testid="select-ticket-priority">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="low">{t("admin_dashboard.priority_low", "Low")}</SelectItem>
-                        <SelectItem value="medium">{t("admin_dashboard.priority_medium", "Medium")}</SelectItem>
-                        <SelectItem value="high">{t("admin_dashboard.priority_high", "High")}</SelectItem>
-                        <SelectItem value="urgent">{t("admin_dashboard.priority_urgent", "Urgent")}</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-              </CardHeader>
+              {(() => {
+                const cfg = STATUS_CFG[selectedTicket.status] || STATUS_CFG.open;
+                const creator = ticketCreatorName(selectedTicket);
+                const age = ticketAgeLabel(selectedTicket.createdAt);
+                return (
+                  <CardHeader className="border-b space-y-3 bg-gradient-to-br from-muted/40 to-transparent">
+                    <div className="flex items-start gap-3">
+                      <TicketAvatar name={creator} seed={selectedTicket.createdBy || selectedTicket.id} size={44} />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <CardTitle className="text-lg">{selectedTicket.subject}</CardTitle>
+                          <Badge variant="outline" className={`${cfg.cls} text-[10px] gap-1`}>
+                            <span className={`h-1.5 w-1.5 rounded-full ${cfg.pillCls}`} />
+                            {cfg.label}
+                          </Badge>
+                          <Badge variant="outline" className={`${PRIORITY_CFG[selectedTicket.priority] || ""} text-[10px]`}>
+                            {selectedTicket.priority}
+                          </Badge>
+                          {selectedTicket.category && (
+                            <Badge variant="outline" className="text-[10px]">
+                              <Tag className="h-2.5 w-2.5 mr-0.5" />{selectedTicket.category}
+                            </Badge>
+                          )}
+                        </div>
+                        <CardDescription className="mt-1 flex items-center gap-2 flex-wrap">
+                          <span className="font-medium text-foreground/80">{creator}</span>
+                          {selectedTicket.creator?.email && <span>· {selectedTicket.creator.email}</span>}
+                          {selectedTicket.mobileNumber && <span>· {selectedTicket.mobileNumber}</span>}
+                          <span>·</span>
+                          <span className="inline-flex items-center gap-1">
+                            <CalendarDays className="h-3 w-3" />
+                            {new Date(selectedTicket.createdAt).toLocaleString()}
+                          </span>
+                          <span className={`inline-flex items-center gap-1 text-[10px] font-semibold rounded-full px-1.5 py-0.5 ${ageToneCls(age.tone)}`}>
+                            <Timer className="h-2.5 w-2.5" />{age.label} {t("admin_dashboard.old", "old")}
+                          </span>
+                          <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground">
+                            <Hash className="h-2.5 w-2.5" />{(selectedTicket.id || "").slice(0, 8)}
+                          </span>
+                        </CardDescription>
+                      </div>
+                    </div>
+
+                    {/* Action toolbar */}
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {/* Quick actions */}
+                      {selectedTicket.status !== "resolved" && selectedTicket.status !== "closed" && (
+                        <Button size="sm" variant="outline" onClick={() => applyAction({ status: "resolved" })} data-testid="button-action-resolve">
+                          <CheckCheck className="h-4 w-4 mr-1.5" />
+                          {t("admin_dashboard.mark_resolved", "Resolve")}
+                        </Button>
+                      )}
+                      {selectedTicket.status !== "closed" && (
+                        <Button size="sm" variant="outline" onClick={() => applyAction({ status: "closed" })} data-testid="button-action-close">
+                          <XCircle className="h-4 w-4 mr-1.5" />
+                          {t("admin_dashboard.close_ticket", "Close")}
+                        </Button>
+                      )}
+                      {(selectedTicket.status === "closed" || selectedTicket.status === "resolved") && (
+                        <Button size="sm" variant="outline" onClick={() => applyAction({ status: "open" })} data-testid="button-action-reopen">
+                          <RotateCcw className="h-4 w-4 mr-1.5" />
+                          {t("admin_dashboard.reopen", "Reopen")}
+                        </Button>
+                      )}
+                      {currentUser?.id && selectedTicket.assignedTo !== currentUser.id && (
+                        <Button size="sm" variant="outline" onClick={() => applyAction({ assignedTo: currentUser.id })} data-testid="button-action-assign-me">
+                          <UserPlus className="h-4 w-4 mr-1.5" />
+                          {t("admin_dashboard.assign_to_me", "Assign to me")}
+                        </Button>
+                      )}
+
+                      <div className="ml-auto flex items-center gap-2 flex-wrap">
+                        <Select
+                          value={selectedTicket.assignedTo ?? "__unassigned"}
+                          onValueChange={(v) => applyAction({ assignedTo: v === "__unassigned" ? null : v })}
+                        >
+                          <SelectTrigger className="w-44 h-8 text-xs" data-testid="select-ticket-assignee">
+                            <UserCog className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="__unassigned">{t("admin_dashboard.unassigned", "Unassigned")}</SelectItem>
+                            {adminUsers.map(u => (
+                              <SelectItem key={u.id} value={u.id}>{u.firstName} {u.lastName}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <Select value={selectedTicket.status} onValueChange={(status) => applyAction({ status })}>
+                          <SelectTrigger className="w-36 h-8 text-xs" data-testid="select-ticket-status">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {(["open", "in_progress", "resolved", "closed"] as const).map((s) => (
+                              <SelectItem key={s} value={s}>{STATUS_CFG[s].label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <Select value={selectedTicket.priority} onValueChange={(priority) => applyAction({ priority })}>
+                          <SelectTrigger className="w-28 h-8 text-xs" data-testid="select-ticket-priority">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="low">{t("admin_dashboard.priority_low", "Low")}</SelectItem>
+                            <SelectItem value="medium">{t("admin_dashboard.priority_medium", "Medium")}</SelectItem>
+                            <SelectItem value="high">{t("admin_dashboard.priority_high", "High")}</SelectItem>
+                            <SelectItem value="urgent">{t("admin_dashboard.priority_urgent", "Urgent")}</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  </CardHeader>
+                );
+              })()}
 
               <CardContent className="p-0">
-                <div className="p-5 bg-muted/30 border-b">
-                  <p className="text-xs font-semibold uppercase text-muted-foreground mb-1.5">{t("admin_dashboard.original_request", "Original request")}</p>
-                  <p className="text-sm whitespace-pre-wrap">{selectedTicket.description}</p>
+                <div className="p-5 bg-muted/20 border-b">
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <FileText className="h-3.5 w-3.5 text-muted-foreground" />
+                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                      {t("admin_dashboard.original_request", "Original request")}
+                    </p>
+                  </div>
+                  <p className="text-sm whitespace-pre-wrap leading-relaxed">{selectedTicket.description}</p>
                   {selectedTicket.location && (
-                    <p className="text-xs text-muted-foreground mt-2">
-                      <MapPin className="inline h-3 w-3 mr-1 -mt-0.5" />
+                    <p className="text-xs text-muted-foreground mt-2 inline-flex items-center gap-1">
+                      <MapPin className="h-3 w-3" />
                       {selectedTicket.location}
                     </p>
                   )}
@@ -2884,45 +3477,50 @@ function SupportTickets() {
                 <ScrollArea className="h-[330px] p-5">
                   <div className="space-y-4">
                     {(ticketMessages ?? []).length === 0 ? (
-                      <p className="text-sm text-muted-foreground text-center py-8">
-                        {t("admin_dashboard.no_messages", "No replies yet.")}
-                      </p>
+                      <div className="text-center py-10 text-muted-foreground space-y-1">
+                        <MessageSquare className="h-8 w-8 mx-auto text-muted-foreground/30" />
+                        <p className="text-sm">{t("admin_dashboard.no_messages", "No replies yet.")}</p>
+                        <p className="text-xs">{t("admin_dashboard.start_conversation", "Send the first reply to start the conversation.")}</p>
+                      </div>
                     ) : (
                       (ticketMessages ?? []).map((msg: any) => {
                         const isStaff = msg.sender?.role === "admin";
+                        const senderName = msg.sender
+                          ? `${msg.sender.firstName || ""} ${msg.sender.lastName || ""}`.trim() || msg.sender.email || t("admin_dashboard.staff", "Staff")
+                          : t("admin_dashboard.user", "User");
                         if (msg.isInternal) {
                           return (
-                            <div key={msg.id} className="rounded-lg border border-amber-300 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-700 p-3" data-testid={`message-${msg.id}`}>
-                              <div className="flex items-center gap-2 mb-1">
-                                <Badge variant="outline" className="text-[10px] bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/40 dark:text-amber-300">
-                                  <Lock className="h-2.5 w-2.5 mr-1" />
-                                  {t("admin_dashboard.internal_note", "Internal note")}
-                                </Badge>
-                                <span className="text-xs font-medium">
-                                  {msg.sender ? `${msg.sender.firstName} ${msg.sender.lastName}` : t("admin_dashboard.staff", "Staff")}
-                                </span>
-                                <span className="text-[10px] text-muted-foreground">{new Date(msg.createdAt).toLocaleString()}</span>
+                            <div key={msg.id} className="flex gap-2.5" data-testid={`message-${msg.id}`}>
+                              <TicketAvatar name={senderName} seed={msg.senderId || msg.id} size={28} />
+                              <div className="flex-1 rounded-lg border border-amber-300 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-700 p-3">
+                                <div className="flex items-center gap-2 mb-1 flex-wrap">
+                                  <Badge variant="outline" className="text-[10px] bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/40 dark:text-amber-300">
+                                    <Lock className="h-2.5 w-2.5 mr-1" />
+                                    {t("admin_dashboard.internal_note", "Internal note")}
+                                  </Badge>
+                                  <span className="text-xs font-semibold">{senderName}</span>
+                                  <span className="text-[10px] text-muted-foreground ml-auto">{new Date(msg.createdAt).toLocaleString()}</span>
+                                </div>
+                                <p className="text-sm whitespace-pre-wrap leading-relaxed">{msg.message}</p>
                               </div>
-                              <p className="text-sm whitespace-pre-wrap">{msg.message}</p>
                             </div>
                           );
                         }
                         return (
-                          <div key={msg.id} className={`flex ${isStaff ? "justify-end" : "justify-start"}`} data-testid={`message-${msg.id}`}>
+                          <div key={msg.id} className={`flex gap-2.5 ${isStaff ? "flex-row-reverse" : ""}`} data-testid={`message-${msg.id}`}>
+                            <TicketAvatar name={senderName} seed={msg.senderId || msg.id} size={32} />
                             <div className={`max-w-[80%] rounded-2xl px-4 py-2.5 ${
                               isStaff ? "bg-primary text-primary-foreground rounded-br-sm" : "bg-muted rounded-bl-sm"
                             }`}>
                               <div className="flex items-center gap-2 mb-1">
                                 <span className="text-xs font-semibold">
-                                  {msg.sender
-                                    ? `${msg.sender.firstName} ${msg.sender.lastName}${isStaff ? " · " + t("admin_dashboard.staff", "Staff") : ""}`
-                                    : t("admin_dashboard.user", "User")}
+                                  {senderName}{isStaff ? ` · ${t("admin_dashboard.staff", "Staff")}` : ""}
                                 </span>
                                 <span className={`text-[10px] ${isStaff ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
                                   {new Date(msg.createdAt).toLocaleString()}
                                 </span>
                               </div>
-                              <p className="text-sm whitespace-pre-wrap">{msg.message}</p>
+                              <p className="text-sm whitespace-pre-wrap leading-relaxed">{msg.message}</p>
                             </div>
                           </div>
                         );
@@ -2932,11 +3530,17 @@ function SupportTickets() {
                 </ScrollArea>
 
                 {selectedTicket.status === "closed" ? (
-                  <div className="border-t p-4 text-center text-sm text-muted-foreground bg-muted/20">
-                    {t("admin_dashboard.ticket_closed_notice", "This ticket is closed. Reopen it to continue the conversation.")}
+                  <div className="border-t p-4 flex items-center justify-between gap-3 bg-muted/20">
+                    <p className="text-sm text-muted-foreground">
+                      {t("admin_dashboard.ticket_closed_notice", "This ticket is closed. Reopen it to continue the conversation.")}
+                    </p>
+                    <Button size="sm" variant="outline" onClick={() => applyAction({ status: "open" })} data-testid="button-reopen-from-footer">
+                      <RotateCcw className="h-4 w-4 mr-1.5" />
+                      {t("admin_dashboard.reopen", "Reopen")}
+                    </Button>
                   </div>
                 ) : (
-                  <form onSubmit={sendReply} className="border-t p-4 space-y-2">
+                  <form onSubmit={sendReply} className="border-t p-4 space-y-2 bg-background">
                     <Textarea
                       value={reply}
                       onChange={(e) => setReply(e.target.value)}
@@ -2946,7 +3550,7 @@ function SupportTickets() {
                           : t("admin_dashboard.reply_placeholder", "Reply to the user...")
                       }
                       rows={3}
-                      className="resize-none"
+                      className={`resize-none ${isInternalNote ? "border-amber-300 dark:border-amber-700 focus-visible:ring-amber-500/40" : ""}`}
                       data-testid="textarea-ticket-reply"
                       onKeyDown={(e) => {
                         if ((e.metaKey || e.ctrlKey) && e.key === "Enter") sendReply(e as any);
@@ -2962,18 +3566,23 @@ function SupportTickets() {
                         <Lock className="h-3.5 w-3.5 text-muted-foreground" />
                         {t("admin_dashboard.mark_internal", "Internal note (hidden from user)")}
                       </label>
-                      <Button type="submit" disabled={!reply.trim() || sendMessageMutation.isPending} data-testid="button-send-reply">
-                        {sendMessageMutation.isPending ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <>
-                            <Send className="h-4 w-4 mr-2" />
-                            {isInternalNote
-                              ? t("admin_dashboard.add_note", "Add note")
-                              : t("admin_dashboard.send_reply", "Send reply")}
-                          </>
-                        )}
-                      </Button>
+                      <div className="flex items-center gap-2">
+                        <span className="hidden md:inline text-[11px] text-muted-foreground">
+                          {t("admin_dashboard.send_hint", "⌘/Ctrl + Enter to send")}
+                        </span>
+                        <Button type="submit" disabled={!reply.trim() || sendMessageMutation.isPending} data-testid="button-send-reply">
+                          {sendMessageMutation.isPending ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <>
+                              <Send className="h-4 w-4 mr-2" />
+                              {isInternalNote
+                                ? t("admin_dashboard.add_note", "Add note")
+                                : t("admin_dashboard.send_reply", "Send reply")}
+                            </>
+                          )}
+                        </Button>
+                      </div>
                     </div>
                   </form>
                 )}
