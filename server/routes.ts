@@ -1909,40 +1909,55 @@ export async function registerRoutes(
       const { practitioners, ...providerData } = req.body;
       const userId = req.user!.id;
 
+      // Safely format licenseExpiryDate only if it's a non-empty valid date string
+      if (providerData.licenseExpiryDate && typeof providerData.licenseExpiryDate === "string" && providerData.licenseExpiryDate.trim() !== "") {
+        const parsed = new Date(providerData.licenseExpiryDate);
+        if (!isNaN(parsed.getTime())) {
+          providerData.licenseExpiryDate = parsed.toISOString();
+        } else {
+          delete providerData.licenseExpiryDate;
+        }
+      } else {
+        delete providerData.licenseExpiryDate;
+      }
+
       const existingProvider = await storage.getProviderByUserId(userId);
+
+      let provider;
       if (existingProvider) {
-        return res.status(400).json({ message: "Provider profile already exists" });
+        // Update existing provider profile
+        provider = await storage.updateProvider(existingProvider.id, {
+          ...providerData,
+          userId,
+        });
+      } else {
+        // Create new provider profile
+        provider = await storage.createProvider({
+          ...providerData,
+          userId,
+          status: "pending",
+          isVerified: false,
+          isActive: true,
+        });
       }
-
-      // Explicitly format date for database
-      if (providerData.licenseExpiryDate) {
-        providerData.licenseExpiryDate = new Date(providerData.licenseExpiryDate).toISOString();
-      }
-
-      // Create provider profile
-      const provider = await storage.createProvider({
-        ...providerData,
-        userId,
-        status: "pending",
-        isVerified: false,
-        isActive: true,
-      });
 
       // Update user role to provider
       await storage.updateUser(userId, { role: "provider" });
       invalidateAuthCache(userId);
 
-      // Create practitioners if provided
+      // Upsert practitioners if provided
       if (practitioners && Array.isArray(practitioners)) {
         for (const p of practitioners) {
-          await storage.createMedicalPractitioner({
-            ...p,
-            providerId: provider.id,
-          });
+          if (p.name && p.name.trim() !== "") {
+            await storage.createMedicalPractitioner({
+              ...p,
+              providerId: provider!.id,
+            });
+          }
         }
       }
 
-      res.status(201).json(provider);
+      res.status(200).json(provider);
     } catch (error: any) {
       console.error("Provider setup error:", error);
       res.status(500).json({ message: error.message || "Failed to setup provider profile" });
