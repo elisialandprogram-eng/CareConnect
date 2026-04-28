@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useLocation } from "wouter";
+import { useLocation, useSearch } from "wouter";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -202,8 +202,16 @@ function CheckboxGroup({
 export default function ProviderSetup() {
   const { t } = useTranslation();
   const [, navigate] = useLocation();
+  const searchStr = useSearch();
   const { toast } = useToast();
-  const [step, setStep] = useState(1);
+  const initialStep = (() => {
+    try {
+      const params = new URLSearchParams(searchStr);
+      const s = parseInt(params.get("step") || "1", 10);
+      return s >= 1 && s <= 6 ? s : 1;
+    } catch { return 1; }
+  })();
+  const [step, setStep] = useState(initialStep);
   const [direction, setDirection] = useState(1);
 
   const form = useForm<ProviderSetupFormData>({

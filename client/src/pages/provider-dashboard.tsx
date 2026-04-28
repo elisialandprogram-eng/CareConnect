@@ -71,7 +71,14 @@ import {
   ChevronUp,
   ChevronDown,
   MessageSquare,
+  AlertTriangle,
+  Award,
+  Zap,
+  ChevronRight,
+  Shield,
+  Pencil,
 } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
 import type { AppointmentWithDetails, Provider, ProviderWithServices, Practitioner, Service, ReviewWithPatient } from "@shared/schema";
 import {
   ResponsiveContainer,
@@ -137,6 +144,173 @@ function AppointmentsListSkeleton() {
   );
 }
 
+const PROFILE_SECTIONS = [
+  {
+    step: 1,
+    label: "Professional Info",
+    icon: "👤",
+    checks: (p: any) => [
+      { label: "Professional title", done: !!p.professionalTitle },
+      { label: "Specialization", done: !!p.specialization },
+      { label: "Bio / About you", done: !!p.bio },
+      { label: "Years of experience", done: p.yearsExperience != null && p.yearsExperience > 0 },
+      { label: "Education", done: !!p.education },
+    ],
+  },
+  {
+    step: 2,
+    label: "Credentials",
+    icon: "🪪",
+    checks: (p: any) => [
+      { label: "License number", done: !!p.licenseNumber },
+      { label: "Licensing authority", done: !!p.licensingAuthority },
+    ],
+  },
+  {
+    step: 3,
+    label: "Location",
+    icon: "📍",
+    checks: (p: any) => [
+      { label: "Primary location", done: !!p.primaryServiceLocation || !!p.city },
+      { label: "City", done: !!p.city },
+    ],
+  },
+  {
+    step: 4,
+    label: "Pricing",
+    icon: "💰",
+    checks: (p: any) => [
+      { label: "Consultation fee", done: p.consultationFee != null && p.consultationFee > 0 },
+      { label: "Languages spoken", done: Array.isArray(p.languages) && p.languages.length > 0 },
+    ],
+  },
+  {
+    step: 5,
+    label: "Availability",
+    icon: "📅",
+    checks: (p: any) => [
+      { label: "Available days", done: Array.isArray(p.availableDays) && p.availableDays.length > 0 },
+      { label: "Max patients/day", done: p.maxPatientsPerDay != null && p.maxPatientsPerDay > 0 },
+    ],
+  },
+];
+
+function ProfileCompletenessCard({ provider, services }: { provider: any; services?: any[] }) {
+  const [, setLocation] = useLocation();
+  const [dismissed, setDismissed] = useState(() => {
+    try { return localStorage.getItem("profile_completeness_dismissed") === "1"; } catch { return false; }
+  });
+
+  if (!provider) return null;
+
+  const allChecks = PROFILE_SECTIONS.flatMap((s) => s.checks(provider));
+  const hasServices = Array.isArray(services) && services.length > 0;
+  const totalFields = allChecks.length + 1;
+  const filledFields = allChecks.filter((c) => c.done).length + (hasServices ? 1 : 0);
+  const pct = Math.round((filledFields / totalFields) * 100);
+
+  if (pct === 100 || dismissed) return null;
+
+  const incompleteSections = PROFILE_SECTIONS.filter((s) =>
+    s.checks(provider).some((c) => !c.done)
+  );
+  const addServicesNeeded = !hasServices;
+
+  const getColor = () => {
+    if (pct >= 80) return "text-emerald-600 dark:text-emerald-400";
+    if (pct >= 50) return "text-amber-600 dark:text-amber-400";
+    return "text-rose-600 dark:text-rose-400";
+  };
+
+  const getProgressColor = () => {
+    if (pct >= 80) return "bg-emerald-500";
+    if (pct >= 50) return "bg-amber-500";
+    return "bg-rose-500";
+  };
+
+  return (
+    <div className="mb-6 rounded-2xl border border-border bg-gradient-to-br from-background to-muted/30 shadow-sm overflow-hidden" data-testid="card-profile-completeness">
+      <div className="p-5">
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="relative h-14 w-14 flex-shrink-0">
+              <svg className="h-14 w-14 -rotate-90" viewBox="0 0 56 56">
+                <circle cx="28" cy="28" r="24" fill="none" stroke="currentColor" strokeWidth="4" className="text-muted/30" />
+                <circle
+                  cx="28" cy="28" r="24"
+                  fill="none" stroke="currentColor" strokeWidth="4"
+                  strokeDasharray={`${(pct / 100) * 150.8} 150.8`}
+                  strokeLinecap="round"
+                  className={getColor()}
+                />
+              </svg>
+              <span className={`absolute inset-0 flex items-center justify-center text-xs font-bold ${getColor()}`}>
+                {pct}%
+              </span>
+            </div>
+            <div>
+              <h3 className="font-semibold text-foreground text-base flex items-center gap-2">
+                <Zap className="h-4 w-4 text-amber-500" />
+                Complete your profile
+              </h3>
+              <p className="text-sm text-muted-foreground mt-0.5">
+                {filledFields} of {totalFields} sections filled — patients see more complete profiles first
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => {
+              try { localStorage.setItem("profile_completeness_dismissed", "1"); } catch {}
+              setDismissed(true);
+            }}
+            className="text-muted-foreground hover:text-foreground transition-colors mt-0.5"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="mt-4 mb-3 h-2 rounded-full bg-muted overflow-hidden">
+          <div
+            className={`h-full rounded-full transition-all duration-700 ${getProgressColor()}`}
+            style={{ width: `${pct}%` }}
+          />
+        </div>
+
+        <div className="flex flex-wrap gap-2 mt-4">
+          {incompleteSections.map((section) => {
+            const missing = section.checks(provider).filter((c) => !c.done);
+            return (
+              <button
+                key={section.step}
+                onClick={() => setLocation(`/provider/setup?step=${section.step}`)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border bg-background hover:border-primary/50 hover:bg-primary/5 transition-all text-sm text-muted-foreground hover:text-foreground group"
+                data-testid={`button-complete-step-${section.step}`}
+              >
+                <span>{section.icon}</span>
+                <span className="font-medium">{section.label}</span>
+                <Badge variant="secondary" className="text-[10px] h-4 px-1.5">{missing.length}</Badge>
+                <ChevronRight className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+              </button>
+            );
+          })}
+          {addServicesNeeded && (
+            <button
+              onClick={() => setLocation("/provider/dashboard")}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border bg-background hover:border-primary/50 hover:bg-primary/5 transition-all text-sm text-muted-foreground hover:text-foreground group"
+              data-testid="button-complete-services"
+            >
+              <span>🏥</span>
+              <span className="font-medium">Add Services</span>
+              <Badge variant="secondary" className="text-[10px] h-4 px-1.5">1</Badge>
+              <ChevronRight className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function ProviderDashboard() {
   const { t } = useTranslation();
   const { user } = useAuth();
@@ -166,7 +340,7 @@ export default function ProviderDashboard() {
 
   const { data: providerWithServices } = useQuery<ProviderWithServices>({
     queryKey: ["/api/providers", providerData?.id],
-    enabled: !!providerData?.id && activeTab === "services",
+    enabled: !!providerData?.id,
   });
 
   const { data: subServices } = useQuery<any[]>({
@@ -1096,16 +1270,39 @@ export default function ProviderDashboard() {
       <Header />
       <main className="flex-1 py-8">
         <div className="container mx-auto px-4">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-            <div>
-              <h1 className="text-3xl font-semibold">{t("dashboard.provider_title")}</h1>
-              <p className="text-muted-foreground">{t("dashboard.provider_desc")}</p>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <Button variant="outline" asChild><Link href={`/provider/${providerData?.id}`}><FileText className="h-4 w-4 mr-2" />{t("provider_dashboard.profile_button", "Profile")}</Link></Button>
-              <Button variant="outline" asChild><Link href="/settings"><Settings className="h-4 w-4 mr-2" />{t("provider_dashboard.settings_button", "Settings")}</Link></Button>
+          {/* Dashboard Header */}
+          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary via-primary/90 to-indigo-600 text-white p-6 mb-6 shadow-lg">
+            <div className="absolute -right-16 -top-16 h-48 w-48 rounded-full bg-white/10 blur-3xl pointer-events-none" />
+            <div className="absolute -bottom-12 -left-8 h-36 w-36 rounded-full bg-white/10 blur-3xl pointer-events-none" />
+            <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <div className="h-14 w-14 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center flex-shrink-0">
+                  <Shield className="h-7 w-7 text-white" />
+                </div>
+                <div>
+                  <p className="text-white/80 text-sm font-medium uppercase tracking-wider">Provider Dashboard</p>
+                  <h1 className="text-2xl md:text-3xl font-bold text-white">
+                    {user?.firstName ? `Welcome back, ${user.firstName}` : t("dashboard.provider_title")}
+                  </h1>
+                  <p className="text-white/70 text-sm mt-0.5">{t("dashboard.provider_desc")}</p>
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button variant="secondary" size="sm" className="gap-2 bg-white/20 hover:bg-white/30 text-white border-white/30 border" asChild>
+                  <Link href={`/provider/${providerData?.id}`}><FileText className="h-4 w-4" />{t("provider_dashboard.profile_button", "Profile")}</Link>
+                </Button>
+                <Button variant="secondary" size="sm" className="gap-2 bg-white/20 hover:bg-white/30 text-white border-white/30 border" asChild>
+                  <Link href="/provider/setup"><Pencil className="h-4 w-4" />Edit Setup</Link>
+                </Button>
+                <Button variant="secondary" size="sm" className="gap-2 bg-white/20 hover:bg-white/30 text-white border-white/30 border" asChild>
+                  <Link href="/settings"><Settings className="h-4 w-4" />{t("provider_dashboard.settings_button", "Settings")}</Link>
+                </Button>
+              </div>
             </div>
           </div>
+
+          {/* Profile Completeness Widget */}
+          <ProfileCompletenessCard provider={providerData} services={providerWithServices?.services} />
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
             <Card className="stat-card stat-indigo" data-testid="card-stat-today">
