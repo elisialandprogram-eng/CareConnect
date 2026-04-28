@@ -14,6 +14,12 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Plus, Upload, X, Info, Check } from "lucide-react";
 import type { Service, SubService } from "@shared/schema";
 
+const PROVIDER_TYPE_OPTIONS = [
+  { value: "physiotherapist", label: "Physiotherapist" },
+  { value: "doctor", label: "Doctor" },
+  { value: "nurse", label: "Nurse" },
+];
+
 const CALENDAR_COLORS = [
   "#10b981",
   "#06b6d4",
@@ -73,6 +79,9 @@ export function ServiceFormDialog({ open, onOpenChange, service, providerId, adm
   const [hideDuration, setHideDuration] = useState(false);
   const [isActive, setIsActive] = useState(true);
   const [uploading, setUploading] = useState(false);
+  const [showNewCategory, setShowNewCategory] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState("");
+  const [newCategoryType, setNewCategoryType] = useState<string>("physiotherapist");
 
   useEffect(() => {
     if (open) {
@@ -137,6 +146,31 @@ export function ServiceFormDialog({ open, onOpenChange, service, providerId, adm
       setUploading(false);
     }
   };
+
+  const createCategoryMutation = useMutation({
+    mutationFn: async () => {
+      const r = await apiRequest("POST", "/api/sub-services", {
+        name: newCategoryName.trim(),
+        category: newCategoryType,
+        isActive: true,
+      });
+      return r.json();
+    },
+    onSuccess: (created: any) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/sub-services"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/sub-services"] });
+      if (created?.id) {
+        setSubServiceId(created.id);
+        if (!name) setName(created.name);
+      }
+      setShowNewCategory(false);
+      setNewCategoryName("");
+      toast({ title: "Category added" });
+    },
+    onError: (e: any) => {
+      showErrorModal({ title: "Could not add category", description: e?.message || "Please try again", context: "service-form.create-category" });
+    },
+  });
 
   const saveMutation = useMutation({
     mutationFn: async () => {
@@ -295,7 +329,16 @@ export function ServiceFormDialog({ open, onOpenChange, service, providerId, adm
               </div>
               <div className="space-y-2">
                 <Label className="text-sm">{t("service_form.category_label")} <span className="text-destructive">*</span></Label>
-                <Select value={subServiceId} onValueChange={setSubServiceId}>
+                <Select
+                  value={subServiceId}
+                  onValueChange={(v) => {
+                    if (v === "__add_new__") {
+                      setShowNewCategory(true);
+                      return;
+                    }
+                    setSubServiceId(v);
+                  }}
+                >
                   <SelectTrigger data-testid="select-service-category">
                     <SelectValue placeholder={t("service_form.select_category_placeholder")} />
                   </SelectTrigger>
@@ -303,8 +346,53 @@ export function ServiceFormDialog({ open, onOpenChange, service, providerId, adm
                     {subServices.map(s => (
                       <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
                     ))}
+                    <SelectItem value="__add_new__" className="text-primary font-medium" data-testid="select-add-new-category">
+                      + Add new category
+                    </SelectItem>
                   </SelectContent>
                 </Select>
+
+                {showNewCategory && (
+                  <div className="rounded-md border bg-muted/30 p-3 space-y-2" data-testid="form-new-category">
+                    <Label className="text-xs text-muted-foreground">New category</Label>
+                    <Input
+                      placeholder="e.g. Sports massage"
+                      value={newCategoryName}
+                      onChange={(e) => setNewCategoryName(e.target.value)}
+                      data-testid="input-new-category-name"
+                    />
+                    <Select value={newCategoryType} onValueChange={setNewCategoryType}>
+                      <SelectTrigger data-testid="select-new-category-type">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {PROVIDER_TYPE_OPTIONS.map((o) => (
+                          <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <div className="flex gap-2 justify-end">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => { setShowNewCategory(false); setNewCategoryName(""); }}
+                        data-testid="button-cancel-new-category"
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        onClick={() => createCategoryMutation.mutate()}
+                        disabled={createCategoryMutation.isPending || !newCategoryName.trim()}
+                        data-testid="button-save-new-category"
+                      >
+                        {createCategoryMutation.isPending ? "Adding..." : "Add"}
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 

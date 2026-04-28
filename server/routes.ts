@@ -1047,6 +1047,30 @@ export async function registerRoutes(
     }
   });
 
+  // Allow any authenticated user (provider or admin) to create new sub-service
+  // categories so providers can add their own services from the dashboard.
+  app.post("/api/sub-services", authenticateToken, async (req: AuthRequest, res: Response) => {
+    try {
+      const data = insertSubServiceSchema.parse(req.body);
+      // Avoid duplicate (name, category) collisions with a clearer error
+      const existing = await storage.getAllSubServices();
+      const collision = existing.find(
+        (s) => s.name.trim().toLowerCase() === String(data.name).trim().toLowerCase() && s.category === data.category,
+      );
+      if (collision) {
+        return res.status(409).json({ message: `Category "${data.name}" already exists for ${data.category}.` });
+      }
+      const subService = await storage.createSubService(data);
+      res.status(201).json(subService);
+    } catch (error: any) {
+      if (error?.name === "ZodError") {
+        return res.status(400).json({ message: error.errors?.[0]?.message || "Invalid sub-service data" });
+      }
+      console.error("Create sub-service error:", error);
+      res.status(500).json({ message: "Failed to create sub-service" });
+    }
+  });
+
   // Sub-services management
   app.get("/api/admin/sub-services", authenticateToken, async (req: AuthRequest, res: Response) => {
     if (req.user?.role !== "admin") return res.status(403).json({ message: "Admin access required" });

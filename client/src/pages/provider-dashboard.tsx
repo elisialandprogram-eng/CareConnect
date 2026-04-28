@@ -1101,7 +1101,7 @@ export default function ProviderDashboard() {
             </div>
             <div className="flex flex-wrap gap-2">
               <Button variant="outline" asChild><Link href={`/provider/${providerData?.id}`}><FileText className="h-4 w-4 mr-2" />{t("provider_dashboard.profile_button", "Profile")}</Link></Button>
-              <Button variant="outline" asChild><Link href="/provider/settings"><Settings className="h-4 w-4 mr-2" />{t("provider_dashboard.settings_button", "Settings")}</Link></Button>
+              <Button variant="outline" asChild><Link href="/settings"><Settings className="h-4 w-4 mr-2" />{t("provider_dashboard.settings_button", "Settings")}</Link></Button>
             </div>
           </div>
 
