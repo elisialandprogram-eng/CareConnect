@@ -3787,21 +3787,88 @@ export async function registerRoutes(
     }
   });
 
+  // Promo code input validator with proper coercion
+  const promoCodeBaseSchema = z.object({
+    code: z.string().trim().min(2, "Code must be at least 2 characters").max(40).transform((s) => s.toUpperCase()),
+    description: z.string().max(500).optional().nullable(),
+    discountType: z.enum(["percentage", "fixed"]),
+    discountValue: z.coerce.number().positive("Discount must be greater than 0"),
+    maxUses: z.coerce.number().int().positive().nullable().optional(),
+    validFrom: z.coerce.date(),
+    validUntil: z.coerce.date(),
+    isActive: z.boolean().optional(),
+    applicableProviders: z.array(z.string()).nullable().optional(),
+    minAmount: z.coerce.number().nonnegative().nullable().optional(),
+  });
+  const validateCrossFields = (d: any, ctx: z.RefinementCtx) => {
+    if (d.validFrom && d.validUntil && d.validFrom > d.validUntil) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["validUntil"], message: "Valid-until must be on or after valid-from" });
+    }
+    if (d.discountType === "percentage" && d.discountValue != null && d.discountValue > 100) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["discountValue"], message: "Percentage discount cannot exceed 100" });
+    }
+  };
+  const promoCodeCreateSchema = promoCodeBaseSchema.superRefine(validateCrossFields);
+  const promoCodeUpdateSchema = promoCodeBaseSchema.partial().superRefine(validateCrossFields);
+
   app.post("/api/admin/promo-codes", authenticateToken, requireAdmin, async (req: AuthRequest, res: Response) => {
     try {
-      const code = await storage.createPromoCode(req.body);
+      const parsed = promoCodeInputSchema.parse(req.body);
+      // Reject duplicate codes with a clear message
+      const existing = await storage.getPromoCodeByCode(parsed.code);
+      if (existing) {
+        return res.status(409).json({ message: `Promo code "${parsed.code}" already exists.` });
+      }
+      const code = await storage.createPromoCode({
+        code: parsed.code,
+        description: parsed.description ?? null,
+        discountType: parsed.discountType,
+        discountValue: parsed.discountValue.toString(),
+        maxUses: parsed.maxUses ?? null,
+        validFrom: parsed.validFrom,
+        validUntil: parsed.validUntil,
+        isActive: parsed.isActive ?? true,
+        applicableProviders: parsed.applicableProviders ?? null,
+        minAmount: parsed.minAmount != null ? parsed.minAmount.toString() : null,
+      } as any);
       res.status(201).json(code);
-    } catch (error) {
+    } catch (error: any) {
+      if (error?.name === "ZodError") {
+        return res.status(400).json({
+          message: error.errors?.[0]?.message || "Invalid promo code data",
+          errors: error.errors,
+        });
+      }
+      console.error("Create promo code error:", error);
       res.status(500).json({ message: "Failed to create promo code" });
     }
   });
 
   app.patch("/api/admin/promo-codes/:id", authenticateToken, requireAdmin, async (req: AuthRequest, res: Response) => {
     try {
-      const code = await storage.updatePromoCode(req.params.id, req.body);
+      const parsed = promoCodeInputSchema.partial().parse(req.body);
+      // If code is being changed, ensure it doesn't collide
+      if (parsed.code) {
+        const existing = await storage.getPromoCodeByCode(parsed.code);
+        if (existing && existing.id !== req.params.id) {
+          return res.status(409).json({ message: `Promo code "${parsed.code}" already exists.` });
+        }
+      }
+      const update: any = { ...parsed };
+      if (parsed.discountValue != null) update.discountValue = parsed.discountValue.toString();
+      if (parsed.minAmount != null) update.minAmount = parsed.minAmount.toString();
+      if (parsed.minAmount === null) update.minAmount = null;
+      const code = await storage.updatePromoCode(req.params.id, update);
       if (!code) return res.status(404).json({ message: "Promo code not found" });
       res.json(code);
-    } catch (error) {
+    } catch (error: any) {
+      if (error?.name === "ZodError") {
+        return res.status(400).json({
+          message: error.errors?.[0]?.message || "Invalid promo code data",
+          errors: error.errors,
+        });
+      }
+      console.error("Update promo code error:", error);
       res.status(500).json({ message: "Failed to update promo code" });
     }
   });
@@ -3811,6 +3878,7 @@ export async function registerRoutes(
       await storage.deletePromoCode(req.params.id);
       res.json({ message: "Promo code deleted successfully" });
     } catch (error) {
+      console.error("Delete promo code error:", error);
       res.status(500).json({ message: "Failed to delete promo code" });
     }
   });
