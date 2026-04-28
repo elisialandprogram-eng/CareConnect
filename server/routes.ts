@@ -20,6 +20,7 @@ import {
   insertServicePractitionerSchema,
   insertServiceSchema,
   insertServicePackageSchema,
+  insertHealthMetricSchema,
   services,
   practitioners,
   servicePractitioners,
@@ -2863,6 +2864,56 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Get medical history error:", error);
       res.status(500).json({ message: "Failed to get medical history" });
+    }
+  });
+
+  // Health Metrics — patients can list, log, and delete their own readings
+  app.get("/api/health-metrics", authenticateToken, async (req: AuthRequest, res: Response) => {
+    try {
+      const limit = req.query.limit ? Math.min(500, parseInt(req.query.limit as string, 10) || 200) : 200;
+      const metrics = await storage.getHealthMetricsByPatient(req.user!.id, limit);
+      res.json(metrics);
+    } catch (error) {
+      console.error("Get health metrics error:", error);
+      res.status(500).json({ message: "Failed to load health metrics" });
+    }
+  });
+
+  app.post("/api/health-metrics", authenticateToken, async (req: AuthRequest, res: Response) => {
+    try {
+      const body = { ...req.body, patientId: req.user!.id };
+      if (body.measuredAt && typeof body.measuredAt === "string") {
+        body.measuredAt = new Date(body.measuredAt);
+      }
+      const parsed = insertHealthMetricSchema.parse(body);
+
+      const hasAtLeastOne = [
+        parsed.weightKg, parsed.heightCm, parsed.systolic, parsed.diastolic,
+        parsed.heartRate, parsed.bloodGlucose, parsed.temperatureC, parsed.oxygenSaturation,
+      ].some((v) => v !== undefined && v !== null && `${v}`.length > 0);
+      if (!hasAtLeastOne) {
+        return res.status(400).json({ message: "Please record at least one measurement." });
+      }
+
+      const created = await storage.createHealthMetric(parsed);
+      res.status(201).json(created);
+    } catch (error: any) {
+      if (error?.name === "ZodError") {
+        return res.status(400).json({ message: "Invalid health metric data", errors: error.errors });
+      }
+      console.error("Create health metric error:", error);
+      res.status(500).json({ message: "Failed to save health metric" });
+    }
+  });
+
+  app.delete("/api/health-metrics/:id", authenticateToken, async (req: AuthRequest, res: Response) => {
+    try {
+      const deleted = await storage.deleteHealthMetric(req.params.id, req.user!.id);
+      if (!deleted) return res.status(404).json({ message: "Reading not found" });
+      res.json({ ok: true });
+    } catch (error) {
+      console.error("Delete health metric error:", error);
+      res.status(500).json({ message: "Failed to delete reading" });
     }
   });
 

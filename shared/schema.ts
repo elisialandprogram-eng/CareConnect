@@ -547,6 +547,22 @@ export const prescriptions = pgTable("prescriptions", {
   isActive: boolean("is_active").default(true),
 });
 
+export const healthMetrics = pgTable("health_metrics", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  patientId: varchar("patient_id").notNull().references(() => users.id),
+  measuredAt: timestamp("measured_at").notNull().defaultNow(),
+  weightKg: decimal("weight_kg", { precision: 5, scale: 2 }),
+  heightCm: integer("height_cm"),
+  systolic: integer("systolic"),
+  diastolic: integer("diastolic"),
+  heartRate: integer("heart_rate"),
+  bloodGlucose: decimal("blood_glucose", { precision: 5, scale: 2 }),
+  temperatureC: decimal("temperature_c", { precision: 4, scale: 2 }),
+  oxygenSaturation: integer("oxygen_saturation"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export const medicalHistory = pgTable("medical_history", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   patientId: varchar("patient_id").notNull().references(() => users.id),
@@ -800,6 +816,7 @@ export const insertLocationSchema = createInsertSchema(locations).omit({ id: tru
 export const insertDailyMetricSchema = createInsertSchema(dailyMetrics).omit({ id: true, createdAt: true });
 export const insertPrescriptionSchema = createInsertSchema(prescriptions).omit({ id: true, issuedAt: true });
 export const insertMedicalHistorySchema = createInsertSchema(medicalHistory).omit({ id: true, createdAt: true });
+export const insertHealthMetricSchema = createInsertSchema(healthMetrics).omit({ id: true, createdAt: true });
 export const insertSubServiceSchema = createInsertSchema(subServices).omit({ id: true, createdAt: true });
 export const insertTaxSettingSchema = createInsertSchema(taxSettings).omit({ id: true });
 export const insertPatientConsentSchema = createInsertSchema(patientConsents).omit({ id: true, acceptedAt: true });
@@ -891,6 +908,8 @@ export type Prescription = typeof prescriptions.$inferSelect;
 export type InsertPrescription = z.infer<typeof insertPrescriptionSchema>;
 export type MedicalHistory = typeof medicalHistory.$inferSelect;
 export type InsertMedicalHistory = z.infer<typeof insertMedicalHistorySchema>;
+export type HealthMetric = typeof healthMetrics.$inferSelect;
+export type InsertHealthMetric = z.infer<typeof insertHealthMetricSchema>;
 export type UserNotification = typeof userNotifications.$inferSelect;
 export type InsertUserNotification = z.infer<typeof insertUserNotificationSchema>;
 export type ChatConversation = typeof chatConversations.$inferSelect;

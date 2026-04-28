@@ -24,6 +24,7 @@ import {
   dailyMetrics,
   prescriptions,
   medicalHistory,
+  healthMetrics,
   userNotifications,
   chatConversations,
   chatMessages,
@@ -89,6 +90,8 @@ import {
   type InsertPrescription,
   type MedicalHistory,
   type InsertMedicalHistory,
+  type HealthMetric,
+  type InsertHealthMetric,
   type UserNotification,
   type InsertUserNotification,
   type ChatConversation,
@@ -407,6 +410,11 @@ export interface IStorage {
   createPrescription(data: InsertPrescription): Promise<Prescription>;
   getMedicalHistoryByPatient(patientId: string): Promise<MedicalHistory[]>;
   createMedicalHistory(data: InsertMedicalHistory): Promise<MedicalHistory>;
+
+  // Health Metrics
+  getHealthMetricsByPatient(patientId: string, limit?: number): Promise<HealthMetric[]>;
+  createHealthMetric(data: InsertHealthMetric): Promise<HealthMetric>;
+  deleteHealthMetric(id: string, patientId: string): Promise<boolean>;
 
   // Medical Practitioners
   createMedicalPractitioner(practitioner: InsertMedicalPractitioner): Promise<MedicalPractitioner>;
@@ -1705,6 +1713,28 @@ export class DatabaseStorage implements IStorage {
   async createMedicalHistory(data: InsertMedicalHistory): Promise<MedicalHistory> {
     const [h] = await db.insert(medicalHistory).values(data).returning();
     return h;
+  }
+
+  async getHealthMetricsByPatient(patientId: string, limit = 200): Promise<HealthMetric[]> {
+    return db
+      .select()
+      .from(healthMetrics)
+      .where(eq(healthMetrics.patientId, patientId))
+      .orderBy(desc(healthMetrics.measuredAt))
+      .limit(limit);
+  }
+
+  async createHealthMetric(data: InsertHealthMetric): Promise<HealthMetric> {
+    const [m] = await db.insert(healthMetrics).values(data).returning();
+    return m;
+  }
+
+  async deleteHealthMetric(id: string, patientId: string): Promise<boolean> {
+    const result = await db
+      .delete(healthMetrics)
+      .where(and(eq(healthMetrics.id, id), eq(healthMetrics.patientId, patientId)))
+      .returning();
+    return result.length > 0;
   }
 
   // Medical Practitioners

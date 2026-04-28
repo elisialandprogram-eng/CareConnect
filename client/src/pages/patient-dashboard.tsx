@@ -46,7 +46,8 @@ import {
 } from "lucide-react";
 import type { AppointmentWithDetails, Prescription, MedicalHistory, ProviderWithUser } from "@shared/schema";
 import { ProviderCard } from "@/components/provider-card";
-import { Heart, RefreshCw } from "lucide-react";
+import { Heart, RefreshCw, Activity } from "lucide-react";
+import { HealthMetricsTab } from "@/components/health-metrics-tab";
 
 const PrescriptionList = ({ patientId }: { patientId?: string }) => {
   const { t } = useTranslation();
@@ -649,6 +650,9 @@ export default function PatientDashboard() {
               <TabsTrigger value="medical" data-testid="tab-medical">
                 {t("dashboard.medical_records")}
               </TabsTrigger>
+              <TabsTrigger value="health-metrics" data-testid="tab-health-metrics">
+                {t("dashboard.health_metrics", "Health metrics")}
+              </TabsTrigger>
               <TabsTrigger value="invoices" data-testid="tab-invoices">
                 {t("dashboard.invoices")}
               </TabsTrigger>
@@ -817,6 +821,10 @@ export default function PatientDashboard() {
                   </CardContent>
                 </Card>
               </div>
+            </TabsContent>
+
+            <TabsContent value="health-metrics" className="mt-6">
+              <HealthMetricsTab />
             </TabsContent>
 
             <TabsContent value="invoices" className="mt-6 space-y-6">
