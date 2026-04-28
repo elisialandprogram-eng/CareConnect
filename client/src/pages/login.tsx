@@ -21,6 +21,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth";
 import { Loader2, Stethoscope, Eye, EyeOff } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { AccountStatusModal, type AccountStatusKind } from "@/components/account-status-modal";
 
 export default function Login() {
   const { t } = useTranslation();
@@ -33,6 +34,12 @@ export default function Login() {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [statusModal, setStatusModal] = useState<{
+    open: boolean;
+    kind: AccountStatusKind;
+    reason?: string | null;
+    email?: string;
+  }>({ open: false, kind: "ACCOUNT_SUSPENDED" });
 
   const loginSchema = z.object({
     email: z.string().email(t("validation.invalid_email")),
@@ -59,7 +66,22 @@ export default function Login() {
       });
       navigate(redirectUrl);
     } catch (error: any) {
-      if (error.message.includes("verify your email")) {
+      const code: string | undefined = error?.code;
+      const blockedCodes = new Set([
+        "ACCOUNT_SUSPENDED",
+        "PROVIDER_PENDING_APPROVAL",
+        "PROVIDER_SUSPENDED",
+        "PROVIDER_REJECTED",
+      ]);
+
+      if (code && blockedCodes.has(code)) {
+        setStatusModal({
+          open: true,
+          kind: code as AccountStatusKind,
+          reason: error?.reason ?? null,
+          email: data.email,
+        });
+      } else if (error.message?.includes("verify your email")) {
         toast({
           title: t("common.verification_required"),
           description: error.message,
@@ -216,6 +238,14 @@ export default function Login() {
       </main>
 
       <Footer />
+
+      <AccountStatusModal
+        open={statusModal.open}
+        kind={statusModal.kind}
+        reason={statusModal.reason}
+        email={statusModal.email}
+        onClose={() => setStatusModal((s) => ({ ...s, open: false }))}
+      />
     </div>
   );
 }

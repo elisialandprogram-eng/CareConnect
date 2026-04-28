@@ -664,8 +664,11 @@ export async function registerRoutes(
       }
 
       if (user.isSuspended) {
-        return res.status(403).json({ 
-          message: `Your account has been suspended. Reason: ${user.suspensionReason || "No reason provided"}` 
+        return res.status(403).json({
+          code: "ACCOUNT_SUSPENDED",
+          status: "suspended",
+          reason: user.suspensionReason || null,
+          message: `Your account has been suspended. Reason: ${user.suspensionReason || "No reason provided"}`,
         });
       }
 
@@ -679,11 +682,23 @@ export async function registerRoutes(
 
       if (user.role === "provider") {
         const provider = await storage.getProviderByUserId(user.id);
-        if (provider && provider.status !== "active") {
-          return res.status(403).json({ 
-            message: provider.status === "pending" 
-              ? "Your provider profile is awaiting admin approval. Please check back later." 
-              : `Your account has been ${provider.status}.`
+        if (provider && provider.status !== "active" && provider.status !== "approved") {
+          const status = provider.status;
+          const codeMap: Record<string, string> = {
+            pending: "PROVIDER_PENDING_APPROVAL",
+            suspended: "PROVIDER_SUSPENDED",
+            rejected: "PROVIDER_REJECTED",
+          };
+          const messageMap: Record<string, string> = {
+            pending: "Your provider profile is awaiting admin approval. Please check back later.",
+            suspended: "Your provider account has been suspended.",
+            rejected: "Your provider account application has been rejected.",
+          };
+          return res.status(403).json({
+            code: codeMap[status] || "PROVIDER_NOT_ACTIVE",
+            status,
+            reason: (provider as any).rejectionReason || (provider as any).suspensionReason || null,
+            message: messageMap[status] || `Your account has been ${status}.`,
           });
         }
       }

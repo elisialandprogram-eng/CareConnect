@@ -77,7 +77,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const response = await apiRequest("POST", "/api/auth/login", { email, password });
     const data = await response.json();
     if (!response.ok) {
-      throw new Error(data.message || "Login failed");
+      const err = new Error(data.message || "Login failed") as Error & {
+        code?: string;
+        status?: string;
+        reason?: string | null;
+        details?: any;
+      };
+      err.code = data.code;
+      err.status = data.status;
+      err.reason = data.reason;
+      err.details = data;
+      throw err;
     }
     setUser(data.user);
     applyUserPreferences(data.user);
