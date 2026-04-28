@@ -198,9 +198,13 @@ export function ServiceFormDialog({ open, onOpenChange, service, providerId, adm
         </DialogHeader>
 
         <Tabs defaultValue="details" className="mt-2">
-          <TabsList className="w-full justify-start gap-2 bg-transparent border-b rounded-none h-auto p-0">
-            <TabsTrigger value="details" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent" data-testid="tab-service-details">SERVICE DETAILS</TabsTrigger>
-            <TabsTrigger value="settings" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent" data-testid="tab-service-settings">SETTINGS</TabsTrigger>
+          <TabsList className="w-full justify-start gap-4 bg-transparent border-b rounded-none h-auto p-0 overflow-x-auto">
+            <TabsTrigger value="details" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent text-xs tracking-wider" data-testid="tab-service-details">SERVICE DETAILS</TabsTrigger>
+            <TabsTrigger value="staff" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent text-xs tracking-wider text-muted-foreground" data-testid="tab-service-staff">STAFF</TabsTrigger>
+            <TabsTrigger value="timesheet" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent text-xs tracking-wider text-muted-foreground" data-testid="tab-service-timesheet">TIME SHEET</TabsTrigger>
+            <TabsTrigger value="extras" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent text-xs tracking-wider text-muted-foreground" data-testid="tab-service-extras">EXTRAS</TabsTrigger>
+            <TabsTrigger value="settings" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent text-xs tracking-wider" data-testid="tab-service-settings">SETTINGS</TabsTrigger>
+            <TabsTrigger value="limiter" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent text-xs tracking-wider text-muted-foreground" data-testid="tab-service-limiter">BOOKING LIMITER</TabsTrigger>
           </TabsList>
 
           <TabsContent value="details" className="space-y-6 pt-6">

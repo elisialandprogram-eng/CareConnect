@@ -3989,7 +3989,7 @@ export default function AdminDashboard() {
             </TabsTrigger>
             <TabsTrigger value="sub-services" data-testid="tab-sub-services">
               <ListTree className="h-4 w-4 mr-2" />
-              {t("admin.services")}
+              {t("admin.categories", "Categories")}
             </TabsTrigger>
           </TabsList>
 
@@ -4356,18 +4356,51 @@ function AdminCalendarView() {
   );
 }
 
-// ───── Admin services overview (card grid across all providers) ─────
+// ───── Admin services overview (Booknetic-style table) ─────
 function AdminServicesOverview() {
   const { t } = useTranslation();
+  const { toast } = useToast();
   const { format: fmtMoney } = useCurrency();
   const [search, setSearch] = useState("");
   const [providerFilter, setProviderFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [editingService, setEditingService] = useState<Service | null>(null);
+  const [serviceFormOpen, setServiceFormOpen] = useState(false);
+  const [createProviderId, setCreateProviderId] = useState<string>("");
 
-  const { data: services = [], isLoading } = useQuery<any[]>({
+  const { data: services = [], isLoading, refetch } = useQuery<any[]>({
     queryKey: ["/api/admin/services-overview"],
   });
   const { data: providers = [] } = useQuery<any[]>({
     queryKey: ["/api/admin/providers"],
+  });
+  const { data: subServices = [] } = useQuery<SubService[]>({
+    queryKey: ["/api/sub-services"],
+  });
+
+  const subServiceMap = useMemo(() => {
+    const m = new Map<string, string>();
+    (subServices || []).forEach((s) => m.set(s.id, s.name));
+    return m;
+  }, [subServices]);
+
+  const toggleMutation = useMutation({
+    mutationFn: async ({ id, isActive }: { id: string; isActive: boolean }) => {
+      await apiRequest("PATCH", `/api/admin/services/${id}`, { isActive });
+    },
+    onSuccess: () => {
+      refetch();
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      await apiRequest("DELETE", `/api/admin/services/${id}`);
+    },
+    onSuccess: () => {
+      refetch();
+      toast({ title: t("admin.service_deleted", "Service deleted") });
+    },
   });
 
   const filtered = useMemo(
@@ -4375,6 +4408,8 @@ function AdminServicesOverview() {
       (services || []).filter((s: any) => {
         if (providerFilter !== "all" && s.providerId !== providerFilter)
           return false;
+        if (statusFilter === "active" && !s.isActive) return false;
+        if (statusFilter === "paused" && s.isActive) return false;
         if (
           search &&
           !s.name?.toLowerCase().includes(search.toLowerCase()) &&
@@ -4383,101 +4418,212 @@ function AdminServicesOverview() {
           return false;
         return true;
       }),
-    [services, providerFilter, search],
+    [services, providerFilter, statusFilter, search],
   );
+
+  const openCreate = () => {
+    setEditingService(null);
+    setCreateProviderId(
+      providerFilter !== "all"
+        ? providerFilter
+        : (providers[0] as any)?.id || "",
+    );
+    setServiceFormOpen(true);
+  };
+
+  const openEdit = (s: any) => {
+    setEditingService(s);
+    setCreateProviderId(s.providerId);
+    setServiceFormOpen(true);
+  };
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap gap-2">
-        <div className="relative flex-1 min-w-[220px]">
-          <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder={t("admin.search_services", "Search services...")}
-            className="pl-8"
-            data-testid="input-services-search"
-          />
-        </div>
-        <Select value={providerFilter} onValueChange={setProviderFilter}>
-          <SelectTrigger className="w-56" data-testid="select-services-provider">
-            <SelectValue placeholder={t("admin.all_providers", "All providers")} />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">
-              {t("admin.all_providers", "All providers")}
-            </SelectItem>
-            {providers.map((p: any) => (
-              <SelectItem key={p.id} value={p.id}>
-                {p.businessName || p.user?.name}
+      <div className="flex flex-wrap items-center gap-2 justify-between">
+        <div className="flex flex-wrap gap-2 flex-1">
+          <div className="relative flex-1 min-w-[220px] max-w-md">
+            <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder={t("admin.search_services", "Search services...")}
+              className="pl-8"
+              data-testid="input-services-search"
+            />
+          </div>
+          <Select value={providerFilter} onValueChange={setProviderFilter}>
+            <SelectTrigger className="w-56" data-testid="select-services-provider">
+              <SelectValue placeholder={t("admin.all_providers", "All providers")} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">
+                {t("admin.all_providers", "All providers")}
               </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+              {providers.map((p: any) => (
+                <SelectItem key={p.id} value={p.id}>
+                  {p.businessName || p.user?.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-40" data-testid="select-services-status">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{t("admin.all_status", "All status")}</SelectItem>
+              <SelectItem value="active">{t("admin.active", "Active")}</SelectItem>
+              <SelectItem value="paused">{t("admin.paused", "Paused")}</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <Button
+          onClick={openCreate}
+          disabled={!providers.length}
+          data-testid="button-services-add"
+        >
+          <Plus className="h-4 w-4 mr-1" />
+          {t("admin.add_service", "Add Service")}
+        </Button>
       </div>
 
-      {isLoading ? (
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="h-6 w-6 animate-spin" />
-        </div>
-      ) : filtered.length === 0 ? (
-        <Card>
-          <CardContent className="py-12 text-center text-muted-foreground">
-            {t("admin.no_services_found", "No services match your filters.")}
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filtered.map((s: any) => (
-            <Card
-              key={s.id}
-              className="overflow-hidden hover-elevate"
-              data-testid={`card-service-${s.id}`}
-            >
-              <div className="h-32 bg-muted relative">
-                {s.imageUrl ? (
-                  <img
-                    src={s.imageUrl}
-                    alt={s.name}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <div
-                    className="w-full h-full flex items-center justify-center"
-                    style={{ backgroundColor: s.calendarColor || "#10b981" }}
-                  >
-                    <Activity className="h-10 w-10 text-white/80" />
-                  </div>
-                )}
-                <Badge
-                  className="absolute top-2 right-2"
-                  variant={s.isActive ? "default" : "secondary"}
-                >
-                  {s.isActive
-                    ? t("admin.active", "Active")
-                    : t("admin.paused", "Paused")}
-                </Badge>
-              </div>
-              <CardContent className="p-4 space-y-2">
-                <div>
-                  <p className="font-semibold truncate">{s.name}</p>
-                  <p className="text-xs text-muted-foreground truncate">
-                    {s.providerName}
-                    {s.providerCity ? ` · ${s.providerCity}` : ""}
-                  </p>
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="font-medium text-primary">
-                    {fmtMoney(s.price)}
-                  </span>
-                  <span className="text-muted-foreground">
-                    {s.duration} {t("admin.minutes_short", "min")}
-                  </span>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+      <Card>
+        <CardContent className="p-0">
+          {isLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-6 w-6 animate-spin" />
+            </div>
+          ) : filtered.length === 0 ? (
+            <div className="py-12 text-center text-muted-foreground">
+              {t("admin.no_services_found", "No services match your filters.")}
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-muted/50 text-left text-xs uppercase text-muted-foreground">
+                  <tr>
+                    <th className="px-4 py-3 w-12"></th>
+                    <th className="px-4 py-3">{t("admin.service", "Service")}</th>
+                    <th className="px-4 py-3">{t("admin.category", "Category")}</th>
+                    <th className="px-4 py-3">{t("admin.provider", "Provider")}</th>
+                    <th className="px-4 py-3">{t("admin.duration", "Duration")}</th>
+                    <th className="px-4 py-3">{t("admin.price", "Price")}</th>
+                    <th className="px-4 py-3">{t("admin.status", "Status")}</th>
+                    <th className="px-4 py-3 text-right">
+                      {t("admin.actions", "Actions")}
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.map((s: any) => (
+                    <tr
+                      key={s.id}
+                      className="border-t hover:bg-muted/30 transition-colors"
+                      data-testid={`row-service-${s.id}`}
+                    >
+                      <td className="px-4 py-3">
+                        <div
+                          className="h-9 w-9 rounded-full flex items-center justify-center overflow-hidden"
+                          style={{
+                            backgroundColor: s.calendarColor || "#10b981",
+                          }}
+                        >
+                          {s.imageUrl ? (
+                            <img
+                              src={s.imageUrl}
+                              alt=""
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <Activity className="h-4 w-4 text-white" />
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 font-medium">{s.name}</td>
+                      <td className="px-4 py-3 text-muted-foreground">
+                        {subServiceMap.get(s.subServiceId) || "—"}
+                      </td>
+                      <td className="px-4 py-3 text-muted-foreground">
+                        {s.providerName}
+                      </td>
+                      <td className="px-4 py-3 text-muted-foreground">
+                        {s.duration}m
+                      </td>
+                      <td className="px-4 py-3 font-medium">
+                        {fmtMoney(s.price)}
+                      </td>
+                      <td className="px-4 py-3">
+                        <button
+                          onClick={() =>
+                            toggleMutation.mutate({
+                              id: s.id,
+                              isActive: !s.isActive,
+                            })
+                          }
+                          data-testid={`button-toggle-status-${s.id}`}
+                        >
+                          <Badge
+                            variant={s.isActive ? "default" : "secondary"}
+                            className="cursor-pointer"
+                          >
+                            {s.isActive
+                              ? t("admin.active", "Active")
+                              : t("admin.paused", "Paused")}
+                          </Badge>
+                        </button>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex justify-end gap-1">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => openEdit(s)}
+                            data-testid={`button-edit-service-${s.id}`}
+                          >
+                            <Edit className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="text-destructive"
+                            onClick={() => {
+                              if (
+                                window.confirm(
+                                  t(
+                                    "admin.confirm_delete_service",
+                                    "Delete this service?",
+                                  ),
+                                )
+                              ) {
+                                deleteMutation.mutate(s.id);
+                              }
+                            }}
+                            data-testid={`button-delete-service-${s.id}`}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {createProviderId && (
+        <ServiceFormDialog
+          open={serviceFormOpen}
+          onOpenChange={(o) => {
+            setServiceFormOpen(o);
+            if (!o) refetch();
+          }}
+          service={editingService}
+          providerId={createProviderId}
+          adminMode
+        />
       )}
     </div>
   );
