@@ -180,20 +180,11 @@ const PROFILE_SECTIONS = [
   },
   {
     step: 4,
-    label: "Pricing",
-    icon: "💰",
+    label: "Agreements",
+    icon: "📋",
     checks: (p: any) => [
-      { label: "Consultation fee", done: p.consultationFee != null && p.consultationFee > 0 },
-      { label: "Languages spoken", done: Array.isArray(p.languages) && p.languages.length > 0 },
-    ],
-  },
-  {
-    step: 5,
-    label: "Availability",
-    icon: "📅",
-    checks: (p: any) => [
-      { label: "Available days", done: Array.isArray(p.availableDays) && p.availableDays.length > 0 },
-      { label: "Max patients/day", done: p.maxPatientsPerDay != null && p.maxPatientsPerDay > 0 },
+      { label: "Provider agreement", done: !!p.providerAgreementAccepted },
+      { label: "Data processing agreement", done: !!p.dataProcessingAgreementAccepted },
     ],
   },
 ];
@@ -328,7 +319,7 @@ export default function ProviderDashboard() {
 
   const { data: practitioners } = useQuery<Practitioner[]>({
     queryKey: [`/api/providers/${providerData?.id}/practitioners`],
-    enabled: !!providerData?.id && (activeTab === "services" || activeTab === "upcoming"),
+    enabled: !!providerData?.id && (activeTab === "services" || activeTab === "upcoming" || activeTab === "pricing"),
   });
 
   // Appointments are needed on most tabs and for live counts; poll only when an
@@ -723,6 +714,61 @@ export default function ProviderDashboard() {
     onError: (err: any) => {
       toast({ title: t("common.error", "Error"), description: err?.message || "Failed to save package", variant: "destructive" });
     },
+  });
+
+  // ── Pricing tab state ──
+  const [pricingEdits, setPricingEdits] = useState<Record<string, { homeVisitFee: string; clinicFee: string; telemedicineFee: string; emergencyFee: string; price: string }>>({});
+
+  const updateServicePricingMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: object }) => {
+      const res = await apiRequest("PATCH", `/api/services/${id}`, data);
+      return res.json();
+    },
+    onSuccess: (_, { id }) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/providers", providerData?.id] });
+      toast({ title: t("provider_dashboard.toast_pricing_saved", "Pricing saved") });
+      setPricingEdits(prev => { const n = { ...prev }; delete n[id]; return n; });
+    },
+    onError: () => toast({ title: t("common.error", "Error"), description: "Failed to save pricing", variant: "destructive" }),
+  });
+
+  // ── Preferences tab state ──
+  const PAYMENT_METHOD_OPTIONS = [
+    { value: "card", label: t("preferences.payment_card", "Credit / Debit Card") },
+    { value: "cash", label: t("preferences.payment_cash", "Cash") },
+    { value: "bank_transfer", label: t("preferences.payment_bank", "Bank Transfer") },
+    { value: "insurance", label: t("preferences.payment_insurance", "Insurance") },
+  ];
+
+  const [prefDraft, setPrefDraft] = useState<{
+    currency: string;
+    paymentMethods: string[];
+    preferredContactMethod: string;
+    onCallAvailability: boolean;
+    maxPatientsPerDay: string;
+    emergencyContact: string;
+  } | null>(null);
+
+  const prefData = prefDraft ?? {
+    currency: providerData?.currency || "HUF",
+    paymentMethods: Array.isArray(providerData?.paymentMethods) ? providerData.paymentMethods : [],
+    preferredContactMethod: providerData?.preferredContactMethod || "email",
+    onCallAvailability: !!providerData?.onCallAvailability,
+    maxPatientsPerDay: providerData?.maxPatientsPerDay ? String(providerData.maxPatientsPerDay) : "",
+    emergencyContact: providerData?.emergencyContact || "",
+  };
+
+  const savePreferencesMutation = useMutation({
+    mutationFn: async (data: object) => {
+      const res = await apiRequest("POST", "/api/provider/setup", data);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/provider/me"] });
+      toast({ title: t("provider_dashboard.toast_preferences_saved", "Preferences saved") });
+      setPrefDraft(null);
+    },
+    onError: () => toast({ title: t("common.error", "Error"), description: "Failed to save preferences", variant: "destructive" }),
   });
 
   const togglePackageMutation = useMutation({
@@ -1364,6 +1410,29 @@ export default function ProviderDashboard() {
             </div>
           </div>
 
+          {/* Pending Approval Banner */}
+          {providerData?.status === "pending" && (
+            <div className="mb-6 rounded-2xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30 p-5 flex items-start gap-4" data-testid="banner-pending-approval">
+              <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-900/40 flex items-center justify-center flex-shrink-0">
+                <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+              </div>
+              <div className="flex-1">
+                <p className="font-semibold text-amber-800 dark:text-amber-300 text-sm">Profile under review</p>
+                <p className="text-amber-700 dark:text-amber-400 text-xs mt-1 leading-relaxed">
+                  Your provider profile has been submitted and is pending approval by our team. You'll be notified by email once approved. In the meantime, you can set up your services, pricing, availability, and practitioners — everything will go live after approval.
+                </p>
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                className="border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/30 shrink-0"
+                asChild
+              >
+                <Link href="/provider/setup">{t("provider_dashboard.edit_profile", "Edit profile")}</Link>
+              </Button>
+            </div>
+          )}
+
           {/* Profile Completeness Widget */}
           <ProfileCompletenessCard provider={providerData} services={providerWithServices?.services} />
 
@@ -1614,6 +1683,12 @@ export default function ProviderDashboard() {
                 <TrendingUp className="h-4 w-4 mr-1" /> {t("provider_dashboard.tab_analytics", "Analytics")}
               </TabsTrigger>
               <TabsTrigger value="services" data-testid="tab-services">{t("provider_dashboard.tab_services", "Services & Staff")}</TabsTrigger>
+              <TabsTrigger value="pricing" data-testid="tab-pricing">
+                <DollarSign className="h-4 w-4 mr-1" /> {t("provider_dashboard.tab_pricing", "Pricing")}
+              </TabsTrigger>
+              <TabsTrigger value="preferences" data-testid="tab-preferences">
+                <Settings className="h-4 w-4 mr-1" /> {t("provider_dashboard.tab_preferences", "Preferences")}
+              </TabsTrigger>
             </TabsList>
 
             <div className="mt-6 mb-4 flex flex-col sm:flex-row gap-3">
@@ -2522,6 +2597,271 @@ export default function ProviderDashboard() {
                 </DialogContent>
               </Dialog>
             </TabsContent>
+
+            {/* ── PRICING TAB ── */}
+            <TabsContent value="pricing" className="mt-6 space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <DollarSign className="h-5 w-5 text-primary" />
+                    {t("provider_dashboard.pricing_tab_title", "Service Pricing")}
+                  </CardTitle>
+                  <CardDescription>
+                    {t("provider_dashboard.pricing_tab_desc", "Set base price and visit-type fees for each of your services. Changes apply immediately to new bookings.")}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {!providerWithServices?.services?.filter(s => !s.deletedAt).length && (
+                    <div className="text-center py-10 text-sm text-muted-foreground border-2 border-dashed rounded-xl" data-testid="empty-pricing">
+                      <DollarSign className="h-10 w-10 mx-auto mb-2 text-muted-foreground/40" />
+                      {t("provider_dashboard.no_services_for_pricing", "Add services first, then configure pricing here.")}
+                    </div>
+                  )}
+                  {providerWithServices?.services?.filter(s => !s.deletedAt).map(s => {
+                    const sa = s as any;
+                    const edit = pricingEdits[s.id];
+                    const vals = edit ?? {
+                      price: String(sa.price || "0"),
+                      homeVisitFee: String(sa.homeVisitFee || "0"),
+                      clinicFee: String(sa.clinicFee || "0"),
+                      telemedicineFee: String(sa.telemedicineFee || "0"),
+                      emergencyFee: String(sa.emergencyFee || "0"),
+                    };
+                    const isDirty = !!edit;
+
+                    return (
+                      <div key={s.id} className="border rounded-2xl overflow-hidden" data-testid={`card-pricing-${s.id}`}>
+                        <div className="flex items-center gap-3 px-4 py-3 bg-muted/30 border-b">
+                          <div
+                            className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                            style={{ backgroundColor: sa.calendarColor || "#10b981" }}
+                          />
+                          <p className="font-semibold text-sm flex-1">{s.name}</p>
+                          <Badge variant={s.isActive ? "default" : "secondary"} className="text-[10px]">
+                            {s.isActive ? t("provider_dashboard.active", "Active") : t("provider_dashboard.paused", "Paused")}
+                          </Badge>
+                        </div>
+                        <div className="p-4 space-y-3">
+                          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                            {[
+                              { key: "price" as const, label: t("provider_dashboard.fee_base", "Base Price"), icon: "💶" },
+                              { key: "homeVisitFee" as const, label: t("provider_dashboard.fee_home", "Home Visit"), icon: "🏠" },
+                              { key: "clinicFee" as const, label: t("provider_dashboard.fee_clinic", "Clinic"), icon: "🏥" },
+                              { key: "telemedicineFee" as const, label: t("provider_dashboard.fee_online", "Telemedicine"), icon: "💻" },
+                              { key: "emergencyFee" as const, label: t("provider_dashboard.fee_emergency", "Emergency"), icon: "🚨" },
+                            ].map(({ key, label, icon }) => (
+                              <div key={key}>
+                                <Label className="text-xs text-muted-foreground mb-1 flex items-center gap-1">
+                                  <span>{icon}</span> {label}
+                                </Label>
+                                <Input
+                                  type="number"
+                                  min={0}
+                                  step="any"
+                                  value={vals[key]}
+                                  onChange={(e) =>
+                                    setPricingEdits(prev => ({
+                                      ...prev,
+                                      [s.id]: { ...vals, [key]: e.target.value },
+                                    }))
+                                  }
+                                  className="h-8 text-sm rounded-lg"
+                                  data-testid={`input-pricing-${key}-${s.id}`}
+                                />
+                              </div>
+                            ))}
+                          </div>
+                          {isDirty && (
+                            <div className="flex justify-end gap-2 pt-1">
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-7 text-xs"
+                                onClick={() => setPricingEdits(prev => { const n = { ...prev }; delete n[s.id]; return n; })}
+                              >
+                                {t("common.discard", "Discard")}
+                              </Button>
+                              <Button
+                                size="sm"
+                                className="h-7 text-xs gap-1"
+                                disabled={updateServicePricingMutation.isPending}
+                                onClick={() =>
+                                  updateServicePricingMutation.mutate({
+                                    id: s.id,
+                                    data: {
+                                      price: vals.price,
+                                      homeVisitFee: vals.homeVisitFee,
+                                      clinicFee: vals.clinicFee,
+                                      telemedicineFee: vals.telemedicineFee,
+                                      emergencyFee: vals.emergencyFee,
+                                    },
+                                  })
+                                }
+                                data-testid={`button-save-pricing-${s.id}`}
+                              >
+                                {updateServicePricingMutation.isPending && <Loader2 className="h-3 w-3 animate-spin" />}
+                                {t("common.save", "Save")}
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* ── PREFERENCES TAB ── */}
+            <TabsContent value="preferences" className="mt-6 space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Settings className="h-5 w-5 text-primary" />
+                    {t("provider_dashboard.preferences_tab_title", "Practice Preferences")}
+                  </CardTitle>
+                  <CardDescription>
+                    {t("provider_dashboard.preferences_tab_desc", "Configure payment options, capacity limits, and contact preferences.")}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {/* Currency + Max Patients */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <Label className="text-sm font-medium">{t("preferences.currency", "Currency")}</Label>
+                      <Select
+                        value={prefData.currency}
+                        onValueChange={(v) => setPrefDraft(p => ({ ...(p ?? prefData), currency: v }))}
+                      >
+                        <SelectTrigger className="rounded-xl" data-testid="select-pref-currency">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="HUF">HUF — Hungarian Forint</SelectItem>
+                          <SelectItem value="EUR">EUR — Euro</SelectItem>
+                          <SelectItem value="USD">USD — US Dollar</SelectItem>
+                          <SelectItem value="GBP">GBP — British Pound</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label className="text-sm font-medium">{t("preferences.max_patients", "Max Patients Per Day")}</Label>
+                      <Input
+                        type="number"
+                        min={1}
+                        max={100}
+                        placeholder="e.g. 10"
+                        value={prefData.maxPatientsPerDay}
+                        onChange={(e) => setPrefDraft(p => ({ ...(p ?? prefData), maxPatientsPerDay: e.target.value }))}
+                        className="rounded-xl"
+                        data-testid="input-pref-max-patients"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Preferred Contact */}
+                  <div className="space-y-1.5">
+                    <Label className="text-sm font-medium">{t("preferences.contact_method", "Preferred Contact Method")}</Label>
+                    <Select
+                      value={prefData.preferredContactMethod}
+                      onValueChange={(v) => setPrefDraft(p => ({ ...(p ?? prefData), preferredContactMethod: v }))}
+                    >
+                      <SelectTrigger className="rounded-xl" data-testid="select-pref-contact">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="email">{t("preferences.contact_email", "Email")}</SelectItem>
+                        <SelectItem value="phone">{t("preferences.contact_phone", "Phone")}</SelectItem>
+                        <SelectItem value="both">{t("preferences.contact_both", "Both")}</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Emergency Contact */}
+                  <div className="space-y-1.5">
+                    <Label className="text-sm font-medium">{t("preferences.emergency_contact", "Emergency Contact Number")}</Label>
+                    <Input
+                      placeholder="+36 …"
+                      value={prefData.emergencyContact}
+                      onChange={(e) => setPrefDraft(p => ({ ...(p ?? prefData), emergencyContact: e.target.value }))}
+                      className="rounded-xl"
+                      data-testid="input-pref-emergency-contact"
+                    />
+                  </div>
+
+                  {/* Payment Methods */}
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">{t("preferences.payment_methods", "Payment Methods Accepted")}</Label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {PAYMENT_METHOD_OPTIONS.map(opt => {
+                        const checked = prefData.paymentMethods.includes(opt.value);
+                        return (
+                          <button
+                            key={opt.value}
+                            type="button"
+                            onClick={() => {
+                              const next = checked
+                                ? prefData.paymentMethods.filter(v => v !== opt.value)
+                                : [...prefData.paymentMethods, opt.value];
+                              setPrefDraft(p => ({ ...(p ?? prefData), paymentMethods: next }));
+                            }}
+                            className={`flex items-center gap-2.5 px-3 py-3 rounded-xl border text-sm font-medium transition-all text-left ${
+                              checked
+                                ? "border-primary bg-primary/10 text-primary"
+                                : "border-border bg-background text-muted-foreground hover:border-primary/40"
+                            }`}
+                            data-testid={`button-pref-payment-${opt.value}`}
+                          >
+                            <div className={`w-4 h-4 rounded-[4px] border flex items-center justify-center flex-shrink-0 ${checked ? "bg-primary border-primary" : "border-muted-foreground/40"}`}>
+                              {checked && <CheckCircle className="w-3 h-3 text-white" />}
+                            </div>
+                            {opt.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* On-Call Availability */}
+                  <div
+                    className={`flex items-center gap-3 p-4 rounded-xl border cursor-pointer transition-colors ${
+                      prefData.onCallAvailability ? "border-primary bg-primary/5" : "border-border hover:border-primary/40"
+                    }`}
+                    onClick={() => setPrefDraft(p => ({ ...(p ?? prefData), onCallAvailability: !prefData.onCallAvailability }))}
+                    data-testid="toggle-pref-oncall"
+                  >
+                    <Checkbox checked={prefData.onCallAvailability} onCheckedChange={() => {}} />
+                    <div>
+                      <p className="text-sm font-medium">{t("preferences.oncall", "On-call Availability")}</p>
+                      <p className="text-xs text-muted-foreground">{t("preferences.oncall_desc", "Available for emergency or after-hours calls")}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end pt-2">
+                    <Button
+                      className="gap-2 rounded-xl"
+                      disabled={savePreferencesMutation.isPending || !prefDraft}
+                      onClick={() =>
+                        savePreferencesMutation.mutate({
+                          currency: prefData.currency,
+                          paymentMethods: prefData.paymentMethods,
+                          preferredContactMethod: prefData.preferredContactMethod,
+                          onCallAvailability: prefData.onCallAvailability,
+                          maxPatientsPerDay: prefData.maxPatientsPerDay ? Number(prefData.maxPatientsPerDay) : undefined,
+                          emergencyContact: prefData.emergencyContact,
+                        })
+                      }
+                      data-testid="button-save-preferences"
+                    >
+                      {savePreferencesMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+                      {t("common.save_changes", "Save changes")}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
           </Tabs>
 
           {/* Appointment details modal */}
