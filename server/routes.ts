@@ -14,6 +14,7 @@ import {
   insertReviewSchema,
   insertSupportTicketSchema,
   insertSubServiceSchema,
+  insertCategorySchema,
   insertTaxSettingSchema,
   insertPatientConsentSchema,
   insertPractitionerSchema,
@@ -236,6 +237,14 @@ export async function registerRoutes(
   // Cookie parser MUST be registered before any auth-protected route handlers
   // so that req.cookies is available to authenticateToken / refresh-token logic.
   app.use(cookieParserModule());
+
+  // One-shot: make sure the categories table has the default specialties.
+  // Failure here is non-fatal — the routes will still serve whatever is present.
+  try {
+    await storage.ensureDefaultCategories();
+  } catch (err) {
+    console.error("[startup] ensureDefaultCategories failed:", (err as Error).message);
+  }
 
   // Middleware to require admin role
   const requireAdmin = async (req: AuthRequest, res: Response, next: NextFunction) => {
@@ -1167,6 +1176,67 @@ export async function registerRoutes(
   app.delete("/api/admin/sub-services/:id", authenticateToken, async (req: AuthRequest, res: Response) => {
     if (req.user?.role !== "admin") return res.status(403).json({ message: "Admin access required" });
     await storage.deleteSubService(req.params.id);
+    res.status(204).end();
+  });
+
+  // Categories — public list (active only) for use by booking, providers filter, etc.
+  app.get("/api/categories", async (_req, res) => {
+    try {
+      const cats = await storage.getAllCategories(false);
+      res.set("Cache-Control", "no-store");
+      res.json(cats);
+    } catch (error) {
+      console.error("Categories fetch error:", error);
+      res.status(500).json({ message: "Failed to load categories" });
+    }
+  });
+
+  // Categories — admin CRUD
+  app.get("/api/admin/categories", authenticateToken, async (req: AuthRequest, res: Response) => {
+    if (req.user?.role !== "admin") return res.status(403).json({ message: "Admin access required" });
+    res.json(await storage.getAllCategories(true));
+  });
+
+  app.post("/api/admin/categories", authenticateToken, async (req: AuthRequest, res: Response) => {
+    if (req.user?.role !== "admin") return res.status(403).json({ message: "Admin access required" });
+    try {
+      // Auto-derive slug if missing
+      const body = { ...req.body };
+      if (!body.slug && typeof body.name === "string") {
+        body.slug = body.name.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+      }
+      const data = insertCategorySchema.parse(body);
+      const existing = await storage.getCategoryBySlug(data.slug);
+      if (existing) return res.status(409).json({ message: `A category with slug "${data.slug}" already exists.` });
+      const created = await storage.createCategory(data);
+      res.json(created);
+    } catch (error: any) {
+      res.status(400).json({ message: error?.message || "Invalid category data" });
+    }
+  });
+
+  app.patch("/api/admin/categories/:id", authenticateToken, async (req: AuthRequest, res: Response) => {
+    if (req.user?.role !== "admin") return res.status(403).json({ message: "Admin access required" });
+    try {
+      const updated = await storage.updateCategory(req.params.id, req.body);
+      if (!updated) return res.status(404).json({ message: "Category not found" });
+      res.json(updated);
+    } catch (error: any) {
+      res.status(400).json({ message: error?.message || "Failed to update category" });
+    }
+  });
+
+  app.delete("/api/admin/categories/:id", authenticateToken, async (req: AuthRequest, res: Response) => {
+    if (req.user?.role !== "admin") return res.status(403).json({ message: "Admin access required" });
+    const cat = await storage.getCategory(req.params.id);
+    if (!cat) return res.status(404).json({ message: "Category not found" });
+    // Default categories shouldn't be hard-deleted (sub-services depend on the slug via the enum).
+    // Soft-disable instead by flipping isActive to false.
+    if (["physiotherapist", "doctor", "nurse"].includes(cat.slug)) {
+      await storage.updateCategory(req.params.id, { isActive: false } as any);
+      return res.json({ ok: true, soft: true });
+    }
+    await storage.deleteCategory(req.params.id);
     res.status(204).end();
   });
 

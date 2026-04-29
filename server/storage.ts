@@ -34,6 +34,7 @@ import {
   realtimeConversations,
   realtimeMessages,
   subServices,
+  categories,
   practitioners,
   servicePractitioners,
   servicePackages,
@@ -114,6 +115,8 @@ import {
   type ReviewWithPatient,
   type SubService,
   type InsertSubService,
+  type Category,
+  type InsertCategory,
   type TaxSetting,
   type InsertTaxSetting,
   type PatientConsent,
@@ -412,6 +415,15 @@ export interface IStorage {
   createSubService(data: InsertSubService): Promise<SubService>;
   updateSubService(id: string, data: Partial<SubService>): Promise<SubService | undefined>;
   deleteSubService(id: string): Promise<void>;
+
+  // Categories
+  getAllCategories(includeInactive?: boolean): Promise<Category[]>;
+  getCategory(id: string): Promise<Category | undefined>;
+  getCategoryBySlug(slug: string): Promise<Category | undefined>;
+  createCategory(data: InsertCategory): Promise<Category>;
+  updateCategory(id: string, data: Partial<InsertCategory>): Promise<Category | undefined>;
+  deleteCategory(id: string): Promise<void>;
+  ensureDefaultCategories(): Promise<void>;
 
   // Medical Data
   getPrescription(id: string): Promise<Prescription | undefined>;
@@ -1720,6 +1732,47 @@ export class DatabaseStorage implements IStorage {
 
   async deleteSubService(id: string): Promise<void> {
     await db.delete(subServices).where(eq(subServices.id, id));
+  }
+
+  // Categories
+  async getAllCategories(includeInactive = false): Promise<Category[]> {
+    const rows = await db.select().from(categories).orderBy(asc(categories.sortOrder), asc(categories.name));
+    return includeInactive ? rows : rows.filter((c: any) => c.isActive !== false);
+  }
+
+  async getCategory(id: string): Promise<Category | undefined> {
+    const [c] = await db.select().from(categories).where(eq(categories.id, id));
+    return c || undefined;
+  }
+
+  async getCategoryBySlug(slug: string): Promise<Category | undefined> {
+    const [c] = await db.select().from(categories).where(eq(categories.slug, slug));
+    return c || undefined;
+  }
+
+  async createCategory(data: InsertCategory): Promise<Category> {
+    const [c] = await db.insert(categories).values(data).returning();
+    return c;
+  }
+
+  async updateCategory(id: string, data: Partial<InsertCategory>): Promise<Category | undefined> {
+    const [c] = await db.update(categories).set(data).where(eq(categories.id, id)).returning();
+    return c || undefined;
+  }
+
+  async deleteCategory(id: string): Promise<void> {
+    await db.delete(categories).where(eq(categories.id, id));
+  }
+
+  async ensureDefaultCategories(): Promise<void> {
+    const existing = await db.select().from(categories);
+    if (existing.length > 0) return;
+    const defaults: InsertCategory[] = [
+      { slug: "physiotherapist", name: "Physiotherapist", sortOrder: 1, isActive: true } as any,
+      { slug: "doctor", name: "Doctor", sortOrder: 2, isActive: true } as any,
+      { slug: "nurse", name: "Nurse", sortOrder: 3, isActive: true } as any,
+    ];
+    await db.insert(categories).values(defaults).onConflictDoNothing();
   }
 
   // Medical Data

@@ -2809,12 +2809,17 @@ function ContentManagement() {
         <TabsList className="tabs-colorful tabs-violet flex flex-wrap gap-1 h-auto w-full">
           <TabsTrigger value="providers" data-testid="tab-content-providers">{t("admin_dashboard.tab_providers")}</TabsTrigger>
           <TabsTrigger value="users" data-testid="tab-content-users">{t("admin_dashboard.tab_users")}</TabsTrigger>
+          <TabsTrigger value="categories" data-testid="tab-categories">Categories</TabsTrigger>
           <TabsTrigger value="sub-services" data-testid="tab-sub-services">{t("admin_dashboard.tab_sub_services")}</TabsTrigger>
           <TabsTrigger value="promo-codes" data-testid="tab-content-promo-codes">{t("admin_dashboard.tab_promo_codes")}</TabsTrigger>
           <TabsTrigger value="tickets" data-testid="tab-content-tickets">{t("admin_dashboard.tab_support")}</TabsTrigger>
           <TabsTrigger value="faqs" data-testid="tab-content-faqs">{t("admin_dashboard.tab_faqs")}</TabsTrigger>
           <TabsTrigger value="announcements" data-testid="tab-content-announcements">{t("admin_dashboard.tab_announcements")}</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="categories">
+          <CategoriesManagement />
+        </TabsContent>
 
         <TabsContent value="sub-services">
           <SubServicesManagement />
@@ -5429,6 +5434,218 @@ function UsersManagement() {
   );
 }
 
+// Categories Management Component
+function CategoriesManagement() {
+  const { toast } = useToast();
+  const [isAdding, setIsAdding] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+
+  const form = useForm({
+    defaultValues: {
+      name: "",
+      slug: "",
+      description: "",
+      icon: "",
+      sortOrder: 0,
+      isActive: true,
+    },
+  });
+
+  const { data: categories, isLoading, refetch } = useQuery<any[]>({
+    queryKey: ["/api/admin/categories"],
+  });
+
+  const mutation = useMutation({
+    mutationFn: async (data: any) => {
+      const url = editingId ? `/api/admin/categories/${editingId}` : "/api/admin/categories";
+      const method = editingId ? "PATCH" : "POST";
+      const res = await apiRequest(method, url, data);
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({ title: editingId ? "Category updated" : "Category created" });
+      setIsAdding(false);
+      setEditingId(null);
+      form.reset({ name: "", slug: "", description: "", icon: "", sortOrder: 0, isActive: true });
+      refetch();
+      queryClient.invalidateQueries({ queryKey: ["/api/categories"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/categories"] });
+    },
+    onError: (err: any) => {
+      toast({ title: "Failed", description: err?.message || "Could not save", variant: "destructive" });
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => apiRequest("DELETE", `/api/admin/categories/${id}`),
+    onSuccess: () => {
+      toast({ title: "Category removed" });
+      refetch();
+      queryClient.invalidateQueries({ queryKey: ["/api/categories"] });
+    },
+  });
+
+  const beginEdit = (c: any) => {
+    setEditingId(c.id);
+    setIsAdding(true);
+    form.reset({
+      name: c.name || "",
+      slug: c.slug || "",
+      description: c.description || "",
+      icon: c.icon || "",
+      sortOrder: c.sortOrder ?? 0,
+      isActive: c.isActive ?? true,
+    });
+  };
+
+  if (isLoading) return <div className="flex justify-center p-8"><Loader2 className="animate-spin h-8 w-8" /></div>;
+
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <h3 className="text-lg font-medium">Provider Categories</h3>
+        <Button onClick={() => { setIsAdding(true); setEditingId(null); form.reset({ name: "", slug: "", description: "", icon: "", sortOrder: 0, isActive: true }); }} size="sm" data-testid="button-add-category">
+          <Plus className="h-4 w-4 mr-2" /> Add Category
+        </Button>
+      </div>
+
+      {(isAdding || editingId) && (
+        <Card>
+          <CardHeader>
+            <CardTitle>{editingId ? "Edit category" : "Add category"}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit((data) => mutation.mutate(data))} className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Name</FormLabel>
+                        <FormControl><Input {...field} placeholder="e.g. Cardiologist" data-testid="input-category-name" /></FormControl>
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="slug"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Slug</FormLabel>
+                        <FormControl><Input {...field} placeholder="auto from name if blank" data-testid="input-category-slug" /></FormControl>
+                        <FormDescription>URL-safe identifier. Lowercase, no spaces.</FormDescription>
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                <FormField
+                  control={form.control}
+                  name="description"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Description</FormLabel>
+                      <FormControl><Textarea {...field} rows={2} data-testid="input-category-description" /></FormControl>
+                    </FormItem>
+                  )}
+                />
+                <div className="grid grid-cols-3 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="icon"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Icon (optional)</FormLabel>
+                        <FormControl><Input {...field} placeholder="lucide name" data-testid="input-category-icon" /></FormControl>
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="sortOrder"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Sort order</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            value={field.value ?? 0}
+                            onChange={(e) => field.onChange(Number(e.target.value))}
+                            data-testid="input-category-sort"
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="isActive"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-col">
+                        <FormLabel>Active</FormLabel>
+                        <FormControl>
+                          <div className="flex items-center h-10">
+                            <Switch checked={!!field.value} onCheckedChange={field.onChange} data-testid="switch-category-active" />
+                          </div>
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                <div className="flex justify-end gap-2">
+                  <Button type="button" variant="outline" onClick={() => { setIsAdding(false); setEditingId(null); }} data-testid="button-cancel-category">Cancel</Button>
+                  <Button type="submit" disabled={mutation.isPending} data-testid="button-save-category">
+                    {mutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}
+                  </Button>
+                </div>
+              </form>
+            </Form>
+          </CardContent>
+        </Card>
+      )}
+
+      <div className="grid gap-3 md:grid-cols-2">
+        {(categories ?? []).map((c) => (
+          <Card key={c.id} data-testid={`card-category-${c.slug}`}>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <div>
+                <CardTitle className="text-sm font-bold flex items-center gap-2">
+                  {c.name}
+                  {!c.isActive && <Badge variant="secondary">Inactive</Badge>}
+                </CardTitle>
+                <CardDescription className="text-xs font-mono">{c.slug}</CardDescription>
+              </div>
+              <div className="flex items-center gap-1">
+                <Button size="sm" variant="ghost" onClick={() => beginEdit(c)} data-testid={`button-edit-category-${c.slug}`}>
+                  <Edit className="h-4 w-4" />
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => {
+                    if (confirm(`Remove category "${c.name}"? Default categories will be deactivated instead.`)) {
+                      deleteMutation.mutate(c.id);
+                    }
+                  }}
+                  data-testid={`button-delete-category-${c.slug}`}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            </CardHeader>
+            {c.description && (
+              <CardContent className="pt-0">
+                <p className="text-xs text-muted-foreground">{c.description}</p>
+              </CardContent>
+            )}
+          </Card>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // Sub-services Management Component
 function SubServicesManagement() {
   const { t } = useTranslation();
@@ -5451,6 +5668,10 @@ function SubServicesManagement() {
 
   const { data: subServices, isLoading, refetch } = useQuery<any[]>({
     queryKey: ["/api/admin/sub-services"],
+  });
+
+  const { data: categories } = useQuery<any[]>({
+    queryKey: ["/api/categories"],
   });
 
   const mutation = useMutation({
@@ -5510,9 +5731,19 @@ function SubServicesManagement() {
                         <Select onValueChange={field.onChange} value={field.value}>
                           <FormControl><SelectTrigger data-testid="select-subservice-category"><SelectValue /></SelectTrigger></FormControl>
                           <SelectContent>
-                            <SelectItem value="physiotherapist">{t("common.physiotherapists")}</SelectItem>
-                            <SelectItem value="doctor">{t("common.doctors")}</SelectItem>
-                            <SelectItem value="nurse">{t("common.nurses")}</SelectItem>
+                            {(categories ?? []).length > 0 ? (
+                              (categories ?? []).map((c: any) => (
+                                <SelectItem key={c.id} value={c.slug} data-testid={`subservice-cat-${c.slug}`}>
+                                  {c.name}
+                                </SelectItem>
+                              ))
+                            ) : (
+                              <>
+                                <SelectItem value="physiotherapist">{t("common.physiotherapists")}</SelectItem>
+                                <SelectItem value="doctor">{t("common.doctors")}</SelectItem>
+                                <SelectItem value="nurse">{t("common.nurses")}</SelectItem>
+                              </>
+                            )}
                           </SelectContent>
                         </Select>
                       </FormItem>

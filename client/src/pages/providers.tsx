@@ -26,7 +26,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { SlidersHorizontal, X, Star, MapPin } from "lucide-react";
-import type { ProviderWithUser } from "@shared/schema";
+import type { ProviderWithUser, Category } from "@shared/schema";
 import { useCurrency } from "@/lib/currency";
 
 export default function Providers() {
@@ -52,6 +52,10 @@ export default function Providers() {
     queryKey: ["/api/providers"],
   });
 
+  const { data: categories } = useQuery<Category[]>({
+    queryKey: ["/api/categories"],
+  });
+
   const getPageTitle = () => {
     switch (typeParam) {
       case "physiotherapist":
@@ -60,8 +64,11 @@ export default function Providers() {
         return t("providers.nurses", "Home Nurses");
       case "doctor":
         return t("providers.doctors", "Doctors");
-      default:
+      default: {
+        const cat = (categories ?? []).find((c) => c.slug === typeParam);
+        if (cat) return cat.name;
         return t("providers.healthcare_providers", "Healthcare Providers");
+      }
     }
   };
 
@@ -125,9 +132,11 @@ export default function Providers() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">{t("providers.all_services")}</SelectItem>
-            <SelectItem value="physiotherapist">{t("providers.physiotherapy")}</SelectItem>
-            <SelectItem value="nurse">{t("providers.home_nursing")}</SelectItem>
-            <SelectItem value="doctor">{t("providers.doctor")}</SelectItem>
+            {(categories ?? []).map((c) => (
+              <SelectItem key={c.id} value={c.slug} data-testid={`filter-type-option-${c.slug}`}>
+                {c.name}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </div>

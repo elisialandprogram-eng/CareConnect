@@ -150,6 +150,17 @@ export const serviceCategories = pgTable("service_categories", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const categories = pgTable("categories", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  slug: text("slug").notNull().unique(),
+  name: text("name").notNull(),
+  description: text("description"),
+  icon: text("icon"),
+  sortOrder: integer("sort_order").default(0),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export const subServices = pgTable("sub_services", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   category: providerTypeEnum("category").notNull(),
@@ -907,6 +918,7 @@ export const insertFamilyMemberSchema = createInsertSchema(familyMembers).omit({
   updatedAt: true,
 });
 export const insertSubServiceSchema = createInsertSchema(subServices).omit({ id: true, createdAt: true });
+export const insertCategorySchema = createInsertSchema(categories).omit({ id: true, createdAt: true });
 export const insertTaxSettingSchema = createInsertSchema(taxSettings).omit({ id: true });
 export const insertPatientConsentSchema = createInsertSchema(patientConsents).omit({ id: true, acceptedAt: true });
 export const insertMedicalPractitionerSchema = createInsertSchema(medicalPractitioners).omit({ id: true, createdAt: true });
@@ -1015,6 +1027,8 @@ export type InsertChatMessage = z.infer<typeof insertChatMessageSchema>;
 export type RealtimeConversation = typeof realtimeConversations.$inferSelect;
 export type RealtimeMessage = typeof realtimeMessages.$inferSelect;
 export type SubService = typeof subServices.$inferSelect;
+export type Category = typeof categories.$inferSelect;
+export type InsertCategory = z.infer<typeof insertCategorySchema>;
 export type InsertSubService = z.infer<typeof insertSubServiceSchema>;
 export type TaxSetting = typeof taxSettings.$inferSelect;
 export type InsertTaxSetting = z.infer<typeof insertTaxSettingSchema>;
