@@ -33,6 +33,7 @@ import {
   providers,
   reviews,
   walletTransactions,
+  appointments,
 } from "@shared/schema";
 import crypto from 'crypto'; // Import crypto module for randomUUID
 import { Resend } from 'resend';
@@ -567,7 +568,7 @@ export async function registerRoutes(
         const loadA = loadByPract.get(a.practitionerId) || 0;
         const loadB = loadByPract.get(b.practitionerId) || 0;
         if (loadA !== loadB) return loadA - loadB;
-        return (b.practitioner?.experienceYears || 0) - (a.practitioner?.experienceYears || 0);
+        return (b.practitioner?.yearsExperience || 0) - (a.practitioner?.yearsExperience || 0);
       });
 
       const winner = ranked[0];
@@ -2429,11 +2430,20 @@ export async function registerRoutes(
       const { practitioners, ...providerData } = req.body;
       const userId = req.user!.id;
 
-      // Safely format licenseExpiryDate only if it's a non-empty valid date string
-      if (providerData.licenseExpiryDate && typeof providerData.licenseExpiryDate === "string" && providerData.licenseExpiryDate.trim() !== "") {
+      // The licenseExpiryDate column is a Drizzle pg `timestamp`, which expects
+      // a JS Date instance — Drizzle calls .toISOString() on it. Coerce strings
+      // (from the form) into Date objects, and drop empty / invalid values.
+      if (providerData.licenseExpiryDate instanceof Date) {
+        if (isNaN(providerData.licenseExpiryDate.getTime())) {
+          delete providerData.licenseExpiryDate;
+        }
+      } else if (
+        typeof providerData.licenseExpiryDate === "string" &&
+        providerData.licenseExpiryDate.trim() !== ""
+      ) {
         const parsed = new Date(providerData.licenseExpiryDate);
         if (!isNaN(parsed.getTime())) {
-          providerData.licenseExpiryDate = parsed.toISOString();
+          providerData.licenseExpiryDate = parsed;
         } else {
           delete providerData.licenseExpiryDate;
         }

@@ -88,7 +88,7 @@ export default function Settings() {
 
   const changePasswordMutation = useMutation({
     mutationFn: async (data: typeof passwordForm) => {
-      const response = await fetch("/api/auth/change-password", {
+      const response = await fetch("/api/auth/reset-password", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
