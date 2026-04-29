@@ -6,6 +6,7 @@ import { Link } from "wouter";
 import { Header } from "@/components/header";
 import { ServiceFormDialog } from "@/components/service-form-dialog";
 import { NewTicketDialog } from "@/components/new-ticket-dialog";
+import { WeeklyScheduleGrid, type WeeklySchedule } from "@/components/weekly-schedule-grid";
 import { DialogDescription } from "@/components/ui/dialog";
 import type { ServicePackageWithServices } from "@shared/schema";
 import { Footer } from "@/components/footer";
@@ -80,6 +81,7 @@ import {
   ChevronRight,
   Shield,
   Pencil,
+  Save,
 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import type { AppointmentWithDetails, Provider, ProviderWithServices, Practitioner, Service, ReviewWithPatient } from "@shared/schema";
@@ -574,9 +576,6 @@ export default function ProviderDashboard() {
   const [rescheduleOpen, setRescheduleOpen] = useState(false);
   const [rescheduleData, setRescheduleData] = useState({ date: "", startTime: "", endTime: "" });
   const [privateNoteDraft, setPrivateNoteDraft] = useState("");
-  const [availabilityOpen, setAvailabilityOpen] = useState(false);
-  const [availabilityWeek, setAvailabilityWeek] = useState<Date>(new Date());
-  const [weekSlots, setWeekSlots] = useState<Record<string, { startTime: string; endTime: string }[]>>({});
 
   // Reviews
   const { data: providerReviews } = useQuery<ReviewWithPatient[]>({
@@ -631,8 +630,6 @@ export default function ProviderDashboard() {
     },
     onSuccess: (data: any) => {
       toast({ title: t("provider_dashboard.toast_slots_created", "Created {{count}} time slots", { count: data.count }) });
-      setAvailabilityOpen(false);
-      setWeekSlots({});
     },
     onError: () => toast({ title: t("provider_dashboard.toast_failed_availability", "Failed to save availability"), variant: "destructive" }),
   });
@@ -2022,22 +2019,10 @@ export default function ProviderDashboard() {
             </TabsContent>
 
             <TabsContent value="availability" className="mt-2 space-y-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center justify-between">
-                    {t("provider_dashboard.weekly_availability", "Weekly availability")}
-                    <Button onClick={() => setAvailabilityOpen(true)} data-testid="button-open-availability">
-                      <Plus className="h-4 w-4 mr-2" /> {t("provider_dashboard.add_weekly_slots", "Add weekly slots")}
-                    </Button>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-muted-foreground text-sm">
-                    {t("provider_dashboard.availability_desc", "Use the weekly slot manager to publish recurring availability across multiple days at once. Select the week start, define your time slots, and apply to chosen weekdays.")}
-                  </p>
-                </CardContent>
-              </Card>
-              <ProviderOfficeHoursCard />
+              <ProviderOfficeHoursCard
+                onPublish={(payload) => bulkAvailabilityMutation.mutate(payload)}
+                isPendingPublish={bulkAvailabilityMutation.isPending}
+              />
             </TabsContent>
 
             <TabsContent value="analytics" className="mt-2 space-y-4">
@@ -3025,19 +3010,6 @@ export default function ProviderDashboard() {
             </DialogContent>
           </Dialog>
 
-          {/* Weekly availability dialog */}
-          <Dialog open={availabilityOpen} onOpenChange={setAvailabilityOpen}>
-            <DialogContent className="max-w-2xl" data-testid="dialog-availability">
-              <DialogHeader>
-                <DialogTitle>{t("provider_dashboard.weekly_availability", "Weekly availability")}</DialogTitle>
-              </DialogHeader>
-              <WeeklyAvailabilityForm
-                onSubmit={(payload) => bulkAvailabilityMutation.mutate(payload)}
-                isPending={bulkAvailabilityMutation.isPending}
-              />
-            </DialogContent>
-          </Dialog>
-
           <ServiceFormDialog
             open={serviceFormOpen}
             onOpenChange={(o) => { setServiceFormOpen(o); if (!o) setEditingService(null); }}
@@ -3151,261 +3123,135 @@ export default function ProviderDashboard() {
   );
 }
 
-function WeeklyAvailabilityForm({
-  onSubmit,
-  isPending,
+// ───────── Visual weekly schedule card ─────────
+function ProviderOfficeHoursCard({
+  onPublish,
+  isPendingPublish,
 }: {
-  onSubmit: (payload: { dates: string[]; slots: { startTime: string; endTime: string }[]; replaceExisting: boolean }) => void;
-  isPending: boolean;
+  onPublish: (payload: { dates: string[]; slots: { startTime: string; endTime: string }[]; replaceExisting: boolean }) => void;
+  isPendingPublish?: boolean;
 }) {
-  const { t } = useTranslation();
-  const [weekStart, setWeekStart] = useState<string>(() => {
-    const d = new Date();
-    d.setDate(d.getDate() - d.getDay() + 1);
-    return d.toISOString().slice(0, 10);
-  });
-  const [days, setDays] = useState<boolean[]>([true, true, true, true, true, false, false]);
-  const [slots, setSlots] = useState<{ startTime: string; endTime: string }[]>([
-    { startTime: "09:00", endTime: "12:00" },
-    { startTime: "13:00", endTime: "17:00" },
-  ]);
-  const [replaceExisting, setReplaceExisting] = useState(false);
-
-  const dayLabels = [
-    t("provider_dashboard.day_mon", "Mon"),
-    t("provider_dashboard.day_tue", "Tue"),
-    t("provider_dashboard.day_wed", "Wed"),
-    t("provider_dashboard.day_thu", "Thu"),
-    t("provider_dashboard.day_fri", "Fri"),
-    t("provider_dashboard.day_sat", "Sat"),
-    t("provider_dashboard.day_sun", "Sun"),
-  ];
-
-  const handleSubmit = () => {
-    const start = new Date(weekStart);
-    const dates: string[] = [];
-    days.forEach((on, i) => {
-      if (!on) return;
-      const d = new Date(start);
-      d.setDate(d.getDate() + i);
-      dates.push(d.toISOString().slice(0, 10));
-    });
-    if (!dates.length || !slots.length) return;
-    onSubmit({ dates, slots, replaceExisting });
-  };
-
-  return (
-    <div className="space-y-4">
-      <div>
-        <Label>{t("provider_dashboard.week_start_label", "Week starting (Monday)")}</Label>
-        <Input
-          type="date"
-          value={weekStart}
-          onChange={(e) => setWeekStart(e.target.value)}
-          data-testid="input-week-start"
-        />
-      </div>
-      <div>
-        <Label className="mb-2 block">{t("provider_dashboard.days_of_week_label", "Days of the week")}</Label>
-        <div className="flex flex-wrap gap-2">
-          {dayLabels.map((label, i) => (
-            <Button
-              key={label}
-              type="button"
-              variant={days[i] ? "default" : "outline"}
-              size="sm"
-              onClick={() => setDays(days.map((d, j) => (j === i ? !d : d)))}
-              data-testid={`button-day-${label.toLowerCase()}`}
-            >
-              {label}
-            </Button>
-          ))}
-        </div>
-      </div>
-      <div>
-        <Label className="mb-2 block">{t("provider_dashboard.time_slots_label", "Time slots")}</Label>
-        <div className="space-y-2">
-          {slots.map((slot, idx) => (
-            <div key={idx} className="flex items-center gap-2">
-              <Input
-                type="time"
-                value={slot.startTime}
-                onChange={(e) => {
-                  const updated = [...slots];
-                  updated[idx] = { ...updated[idx], startTime: e.target.value };
-                  setSlots(updated);
-                }}
-                data-testid={`input-slot-start-${idx}`}
-              />
-              <span className="text-muted-foreground">{t("provider_dashboard.to_label", "to")}</span>
-              <Input
-                type="time"
-                value={slot.endTime}
-                onChange={(e) => {
-                  const updated = [...slots];
-                  updated[idx] = { ...updated[idx], endTime: e.target.value };
-                  setSlots(updated);
-                }}
-                data-testid={`input-slot-end-${idx}`}
-              />
-              <Button
-                type="button"
-                size="icon"
-                variant="ghost"
-                onClick={() => setSlots(slots.filter((_, j) => j !== idx))}
-                data-testid={`button-remove-slot-${idx}`}
-              >
-                <Trash2 className="h-4 w-4 text-destructive" />
-              </Button>
-            </div>
-          ))}
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => setSlots([...slots, { startTime: "09:00", endTime: "10:00" }])}
-            data-testid="button-add-slot"
-          >
-            <Plus className="h-4 w-4 mr-1" /> {t("provider_dashboard.add_slot_btn", "Add slot")}
-          </Button>
-        </div>
-      </div>
-      <div className="flex items-center gap-2">
-        <input
-          type="checkbox"
-          id="replaceExisting"
-          checked={replaceExisting}
-          onChange={(e) => setReplaceExisting(e.target.checked)}
-          data-testid="checkbox-replace-existing"
-        />
-        <label htmlFor="replaceExisting" className="text-sm">
-          {t("provider_dashboard.replace_existing", "Replace existing slots on selected dates")}
-        </label>
-      </div>
-      <DialogFooter>
-        <Button onClick={handleSubmit} disabled={isPending} data-testid="button-save-availability">
-          {isPending && <Loader2 className="h-3 w-3 mr-1 animate-spin" />}
-          {t("provider_dashboard.save_availability_btn", "Save weekly availability")}
-        </Button>
-      </DialogFooter>
-    </div>
-  );
-}
-// ───────── Office hours + auto-reply card ─────────
-const DAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] as const;
-type DayKey = typeof DAYS[number];
-type WeeklySchedule = Record<DayKey, { start: string; end: string; enabled: boolean }>;
-
-const DEFAULT_SCHEDULE: WeeklySchedule = DAYS.reduce((acc, d) => {
-  acc[d] = { start: "09:00", end: "17:00", enabled: d !== "sat" && d !== "sun" };
-  return acc;
-}, {} as WeeklySchedule);
-
-function ProviderOfficeHoursCard() {
   const { t } = useTranslation();
   const { toast } = useToast();
   const { data, isLoading } = useQuery<any>({ queryKey: ["/api/provider/office-hours"] });
-  const [schedule, setSchedule] = useState<WeeklySchedule>(DEFAULT_SCHEDULE);
   const [autoReplyEnabled, setAutoReplyEnabled] = useState(false);
   const [autoReplyMessage, setAutoReplyMessage] = useState("Thanks for your message — I'll respond during my office hours.");
-  const [emergencyContact, setEmergencyContact] = useState("");
+  const [autoReplyDirty, setAutoReplyDirty] = useState(false);
 
   useEffect(() => {
     if (data) {
-      if (data.weeklySchedule) {
-        setSchedule({ ...DEFAULT_SCHEDULE, ...data.weeklySchedule });
-      }
       setAutoReplyEnabled(!!data.autoReplyEnabled);
       if (data.autoReplyMessage) setAutoReplyMessage(data.autoReplyMessage);
-      if (data.emergencyContact) setEmergencyContact(data.emergencyContact);
     }
   }, [data]);
 
-  const save = useMutation({
-    mutationFn: () => apiRequest("PATCH", "/api/provider/office-hours", {
-      weeklySchedule: schedule,
-      autoReplyEnabled,
-      autoReplyMessage,
-      emergencyContact: emergencyContact || null,
-    }),
+  const saveSchedule = useMutation({
+    mutationFn: (weeklySchedule: WeeklySchedule) =>
+      apiRequest("PATCH", "/api/provider/office-hours", {
+        weeklySchedule,
+        autoReplyEnabled,
+        autoReplyMessage,
+      }),
     onSuccess: () => {
-      toast({ title: "Office hours saved" });
+      toast({ title: t("provider_dashboard.schedule_saved", "Schedule saved") });
       queryClient.invalidateQueries({ queryKey: ["/api/provider/office-hours"] });
     },
-    onError: () => toast({ title: "Failed to save", variant: "destructive" }),
+    onError: () => toast({ title: t("provider_dashboard.failed_save", "Failed to save"), variant: "destructive" }),
   });
 
-  if (isLoading) return null;
+  const saveAutoReply = useMutation({
+    mutationFn: () =>
+      apiRequest("PATCH", "/api/provider/office-hours", {
+        autoReplyEnabled,
+        autoReplyMessage,
+      }),
+    onSuccess: () => {
+      toast({ title: t("provider_dashboard.auto_reply_saved", "Auto-reply saved") });
+      queryClient.invalidateQueries({ queryKey: ["/api/provider/office-hours"] });
+      setAutoReplyDirty(false);
+    },
+    onError: () => toast({ title: t("provider_dashboard.failed_save", "Failed to save"), variant: "destructive" }),
+  });
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardContent className="py-8 flex justify-center">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{t("provider_dashboard.office_hours_title")}</CardTitle>
-        <CardDescription>
-          {t("provider_dashboard.office_hours_desc")}
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="space-y-2">
-          {DAYS.map(d => (
-            <div key={d} className="flex items-center gap-3" data-testid={`row-officehours-${d}`}>
-              <label className="flex items-center gap-2 w-24">
-                <input
-                  type="checkbox"
-                  checked={schedule[d].enabled}
-                  onChange={(e) => setSchedule({ ...schedule, [d]: { ...schedule[d], enabled: e.target.checked } })}
-                />
-                <span className="capitalize text-sm">{d}</span>
-              </label>
-              <Input
-                type="time"
-                className="w-28 h-8"
-                disabled={!schedule[d].enabled}
-                value={schedule[d].start}
-                onChange={(e) => setSchedule({ ...schedule, [d]: { ...schedule[d], start: e.target.value } })}
-              />
-              <span>–</span>
-              <Input
-                type="time"
-                className="w-28 h-8"
-                disabled={!schedule[d].enabled}
-                value={schedule[d].end}
-                onChange={(e) => setSchedule({ ...schedule, [d]: { ...schedule[d], end: e.target.value } })}
-              />
-            </div>
-          ))}
-        </div>
-        <Separator />
-        <div className="flex items-center gap-3">
-          <input
-            id="autoReply"
-            type="checkbox"
-            checked={autoReplyEnabled}
-            onChange={(e) => setAutoReplyEnabled(e.target.checked)}
-            data-testid="checkbox-auto-reply"
+    <div className="space-y-4">
+      {/* Visual grid */}
+      <Card>
+        <CardHeader>
+          <CardTitle>{t("provider_dashboard.weekly_schedule_title", "Weekly schedule")}</CardTitle>
+          <CardDescription>
+            {t("provider_dashboard.weekly_schedule_desc", "Click or drag cells to mark your available hours. Save to update your schedule, or publish to generate bookable slots for this week.")}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <WeeklyScheduleGrid
+            schedule={data?.weeklySchedule}
+            onSave={(sched) => saveSchedule.mutate(sched)}
+            onPublish={onPublish}
+            isPendingSave={saveSchedule.isPending}
+            isPendingPublish={isPendingPublish}
           />
-          <label htmlFor="autoReply" className="font-medium text-sm">{t("provider_dashboard.auto_reply_toggle")}</label>
-        </div>
-        <Textarea
-          rows={3}
-          placeholder={t("provider_dashboard.auto_reply_placeholder")}
-          value={autoReplyMessage}
-          onChange={(e) => setAutoReplyMessage(e.target.value)}
-          disabled={!autoReplyEnabled}
-          data-testid="input-auto-reply-message"
-        />
-        <div>
-          <label className="text-sm font-medium">{t("provider_dashboard.emergency_contact_label")}</label>
-          <Input
-            placeholder={t("provider_dashboard.emergency_contact_placeholder")}
-            value={emergencyContact}
-            onChange={(e) => setEmergencyContact(e.target.value)}
-            data-testid="input-emergency-contact"
+        </CardContent>
+      </Card>
+
+      {/* Auto-reply card */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">{t("provider_dashboard.auto_reply_title", "Auto-reply")}</CardTitle>
+          <CardDescription>
+            {t("provider_dashboard.auto_reply_desc", "Send an automatic response when a patient messages you outside of office hours.")}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex items-center gap-3">
+            <Switch
+              id="autoReply"
+              checked={autoReplyEnabled}
+              onCheckedChange={(v) => { setAutoReplyEnabled(v); setAutoReplyDirty(true); }}
+              data-testid="switch-auto-reply"
+            />
+            <Label htmlFor="autoReply" className="cursor-pointer">
+              {t("provider_dashboard.auto_reply_toggle", "Enable auto-reply")}
+            </Label>
+          </div>
+          <Textarea
+            rows={3}
+            placeholder={t("provider_dashboard.auto_reply_placeholder", "Type your auto-reply message...")}
+            value={autoReplyMessage}
+            onChange={(e) => { setAutoReplyMessage(e.target.value); setAutoReplyDirty(true); }}
+            disabled={!autoReplyEnabled}
+            data-testid="input-auto-reply-message"
           />
-        </div>
-        <Button onClick={() => save.mutate()} disabled={save.isPending} data-testid="button-save-office-hours">
-          {save.isPending ? t("provider_dashboard.saving") : t("provider_dashboard.save_office_hours")}
-        </Button>
-      </CardContent>
-    </Card>
+          <div className="flex items-center justify-between">
+            {autoReplyDirty ? (
+              <p className="text-xs text-amber-600 dark:text-amber-400 font-medium">● Unsaved changes</p>
+            ) : (
+              <span />
+            )}
+            <Button
+              size="sm"
+              variant="outline"
+              className="rounded-xl gap-2"
+              onClick={() => saveAutoReply.mutate()}
+              disabled={saveAutoReply.isPending || !autoReplyDirty}
+              data-testid="button-save-auto-reply"
+            >
+              {saveAutoReply.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />}
+              {t("provider_dashboard.save_auto_reply", "Save")}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   );
 }
