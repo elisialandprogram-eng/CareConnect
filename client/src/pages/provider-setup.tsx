@@ -26,7 +26,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import {
   Loader2,
   CheckCircle2,
@@ -289,6 +289,11 @@ export default function ProviderSetup() {
           ? "Your provider profile has been updated."
           : "Your profile is pending admin approval. You'll be notified once approved.",
       });
+      // Invalidate cached provider lookup so the dashboard immediately sees the
+      // newly-submitted profile and shows the "Awaiting approval" screen instead
+      // of falling back to the "Complete Your Profile" gate.
+      queryClient.invalidateQueries({ queryKey: ["/api/provider/me"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
       navigate("/provider/dashboard");
     },
     onError: (error: Error) => {

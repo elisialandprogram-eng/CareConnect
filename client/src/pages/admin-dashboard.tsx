@@ -2853,17 +2853,13 @@ function ProvidersManagement() {
                           <ProviderStatusPill status={provider.status} t={t} />
                         </div>
                         <p className="text-xs text-muted-foreground truncate">{provider.user?.email}</p>
-                        <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
-                          <Badge variant="outline" className="text-[10px] gap-1 px-1.5 h-5">
-                            <TypeIcon className="h-2.5 w-2.5" />
-                            {typeLabel}
-                          </Badge>
-                          {provider.specialization && (
+                        {provider.specialization && (
+                          <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
                             <Badge variant="outline" className="text-[10px] px-1.5 h-5">
                               {provider.specialization}
                             </Badge>
-                          )}
-                        </div>
+                          </div>
+                        )}
                       </div>
                     </div>
 
