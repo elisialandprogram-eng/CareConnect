@@ -1346,7 +1346,9 @@ export class DatabaseStorage implements IStorage {
 
   async createAppointment(appointment: InsertAppointment): Promise<Appointment> {
     // Generate unique appointment number: GL + 6-digit padded sequence
-    const [{ nextval }] = await db.execute(sql`SELECT nextval('appointment_number_seq')::text AS nextval`);
+    const raw: any = await db.execute(sql`SELECT nextval('appointment_number_seq')::text AS nextval`);
+    const row = Array.isArray(raw) ? raw[0] : raw?.rows?.[0];
+    const nextval = row?.nextval;
     const appointmentNumber = 'GL' + String(nextval).padStart(6, '0');
     const [newAppointment] = await db.insert(appointments).values({
       ...appointment,
