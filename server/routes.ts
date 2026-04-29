@@ -89,6 +89,7 @@ import { registerImageRoutes } from "./replit_integrations/image";
 import { generateInvoicePDF } from "./utils/invoice-gen";
 import { createInvoiceForAppointment } from "./utils/invoice-helper";
 import { sanitizeUser, sanitizeProviderWithUser, sanitizeProviderListItem } from "./utils/sanitize";
+import { computeFinalPrice } from "./lib/pricing";
 import cookieParserModule from "cookie-parser";
 import {
   isStripeConfigured,
@@ -1049,6 +1050,7 @@ export async function registerRoutes(
       res.setHeader("Cache-Control", "no-store");
       res.json(result);
     } catch (error) {
+      console.error("Sub-services fetch error:", error);
       res.status(500).json({ message: "Failed to fetch sub-services" });
     }
   });
@@ -2283,6 +2285,77 @@ export async function registerRoutes(
       res.status(201).json(sp);
     } catch (error) {
       res.status(400).json({ message: "Invalid service practitioner data" });
+    }
+  });
+
+  // Pricing quote — computes the full price breakdown for a service/visit-type combo.
+  // Used by the booking flow to show patients what they'll be charged before they confirm.
+  app.post("/api/pricing/quote", optionalAuth, async (req: AuthRequest, res: Response) => {
+    try {
+      const {
+        serviceId,
+        subServiceId,
+        visitType,
+        sessions,
+        promoCode,
+        isEmergency,
+        surgeMultiplier,
+        packagePrice,
+      } = req.body as {
+        serviceId?: string;
+        subServiceId?: string;
+        visitType?: "online" | "home" | "clinic";
+        sessions?: number;
+        promoCode?: string;
+        isEmergency?: boolean;
+        surgeMultiplier?: number;
+        packagePrice?: number;
+      };
+
+      if (!visitType || !["online", "home", "clinic"].includes(visitType)) {
+        return res.status(400).json({ message: "visitType is required (online | home | clinic)" });
+      }
+
+      const svc = serviceId ? await storage.getService(serviceId) : null;
+      const subId = subServiceId || (svc?.subServiceId ?? null);
+      const sub = subId ? await storage.getSubService(subId) : null;
+
+      if (!svc && !sub) {
+        return res.status(400).json({ message: "Provide serviceId or subServiceId" });
+      }
+
+      let discount: { type: "percent" | "fixed"; value: number; code?: string } | null = null;
+      if (promoCode) {
+        const promo = await storage.getPromoCodeByCode(String(promoCode).trim().toUpperCase());
+        if (promo && promo.isActive) {
+          const now = new Date();
+          const inWindow = new Date(promo.validFrom) <= now && new Date(promo.validUntil) >= now;
+          const underLimit = promo.maxUses == null || (promo.usedCount ?? 0) < promo.maxUses;
+          if (inWindow && underLimit) {
+            discount = {
+              type: promo.discountType === "percentage" ? "percent" : "fixed",
+              value: Number(promo.discountValue),
+              code: promo.code,
+            };
+          }
+        }
+      }
+
+      const breakdown = computeFinalPrice({
+        subService: sub ?? null,
+        service: svc ?? null,
+        visitType,
+        sessions,
+        isEmergency,
+        surgeMultiplier,
+        packagePrice: packagePrice ?? null,
+        discount,
+      });
+
+      res.json(breakdown);
+    } catch (e) {
+      console.error("Pricing quote error:", e);
+      res.status(500).json({ message: "Failed to compute pricing quote" });
     }
   });
 

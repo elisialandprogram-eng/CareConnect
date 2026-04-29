@@ -23,6 +23,7 @@ export const announcementTypeEnum = pgEnum("announcement_type", ["info", "warnin
 export const medicalHistoryTypeEnum = pgEnum("medical_history_type", ["diagnosis", "procedure", "lab_result", "vaccination", "allergy"]);
 export const walletTxTypeEnum = pgEnum("wallet_tx_type", ["topup", "debit", "refund", "adjustment", "reversal"]);
 export const walletTxStatusEnum = pgEnum("wallet_tx_status", ["pending", "completed", "failed", "reversed"]);
+export const pricingTypeEnum = pgEnum("pricing_type", ["fixed", "hourly", "session"]);
 
 // Tables
 export const users = pgTable("users", {
@@ -155,6 +156,10 @@ export const subServices = pgTable("sub_services", {
   name: text("name").notNull(),
   description: text("description"),
   platformFee: decimal("platform_fee", { precision: 10, scale: 2 }).default("0.00"),
+  basePrice: decimal("base_price", { precision: 10, scale: 2 }).default("0.00"),
+  durationMinutes: integer("duration_minutes").default(30),
+  taxPercentage: decimal("tax_percentage", { precision: 5, scale: 2 }).default("0.00"),
+  pricingType: pricingTypeEnum("pricing_type").default("fixed"),
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow(),
 }, (table) => ({
@@ -182,6 +187,12 @@ export const services = pgTable("services", {
   hideDuration: boolean("hide_duration").default(false),
   sortOrder: integer("sort_order").default(0),
   isActive: boolean("is_active").default(true),
+  platformFeeOverride: decimal("platform_fee_override", { precision: 10, scale: 2 }),
+  homeVisitFee: decimal("home_visit_fee", { precision: 10, scale: 2 }).default("0.00"),
+  clinicFee: decimal("clinic_fee", { precision: 10, scale: 2 }).default("0.00"),
+  telemedicineFee: decimal("telemedicine_fee", { precision: 10, scale: 2 }).default("0.00"),
+  emergencyFee: decimal("emergency_fee", { precision: 10, scale: 2 }).default("0.00"),
+  maxPatientsPerDay: integer("max_patients_per_day"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
