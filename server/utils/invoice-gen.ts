@@ -1,5 +1,6 @@
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
+import { DEFAULT_INVOICE_TEMPLATE, hexToRgb, type InvoiceTemplate } from "./invoice-template";
 
 type CurrencyConfig = {
   code: string;
@@ -77,40 +78,64 @@ function statusColors(status: string): { fill: RGB; text: RGB; label: string } {
   return { fill: [254, 243, 199], text: [146, 64, 14], label: "DUE" };
 }
 
-export async function generateInvoicePDF(invoice: any, patient: any, provider: any, items: any[]) {
+export interface GenerateInvoiceOptions {
+  template?: Partial<InvoiceTemplate>;
+}
+
+export async function generateInvoicePDF(
+  invoice: any,
+  patient: any,
+  provider: any,
+  items: any[],
+  options: GenerateInvoiceOptions = {},
+) {
   const doc = new jsPDF({ unit: "mm", format: "a4" }) as any;
   const pageW = doc.internal.pageSize.getWidth();
   const pageH = doc.internal.pageSize.getHeight();
   const M = 18; // page margin
+
+  // Merge template overrides with defaults so callers may pass a partial.
+  const tpl: InvoiceTemplate = { ...DEFAULT_INVOICE_TEMPLATE, ...(options.template || {}) };
 
   // Resolve currency: invoice > provider > USD
   const currencyCode = invoice?.currency || provider?.currency || "USD";
   const fmt = makeFormatter(currencyCode);
   const cfg = getCurrency(currencyCode);
 
+  // Resolve brand colors from template (with defaults).
+  const BRAND_RGB = hexToRgb(tpl.brandColorHex, BRAND);
+  const ACCENT_RGB = hexToRgb(tpl.accentColorHex, ACCENT);
+  // Slightly darker variant of the brand for the "INVOICE" headline.
+  const BRAND_DARK_RGB: RGB = [
+    Math.max(0, Math.round(BRAND_RGB[0] * 0.78)),
+    Math.max(0, Math.round(BRAND_RGB[1] * 0.78)),
+    Math.max(0, Math.round(BRAND_RGB[2] * 0.78)),
+  ];
+
   // ---------- TOP BRAND BAND ----------
-  doc.setFillColor(...BRAND);
+  doc.setFillColor(...BRAND_RGB);
   doc.rect(0, 0, pageW, 8, "F");
-  doc.setFillColor(...ACCENT);
+  doc.setFillColor(...ACCENT_RGB);
   doc.rect(0, 8, pageW, 1.5, "F");
 
   // ---------- HEADER ----------
   // Brand
   doc.setFont("helvetica", "bold");
   doc.setFontSize(20);
-  doc.setTextColor(...ACCENT);
-  doc.text("Golden Life", M, 24);
+  doc.setTextColor(...ACCENT_RGB);
+  doc.text(tpl.companyName || "Golden Life", M, 24);
 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
   doc.setTextColor(...MUTED);
-  doc.text("Healthcare Booking Platform", M, 29);
-  doc.text("goldenlife.health  ·  support@goldenlife.health", M, 34);
+  if (tpl.tagline) doc.text(tpl.tagline, M, 29);
+  const contactBits = [tpl.website, tpl.email, tpl.phone].filter(Boolean).join("  ·  ");
+  if (contactBits) doc.text(contactBits, M, 34);
 
   // INVOICE title
   doc.setFont("helvetica", "bold");
   doc.setFontSize(28);
-  doc.setTextColor(...BRAND_DARK);
+  doc.setTextColor(...BRAND_DARK_RGB);
   doc.text("INVOICE", pageW - M, 24, { align: "right" });
 
   doc.setFont("helvetica", "normal");
@@ -168,7 +193,7 @@ export async function generateInvoicePDF(invoice: any, patient: any, provider: a
   doc.roundedRect(billX, bfY, colWidth, 38, 2, 2, "F");
   doc.setFont("helvetica", "bold");
   doc.setFontSize(8);
-  doc.setTextColor(...BRAND_DARK);
+  doc.setTextColor(...BRAND_DARK_RGB);
   doc.text("BILL TO  ·  PATIENT", billX + 4, bfY + 6);
 
   doc.setFont("helvetica", "bold");
@@ -192,7 +217,7 @@ export async function generateInvoicePDF(invoice: any, patient: any, provider: a
   doc.roundedRect(fromX, bfY, colWidth, 38, 2, 2, "F");
   doc.setFont("helvetica", "bold");
   doc.setFontSize(8);
-  doc.setTextColor(...BRAND_DARK);
+  doc.setTextColor(...BRAND_DARK_RGB);
   doc.text("PROVIDER", fromX + 4, bfY + 6);
 
   doc.setFont("helvetica", "bold");
@@ -285,9 +310,9 @@ export async function generateInvoicePDF(invoice: any, patient: any, provider: a
     },
     didDrawPage: () => {
       // Re-draw the brand strip on each page
-      doc.setFillColor(...BRAND);
+      doc.setFillColor(...BRAND_RGB);
       doc.rect(0, 0, pageW, 8, "F");
-      doc.setFillColor(...ACCENT);
+      doc.setFillColor(...ACCENT_RGB);
       doc.rect(0, 8, pageW, 1.5, "F");
     },
   });
@@ -345,7 +370,7 @@ export async function generateInvoicePDF(invoice: any, patient: any, provider: a
 
   // Total — highlighted bar (gold)
   const totalBarY = rowY;
-  doc.setFillColor(...BRAND);
+  doc.setFillColor(...BRAND_RGB);
   doc.roundedRect(totalsX, totalBarY, totalsW, 12, 2, 2, "F");
   doc.setFont("helvetica", "bold");
   doc.setFontSize(11);
@@ -381,8 +406,14 @@ export async function generateInvoicePDF(invoice: any, patient: any, provider: a
       M,
       totalsY + 11
     );
-    doc.text("Pay through Golden Life under My invoices,", M, totalsY + 16);
-    doc.text("or via the link in your confirmation email.", M, totalsY + 20);
+    // Wrap admin-supplied payment instructions to fit the column.
+    const instr = (tpl.paymentInstructions || "").trim();
+    if (instr) {
+      const wrapped = doc.splitTextToSize(instr, totalsW - 4) as string[];
+      wrapped.slice(0, 2).forEach((line, i) => {
+        doc.text(line, M, totalsY + 16 + i * 4.5);
+      });
+    }
   }
 
   // ---------- FOOTER ----------
@@ -394,8 +425,13 @@ export async function generateInvoicePDF(invoice: any, patient: any, provider: a
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8);
   doc.setTextColor(...MUTED);
-  doc.text("Golden Life · Healthcare Booking Platform", M, footerY);
-  doc.text("goldenlife.health · support@goldenlife.health", pageW - M, footerY, { align: "right" });
+  // Use template footer text if present, fall back to legacy line.
+  const leftFooter = (tpl.footerText || `${tpl.companyName} · Healthcare Booking Platform`).trim();
+  // Hard truncate to one line — autoTable handles longer content.
+  const leftFitted = doc.splitTextToSize(leftFooter, pageW - 2 * M - 80)[0] || leftFooter;
+  doc.text(leftFitted, M, footerY);
+  const rightFooter = [tpl.website, tpl.email].filter(Boolean).join(" · ");
+  if (rightFooter) doc.text(rightFooter, pageW - M, footerY, { align: "right" });
 
   doc.setTextColor(...SUBTLE);
   doc.setFontSize(7);

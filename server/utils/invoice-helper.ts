@@ -1,5 +1,6 @@
 import { storage } from "../storage";
 import { generateInvoicePDF } from "./invoice-gen";
+import { loadInvoiceTemplate } from "./invoice-template";
 import { computeFinalPrice } from "../lib/pricing";
 import { Resend } from "resend";
 
@@ -113,6 +114,7 @@ export async function createInvoiceForAppointment(appointmentId: string): Promis
         ...invoice,
         appointmentNumber: (booking as any).appointmentNumber || null,
       };
+      const template = await loadInvoiceTemplate();
       const pdfBuffer = await generateInvoicePDF(invoiceWithRef, appointment.patient, appointment.provider, [
         {
           description: appointment.service?.name || "Healthcare Service",
@@ -120,7 +122,7 @@ export async function createInvoiceForAppointment(appointmentId: string): Promis
           unitPrice: booking.totalAmount,
           totalPrice: booking.totalAmount,
         },
-      ]);
+      ], { template });
 
       const statusLine =
         invoiceStatus === "paid"

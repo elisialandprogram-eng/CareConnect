@@ -1951,17 +1951,70 @@ export async function registerRoutes(
       ]);
       const blockedTimes = new Set(blockedList);
 
-      // Mark each slot as available/booked. If provider hasn't published any slots,
-      // return an empty array — booking UI will fall back to the default catalogue.
-      const result = slots.map(s => ({
-        id: s.id,
-        date: s.date,
-        startTime: s.startTime,
-        endTime: s.endTime,
-        isBooked: s.isBooked || blockedTimes.has(s.startTime),
-        isBlocked: s.isBlocked,
-      }));
-      res.json(result);
+      // If the provider has explicitly published slots for this date, use them.
+      if (slots.length > 0) {
+        const result = slots.map(s => ({
+          id: s.id,
+          date: s.date,
+          startTime: s.startTime,
+          endTime: s.endTime,
+          isBooked: s.isBooked || blockedTimes.has(s.startTime),
+          isBlocked: s.isBlocked,
+        }));
+        return res.json(result);
+      }
+
+      // ── Fallback: synthesize 30-min slots from the provider's office hours ──
+      // This way, as soon as an admin or provider sets a weekly schedule, slots
+      // become bookable without anyone having to click "Publish this week".
+      const provider = await storage.getProvider(req.params.id);
+      if (!provider) return res.json([]);
+      const officeHours = await storage.getProviderOfficeHours(provider.userId);
+      if (!officeHours?.weeklySchedule) return res.json([]);
+
+      let weekly: Record<string, { start: string; end: string; enabled: boolean }> = {};
+      try {
+        weekly = JSON.parse(officeHours.weeklySchedule);
+      } catch {
+        return res.json([]);
+      }
+
+      const dayKey = (() => {
+        // YYYY-MM-DD parsed as local date (not UTC) to match the user's calendar.
+        const [y, m, d] = date.split("-").map(Number);
+        const dt = new Date(y, (m || 1) - 1, d || 1);
+        return ["sun", "mon", "tue", "wed", "thu", "fri", "sat"][dt.getDay()];
+      })();
+      const day = weekly[dayKey];
+      if (!day?.enabled || !day.start || !day.end) return res.json([]);
+
+      const toMins = (t: string) => {
+        const [h, m] = t.split(":").map(Number);
+        return (h || 0) * 60 + (m || 0);
+      };
+      const pad = (n: number) => String(n).padStart(2, "0");
+      const fmt = (mins: number) => `${pad(Math.floor(mins / 60))}:${pad(mins % 60)}`;
+
+      const startMins = toMins(day.start);
+      const endMins = toMins(day.end);
+      const SLOT_MIN = 30;
+
+      const synthetic: Array<{
+        id: string; date: string; startTime: string; endTime: string;
+        isBooked: boolean; isBlocked: boolean;
+      }> = [];
+      for (let t = startMins; t + SLOT_MIN <= endMins; t += SLOT_MIN) {
+        const startTime = fmt(t);
+        synthetic.push({
+          id: `virtual-${date}-${startTime}`,
+          date,
+          startTime,
+          endTime: fmt(t + SLOT_MIN),
+          isBooked: blockedTimes.has(startTime),
+          isBlocked: false,
+        });
+      }
+      res.json(synthetic);
     } catch (error) {
       console.error("Available slots error:", error);
       res.status(500).json({ message: "Failed to get available slots" });
@@ -5583,6 +5636,92 @@ export async function registerRoutes(
       const updated = await storage.upsertProviderOfficeHours(provider.userId, patch);
       res.json(updated);
     } catch { res.status(500).json({ message: "Failed to save" }); }
+  });
+
+  // ----- Admin: invoice template settings -----
+  // Admins customize the company branding shown on every generated invoice
+  // PDF (logo placeholder, name, address, tax ID, footer, brand color, etc.).
+  // Stored as key/value rows in `platform_settings` under category
+  // "invoice_template" so we don't have to migrate the schema.
+  app.get("/api/admin/invoice-template", authenticateToken, requireAdmin, async (_req: AuthRequest, res: Response) => {
+    try {
+      const { loadInvoiceTemplate } = await import("./utils/invoice-template");
+      const tpl = await loadInvoiceTemplate();
+      res.json(tpl);
+    } catch (error) {
+      console.error("[admin/invoice-template] GET failed:", error);
+      res.status(500).json({ message: "Failed to load invoice template" });
+    }
+  });
+
+  app.put("/api/admin/invoice-template", authenticateToken, requireAdmin, async (req: AuthRequest, res: Response) => {
+    try {
+      const { saveInvoiceTemplate, DEFAULT_INVOICE_TEMPLATE } = await import("./utils/invoice-template");
+      // Only persist whitelisted keys.
+      const patch: Record<string, string> = {};
+      for (const k of Object.keys(DEFAULT_INVOICE_TEMPLATE)) {
+        if (req.body && Object.prototype.hasOwnProperty.call(req.body, k)) {
+          patch[k] = req.body[k] == null ? "" : String(req.body[k]);
+        }
+      }
+      const tpl = await saveInvoiceTemplate(patch as any);
+      res.json(tpl);
+    } catch (error) {
+      console.error("[admin/invoice-template] PUT failed:", error);
+      res.status(500).json({ message: "Failed to save invoice template" });
+    }
+  });
+
+  // Generate a small preview PDF of the current (or proposed) template so
+  // admins can see their changes before saving them.
+  app.post("/api/admin/invoice-template/preview", authenticateToken, requireAdmin, async (req: AuthRequest, res: Response) => {
+    try {
+      const { loadInvoiceTemplate, DEFAULT_INVOICE_TEMPLATE } = await import("./utils/invoice-template");
+      const { generateInvoicePDF } = await import("./utils/invoice-gen");
+      const base = await loadInvoiceTemplate();
+      // Merge any unsaved overrides from the request body.
+      const overrides: Record<string, string> = {};
+      for (const k of Object.keys(DEFAULT_INVOICE_TEMPLATE)) {
+        if (req.body && Object.prototype.hasOwnProperty.call(req.body, k)) {
+          overrides[k] = req.body[k] == null ? "" : String(req.body[k]);
+        }
+      }
+      const tpl = { ...base, ...overrides };
+      // Realistic-looking sample invoice content.
+      const sampleInvoice = {
+        invoiceNumber: "INV-PREVIEW-0001",
+        appointmentNumber: "GL000123",
+        issueDate: new Date(),
+        dueDate: new Date(Date.now() + 7 * 86400000),
+        subtotal: "120.00",
+        taxAmount: "12.00",
+        platformFee: "5.00",
+        totalAmount: "137.00",
+        status: "due",
+        currency: "USD",
+        appointmentDate: new Date(),
+        visitType: "clinic",
+      };
+      const samplePatient = { firstName: "Sample", lastName: "Patient", email: "patient@example.com", phone: "+1 555-0100" };
+      const sampleProvider = {
+        businessName: "Sample Clinic",
+        email: "clinic@example.com",
+        phone: "+1 555-0200",
+        licenseNumber: "MD-123456",
+        currency: "USD",
+      };
+      const items = [
+        { description: "Initial consultation (45 min)", quantity: 1, unitPrice: "100.00", totalPrice: "100.00" },
+        { description: "Follow-up assessment", quantity: 1, unitPrice: "20.00", totalPrice: "20.00" },
+      ];
+      const pdf = await generateInvoicePDF(sampleInvoice, samplePatient, sampleProvider, items, { template: tpl });
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader("Content-Disposition", 'inline; filename="invoice-template-preview.pdf"');
+      res.send(pdf);
+    } catch (error) {
+      console.error("[admin/invoice-template/preview] failed:", error);
+      res.status(500).json({ message: "Failed to render preview" });
+    }
   });
 
   app.post("/api/admin/providers/:providerId/availability/bulk", authenticateToken, requireAdmin, async (req: AuthRequest, res: Response) => {

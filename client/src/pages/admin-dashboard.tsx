@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { Header } from "@/components/header";
@@ -53,7 +53,7 @@ import {
   UserPlus, RefreshCw, ChevronDown, ChevronUp, Stethoscope, GraduationCap,
   Mail, Phone, MoreVertical, AlertCircle, Inbox, UserCog, RotateCcw, CheckCheck,
   Globe, CalendarDays, Hash, Timer, TrendingUp, Banknote, ArrowUpRight, ArrowDownRight,
-  PiggyBank, Receipt, Wallet, CreditCard, Copy
+  PiggyBank, Receipt, Wallet, CreditCard, Copy, Save
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Progress } from "@/components/ui/progress";
@@ -3354,7 +3354,23 @@ function InvoiceManagement() {
   if (isLoading) return <div className="flex justify-center p-12"><Loader2 className="h-8 w-8 animate-spin" /></div>;
 
   return (
-    <div className="space-y-6">
+    <Tabs defaultValue="list" className="space-y-6">
+      <TabsList className="tabs-colorful">
+        <TabsTrigger value="list" data-testid="tab-invoice-list">
+          <FileText className="h-4 w-4 mr-1.5" />
+          Invoices
+        </TabsTrigger>
+        <TabsTrigger value="template" data-testid="tab-invoice-template">
+          <Settings className="h-4 w-4 mr-1.5" />
+          Template
+        </TabsTrigger>
+      </TabsList>
+
+      <TabsContent value="template">
+        <InvoiceTemplateEditor />
+      </TabsContent>
+
+      <TabsContent value="list" className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
           <h3 className="text-lg font-medium">{t("admin_dashboard.invoice_management")}</h3>
@@ -3421,6 +3437,159 @@ function InvoiceManagement() {
           </div>
         </CardContent>
       </Card>
+      </TabsContent>
+    </Tabs>
+  );
+}
+
+// Invoice Template Editor — admin customizes the company branding shown on
+// every generated invoice PDF. Stored as platform_settings rows under
+// category="invoice_template" via /api/admin/invoice-template.
+function InvoiceTemplateEditor() {
+  const { toast } = useToast();
+  const { data: template, isLoading } = useQuery<any>({
+    queryKey: ["/api/admin/invoice-template"],
+  });
+  const [form, setForm] = useState<Record<string, string>>({});
+  const [previewBust, setPreviewBust] = useState(0);
+
+  useEffect(() => {
+    if (template && Object.keys(form).length === 0) {
+      setForm({ ...template });
+    }
+  }, [template]);
+
+  const saveMut = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("PUT", "/api/admin/invoice-template", form);
+      return res.json();
+    },
+    onSuccess: (data) => {
+      toast({ title: "Invoice template saved" });
+      setForm({ ...data });
+      queryClient.setQueryData(["/api/admin/invoice-template"], data);
+      setPreviewBust((n) => n + 1);
+    },
+    onError: (e: any) => toast({ title: "Save failed", description: e?.message, variant: "destructive" }),
+  });
+
+  const refreshPreview = async () => {
+    try {
+      const res = await apiRequest("POST", "/api/admin/invoice-template/preview", form);
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      window.open(url, "_blank");
+    } catch (e: any) {
+      toast({ title: "Preview failed", description: e?.message, variant: "destructive" });
+    }
+  };
+
+  if (isLoading) return <div className="flex justify-center p-12"><Loader2 className="h-8 w-8 animate-spin" /></div>;
+
+  const set = (k: string, v: string) => setForm((f) => ({ ...f, [k]: v }));
+
+  const FIELDS: Array<{ key: string; label: string; type?: "text" | "textarea" | "color" | "url"; placeholder?: string; help?: string; }> = [
+    { key: "companyName", label: "Company name", placeholder: "Golden Life" },
+    { key: "tagline", label: "Tagline / subtitle", placeholder: "Quality healthcare delivered." },
+    { key: "logoUrl", label: "Logo URL", type: "url", placeholder: "https://…/logo.png", help: "Optional. Hosted PNG/JPG (rendered on a future revision)." },
+    { key: "brandColorHex", label: "Brand color", type: "color" },
+    { key: "accentColorHex", label: "Accent color", type: "color" },
+    { key: "addressLine1", label: "Address line 1", placeholder: "123 Main St" },
+    { key: "addressLine2", label: "Address line 2", placeholder: "Suite 200" },
+    { key: "city", label: "City", placeholder: "Budapest" },
+    { key: "country", label: "Country", placeholder: "Hungary" },
+    { key: "email", label: "Billing email", placeholder: "billing@goldenlife.health" },
+    { key: "phone", label: "Phone", placeholder: "+36 1 234 5678" },
+    { key: "website", label: "Website", placeholder: "goldenlife.health" },
+    { key: "taxId", label: "Tax ID / VAT number", placeholder: "HU12345678" },
+    { key: "footerText", label: "Footer text", type: "textarea", placeholder: "Thank you for choosing…" },
+    { key: "paymentInstructions", label: "Payment instructions", type: "textarea", placeholder: "Pay via the My Invoices section…" },
+    { key: "termsText", label: "Terms text", type: "textarea", placeholder: "Payment is due within 7 days…" },
+  ];
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div>
+          <h3 className="text-lg font-medium">Invoice template</h3>
+          <p className="text-sm text-muted-foreground">
+            Customize the company details, branding, and footer that appear on every generated invoice PDF.
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={refreshPreview}
+            data-testid="button-invoice-template-preview"
+          >
+            <FileText className="h-4 w-4 mr-1.5" />
+            Preview PDF
+          </Button>
+          <Button
+            onClick={() => saveMut.mutate()}
+            disabled={saveMut.isPending}
+            data-testid="button-invoice-template-save"
+          >
+            {saveMut.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
+            Save changes
+          </Button>
+        </div>
+      </div>
+
+      <Card>
+        <CardContent className="p-6 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+          {FIELDS.map((f) => (
+            <div
+              key={f.key}
+              className={f.type === "textarea" ? "md:col-span-2 space-y-1.5" : "space-y-1.5"}
+            >
+              <Label htmlFor={`tpl-${f.key}`}>{f.label}</Label>
+              {f.type === "textarea" ? (
+                <Textarea
+                  id={`tpl-${f.key}`}
+                  value={form[f.key] ?? ""}
+                  onChange={(e) => set(f.key, e.target.value)}
+                  placeholder={f.placeholder}
+                  rows={2}
+                  data-testid={`input-tpl-${f.key}`}
+                />
+              ) : f.type === "color" ? (
+                <div className="flex items-center gap-2">
+                  <input
+                    type="color"
+                    id={`tpl-${f.key}`}
+                    value={(form[f.key] || "#000000")}
+                    onChange={(e) => set(f.key, e.target.value)}
+                    className="h-9 w-12 rounded border bg-transparent cursor-pointer"
+                    data-testid={`color-tpl-${f.key}`}
+                  />
+                  <Input
+                    value={form[f.key] ?? ""}
+                    onChange={(e) => set(f.key, e.target.value)}
+                    placeholder="#C9A227"
+                    className="font-mono"
+                    data-testid={`input-tpl-${f.key}`}
+                  />
+                </div>
+              ) : (
+                <Input
+                  id={`tpl-${f.key}`}
+                  type={f.type === "url" ? "url" : "text"}
+                  value={form[f.key] ?? ""}
+                  onChange={(e) => set(f.key, e.target.value)}
+                  placeholder={f.placeholder}
+                  data-testid={`input-tpl-${f.key}`}
+                />
+              )}
+              {f.help && <p className="text-xs text-muted-foreground">{f.help}</p>}
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+
+      <p className="text-xs text-muted-foreground">
+        Tip: Click <strong>Preview PDF</strong> to open a sample invoice with the current (unsaved) values in a new tab.
+      </p>
     </div>
   );
 }

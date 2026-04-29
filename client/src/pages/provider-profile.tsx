@@ -54,11 +54,12 @@ export default function ProviderProfile() {
       return;
     }
 
-    const effectiveService = selectedService || (provider?.services && provider.services.length > 0 ? provider.services[0] : null);
-
+    // Only forward a serviceId when the user explicitly picked one on this
+    // page. Auto-defaulting to provider.services[0] caused the wizard to
+    // silently skip the "Pick a service" step.
     const params = new URLSearchParams({ providerId: id! });
-    if (effectiveService) {
-      params.append("serviceId", effectiveService.id);
+    if (selectedService) {
+      params.append("serviceId", selectedService.id);
     }
 
     navigate(`/book?${params.toString()}`);
