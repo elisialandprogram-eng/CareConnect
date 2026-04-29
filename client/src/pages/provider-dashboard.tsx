@@ -649,22 +649,6 @@ export default function ProviderDashboard() {
     },
   });
 
-  // ── Pricing tab state ──
-  const [pricingEdits, setPricingEdits] = useState<Record<string, { homeVisitFee: string; clinicFee: string; telemedicineFee: string; emergencyFee: string; price: string }>>({});
-
-  const updateServicePricingMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: object }) => {
-      const res = await apiRequest("PATCH", `/api/services/${id}`, data);
-      return res.json();
-    },
-    onSuccess: (_, { id }) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/providers", providerData?.id] });
-      toast({ title: t("provider_dashboard.toast_pricing_saved", "Pricing saved") });
-      setPricingEdits(prev => { const n = { ...prev }; delete n[id]; return n; });
-    },
-    onError: () => toast({ title: t("common.error", "Error"), description: "Failed to save pricing", variant: "destructive" }),
-  });
-
   // ── Preferences tab state ──
   const PAYMENT_METHOD_OPTIONS = [
     { value: "card", label: t("preferences.payment_card", "Credit / Debit Card") },
@@ -1601,10 +1585,7 @@ export default function ProviderDashboard() {
               <TabsTrigger value="analytics" data-testid="tab-analytics">
                 <TrendingUp className="h-4 w-4 mr-1" /> {t("provider_dashboard.tab_analytics", "Analytics")}
               </TabsTrigger>
-              <TabsTrigger value="services" data-testid="tab-services">{t("provider_dashboard.tab_services", "Services & Staff")}</TabsTrigger>
-              <TabsTrigger value="pricing" data-testid="tab-pricing">
-                <DollarSign className="h-4 w-4 mr-1" /> {t("provider_dashboard.tab_pricing", "Pricing")}
-              </TabsTrigger>
+              <TabsTrigger value="services" data-testid="tab-services">{t("provider_dashboard.tab_services", "Service Catalog")}</TabsTrigger>
               <TabsTrigger value="preferences" data-testid="tab-preferences">
                 <Settings className="h-4 w-4 mr-1" /> {t("provider_dashboard.tab_preferences", "Preferences")}
               </TabsTrigger>
@@ -2527,120 +2508,6 @@ export default function ProviderDashboard() {
                   </DialogFooter>
                 </DialogContent>
               </Dialog>
-            </TabsContent>
-
-            {/* ── PRICING TAB ── */}
-            <TabsContent value="pricing" className="mt-6 space-y-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <DollarSign className="h-5 w-5 text-primary" />
-                    {t("provider_dashboard.pricing_tab_title", "Service Pricing")}
-                  </CardTitle>
-                  <CardDescription>
-                    {t("provider_dashboard.pricing_tab_desc", "Set base price and visit-type fees for each of your services. Changes apply immediately to new bookings.")}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {!providerWithServices?.services?.filter(s => !s.deletedAt).length && (
-                    <div className="text-center py-10 text-sm text-muted-foreground border-2 border-dashed rounded-xl" data-testid="empty-pricing">
-                      <DollarSign className="h-10 w-10 mx-auto mb-2 text-muted-foreground/40" />
-                      {t("provider_dashboard.no_services_for_pricing", "Add services first, then configure pricing here.")}
-                    </div>
-                  )}
-                  {providerWithServices?.services?.filter(s => !s.deletedAt).map(s => {
-                    const sa = s as any;
-                    const edit = pricingEdits[s.id];
-                    const vals = edit ?? {
-                      price: String(sa.price || "0"),
-                      homeVisitFee: String(sa.homeVisitFee || "0"),
-                      clinicFee: String(sa.clinicFee || "0"),
-                      telemedicineFee: String(sa.telemedicineFee || "0"),
-                      emergencyFee: String(sa.emergencyFee || "0"),
-                    };
-                    const isDirty = !!edit;
-
-                    return (
-                      <div key={s.id} className="border rounded-2xl overflow-hidden" data-testid={`card-pricing-${s.id}`}>
-                        <div className="flex items-center gap-3 px-4 py-3 bg-muted/30 border-b">
-                          <div
-                            className="w-2.5 h-2.5 rounded-full flex-shrink-0"
-                            style={{ backgroundColor: sa.calendarColor || "#10b981" }}
-                          />
-                          <p className="font-semibold text-sm flex-1">{s.name}</p>
-                          <Badge variant={s.isActive ? "default" : "secondary"} className="text-[10px]">
-                            {s.isActive ? t("provider_dashboard.active", "Active") : t("provider_dashboard.paused", "Paused")}
-                          </Badge>
-                        </div>
-                        <div className="p-4 space-y-3">
-                          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-                            {[
-                              { key: "price" as const, label: t("provider_dashboard.fee_base", "Base Price"), icon: "💶" },
-                              { key: "homeVisitFee" as const, label: t("provider_dashboard.fee_home", "Home Visit"), icon: "🏠" },
-                              { key: "clinicFee" as const, label: t("provider_dashboard.fee_clinic", "Clinic"), icon: "🏥" },
-                              { key: "telemedicineFee" as const, label: t("provider_dashboard.fee_online", "Telemedicine"), icon: "💻" },
-                              { key: "emergencyFee" as const, label: t("provider_dashboard.fee_emergency", "Emergency"), icon: "🚨" },
-                            ].map(({ key, label, icon }) => (
-                              <div key={key}>
-                                <Label className="text-xs text-muted-foreground mb-1 flex items-center gap-1">
-                                  <span>{icon}</span> {label}
-                                </Label>
-                                <Input
-                                  type="number"
-                                  min={0}
-                                  step="any"
-                                  value={vals[key]}
-                                  onChange={(e) =>
-                                    setPricingEdits(prev => ({
-                                      ...prev,
-                                      [s.id]: { ...vals, [key]: e.target.value },
-                                    }))
-                                  }
-                                  className="h-8 text-sm rounded-lg"
-                                  data-testid={`input-pricing-${key}-${s.id}`}
-                                />
-                              </div>
-                            ))}
-                          </div>
-                          {isDirty && (
-                            <div className="flex justify-end gap-2 pt-1">
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                className="h-7 text-xs"
-                                onClick={() => setPricingEdits(prev => { const n = { ...prev }; delete n[s.id]; return n; })}
-                              >
-                                {t("common.discard", "Discard")}
-                              </Button>
-                              <Button
-                                size="sm"
-                                className="h-7 text-xs gap-1"
-                                disabled={updateServicePricingMutation.isPending}
-                                onClick={() =>
-                                  updateServicePricingMutation.mutate({
-                                    id: s.id,
-                                    data: {
-                                      price: vals.price,
-                                      homeVisitFee: vals.homeVisitFee,
-                                      clinicFee: vals.clinicFee,
-                                      telemedicineFee: vals.telemedicineFee,
-                                      emergencyFee: vals.emergencyFee,
-                                    },
-                                  })
-                                }
-                                data-testid={`button-save-pricing-${s.id}`}
-                              >
-                                {updateServicePricingMutation.isPending && <Loader2 className="h-3 w-3 animate-spin" />}
-                                {t("common.save", "Save")}
-                              </Button>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </CardContent>
-              </Card>
             </TabsContent>
 
             {/* ── PREFERENCES TAB ── */}
