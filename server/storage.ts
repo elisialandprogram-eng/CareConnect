@@ -154,6 +154,9 @@ import {
   providerOfficeHours,
   notificationDeliveryLogs,
   adminBroadcasts,
+  referrals,
+  type Referral,
+  type InsertReferral,
   wallets,
   walletTransactions,
   type Wallet,
@@ -171,7 +174,7 @@ import {
   type InsertAdminBroadcast,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, desc, or, sql, count, asc, aliasedTable, inArray, gte, lte, ilike, isNull } from "drizzle-orm";
+import { eq, and, desc, or, sql, count, asc, aliasedTable, inArray, gte, lte, lt, ilike, isNull } from "drizzle-orm";
 
 export interface IStorage {
   // Users
@@ -606,6 +609,28 @@ export interface IStorage {
   getRecentDeliveryLogs(limit?: number): Promise<NotificationDeliveryLog[]>;
   // Unread chat counts
   getUnreadChatCounts(userId: string): Promise<Record<string, number>>;
+
+  // ── Overdue invoice reminders ──
+  // "Overdue" = status != 'paid' AND dueDate < now AND
+  //             (lastReminderAt IS NULL OR lastReminderAt < now - cooldown).
+  getOverdueInvoicesNeedingReminder(opts?: {
+    cooldownDays?: number;
+    limit?: number;
+  }): Promise<Invoice[]>;
+  markInvoiceReminderSent(invoiceId: string): Promise<void>;
+  getInvoiceById(id: string): Promise<Invoice | undefined>;
+
+  // ── Referrals ──
+  getOrCreateReferralCode(userId: string): Promise<string>;
+  getUserByReferralCode(code: string): Promise<User | undefined>;
+  createReferral(data: InsertReferral): Promise<Referral>;
+  getReferralByReferredUser(referredUserId: string): Promise<Referral | undefined>;
+  getReferralsByReferrer(referrerUserId: string): Promise<Referral[]>;
+  qualifyReferral(referredUserId: string, opts: {
+    appointmentId: string;
+    rewardAmount: number;
+    rewardCurrency: string;
+  }): Promise<Referral | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -3124,6 +3149,112 @@ export class DatabaseStorage implements IStorage {
     const out: Record<string, number> = {};
     for (const r of rows) out[r.conversationId] = Number(r.c);
     return out;
+  }
+
+  // ──────────── Overdue invoice reminders ────────────
+
+  async getInvoiceById(id: string): Promise<Invoice | undefined> {
+    const [row] = await db.select().from(invoices).where(eq(invoices.id, id));
+    return row;
+  }
+
+  async getOverdueInvoicesNeedingReminder(opts: { cooldownDays?: number; limit?: number } = {}): Promise<Invoice[]> {
+    const cooldownDays = opts.cooldownDays ?? 7;
+    const limit = opts.limit ?? 100;
+    const cooldownCutoff = new Date(Date.now() - cooldownDays * 24 * 60 * 60 * 1000);
+    const now = new Date();
+    const rows = await db
+      .select()
+      .from(invoices)
+      .where(and(
+        sql`${invoices.status} <> 'paid'`,
+        lt(invoices.dueDate, now),
+        or(
+          isNull(invoices.lastReminderAt),
+          lt(invoices.lastReminderAt, cooldownCutoff),
+        ),
+      ))
+      .orderBy(asc(invoices.dueDate))
+      .limit(limit);
+    return rows;
+  }
+
+  async markInvoiceReminderSent(invoiceId: string): Promise<void> {
+    await db.update(invoices)
+      .set({
+        lastReminderAt: new Date(),
+        reminderCount: sql`${invoices.reminderCount} + 1`,
+      })
+      .where(eq(invoices.id, invoiceId));
+  }
+
+  // ──────────── Referrals ────────────
+
+  // 8-char base32 (Crockford) — easy to read, no I/L/O/U.
+  private generateReferralCode(): string {
+    const alphabet = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
+    let s = "";
+    for (let i = 0; i < 8; i++) s += alphabet[Math.floor(Math.random() * alphabet.length)];
+    return s;
+  }
+
+  async getOrCreateReferralCode(userId: string): Promise<string> {
+    const [user] = await db.select().from(users).where(eq(users.id, userId));
+    if (!user) throw new Error("User not found");
+    if (user.referralCode) return user.referralCode;
+    // Try a few times to dodge the (extremely unlikely) collision.
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const code = this.generateReferralCode();
+      try {
+        await db.update(users).set({ referralCode: code }).where(eq(users.id, userId));
+        return code;
+      } catch {
+        // unique-violation — try again
+      }
+    }
+    throw new Error("Could not generate referral code");
+  }
+
+  async getUserByReferralCode(code: string): Promise<User | undefined> {
+    if (!code) return undefined;
+    const [row] = await db.select().from(users).where(eq(users.referralCode, code.trim().toUpperCase()));
+    return row;
+  }
+
+  async createReferral(data: InsertReferral): Promise<Referral> {
+    const [row] = await db.insert(referrals).values(data as any).returning();
+    return row;
+  }
+
+  async getReferralByReferredUser(referredUserId: string): Promise<Referral | undefined> {
+    const [row] = await db.select().from(referrals).where(eq(referrals.referredUserId, referredUserId));
+    return row;
+  }
+
+  async getReferralsByReferrer(referrerUserId: string): Promise<Referral[]> {
+    return db.select().from(referrals)
+      .where(eq(referrals.referrerUserId, referrerUserId))
+      .orderBy(desc(referrals.createdAt));
+  }
+
+  async qualifyReferral(referredUserId: string, opts: {
+    appointmentId: string;
+    rewardAmount: number;
+    rewardCurrency: string;
+  }): Promise<Referral | undefined> {
+    const existing = await this.getReferralByReferredUser(referredUserId);
+    if (!existing || existing.status !== "pending") return existing;
+    const [updated] = await db.update(referrals)
+      .set({
+        status: "qualified",
+        rewardAmount: opts.rewardAmount.toFixed(2) as any,
+        rewardCurrency: opts.rewardCurrency,
+        qualifyingAppointmentId: opts.appointmentId,
+        qualifiedAt: new Date(),
+      })
+      .where(and(eq(referrals.id, existing.id), eq(referrals.status, "pending")))
+      .returning();
+    return updated || existing;
   }
 }
 

@@ -14,7 +14,8 @@ import { useToast } from "@/hooks/use-toast";
 import { showErrorModal } from "@/components/error-modal";
 import { useAuth } from "@/lib/auth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Wallet as WalletIcon, ArrowDownCircle, ArrowUpCircle, RefreshCw, Sparkles, ShieldCheck } from "lucide-react";
+import { Wallet as WalletIcon, ArrowDownCircle, ArrowUpCircle, RefreshCw, Sparkles, ShieldCheck, Gift } from "lucide-react";
+import { Link } from "wouter";
 import type { Wallet, WalletTransaction } from "@shared/schema";
 import { useCurrency } from "@/lib/currency";
 
@@ -125,14 +126,22 @@ export default function WalletPage() {
       <Header />
       <main className="flex-1 py-8" data-testid="page-wallet">
         <div className="container mx-auto px-4 max-w-5xl space-y-6">
-          <div>
-            <h1 className="text-3xl font-bold flex items-center gap-2">
-              <WalletIcon className="h-7 w-7 text-primary" />
-              {t("wallet.title", "My Wallet")}
-            </h1>
-            <p className="text-muted-foreground">
-              {t("wallet.subtitle", "Pre-load credits and pay for any service in one tap.")}
-            </p>
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h1 className="text-3xl font-bold flex items-center gap-2">
+                <WalletIcon className="h-7 w-7 text-primary" />
+                {t("wallet.title", "My Wallet")}
+              </h1>
+              <p className="text-muted-foreground">
+                {t("wallet.subtitle", "Pre-load credits and pay for any service in one tap.")}
+              </p>
+            </div>
+            <Link href="/referrals">
+              <Button variant="outline" className="gap-2" data-testid="link-wallet-referrals">
+                <Gift className="h-4 w-4 text-primary" />
+                {t("wallet.refer_friend", "Refer a friend, earn credit")}
+              </Button>
+            </Link>
           </div>
 
           <div className="grid gap-6 md:grid-cols-2">

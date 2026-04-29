@@ -99,6 +99,76 @@ async function sendAppointmentEmail(opts: {
   }
 }
 
+// ── Referral program: reward configuration ──
+// Defaults are conservative (USD 5 / USD 5). Override via env vars without
+// touching code: REFERRAL_REFERRER_REWARD, REFERRAL_REFERRED_REWARD,
+// REFERRAL_REWARD_CURRENCY. Setting referrer reward to 0 disables credits
+// entirely while still tracking referrals for analytics.
+const REFERRAL_REFERRER_REWARD = Number(process.env.REFERRAL_REFERRER_REWARD || 5);
+const REFERRAL_REFERRED_REWARD = Number(process.env.REFERRAL_REFERRED_REWARD || 5);
+const REFERRAL_REWARD_CURRENCY = process.env.REFERRAL_REWARD_CURRENCY || "USD";
+
+/**
+ * Promote a pending referral to "qualified" when the referred patient finishes
+ * their first paid appointment, and credit both wallets via topUpWallet. Safe
+ * to call multiple times — the storage layer guards against double-credit by
+ * checking status='pending' inside the UPDATE.
+ */
+async function maybeQualifyReferralForAppointment(appt: any): Promise<void> {
+  if (!appt?.patientId || !appt?.id) return;
+  const referral = await storage.getReferralByReferredUser(appt.patientId);
+  if (!referral || referral.status !== "pending") return;
+
+  // Idempotency-key uses the referral row id so retries are safe.
+  const updated = await storage.qualifyReferral(appt.patientId, {
+    appointmentId: appt.id,
+    rewardAmount: REFERRAL_REFERRER_REWARD,
+    rewardCurrency: REFERRAL_REWARD_CURRENCY,
+  });
+  if (!updated || updated.status !== "qualified") return;
+
+  const tasks: Promise<any>[] = [];
+  if (REFERRAL_REFERRER_REWARD > 0) {
+    tasks.push(
+      storage.topUpWallet(referral.referrerUserId, REFERRAL_REFERRER_REWARD, {
+        description: "Referral reward — friend completed first appointment",
+        referenceType: "referral",
+        referenceId: referral.id,
+        idempotencyKey: `referral-referrer:${referral.id}`,
+      }).catch((e) => console.error("[referral] referrer credit failed:", e?.message)),
+    );
+    tasks.push(
+      storage.createUserNotification({
+        userId: referral.referrerUserId,
+        type: "wallet",
+        title: "Referral reward earned",
+        message: `Your friend just completed their first appointment! ${REFERRAL_REWARD_CURRENCY} ${REFERRAL_REFERRER_REWARD.toFixed(2)} has been credited to your wallet.`,
+        isRead: false,
+      } as any).catch(() => {}),
+    );
+  }
+  if (REFERRAL_REFERRED_REWARD > 0) {
+    tasks.push(
+      storage.topUpWallet(appt.patientId, REFERRAL_REFERRED_REWARD, {
+        description: "Welcome bonus — referred by a friend",
+        referenceType: "referral",
+        referenceId: referral.id,
+        idempotencyKey: `referral-referred:${referral.id}`,
+      }).catch((e) => console.error("[referral] referred credit failed:", e?.message)),
+    );
+    tasks.push(
+      storage.createUserNotification({
+        userId: appt.patientId,
+        type: "wallet",
+        title: "Welcome bonus credited",
+        message: `Thanks for joining! ${REFERRAL_REWARD_CURRENCY} ${REFERRAL_REFERRED_REWARD.toFixed(2)} has been credited to your wallet as a referral bonus.`,
+        isRead: false,
+      } as any).catch(() => {}),
+    );
+  }
+  await Promise.all(tasks);
+}
+
 // Helper to hash OTP
 const hashOtp = (otp: string) => createHash('sha256').update(otp).digest('hex');
 
@@ -732,7 +802,7 @@ export async function registerRoutes(
   // Register
   app.post("/api/auth/register", async (req: Request, res: Response) => {
     try {
-      const { email, password, firstName, lastName, phone, role } = req.body;
+      const { email, password, firstName, lastName, phone, role, referralCode } = req.body;
 
       // Check if user exists. If they exist but haven't verified their email,
       // we treat that record as an abandoned signup and replace it so the user
@@ -754,6 +824,18 @@ export async function registerRoutes(
       // Hash password
       const hashedPassword = await bcrypt.hash(password, 10);
 
+      // Resolve a referral code (if provided) to the referrer's user. We look
+      // this up *before* creating the new user so a typo doesn't silently
+      // strand the new account without a referral row.
+      let referrerUser: any = null;
+      if (referralCode && typeof referralCode === "string" && referralCode.trim()) {
+        try {
+          referrerUser = await storage.getUserByReferralCode(referralCode);
+        } catch {
+          referrerUser = null;
+        }
+      }
+
       // Create user
       const user = await storage.createUser({
         email,
@@ -763,7 +845,22 @@ export async function registerRoutes(
         phone,
         role: role || "patient",
         isEmailVerified: false,
-      });
+        referredByUserId: referrerUser ? referrerUser.id : null,
+      } as any);
+
+      // Record the referral row in "pending" — it will be promoted to
+      // "qualified" the moment this user completes their first paid
+      // appointment, at which point both wallets are credited.
+      if (referrerUser && referrerUser.id !== user.id) {
+        try {
+          await storage.createReferral({
+            referrerUserId: referrerUser.id,
+            referredUserId: user.id,
+          } as any);
+        } catch (e) {
+          console.warn("[referral] could not create referral row:", (e as Error).message);
+        }
+      }
 
       // Generate OTP
       const otp = generateOtp();
@@ -3704,6 +3801,14 @@ export async function registerRoutes(
         } catch (earnErr) {
           console.error("[routes] earnings record failed:", earnErr);
         }
+        // Qualify referral (idempotent — guarded by status='pending' in storage).
+        // Credits both wallets when this is the patient's first completed
+        // appointment AND they signed up via someone's referral code.
+        try {
+          await maybeQualifyReferralForAppointment(appointment);
+        } catch (refErr) {
+          console.error("[routes] referral qualification failed:", refErr);
+        }
       }
 
       // Create notification for patient about status change
@@ -5721,6 +5826,125 @@ export async function registerRoutes(
     } catch (error) {
       console.error("[admin/invoice-template/preview] failed:", error);
       res.status(500).json({ message: "Failed to render preview" });
+    }
+  });
+
+  // ────────────── Admin: overdue invoice reminders ──────────────
+  // List overdue invoices that are eligible for a reminder right now (i.e. due
+  // date passed AND lastReminderAt is older than the cooldown). The cron uses
+  // the same query under the hood.
+  app.get("/api/admin/overdue-invoices", authenticateToken, requireAdmin, async (req: AuthRequest, res: Response) => {
+    try {
+      const cooldownDays = Number(req.query.cooldownDays || 7);
+      const limit = Math.min(Number(req.query.limit || 100), 500);
+      const rows = await storage.getOverdueInvoicesNeedingReminder({ cooldownDays, limit });
+      // Hydrate with patient name + email so the admin UI can render a useful list.
+      const patientIds = Array.from(new Set(rows.map(r => r.patientId)));
+      const patients = patientIds.length
+        ? await Promise.all(patientIds.map(id => storage.getUser(id)))
+        : [];
+      const byId = new Map(patients.filter(Boolean).map(p => [p!.id, p!]));
+      res.json(rows.map(inv => ({
+        ...inv,
+        patient: byId.get(inv.patientId)
+          ? {
+              id: byId.get(inv.patientId)!.id,
+              firstName: byId.get(inv.patientId)!.firstName,
+              lastName: byId.get(inv.patientId)!.lastName,
+              email: byId.get(inv.patientId)!.email,
+            }
+          : null,
+      })));
+    } catch (error) {
+      console.error("[admin/overdue-invoices] failed:", error);
+      res.status(500).json({ message: "Failed to load overdue invoices" });
+    }
+  });
+
+  // Manually fire a reminder for one specific invoice. Bypasses the cooldown
+  // so admins can re-send on demand. Logs to notification_delivery_logs via
+  // dispatchNotification.
+  app.post("/api/admin/invoices/:id/send-reminder", authenticateToken, requireAdmin, async (req: AuthRequest, res: Response) => {
+    try {
+      const invoice = await storage.getInvoiceById(req.params.id);
+      if (!invoice) return res.status(404).json({ message: "Invoice not found" });
+      const patient = await storage.getUser(invoice.patientId);
+      if (!patient) return res.status(404).json({ message: "Patient not found" });
+      const dueIso = new Date(invoice.dueDate).toISOString().slice(0, 10);
+      await dispatchNotification({
+        userId: patient.id,
+        eventKey: "invoice.overdue",
+        title: `Reminder: Invoice ${invoice.invoiceNumber} is overdue`,
+        body: `Hello ${patient.firstName}, our records show that invoice ${invoice.invoiceNumber} for ${invoice.totalAmount} was due on ${dueIso}. Please log in to settle it.`,
+        data: { invoiceId: invoice.id, invoiceNumber: invoice.invoiceNumber },
+      });
+      await storage.markInvoiceReminderSent(invoice.id);
+      res.json({ ok: true, sentTo: patient.email });
+    } catch (error) {
+      console.error("[admin/invoices/send-reminder] failed:", error);
+      res.status(500).json({ message: "Failed to send reminder" });
+    }
+  });
+
+  // ────────────── Referral program ──────────────
+  // Returns the signed-in user's referral code, the share link, the
+  // configured rewards, and the list of friends they've referred.
+  app.get("/api/referrals/me", authenticateToken, async (req: AuthRequest, res: Response) => {
+    try {
+      const code = await storage.getOrCreateReferralCode(req.user!.id);
+      const referrals = await storage.getReferralsByReferrer(req.user!.id);
+      // Hydrate referred user names so the patient can see who they invited.
+      const referredIds = Array.from(new Set(referrals.map(r => r.referredUserId)));
+      const referredUsers = referredIds.length
+        ? await Promise.all(referredIds.map(id => storage.getUser(id)))
+        : [];
+      const byId = new Map(referredUsers.filter(Boolean).map(u => [u!.id, u!]));
+      const totalEarned = referrals
+        .filter(r => r.status === "qualified")
+        .reduce((sum, r) => sum + Number(r.rewardAmount || 0), 0);
+      // Build a public share URL — host figured from the request so the link
+      // works in dev (Replit subdomain) and in production alike.
+      const proto = (req.headers["x-forwarded-proto"] as string) || req.protocol || "https";
+      const host = req.headers["x-forwarded-host"] || req.headers.host;
+      const shareUrl = `${proto}://${host}/register?ref=${encodeURIComponent(code)}`;
+      res.json({
+        code,
+        shareUrl,
+        rewards: {
+          referrer: REFERRAL_REFERRER_REWARD,
+          referred: REFERRAL_REFERRED_REWARD,
+          currency: REFERRAL_REWARD_CURRENCY,
+        },
+        totalEarned,
+        referrals: referrals.map(r => ({
+          ...r,
+          referredUser: byId.get(r.referredUserId)
+            ? {
+                firstName: byId.get(r.referredUserId)!.firstName,
+                lastName: byId.get(r.referredUserId)!.lastName,
+              }
+            : null,
+        })),
+      });
+    } catch (error) {
+      console.error("[referrals/me] failed:", error);
+      res.status(500).json({ message: "Failed to load referrals" });
+    }
+  });
+
+  // Lightweight endpoint used by the registration page to validate a referral
+  // code (entered manually or via ?ref=) before submitting the signup form,
+  // so the user gets immediate feedback like "Referred by Jane D. ✓".
+  app.get("/api/referrals/lookup/:code", async (req: Request, res: Response) => {
+    try {
+      const user = await storage.getUserByReferralCode(req.params.code);
+      if (!user) return res.status(404).json({ message: "Code not found" });
+      res.json({
+        valid: true,
+        referrerName: `${user.firstName} ${(user.lastName || "").charAt(0)}.`.trim(),
+      });
+    } catch {
+      res.status(500).json({ message: "Lookup failed" });
     }
   });
 

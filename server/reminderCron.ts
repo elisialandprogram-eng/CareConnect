@@ -2,9 +2,16 @@ import { db } from "./db";
 import { appointments, providers, users } from "@shared/schema";
 import { and, eq, gte, lte, lt, inArray, isNotNull } from "drizzle-orm";
 import { log } from "./index";
-import { notify } from "./services/notification-dispatcher";
+import { notify, dispatchNotification } from "./services/notification-dispatcher";
 import { normalizeLang } from "./services/i18n";
 import { storage } from "./storage";
+
+// Cooldown between successive overdue-invoice reminders for the same invoice.
+// Override with INVOICE_REMINDER_COOLDOWN_DAYS. Default 7 days keeps it polite.
+const INVOICE_REMINDER_COOLDOWN_DAYS = Number(process.env.INVOICE_REMINDER_COOLDOWN_DAYS || 7);
+// Maximum total reminders we'll send for a single invoice before giving up
+// (admin can still resend manually). Default 4 ⇒ ~4 weeks of nudges.
+const INVOICE_REMINDER_MAX_PER_INVOICE = Number(process.env.INVOICE_REMINDER_MAX_PER_INVOICE || 4);
 
 // How long a "pending" appointment may sit unactioned before it auto-expires.
 // Override with PENDING_APPT_EXPIRY_HOURS (defaults to 24h).
@@ -264,10 +271,58 @@ async function tick() {
   }
 }
 
+/**
+ * Walk overdue invoices and nudge each patient via the notification dispatcher
+ * (in-app + email by default). Honors a per-invoice cooldown so we never spam.
+ * Capped at INVOICE_REMINDER_MAX_PER_INVOICE total reminders per invoice.
+ */
+async function sendOverdueInvoiceReminders() {
+  const due = await storage.getOverdueInvoicesNeedingReminder({
+    cooldownDays: INVOICE_REMINDER_COOLDOWN_DAYS,
+    limit: 100,
+  });
+  if (!due.length) return 0;
+
+  // Hydrate patients in one batch.
+  const patientIds = Array.from(new Set(due.map(i => i.patientId)));
+  const patientRows = patientIds.length
+    ? await db.select().from(users).where(inArray(users.id, patientIds))
+    : [];
+  const patientById = new Map(patientRows.map(p => [p.id, p]));
+
+  let sent = 0;
+  for (const inv of due) {
+    if ((inv.reminderCount ?? 0) >= INVOICE_REMINDER_MAX_PER_INVOICE) continue;
+    const patient = patientById.get(inv.patientId);
+    if (!patient) continue;
+    try {
+      const dueIso = new Date(inv.dueDate).toISOString().slice(0, 10);
+      const remindersBefore = inv.reminderCount ?? 0;
+      const ordinal = remindersBefore === 0 ? "" : ` (reminder #${remindersBefore + 1})`;
+      await dispatchNotification({
+        userId: patient.id,
+        eventKey: "invoice.overdue",
+        title: `Reminder: Invoice ${inv.invoiceNumber} is overdue${ordinal}`,
+        body: `Hello ${patient.firstName}, your invoice ${inv.invoiceNumber} for ${inv.totalAmount} was due on ${dueIso} and is still unpaid. Please log in to settle it at your earliest convenience.`,
+        data: { invoiceId: inv.id, invoiceNumber: inv.invoiceNumber, dueDate: dueIso },
+      });
+      await storage.markInvoiceReminderSent(inv.id);
+      sent++;
+    } catch (err) {
+      log(`reminderCron[invoice]: failed for invoice ${inv.id}: ${(err as Error).message}`);
+    }
+  }
+  return sent;
+}
+
 async function tickHourly() {
   try {
-    const sent = await sendForTier("24h");
-    if (sent > 0) log(`reminderCron: hourly tick sent ${sent} 24h reminder(s)`);
+    const [reminderSent, invoiceSent] = await Promise.all([
+      sendForTier("24h"),
+      sendOverdueInvoiceReminders(),
+    ]);
+    if (reminderSent > 0) log(`reminderCron: hourly tick sent ${reminderSent} 24h reminder(s)`);
+    if (invoiceSent > 0) log(`reminderCron: hourly tick sent ${invoiceSent} overdue-invoice reminder(s)`);
   } catch (err) {
     log(`reminderCron: hourly tick failed: ${(err as Error).message}`);
   }

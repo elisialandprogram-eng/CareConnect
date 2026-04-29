@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useLocation, useSearch } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -38,12 +38,35 @@ export default function Register() {
   const searchParams = useSearch();
   const params = new URLSearchParams(searchParams);
   const roleParam = params.get("role") as "patient" | "provider" | null;
-  
+  const refParam = params.get("ref")?.trim() || "";
+
   const { register } = useAuth();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  // Track the validated referral code + the human name shown to the user.
+  const [referralCode] = useState(refParam);
+  const [referrerName, setReferrerName] = useState<string | null>(null);
+
+  // Validate any inbound ?ref= once on mount. Failures are silent — we just
+  // skip showing the chip but still pass the code through on submit so the
+  // backend has the final say.
+  useEffect(() => {
+    if (!referralCode) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`/api/referrals/lookup/${encodeURIComponent(referralCode)}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!cancelled && data?.valid) setReferrerName(data.referrerName || null);
+      } catch {
+        /* ignore */
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [referralCode]);
 
   const registerSchema = z.object({
     firstName: z.string().min(2, t("validation.first_name_min")),
@@ -96,7 +119,11 @@ export default function Register() {
   const onSubmit = async (data: RegisterFormData) => {
     setIsLoading(true);
     try {
-      const result = (await register(data)) as any;
+      // Pass through the inbound referral code (if any) so the backend can
+      // create a pending referrals row and credit both wallets when the new
+      // patient finishes their first appointment.
+      const payload = referralCode ? { ...data, referralCode } : data;
+      const result = (await register(payload as any)) as any;
       if (!result) throw new Error("Registration failed");
       
       // Submit consent after successful registration
@@ -175,6 +202,15 @@ export default function Register() {
               <CardDescription>
                 {t("common.join_golden_life")}
               </CardDescription>
+              {referrerName && (
+                <div
+                  className="mx-auto mt-3 inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-medium text-primary"
+                  data-testid="badge-referred-by"
+                >
+                  <span>🎉</span>
+                  <span>Referred by {referrerName} — wallet bonus when you finish your first appointment</span>
+                </div>
+              )}
             </CardHeader>
 
             <CardContent>

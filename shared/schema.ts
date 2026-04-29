@@ -78,6 +78,14 @@ export const users = pgTable("users", {
   lastOtpSentAt: timestamp("last_otp_sent_at"),
   languagePreference: text("language_preference").default("en"),
   preferredCurrency: text("preferred_currency"),
+  // ── Referral program ──
+  // Auto-generated unique short code shared by this user to invite friends.
+  // Lazily created on first GET /api/referrals/me to avoid backfill churn.
+  referralCode: text("referral_code").unique(),
+  // If this user signed up using someone else's referral code, the referrer's
+  // user id is recorded here so we can credit them when this user qualifies
+  // (currently: completes their first paid appointment).
+  referredByUserId: varchar("referred_by_user_id"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -362,6 +370,11 @@ export const invoices = pgTable("invoices", {
   totalAmount: decimal("total_amount", { precision: 10, scale: 2 }).notNull(),
   status: text("status").notNull().default("paid"), // Assuming payment is handled before completion
   pdfUrl: text("pdf_url"),
+  // Overdue-reminder bookkeeping. `lastReminderAt` is set after each successful
+  // reminder dispatch; `reminderCount` is incremented in lockstep. The cron
+  // honors a per-invoice cooldown so we never spam the patient.
+  lastReminderAt: timestamp("last_reminder_at"),
+  reminderCount: integer("reminder_count").notNull().default(0),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -971,8 +984,39 @@ export const adminBroadcasts = pgTable("admin_broadcasts", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// ─────────────────── Referral program ───────────────────
+//
+// One row per (referrerUserId, referredUserId) pair, created the moment a new
+// user signs up with someone else's referral code. The row is "pending" until
+// the referred user qualifies (currently: completes their first paid
+// appointment), at which point the cron-or-handler upgrades it to "qualified"
+// and credits both wallets via `topUpWallet`. The unique index on
+// referredUserId guarantees we never double-credit for the same friend.
+export const referrals = pgTable("referrals", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  referrerUserId: varchar("referrer_user_id").notNull().references(() => users.id),
+  referredUserId: varchar("referred_user_id").notNull().unique().references(() => users.id),
+  status: text("status").notNull().default("pending"), // pending | qualified
+  rewardAmount: decimal("reward_amount", { precision: 10, scale: 2 }).notNull().default("0.00"),
+  rewardCurrency: text("reward_currency").notNull().default("USD"),
+  qualifyingAppointmentId: varchar("qualifying_appointment_id"),
+  qualifiedAt: timestamp("qualified_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Schemas
 export const insertUserSchema = createInsertSchema(users).omit({ id: true, createdAt: true });
+export const insertReferralSchema = createInsertSchema(referrals).omit({
+  id: true,
+  status: true,
+  rewardAmount: true,
+  rewardCurrency: true,
+  qualifyingAppointmentId: true,
+  qualifiedAt: true,
+  createdAt: true,
+});
+export type Referral = typeof referrals.$inferSelect;
+export type InsertReferral = z.infer<typeof insertReferralSchema>;
 export const insertSavedProviderSchema = createInsertSchema(savedProviders).omit({ id: true, createdAt: true });
 export const insertProviderSchema = createInsertSchema(providers).omit({ id: true, createdAt: true, rating: true, totalReviews: true });
 export const insertServiceSchema = createInsertSchema(services).omit({ id: true, createdAt: true, updatedAt: true });
