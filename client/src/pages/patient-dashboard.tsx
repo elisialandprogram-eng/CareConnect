@@ -692,6 +692,11 @@ export default function PatientDashboard() {
                   {t("dashboard.wallet", "Wallet")}
                 </Button>
               </Link>
+              <Link href="/waitlist">
+                <Button variant="ghost" size="sm" className="ml-1" data-testid="link-waitlist">
+                  {t("dashboard.waitlist", "Waitlist")}
+                </Button>
+              </Link>
             </TabsList>
 
             <div className="mt-6 mb-4 flex flex-col sm:flex-row gap-3">

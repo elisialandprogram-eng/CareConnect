@@ -12,6 +12,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Star, MapPin, Clock, CheckCircle, Video, Home, GraduationCap, Award, Languages, Calendar as CalendarIcon, ChevronRight, Building2, ShieldCheck, Briefcase, FileText, Landmark, Share2 } from "lucide-react";
+import { WaitlistJoinButton } from "@/components/waitlist-join-button";
 import { useToast } from "@/hooks/use-toast";
 import type { ProviderWithServices, Service, ReviewWithPatient, ServicePackageWithServices } from "@shared/schema";
 import { useAuth } from "@/lib/auth";
@@ -677,6 +678,13 @@ export default function ProviderProfile() {
                   <p className="text-center text-[11px] text-muted-foreground -mt-2">
                     {t("profile.next_step_hint", "You'll choose date, time and visit type next")}
                   </p>
+                  <WaitlistJoinButton
+                    providerId={provider.id}
+                    providerName={provider.businessName}
+                    serviceId={effectiveService?.id}
+                    variant="ghost"
+                    className="w-full text-xs"
+                  />
                 </CardContent>
               </Card>
               ) : (

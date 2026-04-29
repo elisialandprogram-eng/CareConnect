@@ -1004,6 +1004,35 @@ export const referrals = pgTable("referrals", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// ── Slot waitlist ──
+//
+// Patients can join a waitlist for a fully-booked provider on a specific date
+// (and optionally a preferred time window). When ANY slot for that provider
+// frees up via cancellation, the cancellation handler walks the active
+// waitlist in FIFO order and notifies the top N patients so the slot does
+// not sit empty if the first one doesn't react. Status transitions:
+//   active   → patient is still waiting
+//   notified → we sent them a "slot available" alert (cooldown so we don't spam)
+//   fulfilled→ patient ended up booking ANY slot for this provider+date
+//   cancelled→ patient withdrew themselves
+//   expired  → preferredDate has passed without a fulfillment
+export const waitlistEntries = pgTable("waitlist_entries", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  patientId: varchar("patient_id").notNull().references(() => users.id),
+  providerId: varchar("provider_id").notNull().references(() => providers.id),
+  serviceId: varchar("service_id").references(() => services.id),
+  // YYYY-MM-DD; null means "any date" (rarely used; kept for flexibility)
+  preferredDate: text("preferred_date"),
+  // HH:MM (24h) — earliest acceptable start time on the preferred date
+  preferredStartTime: text("preferred_start_time"),
+  // HH:MM (24h) — latest acceptable start time
+  preferredEndTime: text("preferred_end_time"),
+  status: text("status").notNull().default("active"),
+  notes: text("notes"),
+  notifiedAt: timestamp("notified_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // Schemas
 export const insertUserSchema = createInsertSchema(users).omit({ id: true, createdAt: true });
 export const insertReferralSchema = createInsertSchema(referrals).omit({
@@ -1017,6 +1046,14 @@ export const insertReferralSchema = createInsertSchema(referrals).omit({
 });
 export type Referral = typeof referrals.$inferSelect;
 export type InsertReferral = z.infer<typeof insertReferralSchema>;
+export const insertWaitlistEntrySchema = createInsertSchema(waitlistEntries).omit({
+  id: true,
+  status: true,
+  notifiedAt: true,
+  createdAt: true,
+});
+export type WaitlistEntry = typeof waitlistEntries.$inferSelect;
+export type InsertWaitlistEntry = z.infer<typeof insertWaitlistEntrySchema>;
 export const insertSavedProviderSchema = createInsertSchema(savedProviders).omit({ id: true, createdAt: true });
 export const insertProviderSchema = createInsertSchema(providers).omit({ id: true, createdAt: true, rating: true, totalReviews: true });
 export const insertServiceSchema = createInsertSchema(services).omit({ id: true, createdAt: true, updatedAt: true });

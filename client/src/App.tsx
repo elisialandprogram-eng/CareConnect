@@ -42,6 +42,7 @@ const ForgotPassword = lazy(() => import("@/pages/forgot-password"));
 const Consent = lazy(() => import("@/pages/consent"));
 const WalletPage = lazy(() => import("@/pages/wallet"));
 const ReferralsPage = lazy(() => import("@/pages/referrals"));
+const WaitlistPage = lazy(() => import("@/pages/waitlist"));
 const Review = lazy(() => import("@/pages/review"));
 const SupportTickets = lazy(() => import("@/pages/support-tickets"));
 
@@ -133,6 +134,7 @@ function Router() {
           <Route path="/consent" component={Consent} />
           <Route path="/wallet" component={WalletPage} />
           <Route path="/referrals" component={ReferralsPage} />
+          <Route path="/waitlist" component={WaitlistPage} />
           <Route path="/review/:id" component={Review} />
           <Route path="/support/tickets" component={SupportTickets} />
           <Route component={NotFound} />

@@ -169,6 +169,63 @@ async function maybeQualifyReferralForAppointment(appt: any): Promise<void> {
   await Promise.all(tasks);
 }
 
+// ── Waitlist: notify on freed slot ──
+//
+// Walks the active waitlist for this provider+date in FIFO order, narrowing
+// to entries whose preferred time window contains the freed slot. Notifies
+// up to N patients (default 3) so the slot doesn't sit empty if only one
+// person is pinged. Each notified entry is marked status='notified' so they
+// won't be pinged again for the same provider unless they re-join.
+const WAITLIST_NOTIFY_FANOUT = Number(process.env.WAITLIST_NOTIFY_FANOUT || 3);
+
+async function notifyWaitlistForFreedSlot(opts: {
+  providerId: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+}): Promise<number> {
+  const matches = await storage.getActiveWaitlistEntries({
+    providerId: opts.providerId,
+    date: opts.date,
+    slotStartTime: opts.startTime,
+    limit: WAITLIST_NOTIFY_FANOUT,
+  });
+  if (!matches.length) return 0;
+
+  // Hydrate provider name once for nicer notification copy.
+  const providerRow = await storage.getProvider(opts.providerId).catch(() => null);
+  const providerName = providerRow?.businessName || "your preferred provider";
+  const dateLabel = opts.date;
+  const timeLabel = opts.startTime;
+
+  let sent = 0;
+  for (const entry of matches) {
+    try {
+      await dispatchNotification({
+        userId: entry.patientId,
+        eventKey: "waitlist.slot_available",
+        title: `A slot just opened with ${providerName}`,
+        body: `Good news — a slot you were waiting for is now available on ${dateLabel} at ${timeLabel}. Tap to book before someone else grabs it.`,
+        data: {
+          providerId: opts.providerId,
+          date: opts.date,
+          startTime: opts.startTime,
+          endTime: opts.endTime,
+          waitlistEntryId: entry.id,
+        },
+      });
+      await storage.updateWaitlistEntry(entry.id, {
+        status: "notified",
+        notifiedAt: new Date(),
+      } as any);
+      sent++;
+    } catch (e) {
+      console.error("[waitlist] notify failed for entry", entry.id, e);
+    }
+  }
+  return sent;
+}
+
 // Helper to hash OTP
 const hashOtp = (otp: string) => createHash('sha256').update(otp).digest('hex');
 
@@ -4369,6 +4426,14 @@ export async function registerRoutes(
         } catch (e) {
           console.error("[action] failed to free slot:", e);
         }
+        // Notify waitlisted patients that a slot just opened. Best-effort —
+        // any failure here must not block the cancellation response.
+        notifyWaitlistForFreedSlot({
+          providerId: updated.providerId,
+          date: updated.date,
+          startTime: updated.startTime,
+          endTime: updated.endTime,
+        }).catch((e) => console.error("[action] waitlist notify failed:", e));
       }
 
       // Process wallet refund for cancellations (post-tx; the wallet ledger
@@ -5929,6 +5994,92 @@ export async function registerRoutes(
     } catch (error) {
       console.error("[referrals/me] failed:", error);
       res.status(500).json({ message: "Failed to load referrals" });
+    }
+  });
+
+  // Aggregated leaderboard: top referrers ordered by qualified count then
+  // total credits paid out. Useful for spotting power-users and considering
+  // boosted rewards for them.
+  app.get("/api/admin/referrals/leaderboard", authenticateToken, requireAdmin, async (req: AuthRequest, res: Response) => {
+    try {
+      const limit = Math.min(Number(req.query.limit || 25), 100);
+      const rows = await storage.getReferralLeaderboard(limit);
+      res.json(rows);
+    } catch (error) {
+      console.error("[admin/referrals/leaderboard] failed:", error);
+      res.status(500).json({ message: "Failed to load leaderboard" });
+    }
+  });
+
+  // ────────────── Waitlist ──────────────
+  // Patient joins the waitlist for a fully-booked provider on a date.
+  app.post("/api/waitlist", authenticateToken, async (req: AuthRequest, res: Response) => {
+    try {
+      const schema = z.object({
+        providerId: z.string().min(1),
+        serviceId: z.string().optional(),
+        preferredDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+        preferredStartTime: z.string().regex(/^\d{2}:\d{2}$/).optional(),
+        preferredEndTime: z.string().regex(/^\d{2}:\d{2}$/).optional(),
+        notes: z.string().max(500).optional(),
+      });
+      const data = schema.parse(req.body);
+      // Soft-dedupe: if the same patient already has an active entry for this
+      // provider+date, return the existing one instead of stacking duplicates.
+      const existing = await storage.getWaitlistEntriesByPatient(req.user!.id);
+      const dup = existing.find(e =>
+        e.providerId === data.providerId &&
+        e.status === "active" &&
+        (e.preferredDate || null) === (data.preferredDate || null),
+      );
+      if (dup) return res.status(200).json(dup);
+      const entry = await storage.createWaitlistEntry({
+        patientId: req.user!.id,
+        ...data,
+      } as any);
+      res.status(201).json(entry);
+    } catch (error: any) {
+      if (error?.issues) return res.status(400).json({ message: "Invalid waitlist entry", issues: error.issues });
+      console.error("[waitlist] create failed:", error);
+      res.status(500).json({ message: "Failed to join waitlist" });
+    }
+  });
+
+  // Patient lists their own waitlist entries (active + history). Hydrated with
+  // provider name so the frontend doesn't need a second roundtrip.
+  app.get("/api/waitlist/me", authenticateToken, async (req: AuthRequest, res: Response) => {
+    try {
+      const entries = await storage.getWaitlistEntriesByPatient(req.user!.id);
+      const providerIds = Array.from(new Set(entries.map(e => e.providerId)));
+      const providers = providerIds.length
+        ? await Promise.all(providerIds.map(id => storage.getProvider(id)))
+        : [];
+      const byId = new Map(providers.filter(Boolean).map(p => [p!.id, p!]));
+      res.json(entries.map(e => ({
+        ...e,
+        provider: byId.get(e.providerId)
+          ? { id: byId.get(e.providerId)!.id, businessName: byId.get(e.providerId)!.businessName }
+          : null,
+      })));
+    } catch (error) {
+      console.error("[waitlist/me] failed:", error);
+      res.status(500).json({ message: "Failed to load waitlist" });
+    }
+  });
+
+  // Patient (or admin) removes themselves from the waitlist.
+  app.delete("/api/waitlist/:id", authenticateToken, async (req: AuthRequest, res: Response) => {
+    try {
+      const entry = await storage.getWaitlistEntry(req.params.id);
+      if (!entry) return res.status(404).json({ message: "Entry not found" });
+      if (entry.patientId !== req.user!.id && req.user!.role !== "admin") {
+        return res.status(403).json({ message: "Forbidden" });
+      }
+      await storage.updateWaitlistEntry(req.params.id, { status: "cancelled" } as any);
+      res.json({ ok: true });
+    } catch (error) {
+      console.error("[waitlist/delete] failed:", error);
+      res.status(500).json({ message: "Failed to leave waitlist" });
     }
   });
 

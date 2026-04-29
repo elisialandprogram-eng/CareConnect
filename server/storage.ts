@@ -157,6 +157,9 @@ import {
   referrals,
   type Referral,
   type InsertReferral,
+  waitlistEntries,
+  type WaitlistEntry,
+  type InsertWaitlistEntry,
   wallets,
   walletTransactions,
   type Wallet,
@@ -631,6 +634,34 @@ export interface IStorage {
     rewardAmount: number;
     rewardCurrency: string;
   }): Promise<Referral | undefined>;
+
+  // Aggregated leaderboard: top referrers by qualified count + total credits.
+  // Returns one row per referrer with hydrated user fields for the admin UI.
+  getReferralLeaderboard(limit?: number): Promise<Array<{
+    userId: string;
+    firstName: string | null;
+    lastName: string | null;
+    email: string;
+    qualifiedCount: number;
+    pendingCount: number;
+    totalCredits: number;
+    currency: string;
+  }>>;
+
+  // ── Waitlist ──
+  createWaitlistEntry(data: InsertWaitlistEntry): Promise<WaitlistEntry>;
+  getWaitlistEntry(id: string): Promise<WaitlistEntry | undefined>;
+  getWaitlistEntriesByPatient(patientId: string): Promise<WaitlistEntry[]>;
+  // For matching: returns ACTIVE entries for this provider+date in FIFO order.
+  // If `slotStartTime` is provided, narrows to entries whose preferred window
+  // overlaps with that start time (entries with no preferred window match all).
+  getActiveWaitlistEntries(opts: {
+    providerId: string;
+    date: string;
+    slotStartTime?: string;
+    limit?: number;
+  }): Promise<WaitlistEntry[]>;
+  updateWaitlistEntry(id: string, data: Partial<WaitlistEntry>): Promise<WaitlistEntry | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -3255,6 +3286,91 @@ export class DatabaseStorage implements IStorage {
       .where(and(eq(referrals.id, existing.id), eq(referrals.status, "pending")))
       .returning();
     return updated || existing;
+  }
+
+  async getReferralLeaderboard(limit = 25): Promise<Array<{
+    userId: string; firstName: string | null; lastName: string | null; email: string;
+    qualifiedCount: number; pendingCount: number; totalCredits: number; currency: string;
+  }>> {
+    // Aggregate in SQL for speed; one row per referrer.
+    const rows = await db.execute(sql`
+      SELECT
+        r.referrer_user_id AS user_id,
+        u.first_name,
+        u.last_name,
+        u.email,
+        COUNT(*) FILTER (WHERE r.status = 'qualified')::int AS qualified_count,
+        COUNT(*) FILTER (WHERE r.status = 'pending')::int   AS pending_count,
+        COALESCE(SUM(CASE WHEN r.status = 'qualified' THEN r.reward_amount ELSE 0 END), 0)::float AS total_credits,
+        COALESCE(MAX(r.reward_currency), 'USD') AS currency
+      FROM referrals r
+      JOIN users u ON u.id = r.referrer_user_id
+      GROUP BY r.referrer_user_id, u.first_name, u.last_name, u.email
+      ORDER BY qualified_count DESC, total_credits DESC
+      LIMIT ${limit}
+    `);
+    // Drizzle returns either { rows } or the array directly depending on driver.
+    const arr = (rows as any).rows ?? (rows as any);
+    return arr.map((r: any) => ({
+      userId: r.user_id,
+      firstName: r.first_name,
+      lastName: r.last_name,
+      email: r.email,
+      qualifiedCount: Number(r.qualified_count) || 0,
+      pendingCount: Number(r.pending_count) || 0,
+      totalCredits: Number(r.total_credits) || 0,
+      currency: r.currency || "USD",
+    }));
+  }
+
+  // ──────────── Waitlist ────────────
+
+  async createWaitlistEntry(data: InsertWaitlistEntry): Promise<WaitlistEntry> {
+    const [row] = await db.insert(waitlistEntries).values(data).returning();
+    return row;
+  }
+
+  async getWaitlistEntry(id: string): Promise<WaitlistEntry | undefined> {
+    const [row] = await db.select().from(waitlistEntries).where(eq(waitlistEntries.id, id));
+    return row;
+  }
+
+  async getWaitlistEntriesByPatient(patientId: string): Promise<WaitlistEntry[]> {
+    return db.select().from(waitlistEntries)
+      .where(eq(waitlistEntries.patientId, patientId))
+      .orderBy(desc(waitlistEntries.createdAt));
+  }
+
+  async getActiveWaitlistEntries(opts: {
+    providerId: string; date: string; slotStartTime?: string; limit?: number;
+  }): Promise<WaitlistEntry[]> {
+    const conds: any[] = [
+      eq(waitlistEntries.providerId, opts.providerId),
+      eq(waitlistEntries.status, "active"),
+      // Either entry has no preferred date OR matches this date.
+      or(isNull(waitlistEntries.preferredDate), eq(waitlistEntries.preferredDate, opts.date)),
+    ];
+    // If we have a specific slot time, narrow further. Entries that didn't
+    // express a window match anything; entries with a window must contain it.
+    if (opts.slotStartTime) {
+      conds.push(or(
+        isNull(waitlistEntries.preferredStartTime),
+        sql`${waitlistEntries.preferredStartTime} <= ${opts.slotStartTime}`,
+      ));
+      conds.push(or(
+        isNull(waitlistEntries.preferredEndTime),
+        sql`${waitlistEntries.preferredEndTime} >= ${opts.slotStartTime}`,
+      ));
+    }
+    return db.select().from(waitlistEntries)
+      .where(and(...conds))
+      .orderBy(asc(waitlistEntries.createdAt))
+      .limit(opts.limit ?? 5);
+  }
+
+  async updateWaitlistEntry(id: string, data: Partial<WaitlistEntry>): Promise<WaitlistEntry | undefined> {
+    const [row] = await db.update(waitlistEntries).set(data).where(eq(waitlistEntries.id, id)).returning();
+    return row;
   }
 }
 

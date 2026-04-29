@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
+import { ReferralLeaderboard } from "@/components/admin/referral-leaderboard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -2885,7 +2886,12 @@ function ContentManagement() {
           <TabsTrigger value="tickets" data-testid="tab-content-tickets">{t("admin_dashboard.tab_support")}</TabsTrigger>
           <TabsTrigger value="faqs" data-testid="tab-content-faqs">{t("admin_dashboard.tab_faqs")}</TabsTrigger>
           <TabsTrigger value="announcements" data-testid="tab-content-announcements">{t("admin_dashboard.tab_announcements")}</TabsTrigger>
+          <TabsTrigger value="referrals" data-testid="tab-content-referrals">Referrals</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="referrals" className="space-y-4">
+          <ReferralLeaderboard />
+        </TabsContent>
 
         <TabsContent value="faqs" className="space-y-4">
           <Card>
