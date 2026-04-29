@@ -18,3 +18,9 @@ id = "e0frRXghA6T9uu861WECW"
 uri = "file://docs/platform-features.md"
 type = "text"
 title = "Golden Life — Platform Features by Role"
+
+[[outputs]]
+id = "45MqBoeRaGx5bVQfpca2q"
+uri = "file://docs/system-audit.md"
+type = "text"
+title = "Golden Life — Full System Audit"
