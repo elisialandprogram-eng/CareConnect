@@ -25,7 +25,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { SlidersHorizontal, X, Star, MapPin } from "lucide-react";
+import { SlidersHorizontal, X, Star, MapPin, Search } from "lucide-react";
 import type { ProviderWithUser, Category } from "@shared/schema";
 import { useCurrency } from "@/lib/currency";
 
@@ -36,8 +36,10 @@ export default function Providers() {
   const params = new URLSearchParams(searchParams);
   const typeParam = params.get("type") || "";
   const locationParam = params.get("location") || "";
+  const qParam = params.get("q") || "";
 
   const [filters, setFilters] = useState({
+    q: qParam,
     type: typeParam,
     location: locationParam,
     minRating: 0,
@@ -46,10 +48,43 @@ export default function Providers() {
     online: false,
     verifiedOnly: false,
   });
+  const [debouncedQuery, setDebouncedQuery] = useState({
+    q: qParam,
+    type: typeParam,
+    location: locationParam,
+    verifiedOnly: false,
+  });
   const [sortBy, setSortBy] = useState("rating");
 
+  useEffect(() => {
+    const id = setTimeout(() => {
+      setDebouncedQuery({
+        q: filters.q,
+        type: filters.type,
+        location: filters.location,
+        verifiedOnly: filters.verifiedOnly,
+      });
+    }, 300);
+    return () => clearTimeout(id);
+  }, [filters.q, filters.type, filters.location, filters.verifiedOnly]);
+
+  const queryString = (() => {
+    const sp = new URLSearchParams();
+    if (debouncedQuery.q.trim()) sp.set("q", debouncedQuery.q.trim());
+    if (debouncedQuery.type && debouncedQuery.type !== "all") sp.set("type", debouncedQuery.type);
+    if (debouncedQuery.location.trim()) sp.set("city", debouncedQuery.location.trim());
+    if (debouncedQuery.verifiedOnly) sp.set("verifiedOnly", "true");
+    const s = sp.toString();
+    return s ? `?${s}` : "";
+  })();
+
   const { data: providers, isLoading } = useQuery<ProviderWithUser[]>({
-    queryKey: ["/api/providers"],
+    queryKey: ["/api/providers", queryString],
+    queryFn: async () => {
+      const res = await fetch(`/api/providers${queryString}`, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to load providers");
+      return res.json();
+    },
   });
 
   const { data: categories } = useQuery<Category[]>({
@@ -90,17 +125,12 @@ export default function Providers() {
   };
 
   const filteredProviders = providers?.filter((p) => {
-    if (filters.type && filters.type !== "all" && p.providerType !== filters.type) return false;
     if (filters.minRating && Number(p.rating) < filters.minRating) return false;
     if (filters.priceRange) {
       const fee = Number(p.consultationFee);
       if (fee < filters.priceRange[0] || fee > filters.priceRange[1]) return false;
     }
     if (filters.homeVisit && !p.homeVisitFee) return false;
-    if (filters.verifiedOnly && !p.isVerified) return false;
-    if (filters.location && p.user.city) {
-      if (!p.user.city.toLowerCase().includes(filters.location.toLowerCase())) return false;
-    }
     return true;
   });
 
@@ -121,6 +151,20 @@ export default function Providers() {
 
   const FilterContent = () => (
     <div className="space-y-6">
+      <div className="space-y-3">
+        <Label className="text-sm font-medium">{t("common.search")}</Label>
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder={t("providers.search_placeholder", "Name, specialty, language…")}
+            value={filters.q}
+            onChange={(e) => setFilters({ ...filters, q: e.target.value })}
+            className="pl-9"
+            data-testid="filter-search-q"
+          />
+        </div>
+      </div>
+
       <div className="space-y-3">
         <Label className="text-sm font-medium">{t("providers.service_type")}</Label>
         <Select
@@ -236,6 +280,7 @@ export default function Providers() {
         variant="outline"
         className="w-full"
         onClick={() => setFilters({
+          q: "",
           type: "",
           location: "",
           minRating: 0,

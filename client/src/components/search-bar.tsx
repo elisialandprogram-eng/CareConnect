@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -18,25 +19,66 @@ interface SearchBarProps {
   variant?: "hero" | "compact";
 }
 
+interface CategoryRow {
+  id: string;
+  slug: string;
+  name: string;
+  isActive?: boolean;
+}
+
 export function SearchBar({ className = "", variant = "hero" }: SearchBarProps) {
   const { t } = useTranslation();
   const [, navigate] = useLocation();
+  const [q, setQ] = useState("");
   const [location, setLocation] = useState("");
   const [serviceType, setServiceType] = useState<string>("");
   const [isFocused, setIsFocused] = useState(false);
 
+  const { data: categories } = useQuery<CategoryRow[]>({
+    queryKey: ["/api/categories"],
+  });
+
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     const params = new URLSearchParams();
+    if (q.trim()) params.set("q", q.trim());
     if (location) params.set("location", location);
-    if (serviceType) params.set("type", serviceType);
+    if (serviceType && serviceType !== "all") params.set("type", serviceType);
     navigate(`/providers?${params.toString()}`);
+  };
+
+  const renderCategoryItems = () => {
+    const list = (categories ?? []).filter((c) => c.isActive !== false);
+    if (list.length === 0) {
+      return (
+        <>
+          <SelectItem value="physiotherapist">{t("common.physiotherapy")}</SelectItem>
+          <SelectItem value="nurse">{t("common.home_nursing")}</SelectItem>
+          <SelectItem value="doctor">{t("common.doctor_visit")}</SelectItem>
+        </>
+      );
+    }
+    return list.map((c) => (
+      <SelectItem key={c.id} value={c.slug} data-testid={`searchbar-cat-${c.slug}`}>
+        {c.name}
+      </SelectItem>
+    ));
   };
 
   if (variant === "compact") {
     return (
-      <form onSubmit={handleSearch} className={`flex gap-2 ${className}`}>
-        <div className="relative flex-1">
+      <form onSubmit={handleSearch} className={`flex flex-wrap gap-2 ${className}`}>
+        <div className="relative flex-1 min-w-[160px]">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder={t("common.search") + "…"}
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            className="pl-9"
+            data-testid="input-search-compact"
+          />
+        </div>
+        <div className="relative flex-1 min-w-[160px]">
           <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder={t("common.city_area_placeholder")}
@@ -52,9 +94,7 @@ export function SearchBar({ className = "", variant = "hero" }: SearchBarProps) 
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">{t("common.all_services")}</SelectItem>
-            <SelectItem value="physiotherapist">{t("common.physiotherapy")}</SelectItem>
-            <SelectItem value="nurse">{t("common.home_nursing")}</SelectItem>
-            <SelectItem value="doctor">{t("common.doctor_visit")}</SelectItem>
+            {renderCategoryItems()}
           </SelectContent>
         </Select>
         <Button type="submit" size="icon" data-testid="button-search-compact">
@@ -65,18 +105,30 @@ export function SearchBar({ className = "", variant = "hero" }: SearchBarProps) 
   }
 
   return (
-    <motion.form 
-      onSubmit={handleSearch} 
+    <motion.form
+      onSubmit={handleSearch}
       className={`w-full ${className}`}
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.3, duration: 0.5 }}
     >
-      <motion.div 
-        className={`flex flex-col md:flex-row gap-3 p-4 md:p-5 bg-background/95 backdrop-blur-md rounded-2xl shadow-xl border-2 transition-all duration-300 ${isFocused ? 'border-primary/30 shadow-primary/10' : 'border-transparent'}`}
+      <motion.div
+        className={`flex flex-col md:flex-row gap-3 p-4 md:p-5 bg-background/95 backdrop-blur-md rounded-2xl shadow-xl border-2 transition-all duration-300 ${isFocused ? "border-primary/30 shadow-primary/10" : "border-transparent"}`}
         whileHover={{ scale: 1.01 }}
         transition={{ type: "spring", stiffness: 300 }}
       >
+        <div className="relative flex-1">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-primary" />
+          <Input
+            placeholder={t("common.search") + " — name, specialty, condition…"}
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            onFocus={() => setIsFocused(true)}
+            onBlur={() => setIsFocused(false)}
+            className="pl-12 h-14 text-base rounded-xl border-2 focus:border-primary/50 transition-colors"
+            data-testid="input-search-hero"
+          />
+        </div>
         <div className="relative flex-1">
           <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-primary" />
           <Input
@@ -90,24 +142,22 @@ export function SearchBar({ className = "", variant = "hero" }: SearchBarProps) 
           />
         </div>
         <Select value={serviceType} onValueChange={setServiceType}>
-          <SelectTrigger 
-            className="h-14 md:w-[240px] rounded-xl border-2 focus:border-primary/50 transition-colors" 
+          <SelectTrigger
+            className="h-14 md:w-[220px] rounded-xl border-2 focus:border-primary/50 transition-colors"
             data-testid="select-service-type"
           >
             <SelectValue placeholder={t("common.service_type")} />
           </SelectTrigger>
           <SelectContent className="rounded-xl">
             <SelectItem value="all" className="rounded-lg">{t("common.all_services")}</SelectItem>
-            <SelectItem value="physiotherapist" className="rounded-lg">{t("common.physiotherapy")}</SelectItem>
-            <SelectItem value="nurse" className="rounded-lg">{t("common.home_nursing")}</SelectItem>
-            <SelectItem value="doctor" className="rounded-lg">{t("common.doctor_visit")}</SelectItem>
+            {renderCategoryItems()}
           </SelectContent>
         </Select>
         <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.98 }}>
-          <Button 
-            type="submit" 
-            size="lg" 
-            className="h-14 px-8 rounded-xl shadow-lg glow font-semibold text-base" 
+          <Button
+            type="submit"
+            size="lg"
+            className="h-14 px-8 rounded-xl shadow-lg glow font-semibold text-base"
             data-testid="button-search"
           >
             <Search className="h-5 w-5 mr-2" />

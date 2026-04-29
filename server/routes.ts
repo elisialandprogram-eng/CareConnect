@@ -1487,12 +1487,23 @@ export async function registerRoutes(
     }
   });
 
-  // Get all providers
+  // Get all providers (with optional server-side search/filter)
   app.get("/api/providers", async (req: Request, res: Response) => {
     try {
-      const providers = await storage.getAllProviders();
+      const q = typeof req.query.q === "string" ? req.query.q.trim() : "";
+      const type = typeof req.query.type === "string" ? req.query.type.trim() : "";
+      const city = typeof req.query.city === "string"
+        ? req.query.city.trim()
+        : (typeof req.query.location === "string" ? req.query.location.trim() : "");
+      const verifiedOnly = req.query.verifiedOnly === "true" || req.query.verifiedOnly === "1";
+
+      const useSearch = !!(q || type || city || verifiedOnly);
+      const providers = useSearch
+        ? await storage.searchProviders({ q: q || undefined, type: type || undefined, city: city || undefined, verifiedOnly })
+        : await storage.getAllProviders();
+
       const sanitized = providers.map(p => sanitizeProviderListItem(p));
-      res.set("Cache-Control", "public, max-age=30");
+      res.set("Cache-Control", useSearch ? "no-store" : "public, max-age=30");
       res.json(sanitized);
     } catch (error) {
       console.error("Get providers error:", error);

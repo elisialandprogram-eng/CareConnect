@@ -160,7 +160,7 @@ import {
   type InsertAdminBroadcast,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, desc, or, sql, count, asc, aliasedTable, inArray, gte, lte } from "drizzle-orm";
+import { eq, and, desc, or, sql, count, asc, aliasedTable, inArray, gte, lte, ilike } from "drizzle-orm";
 
 export interface IStorage {
   // Users
@@ -200,6 +200,7 @@ export interface IStorage {
   getProviderWithUser(id: string): Promise<ProviderWithUser | undefined>;
   getProviderWithServices(id: string): Promise<ProviderWithServices | undefined>;
   getAllProviders(): Promise<ProviderWithUser[]>;
+  searchProviders(opts: { q?: string; type?: string; city?: string; verifiedOnly?: boolean }): Promise<ProviderWithUser[]>;
   createProvider(provider: InsertProvider): Promise<Provider>;
   updateProvider(id: string, data: Partial<InsertProvider>): Promise<Provider | undefined>;
   deleteProvider(id: string): Promise<void>;
@@ -809,6 +810,50 @@ export class DatabaseStorage implements IStorage {
       .from(providers)
       .innerJoin(users, eq(providers.userId, users.id))
       .orderBy(desc(providers.createdAt));
+
+    return result.map(r => ({
+      ...r.providers,
+      user: r.users,
+    }));
+  }
+
+  async searchProviders(opts: { q?: string; type?: string; city?: string; verifiedOnly?: boolean }): Promise<ProviderWithUser[]> {
+    const conds: any[] = [];
+    if (opts.type && opts.type !== "all") {
+      conds.push(eq(providers.providerType, opts.type));
+    }
+    if (opts.city) {
+      conds.push(or(ilike(providers.city, `%${opts.city}%`), ilike(users.city, `%${opts.city}%`)));
+    }
+    if (opts.verifiedOnly) {
+      conds.push(eq(providers.isVerified, true));
+    }
+    if (opts.q) {
+      const term = `%${opts.q}%`;
+      conds.push(sql`(
+        ${users.firstName} ILIKE ${term}
+        OR ${users.lastName} ILIKE ${term}
+        OR (${users.firstName} || ' ' || ${users.lastName}) ILIKE ${term}
+        OR ${users.email} ILIKE ${term}
+        OR ${providers.bio} ILIKE ${term}
+        OR ${providers.specialization} ILIKE ${term}
+        OR ${providers.professionalTitle} ILIKE ${term}
+        OR ${providers.providerType} ILIKE ${term}
+        OR ${providers.city} ILIKE ${term}
+        OR ${users.city} ILIKE ${term}
+        OR EXISTS (SELECT 1 FROM unnest(${providers.secondarySpecialties}) AS s WHERE s ILIKE ${term})
+        OR EXISTS (SELECT 1 FROM unnest(${providers.languages}) AS l WHERE l ILIKE ${term})
+      )`);
+    }
+
+    const query = db
+      .select()
+      .from(providers)
+      .innerJoin(users, eq(providers.userId, users.id));
+
+    const result = conds.length > 0
+      ? await query.where(and(...conds)).orderBy(desc(providers.isVerified), desc(providers.rating), desc(providers.createdAt))
+      : await query.orderBy(desc(providers.isVerified), desc(providers.rating), desc(providers.createdAt));
 
     return result.map(r => ({
       ...r.providers,
