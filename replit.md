@@ -83,6 +83,10 @@ The admin dashboard exposes a single **Service Catalog** tab that renders `clien
 
 `categories`, `sub_services`, and `services` carry both `is_active` and `deleted_at` columns. Delete handlers do a **usage check** first: if the row is referenced by appointments (or by provider services for sub-services / by sub-services for categories), the row is **soft-archived** (`is_active=false`, `deleted_at=now()`) instead of hard deleted. Past bookings keep their original `total_amount` snapshot, so historical pricing is never lost. Admins can pass `?force=true` for a real DELETE when allowed by FKs. `POST /api/{services|sub-services|admin/categories}/:id/restore` un-archives a row. A dedicated `service_price_history` table records every change to price/visit-fees/platform-fee-override on a service, exposed via `GET /api/services/:id/price-history`.
 
+### Route Hygiene (Express first-match)
+
+`server/routes.ts` is registered top-down and Express invokes the **first** handler matching method+path; later registrations are dead code. A 2026-04-29 audit found 14 distinct duplicate method+path pairs (17 dead handler bodies, ~180 lines), including two cases where ownership-check fixes had been applied to dead duplicates while the live handlers had no RBAC guard. All duplicates were removed; the file is now 4,819 lines with 195 unique routes. Helper `assertOwnsServicePractitioner` (in `server/routes.ts`) gates the live `PATCH` and `DELETE /api/service-practitioners/:id` so only the owning provider (or an admin) can mutate per-service practitioner assignments. **When adding a new route, search for the same `app.METHOD("/path"` first to avoid re-introducing duplicates.**
+
 ### Build Process
 
 The client-side React app is bundled using Vite, and the server-side Express app with esbuild. Shared types and schemas are maintained in a `shared/` directory.

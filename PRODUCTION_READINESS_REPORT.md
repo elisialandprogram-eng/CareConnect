@@ -120,3 +120,72 @@ DELETE duplicate unbooked time_slots                                     (12 row
 CREATE UNIQUE INDEX uq_time_slots_provider_date_start
 CREATE INDEX idx_appointments_provider_date_start
 ```
+
+---
+
+## 9. Architecture Consistency Audit (follow-up pass)
+
+A second, read-only pass was performed at the user's request to confirm the codebase only uses the current data model (`services` / `sub_services` / `practitioners` / `service_practitioners`) and to look for legacy "staff" or "provider_services" tables. **The audit surfaced two real issues that have now been fixed.**
+
+### 9.1 Database — clean
+
+```
+catalog_services           0 rows      (reference taxonomy, optional)
+medical_practitioners      0 rows      (legacy table, unused)
+package_services           0 rows
+practitioners              3 rows      ✅ active
+service_categories         0 rows
+service_packages           0 rows
+service_practitioners      3 rows      ✅ active (links practitioners ↔ services with per-practitioner fee)
+service_price_history      0 rows
+services                   2 rows      ✅ active (each row = a provider's service offering)
+sub_services              27 rows      ✅ active (catalog of bookable sub-services)
+```
+
+- **No `staff` table exists**, and **no `provider_services` table exists**. The "Staff" labels in the admin UI are just a user-friendly synonym for *practitioners*.
+- Foreign keys confirm `appointments.service_id → services.id` and `service_practitioners.{service_id, practitioner_id}` — matching what the code uses.
+
+### 9.2 Critical: 17 duplicate route registrations in `server/routes.ts`
+
+Express's router uses the **first** registered handler when multiple `app.METHOD(path, …)` calls share the same method+path. The previous size of `routes.ts` (~5,000 lines) had accumulated **14 distinct method+path duplicates totalling 17 dead handler bodies**.
+
+The most damaging case directly nullified RBAC fixes from §3.3 / §3.4 of this report:
+
+| Method+Path | Active line | Dead duplicates | Old behaviour |
+|---|---:|---|---|
+| `PATCH /api/service-practitioners/:id` | **1910** (no ownership check) | 2393 (with the ownership check from §3.4), 4580 | Any authenticated user could change any practitioner's per-service fee |
+| `DELETE /api/service-practitioners/:id` | **1935** (no ownership check) | 2382 (with the ownership check from §3.3), 4589 | Any authenticated user could remove any practitioner from any service |
+
+In other words, the §3.3 and §3.4 RBAC fixes from the previous pass were applied to handlers Express never reaches. The vulnerability was still live in production code.
+
+**Other duplicate routes removed (purely tech-debt — first registration was already correct):**
+
+`PATCH /api/admin/providers/:id` (×3), `GET /api/admin/users` (×2), `GET /api/providers/:providerId/practitioners` (×3), `GET /api/providers/:providerId/services` (×2), `GET /api/services/:serviceId/practitioners` (×3), `PATCH /api/practitioners/:id` (×2), `DELETE /api/practitioners/:id` (×2), `POST /api/practitioners` (×2), `POST /api/providers/:providerId/practitioners` (×2), `POST /api/service-practitioners` (×2).
+
+### 9.3 Fixes applied
+
+1. **Ported the ownership guard onto the live handlers.** `assertOwnsServicePractitioner(spId, user)` (declared once at `routes.ts:2343`) is now called by both the active `PATCH` (line 1910) and `DELETE` (line 1935) of `/api/service-practitioners/:id`. Admins still pass; everyone else must own the underlying service.
+
+2. **Removed all 17 dead duplicate handler bodies.** A one-shot script (`script/dedupe_routes.ts`, run-once and deleted) verified each line really started an `app.METHOD(...)` block, walked the parens to find the matching `});`, and deleted bottom-up so earlier line numbers stayed valid. Result:
+   - `server/routes.ts`: **4,996 → 4,819 lines (−180 lines)**
+   - Total registered routes: **195 unique** (no remaining method+path duplicates)
+   - All endpoints the frontend actually calls (verified by `rg`-ing `client/src/`) still resolve to a handler.
+
+### 9.4 Verified clean
+
+```
+$ rg -c '^  app\.(get|post|patch|delete|put)\("/api/service-practitioners' server/routes.ts
+3                                                  # 1×POST, 1×PATCH, 1×DELETE — exactly what we want
+```
+
+The application starts cleanly, returns 200/304 on existing endpoints, and the previously documented TS errors are unchanged (none of them touch the dedup work).
+
+### 9.5 Summary of round-2 deltas
+
+| Severity | Item | Status |
+|---:|---|---|
+| **P0** | RBAC bypass on PATCH/DELETE service-practitioners (caused by Express first-match on duplicate routes) | **Fixed** |
+| P2 | 17 dead duplicate route registrations in `server/routes.ts` | **Removed** |
+| Info | No `staff` / `provider_services` legacy tables exist; current schema is consistent | Confirmed |
+
+**Files touched in this pass:** `server/routes.ts` only.

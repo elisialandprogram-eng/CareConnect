@@ -1909,6 +1909,8 @@ export async function registerRoutes(
 
   app.patch("/api/service-practitioners/:id", authenticateToken, async (req: AuthRequest, res) => {
     try {
+      const guard = await assertOwnsServicePractitioner(req.params.id, req.user);
+      if (!guard.ok) return res.status(guard.status!).json({ message: guard.message });
       const updates: any = {};
       if (req.body.fee !== undefined) updates.fee = req.body.fee;
       if (req.body.isActive !== undefined) updates.isActive = req.body.isActive;
@@ -1934,6 +1936,8 @@ export async function registerRoutes(
 
   app.delete("/api/service-practitioners/:id", authenticateToken, async (req: AuthRequest, res) => {
     try {
+      const guard = await assertOwnsServicePractitioner(req.params.id, req.user);
+      if (!guard.ok) return res.status(guard.status!).json({ message: guard.message });
       await storage.removePractitionerFromService(req.params.id);
       res.status(204).end();
     } catch (error) {
@@ -2270,23 +2274,6 @@ export async function registerRoutes(
   });
 
   // Update provider detail (including dates and status)
-  app.patch("/api/admin/providers/:id", authenticateToken, async (req: AuthRequest, res: Response) => {
-    try {
-      if (req.user!.role !== "admin") {
-        return res.status(403).json({ message: "Admin access required" });
-      }
-      
-      const provider = await storage.updateProvider(req.params.id, req.body);
-      if (!provider) {
-        return res.status(404).json({ message: "Provider not found" });
-      }
-      if (provider.userId) invalidateAuthCache(provider.userId);
-      res.json(provider);
-    } catch (error) {
-      res.status(500).json({ message: "Failed to update provider" });
-    }
-  });
-
   // Update platform settings
   app.post("/api/admin/settings", authenticateToken, async (req: AuthRequest, res: Response) => {
     try {
@@ -2315,15 +2302,6 @@ export async function registerRoutes(
       res.json(providerServices);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch services" });
-    }
-  });
-
-  app.get("/api/providers/:providerId/practitioners", async (req, res) => {
-    try {
-      const providerPractitioners = await storage.getPractitionersByProvider(req.params.providerId);
-      res.json(providerPractitioners);
-    } catch (error) {
-      res.status(500).json({ message: "Failed to fetch practitioners" });
     }
   });
 
@@ -2379,31 +2357,6 @@ export async function registerRoutes(
     return { ok: true };
   }
 
-  app.delete("/api/service-practitioners/:id", authenticateToken, async (req: AuthRequest, res) => {
-    try {
-      const guard = await assertOwnsServicePractitioner(req.params.id, req.user);
-      if (!guard.ok) return res.status(guard.status!).json({ message: guard.message });
-      await storage.removePractitionerFromService(req.params.id);
-      res.status(204).end();
-    } catch (error) {
-      res.status(400).json({ message: "Failed to remove assignment" });
-    }
-  });
-
-  app.patch("/api/service-practitioners/:id", authenticateToken, async (req: AuthRequest, res) => {
-    try {
-      const guard = await assertOwnsServicePractitioner(req.params.id, req.user);
-      if (!guard.ok) return res.status(guard.status!).json({ message: guard.message });
-      const updates: Record<string, any> = {};
-      if (req.body.isActive !== undefined) updates.isActive = req.body.isActive;
-      if (req.body.fee !== undefined) updates.fee = req.body.fee;
-      const result = await db.update(servicePractitioners).set(updates).where(eq(servicePractitioners.id, req.params.id)).returning();
-      res.json(result[0]);
-    } catch (error) {
-      res.status(400).json({ message: "Failed to update assignment" });
-    }
-  });
-
   // Fetch service assignments for a practitioner (with service details)
   app.get("/api/practitioners/:id/services", authenticateToken, async (req: AuthRequest, res: Response) => {
     try {
@@ -2428,24 +2381,6 @@ export async function registerRoutes(
   });
 
   // Services & Practitioners
-  app.get("/api/providers/:providerId/services", async (req, res) => {
-    try {
-      const services = await storage.getServicesByProvider(req.params.providerId);
-      res.json(services);
-    } catch (error) {
-      res.status(500).json({ message: "Failed to fetch services" });
-    }
-  });
-
-  app.get("/api/services/:serviceId/practitioners", async (req, res) => {
-    try {
-      const practitioners = await storage.getServicePractitioners(req.params.serviceId);
-      res.json(practitioners);
-    } catch (error) {
-      res.status(500).json({ message: "Failed to fetch practitioners" });
-    }
-  });
-
   app.post("/api/services", authenticateToken, async (req: AuthRequest, res) => {
     if (req.user?.role !== "provider") return res.status(403).json({ message: "Provider access required" });
     try {
@@ -2456,19 +2391,6 @@ export async function registerRoutes(
       res.status(201).json(service);
     } catch (error) {
       res.status(400).json({ message: "Invalid service data" });
-    }
-  });
-
-  app.post("/api/practitioners", authenticateToken, async (req: AuthRequest, res) => {
-    if (req.user?.role !== "provider") return res.status(403).json({ message: "Provider access required" });
-    try {
-      const provider = await storage.getProviderByUserId(req.user.id);
-      if (!provider) return res.status(404).json({ message: "Provider not found" });
-      const data = insertPractitionerSchema.parse({ ...req.body, providerId: provider.id });
-      const practitioner = await storage.createPractitioner(data);
-      res.status(201).json(practitioner);
-    } catch (error) {
-      res.status(400).json({ message: "Invalid practitioner data" });
     }
   });
 
@@ -2567,17 +2489,6 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error deleting package:", error);
       res.status(500).json({ message: "Failed to delete package" });
-    }
-  });
-
-  app.post("/api/service-practitioners", authenticateToken, async (req: AuthRequest, res) => {
-    if (req.user?.role !== "provider") return res.status(403).json({ message: "Provider access required" });
-    try {
-      const data = insertServicePractitionerSchema.parse(req.body);
-      const sp = await storage.addPractitionerToService(data);
-      res.status(201).json(sp);
-    } catch (error) {
-      res.status(400).json({ message: "Invalid service practitioner data" });
     }
   });
 
@@ -4244,15 +4155,6 @@ export async function registerRoutes(
   });
 
   // Users
-  app.get("/api/admin/users", authenticateToken, requireAdmin, async (req: AuthRequest, res: Response) => {
-    try {
-      const users = await storage.getAllUsers();
-      res.json(users);
-    } catch (error) {
-      res.status(500).json({ message: "Failed to get users" });
-    }
-  });
-
   // Pricing Overrides
   app.get("/api/admin/pricing-overrides", authenticateToken, requireAdmin, async (req: AuthRequest, res: Response) => {
     try {
@@ -4407,17 +4309,6 @@ export async function registerRoutes(
     }
   });
 
-  app.patch("/api/admin/providers/:id", authenticateToken, requireAdmin, async (req: AuthRequest, res: Response) => {
-    try {
-      const provider = await storage.updateProvider(req.params.id, req.body);
-      if (!provider) return res.status(404).json({ message: "Provider not found" });
-      if (provider.userId) invalidateAuthCache(provider.userId);
-      res.json(provider);
-    } catch (error) {
-      res.status(500).json({ message: "Failed to update provider" });
-    }
-  });
-
   app.get("/api/admin/services-overview", authenticateToken, requireAdmin, async (_req: AuthRequest, res: Response) => {
     try {
       const allServices = await db.select().from(services);
@@ -4514,56 +4405,7 @@ export async function registerRoutes(
   });
 
   // Practitioners management
-  app.get("/api/providers/:providerId/practitioners", authenticateToken, async (req: AuthRequest, res: Response) => {
-    try {
-      const practitioners = await storage.getPractitionersByProvider(req.params.providerId);
-      res.json(practitioners);
-    } catch (error) {
-      res.status(500).json({ message: "Failed to fetch practitioners" });
-    }
-  });
-
-  app.post("/api/providers/:providerId/practitioners", authenticateToken, async (req: AuthRequest, res: Response) => {
-    try {
-      const data = insertPractitionerSchema.parse({
-        ...req.body,
-        providerId: req.params.providerId
-      });
-      const practitioner = await storage.createPractitioner(data);
-      res.status(201).json(practitioner);
-    } catch (error) {
-      res.status(400).json({ message: "Invalid practitioner data" });
-    }
-  });
-
-  app.patch("/api/practitioners/:id", authenticateToken, async (req: AuthRequest, res: Response) => {
-    try {
-      const practitioner = await storage.updatePractitioner(req.params.id, req.body);
-      res.json(practitioner);
-    } catch (error) {
-      res.status(500).json({ message: "Failed to update practitioner" });
-    }
-  });
-
-  app.delete("/api/practitioners/:id", authenticateToken, async (req: AuthRequest, res: Response) => {
-    try {
-      await storage.deletePractitioner(req.params.id);
-      res.status(204).end();
-    } catch (error) {
-      res.status(500).json({ message: "Failed to delete practitioner" });
-    }
-  });
-
   // Service Practitioners management
-  app.get("/api/services/:serviceId/practitioners", authenticateToken, async (req: AuthRequest, res: Response) => {
-    try {
-      const practitioners = await storage.getServicePractitioners(req.params.serviceId);
-      res.json(practitioners);
-    } catch (error) {
-      res.status(500).json({ message: "Failed to fetch service practitioners" });
-    }
-  });
-
   app.post("/api/services/:serviceId/practitioners", authenticateToken, async (req: AuthRequest, res: Response) => {
     try {
       const data = insertServicePractitionerSchema.parse({
@@ -4574,24 +4416,6 @@ export async function registerRoutes(
       res.status(201).json(result);
     } catch (error) {
       res.status(400).json({ message: "Invalid service practitioner data" });
-    }
-  });
-
-  app.patch("/api/service-practitioners/:id", authenticateToken, async (req: AuthRequest, res: Response) => {
-    try {
-      const result = await storage.updateServicePractitionerFee(req.params.id, req.body.fee);
-      res.json(result);
-    } catch (error) {
-      res.status(500).json({ message: "Failed to update service practitioner fee" });
-    }
-  });
-
-  app.delete("/api/service-practitioners/:id", authenticateToken, async (req: AuthRequest, res: Response) => {
-    try {
-      await storage.removePractitionerFromService(req.params.id);
-      res.status(204).end();
-    } catch (error) {
-      res.status(500).json({ message: "Failed to remove practitioner from service" });
     }
   });
 
