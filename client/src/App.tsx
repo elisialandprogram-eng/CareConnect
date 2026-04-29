@@ -23,6 +23,7 @@ const PatientDashboard = lazy(() => import("@/pages/patient-dashboard"));
 const ProviderDashboard = lazy(() => import("@/pages/provider-dashboard"));
 const ProviderSetup = lazy(() => import("@/pages/provider-setup"));
 const AdminDashboard = lazy(() => import("@/pages/admin-dashboard"));
+const AdminStaleBookings = lazy(() => import("@/pages/admin-stale-bookings"));
 const Terms = lazy(() => import("@/pages/terms"));
 const Privacy = lazy(() => import("@/pages/privacy"));
 const About = lazy(() => import("@/pages/about"));
@@ -100,6 +101,7 @@ function Router() {
           <Route path="/book" component={BookWizard} />
           <Route path="/book-wizard" component={BookWizard} />
           <Route path="/admin" component={AdminDashboard} />
+          <Route path="/admin/stale-bookings" component={AdminStaleBookings} />
           <Route path="/messages" component={Messages} />
           <Route path="/notifications" component={Notifications} />
           <Route path="/terms" component={Terms} />

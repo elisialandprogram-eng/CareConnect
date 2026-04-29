@@ -1,0 +1,192 @@
+Implement a complete, production-grade booking system with step-based flow, address capture, pricing engine, coupon, wallet, and practitioner assignment.
+
+1. BOOKING FLOW (Frontend)
+Create a step-based booking UI:
+
+Step 1: Select Service
+- Load Category → Service → Sub-service (admin-controlled only)
+- Show base price and duration
+
+Step 2: Select Practitioner
+- Option A: Auto-assign best available
+- Option B: Manual selection
+- Show name, experience, rating, price
+
+Step 3: Select Visit Type
+- Home Visit / Clinic Visit / Online
+- Update pricing dynamically
+
+Step 4: Address & Location (conditional)
+- Show ONLY for Home Visit
+- Optional for Clinic Visit
+- Hidden for Online
+- Allow:
+  - Select saved address
+  - Add new address
+  - Use current location
+  - Search via map (Google Places)
+- Capture:
+  address_line, city, state, country, pincode, latitude, longitude
+- Show draggable map preview
+
+Step 5: Date & Time Selection
+- Fetch available slots from backend
+- Show calendar + time slots
+- Disable unavailable slots
+
+Step 6: Patient Details
+- Auto-fill from logged-in user
+- Allow notes
+
+Step 7: Pricing + Coupon + Wallet
+- Show breakdown:
+  base price
+  visit fee
+  platform fee
+- Coupon:
+  - input + apply
+  - validate expiry, usage, service applicability
+- Wallet:
+  - show balance
+  - toggle use
+  - allow partial usage
+- Show final payable amount in real-time
+
+Step 8: Payment Method
+- Card / UPI / Cash / Wallet
+- Handle full wallet payments
+
+Step 9: Confirm Booking
+- Generate appointment number (GLxxxx)
+- Lock slot
+- Save booking
+
+2. BACKEND STRUCTURE
+
+Appointments table must include:
+- id
+- appointment_number (GLxxxx)
+- patient_id
+- provider_id
+- sub_service_id
+- practitioner_id
+- visit_type
+- status
+- scheduled_at
+- address fields (snapshot)
+- latitude, longitude
+- base_price
+- visit_fee
+- platform_fee
+- discount_amount
+- wallet_used
+- final_amount
+- coupon_id (optional)
+- payment_status
+- invoice_generated (boolean)
+
+3. PRICING ENGINE
+Implement backend function:
+
+final_amount =
+  base_price
++ visit_fee
++ platform_fee
+- coupon_discount
+- wallet_used
+
+Ensure:
+- consistent across UI, booking, invoice
+- no mismatch
+
+4. COUPON SYSTEM
+Create coupons table:
+- code
+- type (flat/percentage)
+- value
+- max_discount
+- expiry_date
+- usage_limit
+- applicable_services (optional)
+
+Validate:
+- expiry
+- usage count
+- service applicability
+
+5. WALLET SYSTEM
+Create wallet + transactions:
+- user_wallets: user_id, balance
+- wallet_transactions:
+  credit/debit, reason, reference_id
+
+Rules:
+- partial usage allowed
+- cannot exceed total
+- deduct on booking confirmation
+
+6. PRACTITIONER ASSIGNMENT
+- If auto:
+  - pick practitioner with:
+    availability
+    lowest load
+- If manual:
+  - validate assignment exists
+
+7. AVAILABILITY SYSTEM
+- Fetch slots per practitioner
+- Prevent double booking
+- Reserve slot on booking
+
+8. STATUS SYSTEM
+Use strict state machine:
+- REQUESTED
+- CONFIRMED
+- IN_PROGRESS
+- COMPLETED
+- CANCELLED
+- RESCHEDULED
+- NO_SHOW
+
+Enforce valid transitions only
+
+9. INVOICE SYSTEM
+- Generate invoice on COMPLETED
+- Include:
+  appointment number
+  service
+  pricing breakdown
+- Send via email automatically
+
+10. NOTIFICATIONS
+Trigger:
+- booking confirmation
+- reminders
+- cancellations
+- invoice email
+
+11. VALIDATION
+Ensure:
+- provider cannot access unassigned services
+- pricing matches everywhere
+- coupon + wallet applied correctly
+- address required only when needed
+- booking fails on invalid slot
+
+12. UI DESIGN
+- Left: steps (form)
+- Right: sticky summary card
+  - pricing
+  - coupon
+  - wallet
+  - total
+
+13. FINAL TEST FLOW
+Test:
+- login → booking → payment → completion → invoice
+- all visit types
+- coupon + wallet combinations
+
+Output:
+- Confirm working end-to-end booking system
+- List any inconsistencies fixed

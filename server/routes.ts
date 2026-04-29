@@ -36,7 +36,7 @@ import {
 import crypto from 'crypto'; // Import crypto module for randomUUID
 import { Resend } from 'resend';
 import { db } from "./db";
-import { eq, and, desc, or } from "drizzle-orm";
+import { eq, and, desc, or, gte, like, inArray } from "drizzle-orm";
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 const FROM_EMAIL = "GoldenLife <no-reply@goldenlife.health>";
@@ -518,6 +518,80 @@ export async function registerRoutes(
       res.status(204).end();
     } catch (error) {
       res.status(500).json({ message: "Failed to delete tax setting" });
+    }
+  });
+
+  // Admin: bookings the cron auto-expired or auto-cancelled in the recent past.
+  // Distinguishes auto vs. manual using the `[AUTO]` prefix the cron writes
+  // into `private_note`. Default window 7 days, configurable via ?days=N.
+  app.get("/api/admin/stale-bookings", authenticateToken, requireAdmin, async (req: AuthRequest, res: Response) => {
+    try {
+      const days = Math.min(90, Math.max(1, Number(req.query.days) || 7));
+      const cutoff = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+
+      const rows = await db
+        .select()
+        .from(appointments)
+        .where(and(
+          gte(appointments.updatedAt, cutoff),
+          or(
+            eq(appointments.status, "expired"),
+            and(
+              inArray(appointments.status, ["cancelled", "cancelled_by_patient", "cancelled_by_provider", "no_show", "rejected"]),
+              like(appointments.privateNote, "[AUTO]%"),
+            ),
+          ),
+        ))
+        .orderBy(desc(appointments.updatedAt))
+        .limit(500);
+
+      if (!rows.length) return res.json({ days, items: [] });
+
+      const patientIds = Array.from(new Set(rows.map(r => r.patientId)));
+      const providerIds = Array.from(new Set(rows.map(r => r.providerId)));
+
+      const [patientRows, providerRows] = await Promise.all([
+        patientIds.length ? db.select().from(users).where(inArray(users.id, patientIds)) : Promise.resolve([] as any[]),
+        providerIds.length ? db.select().from(providers).where(inArray(providers.id, providerIds)) : Promise.resolve([] as any[]),
+      ]);
+
+      const providerUserIds = providerRows.map(p => p.userId);
+      const providerUsers = providerUserIds.length
+        ? await db.select().from(users).where(inArray(users.id, providerUserIds))
+        : [];
+      const userById = new Map(
+        [...patientRows, ...providerUsers].map(u => [u.id, u])
+      );
+      const providerById = new Map(providerRows.map(p => [p.id, p]));
+
+      const items = rows.map(r => {
+        const patient = userById.get(r.patientId);
+        const provider = providerById.get(r.providerId);
+        const providerUser = provider ? userById.get(provider.userId) : null;
+        const note = (r.privateNote || "").trim();
+        const reasonLine = note.split("\n").find(line => line.startsWith("[AUTO]")) || note;
+        return {
+          id: r.id,
+          appointmentNumber: r.appointmentNumber,
+          status: r.status,
+          date: r.date,
+          startTime: r.startTime,
+          updatedAt: r.updatedAt,
+          createdAt: r.createdAt,
+          totalAmount: r.totalAmount,
+          patientName: patient ? `${patient.firstName} ${patient.lastName}` : "—",
+          patientEmail: patient?.email || null,
+          providerName: providerUser
+            ? `${providerUser.firstName} ${providerUser.lastName}`
+            : (provider?.businessName || "—"),
+          reason: reasonLine.replace(/^\[AUTO\]\s*/, ""),
+        };
+      });
+
+      res.json({ days, items });
+    } catch (error) {
+      console.error("[admin] stale-bookings error:", error);
+      res.status(500).json({ message: "Failed to load stale bookings" });
     }
   });
 

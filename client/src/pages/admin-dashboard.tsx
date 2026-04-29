@@ -5434,12 +5434,23 @@ export default function AdminDashboard() {
     <div className="min-h-screen flex flex-col">
       <Header />
       <main className="flex-1 container mx-auto px-4 py-8 overflow-x-hidden">
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold flex items-center gap-2" data-testid="text-admin-title">
-            <Shield className="h-8 w-8" />
-            {t("admin.dashboard")}
-          </h1>
-          <p className="text-muted-foreground">{t("admin.bookings_management")}</p>
+        <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h1 className="text-3xl font-bold flex items-center gap-2" data-testid="text-admin-title">
+              <Shield className="h-8 w-8" />
+              {t("admin.dashboard")}
+            </h1>
+            <p className="text-muted-foreground">{t("admin.bookings_management")}</p>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => navigate("/admin/stale-bookings")}
+            data-testid="link-stale-bookings"
+          >
+            <Clock className="h-4 w-4 mr-1.5" />
+            Stale bookings
+          </Button>
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">

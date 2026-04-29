@@ -176,8 +176,10 @@ async function expireStalePending() {
   let expired = 0;
   for (const appt of stale) {
     try {
+      const autoNote = `[AUTO] Expired by system: provider didn't respond within ${PENDING_EXPIRY_HOURS}h`;
+      const newNote = appt.privateNote ? `${appt.privateNote}\n${autoNote}` : autoNote;
       await db.update(appointments)
-        .set({ status: "expired", updatedAt: new Date() })
+        .set({ status: "expired", privateNote: newNote, updatedAt: new Date() })
         .where(eq(appointments.id, appt.id));
       // Release the held time slot so other patients can book it.
       if (appt.timeSlotId) {
@@ -226,8 +228,10 @@ async function cancelStaleConfirmed() {
   let cancelled = 0;
   for (const appt of stale) {
     try {
+      const autoNote = "[AUTO] Auto-cancelled: visit ended >24h ago without completion";
+      const newNote = appt.privateNote ? `${appt.privateNote}\n${autoNote}` : autoNote;
       await db.update(appointments)
-        .set({ status: "cancelled", updatedAt: new Date() })
+        .set({ status: "cancelled", privateNote: newNote, updatedAt: new Date() })
         .where(eq(appointments.id, appt.id));
       if (appt.timeSlotId) {
         try {
