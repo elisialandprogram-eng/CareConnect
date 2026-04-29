@@ -86,6 +86,8 @@ export const users = pgTable("users", {
   // user id is recorded here so we can credit them when this user qualifies
   // (currently: completes their first paid appointment).
   referredByUserId: varchar("referred_by_user_id"),
+  isDeleted: boolean("is_deleted").notNull().default(false),
+  deletedAt: timestamp("deleted_at"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

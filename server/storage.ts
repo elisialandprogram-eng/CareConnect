@@ -187,6 +187,7 @@ export interface IStorage {
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: string, data: Partial<User>): Promise<User | undefined>;
   deleteUser(id: string): Promise<void>;
+  purgeUnverifiedUser(id: string): Promise<void>;
 
   // Real-time Chat Methods
   getRealtimeConversations(userId: string): Promise<RealtimeConversation[]>;
@@ -667,17 +668,27 @@ export interface IStorage {
 export class DatabaseStorage implements IStorage {
   // Users
   async getUser(id: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.id, id));
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(and(eq(users.id, id), eq(users.isDeleted, false)));
     return user || undefined;
   }
 
   async getUserByEmail(email: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.email, email));
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(and(eq(users.email, email), eq(users.isDeleted, false)));
     return user || undefined;
   }
 
   async getAllUsers(): Promise<User[]> {
-    return db.select().from(users).orderBy(desc(users.createdAt));
+    return db
+      .select()
+      .from(users)
+      .where(eq(users.isDeleted, false))
+      .orderBy(desc(users.createdAt));
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
@@ -690,6 +701,18 @@ export class DatabaseStorage implements IStorage {
     return user || undefined;
   }
 
+  // Soft-deletes a user.
+  // PRESERVED for historical/financial integrity: appointments, services,
+  // invoices, payments, prescriptions, reviews, provider_earnings,
+  // appointment_events, audit_logs, blog_posts, wallet, wallet_transactions,
+  // support_tickets, time_slots, practitioners, packages.
+  // REMOVED (purely personal/session data that should not linger): refresh
+  // tokens, push subscriptions, notification queue/preferences/unread items,
+  // saved providers, medical history, patient consents, AI conversations,
+  // and all chat messages/conversations.
+  // The user row itself is kept but flagged isDeleted=true and PII is
+  // anonymized so existing foreign keys keep working while no one can ever
+  // log in as them again.
   async deleteUser(id: string): Promise<void> {
     await db.transaction(async (tx) => {
       const providerRows = await tx
@@ -698,89 +721,110 @@ export class DatabaseStorage implements IStorage {
         .where(eq(providers.userId, id));
       const providerIds = providerRows.map((r) => r.id);
 
-      const appointmentRows = await tx
-        .select({ id: appointments.id })
-        .from(appointments)
-        .where(
-          providerIds.length
-            ? or(eq(appointments.patientId, id), inArray(appointments.providerId, providerIds))
-            : eq(appointments.patientId, id),
-        );
-      const appointmentIds = appointmentRows.map((r) => r.id);
-
       const idList = (arr: string[]) => sql.join(arr.map((v) => sql`${v}`), sql.raw(','));
       const provIn = providerIds.length ? sql`(${idList(providerIds)})` : null;
-      const apptIn = appointmentIds.length ? sql`(${idList(appointmentIds)})` : null;
 
-      await tx.execute(sql`UPDATE support_tickets SET assigned_to = NULL WHERE assigned_to = ${id}`);
-      await tx.execute(sql`UPDATE wallet_transactions SET created_by_id = NULL WHERE created_by_id = ${id}`);
-      await tx.execute(sql`UPDATE blog_posts SET author_id = NULL WHERE author_id = ${id}`);
-      await tx.execute(sql`UPDATE audit_logs SET user_id = NULL WHERE user_id = ${id}`);
-
-      if (appointmentIds.length) {
-        await tx.execute(sql`DELETE FROM video_sessions WHERE appointment_id IN ${apptIn}`);
-        await tx.execute(sql`DELETE FROM invoice_items WHERE invoice_id IN (SELECT id FROM invoices WHERE appointment_id IN ${apptIn})`);
-        await tx.execute(sql`DELETE FROM invoices WHERE appointment_id IN ${apptIn}`);
-        await tx.execute(sql`DELETE FROM payments WHERE appointment_id IN ${apptIn}`);
-        await tx.execute(sql`DELETE FROM prescriptions WHERE appointment_id IN ${apptIn}`);
-        await tx.execute(sql`DELETE FROM reviews WHERE appointment_id IN ${apptIn}`);
-        await tx.execute(sql`DELETE FROM provider_earnings WHERE appointment_id IN ${apptIn}`);
-        await tx.execute(sql`DELETE FROM appointment_events WHERE appointment_id IN ${apptIn}`);
-      }
-
-      await tx.execute(sql`DELETE FROM invoice_items WHERE invoice_id IN (SELECT id FROM invoices WHERE patient_id = ${id})`);
-      await tx.execute(sql`DELETE FROM invoices WHERE patient_id = ${id}`);
-      await tx.execute(sql`DELETE FROM payments WHERE patient_id = ${id}`);
-      await tx.execute(sql`DELETE FROM prescriptions WHERE patient_id = ${id}`);
-      await tx.execute(sql`DELETE FROM reviews WHERE patient_id = ${id}`);
-      await tx.execute(sql`DELETE FROM medical_history WHERE patient_id = ${id}`);
+      // Personal/session data — safe to remove, contains no business value.
+      await tx.execute(sql`DELETE FROM refresh_tokens WHERE user_id = ${id}`);
+      await tx.execute(sql`DELETE FROM push_subscriptions WHERE user_id = ${id}`);
+      await tx.execute(sql`DELETE FROM notification_preferences WHERE user_id = ${id}`);
+      await tx.execute(sql`DELETE FROM notification_queue WHERE user_id = ${id}`);
+      await tx.execute(sql`DELETE FROM notification_delivery_logs WHERE user_id = ${id}`);
+      await tx.execute(sql`DELETE FROM user_notifications WHERE user_id = ${id}`);
+      await tx.execute(sql`DELETE FROM patient_consents WHERE user_id = ${id}`);
       await tx.execute(sql`DELETE FROM saved_providers WHERE patient_id = ${id}`);
+      await tx.execute(sql`DELETE FROM medical_history WHERE patient_id = ${id}`);
+      await tx.execute(sql`DELETE FROM conversations WHERE user_id = ${id}`);
+
+      // Chats — remove personal communication. Tickets are kept (business audit
+      // trail) but their own messages stay since the ticket is preserved.
       await tx.execute(sql`DELETE FROM chat_messages WHERE conversation_id IN (SELECT id FROM chat_conversations WHERE patient_id = ${id})`);
       await tx.execute(sql`DELETE FROM chat_conversations WHERE patient_id = ${id}`);
       await tx.execute(sql`DELETE FROM chat_messages WHERE sender_id = ${id}`);
       await tx.execute(sql`DELETE FROM realtime_messages WHERE conversation_id IN (SELECT id FROM realtime_conversations WHERE participant1_id = ${id} OR participant2_id = ${id})`);
       await tx.execute(sql`DELETE FROM realtime_conversations WHERE participant1_id = ${id} OR participant2_id = ${id}`);
       await tx.execute(sql`DELETE FROM realtime_messages WHERE sender_id = ${id}`);
-      await tx.execute(sql`DELETE FROM ticket_messages WHERE ticket_id IN (SELECT id FROM support_tickets WHERE user_id = ${id})`);
-      await tx.execute(sql`DELETE FROM support_tickets WHERE user_id = ${id}`);
-      await tx.execute(sql`DELETE FROM ticket_messages WHERE user_id = ${id}`);
-      await tx.execute(sql`DELETE FROM appointments WHERE patient_id = ${id}`);
+
       if (providerIds.length) {
-        await tx.execute(sql`DELETE FROM appointments WHERE provider_id IN ${provIn}`);
+        await tx.execute(sql`DELETE FROM medical_history WHERE provider_id IN ${provIn}`);
+        await tx.execute(sql`DELETE FROM saved_providers WHERE provider_id IN ${provIn}`);
+        await tx.execute(sql`DELETE FROM chat_messages WHERE conversation_id IN (SELECT id FROM chat_conversations WHERE provider_id IN ${provIn})`);
+        await tx.execute(sql`DELETE FROM chat_conversations WHERE provider_id IN ${provIn}`);
+        // Future-availability cleanup so removed providers can't be booked.
+        await tx.execute(sql`DELETE FROM time_slots WHERE provider_id IN ${provIn} AND is_booked = false AND date >= CURRENT_DATE`);
+        // Mark services & provider as inactive so they disappear from search,
+        // but the rows (and their links to past appointments/invoices) stay.
+        await tx.execute(sql`UPDATE services SET is_active = false WHERE provider_id IN ${provIn}`);
+        await tx.execute(sql`UPDATE providers SET is_active = false, status = 'inactive' WHERE id IN ${provIn}`);
       }
-      await tx.execute(sql`DELETE FROM patient_consents WHERE user_id = ${id}`);
-      await tx.execute(sql`DELETE FROM user_notifications WHERE user_id = ${id}`);
+
+      // Anonymize personally-identifying info on the user row itself. Email is
+      // rewritten to a deterministic placeholder so the unique constraint is
+      // satisfied and a brand new user can sign up with the original address.
+      await tx
+        .update(users)
+        .set({
+          email: `deleted+${id}@deleted.local`,
+          password: "",
+          firstName: "Deleted",
+          lastName: "User",
+          phone: null,
+          mobileNumber: null,
+          avatarUrl: null,
+          address: null,
+          city: null,
+          state: null,
+          zipCode: null,
+          savedLatitude: null,
+          savedLongitude: null,
+          gender: null,
+          dateOfBirth: null,
+          preferredPronouns: null,
+          occupation: null,
+          maritalStatus: null,
+          socialNumber: null,
+          emergencyContactName: null,
+          emergencyContactPhone: null,
+          emergencyContactRelation: null,
+          bloodGroup: null,
+          heightCm: null,
+          weightKg: null,
+          knownAllergies: null,
+          medicalConditions: null,
+          currentMedications: null,
+          pastSurgeries: null,
+          insuranceProvider: null,
+          insurancePolicyNumber: null,
+          primaryCarePhysician: null,
+          googleCalendarId: null,
+          googleAccessToken: null,
+          googleRefreshToken: null,
+          emailOtpHash: null,
+          emailOtpExpiresAt: null,
+          referralCode: null,
+          isSuspended: true,
+          suspensionReason: "Account deleted",
+          isDeleted: true,
+          deletedAt: new Date(),
+        } as Partial<User>)
+        .where(eq(users.id, id));
+    });
+  }
+
+  // Hard-deletes a user record that has no business data attached. Used only
+  // for unverified abandoned signups so the same email can be re-registered
+  // cleanly. Do NOT use this on real users — call deleteUser instead.
+  async purgeUnverifiedUser(id: string): Promise<void> {
+    await db.transaction(async (tx) => {
+      await tx.execute(sql`DELETE FROM refresh_tokens WHERE user_id = ${id}`);
+      await tx.execute(sql`DELETE FROM push_subscriptions WHERE user_id = ${id}`);
       await tx.execute(sql`DELETE FROM notification_preferences WHERE user_id = ${id}`);
       await tx.execute(sql`DELETE FROM notification_queue WHERE user_id = ${id}`);
       await tx.execute(sql`DELETE FROM notification_delivery_logs WHERE user_id = ${id}`);
-      await tx.execute(sql`DELETE FROM push_subscriptions WHERE user_id = ${id}`);
-      await tx.execute(sql`DELETE FROM admin_broadcasts WHERE sender_id = ${id}`);
+      await tx.execute(sql`DELETE FROM user_notifications WHERE user_id = ${id}`);
       await tx.execute(sql`DELETE FROM wallet_transactions WHERE user_id = ${id}`);
       await tx.execute(sql`DELETE FROM wallets WHERE user_id = ${id}`);
-      await tx.execute(sql`DELETE FROM conversations WHERE user_id = ${id}`);
-      await tx.execute(sql`DELETE FROM refresh_tokens WHERE user_id = ${id}`);
-      await tx.execute(sql`DELETE FROM provider_office_hours WHERE provider_user_id = ${id}`);
-
-      if (providerIds.length) {
-        await tx.execute(sql`DELETE FROM service_packages WHERE provider_id IN ${provIn}`);
-        await tx.execute(sql`DELETE FROM provider_pricing_overrides WHERE provider_id IN ${provIn}`);
-        await tx.execute(sql`DELETE FROM time_slots WHERE provider_id IN ${provIn}`);
-        await tx.execute(sql`DELETE FROM medical_history WHERE provider_id IN ${provIn}`);
-        await tx.execute(sql`DELETE FROM prescriptions WHERE provider_id IN ${provIn}`);
-        await tx.execute(sql`DELETE FROM reviews WHERE provider_id IN ${provIn}`);
-        await tx.execute(sql`DELETE FROM payments WHERE appointment_id IN (SELECT id FROM appointments WHERE provider_id IN ${provIn})`);
-        await tx.execute(sql`DELETE FROM chat_messages WHERE conversation_id IN (SELECT id FROM chat_conversations WHERE provider_id IN ${provIn})`);
-        await tx.execute(sql`DELETE FROM chat_conversations WHERE provider_id IN ${provIn}`);
-        await tx.execute(sql`DELETE FROM saved_providers WHERE provider_id IN ${provIn}`);
-        await tx.execute(sql`DELETE FROM medical_practitioners WHERE provider_id IN ${provIn}`);
-        await tx.execute(sql`DELETE FROM service_practitioners WHERE practitioner_id IN (SELECT id FROM practitioners WHERE provider_id IN ${provIn})`);
-        await tx.execute(sql`DELETE FROM practitioners WHERE provider_id IN ${provIn}`);
-        await tx.execute(sql`DELETE FROM services WHERE provider_id IN ${provIn}`);
-        await tx.execute(sql`DELETE FROM invoice_items WHERE invoice_id IN (SELECT id FROM invoices WHERE provider_id IN ${provIn})`);
-        await tx.execute(sql`DELETE FROM invoices WHERE provider_id IN ${provIn}`);
-      }
-
-      await tx.delete(providers).where(eq(providers.userId, id));
+      await tx.execute(sql`DELETE FROM audit_logs WHERE user_id = ${id}`);
       await tx.delete(users).where(eq(users.id, id));
     });
   }

@@ -800,8 +800,28 @@ export async function registerRoutes(
   app.delete("/api/admin/users/:id", authenticateToken, async (req: AuthRequest, res: Response) => {
     if (req.user?.role !== "admin") return res.status(403).json({ message: "Admin access required" });
     try {
+      const target = await storage.getUser(req.params.id);
+      if (!target) return res.status(404).json({ message: "User not found" });
       await storage.deleteUser(req.params.id);
       invalidateAuthCache(req.params.id);
+      try {
+        await storage.createAuditLog({
+          userId: req.user.id,
+          action: "delete",
+          entityType: "user",
+          entityId: req.params.id,
+          details: JSON.stringify({
+            deletedUserEmail: target.email,
+            deletedUserName: `${target.firstName} ${target.lastName}`.trim(),
+            deletedUserRole: target.role,
+            performedBy: req.user.id,
+          }),
+          ipAddress: req.ip || null,
+          userAgent: req.get("user-agent") || null,
+        } as any);
+      } catch (auditErr) {
+        console.error("[admin/deleteUser] audit log failed:", auditErr);
+      }
       res.status(204).end();
     } catch (error: any) {
       console.error("[admin/deleteUser] failed:", error?.message);
@@ -871,7 +891,7 @@ export async function registerRoutes(
         }
         // Abandoned/unverified signup — clean it up so re-registration works.
         try {
-          await storage.deleteUser(existingUser.id);
+          await storage.purgeUnverifiedUser(existingUser.id);
         } catch (cleanupErr) {
           console.error("Failed to clean up unverified user:", cleanupErr);
           return res.status(500).json({ message: "Registration failed. Please try again." });
