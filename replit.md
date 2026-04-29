@@ -59,6 +59,10 @@ The booking flow charges per-service platform fees (sourced from each service's 
 
 The frontend includes a `client/src/lib/persian-calendar.ts` utility that converts between Gregorian and Persian (Jalali) dates using `Intl.DateTimeFormat` with the `persian` calendar. When the active language is `fa`, booking date displays render in Solar Hijri format with Persian digits.
 
+### Booking Wizard (6-step flow)
+
+A guided booking wizard at `/book` (alias `/book-wizard`, page in `client/src/pages/book-wizard.tsx`) implements the spec's 6-step flow: **Category → Service → Provider → Practitioner (optional) → Date & Time → Confirm**. It uses the centralised pricing engine `server/lib/pricing.ts` (`computeFinalPrice`) so the patient sees a full breakdown (base, platform fee, visit-type fee, surge, emergency, discount, tax, total) before confirming. The classic single-page `/booking` flow is still available.
+
 ### Service Form
 
 Provider service add/edit uses `client/src/components/service-form-dialog.tsx`, a modal styled after the reference design with image upload, calendar color swatches, sub-service category, price + deposit toggle, duration / time-slot length / buffer-before / buffer-after, custom-duration toggle, and hide-price / hide-duration toggles. The schema's `services` table holds `imageUrl`, `calendarColor`, `enableDeposit`, `depositAmount`, `timeSlotLength`, `bufferBefore`, `bufferAfter`, `customDuration`, `hidePrice`, `hideDuration`, and `sortOrder`.
