@@ -406,30 +406,8 @@ export async function registerRoutes(
       const results = [];
 
       for (const appt of pendingAppointments) {
-        const invoiceNumber = `INV-${Date.now()}-${appt.id.slice(0, 4)}`.toUpperCase();
-        const dueDate = new Date();
-        dueDate.setDate(dueDate.getDate() + 7);
-
-        const invoice = await storage.createInvoice({
-          appointmentId: appt.id,
-          patientId: appt.patientId,
-          providerId: appt.providerId,
-          invoiceNumber,
-          dueDate,
-          subtotal: appt.totalAmount,
-          taxAmount: "0.00",
-          totalAmount: appt.totalAmount,
-          status: "paid"
-        }, [{
-          invoiceId: "", // Will be set by storage.createInvoice
-          description: "Healthcare Service",
-          quantity: 1,
-          unitPrice: appt.totalAmount,
-          totalPrice: appt.totalAmount,
-          practitionerId: null
-        }]);
-
-        results.push(invoice);
+        const result = await createInvoiceForAppointment(appt.id);
+        if (result.created) results.push(result);
       }
 
       res.json({ message: `Generated ${results.length} invoices`, invoices: results });
@@ -4075,59 +4053,7 @@ export async function registerRoutes(
       // Automatically generate invoice if status is changed to completed and it hasn't been generated yet
       if (status === "completed" && !booking.invoiceGenerated) {
         try {
-          const appointment = await storage.getAppointmentWithDetails(booking.id);
-          if (appointment) {
-            const invoiceNumber = `INV-${Date.now()}-${booking.id.slice(0, 4)}`.toUpperCase();
-            const dueDate = new Date();
-            dueDate.setDate(dueDate.getDate() + 7);
-
-            const invoice = await storage.createInvoice({
-              appointmentId: booking.id,
-              patientId: booking.patientId,
-              providerId: booking.providerId,
-              invoiceNumber,
-              dueDate,
-              subtotal: booking.totalAmount,
-              taxAmount: "0.00",
-              totalAmount: booking.totalAmount,
-              status: "paid"
-            }, [{
-              invoiceId: "", // Will be set by storage.createInvoice
-              description: appointment.service?.name || "Healthcare Service",
-              quantity: 1,
-              unitPrice: booking.totalAmount,
-              totalPrice: booking.totalAmount,
-              practitionerId: null
-            }]);
-
-            // Try to send email
-            if (resend) {
-              const pdfBuffer = await generateInvoicePDF(
-                invoice,
-                appointment.patient,
-                appointment.provider,
-                [{
-                  description: appointment.service?.name || "Healthcare Service",
-                  quantity: 1,
-                  unitPrice: booking.totalAmount,
-                  totalPrice: booking.totalAmount
-                }]
-              );
-
-              await resend.emails.send({
-                from: FROM_EMAIL,
-                to: appointment.patient.email,
-                subject: `Invoice for your appointment ${invoiceNumber}`,
-                text: `Dear ${appointment.patient.firstName}, please find attached the invoice for your recent appointment.`,
-                attachments: [
-                  {
-                    filename: `invoice-${invoiceNumber}.pdf`,
-                    content: pdfBuffer,
-                  },
-                ],
-              });
-            }
-          }
+          await createInvoiceForAppointment(booking.id);
         } catch (genError) {
           console.error("Auto invoice generation error:", genError);
         }

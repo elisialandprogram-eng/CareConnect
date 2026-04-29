@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, integer, decimal, boolean, timestamp, pgEnum, serial, doublePrecision } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, integer, decimal, boolean, timestamp, pgEnum, serial, doublePrecision, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -209,7 +209,11 @@ export const services = pgTable("services", {
   deletedAt: timestamp("deleted_at"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
-});
+}, (t) => [
+  index("idx_services_provider_id").on(t.providerId),
+  index("idx_services_is_active").on(t.isActive),
+  index("idx_services_sub_service_id").on(t.subServiceId),
+]);
 
 export const servicePriceHistory = pgTable("service_price_history", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -276,7 +280,12 @@ export const timeSlots = pgTable("time_slots", {
   endTime: text("end_time").notNull(),
   isBooked: boolean("is_booked").default(false),
   isBlocked: boolean("is_blocked").default(false),
-});
+}, (t) => [
+  index("idx_time_slots_provider_id").on(t.providerId),
+  index("idx_time_slots_date").on(t.date),
+  index("idx_time_slots_provider_date").on(t.providerId, t.date),
+  index("idx_time_slots_is_booked").on(t.isBooked),
+]);
 
 export const appointments = pgTable("appointments", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -310,7 +319,13 @@ export const appointments = pgTable("appointments", {
   googleCalendarEventId: text("google_calendar_event_id"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
-});
+}, (t) => [
+  index("idx_appointments_patient_id").on(t.patientId),
+  index("idx_appointments_provider_id").on(t.providerId),
+  index("idx_appointments_status").on(t.status),
+  index("idx_appointments_date").on(t.date),
+  index("idx_appointments_created_at").on(t.createdAt),
+]);
 
 export const invoices = pgTable("invoices", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -369,7 +384,11 @@ export const payments = pgTable("payments", {
   stripePaymentId: text("stripe_payment_id"),
   stripeSessionId: text("stripe_session_id"),
   createdAt: timestamp("created_at").defaultNow(),
-});
+}, (t) => [
+  index("idx_payments_appointment_id").on(t.appointmentId),
+  index("idx_payments_patient_id").on(t.patientId),
+  index("idx_payments_status").on(t.status),
+]);
 
 export const chatConversations = pgTable("chat_conversations", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
