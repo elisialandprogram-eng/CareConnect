@@ -1,0 +1,96 @@
+Perform a full system audit and validation of my healthcare platform (Golden Life) to ensure the implementation matches the intended architecture and is production-ready.
+
+1. DATABASE SCHEMA VALIDATION
+- Verify existence and structure of tables:
+  categories, services, sub_services, provider_services, practitioners, practitioner_services, appointments
+
+- Ensure required columns exist:
+  - sub_services: base_price, platform_fee, duration_minutes
+  - provider_services: custom_price, platform_fee_override, visit type fees
+  - appointments: appointment_number, provider_service_id, practitioner_id, status, payment_status
+
+- Check data types are correct (arrays, jsonb, numeric, etc.)
+
+2. RELATIONSHIP VALIDATION
+- Verify foreign keys:
+  services.category_id → categories.id
+  sub_services.service_id → services.id
+  provider_services.sub_service_id → sub_services.id
+  practitioner_services.provider_service_id → provider_services.id
+  appointments.provider_service_id → provider_services.id
+
+3. APPOINTMENT FLOW VALIDATION
+- Ensure only valid status transitions exist:
+  REQUESTED → PENDING_PROVIDER_APPROVAL → CONFIRMED → IN_PROGRESS → COMPLETED
+- Ensure invalid transitions are blocked
+
+4. APPOINTMENT NUMBER CHECK
+- Verify appointment_number exists
+- Format must be GL + 6 digits
+- Must be unique and indexed
+- Ensure it is generated only on creation
+
+5. PRICING ENGINE VALIDATION
+- Verify final price calculation uses:
+  base/custom price + platform fee + visit fee + tax
+- Ensure pricing is not duplicated in multiple places
+
+6. SLOT & BOOKING VALIDATION
+- Ensure no double booking (overlapping time slots)
+- Ensure slots are locked when status = CONFIRMED or IN_PROGRESS
+
+7. PROVIDER SYSTEM VALIDATION
+- Ensure providers:
+  - can only access assigned sub_services
+  - can enable/disable services
+  - can assign practitioners
+
+8. ADMIN SYSTEM VALIDATION
+- Verify admin can:
+  - create categories/services/sub-services
+  - assign services to providers
+  - control pricing
+
+9. SOFT DELETE VALIDATION
+- Ensure:
+  - is_active exists on category/service/sub-service
+  - delete actions use soft delete
+  - used services cannot be deleted
+
+10. UI VALIDATION (MODERN DESIGN)
+- Check:
+  - Admin has tree view (Category → Service → Sub-service)
+  - Provider dashboard has service cards/toggles
+  - Booking flow is step-based and smooth
+  - Responsive design is applied
+
+11. INVOICE SYSTEM VALIDATION
+- Ensure:
+  - invoice generated when status = COMPLETED
+  - includes appointment_number
+  - email is triggered
+  - invoice_generated flag updates
+
+12. API VALIDATION
+- Verify endpoints:
+  /admin/*
+  /provider/*
+  /appointments/*
+- Ensure no endpoint uses old schema
+
+13. ERROR & EDGE CASE TESTING
+- Try:
+  - booking unavailable slot
+  - invalid status update
+  - missing practitioner
+  - deleted service booking
+
+14. FINAL REPORT
+- Output:
+  - Missing fields
+  - Broken relations
+  - Incorrect logic
+  - UI gaps
+  - Performance issues
+
+Fix all issues found and ensure system is clean, consistent, and production-ready.

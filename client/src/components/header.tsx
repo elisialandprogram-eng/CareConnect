@@ -12,7 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { User, Calendar, LogOut, Settings, LayoutDashboard, Menu, X, Stethoscope, MessageSquare, Bell, Languages, Wallet, LifeBuoy, Search, HeartPulse, Sparkles, Activity, UserRound } from "lucide-react";
+import { User, Calendar, LogOut, Settings, LayoutDashboard, Menu, X, Stethoscope, MessageSquare, Bell, Languages, Wallet, LifeBuoy, Search, HeartPulse, Sparkles, Activity, UserRound, Tag } from "lucide-react";
 import { useCurrency } from "@/lib/currency";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -127,6 +127,14 @@ export function Header() {
           >
             <Search className="h-4 w-4" strokeWidth={2.5} />
             {t("common.search")}
+          </Link>
+          <Link
+            href="/services"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-bold text-amber-700 dark:text-amber-300 hover:bg-amber-500/10 hover:text-amber-800 dark:hover:text-amber-200 transition-all"
+            data-testid="link-services"
+          >
+            <Tag className="h-4 w-4" strokeWidth={2.5} />
+            {t("common.services", "Services")}
           </Link>
           <Link
             href="/providers?type=physiotherapist"

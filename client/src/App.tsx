@@ -15,6 +15,7 @@ import NotFound from "@/pages/not-found";
 
 // Heavier pages — lazy-loaded so the initial bundle stays small.
 const Providers = lazy(() => import("@/pages/providers"));
+const Services = lazy(() => import("@/pages/services"));
 const ProviderProfile = lazy(() => import("@/pages/provider-profile"));
 const Booking = lazy(() => import("@/pages/booking"));
 const PatientDashboard = lazy(() => import("@/pages/patient-dashboard"));
@@ -88,6 +89,7 @@ function Router() {
           <Route path="/login" component={Login} />
           <Route path="/register" component={Register} />
           <Route path="/providers" component={Providers} />
+          <Route path="/services" component={Services} />
           <Route path="/dashboard" component={PatientDashboard} />
           <Route path="/patient/dashboard" component={PatientDashboard} />
           <Route path="/provider/dashboard" component={ProviderDashboard} />

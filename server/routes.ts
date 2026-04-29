@@ -1048,6 +1048,81 @@ export async function registerRoutes(
     }
   });
 
+  // Public catalog browse: groups sub-services under their category and annotates
+  // each with provider count and starting price across all active provider services.
+  app.get("/api/browse/services", async (req, res) => {
+    try {
+      const q = typeof req.query.q === "string" ? req.query.q.trim().toLowerCase() : "";
+      const [cats, subs, allProviders, allSvcs] = await Promise.all([
+        storage.getAllCategories(false),
+        storage.getAllSubServices(),
+        storage.getAllProviders(),
+        db.select().from(services).where(eq(services.isActive, true)),
+      ]);
+      const activeProviderIds = new Set(allProviders.filter((p: any) => p.isActive !== false && p.isVerified !== false).map((p: any) => p.id));
+      const liveSvcs = allSvcs.filter((s: any) => !s.deletedAt && activeProviderIds.has(s.providerId));
+      const bySub = new Map<string, any[]>();
+      for (const s of liveSvcs) {
+        if (!s.subServiceId) continue;
+        const arr = bySub.get(s.subServiceId) || [];
+        arr.push(s);
+        bySub.set(s.subServiceId, arr);
+      }
+      const subsActive = subs.filter((s: any) => s.isActive !== false && !s.deletedAt);
+      const filteredSubs = q
+        ? subsActive.filter((s: any) =>
+            s.name?.toLowerCase().includes(q) ||
+            (s.description || "").toLowerCase().includes(q)
+          )
+        : subsActive;
+      const result = cats
+        .filter((c: any) => c.isActive !== false && !c.deletedAt)
+        .map((c: any) => {
+          const childSubs = filteredSubs
+            .filter((s: any) => s.category === c.slug)
+            .map((s: any) => {
+              const offered = bySub.get(s.id) || [];
+              const providerIds = new Set(offered.map((o: any) => o.providerId));
+              const prices = offered
+                .map((o: any) => Number(o.price))
+                .filter((n: number) => Number.isFinite(n) && n > 0);
+              const startingPrice = prices.length ? Math.min(...prices) : Number(s.basePrice ?? 0) || null;
+              return {
+                id: s.id,
+                name: s.name,
+                description: s.description ?? null,
+                durationMinutes: s.durationMinutes ?? null,
+                providerCount: providerIds.size,
+                startingPrice,
+                basePrice: Number(s.basePrice ?? 0) || null,
+              };
+            })
+            .sort((a: any, b: any) => b.providerCount - a.providerCount || a.name.localeCompare(b.name));
+          const totalProviders = new Set<string>();
+          childSubs.forEach((cs: any) => {
+            const offered = bySub.get(cs.id) || [];
+            offered.forEach((o: any) => totalProviders.add(o.providerId));
+          });
+          return {
+            id: c.id,
+            slug: c.slug,
+            name: c.name,
+            description: c.description ?? null,
+            icon: c.icon ?? null,
+            subServiceCount: childSubs.length,
+            providerCount: totalProviders.size,
+            subServices: childSubs,
+          };
+        })
+        .filter((c: any) => !q || c.subServices.length > 0);
+      res.setHeader("Cache-Control", "public, max-age=60");
+      res.json(result);
+    } catch (error) {
+      console.error("Browse services error:", error);
+      res.status(500).json({ message: "Failed to load services" });
+    }
+  });
+
   // Public list of sub-services (used by provider dashboard service-form to populate categories)
   // Supports optional ?category= filter (e.g. physiotherapist, doctor, nurse)
   app.get("/api/sub-services", async (req, res) => {
