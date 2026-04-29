@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -19,6 +20,7 @@ import {
   Loader2, ChevronLeft, ChevronRight, Check,
   Stethoscope, Layers, Users, User, Calendar, ClipboardList,
   Star, MapPin, Clock, DollarSign, Heart, Tag, ArrowRight,
+  Sparkles, Locate, Home,
 } from "lucide-react";
 
 /* ────────────────────────────────────────────────────────────────── */
@@ -110,6 +112,33 @@ export default function BookWizard() {
   const [promoCode,   setPromoCode]   = useState("");
   const [consent,     setConsent]     = useState(false);
   const [payMethod,   setPayMethod]   = useState("card");
+  const [address,     setAddress]     = useState("");
+  const [latitude,    setLatitude]    = useState<number | null>(null);
+  const [longitude,   setLongitude]   = useState<number | null>(null);
+  const [locating,    setLocating]    = useState(false);
+  const [autoAssigned, setAutoAssigned] = useState(false);
+  const [autoAssignBusy, setAutoAssignBusy] = useState(false);
+
+  const handleUseCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      toast({ title: "Location unavailable", description: "Your browser doesn't support geolocation.", variant: "destructive" });
+      return;
+    }
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      pos => {
+        setLatitude(pos.coords.latitude);
+        setLongitude(pos.coords.longitude);
+        setLocating(false);
+        toast({ title: "Location captured", description: "Coordinates added to the booking." });
+      },
+      err => {
+        setLocating(false);
+        toast({ title: "Couldn't get your location", description: err.message, variant: "destructive" });
+      },
+      { enableHighAccuracy: true, timeout: 10_000 },
+    );
+  };
 
   // Pre-fill contact from user profile
   useEffect(() => {
@@ -183,6 +212,10 @@ export default function BookWizard() {
 
   const handleConfirm = () => {
     if (!selectedProvider || !selectedSlot) return;
+    // Generate a stable idempotency key so a double-tap doesn't book twice.
+    const idemKey = (typeof crypto !== "undefined" && "randomUUID" in crypto)
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
     bookMut.mutate({
       providerId: selectedProvider.id,
       serviceId: providerService?.id,
@@ -197,7 +230,42 @@ export default function BookWizard() {
       contactMobile: contactPhone,
       promoCode: promoCode.trim() || undefined,
       totalAmount: quote?.total?.toString(),
+      patientAddress: visitType === "online" ? null : (address.trim() || null),
+      patientLatitude: visitType === "online" ? null : latitude,
+      patientLongitude: visitType === "online" ? null : longitude,
+      idempotencyKey: idemKey,
     });
+  };
+
+  const handleAutoAssign = async () => {
+    if (!providerService?.id) return;
+    setAutoAssignBusy(true);
+    try {
+      const res = await fetch(`/api/services/${providerService.id}/auto-practitioner`, {
+        credentials: "include",
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data?.message || "Auto-assign failed");
+      }
+      const data = await res.json();
+      const p = data.practitioner;
+      setSelectedPract({
+        id: p.id,
+        name: `${p.firstName ?? p.name ?? ""} ${p.lastName ?? ""}`.trim() || p.name || "Practitioner",
+        title: p.title,
+        specialization: p.specialization,
+        experienceYears: p.experienceYears,
+        avatarUrl: p.avatarUrl,
+      });
+      setAutoAssigned(true);
+      toast({ title: "Practitioner assigned", description: "We picked the most available specialist for you." });
+      setStep(s => Math.max(s, 4));
+    } catch (e: any) {
+      toast({ title: "Couldn't auto-assign", description: e?.message || "Please pick a practitioner manually.", variant: "destructive" });
+    } finally {
+      setAutoAssignBusy(false);
+    }
   };
 
   /* ── Navigation helpers ── */
@@ -218,7 +286,12 @@ export default function BookWizard() {
       case 2: return !!selectedProvider;
       case 3: return true; // practitioner optional
       case 4: return !!selectedSlot;
-      case 5: return consent && contactName.trim().length > 0;
+      case 5: {
+        if (!consent || contactName.trim().length === 0) return false;
+        // Address is required for home visits; ignored for online; optional for clinic.
+        if (visitType === "home" && address.trim().length === 0) return false;
+        return true;
+      }
       default: return false;
     }
   };
@@ -238,7 +311,7 @@ export default function BookWizard() {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <div className="border-b bg-card sticky top-0 z-10">
-        <div className="max-w-3xl mx-auto px-4 py-4">
+        <div className="max-w-6xl mx-auto px-4 py-4">
           <div className="flex items-center gap-3 mb-4">
             <button type="button" onClick={() => navigate("/")} className="text-muted-foreground hover:text-foreground transition-colors">
               <ChevronLeft className="h-5 w-5" />
@@ -250,7 +323,10 @@ export default function BookWizard() {
         </div>
       </div>
 
-      <div className="max-w-3xl mx-auto px-4 py-6">
+      <div className="max-w-6xl mx-auto px-4 py-6">
+        <div className="grid lg:grid-cols-3 gap-8">
+          {/* Left column: step content + navigation */}
+          <div className="lg:col-span-2 min-w-0">
 
         {/* ── Step 0: Category ── */}
         {step === 0 && (
@@ -403,6 +479,31 @@ export default function BookWizard() {
               <h2 className="text-xl font-bold">Choose a practitioner</h2>
               <p className="text-muted-foreground text-sm mt-1">Optional — or <button type="button" onClick={goNext} className="text-primary underline-offset-2 hover:underline">skip to continue</button></p>
             </div>
+
+            {/* Auto-assign best available practitioner */}
+            {practitioners.length > 0 && (
+              <button
+                type="button"
+                onClick={handleAutoAssign}
+                disabled={autoAssignBusy}
+                data-testid="button-auto-assign-practitioner"
+                className="w-full text-left p-4 rounded-xl border-2 border-dashed border-primary/40 hover:border-primary bg-primary/5 hover:bg-primary/10 transition-all disabled:opacity-60"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-primary/15 flex items-center justify-center shrink-0">
+                    {autoAssignBusy ? <Loader2 className="h-5 w-5 animate-spin text-primary" /> : <Sparkles className="h-5 w-5 text-primary" />}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-sm">Auto-assign best available</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">We'll pick the most available specialist on this team for you.</p>
+                  </div>
+                  {autoAssigned && selectedPract && (
+                    <Badge className="bg-primary/15 text-primary border-primary/30">Assigned: {selectedPract.name}</Badge>
+                  )}
+                </div>
+              </button>
+            )}
+
             {loadingPracts ? (
               <div className="flex justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
             ) : practitioners.length === 0 ? (
@@ -571,6 +672,51 @@ export default function BookWizard() {
               </div>
             </div>
 
+            {/* Address (conditional on visit type) */}
+            {visitType !== "online" && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="address">
+                    {visitType === "home" ? <>Home visit address <span className="text-destructive">*</span></> : "Address (optional)"}
+                  </Label>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleUseCurrentLocation}
+                    disabled={locating}
+                    data-testid="button-use-current-location"
+                    className="h-7 text-xs"
+                  >
+                    {locating ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Locate className="h-3 w-3 mr-1" />}
+                    Use my current location
+                  </Button>
+                </div>
+                <Textarea
+                  id="address"
+                  value={address}
+                  onChange={e => setAddress(e.target.value)}
+                  placeholder={visitType === "home"
+                    ? "Street, building, floor, doorbell, city, postcode…"
+                    : "Optional notes about the address"
+                  }
+                  rows={3}
+                  data-testid="input-address"
+                />
+                {latitude !== null && longitude !== null && (
+                  <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+                    <MapPin className="h-3 w-3 text-primary" />
+                    Coordinates captured: {latitude.toFixed(5)}, {longitude.toFixed(5)}
+                  </p>
+                )}
+                {visitType === "home" && (
+                  <p className="text-xs text-muted-foreground">
+                    The practitioner will use this address to reach you.
+                  </p>
+                )}
+              </div>
+            )}
+
             {/* Promo code */}
             <div className="space-y-1">
               <Label htmlFor="promo">Promo code (optional)</Label>
@@ -621,6 +767,110 @@ export default function BookWizard() {
               Confirm Booking
             </Button>
           )}
+        </div>
+
+          </div>
+          {/* Right column: sticky live summary (desktop only) */}
+          <aside className="hidden lg:block">
+            <div className="sticky top-32 space-y-3">
+              <Card className="border-2">
+                <CardContent className="p-5 space-y-4">
+                  <div className="flex items-center gap-2">
+                    <ClipboardList className="h-4 w-4 text-primary" />
+                    <h3 className="font-semibold text-sm uppercase tracking-wide text-muted-foreground">Your booking</h3>
+                  </div>
+
+                  <div className="space-y-2.5 text-sm">
+                    {selectedCategory && (
+                      <div className="flex items-start justify-between gap-3">
+                        <span className="text-muted-foreground shrink-0">Category</span>
+                        <span className="font-medium text-right">{selectedCategory.name}</span>
+                      </div>
+                    )}
+                    {selectedSub && (
+                      <div className="flex items-start justify-between gap-3">
+                        <span className="text-muted-foreground shrink-0">Service</span>
+                        <span className="font-medium text-right">{selectedSub.name}</span>
+                      </div>
+                    )}
+                    {selectedProvider && (
+                      <div className="flex items-start justify-between gap-3">
+                        <span className="text-muted-foreground shrink-0">Provider</span>
+                        <span className="font-medium text-right">{selectedProvider.firstName} {selectedProvider.lastName}</span>
+                      </div>
+                    )}
+                    {selectedPract && (
+                      <div className="flex items-start justify-between gap-3">
+                        <span className="text-muted-foreground shrink-0">Practitioner</span>
+                        <span className="font-medium text-right flex items-center gap-1">
+                          {autoAssigned && <Sparkles className="h-3 w-3 text-primary" />}
+                          {selectedPract.name}
+                        </span>
+                      </div>
+                    )}
+                    {selectedSlot && (
+                      <>
+                        <div className="flex items-start justify-between gap-3">
+                          <span className="text-muted-foreground shrink-0">Date</span>
+                          <span className="font-medium text-right">{new Date(selectedSlot.date + "T12:00:00").toLocaleDateString("en", { weekday: "short", month: "short", day: "numeric" })}</span>
+                        </div>
+                        <div className="flex items-start justify-between gap-3">
+                          <span className="text-muted-foreground shrink-0">Time</span>
+                          <span className="font-medium text-right">{selectedSlot.startTime} – {selectedSlot.endTime}</span>
+                        </div>
+                      </>
+                    )}
+                    {step >= 5 && (
+                      <div className="flex items-start justify-between gap-3">
+                        <span className="text-muted-foreground shrink-0">Visit type</span>
+                        <span className="font-medium text-right capitalize flex items-center gap-1">
+                          {visitType === "home" && <Home className="h-3 w-3" />}
+                          {visitType === "online" ? "Online" : visitType === "home" ? "Home visit" : "In-clinic"}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Pricing breakdown */}
+                  <div className="border-t pt-3">
+                    {quotingPrice ? (
+                      <div className="flex items-center gap-2 text-muted-foreground text-sm">
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        Calculating…
+                      </div>
+                    ) : quote ? (
+                      <div className="space-y-1.5">
+                        {quote.lines?.map((l: any, i: number) => (
+                          <div key={i} className={`flex justify-between text-xs ${l.amount < 0 ? "text-green-600" : "text-muted-foreground"}`}>
+                            <span>{l.label}</span>
+                            <span className="font-medium">{l.amount < 0 ? "-" : ""}{fmtMoney(Math.abs(l.amount))}</span>
+                          </div>
+                        ))}
+                        <div className="flex justify-between font-bold text-base pt-2 border-t mt-2">
+                          <span>Total</span>
+                          <span data-testid="text-summary-total">{fmtMoney(quote.total)}</span>
+                        </div>
+                      </div>
+                    ) : selectedSub ? (
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Estimated</span>
+                        <span className="font-medium">From {fmtMoney(selectedSub.basePrice)}</span>
+                      </div>
+                    ) : (
+                      <p className="text-xs text-muted-foreground italic">Select a service to see pricing.</p>
+                    )}
+                  </div>
+
+                  {step >= 5 && payMethod && (
+                    <div className="flex items-center justify-between text-xs pt-2 border-t">
+                      <span className="text-muted-foreground">Paying with</span>
+                      <span className="font-medium capitalize">{payMethod.replace("_", " ")}</span>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          </aside>
         </div>
       </div>
     </div>

@@ -232,3 +232,11 @@ How slots are created in the first place: providers publish a weekly grid (`clie
 9. ✅ **Slot release on every terminal transition.** `PATCH /api/appointments/:id/status` now releases the time slot whenever the new status is `cancelled`, `cancelled_by_patient`, `cancelled_by_provider`, `rejected`, `expired`, or `no_show`. Cron-driven expirations and stale cancellations free the slot too.
 
 10. ✅ **Idempotency-Key supported on `POST /api/appointments`.** Clients can send `Idempotency-Key: <uuid>`; matching keys (per user) within 10 minutes return the original response instead of creating a second appointment. In-memory cache — single-process only; swap for shared storage if scaling out.
+
+11. ✅ **Wizard now captures address.** `book-wizard.tsx` was sending the booking with no `patientAddress` / `patientLatitude` / `patientLongitude` — even for home visits. The confirm step now shows a textarea + a "Use my current location" button (HTML5 geolocation) that fills lat/long; the address is required when `visitType === "home"`, optional for clinic, hidden for online. The wizard also now generates a fresh `idempotencyKey` per click of Confirm.
+
+12. ✅ **Auto-assign best-available practitioner.** New `GET /api/services/:serviceId/auto-practitioner` endpoint ranks active practitioners assigned to a service by lowest current load (count of pending/approved/confirmed/rescheduled appointments in the next 7 days), tie-broken by `experienceYears`. The wizard's Practitioner step renders an "Auto-assign best available" card at the top that calls the endpoint and pre-selects the winner.
+
+13. ✅ **Sticky right-side summary card.** Wizard layout switched from a single `max-w-3xl` column to a `max-w-6xl` 2-column grid on `lg+`: step content on the left, a `sticky top-32` "Your booking" summary card on the right that updates in real-time as the user moves through the steps (category, service, provider, practitioner, date/time, visit type, pricing breakdown, payment method). Mobile keeps the original single-column layout.
+
+14. ⏳ **Partial wallet usage** (spec §7) — currently wallet is full-or-nothing. Adding a slider/toggle to use a portion of the balance is straightforward on the UI side, but the backend cancel/refund flow needs careful work to refund the right amount on cancellation. Deferred for a focused change.

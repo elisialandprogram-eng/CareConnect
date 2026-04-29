@@ -36,7 +36,7 @@ import {
 import crypto from 'crypto'; // Import crypto module for randomUUID
 import { Resend } from 'resend';
 import { db } from "./db";
-import { eq, and, desc, or, gte, like, inArray } from "drizzle-orm";
+import { eq, and, desc, or, gte, lte, like, inArray } from "drizzle-orm";
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 const FROM_EMAIL = "GoldenLife <no-reply@goldenlife.health>";
@@ -518,6 +518,57 @@ export async function registerRoutes(
       res.status(204).end();
     } catch (error) {
       res.status(500).json({ message: "Failed to delete tax setting" });
+    }
+  });
+
+  // Auto-pick the best available practitioner for a service: lowest current
+  // load (fewest pending/confirmed appointments in the next 7 days), tie-broken
+  // by years of experience. Used by the booking wizard's "Auto-assign" option.
+  app.get("/api/services/:serviceId/auto-practitioner", authenticateToken, async (req: AuthRequest, res: Response) => {
+    try {
+      const sps = await storage.getServicePractitioners(req.params.serviceId);
+      const active = sps.filter(p => p.isActive !== false && p.practitioner);
+      if (active.length === 0) {
+        return res.status(404).json({ message: "No practitioners are assigned to this service yet." });
+      }
+
+      const today = new Date().toISOString().slice(0, 10);
+      const inAWeek = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+      const practIds = active.map(p => p.practitionerId);
+
+      const upcoming = practIds.length
+        ? await db.select({ practitionerId: appointments.practitionerId })
+            .from(appointments)
+            .where(and(
+              inArray(appointments.practitionerId, practIds),
+              gte(appointments.date, today),
+              lte(appointments.date, inAWeek),
+              inArray(appointments.status, ["pending", "approved", "confirmed", "rescheduled"]),
+            ))
+        : [];
+
+      const loadByPract = new Map<string, number>(practIds.map(id => [id, 0]));
+      for (const u of upcoming) {
+        if (!u.practitionerId) continue;
+        loadByPract.set(u.practitionerId, (loadByPract.get(u.practitionerId) || 0) + 1);
+      }
+
+      const ranked = [...active].sort((a, b) => {
+        const loadA = loadByPract.get(a.practitionerId) || 0;
+        const loadB = loadByPract.get(b.practitionerId) || 0;
+        if (loadA !== loadB) return loadA - loadB;
+        return (b.practitioner?.experienceYears || 0) - (a.practitioner?.experienceYears || 0);
+      });
+
+      const winner = ranked[0];
+      res.json({
+        practitioner: winner.practitioner,
+        fee: winner.fee,
+        currentLoad: loadByPract.get(winner.practitionerId) || 0,
+      });
+    } catch (error) {
+      console.error("[auto-practitioner] error:", error);
+      res.status(500).json({ message: "Failed to auto-assign a practitioner." });
     }
   });
 
