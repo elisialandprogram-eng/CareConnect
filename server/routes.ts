@@ -1845,7 +1845,17 @@ export async function registerRoutes(
 
   app.patch("/api/services/:id", authenticateToken, async (req: AuthRequest, res) => {
     try {
-      const service = await storage.updateService(req.params.id, req.body);
+      // Ownership check: admins can edit any service; providers can only edit services
+      // they were assigned (services.providerId = their provider record).
+      const svc = await storage.getService(req.params.id);
+      if (!svc) return res.status(404).json({ message: "Service not found" });
+      if (req.user?.role !== "admin") {
+        const provider = await storage.getProviderByUserId(req.user!.id);
+        if (!provider || provider.id !== svc.providerId) {
+          return res.status(403).json({ message: "You can only edit services assigned to you" });
+        }
+      }
+      const service = await storage.updateService(req.params.id, req.body, { changedBy: req.user?.id });
       res.json(service);
     } catch (error) {
       res.status(400).json({ message: "Failed to update service" });
@@ -1856,6 +1866,14 @@ export async function registerRoutes(
     try {
       const force = req.query.force === "true" && req.user?.role === "admin";
       const existing = await storage.getService(req.params.id);
+      if (!existing) return res.status(404).json({ message: "Service not found" });
+      // Ownership check: admins can delete any service; providers only their own.
+      if (req.user?.role !== "admin") {
+        const provider = await storage.getProviderByUserId(req.user!.id);
+        if (!provider || provider.id !== existing.providerId) {
+          return res.status(403).json({ message: "You can only delete services assigned to you" });
+        }
+      }
       const result = await storage.deleteService(req.params.id, { force });
       if ("soft" in result && result.soft) {
         return res.json({ ok: true, archived: true, message: existing ? `"${existing.name}" archived because past bookings reference it. Pricing history preserved.` : "Archived." });
@@ -4368,6 +4386,38 @@ export async function registerRoutes(
       res.status(500).json({ message: "Failed to create service" });
     }
   });
+
+  // Bulk-assign sub-services from the catalog to a provider. For each sub-service id
+  // a `services` row is created (provider × sub-service × default price/duration). Already-
+  // linked sub-services are skipped, not duplicated.
+  app.post(
+    "/api/admin/providers/:id/assign-services",
+    authenticateToken,
+    requireAdmin,
+    async (req: AuthRequest, res: Response) => {
+      try {
+        const schema = z.object({ subServiceIds: z.array(z.string().uuid()).min(1).max(200) });
+        const { subServiceIds } = schema.parse(req.body);
+
+        const provider = await storage.getProvider(req.params.id);
+        if (!provider) return res.status(404).json({ message: "Provider not found" });
+
+        const result = await storage.assignSubServicesToProvider(provider.id, subServiceIds);
+        res.status(201).json({
+          assignedCount: result.assigned.length,
+          skippedCount: result.skipped.length,
+          assigned: result.assigned,
+          skipped: result.skipped,
+        });
+      } catch (e: any) {
+        if (e?.name === "ZodError") {
+          return res.status(400).json({ message: e.errors?.[0]?.message || "Invalid payload" });
+        }
+        console.error("assign-services error", e);
+        res.status(500).json({ message: "Failed to assign services" });
+      }
+    },
+  );
 
   app.patch("/api/admin/services/:id", authenticateToken, requireAdmin, async (req: AuthRequest, res: Response) => {
     try {

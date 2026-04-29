@@ -69,6 +69,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import type { User, ProviderWithUser, PromoCode, ProviderPricingOverride, SubService, Practitioner, ServicePractitioner, Service } from "@shared/schema";
 import { ServiceFormDialog } from "@/components/service-form-dialog";
+import { AssignServicesDialog } from "@/components/assign-services-dialog";
 import { ServiceCatalogHierarchy } from "@/components/service-catalog-hierarchy";
 import { useLocation } from "wouter";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from "recharts";
@@ -306,18 +307,29 @@ function AdminServicesPanel({
 
         <TabsContent value="services" className="space-y-4 pt-4">
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
+            <CardHeader className="flex flex-row items-center justify-between gap-2">
               <CardTitle>{t("admin.services", "Services")}</CardTitle>
-              <Button
-                size="sm"
-                onClick={() => {
-                  setEditingService(null);
-                  setServiceFormOpen(true);
-                }}
-                data-testid="button-admin-add-service"
-              >
-                <Plus className="h-4 w-4 mr-1" /> {t("admin.add", "Add")}
-              </Button>
+              <div className="flex gap-2">
+                <AssignServicesDialog
+                  providerId={providerId}
+                  onAssigned={refetchServices}
+                  trigger={
+                    <Button size="sm" variant="outline" data-testid="button-admin-assign-from-catalog">
+                      <ListTree className="h-4 w-4 mr-1" /> {t("admin.assign_from_catalog", "Assign from catalog")}
+                    </Button>
+                  }
+                />
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    setEditingService(null);
+                    setServiceFormOpen(true);
+                  }}
+                  data-testid="button-admin-add-service"
+                >
+                  <Plus className="h-4 w-4 mr-1" /> {t("admin.add", "Add")}
+                </Button>
+              </div>
             </CardHeader>
             <CardContent className="space-y-2">
               {!services?.length && (

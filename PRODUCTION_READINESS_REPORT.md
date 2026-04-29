@@ -189,3 +189,53 @@ The application starts cleanly, returns 200/304 on existing endpoints, and the p
 | Info | No `staff` / `provider_services` legacy tables exist; current schema is consistent | Confirmed |
 
 **Files touched in this pass:** `server/routes.ts` only.
+
+---
+
+## 10. Catalog → Provider Service Assignment (admin workflow)
+
+The admin needs a fast way to grant a provider a batch of bookable sub-services drawn from the global catalog (`sub_services`), without filling in name/price/duration for each one. The previous flow only offered a one-by-one form.
+
+### 10.1 Data model (no schema change)
+
+Confirmed via the live database: there is **no** `provider_services` join table — the existing `services` table *is* the provider × sub_service join. Each row already carries `(providerId, subServiceId, name, price, duration, isActive, …)`. So "assigning" a sub-service to a provider simply means inserting a `services` row with the catalog defaults; nothing else needs to change for bookings to work, since `appointments.service_id → services.id` already enforces that bookings only target a provider's actual offerings.
+
+### 10.2 Backend
+
+- **`server/storage.ts` → `assignSubServicesToProvider(providerId, subServiceIds[])`** (added after `createService`). Loads each sub-service, skips ones that are missing, inactive, or already assigned to that provider; for the rest, inserts a `services` row using the catalog `name`, `basePrice`, `durationMinutes`, and `category`. Returns `{ assigned: Service[], skipped: { subServiceId, reason }[] }` — `reason ∈ { not_found, inactive, already_assigned }`.
+- **`POST /api/admin/providers/:id/assign-services`** (`server/routes.ts` ~4396). `requireAdmin`-gated. Body validated with Zod: `{ subServiceIds: z.array(z.string().uuid()).min(1).max(200) }`. Returns `201 { assignedCount, skippedCount, assigned, skipped }`.
+- **Ownership guards added** on the existing per-service endpoints so providers can only mutate the rows they own (admins still pass):
+  - `PATCH /api/services/:id` (line 1849)
+  - `DELETE /api/services/:id` (line 1868)
+
+### 10.3 Frontend
+
+- **`client/src/components/assign-services-dialog.tsx`** — new dialog. Loads `/api/categories`, `/api/catalog-services`, `/api/sub-services` and renders a Category → Service-group → Sub-service tree with search filter, expand/collapse, select-all-in-category, and "already assigned" badges sourced from `/api/admin/providers/:id/services`. Submit posts to the new endpoint and invalidates the provider-services cache.
+- **`client/src/pages/admin-dashboard.tsx`** — `AdminServicesPanel` now exposes an "Assign from catalog" button next to the existing "Add" button (visible from both the provider edit dialog and the provider details dialog). The single-service form remains for ad-hoc cases.
+
+### 10.4 Verified live (smoke test against Supabase)
+
+```
+[1] First call    POST .../assign-services {3 ids} → 201   assigned=3, skipped=0
+    DB rows created with sub-service defaults (name, $0.00, 30m, active)
+[2] Idempotency   same payload again              → 201   assigned=0, skipped=3 (already_assigned)
+[3] Foreign provider PATCH /api/services/:id      → 403 ✅ denied
+[4] Foreign provider DELETE /api/services/:id     → 403 ✅ denied
+[5] Owning provider PATCH /api/services/:id       → 200 ✅ price updated
+```
+
+Test rows were cleaned up afterwards. No bookings, practitioners, or pricing rows were touched.
+
+### 10.5 Summary
+
+| Severity | Item | Status |
+|---:|---|---|
+| Feature | Bulk catalog → provider assignment via admin UI | **Shipped** |
+| P1 | Ownership check on `PATCH /api/services/:id` | **Fixed** |
+| P1 | Ownership check on `DELETE /api/services/:id` | **Fixed** |
+
+**Files touched in this pass:**
+- `server/storage.ts` (+ `assignSubServicesToProvider`)
+- `server/routes.ts` (new admin endpoint + 2 ownership guards)
+- `client/src/components/assign-services-dialog.tsx` (new)
+- `client/src/pages/admin-dashboard.tsx` (button wire-in + import)

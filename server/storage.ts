@@ -213,6 +213,10 @@ export interface IStorage {
   getService(id: string): Promise<Service | undefined>;
   getServicesByProvider(providerId: string): Promise<Service[]>;
   createService(service: InsertService): Promise<Service>;
+  assignSubServicesToProvider(
+    providerId: string,
+    subServiceIds: string[],
+  ): Promise<{ assigned: Service[]; skipped: { subServiceId: string; reason: string }[] }>;
   updateService(id: string, data: Partial<InsertService>, opts?: { changedBy?: string; reason?: string }): Promise<Service | undefined>;
   deleteService(id: string, opts?: { force?: boolean }): Promise<{ ok: true; soft: boolean } | { ok: false; reason: string; appointmentCount: number }>;
   restoreService(id: string): Promise<Service | undefined>;
@@ -906,6 +910,54 @@ export class DatabaseStorage implements IStorage {
   async createService(service: InsertService): Promise<Service> {
     const [newService] = await db.insert(services).values(service).returning();
     return newService;
+  }
+
+  async assignSubServicesToProvider(
+    providerId: string,
+    subServiceIds: string[],
+  ): Promise<{ assigned: Service[]; skipped: { subServiceId: string; reason: string }[] }> {
+    const assigned: Service[] = [];
+    const skipped: { subServiceId: string; reason: string }[] = [];
+    const existing = await db
+      .select({ id: services.id, subServiceId: services.subServiceId })
+      .from(services)
+      .where(eq(services.providerId, providerId));
+    const alreadyLinked = new Set(existing.map((r) => r.subServiceId).filter(Boolean) as string[]);
+
+    for (const subServiceId of subServiceIds) {
+      if (alreadyLinked.has(subServiceId)) {
+        skipped.push({ subServiceId, reason: "already_assigned" });
+        continue;
+      }
+      const sub = await this.getSubService(subServiceId);
+      if (!sub) {
+        skipped.push({ subServiceId, reason: "sub_service_not_found" });
+        continue;
+      }
+      if (sub.deletedAt || sub.isActive === false) {
+        skipped.push({ subServiceId, reason: "sub_service_inactive" });
+        continue;
+      }
+      try {
+        const [created] = await db
+          .insert(services)
+          .values({
+            providerId,
+            subServiceId: sub.id,
+            name: sub.name,
+            description: sub.description ?? null,
+            duration: sub.durationMinutes ?? 30,
+            price: sub.basePrice ?? "0.00",
+            isActive: true,
+          } as InsertService)
+          .returning();
+        assigned.push(created);
+        alreadyLinked.add(sub.id);
+      } catch (e: any) {
+        skipped.push({ subServiceId, reason: e?.message || "insert_failed" });
+      }
+    }
+    return { assigned, skipped };
   }
 
   async updateService(id: string, data: Partial<InsertService>, opts?: { changedBy?: string; reason?: string }): Promise<Service | undefined> {
