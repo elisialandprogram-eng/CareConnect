@@ -2,6 +2,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { Link, useLocation } from "wouter";
 import { useState, useEffect } from "react";
+import { formatDate as formatDateTz } from "@/lib/datetime";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Header } from "@/components/header";
@@ -294,8 +295,7 @@ export default function PatientDashboard() {
   };
 
   const formatDate = (dateStr: string) => {
-    const d = new Date(dateStr);
-    return d.toLocaleDateString("en-US", {
+    return formatDateTz(dateStr, {
       weekday: "short",
       month: "short",
       day: "numeric",

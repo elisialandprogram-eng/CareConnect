@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import { Calendar, Clock, User, MapPin, Video, Building, Star, MessageSquare, RefreshCw } from "lucide-react";
+import { formatDate } from "@/lib/datetime";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -276,7 +277,7 @@ export default function Appointments() {
                     <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
                       <div className="flex items-center gap-1">
                         <Calendar className="h-4 w-4" />
-                        {new Date(appointment.date).toLocaleDateString()}
+                        {formatDate(appointment.date)}
                       </div>
                       <div className="flex items-center gap-1">
                         <Clock className="h-4 w-4" />

@@ -2,9 +2,13 @@ import { createContext, useContext, useState, useEffect, useCallback } from "rea
 import type { User } from "@shared/schema";
 import { apiRequest } from "./queryClient";
 import i18n from "./i18n";
+import { setUserTimezone } from "./datetime";
 
-function applyUserPreferences(user: Pick<User, "languagePreference" | "preferredCurrency"> | null) {
-  if (!user) return;
+function applyUserPreferences(user: Pick<User, "languagePreference" | "preferredCurrency" | "timezone"> | null) {
+  if (!user) {
+    setUserTimezone(null);
+    return;
+  }
   if (user.languagePreference && user.languagePreference !== i18n.language) {
     void i18n.changeLanguage(user.languagePreference);
   }
@@ -17,6 +21,7 @@ function applyUserPreferences(user: Pick<User, "languagePreference" | "preferred
       }
     } catch {}
   }
+  setUserTimezone(user.timezone ?? null);
 }
 
 interface AuthContextType {

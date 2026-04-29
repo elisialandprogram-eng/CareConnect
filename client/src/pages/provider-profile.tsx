@@ -695,8 +695,8 @@ export default function ProviderProfile() {
                   </p>
                   <WaitlistJoinButton
                     providerId={provider.id}
-                    providerName={provider.businessName}
-                    serviceId={effectiveService?.id}
+                    providerName={displayName}
+                    serviceId={selectedService?.id}
                     variant="ghost"
                     className="w-full text-xs"
                   />

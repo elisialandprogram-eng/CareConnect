@@ -42,6 +42,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth";
+import { formatDate } from "@/lib/datetime";
 import { useCurrency } from "@/lib/currency";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { AppointmentActionDialog, type AppointmentAction } from "@/components/appointment/AppointmentActionDialog";
@@ -189,16 +190,12 @@ export default function BookingConfirmation() {
 
   const prettyDate = useMemo(() => {
     if (!appt?.date) return "";
-    try {
-      return new Date(`${appt.date}T12:00:00`).toLocaleDateString(undefined, {
-        weekday: "long",
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-      });
-    } catch {
-      return appt.date;
-    }
+    return formatDate(`${appt.date}T12:00:00`, {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    }) || appt.date;
   }, [appt]);
 
   const locationLine: string | null = useMemo(() => {

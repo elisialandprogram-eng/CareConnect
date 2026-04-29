@@ -39,6 +39,7 @@ import {
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import { useCurrency } from "@/lib/currency";
+import { formatDate, formatDateTime } from "@/lib/datetime";
 import {
   AppointmentActionDialog,
   type AppointmentAction,
@@ -137,16 +138,12 @@ export default function AppointmentDetails() {
 
   const prettyDate = useMemo(() => {
     if (!appt?.date) return "";
-    try {
-      return new Date(`${appt.date}T12:00:00`).toLocaleDateString(undefined, {
-        weekday: "long",
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-      });
-    } catch {
-      return appt.date;
-    }
+    return formatDate(`${appt.date}T12:00:00`, {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    }) || appt.date;
   }, [appt]);
 
   const locationLine = useMemo(() => {
@@ -540,18 +537,7 @@ function actorDisplay(ev: AppointmentEventRow): string {
 }
 
 function formatTimestamp(iso: string): string {
-  try {
-    const d = new Date(iso);
-    return d.toLocaleString(undefined, {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  } catch {
-    return iso;
-  }
+  return formatDateTime(iso) || iso;
 }
 
 function parseRescheduleMeta(metadata: string | null): string | null {
