@@ -2717,15 +2717,20 @@ export async function registerRoutes(
           const emailResult = await resend.emails.send({
             from: FROM_EMAIL,
             to: user.email,
-            subject: "Booking Confirmation - GoldenLife",
+            subject: `Booking Confirmed ${appointment.appointmentNumber ? '— ' + appointment.appointmentNumber : ''} - GoldenLife`,
             html: `
               <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;">
                 <h2 style="color: #0f172a;">Booking Confirmed!</h2>
                 <p>Hello ${user.firstName},</p>
                 <p>Your appointment with <strong>${providerWithUser?.user.firstName} ${providerWithUser?.user.lastName}</strong> has been successfully booked.</p>
-                
+                ${appointment.appointmentNumber ? `
+                <div style="background: linear-gradient(135deg, #0ea5e9, #6366f1); padding: 14px 18px; border-radius: 8px; margin: 16px 0; display: inline-block;">
+                  <p style="margin:0; color:#fff; font-size:0.8rem; letter-spacing:0.08em; text-transform:uppercase;">Appointment Reference</p>
+                  <p style="margin:4px 0 0; color:#fff; font-size:1.5rem; font-weight:700; letter-spacing:0.05em;">${appointment.appointmentNumber}</p>
+                </div>` : ''}
                 <div style="background-color: #f8fafc; padding: 15px; border-radius: 8px; margin: 20px 0;">
                   <h3 style="margin-top: 0; color: #1e293b;">Appointment Details</h3>
+                  ${appointment.appointmentNumber ? `<p style="margin: 5px 0;"><strong>Reference #:</strong> ${appointment.appointmentNumber}</p>` : ''}
                   <p style="margin: 5px 0;"><strong>Date:</strong> ${date}</p>
                   <p style="margin: 5px 0;"><strong>Time:</strong> ${startTime} - ${endTime}</p>
                   ${service ? `<p style="margin: 5px 0;"><strong>Service:</strong> ${service.name}</p>` : ''}
@@ -2736,7 +2741,6 @@ export async function registerRoutes(
                   ${promoDiscount > 0 ? `<p style="margin: 5px 0; color:#059669;"><strong>Promo Discount${appliedPromoCode ? ' (' + appliedPromoCode + ')' : ''}:</strong> -$${promoDiscount.toFixed(2)}</p>` : ''}
                   <p style="margin: 5px 0;"><strong>Total Amount:</strong> $${Number(fee).toFixed(2)}</p>
                 </div>
-
                 <p>A calendar invite (<code>.ics</code>) is attached — open it to add this appointment to your calendar.</p>
                 <p>You can view and manage your appointment in your patient dashboard.</p>
                 <p style="color: #64748b; font-size: 0.875rem; margin-top: 30px;">
@@ -2788,7 +2792,12 @@ export async function registerRoutes(
   app.patch("/api/appointments/:id/status", authenticateToken, async (req: AuthRequest, res: Response) => {
     try {
       const { status } = req.body as { status: string };
-      const validStatuses = ["pending", "approved", "confirmed", "completed", "cancelled", "rejected", "rescheduled"];
+      const validStatuses = [
+        "pending", "approved", "confirmed", "in_progress", "completed",
+        "cancelled", "rejected", "rescheduled", "no_show",
+        "cancelled_by_patient", "cancelled_by_provider",
+        "reschedule_requested", "reschedule_proposed", "expired",
+      ];
       if (!validStatuses.includes(status)) {
         return res.status(400).json({ message: "Invalid status" });
       }
@@ -2806,7 +2815,8 @@ export async function registerRoutes(
             return res.status(403).json({ message: "Access denied" });
           }
         } else if (req.user?.role === "patient") {
-          if (existing.patientId !== req.user.id || status !== "cancelled") {
+          const patientAllowedStatuses = ["cancelled", "cancelled_by_patient", "reschedule_requested"];
+          if (existing.patientId !== req.user.id || !patientAllowedStatuses.includes(status)) {
             return res.status(403).json({ message: "Access denied" });
           }
         } else {
@@ -2832,20 +2842,28 @@ export async function registerRoutes(
       // Create notification for patient about status change
       try {
         const patientId = appointment.patientId;
+        const apptRef = appointment.appointmentNumber ? ` (${appointment.appointmentNumber})` : "";
         const statusMessages: Record<string, string> = {
-          confirmed: "Your appointment has been confirmed by the provider.",
-          cancelled: "Your appointment has been cancelled.",
+          confirmed: `Your appointment${apptRef} has been confirmed by the provider.`,
+          approved: `Your appointment${apptRef} has been approved.`,
+          cancelled: `Your appointment${apptRef} has been cancelled.`,
+          cancelled_by_provider: `Your appointment${apptRef} has been cancelled by the provider.`,
+          cancelled_by_patient: `Your appointment${apptRef} has been cancelled.`,
           completed: invoiceResult?.created
-            ? `Your appointment has been completed. Invoice ${invoiceResult.invoiceNumber} is now available in your dashboard.`
-            : "Your appointment has been marked as completed. Please leave a review!",
-          rescheduled: "Your appointment has been rescheduled."
+            ? `Your appointment${apptRef} has been completed. Invoice ${invoiceResult.invoiceNumber} is now available in your dashboard.`
+            : `Your appointment${apptRef} has been marked as completed. Please leave a review!`,
+          rescheduled: `Your appointment${apptRef} has been rescheduled.`,
+          reschedule_requested: `A reschedule has been requested for appointment${apptRef}.`,
+          reschedule_proposed: `A new time has been proposed for appointment${apptRef}.`,
+          no_show: `Appointment${apptRef} was marked as a no-show.`,
+          in_progress: `Your appointment${apptRef} is now in progress.`,
         };
 
         if (statusMessages[status]) {
           await storage.createUserNotification({
             userId: patientId,
             type: "appointment",
-            title: `Appointment ${status.charAt(0).toUpperCase() + status.slice(1)}`,
+            title: `Appointment ${status.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}`,
             message: statusMessages[status],
             isRead: false,
           });
@@ -2862,6 +2880,7 @@ export async function registerRoutes(
               heading: "Your appointment is complete",
               intro: `Hello ${patient.firstName}, your appointment with ${providerWithUser?.user.firstName ?? ""} ${providerWithUser?.user.lastName ?? ""} on ${appointment.date} at ${appointment.startTime} has been marked as completed.`,
               details: [
+                ...(appointment.appointmentNumber ? [{ label: "Reference #", value: appointment.appointmentNumber }] : []),
                 { label: "Date", value: appointment.date },
                 { label: "Time", value: `${appointment.startTime} - ${appointment.endTime}` },
                 ...(invoiceResult?.invoiceNumber ? [{ label: "Invoice", value: invoiceResult.invoiceNumber }] : []),
@@ -2936,6 +2955,7 @@ export async function registerRoutes(
               heading: "Payment received",
               intro: `Hello ${patient.firstName}, we've recorded your payment for your appointment with ${providerWithUser?.user.firstName ?? ""} ${providerWithUser?.user.lastName ?? ""}.`,
               details: [
+                ...(appointment.appointmentNumber ? [{ label: "Reference #", value: appointment.appointmentNumber }] : []),
                 { label: "Date", value: appointment.date },
                 { label: "Time", value: `${appointment.startTime} - ${appointment.endTime}` },
                 { label: "Amount", value: `${Number(payment.amount).toFixed(0)} HUF` },

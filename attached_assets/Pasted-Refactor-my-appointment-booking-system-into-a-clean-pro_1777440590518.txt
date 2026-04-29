@@ -1,0 +1,90 @@
+Refactor my appointment booking system into a clean, production-ready state machine with proper status flow, validation, and database alignment.
+
+1. STANDARDIZE APPOINTMENT STATUS FLOW
+Update backend logic and enums to use ONLY these statuses:
+REQUESTED
+PENDING_PROVIDER_APPROVAL
+CONFIRMED
+IN_PROGRESS
+COMPLETED
+REJECTED
+CANCELLED_BY_PATIENT
+CANCELLED_BY_PROVIDER
+RESCHEDULE_REQUESTED
+RESCHEDULE_PROPOSED
+EXPIRED
+
+Ensure strict transitions:
+- REQUESTED → PENDING_PROVIDER_APPROVAL → CONFIRMED
+- CONFIRMED → IN_PROGRESS → COMPLETED
+- REQUESTED/CONFIRMED → CANCELLED_BY_PATIENT or CANCELLED_BY_PROVIDER
+- RESCHEDULE_REQUESTED → PENDING_PROVIDER_APPROVAL → CONFIRMED
+- RESCHEDULE_PROPOSED → PENDING_PATIENT_APPROVAL → CONFIRMED
+
+2. SEPARATE PAYMENT STATUS
+Add/ensure payment_status column:
+PENDING, PAID, FAILED, REFUNDED
+Do not mix with appointment status.
+
+3. FIX DATABASE SCHEMA (Supabase/Postgres)
+Ensure appointments table has:
+- status TEXT
+- payment_status TEXT
+- provider_id
+- practitioner_id
+- service_id
+- start_time
+- end_time
+- parent_appointment_id (for reschedules)
+- is_rescheduled BOOLEAN DEFAULT false
+- invoice_generated BOOLEAN DEFAULT false
+- created_at TIMESTAMP DEFAULT now()
+
+Add missing columns if not present using safe ALTER TABLE statements.
+
+4. SLOT LOCKING LOGIC
+- When status = CONFIRMED or IN_PROGRESS → mark slot unavailable
+- Prevent double booking at DB level (check overlapping time slots)
+
+5. VALIDATION BEFORE BOOKING
+Before creating booking:
+- Check provider is active
+- Check practitioner belongs to provider
+- Check service is assigned to practitioner
+- Check slot availability
+
+6. RESCHEDULING SYSTEM
+- Do NOT overwrite original appointment
+- Create new appointment row with parent_appointment_id
+- Mark old one as RESCHEDULED or keep history
+
+7. AUTO STATUS UPDATES
+- When current time >= start_time → status → IN_PROGRESS
+- When completed manually → status → COMPLETED
+
+8. INVOICE GENERATION TRIGGER
+- When status becomes COMPLETED:
+  - Generate invoice (PDF)
+  - Send email to patient
+  - Set invoice_generated = true
+
+9. FIX EXISTING API ROUTES
+Update:
+- /api/appointments/create
+- /api/appointments/update-status
+- /api/appointments/reschedule
+- /api/appointments/cancel
+
+Ensure all follow the new status flow.
+
+10. ERROR HANDLING
+- Return clear errors for invalid transitions
+- Prevent invalid status jumps (e.g., REQUESTED → COMPLETED directly)
+
+11. CLEAN FRONTEND USAGE
+Update UI to:
+- Show proper status labels
+- Enable actions based on status
+  (e.g., cancel only if REQUESTED or CONFIRMED)
+
+Apply all fixes without breaking existing data. Add migrations where needed.

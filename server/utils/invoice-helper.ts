@@ -59,7 +59,11 @@ export async function createInvoiceForAppointment(appointmentId: string): Promis
 
   if (resend && appointment.patient?.email) {
     try {
-      const pdfBuffer = await generateInvoicePDF(invoice, appointment.patient, appointment.provider, [
+      const invoiceWithRef = {
+        ...invoice,
+        appointmentNumber: (booking as any).appointmentNumber || null,
+      };
+      const pdfBuffer = await generateInvoicePDF(invoiceWithRef, appointment.patient, appointment.provider, [
         {
           description: appointment.service?.name || "Healthcare Service",
           quantity: 1,
@@ -76,8 +80,8 @@ export async function createInvoiceForAppointment(appointmentId: string): Promis
       await resend.emails.send({
         from: FROM_EMAIL,
         to: appointment.patient.email,
-        subject: `Invoice ${invoiceNumber} for your appointment`,
-        text: `Dear ${appointment.patient.firstName},\n\nPlease find attached the invoice for your recent appointment with ${appointment.provider?.user?.firstName || "your provider"}.\n\n${statusLine}\n\n— Golden Life`,
+        subject: `Invoice ${invoiceNumber}${(booking as any).appointmentNumber ? ' — Appt. ' + (booking as any).appointmentNumber : ''} - GoldenLife`,
+        text: `Dear ${appointment.patient.firstName},\n\nPlease find attached the invoice for your recent appointment${(booking as any).appointmentNumber ? ' (' + (booking as any).appointmentNumber + ')' : ''} with ${appointment.provider?.user?.firstName || "your provider"}.\n\n${statusLine}\n\n— Golden Life`,
         attachments: [
           {
             filename: `invoice-${invoiceNumber}.pdf`,

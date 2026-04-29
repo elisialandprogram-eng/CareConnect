@@ -1051,9 +1051,19 @@ export default function ProviderDashboard() {
               <AvatarFallback>{appointment.patient?.firstName?.charAt(0)}</AvatarFallback>
             </Avatar>
             <div>
-              <p className="font-medium">
-                {appointment.patient?.firstName} {appointment.patient?.lastName}
-              </p>
+              <div className="flex items-center gap-2 flex-wrap">
+                <p className="font-medium">
+                  {appointment.patient?.firstName} {appointment.patient?.lastName}
+                </p>
+                {(appointment as any).appointmentNumber && (
+                  <span
+                    className="text-xs font-mono font-semibold text-primary/80 bg-primary/10 px-2 py-0.5 rounded"
+                    data-testid={`text-appt-number-${appointment.id}`}
+                  >
+                    {(appointment as any).appointmentNumber}
+                  </span>
+                )}
+              </div>
               <div className="flex items-center gap-3 text-sm text-muted-foreground flex-wrap">
                 <span className="flex items-center gap-1">
                   <Clock className="h-3 w-3" /> {appointment.startTime}
@@ -1089,13 +1099,17 @@ export default function ProviderDashboard() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="pending">{t("status.pending", "Pending")}</SelectItem>
-                <SelectItem value="confirmed">{t("status.confirmed", "Confirmed")}</SelectItem>
                 <SelectItem value="approved">{t("status.approved", "Approved")}</SelectItem>
+                <SelectItem value="confirmed">{t("status.confirmed", "Confirmed")}</SelectItem>
                 <SelectItem value="in_progress">{t("status.in_progress", "In Progress")}</SelectItem>
                 <SelectItem value="completed">{t("status.completed", "Completed")}</SelectItem>
                 <SelectItem value="cancelled">{t("status.cancelled", "Cancelled")}</SelectItem>
+                <SelectItem value="cancelled_by_provider">Cancelled by Provider</SelectItem>
                 <SelectItem value="rejected">{t("status.rejected", "Rejected")}</SelectItem>
                 <SelectItem value="no_show">{t("status.no_show", "No-Show")}</SelectItem>
+                <SelectItem value="reschedule_proposed">Reschedule Proposed</SelectItem>
+                <SelectItem value="rescheduled">{t("status.rescheduled", "Rescheduled")}</SelectItem>
+                <SelectItem value="expired">Expired</SelectItem>
               </SelectContent>
             </Select>
           </div>

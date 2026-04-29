@@ -6,7 +6,12 @@ import { z } from "zod";
 // Enums
 export const userRoleEnum = pgEnum("user_role", ["patient", "provider", "admin"]);
 export const providerTypeEnum = pgEnum("provider_type", ["physiotherapist", "doctor", "nurse"]);
-export const appointmentStatusEnum = pgEnum("appointment_status", ["pending", "approved", "confirmed", "in_progress", "completed", "cancelled", "rejected", "rescheduled", "no_show"]);
+export const appointmentStatusEnum = pgEnum("appointment_status", [
+  // Legacy values (kept for backward compat)
+  "pending", "approved", "confirmed", "in_progress", "completed", "cancelled", "rejected", "rescheduled", "no_show",
+  // New standardized values
+  "cancelled_by_patient", "cancelled_by_provider", "reschedule_requested", "reschedule_proposed", "expired",
+]);
 export const visitTypeEnum = pgEnum("visit_type", ["online", "home", "clinic"]);
 export const paymentStatusEnum = pgEnum("payment_status", ["pending", "completed", "refunded", "failed"]);
 export const paymentMethodEnum = pgEnum("payment_method", ["card", "crypto", "cash", "bank_transfer"]);
@@ -236,6 +241,7 @@ export const timeSlots = pgTable("time_slots", {
 
 export const appointments = pgTable("appointments", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  appointmentNumber: text("appointment_number").unique(),
   patientId: varchar("patient_id").notNull().references(() => users.id),
   familyMemberId: varchar("family_member_id"),
   providerId: varchar("provider_id").notNull().references(() => providers.id),
@@ -247,6 +253,7 @@ export const appointments = pgTable("appointments", {
   endTime: text("end_time").notNull(),
   visitType: visitTypeEnum("visit_type").notNull(),
   status: appointmentStatusEnum("status").notNull().default("pending"),
+  paymentStatus: paymentStatusEnum("payment_status").default("pending"),
   notes: text("notes"),
   privateNote: text("private_note"),
   patientAddress: text("patient_address"),
@@ -259,6 +266,8 @@ export const appointments = pgTable("appointments", {
   promoCode: text("promo_code"),
   promoDiscount: decimal("promo_discount", { precision: 10, scale: 2 }).default("0.00"),
   invoiceGenerated: boolean("invoice_generated").default(false),
+  parentAppointmentId: varchar("parent_appointment_id"),
+  isRescheduled: boolean("is_rescheduled").default(false),
   googleCalendarEventId: text("google_calendar_event_id"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
@@ -840,7 +849,7 @@ export const insertPackageServiceSchema = createInsertSchema(packageServices).om
 export const insertPractitionerSchema = createInsertSchema(practitioners).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertServicePractitionerSchema = createInsertSchema(servicePractitioners).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertTimeSlotSchema = createInsertSchema(timeSlots).omit({ id: true });
-export const insertAppointmentSchema = createInsertSchema(appointments).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertAppointmentSchema = createInsertSchema(appointments).omit({ id: true, appointmentNumber: true, createdAt: true, updatedAt: true });
 export const insertReviewSchema = createInsertSchema(reviews).omit({ id: true, createdAt: true });
 export const insertPaymentSchema = createInsertSchema(payments).omit({ id: true, createdAt: true });
 export const insertConversationSchema = createInsertSchema(conversations).omit({ id: true, createdAt: true });

@@ -1304,9 +1304,18 @@ function BookingsManagementComponent() {
     },
   });
 
-  const filteredBookings = bookings?.filter((b: any) => 
-    statusFilter === "all" || b.status === statusFilter
-  ) || [];
+  const [bookingSearch, setBookingSearch] = useState<string>("");
+  const filteredBookings = bookings?.filter((b: any) => {
+    const matchesStatus = statusFilter === "all" || b.status === statusFilter;
+    if (!bookingSearch.trim()) return matchesStatus;
+    const q = bookingSearch.trim().toLowerCase();
+    return matchesStatus && (
+      (b.appointmentNumber && b.appointmentNumber.toLowerCase().includes(q)) ||
+      (b.patientName && b.patientName.toLowerCase().includes(q)) ||
+      (b.providerName && b.providerName.toLowerCase().includes(q)) ||
+      (b.id && b.id.toLowerCase().includes(q))
+    );
+  }) || [];
 
   if (isLoading) {
     return (
@@ -1318,7 +1327,14 @@ function BookingsManagementComponent() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-4 flex-wrap">
+        <Input
+          placeholder="Search by reference # or patient name..."
+          value={bookingSearch}
+          onChange={(e) => setBookingSearch(e.target.value)}
+          className="w-64"
+          data-testid="input-booking-search"
+        />
         <Select value={statusFilter} onValueChange={setStatusFilter}>
           <SelectTrigger className="w-48" data-testid="select-booking-status-filter">
             <SelectValue placeholder={t("admin.filter_by_status")} />
@@ -1326,9 +1342,15 @@ function BookingsManagementComponent() {
           <SelectContent>
             <SelectItem value="all">{t("admin.all_bookings")}</SelectItem>
             <SelectItem value="pending">{t("admin.pending")}</SelectItem>
+            <SelectItem value="approved">Approved</SelectItem>
             <SelectItem value="confirmed">{t("admin.confirmed")}</SelectItem>
+            <SelectItem value="in_progress">In Progress</SelectItem>
             <SelectItem value="completed">{t("admin.completed")}</SelectItem>
             <SelectItem value="cancelled">{t("admin.cancelled")}</SelectItem>
+            <SelectItem value="cancelled_by_patient">Cancelled by Patient</SelectItem>
+            <SelectItem value="cancelled_by_provider">Cancelled by Provider</SelectItem>
+            <SelectItem value="no_show">No-Show</SelectItem>
+            <SelectItem value="rescheduled">Rescheduled</SelectItem>
           </SelectContent>
         </Select>
         <span className="text-sm text-muted-foreground">
@@ -1349,16 +1371,26 @@ function BookingsManagementComponent() {
                   <div key={booking.id} className="p-4 flex items-center justify-between gap-4" data-testid={`row-booking-${booking.id}`}>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-medium truncate">{t("admin.booking_number")} {String(booking.id).slice(0, 8)}</span>
+                        {booking.appointmentNumber ? (
+                          <span
+                            className="font-mono font-bold text-primary"
+                            data-testid={`text-appt-number-${booking.id}`}
+                          >
+                            {booking.appointmentNumber}
+                          </span>
+                        ) : (
+                          <span className="font-medium truncate">{t("admin.booking_number")} {String(booking.id).slice(0, 8)}</span>
+                        )}
                         <Badge variant={
                           booking.status === 'completed' ? 'default' :
                           booking.status === 'confirmed' ? 'secondary' :
-                          booking.status === 'cancelled' ? 'destructive' : 'outline'
+                          booking.status === 'cancelled' || booking.status === 'cancelled_by_patient' || booking.status === 'cancelled_by_provider' ? 'destructive' : 'outline'
                         }>
-                          {t(`admin.${booking.status}`)}
+                          {booking.status?.replace(/_/g, ' ')}
                         </Badge>
                       </div>
                       <p className="text-sm text-muted-foreground">
+                        {booking.patientName && <span className="font-medium text-foreground mr-2">{booking.patientName}</span>}
                         {new Date(booking.appointmentDate).toLocaleDateString()} {t("admin.at")} {booking.startTime}
                       </p>
                       <p className="text-sm text-muted-foreground">
@@ -1370,14 +1402,23 @@ function BookingsManagementComponent() {
                         value={booking.status}
                         onValueChange={(status) => updateBookingMutation.mutate({ id: booking.id, status })}
                       >
-                        <SelectTrigger className="w-32" data-testid={`select-booking-status-${booking.id}`}>
+                        <SelectTrigger className="w-40" data-testid={`select-booking-status-${booking.id}`}>
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="pending">{t("admin.pending")}</SelectItem>
+                          <SelectItem value="approved">Approved</SelectItem>
                           <SelectItem value="confirmed">{t("admin.confirmed")}</SelectItem>
+                          <SelectItem value="in_progress">In Progress</SelectItem>
                           <SelectItem value="completed">{t("admin.completed")}</SelectItem>
                           <SelectItem value="cancelled">{t("admin.cancelled")}</SelectItem>
+                          <SelectItem value="cancelled_by_patient">Cancelled by Patient</SelectItem>
+                          <SelectItem value="cancelled_by_provider">Cancelled by Provider</SelectItem>
+                          <SelectItem value="rejected">Rejected</SelectItem>
+                          <SelectItem value="no_show">No-Show</SelectItem>
+                          <SelectItem value="rescheduled">Rescheduled</SelectItem>
+                          <SelectItem value="reschedule_proposed">Reschedule Proposed</SelectItem>
+                          <SelectItem value="expired">Expired</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>

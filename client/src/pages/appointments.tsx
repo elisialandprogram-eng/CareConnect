@@ -19,6 +19,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 
 interface Appointment {
   id: string;
+  appointmentNumber?: string;
   date: string;
   startTime: string;
   endTime: string;
@@ -217,13 +218,23 @@ export default function Appointments() {
         ) : appointments && appointments.length > 0 ? (
           <div className="space-y-4">
             {appointments.map((appointment) => (
-              <Card key={appointment.id}>
+              <Card key={appointment.id} data-testid={`card-appointment-${appointment.id}`}>
                 <CardHeader className="pb-2">
                   <div className="flex justify-between items-start">
                     <div>
-                      <CardTitle className="text-lg">
-                        {appointment.service?.name || "Consultation"}
-                      </CardTitle>
+                      <div className="flex items-center gap-2 mb-0.5">
+                        <CardTitle className="text-lg">
+                          {appointment.service?.name || "Consultation"}
+                        </CardTitle>
+                        {appointment.appointmentNumber && (
+                          <span
+                            className="text-xs font-mono font-semibold text-primary/80 bg-primary/10 px-2 py-0.5 rounded"
+                            data-testid={`text-appt-number-${appointment.id}`}
+                          >
+                            {appointment.appointmentNumber}
+                          </span>
+                        )}
+                      </div>
                       <CardDescription className="flex items-center gap-2 mt-1">
                         <User className="h-4 w-4" />
                         Dr. {appointment.provider.user.firstName} {appointment.provider.user.lastName}

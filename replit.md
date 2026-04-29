@@ -32,6 +32,25 @@ To eliminate slow page loads caused by Supabase round-trip latency, three additi
 
 The cookie-parser middleware is registered at the top of `registerRoutes` so every auth-protected route (including the early invoice endpoints) can read the JWT cookie.
 
+### Appointment Number System
+
+Every appointment is assigned a unique, human-readable reference number in the format `GL000001` (prefix "GL" + 6-digit zero-padded sequence). This is generated at appointment creation using a PostgreSQL sequence (`appointment_number_seq`) stored in the `appointment_number` column. All 41 historical appointments were backfilled. The number appears on:
+- Booking confirmation screen (replaces the old hash-based number)
+- Appointments list page (badge next to service name)
+- Patient dashboard appointment cards
+- Provider dashboard appointment rows
+- Admin bookings management table (searchable by reference # or patient name)
+- Confirmation emails (as a styled banner block)
+- Completion/payment receipt emails
+- Invoice PDF (as "Appt. ref." in the meta panel)
+- In-app notifications (appended as parenthetical)
+
+The startup migration in `server/db.ts` → `runStartupMigrations()` ensures all schema changes (enum additions, new columns, sequence creation, backfill) run idempotently on every deployment. Called from `server/index.ts` before the reminder cron starts.
+
+Additional schema additions: `paymentStatus` (text, default `pending`), `parentAppointmentId` (varchar, for reschedule chains), `isRescheduled` (boolean, default false).
+
+New status values added to `appointment_status` enum: `cancelled_by_patient`, `cancelled_by_provider`, `reschedule_requested`, `reschedule_proposed`, `expired`. These are reflected in the status select dropdowns on provider and admin dashboards.
+
 ### Booking & Promo Codes
 
 The booking flow charges per-service platform fees (sourced from each service's sub-service `platformFee`) and supports promo codes. Patients can enter a promo code in the booking summary; the backend `/api/promo-codes/validate` endpoint validates the code (active state, expiration, min purchase, per-user usage cap) and returns the discount amount. The booking creation endpoint persists `promoCode`, `promoDiscount`, and `platformFeeAmount` on the appointment, increments `usedCount` on the promo, and includes the discount and platform fee in the patient confirmation and provider notification emails (which list patient and clinic addresses, all amounts in USD).

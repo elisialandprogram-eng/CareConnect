@@ -328,9 +328,19 @@ export default function PatientDashboard() {
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between gap-2">
               <div>
-                <h4 className="font-semibold">
-                  {appointment.provider?.user?.firstName} {appointment.provider?.user?.lastName}
-                </h4>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h4 className="font-semibold">
+                    {appointment.provider?.user?.firstName} {appointment.provider?.user?.lastName}
+                  </h4>
+                  {(appointment as any).appointmentNumber && (
+                    <span
+                      className="text-xs font-mono font-semibold text-primary/80 bg-primary/10 px-2 py-0.5 rounded"
+                      data-testid={`text-appt-number-${appointment.id}`}
+                    >
+                      {(appointment as any).appointmentNumber}
+                    </span>
+                  )}
+                </div>
                 <p className="text-sm text-muted-foreground">
                   {appointment.provider?.specialization}
                 </p>

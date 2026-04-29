@@ -105,6 +105,7 @@ export async function generateInvoicePDF(invoice: any, patient: any, provider: a
     { label: "Issue date", value: formatDate(invoice.issueDate) },
     { label: "Due date", value: formatDate(invoice.dueDate) },
     { label: "Invoice no.", value: invoice.invoiceNumber || "—" },
+    ...(invoice.appointmentNumber ? [{ label: "Appt. ref.", value: invoice.appointmentNumber }] : []),
   ];
   const colW = (pageW - 2 * M) / metaItems.length;
   metaItems.forEach((m, i) => {

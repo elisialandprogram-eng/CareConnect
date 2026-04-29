@@ -385,13 +385,10 @@ export default function Booking() {
         ? "Home visit"
         : provider.primaryServiceLocation || provider.city || "Clinic";
 
-    const seed = bookedAppointments[0]?.id || `${providerId}-${finalSessions[0]?.date}-${finalSessions[0]?.time}`;
-    let h = 0;
-    for (let i = 0; i < seed.length; i++) {
-      h = ((h << 5) - h) + seed.charCodeAt(i);
-      h |= 0;
-    }
-    const confirmationNumber = String(Math.abs(h) % 100000).padStart(5, "0");
+    // Use real appointment number from API (GL000001 format) or fallback
+    const confirmationNumber = bookedAppointments[0]?.appointmentNumber
+      || bookedAppointments[0]?.id?.slice(0, 8).toUpperCase()
+      || "—";
 
     const toFloatingStamp = (date: string, time: string, addMin = 0) => {
       const [y, m, d] = date.split("-").map(Number);
@@ -471,14 +468,17 @@ export default function Booking() {
                   {t("booking.thank_you", "Thank you for your request!")}
                 </h1>
                 <p className="text-sm text-muted-foreground mb-3">
-                  {t("booking.confirmation_number_label", "Your confirmation number:")}
+                  {t("booking.confirmation_number_label", "Your appointment reference:")}
                 </p>
-                <p
-                  className="text-4xl md:text-5xl font-light tracking-[0.4em] mb-12 ml-[0.4em] text-foreground"
-                  data-testid="text-confirmation-number"
-                >
-                  {confirmationNumber}
-                </p>
+                <div className="inline-flex flex-col items-center mb-12">
+                  <p
+                    className="text-3xl md:text-4xl font-bold tracking-[0.2em] text-foreground"
+                    data-testid="text-confirmation-number"
+                  >
+                    {confirmationNumber}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">Save this number for your records</p>
+                </div>
 
                 <div className="flex flex-wrap items-center justify-center gap-3">
                   <Button
