@@ -25,6 +25,15 @@ import {
   Copy,
   Check,
   MessageSquare,
+  History,
+  CheckCircle2,
+  XCircle,
+  CalendarClock,
+  PlayCircle,
+  UserX,
+  ThumbsUp,
+  ThumbsDown,
+  PlusCircle,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
@@ -91,6 +100,12 @@ export default function AppointmentDetails() {
       if (/^(404|403)/.test(msg)) return false;
       return failureCount < 2;
     },
+  });
+
+  // Audit timeline — every state-changing action on this appointment
+  const { data: events, isLoading: eventsLoading } = useQuery<AppointmentEventRow[]>({
+    queryKey: ["/api/appointments", appointmentId, "events"],
+    enabled: !!appointmentId && isAuthenticated && !!appt,
   });
 
   /* ── Derived values ─────────────────────────────────────────────── */
@@ -433,6 +448,8 @@ export default function AppointmentDetails() {
         </CardContent>
       </Card>
 
+      <EventsTimeline events={events} loading={eventsLoading} />
+
       <AppointmentActionDialog
         appointmentId={appointmentId}
         action={actionTarget ?? "cancel"}
@@ -440,11 +457,190 @@ export default function AppointmentDetails() {
         onOpenChange={(open) => !open && setActionTarget(null)}
         invalidateKeys={[
           ["/api/appointments", appointmentId],
+          ["/api/appointments", appointmentId, "events"],
           ["/api/appointments/patient"],
           ["/api/appointments/provider"],
         ]}
       />
     </DetailsShell>
+  );
+}
+
+/* ── Audit timeline ──────────────────────────────────────────────── */
+
+type AppointmentEventRow = {
+  id: string;
+  appointmentId: string;
+  action:
+    | "book"
+    | "cancel"
+    | "reschedule"
+    | "no_show"
+    | "approve"
+    | "confirm"
+    | "start"
+    | "complete"
+    | "reject";
+  actorUserId: string | null;
+  actorRole: "patient" | "provider" | "admin" | null;
+  fromStatus: string | null;
+  toStatus: string | null;
+  reason: string | null;
+  reasonCode: string | null;
+  refundAmount: string | null;
+  metadata: string | null;
+  createdAt: string;
+  actorName: string | null;
+};
+
+const ACTION_META: Record<
+  AppointmentEventRow["action"],
+  { label: string; icon: React.ComponentType<{ className?: string }>; tone: string }
+> = {
+  book: { label: "Booked", icon: PlusCircle, tone: "text-blue-600 dark:text-blue-400" },
+  approve: { label: "Approved", icon: ThumbsUp, tone: "text-emerald-600 dark:text-emerald-400" },
+  confirm: { label: "Confirmed", icon: CheckCircle2, tone: "text-emerald-600 dark:text-emerald-400" },
+  start: { label: "Started", icon: PlayCircle, tone: "text-amber-600 dark:text-amber-400" },
+  complete: { label: "Completed", icon: CheckCircle2, tone: "text-emerald-700 dark:text-emerald-300" },
+  reject: { label: "Rejected", icon: ThumbsDown, tone: "text-red-600 dark:text-red-400" },
+  cancel: { label: "Cancelled", icon: XCircle, tone: "text-red-600 dark:text-red-400" },
+  reschedule: { label: "Rescheduled", icon: CalendarClock, tone: "text-amber-600 dark:text-amber-400" },
+  no_show: { label: "No-show", icon: UserX, tone: "text-red-600 dark:text-red-400" },
+};
+
+function actorDisplay(ev: AppointmentEventRow): string {
+  if (!ev.actorRole && !ev.actorUserId) return "System";
+  const role = ev.actorRole
+    ? ev.actorRole.charAt(0).toUpperCase() + ev.actorRole.slice(1)
+    : "Unknown";
+  return ev.actorName ? `${ev.actorName} (${role})` : role;
+}
+
+function formatTimestamp(iso: string): string {
+  try {
+    const d = new Date(iso);
+    return d.toLocaleString(undefined, {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  } catch {
+    return iso;
+  }
+}
+
+function parseRescheduleMeta(metadata: string | null): string | null {
+  if (!metadata) return null;
+  try {
+    const m = JSON.parse(metadata);
+    if (m?.from?.date && m?.to?.date) {
+      return `${m.from.date} ${m.from.startTime ?? ""} → ${m.to.date} ${m.to.startTime ?? ""}`;
+    }
+  } catch {}
+  return null;
+}
+
+function EventsTimeline({
+  events,
+  loading,
+}: {
+  events: AppointmentEventRow[] | undefined;
+  loading: boolean;
+}) {
+  return (
+    <Card className="mt-6" data-testid="card-appointment-timeline">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-lg">
+          <History className="h-5 w-5" />
+          Activity timeline
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        {loading ? (
+          <div className="space-y-3">
+            <Skeleton className="h-12 w-full" />
+            <Skeleton className="h-12 w-full" />
+            <Skeleton className="h-12 w-full" />
+          </div>
+        ) : !events || events.length === 0 ? (
+          <p
+            className="text-sm text-muted-foreground py-4"
+            data-testid="text-timeline-empty"
+          >
+            No events recorded for this appointment yet.
+          </p>
+        ) : (
+          <ol className="relative border-l border-muted ml-3 space-y-5">
+            {events.map((ev) => {
+              const meta = ACTION_META[ev.action] ?? {
+                label: ev.action,
+                icon: AlertCircle,
+                tone: "text-muted-foreground",
+              };
+              const Icon = meta.icon;
+              const reschedMeta = parseRescheduleMeta(ev.metadata);
+              const refund = Number(ev.refundAmount ?? 0);
+              return (
+                <li
+                  key={ev.id}
+                  className="ml-6"
+                  data-testid={`timeline-event-${ev.id}`}
+                >
+                  <span className="absolute -left-[11px] flex h-5 w-5 items-center justify-center rounded-full bg-background ring-4 ring-background">
+                    <Icon className={`h-5 w-5 ${meta.tone}`} />
+                  </span>
+                  <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                    <span
+                      className={`font-medium ${meta.tone}`}
+                      data-testid={`timeline-action-${ev.id}`}
+                    >
+                      {meta.label}
+                    </span>
+                    {ev.fromStatus && ev.toStatus && (
+                      <span className="text-xs text-muted-foreground">
+                        {formatStatus(ev.fromStatus)} → {formatStatus(ev.toStatus)}
+                      </span>
+                    )}
+                  </div>
+                  <div
+                    className="text-xs text-muted-foreground mt-0.5"
+                    data-testid={`timeline-actor-${ev.id}`}
+                  >
+                    by {actorDisplay(ev)} · {" "}
+                    <span data-testid={`timeline-time-${ev.id}`}>
+                      {formatTimestamp(ev.createdAt)}
+                    </span>
+                  </div>
+                  {ev.reason && (
+                    <div
+                      className="text-sm mt-1.5 text-foreground/80"
+                      data-testid={`timeline-reason-${ev.id}`}
+                    >
+                      “{ev.reason}”
+                    </div>
+                  )}
+                  {reschedMeta && (
+                    <div className="text-xs mt-1 text-muted-foreground">
+                      {reschedMeta}
+                    </div>
+                  )}
+                  {refund > 0 && (
+                    <div
+                      className="text-xs mt-1 text-emerald-700 dark:text-emerald-400"
+                      data-testid={`timeline-refund-${ev.id}`}
+                    >
+                      Refund issued: {refund.toFixed(2)}
+                    </div>
+                  )}
+                </li>
+              );
+            })}
+          </ol>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 

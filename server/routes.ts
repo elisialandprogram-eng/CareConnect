@@ -3094,27 +3094,45 @@ export async function registerRoutes(
         return res.status(409).json({ message: slotErr?.message || "This time slot is no longer available." });
       }
 
-      let appointment = await storage.createAppointment({
-        patientId: userId,
-        familyMemberId: validatedFamilyMemberId,
-        providerId,
-        serviceId: serviceId || null,
-        practitionerId: practitionerId || null,
-        timeSlotId: reservedSlotId,
-        date,
-        startTime,
-        endTime,
-        visitType: visitType || "online",
-        status: "pending",
-        notes: notes || null,
-        patientAddress: patientAddress || null,
-        patientLatitude: typeof patientLatitude === "number" ? patientLatitude : null,
-        patientLongitude: typeof patientLongitude === "number" ? patientLongitude : null,
-        totalAmount: fee.toString(),
-        platformFeeAmount: platformFee.toFixed(2),
-        promoCode: appliedPromoCode,
-        promoDiscount: promoDiscount.toFixed(2),
-      } as any);
+      // Atomic: insert appointment row + first audit event ("book") in one tx
+      // so we can never have a booking without its provenance record.
+      const bookingResult = await storage.createAppointmentWithEvent(
+        {
+          patientId: userId,
+          familyMemberId: validatedFamilyMemberId,
+          providerId,
+          serviceId: serviceId || null,
+          practitionerId: practitionerId || null,
+          timeSlotId: reservedSlotId,
+          date,
+          startTime,
+          endTime,
+          visitType: visitType || "online",
+          status: "pending",
+          notes: notes || null,
+          patientAddress: patientAddress || null,
+          patientLatitude: typeof patientLatitude === "number" ? patientLatitude : null,
+          patientLongitude: typeof patientLongitude === "number" ? patientLongitude : null,
+          totalAmount: fee.toString(),
+          platformFeeAmount: platformFee.toFixed(2),
+          promoCode: appliedPromoCode,
+          promoDiscount: promoDiscount.toFixed(2),
+        } as any,
+        {
+          action: "book" as any,
+          actorUserId: userId,
+          actorRole: "patient" as any,
+          fromStatus: null,
+          toStatus: "pending" as any,
+          reason: null,
+          metadata: JSON.stringify({
+            visitType: visitType || "online",
+            serviceId: serviceId || null,
+            paymentMethod: paymentMethod || "card",
+          }),
+        },
+      );
+      let appointment = bookingResult.appointment;
 
       // Optionally save the address to the patient's profile for next time.
       if (req.body.saveAddressToProfile === true && patientAddress) {
@@ -3187,7 +3205,19 @@ export async function registerRoutes(
               status: "completed",
               paymentMethod: "wallet",
             });
-            appointment = (await storage.updateAppointment(appointment.id, { status: "confirmed" })) ?? appointment;
+            const confirmRes = await storage.updateAppointmentWithEvent(
+              appointment.id,
+              { status: "confirmed" } as any,
+              {
+                action: "confirm" as any,
+                actorUserId: userId,
+                actorRole: "patient" as any,
+                fromStatus: appointment.status as any,
+                toStatus: "confirmed" as any,
+                reason: "Paid in full via wallet",
+              },
+            );
+            if (confirmRes) appointment = confirmRes.appointment;
             walletPaid = true;
           }
           // Else: partial — payment row stays pending; remainder handled below.
@@ -3195,7 +3225,19 @@ export async function registerRoutes(
           // Roll back: cancel appointment, free slot, mark payment failed so
           // the patient can retry with a different payment combination.
           try {
-            await storage.updateAppointment(appointment.id, { status: "cancelled" });
+            await storage.updateAppointmentWithEvent(
+              appointment.id,
+              { status: "cancelled" } as any,
+              {
+                action: "cancel" as any,
+                actorUserId: null,
+                actorRole: null,
+                fromStatus: appointment.status as any,
+                toStatus: "cancelled" as any,
+                reason: walletErr?.message || "Wallet payment failed during booking",
+                reasonCode: "wallet_payment_failed",
+              },
+            );
             if (reservedSlotId) await storage.updateTimeSlot(reservedSlotId, { isBooked: false });
             await storage.updatePayment(payment.id, { status: "failed" });
           } catch {}
@@ -3501,7 +3543,28 @@ export async function registerRoutes(
         }
       }
 
-      const appointment = await storage.updateAppointment(req.params.id, { status: status as any });
+      // Map lifecycle status → audit-log action verb
+      const statusToAction: Record<string, string> = {
+        approved: "approve",
+        confirmed: "confirm",
+        in_progress: "start",
+        completed: "complete",
+        rejected: "reject",
+      };
+      const actionVerb = statusToAction[status] || "confirm";
+      const updateRes = await storage.updateAppointmentWithEvent(
+        req.params.id,
+        { status: status as any },
+        {
+          action: actionVerb as any,
+          actorUserId: req.user?.id ?? null,
+          actorRole: (req.user?.role ?? null) as any,
+          fromStatus: existing.status as any,
+          toStatus: status as any,
+          reason: typeof req.body?.reason === "string" ? req.body.reason : null,
+        },
+      );
+      const appointment = updateRes?.appointment;
       if (!appointment) {
         return res.status(404).json({ message: "Appointment not found" });
       }
@@ -3924,13 +3987,37 @@ export async function registerRoutes(
         const dayAfterEnd = new Date(aptEnd.getTime() + 24 * 60 * 60 * 1000);
 
         if (apt.status === 'pending' && aptStart < now) {
-          await storage.updateAppointment(apt.id, { status: 'cancelled' });
+          await storage.updateAppointmentWithEvent(
+            apt.id,
+            { status: 'cancelled' } as any,
+            {
+              action: 'cancel' as any,
+              actorUserId: null,
+              actorRole: null,
+              fromStatus: apt.status as any,
+              toStatus: 'cancelled' as any,
+              reason: '[AUTO] Pending appointment expired (start time passed without confirmation)',
+              reasonCode: 'auto_expired_pending',
+            },
+          );
           cancelledCount++;
         } else if (
           ['approved', 'confirmed', 'rescheduled'].includes(apt.status) &&
           dayAfterEnd < now
         ) {
-          await storage.updateAppointment(apt.id, { status: 'cancelled' });
+          await storage.updateAppointmentWithEvent(
+            apt.id,
+            { status: 'cancelled' } as any,
+            {
+              action: 'cancel' as any,
+              actorUserId: null,
+              actorRole: null,
+              fromStatus: apt.status as any,
+              toStatus: 'cancelled' as any,
+              reason: '[AUTO] Past-due appointment auto-cancelled (>24h after end, never completed)',
+              reasonCode: 'auto_cancelled_stale',
+            },
+          );
           cancelledCount++;
         }
       }
@@ -4020,11 +4107,32 @@ export async function registerRoutes(
         hoursBeforeStart: hours,
       });
 
-      // Apply update
-      const updated = await storage.updateAppointment(existing.id, updates as any);
-      if (!updated) {
+      // Atomic: update appointment + write audit event in one transaction so
+      // the status flip and the audit row are always consistent. We record
+      // the policy-promised refund amount (quote.amount); the actual refund
+      // is processed separately after the tx and tracked in wallet_transactions.
+      const txRes = await storage.updateAppointmentWithEvent(
+        existing.id,
+        updates as any,
+        {
+          action: action as any,
+          actorUserId: req.user?.id ?? null,
+          actorRole: role as any,
+          fromStatus: existing.status as any,
+          toStatus: permit.toStatus as any,
+          reason: reason || null,
+          reasonCode: reasonCode || null,
+          refundAmount: String(quote.amount) as any,
+          metadata: action === "reschedule"
+            ? JSON.stringify({ from: { date: existing.date, startTime: existing.startTime, endTime: existing.endTime }, to: { date: newDate, startTime: newStartTime, endTime: newEndTime } })
+            : null,
+        },
+      );
+      if (!txRes) {
         return res.status(500).json({ message: "Failed to update appointment" });
       }
+      const updated = txRes.appointment;
+      const event = txRes.event;
 
       // Free the slot when terminal (cancel / no_show)
       const isTerminalNow = ["cancelled_by_patient", "cancelled_by_provider", "no_show"].includes(permit.toStatus!);
@@ -4036,12 +4144,11 @@ export async function registerRoutes(
         }
       }
 
-      // Process wallet refund for cancellations
+      // Process wallet refund for cancellations (post-tx; the wallet ledger
+      // is the source of truth for what actually moved).
       let refundedAmount = 0;
       if (action === "cancel" && quote.amount > 0) {
         try {
-          // Compute the actual refundable: prefer min(quote, debited) so we never
-          // refund more than what was paid via wallet.
           const debits = await db
             .select()
             .from(walletTransactions)
@@ -4067,27 +4174,6 @@ export async function registerRoutes(
         } catch (refundErr) {
           console.error("[action] wallet refund failed:", refundErr);
         }
-      }
-
-      // Write audit event
-      let event;
-      try {
-        event = await storage.createAppointmentEvent({
-          appointmentId: updated.id,
-          action: action as any,
-          actorUserId: req.user?.id,
-          actorRole: role as any,
-          fromStatus: existing.status as any,
-          toStatus: permit.toStatus as any,
-          reason: reason || null,
-          reasonCode: reasonCode || null,
-          refundAmount: String(refundedAmount) as any,
-          metadata: action === "reschedule"
-            ? JSON.stringify({ from: { date: existing.date, startTime: existing.startTime, endTime: existing.endTime }, to: { date: newDate, startTime: newStartTime, endTime: newEndTime } })
-            : null,
-        });
-      } catch (e) {
-        console.error("[action] failed to write event:", e);
       }
 
       // Notify counter-party + dispatch
@@ -4390,7 +4476,19 @@ export async function registerRoutes(
           status: "completed",
         });
       }
-      await storage.updateAppointment(appointmentId, { status: "confirmed" });
+      const existingAppt = await storage.getAppointment(appointmentId);
+      await storage.updateAppointmentWithEvent(
+        appointmentId,
+        { status: "confirmed" } as any,
+        {
+          action: "confirm" as any,
+          actorUserId: req.user.id,
+          actorRole: (req.user.role ?? "patient") as any,
+          fromStatus: (existingAppt?.status ?? null) as any,
+          toStatus: "confirmed" as any,
+          reason: "Paid via wallet",
+        },
+      );
 
       res.json({
         ok: true,
@@ -4649,7 +4747,45 @@ export async function registerRoutes(
       const booking = await storage.getAppointment(req.params.id);
       if (!booking) return res.status(404).json({ message: "Booking not found" });
 
-      const updated = await storage.updateAppointment(req.params.id, req.body);
+      // If admin is changing the status, write an audit event in the same tx;
+      // otherwise it's a non-lifecycle field edit and a plain update is enough.
+      let updated;
+      if (typeof status === "string" && status !== booking.status) {
+        const adminStatusToAction: Record<string, string> = {
+          approved: "approve",
+          confirmed: "confirm",
+          in_progress: "start",
+          completed: "complete",
+          rejected: "reject",
+          cancelled: "cancel",
+          cancelled_by_patient: "cancel",
+          cancelled_by_provider: "cancel",
+          no_show: "no_show",
+          rescheduled: "reschedule",
+          expired: "cancel",
+        };
+        const verb = adminStatusToAction[status];
+        if (verb) {
+          const txRes = await storage.updateAppointmentWithEvent(
+            req.params.id,
+            req.body,
+            {
+              action: verb as any,
+              actorUserId: req.user?.id ?? null,
+              actorRole: "admin" as any,
+              fromStatus: booking.status as any,
+              toStatus: status as any,
+              reason: typeof req.body?.reason === "string" ? req.body.reason : "Admin override",
+              reasonCode: "admin_override",
+            },
+          );
+          updated = txRes?.appointment;
+        } else {
+          updated = await storage.updateAppointment(req.params.id, req.body);
+        }
+      } else {
+        updated = await storage.updateAppointment(req.params.id, req.body);
+      }
       if (!updated) return res.status(404).json({ message: "Booking not found" });
 
       // Automatically generate invoice if status is changed to completed and it hasn't been generated yet

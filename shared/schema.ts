@@ -19,6 +19,7 @@ export const ticketStatusEnum = pgEnum("ticket_status", ["open", "in_progress", 
 export const ticketPriorityEnum = pgEnum("ticket_priority", ["low", "medium", "high", "urgent"]);
 export const auditActionEnum = pgEnum("audit_action", ["create", "update", "delete", "login", "logout", "view", "export"]);
 export const appointmentActionEnum = pgEnum("appointment_action", [
+  "book",
   "cancel", "reschedule", "no_show",
   "approve", "confirm", "start", "complete", "reject",
 ]);
@@ -1045,6 +1046,7 @@ export type Appointment = typeof appointments.$inferSelect;
 export type InsertAppointment = z.infer<typeof insertAppointmentSchema>;
 export type AppointmentEvent = typeof appointmentEvents.$inferSelect;
 export type InsertAppointmentEvent = z.infer<typeof insertAppointmentEventSchema>;
+export type AppointmentEventWithActor = AppointmentEvent & { actorName: string | null };
 export type Review = typeof reviews.$inferSelect;
 export type InsertReview = z.infer<typeof insertReviewSchema>;
 export type Payment = typeof payments.$inferSelect;

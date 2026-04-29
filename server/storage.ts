@@ -48,6 +48,7 @@ import {
   invoiceItems,
   appointmentEvents,
   type AppointmentEvent,
+  type AppointmentEventWithActor,
   type InsertAppointmentEvent,
   type User,
   type InsertUser,
@@ -278,7 +279,18 @@ export interface IStorage {
 
   // Appointment events (audit trail for cancel / reschedule / no-show)
   createAppointmentEvent(event: InsertAppointmentEvent): Promise<AppointmentEvent>;
-  getAppointmentEvents(appointmentId: string): Promise<AppointmentEvent[]>;
+  getAppointmentEvents(appointmentId: string): Promise<AppointmentEventWithActor[]>;
+  /** Atomically create the appointment row AND its first audit event in one tx. */
+  createAppointmentWithEvent(
+    appointment: InsertAppointment,
+    event: Omit<InsertAppointmentEvent, "appointmentId">,
+  ): Promise<{ appointment: Appointment; event: AppointmentEvent }>;
+  /** Atomically update the appointment row AND insert an audit event in one tx. */
+  updateAppointmentWithEvent(
+    id: string,
+    data: Partial<InsertAppointment>,
+    event: Omit<InsertAppointmentEvent, "appointmentId">,
+  ): Promise<{ appointment: Appointment; event: AppointmentEvent } | undefined>;
 
   // Reviews
   getReview(id: string): Promise<Review | undefined>;
@@ -1374,12 +1386,73 @@ export class DatabaseStorage implements IStorage {
     return row;
   }
 
-  async getAppointmentEvents(appointmentId: string): Promise<AppointmentEvent[]> {
-    return db
-      .select()
+  async getAppointmentEvents(appointmentId: string): Promise<AppointmentEventWithActor[]> {
+    const rows = await db
+      .select({
+        event: appointmentEvents,
+        actor: users,
+      })
       .from(appointmentEvents)
+      .leftJoin(users, eq(appointmentEvents.actorUserId, users.id))
       .where(eq(appointmentEvents.appointmentId, appointmentId))
       .orderBy(asc(appointmentEvents.createdAt));
+    return rows.map(r => ({
+      ...r.event,
+      actorName: r.actor
+        ? `${r.actor.firstName ?? ""} ${r.actor.lastName ?? ""}`.trim() || r.actor.email
+        : null,
+    }));
+  }
+
+  /**
+   * Wraps appointment INSERT + first audit event INSERT in a single transaction
+   * so the booking is never recorded without its corresponding "book" event.
+   * The unique appointmentNumber is generated inside the tx using the same
+   * sequence as createAppointment().
+   */
+  async createAppointmentWithEvent(
+    appointment: InsertAppointment,
+    event: Omit<InsertAppointmentEvent, "appointmentId">,
+  ): Promise<{ appointment: Appointment; event: AppointmentEvent }> {
+    return await db.transaction(async (tx) => {
+      const raw: any = await tx.execute(sql`SELECT nextval('appointment_number_seq')::text AS nextval`);
+      const row = Array.isArray(raw) ? raw[0] : raw?.rows?.[0];
+      const appointmentNumber = 'GL' + String(row?.nextval).padStart(6, '0');
+      const [created] = await tx.insert(appointments).values({
+        ...appointment,
+        appointmentNumber,
+      } as any).returning();
+      const [ev] = await tx.insert(appointmentEvents).values({
+        ...event,
+        appointmentId: created.id,
+      }).returning();
+      return { appointment: created, event: ev };
+    });
+  }
+
+  /**
+   * Wraps appointment UPDATE + audit event INSERT in a single transaction so a
+   * status change can never be persisted without its audit row (or vice-versa).
+   * Returns undefined if the appointment row was not found.
+   */
+  async updateAppointmentWithEvent(
+    id: string,
+    data: Partial<InsertAppointment>,
+    event: Omit<InsertAppointmentEvent, "appointmentId">,
+  ): Promise<{ appointment: Appointment; event: AppointmentEvent } | undefined> {
+    return await db.transaction(async (tx) => {
+      const [updated] = await tx
+        .update(appointments)
+        .set(data)
+        .where(eq(appointments.id, id))
+        .returning();
+      if (!updated) return undefined as any;
+      const [ev] = await tx.insert(appointmentEvents).values({
+        ...event,
+        appointmentId: updated.id,
+      }).returning();
+      return { appointment: updated, event: ev };
+    });
   }
 
   async getAllAppointments(): Promise<AppointmentWithDetails[]> {
