@@ -7,7 +7,7 @@ import { useTranslation } from "react-i18next";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
-import { Calendar, Clock, User, MapPin, Video, Building, Star, MessageSquare } from "lucide-react";
+import { Calendar, Clock, User, MapPin, Video, Building, Star, MessageSquare, RefreshCw } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -318,6 +318,22 @@ export default function Appointments() {
                         )}
                       {appointment.status === "completed" && !appointment.hasReview && (
                         <RatingDialog appointment={appointment} />
+                      )}
+                      {appointment.status === "completed" && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="gap-1"
+                          asChild
+                          data-testid={`button-rebook-${appointment.id}`}
+                        >
+                          <Link
+                            href={`/booking?providerId=${appointment.providerId}${appointment.service?.id ? `&serviceId=${appointment.service.id}` : ""}&visitType=${appointment.visitType}`}
+                          >
+                            <RefreshCw className="h-3 w-3" />
+                            {t("appointments.book_again", "Book again")}
+                          </Link>
+                        </Button>
                       )}
                     </div>
                   </div>
