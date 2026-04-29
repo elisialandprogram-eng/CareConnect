@@ -44,6 +44,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth";
 import { useCurrency } from "@/lib/currency";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { AppointmentActionDialog, type AppointmentAction } from "@/components/appointment/AppointmentActionDialog";
 
 /* ── ICS / Google Calendar helpers ────────────────────────────────── */
 
@@ -157,23 +158,8 @@ export default function BookingConfirmation() {
     enabled: !!appointmentId && isAuthenticated,
   });
 
-  const cancelMut = useMutation({
-    mutationFn: async () => {
-      const res = await apiRequest("PATCH", `/api/appointments/${appointmentId}/cancel`, {});
-      return res.json();
-    },
-    onSuccess: () => {
-      toast({ title: "Appointment cancelled" });
-      queryClient.invalidateQueries({ queryKey: ["/api/appointments", appointmentId] });
-      queryClient.invalidateQueries({ queryKey: ["/api/appointments/patient"] });
-    },
-    onError: (e: any) =>
-      toast({
-        title: "Could not cancel",
-        description: e?.message || "Please try again",
-        variant: "destructive",
-      }),
-  });
+  // Unified appointment action dialog state
+  const [actionTarget, setActionTarget] = useState<AppointmentAction | null>(null);
 
   /* ── Derived display values ────────────────────────────────────── */
 
@@ -598,47 +584,23 @@ export default function BookingConfirmation() {
               </Link>
             </Button>
             {canReschedule && (
-              <Button asChild variant="outline" data-testid="button-reschedule">
-                <Link
-                  href={`/book?providerId=${appt.providerId}${appt.serviceId ? `&serviceId=${appt.serviceId}` : ""}&visitType=${appt.visitType}&reschedule=${appt.id}`}
-                >
-                  <RefreshCw className="h-4 w-4 mr-2" /> Reschedule
-                </Link>
+              <Button
+                variant="outline"
+                onClick={() => setActionTarget("reschedule")}
+                data-testid="button-reschedule"
+              >
+                <RefreshCw className="h-4 w-4 mr-2" /> Reschedule
               </Button>
             )}
             {canCancel && (
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    className="text-destructive hover:text-destructive"
-                    data-testid="button-cancel-appointment"
-                  >
-                    <X className="h-4 w-4 mr-2" /> Cancel
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Cancel this appointment?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      This will release the time slot and notify the provider. This action
-                      can't be undone.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel data-testid="button-cancel-dialog-back">
-                      Keep it
-                    </AlertDialogCancel>
-                    <AlertDialogAction
-                      onClick={() => cancelMut.mutate()}
-                      disabled={cancelMut.isPending}
-                      data-testid="button-cancel-dialog-confirm"
-                    >
-                      {cancelMut.isPending ? "Cancelling…" : "Yes, cancel"}
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
+              <Button
+                variant="ghost"
+                className="text-destructive hover:text-destructive"
+                onClick={() => setActionTarget("cancel")}
+                data-testid="button-cancel-appointment"
+              >
+                <X className="h-4 w-4 mr-2" /> Cancel
+              </Button>
             )}
             <Button asChild variant="outline" data-testid="button-download-invoice">
               <a
@@ -653,6 +615,17 @@ export default function BookingConfirmation() {
         </Card>
       </main>
       <Footer />
+
+      <AppointmentActionDialog
+        appointmentId={appointmentId ?? null}
+        action={actionTarget ?? "cancel"}
+        open={!!actionTarget}
+        onOpenChange={(open) => !open && setActionTarget(null)}
+        invalidateKeys={[
+          ["/api/appointments", appointmentId],
+          ["/api/appointments/patient"],
+        ]}
+      />
     </div>
   );
 }

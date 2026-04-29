@@ -43,6 +43,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useCurrency } from "@/lib/currency";
+import { AppointmentActionDialog, type AppointmentAction } from "@/components/appointment/AppointmentActionDialog";
 import {
   Calendar as CalendarIcon,
   Clock,
@@ -509,8 +510,6 @@ export default function ProviderDashboard() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [visitTypeFilter, setVisitTypeFilter] = useState<string>("all");
   const [selectedAppt, setSelectedAppt] = useState<AppointmentWithDetails | null>(null);
-  const [rescheduleOpen, setRescheduleOpen] = useState(false);
-  const [rescheduleData, setRescheduleData] = useState({ date: "", startTime: "", endTime: "" });
   const [privateNoteDraft, setPrivateNoteDraft] = useState("");
 
   // Reviews
@@ -531,21 +530,10 @@ export default function ProviderDashboard() {
     onError: () => toast({ title: t("provider_dashboard.toast_failed_reply", "Failed to post reply"), variant: "destructive" }),
   });
 
-  // Reschedule + edit (private note)
-  const rescheduleMutation = useMutation({
-    mutationFn: async (payload: { id: string; date?: string; startTime?: string; endTime?: string; privateNote?: string }) => {
-      const { id, ...body } = payload;
-      const res = await apiRequest("PATCH", `/api/appointments/${id}`, body);
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/appointments/provider"] });
-      toast({ title: t("provider_dashboard.toast_appt_updated", "Appointment updated") });
-      setRescheduleOpen(false);
-      setSelectedAppt(null);
-    },
-    onError: () => toast({ title: t("provider_dashboard.toast_failed_update", "Failed to update"), variant: "destructive" }),
-  });
+  // Unified appointment action dialog (cancel / reschedule / no_show).
+  // Replaces the legacy inline reschedule dialog and the direct
+  // PATCH /:id/status cancellation flow.
+  const [actionTarget, setActionTarget] = useState<{ id: string; action: AppointmentAction } | null>(null);
 
   const savePrivateNoteMutation = useMutation({
     mutationFn: async ({ id, privateNote }: { id: string; privateNote: string }) => {
@@ -764,16 +752,6 @@ export default function ProviderDashboard() {
   const openApptDetails = (a: AppointmentWithDetails) => {
     setSelectedAppt(a);
     setPrivateNoteDraft((a as any).privateNote || "");
-  };
-
-  const openReschedule = (a: AppointmentWithDetails) => {
-    setSelectedAppt(a);
-    setRescheduleData({
-      date: a.date,
-      startTime: a.startTime,
-      endTime: (a as any).endTime || "",
-    });
-    setRescheduleOpen(true);
   };
 
   const moveService = (serviceId: string, direction: "up" | "down") => {
@@ -1219,7 +1197,7 @@ export default function ProviderDashboard() {
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={() => openReschedule(appointment)}
+                  onClick={() => setActionTarget({ id: appointment.id, action: "reschedule" })}
                   data-testid={`button-reschedule-${appointment.id}`}
                 >
                   <CalendarDays className="h-3 w-3 mr-1" />
@@ -1228,8 +1206,16 @@ export default function ProviderDashboard() {
                 <Button
                   size="sm"
                   variant="outline"
-                  disabled={isUpdating}
-                  onClick={() => updateStatusMutation.mutate({ id: appointment.id, status: "cancelled" })}
+                  onClick={() => setActionTarget({ id: appointment.id, action: "no_show" })}
+                  data-testid={`button-no-show-${appointment.id}`}
+                >
+                  <X className="h-3 w-3 mr-1" />
+                  {t("provider_dashboard.no_show_btn", "No-show")}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setActionTarget({ id: appointment.id, action: "cancel" })}
                   data-testid={`button-cancel-${appointment.id}`}
                 >
                   <X className="h-3 w-3 mr-1" />
@@ -2667,7 +2653,7 @@ export default function ProviderDashboard() {
 
           {/* Appointment details modal */}
           <Dialog
-            open={!!selectedAppt && !rescheduleOpen}
+            open={!!selectedAppt && !actionTarget}
             onOpenChange={(open) => {
               if (!open) setSelectedAppt(null);
             }}
@@ -2756,7 +2742,7 @@ export default function ProviderDashboard() {
                     selectedAppt.status === "rescheduled") && (
                     <Button
                       variant="outline"
-                      onClick={() => openReschedule(selectedAppt)}
+                      onClick={() => setActionTarget({ id: selectedAppt.id, action: "reschedule" })}
                       data-testid="button-open-reschedule"
                     >
                       <CalendarDays className="h-4 w-4 mr-2" /> {t("provider_dashboard.reschedule_btn", "Reschedule")}
@@ -2767,64 +2753,14 @@ export default function ProviderDashboard() {
             </DialogContent>
           </Dialog>
 
-          {/* Reschedule dialog */}
-          <Dialog open={rescheduleOpen} onOpenChange={setRescheduleOpen}>
-            <DialogContent data-testid="dialog-reschedule">
-              <DialogHeader>
-                <DialogTitle>{t("provider_dashboard.reschedule_title", "Reschedule appointment")}</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-3">
-                <div>
-                  <Label>{t("provider_dashboard.date_label", "Date")}</Label>
-                  <Input
-                    type="date"
-                    value={rescheduleData.date}
-                    onChange={(e) => setRescheduleData({ ...rescheduleData, date: e.target.value })}
-                    data-testid="input-reschedule-date"
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <Label>{t("provider_dashboard.start_time_label", "Start time")}</Label>
-                    <Input
-                      type="time"
-                      value={rescheduleData.startTime}
-                      onChange={(e) => setRescheduleData({ ...rescheduleData, startTime: e.target.value })}
-                      data-testid="input-reschedule-start"
-                    />
-                  </div>
-                  <div>
-                    <Label>{t("provider_dashboard.end_time_label", "End time")}</Label>
-                    <Input
-                      type="time"
-                      value={rescheduleData.endTime}
-                      onChange={(e) => setRescheduleData({ ...rescheduleData, endTime: e.target.value })}
-                      data-testid="input-reschedule-end"
-                    />
-                  </div>
-                </div>
-              </div>
-              <DialogFooter>
-                <Button variant="ghost" onClick={() => setRescheduleOpen(false)}>{t("provider_dashboard.cancel_btn", "Cancel")}</Button>
-                <Button
-                  onClick={() => {
-                    if (!selectedAppt) return;
-                    rescheduleMutation.mutate({
-                      id: selectedAppt.id,
-                      date: rescheduleData.date,
-                      startTime: rescheduleData.startTime,
-                      endTime: rescheduleData.endTime,
-                    });
-                  }}
-                  disabled={rescheduleMutation.isPending}
-                  data-testid="button-confirm-reschedule"
-                >
-                  {rescheduleMutation.isPending && <Loader2 className="h-3 w-3 mr-1 animate-spin" />}
-                  {t("provider_dashboard.save_changes_btn", "Save changes")}
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+          {/* Unified action dialog: cancel / reschedule / no-show */}
+          <AppointmentActionDialog
+            appointmentId={actionTarget?.id ?? null}
+            action={actionTarget?.action ?? "cancel"}
+            open={!!actionTarget}
+            onOpenChange={(open) => !open && setActionTarget(null)}
+            invalidateKeys={[["/api/appointments/provider"]]}
+          />
 
           <ServiceFormDialog
             open={serviceFormOpen}

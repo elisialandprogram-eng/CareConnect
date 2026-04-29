@@ -51,6 +51,7 @@ import { Heart, RefreshCw, Activity } from "lucide-react";
 import { HealthMetricsTab } from "@/components/health-metrics-tab";
 import { FamilyMembersTab } from "@/components/family-members-tab";
 import { MedicationsTab } from "@/components/medications-tab";
+import { AppointmentActionDialog, type AppointmentAction } from "@/components/appointment/AppointmentActionDialog";
 
 const PrescriptionList = ({ patientId }: { patientId?: string }) => {
   const { t } = useTranslation();
@@ -205,29 +206,8 @@ export default function PatientDashboard() {
     },
   });
 
-  const cancelMutation = useMutation({
-    mutationFn: async (appointmentId: string) => {
-      const response = await apiRequest("PATCH", `/api/appointments/${appointmentId}/cancel`, {});
-      if (!response.ok) {
-        throw new Error("Failed to cancel appointment");
-      }
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/appointments/patient"] });
-      toast({
-        title: t("dashboard.appointment_cancelled_title", "Appointment cancelled"),
-        description: t("dashboard.appointment_cancelled_desc", "Your appointment has been cancelled successfully."),
-      });
-    },
-    onError: () => {
-      showErrorModal({
-        title: t("dashboard.error", "Error"),
-        description: t("dashboard.cancel_failed_desc", "Failed to cancel appointment. Please try again."),
-        context: "patient-dashboard.cancelAppointment",
-      });
-    },
-  });
+  // Action dialog state — drives the unified cancel/reschedule modal.
+  const [actionTarget, setActionTarget] = useState<{ id: string; action: AppointmentAction } | null>(null);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [visitTypeFilter, setVisitTypeFilter] = useState<string>("all");
@@ -400,31 +380,25 @@ export default function PatientDashboard() {
                     {t("dashboard.view_provider")}
                   </Link>
                 </Button>
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button size="sm" variant="ghost" className="text-destructive">
-                      <X className="h-4 w-4 mr-1" />
-                      {t("dashboard.cancel")}
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>{t("dashboard.cancel_confirm_title")}</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        {t("dashboard.cancel_confirm_desc")}
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>{t("dashboard.keep_appointment")}</AlertDialogCancel>
-                      <AlertDialogAction
-                        onClick={() => cancelMutation.mutate(appointment.id)}
-                        className="bg-destructive text-destructive-foreground"
-                      >
-                        {t("dashboard.cancel")}
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setActionTarget({ id: appointment.id, action: "reschedule" })}
+                  data-testid={`button-reschedule-${appointment.id}`}
+                >
+                  <RefreshCw className="h-4 w-4 mr-1" />
+                  {t("dashboard.reschedule", "Reschedule")}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="text-destructive"
+                  onClick={() => setActionTarget({ id: appointment.id, action: "cancel" })}
+                  data-testid={`button-cancel-${appointment.id}`}
+                >
+                  <X className="h-4 w-4 mr-1" />
+                  {t("dashboard.cancel")}
+                </Button>
               </div>
             )}
 
@@ -555,43 +529,24 @@ export default function PatientDashboard() {
                   </div>
 
                   <div className="flex gap-2">
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          data-testid="button-cancel-next-appointment"
-                          disabled={cancelMutation.isPending}
-                        >
-                          <X className="h-4 w-4 mr-2" />
-                          {t("dashboard.cancel", "Cancel")}
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>
-                            {t("dashboard.cancel_confirm_title", "Cancel this appointment?")}
-                          </AlertDialogTitle>
-                          <AlertDialogDescription>
-                            {t(
-                              "dashboard.cancel_confirm_desc",
-                              "This action cannot be undone. The provider will be notified.",
-                            )}
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel data-testid="button-cancel-cancel">
-                            {t("common.cancel", "Cancel")}
-                          </AlertDialogCancel>
-                          <AlertDialogAction
-                            onClick={() => cancelMutation.mutate(nextAppointment.id)}
-                            data-testid="button-confirm-cancel"
-                          >
-                            {t("dashboard.confirm_cancel", "Yes, cancel")}
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setActionTarget({ id: nextAppointment.id, action: "reschedule" })}
+                      data-testid="button-reschedule-next-appointment"
+                    >
+                      <RefreshCw className="h-4 w-4 mr-2" />
+                      {t("dashboard.reschedule", "Reschedule")}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setActionTarget({ id: nextAppointment.id, action: "cancel" })}
+                      data-testid="button-cancel-next-appointment"
+                    >
+                      <X className="h-4 w-4 mr-2" />
+                      {t("dashboard.cancel", "Cancel")}
+                    </Button>
                     <Button asChild>
                       <Link href={`/appointments?id=${nextAppointment.id}`}>
                         {t("dashboard.view_details")}
@@ -1021,6 +976,14 @@ export default function PatientDashboard() {
       </main>
 
       <Footer />
+
+      <AppointmentActionDialog
+        appointmentId={actionTarget?.id ?? null}
+        action={actionTarget?.action ?? "cancel"}
+        open={!!actionTarget}
+        onOpenChange={(open) => !open && setActionTarget(null)}
+        invalidateKeys={[["/api/appointments/patient"]]}
+      />
     </div>
   );
 }

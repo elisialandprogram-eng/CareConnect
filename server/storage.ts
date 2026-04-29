@@ -46,6 +46,9 @@ import {
   medicalPractitioners,
   invoices,
   invoiceItems,
+  appointmentEvents,
+  type AppointmentEvent,
+  type InsertAppointmentEvent,
   type User,
   type InsertUser,
   type Provider,
@@ -272,6 +275,10 @@ export interface IStorage {
   createAppointment(appointment: InsertAppointment): Promise<Appointment>;
   updateAppointment(id: string, data: Partial<InsertAppointment>): Promise<Appointment | undefined>;
   getAllAppointments(): Promise<AppointmentWithDetails[]>;
+
+  // Appointment events (audit trail for cancel / reschedule / no-show)
+  createAppointmentEvent(event: InsertAppointmentEvent): Promise<AppointmentEvent>;
+  getAppointmentEvents(appointmentId: string): Promise<AppointmentEvent[]>;
 
   // Reviews
   getReview(id: string): Promise<Review | undefined>;
@@ -1360,6 +1367,19 @@ export class DatabaseStorage implements IStorage {
   async updateAppointment(id: string, data: Partial<InsertAppointment>): Promise<Appointment | undefined> {
     const [updatedAppointment] = await db.update(appointments).set(data).where(eq(appointments.id, id)).returning();
     return updatedAppointment || undefined;
+  }
+
+  async createAppointmentEvent(event: InsertAppointmentEvent): Promise<AppointmentEvent> {
+    const [row] = await db.insert(appointmentEvents).values(event).returning();
+    return row;
+  }
+
+  async getAppointmentEvents(appointmentId: string): Promise<AppointmentEvent[]> {
+    return db
+      .select()
+      .from(appointmentEvents)
+      .where(eq(appointmentEvents.appointmentId, appointmentId))
+      .orderBy(asc(appointmentEvents.createdAt));
   }
 
   async getAllAppointments(): Promise<AppointmentWithDetails[]> {

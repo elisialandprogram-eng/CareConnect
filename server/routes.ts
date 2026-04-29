@@ -114,6 +114,15 @@ import { createInvoiceForAppointment } from "./utils/invoice-helper";
 import { sanitizeUser, sanitizeProviderWithUser, sanitizeProviderListItem } from "./utils/sanitize";
 import { computeFinalPrice } from "./lib/pricing";
 import { canTransition, isTerminalStatus, nextStatusesFor } from "./lib/appointmentStatus";
+import {
+  APPOINTMENT_ACTIONS,
+  REASON_CODES,
+  type AppointmentAction,
+  type ActorRole,
+  hoursUntilStart,
+  quoteRefund,
+  checkAction,
+} from "./lib/appointmentActions";
 import cookieParserModule from "cookie-parser";
 import {
   isStripeConfigured,
@@ -2324,7 +2333,10 @@ export async function registerRoutes(
     }
   });
 
-  // Reschedule / edit appointment fields (date, time, privateNote)
+  // Edit non-lifecycle appointment fields (notes / privateNote only).
+  // Lifecycle changes (date/time, status) MUST go through:
+  //   POST /api/appointments/:id/action       (cancel / reschedule / no_show)
+  //   PATCH /api/appointments/:id/status      (approve / confirm / start / complete)
   app.patch("/api/appointments/:id", authenticateToken, async (req: AuthRequest, res: Response) => {
     try {
       const existing = await storage.getAppointment(req.params.id);
@@ -2339,32 +2351,27 @@ export async function registerRoutes(
         }
       }
 
+      const { date, startTime, endTime, status, privateNote, notes } = req.body as any;
+      if (date || startTime || endTime) {
+        return res.status(400).json({
+          message: "Date/time changes must use POST /api/appointments/:id/action with action=reschedule.",
+        });
+      }
+      if (status) {
+        return res.status(400).json({
+          message: "Status changes must use PATCH /api/appointments/:id/status or POST /api/appointments/:id/action.",
+        });
+      }
+
       const allowed: any = {};
-      const { date, startTime, endTime, privateNote, notes } = req.body as any;
-      if (date) allowed.date = String(date);
-      if (startTime) allowed.startTime = startTime;
-      if (endTime) allowed.endTime = endTime;
       if (typeof privateNote === "string") allowed.privateNote = privateNote;
       if (typeof notes === "string") allowed.notes = notes;
 
-      const isReschedule = !!(date || startTime || endTime);
-      if (isReschedule) {
-        allowed.status = "rescheduled";
+      if (Object.keys(allowed).length === 0) {
+        return res.status(400).json({ message: "No editable fields supplied." });
       }
 
       const updated = await storage.updateAppointment(req.params.id, allowed);
-
-      if (isReschedule && updated) {
-        try {
-          await storage.createUserNotification({
-            userId: updated.patientId,
-            type: "appointment",
-            title: "Appointment rescheduled",
-            message: `Your appointment was rescheduled to ${updated.date} at ${updated.startTime}.`,
-            isRead: false,
-          });
-        } catch {}
-      }
       res.json(updated);
     } catch (error) {
       console.error("[PATCH /api/appointments/:id] error:", error);
@@ -3421,17 +3428,28 @@ export async function registerRoutes(
     },
   );
 
-  // Update appointment status
+  // Update appointment status (lifecycle progression only).
+  //
+  // For cancel / reschedule / no_show, callers MUST use
+  //   POST /api/appointments/:id/action
+  // which centralises validation, refund policy, and audit logging.
   app.patch("/api/appointments/:id/status", authenticateToken, async (req: AuthRequest, res: Response) => {
     try {
       const { status } = req.body as { status: string };
-      const validStatuses = [
-        "pending", "approved", "confirmed", "in_progress", "completed",
-        "cancelled", "rejected", "rescheduled", "no_show",
-        "cancelled_by_patient", "cancelled_by_provider",
-        "reschedule_requested", "reschedule_proposed", "expired",
+      const lifecycleStatuses = [
+        "pending", "approved", "confirmed", "in_progress", "completed", "rejected",
       ];
-      if (!validStatuses.includes(status)) {
+      const actionOnlyStatuses = [
+        "cancelled", "cancelled_by_patient", "cancelled_by_provider",
+        "no_show", "rescheduled", "reschedule_requested", "reschedule_proposed",
+        "expired",
+      ];
+      if (actionOnlyStatuses.includes(status)) {
+        return res.status(400).json({
+          message: `Status '${status}' must be set through POST /api/appointments/:id/action.`,
+        });
+      }
+      if (!lifecycleStatuses.includes(status)) {
         return res.status(400).json({ message: "Invalid status" });
       }
 
@@ -3923,144 +3941,309 @@ export async function registerRoutes(
     }
   });
 
-  // Cancel appointment
-  app.patch("/api/appointments/:id/cancel", authenticateToken, async (req: AuthRequest, res: Response) => {
+  // ============================================================
+  // Unified appointment action endpoint — single source of truth
+  // for CANCEL / RESCHEDULE / NO_SHOW. Replaces the old per-action
+  // endpoints. Validates time rules, status transitions, refunds,
+  // and writes an appointment_events audit row for every action.
+  // ============================================================
+  app.post("/api/appointments/:id/action", authenticateToken, async (req: AuthRequest, res: Response) => {
     try {
+      const actionSchema = z.object({
+        action: z.enum(["cancel", "reschedule", "no_show"]),
+        reason: z.string().max(2000).optional(),
+        reasonCode: z.string().max(64).optional(),
+        // Reschedule-only:
+        newDate: z.string().optional(),
+        newStartTime: z.string().optional(),
+        newEndTime: z.string().optional(),
+      });
+      const parsed = actionSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ message: "Invalid request", errors: parsed.error.errors });
+      }
+      const { action, reason, reasonCode, newDate, newStartTime, newEndTime } = parsed.data;
+
       const existing = await storage.getAppointment(req.params.id);
       if (!existing) {
         return res.status(404).json({ message: "Appointment not found" });
       }
 
-      // Authorisation: admin OR the patient who owns the appointment OR the provider who owns it
-      if (req.user?.role !== "admin") {
-        if (req.user?.role === "patient") {
-          if (existing.patientId !== req.user.id) {
-            return res.status(403).json({ message: "Access denied" });
-          }
-        } else if (req.user?.role === "provider") {
-          const provider = await storage.getProviderByUserId(req.user.id);
-          if (!provider || provider.id !== existing.providerId) {
-            return res.status(403).json({ message: "Access denied" });
-          }
-        } else {
-          return res.status(403).json({ message: "Access denied" });
+      const role = (req.user?.role ?? "patient") as ActorRole;
+
+      // Ownership check
+      let ownsAppointment = false;
+      if (role === "admin") {
+        ownsAppointment = true;
+      } else if (role === "patient") {
+        ownsAppointment = existing.patientId === req.user!.id;
+      } else if (role === "provider") {
+        const provider = await storage.getProviderByUserId(req.user!.id);
+        ownsAppointment = !!provider && provider.id === existing.providerId;
+      }
+
+      const hours = hoursUntilStart(existing.date, existing.startTime);
+
+      const permit = checkAction({
+        action: action as AppointmentAction,
+        actorRole: role,
+        currentStatus: existing.status,
+        hoursBeforeStart: hours,
+        ownsAppointment,
+      });
+      if (!permit.ok) {
+        return res.status(permit.status).json({ message: permit.message });
+      }
+
+      // Reschedule must come with new date/time
+      const updates: Partial<typeof existing> = { status: permit.toStatus as any };
+      if (action === "reschedule") {
+        if (!newDate || !newStartTime || !newEndTime) {
+          return res.status(400).json({ message: "Reschedule requires newDate, newStartTime, newEndTime." });
         }
+        const newHours = hoursUntilStart(newDate, newStartTime);
+        if (newHours !== null && newHours < 0) {
+          return res.status(400).json({ message: "New appointment time must be in the future." });
+        }
+        updates.date = newDate as any;
+        updates.startTime = newStartTime as any;
+        updates.endTime = newEndTime as any;
+        updates.isRescheduled = true as any;
       }
 
-      // Don't re-cancel terminal-state appointments
-      if (["cancelled", "completed", "rejected"].includes(existing.status)) {
-        return res.status(400).json({ message: `Cannot cancel an appointment in '${existing.status}' state` });
+      // Compute refund quote (cancel only — reschedule/no_show return zero)
+      const totalPaid = Number(existing.totalAmount || 0);
+      const quote = quoteRefund({
+        action: action as AppointmentAction,
+        actorRole: role,
+        totalPaid,
+        hoursBeforeStart: hours,
+      });
+
+      // Apply update
+      const updated = await storage.updateAppointment(existing.id, updates as any);
+      if (!updated) {
+        return res.status(500).json({ message: "Failed to update appointment" });
       }
 
-      const appointment = await storage.updateAppointment(req.params.id, { status: "cancelled" });
-      if (!appointment) {
-        return res.status(404).json({ message: "Appointment not found" });
-      }
-
-      // Free the time slot if one was reserved
-      if (appointment.timeSlotId) {
+      // Free the slot when terminal (cancel / no_show)
+      const isTerminalNow = ["cancelled_by_patient", "cancelled_by_provider", "no_show"].includes(permit.toStatus!);
+      if (isTerminalNow && updated.timeSlotId) {
         try {
-          await storage.updateTimeSlot(appointment.timeSlotId, { isBooked: false });
+          await storage.updateTimeSlot(updated.timeSlotId, { isBooked: false });
         } catch (e) {
-          console.error("Failed to free time slot on cancel:", e);
+          console.error("[action] failed to free slot:", e);
         }
       }
 
-      // Refund any wallet debits linked to this appointment (full or partial
-      // wallet usage). The wallet ledger is the source of truth, so this
-      // works regardless of how much was applied. Idempotent via key.
-      try {
-        const debits = await db
-          .select()
-          .from(walletTransactions)
-          .where(and(
-            eq(walletTransactions.referenceType, "appointment"),
-            eq(walletTransactions.referenceId, appointment.id),
-            eq(walletTransactions.type, "debit"),
-          ));
-        const totalDebited = debits.reduce(
-          (sum, d) => sum + Math.abs(Number(d.amount || 0)),
-          0,
-        );
-        if (totalDebited > 0) {
-          await storage.refundWallet(appointment.patientId, totalDebited, {
-            description: `Refund for cancelled appointment ${appointment.appointmentNumber || appointment.id}`,
-            referenceType: "appointment",
-            referenceId: appointment.id,
-            idempotencyKey: `appointment:${appointment.id}:cancel-refund`,
-          });
+      // Process wallet refund for cancellations
+      let refundedAmount = 0;
+      if (action === "cancel" && quote.amount > 0) {
+        try {
+          // Compute the actual refundable: prefer min(quote, debited) so we never
+          // refund more than what was paid via wallet.
+          const debits = await db
+            .select()
+            .from(walletTransactions)
+            .where(and(
+              eq(walletTransactions.referenceType, "appointment"),
+              eq(walletTransactions.referenceId, updated.id),
+              eq(walletTransactions.type, "debit"),
+            ));
+          const totalDebited = debits.reduce(
+            (sum, d) => sum + Math.abs(Number(d.amount || 0)),
+            0,
+          );
+          const toRefund = Math.min(quote.amount, totalDebited);
+          if (toRefund > 0) {
+            await storage.refundWallet(updated.patientId, toRefund, {
+              description: `Refund for cancelled appointment ${updated.appointmentNumber || updated.id}`,
+              referenceType: "appointment",
+              referenceId: updated.id,
+              idempotencyKey: `appointment:${updated.id}:cancel-refund`,
+            });
+            refundedAmount = toRefund;
+          }
+        } catch (refundErr) {
+          console.error("[action] wallet refund failed:", refundErr);
         }
-      } catch (refundErr) {
-        console.error("[cancel] wallet refund failed:", refundErr);
       }
 
-      // Notify the other party + send cancellation emails to both sides
+      // Write audit event
+      let event;
       try {
-        const providerWithUser = await storage.getProviderWithUser(appointment.providerId);
-        const patient = await storage.getUser(appointment.patientId);
-        const cancelledBy = req.user?.role === "patient" ? "patient" : req.user?.role === "provider" ? "provider" : "admin";
-        const recipientUserId = cancelledBy === "patient" ? providerWithUser?.userId : appointment.patientId;
-        if (recipientUserId) {
+        event = await storage.createAppointmentEvent({
+          appointmentId: updated.id,
+          action: action as any,
+          actorUserId: req.user?.id,
+          actorRole: role as any,
+          fromStatus: existing.status as any,
+          toStatus: permit.toStatus as any,
+          reason: reason || null,
+          reasonCode: reasonCode || null,
+          refundAmount: String(refundedAmount) as any,
+          metadata: action === "reschedule"
+            ? JSON.stringify({ from: { date: existing.date, startTime: existing.startTime, endTime: existing.endTime }, to: { date: newDate, startTime: newStartTime, endTime: newEndTime } })
+            : null,
+        });
+      } catch (e) {
+        console.error("[action] failed to write event:", e);
+      }
+
+      // Notify counter-party + dispatch
+      try {
+        const providerWithUser = await storage.getProviderWithUser(updated.providerId);
+        const patient = await storage.getUser(updated.patientId);
+        const apptRef = updated.appointmentNumber ? ` (${updated.appointmentNumber})` : "";
+        const actorLabel = role === "patient" ? "patient" : role === "provider" ? "provider" : "admin";
+
+        const titleByAction: Record<string, string> = {
+          cancel: "Appointment cancelled",
+          reschedule: "Appointment rescheduled",
+          no_show: "No-show recorded",
+        };
+        const recipientUserIds: string[] = [];
+        if (role === "patient") {
+          if (providerWithUser?.userId) recipientUserIds.push(providerWithUser.userId);
+        } else {
+          recipientUserIds.push(updated.patientId);
+        }
+        for (const uid of recipientUserIds) {
           await storage.createUserNotification({
-            userId: recipientUserId,
+            userId: uid,
             type: "appointment",
-            title: "Appointment cancelled",
-            message: `An appointment on ${appointment.date} at ${appointment.startTime} was cancelled by the ${cancelledBy}.`,
+            title: titleByAction[action] || "Appointment updated",
+            message:
+              action === "reschedule"
+                ? `Appointment${apptRef} rescheduled to ${updated.date} at ${updated.startTime} by ${actorLabel}.`
+                : action === "no_show"
+                ? `Appointment${apptRef} on ${updated.date} was marked as a no-show.`
+                : `Appointment${apptRef} on ${existing.date} at ${existing.startTime} was cancelled by ${actorLabel}.${refundedAmount > 0 ? ` Refund issued: ${refundedAmount}.` : ""}`,
             isRead: false,
           });
         }
 
-        const details = [
-          { label: "Date", value: appointment.date },
-          { label: "Time", value: `${appointment.startTime} - ${appointment.endTime}` },
-          { label: "Cancelled by", value: cancelledBy },
-        ];
-        if (patient) {
+        if (action === "cancel" && patient) {
           await sendAppointmentEmail({
             to: patient.email,
             subject: "Appointment cancelled - GoldenLife",
             heading: "Appointment cancelled",
             intro: `Hello ${patient.firstName}, your appointment with ${providerWithUser?.user.firstName ?? ""} ${providerWithUser?.user.lastName ?? ""} has been cancelled.`,
-            details,
-            cta: cancelledBy === "patient" ? undefined : "If this was unexpected, you can rebook from your patient dashboard.",
-          });
-        }
-        if (providerWithUser?.user?.email) {
-          await sendAppointmentEmail({
-            to: providerWithUser.user.email,
-            subject: "Appointment cancelled - GoldenLife",
-            heading: "Appointment cancelled",
-            intro: `Hello ${providerWithUser.user.firstName}, an appointment in your schedule has been cancelled.`,
             details: [
-              ...details,
-              { label: "Patient", value: patient ? `${patient.firstName} ${patient.lastName}` : "Patient" },
+              { label: "Date", value: existing.date },
+              { label: "Time", value: `${existing.startTime} - ${existing.endTime}` },
+              { label: "Cancelled by", value: actorLabel },
+              ...(refundedAmount > 0 ? [{ label: "Refund", value: `${refundedAmount} HUF` }] : []),
             ],
+            cta: actorLabel === "patient" ? undefined : "If this was unexpected, you can rebook from your dashboard.",
           });
         }
-      } catch (e) {
-        console.error("Cancel notification/email failed:", e);
-      }
 
-      // Multi-channel cancellation dispatch
-      try {
-        const providerWithUser = await storage.getProviderWithUser(appointment.providerId);
-        notify.appointmentCancelled(appointment.patientId, {
-          date: appointment.date, time: appointment.startTime, appointmentId: appointment.id,
-        }).catch(err => console.error("[notify] cancel patient", err));
-        if (providerWithUser?.userId) {
-          notify.appointmentCancelled(providerWithUser.userId, {
-            date: appointment.date, time: appointment.startTime, appointmentId: appointment.id,
-          }).catch(err => console.error("[notify] cancel provider", err));
+        // Multi-channel dispatch (existing helper supports cancel only)
+        if (action === "cancel") {
+          notify.appointmentCancelled(updated.patientId, {
+            date: existing.date, time: existing.startTime, appointmentId: updated.id,
+          }).catch(err => console.error("[notify] cancel patient", err));
+          if (providerWithUser?.userId) {
+            notify.appointmentCancelled(providerWithUser.userId, {
+              date: existing.date, time: existing.startTime, appointmentId: updated.id,
+            }).catch(err => console.error("[notify] cancel provider", err));
+          }
         }
       } catch (e) {
-        console.error("[notify] cancel dispatch failed:", e);
+        console.error("[action] notification dispatch failed:", e);
       }
 
-      res.json(appointment);
+      res.json({ appointment: updated, event, refund: { amount: refundedAmount, quote } });
     } catch (error) {
-      console.error("Cancel appointment error:", error);
-      res.status(500).json({ message: "Failed to cancel appointment" });
+      console.error("[POST /api/appointments/:id/action] error:", error);
+      res.status(500).json({ message: "Failed to process appointment action" });
     }
+  });
+
+  // Read-only audit trail of every action taken on an appointment.
+  app.get("/api/appointments/:id/events", authenticateToken, async (req: AuthRequest, res: Response) => {
+    try {
+      const existing = await storage.getAppointment(req.params.id);
+      if (!existing) return res.status(404).json({ message: "Appointment not found" });
+      if (req.user?.role !== "admin") {
+        let allowed = false;
+        if (req.user?.role === "patient") allowed = existing.patientId === req.user.id;
+        if (req.user?.role === "provider") {
+          const provider = await storage.getProviderByUserId(req.user.id);
+          allowed = !!provider && provider.id === existing.providerId;
+        }
+        if (!allowed) return res.status(403).json({ message: "Access denied" });
+      }
+      const events = await storage.getAppointmentEvents(existing.id);
+      res.json(events);
+    } catch (error) {
+      console.error("[GET /api/appointments/:id/events] error:", error);
+      res.status(500).json({ message: "Failed to fetch events" });
+    }
+  });
+
+  // Quote endpoint: returns refund preview without performing the action.
+  // Used by the action dialog to show the patient/provider what will happen.
+  app.get("/api/appointments/:id/action-quote", authenticateToken, async (req: AuthRequest, res: Response) => {
+    try {
+      const action = String(req.query.action || "") as AppointmentAction;
+      if (!APPOINTMENT_ACTIONS.includes(action)) {
+        return res.status(400).json({ message: "Unknown action" });
+      }
+      const existing = await storage.getAppointment(req.params.id);
+      if (!existing) return res.status(404).json({ message: "Appointment not found" });
+
+      const role = (req.user?.role ?? "patient") as ActorRole;
+      let ownsAppointment = false;
+      if (role === "admin") ownsAppointment = true;
+      else if (role === "patient") ownsAppointment = existing.patientId === req.user!.id;
+      else if (role === "provider") {
+        const provider = await storage.getProviderByUserId(req.user!.id);
+        ownsAppointment = !!provider && provider.id === existing.providerId;
+      }
+
+      const hours = hoursUntilStart(existing.date, existing.startTime);
+      const permit = checkAction({
+        action,
+        actorRole: role,
+        currentStatus: existing.status,
+        hoursBeforeStart: hours,
+        ownsAppointment,
+      });
+      const quote = quoteRefund({
+        action,
+        actorRole: role,
+        totalPaid: Number(existing.totalAmount || 0),
+        hoursBeforeStart: hours,
+      });
+      res.json({
+        canPerform: permit.ok,
+        reason: permit.ok ? undefined : permit.message,
+        toStatus: permit.toStatus,
+        hoursBeforeStart: hours,
+        refund: quote,
+        reasonCodes: REASON_CODES[action],
+      });
+    } catch (error) {
+      console.error("[GET /api/appointments/:id/action-quote] error:", error);
+      res.status(500).json({ message: "Failed to compute quote" });
+    }
+  });
+
+  // Deprecated alias — kept so older clients keep working. Forwards to the
+  // unified action endpoint as a "cancel".
+  app.patch("/api/appointments/:id/cancel", authenticateToken, async (req: AuthRequest, res: Response) => {
+    req.url = `/api/appointments/${req.params.id}/action`;
+    req.body = { action: "cancel", reason: req.body?.reason, reasonCode: req.body?.reasonCode };
+    (req as any).method = "POST";
+    // Re-route by calling the handler stack
+    return (app as any)._router.handle({ ...req, method: "POST", url: req.url }, res, (err: any) => {
+      if (err) {
+        console.error("[deprecated /cancel] forward error:", err);
+        res.status(500).json({ message: "Forward failed" });
+      }
+    });
   });
 
   // ============ WALLET ROUTES ============

@@ -18,6 +18,10 @@ export const paymentMethodEnum = pgEnum("payment_method", ["card", "crypto", "ca
 export const ticketStatusEnum = pgEnum("ticket_status", ["open", "in_progress", "resolved", "closed"]);
 export const ticketPriorityEnum = pgEnum("ticket_priority", ["low", "medium", "high", "urgent"]);
 export const auditActionEnum = pgEnum("audit_action", ["create", "update", "delete", "login", "logout", "view", "export"]);
+export const appointmentActionEnum = pgEnum("appointment_action", [
+  "cancel", "reschedule", "no_show",
+  "approve", "confirm", "start", "complete", "reject",
+]);
 export const contentTypeEnum = pgEnum("content_type", ["homepage", "about", "terms", "privacy", "faq", "blog"]);
 export const announcementTypeEnum = pgEnum("announcement_type", ["info", "warning", "success", "error"]);
 export const medicalHistoryTypeEnum = pgEnum("medical_history_type", ["diagnosis", "procedure", "lab_result", "vaccination", "allergy"]);
@@ -477,6 +481,25 @@ export const providerPricingOverrides = pgTable("provider_pricing_overrides", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+export const appointmentEvents = pgTable("appointment_events", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  appointmentId: varchar("appointment_id").notNull().references(() => appointments.id),
+  action: appointmentActionEnum("action").notNull(),
+  actorUserId: varchar("actor_user_id").references(() => users.id),
+  actorRole: userRoleEnum("actor_role"),
+  fromStatus: appointmentStatusEnum("from_status"),
+  toStatus: appointmentStatusEnum("to_status"),
+  reason: text("reason"),
+  reasonCode: text("reason_code"),
+  refundAmount: decimal("refund_amount", { precision: 10, scale: 2 }).default("0.00"),
+  metadata: text("metadata"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => [
+  index("idx_appt_events_appointment_id").on(t.appointmentId),
+  index("idx_appt_events_action").on(t.action),
+  index("idx_appt_events_created_at").on(t.createdAt),
+]);
+
 export const auditLogs = pgTable("audit_logs", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").references(() => users.id),
@@ -932,6 +955,7 @@ export const insertMessageSchema = createInsertSchema(messages).omit({ id: true,
 export const insertRefreshTokenSchema = createInsertSchema(refreshTokens).omit({ id: true, createdAt: true });
 export const insertPromoCodeSchema = createInsertSchema(promoCodes).omit({ id: true, createdAt: true, usedCount: true });
 export const insertAuditLogSchema = createInsertSchema(auditLogs).omit({ id: true, createdAt: true });
+export const insertAppointmentEventSchema = createInsertSchema(appointmentEvents).omit({ id: true, createdAt: true });
 export const insertProviderPricingOverrideSchema = createInsertSchema(providerPricingOverrides).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertUserNotificationSchema = createInsertSchema(userNotifications).omit({ id: true, createdAt: true });
 export const insertChatConversationSchema = createInsertSchema(chatConversations).omit({ id: true, createdAt: true, updatedAt: true });
@@ -1019,6 +1043,8 @@ export type TimeSlot = typeof timeSlots.$inferSelect;
 export type InsertTimeSlot = z.infer<typeof insertTimeSlotSchema>;
 export type Appointment = typeof appointments.$inferSelect;
 export type InsertAppointment = z.infer<typeof insertAppointmentSchema>;
+export type AppointmentEvent = typeof appointmentEvents.$inferSelect;
+export type InsertAppointmentEvent = z.infer<typeof insertAppointmentEventSchema>;
 export type Review = typeof reviews.$inferSelect;
 export type InsertReview = z.infer<typeof insertReviewSchema>;
 export type Payment = typeof payments.$inferSelect;
