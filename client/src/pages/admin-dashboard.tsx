@@ -69,6 +69,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import type { User, ProviderWithUser, PromoCode, ProviderPricingOverride, SubService, Practitioner, ServicePractitioner, Service } from "@shared/schema";
 import { ServiceFormDialog } from "@/components/service-form-dialog";
+import { ServiceCatalogHierarchy } from "@/components/service-catalog-hierarchy";
 import { useLocation } from "wouter";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from "recharts";
 import type { TaxSetting, InsertTaxSetting } from "@shared/schema";
@@ -2809,25 +2810,15 @@ function ContentManagement() {
         <TabsList className="tabs-colorful tabs-violet flex flex-wrap gap-1 h-auto w-full">
           <TabsTrigger value="providers" data-testid="tab-content-providers">{t("admin_dashboard.tab_providers")}</TabsTrigger>
           <TabsTrigger value="users" data-testid="tab-content-users">{t("admin_dashboard.tab_users")}</TabsTrigger>
-          <TabsTrigger value="catalog" data-testid="tab-catalog">{t("admin_dashboard.tab_catalog", "Catalog")}</TabsTrigger>
-          <TabsTrigger value="categories" data-testid="tab-categories">Categories</TabsTrigger>
-          <TabsTrigger value="sub-services" data-testid="tab-sub-services">{t("admin_dashboard.tab_sub_services")}</TabsTrigger>
+          <TabsTrigger value="catalog" data-testid="tab-catalog">Service Catalog</TabsTrigger>
           <TabsTrigger value="promo-codes" data-testid="tab-content-promo-codes">{t("admin_dashboard.tab_promo_codes")}</TabsTrigger>
           <TabsTrigger value="tickets" data-testid="tab-content-tickets">{t("admin_dashboard.tab_support")}</TabsTrigger>
           <TabsTrigger value="faqs" data-testid="tab-content-faqs">{t("admin_dashboard.tab_faqs")}</TabsTrigger>
           <TabsTrigger value="announcements" data-testid="tab-content-announcements">{t("admin_dashboard.tab_announcements")}</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="catalog">
-          <ServiceCatalogTree />
-        </TabsContent>
-
-        <TabsContent value="categories">
-          <CategoriesManagement />
-        </TabsContent>
-
-        <TabsContent value="sub-services">
-          <SubServicesManagement />
+        <TabsContent value="catalog" className="pt-4">
+          <ServiceCatalogHierarchy />
         </TabsContent>
 
         <TabsContent value="faqs" className="space-y-4">
