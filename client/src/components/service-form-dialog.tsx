@@ -519,7 +519,6 @@ export function ServiceFormDialog({ open, onOpenChange, service, providerId, adm
         <Tabs defaultValue="details" className="flex-1 flex flex-col min-h-0">
           <TabsList className="w-full justify-start gap-4 bg-transparent border-b rounded-none h-auto p-0 px-6 overflow-x-auto shrink-0">
             <TabsTrigger value="details" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent text-xs tracking-wider" data-testid="tab-service-details">SERVICE DETAILS</TabsTrigger>
-            <TabsTrigger value="timesheet" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent text-xs tracking-wider text-muted-foreground" data-testid="tab-service-timesheet">TIME SHEET</TabsTrigger>
             <TabsTrigger value="settings" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent text-xs tracking-wider" data-testid="tab-service-settings">SETTINGS</TabsTrigger>
             {isEdit && (
               <TabsTrigger value="price-history" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent text-xs tracking-wider text-muted-foreground flex items-center gap-1" data-testid="tab-service-price-history">
