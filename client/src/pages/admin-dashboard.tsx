@@ -6538,10 +6538,6 @@ export default function AdminDashboard() {
               <Calendar className="h-4 w-4 mr-1.5" />
               {t("admin.calendar", "Calendar")}
             </TabsTrigger>
-            <TabsTrigger value="services-grid" data-testid="tab-services-grid">
-              <Activity className="h-4 w-4 mr-1.5" />
-              {t("admin.services", "Services")}
-            </TabsTrigger>
             <TabsTrigger value="staff" data-testid="tab-staff">
               <UserCheck className="h-4 w-4 mr-1.5" />
               {t("admin.staff", "Staff")}
@@ -6610,10 +6606,6 @@ export default function AdminDashboard() {
 
           <TabsContent value="bookings">
             <BookingsManagementComponent />
-          </TabsContent>
-
-          <TabsContent value="services-grid">
-            <AdminServicesOverview />
           </TabsContent>
 
           <TabsContent value="staff">
