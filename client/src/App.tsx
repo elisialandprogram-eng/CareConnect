@@ -116,7 +116,6 @@ function Router() {
           <Route path="/admin" component={AdminDashboard} />
           <Route path="/admin/stale-bookings" component={AdminStaleBookings} />
           <Route path="/admin/earnings" component={AdminEarnings} />
-          <Route path="/provider/earnings" component={ProviderEarnings} />
           <Route path="/messages" component={Messages} />
           <Route path="/notifications" component={Notifications} />
           <Route path="/terms" component={Terms} />
