@@ -114,7 +114,7 @@ export default function ProviderProfile() {
       params.append("serviceId", effectiveService.id);
     }
     
-    navigate(`/booking?${params.toString()}`);
+    navigate(`/book?${params.toString()}`);
   };
 
   if (providerLoading) {

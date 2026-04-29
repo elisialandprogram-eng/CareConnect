@@ -443,7 +443,7 @@ export default function PatientDashboard() {
                   data-testid={`button-rebook-${appointment.id}`}
                 >
                   <Link
-                    href={`/booking?providerId=${appointment.providerId}${appointment.serviceId ? `&serviceId=${appointment.serviceId}` : ""}&visitType=${appointment.visitType}`}
+                    href={`/book?providerId=${appointment.providerId}${appointment.serviceId ? `&serviceId=${appointment.serviceId}` : ""}&visitType=${appointment.visitType}`}
                   >
                     <RefreshCw className="h-4 w-4 mr-1" />
                     {t("dashboard.book_again", "Book again")}

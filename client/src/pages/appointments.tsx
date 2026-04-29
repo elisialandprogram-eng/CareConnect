@@ -328,7 +328,7 @@ export default function Appointments() {
                           data-testid={`button-rebook-${appointment.id}`}
                         >
                           <Link
-                            href={`/booking?providerId=${appointment.providerId}${appointment.service?.id ? `&serviceId=${appointment.service.id}` : ""}&visitType=${appointment.visitType}`}
+                            href={`/book?providerId=${appointment.providerId}${appointment.service?.id ? `&serviceId=${appointment.service.id}` : ""}&visitType=${appointment.visitType}`}
                           >
                             <RefreshCw className="h-3 w-3" />
                             {t("appointments.book_again", "Book again")}

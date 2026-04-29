@@ -30,26 +30,25 @@ End-to-end audit of the patient journey from login through appointment completio
 
 ## 2. Booking Entry Points
 
-There are **two parallel entry points**:
+There is **one canonical booking flow** — the wizard at `client/src/pages/book-wizard.tsx`, mounted at `/book` (and `/book-wizard` as alias). The legacy `/booking` page was deleted; `/booking` now redirects to `/book` while preserving query params (`providerId`, `serviceId`, `visitType`, `practitionerId`) so deep links from the provider profile, "Book again" buttons, and any external links keep working.
 
-| Entry point             | File                                        | When used                                                         |
-| ----------------------- | ------------------------------------------- | ----------------------------------------------------------------- |
-| Step-by-step wizard     | `client/src/pages/book-wizard.tsx:90` (`/book`, `/book-wizard`) | "Book" CTA from patient dashboard            |
-| Direct booking page     | `client/src/pages/booking.tsx`              | Linked from a provider profile with `?providerId=…&serviceId=…`   |
+The wizard drives a 6-step state machine (`step` state) following the order **Provider → Service → Slot → Sessions → Payment → Booking**:
 
-The wizard drives a 6-step state machine (`step` state, line 97):
+| Step | API call                                                  | Notes |
+| ---- | --------------------------------------------------------- | ----- |
+| 0. Provider | `GET /api/providers` (`?q=…` for search)           | Lists every active provider, with name/specialty/city search. |
+| 1. Service  | `GET /api/providers/{id}` (services joined to sub-services) | Shows the services this provider offers. |
+| 2. Slot     | `GET /api/providers/{id}/available-slots?date=YYYY-MM-DD` | Visit type (clinic/home/online) + date + time picker on the same step. |
+| 3. Sessions | (none)                                              | Numeric stepper 1–10 with quick-pick presets (1, 2, 4, 6, 10). |
+| 4. Payment  | `POST /api/pricing/quote`, `GET /api/wallet`        | Promo code + partial wallet credit + payment method (skipped if wallet covers full total). |
+| 5. Booking  | (none until submit)                                 | Contact info + address (required for home visits) + notes + consent. |
+| Submit      | `POST /api/appointments`                            | Idempotent (UUID generated on confirm). |
 
-| Step | API call                                                  | Wizard line |
-| ---- | --------------------------------------------------------- | ----------- |
-| 0. Category        | `GET /api/categories`                              | 123 |
-| 1. Sub-service     | `GET /api/sub-services?category={slug}`            | 128 |
-| 2. Provider        | `GET /api/providers?subServiceId={id}`             | 134 |
-| 3. Practitioner *(skipped if none)* | `GET /api/providers/{id}/practitioners` | 140 |
-| 4. Date & time     | `GET /api/providers/{id}/available-slots?date=YYYY-MM-DD` | 146 |
-| 5. Confirm         | `POST /api/pricing/quote`                          | 164 |
-| Submit             | `POST /api/appointments`                           | 176 |
+Local state: `selectedProvider`, `selectedService`, `visitType`, `selectedDate`, `selectedSlot`, `sessions`, `payMethod`, `useWallet`, `walletAmountInput`, `contactName`, `contactPhone`, `address`, `latitude`, `longitude`, `consent`, `autoPractitioner`.
 
-Local state: `selectedCategory`, `selectedSub`, `selectedProvider`, `selectedPract`, `selectedDate`, `selectedSlot` (lines 98–103).
+**Practitioner is auto-assigned silently.** Once a service is chosen, the wizard quietly calls `GET /api/services/:serviceId/auto-practitioner` and stores the result in `autoPractitioner`. The user never sees a practitioner-picker step; the assigned practitioner is shown in the sticky right-side summary so they know who they'll see, and the practitioner ID is included in the booking payload.
+
+**Deep-link prefill.** If the URL has `providerId`, the wizard auto-selects that provider and jumps to step 1. If `serviceId` is also present, it auto-selects the service and jumps to step 2 (slot picker). `visitType` is read from the URL and used as the initial value of the visit-type toggle on step 2.
 
 ---
 
