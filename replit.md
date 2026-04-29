@@ -71,6 +71,10 @@ An in-app wallet allows patients to pre-load credits and pay for services. The s
 
 The project exclusively uses Supabase (PostgreSQL) for all data storage. The schema includes core tables for users, providers, services, time slots, appointments, reviews, payments, and refresh tokens, with UUID primary keys, foreign key constraints, and cascading deletes. Enums are used for data integrity.
 
+### Safe Delete & Pricing Versioning
+
+`categories`, `sub_services`, and `services` carry both `is_active` and `deleted_at` columns. Delete handlers do a **usage check** first: if the row is referenced by appointments (or by provider services for sub-services / by sub-services for categories), the row is **soft-archived** (`is_active=false`, `deleted_at=now()`) instead of hard deleted. Past bookings keep their original `total_amount` snapshot, so historical pricing is never lost. Admins can pass `?force=true` for a real DELETE when allowed by FKs. `POST /api/{services|sub-services|admin/categories}/:id/restore` un-archives a row. A dedicated `service_price_history` table records every change to price/visit-fees/platform-fee-override on a service, exposed via `GET /api/services/:id/price-history`.
+
 ### Build Process
 
 The client-side React app is bundled using Vite, and the server-side Express app with esbuild. Shared types and schemas are maintained in a `shared/` directory.

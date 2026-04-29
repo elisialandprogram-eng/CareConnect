@@ -1133,20 +1133,23 @@ export async function registerRoutes(
       const id = req.params.id;
       const existing = await storage.getSubService(id);
       if (!existing) return res.status(404).json({ message: "Category not found" });
-
-      const inUse = await db.select({ id: services.id }).from(services).where(eq(services.subServiceId, id));
-      if (inUse.length > 0) {
-        return res.status(409).json({
-          message: `Cannot delete "${existing.name}" — it is used by ${inUse.length} service${inUse.length === 1 ? "" : "s"}.`,
-        });
+      const force = req.query.force === "true" && req.user?.role === "admin";
+      const result = await storage.deleteSubService(id, { force });
+      if ("soft" in result && result.soft) {
+        return res.json({ ok: true, archived: true, message: `"${existing.name}" archived (in use). Provider services and existing bookings preserved.` });
       }
-
-      await storage.deleteSubService(id);
       res.status(204).end();
     } catch (error: any) {
       console.error("Delete sub-service error:", error);
       res.status(500).json({ message: "Failed to delete category" });
     }
+  });
+
+  app.post("/api/sub-services/:id/restore", authenticateToken, async (req: AuthRequest, res: Response) => {
+    if (req.user?.role !== "admin") return res.status(403).json({ message: "Admin access required" });
+    const restored = await storage.restoreSubService(req.params.id);
+    if (!restored) return res.status(404).json({ message: "Not found" });
+    res.json(restored);
   });
 
   // Sub-services management
@@ -1175,7 +1178,12 @@ export async function registerRoutes(
 
   app.delete("/api/admin/sub-services/:id", authenticateToken, async (req: AuthRequest, res: Response) => {
     if (req.user?.role !== "admin") return res.status(403).json({ message: "Admin access required" });
-    await storage.deleteSubService(req.params.id);
+    const existing = await storage.getSubService(req.params.id);
+    const force = req.query.force === "true";
+    const result = await storage.deleteSubService(req.params.id, { force });
+    if ("soft" in result && result.soft) {
+      return res.json({ ok: true, archived: true, message: existing ? `"${existing.name}" archived (in use). Existing data preserved.` : "Archived." });
+    }
     res.status(204).end();
   });
 
@@ -1230,14 +1238,19 @@ export async function registerRoutes(
     if (req.user?.role !== "admin") return res.status(403).json({ message: "Admin access required" });
     const cat = await storage.getCategory(req.params.id);
     if (!cat) return res.status(404).json({ message: "Category not found" });
-    // Default categories shouldn't be hard-deleted (sub-services depend on the slug via the enum).
-    // Soft-disable instead by flipping isActive to false.
-    if (["physiotherapist", "doctor", "nurse"].includes(cat.slug)) {
-      await storage.updateCategory(req.params.id, { isActive: false } as any);
-      return res.json({ ok: true, soft: true });
+    const force = req.query.force === "true";
+    const result = await storage.deleteCategory(req.params.id, { force });
+    if ("soft" in result && result.soft) {
+      return res.json({ ok: true, archived: true, message: `"${cat.name}" archived. Existing sub-services and bookings preserved.` });
     }
-    await storage.deleteCategory(req.params.id);
     res.status(204).end();
+  });
+
+  app.post("/api/admin/categories/:id/restore", authenticateToken, async (req: AuthRequest, res: Response) => {
+    if (req.user?.role !== "admin") return res.status(403).json({ message: "Admin access required" });
+    const c = await storage.restoreCategory(req.params.id);
+    if (!c) return res.status(404).json({ message: "Not found" });
+    res.json(c);
   });
 
   // Practitioners
@@ -1730,11 +1743,39 @@ export async function registerRoutes(
 
   app.delete("/api/services/:id", authenticateToken, async (req: AuthRequest, res) => {
     try {
-      await storage.deleteService(req.params.id);
+      const force = req.query.force === "true" && req.user?.role === "admin";
+      const existing = await storage.getService(req.params.id);
+      const result = await storage.deleteService(req.params.id, { force });
+      if ("soft" in result && result.soft) {
+        return res.json({ ok: true, archived: true, message: existing ? `"${existing.name}" archived because past bookings reference it. Pricing history preserved.` : "Archived." });
+      }
       res.status(204).end();
     } catch (error) {
+      console.error("Delete service error:", error);
       res.status(400).json({ message: "Failed to delete service" });
     }
+  });
+
+  app.post("/api/services/:id/restore", authenticateToken, async (req: AuthRequest, res: Response) => {
+    const svc = await storage.getService(req.params.id);
+    if (!svc) return res.status(404).json({ message: "Not found" });
+    if (req.user?.role !== "admin") {
+      const provider = await storage.getProviderByUserId(req.user!.id);
+      if (!provider || provider.id !== svc.providerId) return res.status(403).json({ message: "Forbidden" });
+    }
+    const restored = await storage.restoreService(req.params.id);
+    res.json(restored);
+  });
+
+  app.get("/api/services/:id/price-history", authenticateToken, async (req: AuthRequest, res: Response) => {
+    const svc = await storage.getService(req.params.id);
+    if (!svc) return res.status(404).json({ message: "Not found" });
+    if (req.user?.role !== "admin") {
+      const provider = await storage.getProviderByUserId(req.user!.id);
+      if (!provider || provider.id !== svc.providerId) return res.status(403).json({ message: "Forbidden" });
+    }
+    const history = await storage.getServicePriceHistory(req.params.id);
+    res.json(history);
   });
 
   app.patch("/api/practitioners/:id", authenticateToken, async (req: AuthRequest, res) => {
@@ -4290,9 +4331,15 @@ export async function registerRoutes(
 
   app.delete("/api/admin/services/:id", authenticateToken, requireAdmin, async (req: AuthRequest, res: Response) => {
     try {
-      await storage.deleteService(req.params.id);
+      const force = req.query.force === "true";
+      const existing = await storage.getService(req.params.id);
+      const result = await storage.deleteService(req.params.id, { force });
+      if ("soft" in result && result.soft) {
+        return res.json({ ok: true, archived: true, message: existing ? `"${existing.name}" archived (in use). Pricing history preserved.` : "Archived." });
+      }
       res.status(204).end();
     } catch (error) {
+      console.error("Admin delete service error:", error);
       res.status(500).json({ message: "Failed to delete service" });
     }
   });

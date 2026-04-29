@@ -158,6 +158,7 @@ export const categories = pgTable("categories", {
   icon: text("icon"),
   sortOrder: integer("sort_order").default(0),
   isActive: boolean("is_active").default(true),
+  deletedAt: timestamp("deleted_at"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -172,6 +173,7 @@ export const subServices = pgTable("sub_services", {
   taxPercentage: decimal("tax_percentage", { precision: 5, scale: 2 }).default("0.00"),
   pricingType: pricingTypeEnum("pricing_type").default("fixed"),
   isActive: boolean("is_active").default(true),
+  deletedAt: timestamp("deleted_at"),
   createdAt: timestamp("created_at").defaultNow(),
 }, (table) => ({
   unq: sql`UNIQUE(${table.name}, ${table.category})`
@@ -204,8 +206,23 @@ export const services = pgTable("services", {
   telemedicineFee: decimal("telemedicine_fee", { precision: 10, scale: 2 }).default("0.00"),
   emergencyFee: decimal("emergency_fee", { precision: 10, scale: 2 }).default("0.00"),
   maxPatientsPerDay: integer("max_patients_per_day"),
+  deletedAt: timestamp("deleted_at"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const servicePriceHistory = pgTable("service_price_history", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  serviceId: varchar("service_id").notNull().references(() => services.id, { onDelete: "cascade" }),
+  price: decimal("price", { precision: 10, scale: 2 }).notNull(),
+  homeVisitFee: decimal("home_visit_fee", { precision: 10, scale: 2 }).default("0.00"),
+  clinicFee: decimal("clinic_fee", { precision: 10, scale: 2 }).default("0.00"),
+  telemedicineFee: decimal("telemedicine_fee", { precision: 10, scale: 2 }).default("0.00"),
+  emergencyFee: decimal("emergency_fee", { precision: 10, scale: 2 }).default("0.00"),
+  platformFeeOverride: decimal("platform_fee_override", { precision: 10, scale: 2 }),
+  changedBy: varchar("changed_by").references(() => users.id),
+  reason: text("reason"),
+  changedAt: timestamp("changed_at").defaultNow(),
 });
 
 export const servicePackages = pgTable("service_packages", {

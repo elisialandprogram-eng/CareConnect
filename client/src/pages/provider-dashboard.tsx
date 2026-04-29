@@ -57,6 +57,7 @@ import {
   Image as ImageIcon,
   Plus,
   Trash2,
+  RotateCcw,
   Tag,
   Edit,
   MapPin,
@@ -493,11 +494,31 @@ export default function ProviderDashboard() {
 
   const deleteServiceMutation = useMutation({
     mutationFn: async (id: string) => {
-      await apiRequest("DELETE", `/api/services/${id}`);
+      const r = await apiRequest("DELETE", `/api/services/${id}`);
+      try { return await r.json(); } catch { return { ok: true, archived: false }; }
+    },
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/providers", providerData?.id] });
+      queryClient.invalidateQueries({ queryKey: ["/api/providers/me"] });
+      if (data?.archived) {
+        toast({ title: t("provider_dashboard.toast_service_archived", "Service archived"), description: data.message });
+      } else {
+        toast({ title: t("provider_dashboard.toast_service_deleted", "Service deleted") });
+      }
+    },
+    onError: (e: any) => {
+      toast({ title: t("provider_dashboard.toast_failed_delete", "Failed to delete service"), description: e?.message, variant: "destructive" });
+    },
+  });
+
+  const restoreServiceMutation = useMutation({
+    mutationFn: async (id: string) => {
+      await apiRequest("POST", `/api/services/${id}/restore`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/providers", providerData?.id] });
-      toast({ title: t("provider_dashboard.toast_service_deleted", "Service deleted") });
+      queryClient.invalidateQueries({ queryKey: ["/api/providers/me"] });
+      toast({ title: t("provider_dashboard.toast_service_restored", "Service restored") });
     },
   });
 
@@ -2034,10 +2055,11 @@ export default function ProviderDashboard() {
                           { icon: Building2, label: t("provider_dashboard.fee_clinic", "Clinic"), val: Number(sa.clinicFee || 0) },
                           { icon: Video, label: t("provider_dashboard.fee_online", "Online"), val: Number(sa.telemedicineFee || 0) },
                         ].filter(v => v.val > 0);
+                        const isArchived = !!sa.deletedAt;
                         return (
                           <div
                             key={s.id}
-                            className={`group relative border rounded-xl bg-card p-4 transition-all hover-elevate ${!s.isActive ? "opacity-60" : ""}`}
+                            className={`group relative border rounded-xl bg-card p-4 transition-all hover-elevate ${!s.isActive ? "opacity-60" : ""} ${isArchived ? "border-dashed border-amber-500/40 bg-amber-50/30 dark:bg-amber-950/10" : ""}`}
                             data-testid={`row-service-${s.id}`}
                           >
                             <div
@@ -2063,18 +2085,28 @@ export default function ProviderDashboard() {
                                     </p>
                                   </div>
                                 </div>
-                                <Switch
-                                  checked={!!s.isActive}
-                                  onCheckedChange={(v) => toggleServiceMutation.mutate({ id: s.id, isActive: v })}
-                                  data-testid={`switch-service-active-${s.id}`}
-                                />
+                                {!isArchived && (
+                                  <Switch
+                                    checked={!!s.isActive}
+                                    onCheckedChange={(v) => toggleServiceMutation.mutate({ id: s.id, isActive: v })}
+                                    data-testid={`switch-service-active-${s.id}`}
+                                  />
+                                )}
                               </div>
                               <div className="flex items-baseline justify-between mt-1">
                                 <span className="text-lg font-bold text-primary" data-testid={`text-service-price-${s.id}`}>
                                   ${Number(s.price).toFixed(2)}
                                 </span>
-                                <Badge variant={s.isActive ? "default" : "secondary"} className="text-[10px]">
-                                  {s.isActive ? t("provider_dashboard.active", "Active") : t("provider_dashboard.paused", "Paused")}
+                                <Badge
+                                  variant={isArchived ? "outline" : (s.isActive ? "default" : "secondary")}
+                                  className={`text-[10px] ${isArchived ? "border-amber-500/60 text-amber-700 dark:text-amber-400" : ""}`}
+                                  data-testid={`badge-service-status-${s.id}`}
+                                >
+                                  {isArchived
+                                    ? t("provider_dashboard.archived", "Archived")
+                                    : s.isActive
+                                      ? t("provider_dashboard.active", "Active")
+                                      : t("provider_dashboard.paused", "Paused")}
                                 </Badge>
                               </div>
                               {visitFees.length > 0 && (
@@ -2094,33 +2126,53 @@ export default function ProviderDashboard() {
                                 </div>
                               )}
                               <div className="flex justify-end gap-1 mt-3 pt-2 border-t border-dashed">
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  className="h-8"
-                                  onClick={() => { setPricingDraft({ ...sa }); setPricingService(s); }}
-                                  data-testid={`button-pricing-service-${s.id}`}
-                                >
-                                  <DollarSign className="h-3.5 w-3.5 mr-1" /> {t("provider_dashboard.pricing", "Pricing")}
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  className="h-8"
-                                  onClick={() => { setEditingService(s); setServiceFormOpen(true); }}
-                                  data-testid={`button-edit-service-${s.id}`}
-                                >
-                                  <Pencil className="h-3.5 w-3.5 mr-1" /> {t("provider_dashboard.edit", "Edit")}
-                                </Button>
-                                <Button
-                                  size="icon"
-                                  variant="ghost"
-                                  className="h-8 w-8 text-destructive"
-                                  onClick={() => { if (confirm(t("provider_dashboard.confirm_delete_service", "Delete this service?"))) deleteServiceMutation.mutate(s.id); }}
-                                  data-testid={`button-delete-service-${s.id}`}
-                                >
-                                  <Trash2 className="h-3.5 w-3.5" />
-                                </Button>
+                                {isArchived ? (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-8"
+                                    onClick={() => restoreServiceMutation.mutate(s.id)}
+                                    data-testid={`button-restore-service-${s.id}`}
+                                  >
+                                    <RotateCcw className="h-3.5 w-3.5 mr-1" /> {t("provider_dashboard.restore", "Restore")}
+                                  </Button>
+                                ) : (
+                                  <>
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="h-8"
+                                      onClick={() => { setPricingDraft({ ...sa }); setPricingService(s); }}
+                                      data-testid={`button-pricing-service-${s.id}`}
+                                    >
+                                      <DollarSign className="h-3.5 w-3.5 mr-1" /> {t("provider_dashboard.pricing", "Pricing")}
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="h-8"
+                                      onClick={() => { setEditingService(s); setServiceFormOpen(true); }}
+                                      data-testid={`button-edit-service-${s.id}`}
+                                    >
+                                      <Pencil className="h-3.5 w-3.5 mr-1" /> {t("provider_dashboard.edit", "Edit")}
+                                    </Button>
+                                    <Button
+                                      size="icon"
+                                      variant="ghost"
+                                      className="h-8 w-8 text-destructive"
+                                      onClick={() => {
+                                        const msg = t(
+                                          "provider_dashboard.confirm_delete_service_warning",
+                                          "Delete this service?\n\nIf it has been used in past bookings, it will be archived instead of deleted so historical data and pricing remain intact."
+                                        );
+                                        if (confirm(msg)) deleteServiceMutation.mutate(s.id);
+                                      }}
+                                      data-testid={`button-delete-service-${s.id}`}
+                                    >
+                                      <Trash2 className="h-3.5 w-3.5" />
+                                    </Button>
+                                  </>
+                                )}
                               </div>
                             </div>
                           </div>

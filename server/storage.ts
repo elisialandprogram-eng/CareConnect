@@ -38,6 +38,7 @@ import {
   practitioners,
   servicePractitioners,
   servicePackages,
+  servicePriceHistory,
   packageServices,
   taxSettings,
   patientConsents,
@@ -209,8 +210,10 @@ export interface IStorage {
   getService(id: string): Promise<Service | undefined>;
   getServicesByProvider(providerId: string): Promise<Service[]>;
   createService(service: InsertService): Promise<Service>;
-  updateService(id: string, data: Partial<InsertService>): Promise<Service | undefined>;
-  deleteService(id: string): Promise<void>;
+  updateService(id: string, data: Partial<InsertService>, opts?: { changedBy?: string; reason?: string }): Promise<Service | undefined>;
+  deleteService(id: string, opts?: { force?: boolean }): Promise<{ ok: true; soft: boolean } | { ok: false; reason: string; appointmentCount: number }>;
+  restoreService(id: string): Promise<Service | undefined>;
+  getServicePriceHistory(serviceId: string): Promise<any[]>;
 
   // Service Packages
   getServicePackage(id: string): Promise<ServicePackageWithServices | undefined>;
@@ -416,7 +419,8 @@ export interface IStorage {
   getSubService(id: string): Promise<SubService | undefined>;
   createSubService(data: InsertSubService): Promise<SubService>;
   updateSubService(id: string, data: Partial<SubService>): Promise<SubService | undefined>;
-  deleteSubService(id: string): Promise<void>;
+  deleteSubService(id: string, opts?: { force?: boolean }): Promise<{ ok: true; soft: boolean } | { ok: false; reason: string; serviceCount: number; appointmentCount: number }>;
+  restoreSubService(id: string): Promise<SubService | undefined>;
 
   // Categories
   getAllCategories(includeInactive?: boolean): Promise<Category[]>;
@@ -424,7 +428,8 @@ export interface IStorage {
   getCategoryBySlug(slug: string): Promise<Category | undefined>;
   createCategory(data: InsertCategory): Promise<Category>;
   updateCategory(id: string, data: Partial<InsertCategory>): Promise<Category | undefined>;
-  deleteCategory(id: string): Promise<void>;
+  deleteCategory(id: string, opts?: { force?: boolean }): Promise<{ ok: true; soft: boolean } | { ok: false; reason: string }>;
+  restoreCategory(id: string): Promise<Category | undefined>;
   ensureDefaultCategories(): Promise<void>;
 
   // Medical Data
@@ -891,13 +896,64 @@ export class DatabaseStorage implements IStorage {
     return newService;
   }
 
-  async updateService(id: string, data: Partial<InsertService>): Promise<Service | undefined> {
-    const [updatedService] = await db.update(services).set(data).where(eq(services.id, id)).returning();
+  async updateService(id: string, data: Partial<InsertService>, opts?: { changedBy?: string; reason?: string }): Promise<Service | undefined> {
+    const PRICE_FIELDS = ["price", "homeVisitFee", "clinicFee", "telemedicineFee", "emergencyFee", "platformFeeOverride"] as const;
+    const priceChanged = PRICE_FIELDS.some(f => Object.prototype.hasOwnProperty.call(data, f));
+    let prev: Service | undefined;
+    if (priceChanged) {
+      const [p] = await db.select().from(services).where(eq(services.id, id));
+      prev = p;
+    }
+    const [updatedService] = await db.update(services).set({ ...data, updatedAt: new Date() } as any).where(eq(services.id, id)).returning();
+    if (priceChanged && prev && updatedService) {
+      const anyDelta = PRICE_FIELDS.some(f => String((prev as any)[f] ?? "") !== String((updatedService as any)[f] ?? ""));
+      if (anyDelta) {
+        try {
+          await db.insert(servicePriceHistory).values({
+            serviceId: id,
+            price: updatedService.price,
+            homeVisitFee: (updatedService as any).homeVisitFee ?? "0.00",
+            clinicFee: (updatedService as any).clinicFee ?? "0.00",
+            telemedicineFee: (updatedService as any).telemedicineFee ?? "0.00",
+            emergencyFee: (updatedService as any).emergencyFee ?? "0.00",
+            platformFeeOverride: (updatedService as any).platformFeeOverride ?? null,
+            changedBy: opts?.changedBy ?? null,
+            reason: opts?.reason ?? null,
+          } as any);
+        } catch (e) {
+          console.error("[price-history] insert failed", e);
+        }
+      }
+    }
     return updatedService || undefined;
   }
 
-  async deleteService(id: string): Promise<void> {
-    await db.delete(services).where(eq(services.id, id));
+  async deleteService(id: string, opts?: { force?: boolean }): Promise<{ ok: true; soft: boolean } | { ok: false; reason: string; appointmentCount: number }> {
+    const [appt] = await db.select({ c: sql<number>`count(*)::int` }).from(appointments).where(eq(appointments.serviceId, id));
+    const apptCount = Number(appt?.c || 0);
+    if (apptCount > 0 && !opts?.force) {
+      await db.update(services).set({ isActive: false, deletedAt: new Date(), updatedAt: new Date() } as any).where(eq(services.id, id));
+      return { ok: true, soft: true };
+    }
+    if (opts?.force || apptCount === 0) {
+      try {
+        await db.delete(services).where(eq(services.id, id));
+        return { ok: true, soft: false };
+      } catch {
+        await db.update(services).set({ isActive: false, deletedAt: new Date(), updatedAt: new Date() } as any).where(eq(services.id, id));
+        return { ok: true, soft: true };
+      }
+    }
+    return { ok: false, reason: "in_use", appointmentCount: apptCount };
+  }
+
+  async restoreService(id: string): Promise<Service | undefined> {
+    const [s] = await db.update(services).set({ isActive: true, deletedAt: null, updatedAt: new Date() } as any).where(eq(services.id, id)).returning();
+    return s || undefined;
+  }
+
+  async getServicePriceHistory(serviceId: string): Promise<any[]> {
+    return db.select().from(servicePriceHistory).where(eq(servicePriceHistory.serviceId, serviceId)).orderBy(desc(servicePriceHistory.changedAt));
   }
 
   // Service Packages
@@ -1795,8 +1851,30 @@ export class DatabaseStorage implements IStorage {
     return s || undefined;
   }
 
-  async deleteSubService(id: string): Promise<void> {
-    await db.delete(subServices).where(eq(subServices.id, id));
+  async deleteSubService(id: string, opts?: { force?: boolean }): Promise<{ ok: true; soft: boolean } | { ok: false; reason: string; serviceCount: number; appointmentCount: number }> {
+    const inUseSvcs = await db.select({ id: services.id }).from(services).where(eq(services.subServiceId, id));
+    const svcIds = inUseSvcs.map(s => s.id);
+    let apptCount = 0;
+    if (svcIds.length) {
+      const [r] = await db.select({ c: sql<number>`count(*)::int` }).from(appointments).where(inArray(appointments.serviceId, svcIds));
+      apptCount = Number(r?.c || 0);
+    }
+    if ((svcIds.length > 0 || apptCount > 0) && !opts?.force) {
+      await db.update(subServices).set({ isActive: false, deletedAt: new Date() } as any).where(eq(subServices.id, id));
+      return { ok: true, soft: true };
+    }
+    try {
+      await db.delete(subServices).where(eq(subServices.id, id));
+      return { ok: true, soft: false };
+    } catch {
+      await db.update(subServices).set({ isActive: false, deletedAt: new Date() } as any).where(eq(subServices.id, id));
+      return { ok: true, soft: true };
+    }
+  }
+
+  async restoreSubService(id: string): Promise<SubService | undefined> {
+    const [s] = await db.update(subServices).set({ isActive: true, deletedAt: null } as any).where(eq(subServices.id, id)).returning();
+    return s || undefined;
   }
 
   // Categories
@@ -1825,8 +1903,26 @@ export class DatabaseStorage implements IStorage {
     return c || undefined;
   }
 
-  async deleteCategory(id: string): Promise<void> {
-    await db.delete(categories).where(eq(categories.id, id));
+  async deleteCategory(id: string, opts?: { force?: boolean }): Promise<{ ok: true; soft: boolean } | { ok: false; reason: string }> {
+    const cat = await this.getCategory(id);
+    if (!cat) return { ok: true, soft: false };
+    const inUseSubs = await db.select({ id: subServices.id }).from(subServices).where(eq(subServices.category, cat.slug as any));
+    if ((inUseSubs.length > 0 || ["physiotherapist","doctor","nurse"].includes(cat.slug)) && !opts?.force) {
+      await db.update(categories).set({ isActive: false, deletedAt: new Date() } as any).where(eq(categories.id, id));
+      return { ok: true, soft: true };
+    }
+    try {
+      await db.delete(categories).where(eq(categories.id, id));
+      return { ok: true, soft: false };
+    } catch {
+      await db.update(categories).set({ isActive: false, deletedAt: new Date() } as any).where(eq(categories.id, id));
+      return { ok: true, soft: true };
+    }
+  }
+
+  async restoreCategory(id: string): Promise<Category | undefined> {
+    const [c] = await db.update(categories).set({ isActive: true, deletedAt: null } as any).where(eq(categories.id, id)).returning();
+    return c || undefined;
   }
 
   async ensureDefaultCategories(): Promise<void> {
