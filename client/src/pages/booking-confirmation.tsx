@@ -579,7 +579,7 @@ export default function BookingConfirmation() {
         <Card className="mt-6" data-testid="card-actions">
           <CardContent className="pt-6 flex flex-wrap gap-2">
             <Button asChild data-testid="button-view-appointment">
-              <Link href={`/appointments?id=${appt.id}`}>
+              <Link href={`/appointments/${appt.id}`}>
                 View appointment <ArrowRight className="h-4 w-4 ml-2" />
               </Link>
             </Button>

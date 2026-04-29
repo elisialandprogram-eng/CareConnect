@@ -29,6 +29,7 @@ const Privacy = lazy(() => import("@/pages/privacy"));
 const About = lazy(() => import("@/pages/about"));
 const BecomeProvider = lazy(() => import("@/pages/become-provider"));
 const Appointments = lazy(() => import("@/pages/appointments"));
+const AppointmentDetails = lazy(() => import("@/pages/appointment-details"));
 const Profile = lazy(() => import("@/pages/profile"));
 const Settings = lazy(() => import("@/pages/settings"));
 const CookiePolicy = lazy(() => import("@/pages/cookie-policy"));
@@ -119,6 +120,7 @@ function Router() {
           <Route path="/about" component={About} />
           <Route path="/become-provider" component={BecomeProvider} />
           <Route path="/appointments" component={Appointments} />
+          <Route path="/appointments/:id" component={AppointmentDetails} />
           <Route path="/profile" component={Profile} />
           <Route path="/settings" component={Settings} />
           <Route path="/verify-email" component={VerifyEmail} />

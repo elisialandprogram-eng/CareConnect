@@ -547,8 +547,8 @@ export default function PatientDashboard() {
                       <X className="h-4 w-4 mr-2" />
                       {t("dashboard.cancel", "Cancel")}
                     </Button>
-                    <Button asChild>
-                      <Link href={`/appointments?id=${nextAppointment.id}`}>
+                    <Button asChild data-testid="button-view-next-appointment">
+                      <Link href={`/appointments/${nextAppointment.id}`}>
                         {t("dashboard.view_details")}
                         <ChevronRight className="h-4 w-4 ml-2" />
                       </Link>

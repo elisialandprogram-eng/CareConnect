@@ -237,7 +237,15 @@ export default function Appointments() {
               <Card
                 key={appointment.id}
                 data-testid={`card-appointment-${appointment.id}`}
-                className={highlightedId === appointment.id ? "ring-2 ring-primary shadow-lg transition-all" : "transition-all"}
+                onClick={(e) => {
+                  // Don't hijack clicks on inner buttons / links
+                  const target = e.target as HTMLElement;
+                  if (target.closest("button, a, [role='dialog']")) return;
+                  navigate(`/appointments/${appointment.id}`);
+                }}
+                className={`cursor-pointer hover:shadow-md transition-all ${
+                  highlightedId === appointment.id ? "ring-2 ring-primary shadow-lg" : ""
+                }`}
               >
                 <CardHeader className="pb-2">
                   <div className="flex justify-between items-start">
