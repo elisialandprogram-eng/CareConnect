@@ -724,6 +724,8 @@ export class DatabaseStorage implements IStorage {
         await tx.execute(sql`DELETE FROM payments WHERE appointment_id IN ${apptIn}`);
         await tx.execute(sql`DELETE FROM prescriptions WHERE appointment_id IN ${apptIn}`);
         await tx.execute(sql`DELETE FROM reviews WHERE appointment_id IN ${apptIn}`);
+        await tx.execute(sql`DELETE FROM provider_earnings WHERE appointment_id IN ${apptIn}`);
+        await tx.execute(sql`DELETE FROM appointment_events WHERE appointment_id IN ${apptIn}`);
       }
 
       await tx.execute(sql`DELETE FROM invoice_items WHERE invoice_id IN (SELECT id FROM invoices WHERE patient_id = ${id})`);
@@ -1636,7 +1638,13 @@ export class DatabaseStorage implements IStorage {
 
   async bulkCreateTimeSlots(slots: InsertTimeSlot[]): Promise<TimeSlot[]> {
     if (slots.length === 0) return [];
-    return db.insert(timeSlots).values(slots).returning();
+    return db
+      .insert(timeSlots)
+      .values(slots)
+      .onConflictDoNothing({
+        target: [timeSlots.providerId, timeSlots.date, timeSlots.startTime],
+      })
+      .returning();
   }
 
   async deleteTimeSlotsByProviderAndDate(providerId: string, date: string): Promise<void> {
