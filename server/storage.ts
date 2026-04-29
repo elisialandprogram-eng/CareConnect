@@ -953,7 +953,29 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getServicePriceHistory(serviceId: string): Promise<any[]> {
-    return db.select().from(servicePriceHistory).where(eq(servicePriceHistory.serviceId, serviceId)).orderBy(desc(servicePriceHistory.changedAt));
+    const rows = await db
+      .select({
+        id: servicePriceHistory.id,
+        serviceId: servicePriceHistory.serviceId,
+        price: servicePriceHistory.price,
+        homeVisitFee: servicePriceHistory.homeVisitFee,
+        clinicFee: servicePriceHistory.clinicFee,
+        telemedicineFee: servicePriceHistory.telemedicineFee,
+        emergencyFee: servicePriceHistory.emergencyFee,
+        platformFeeOverride: servicePriceHistory.platformFeeOverride,
+        reason: servicePriceHistory.reason,
+        changedAt: servicePriceHistory.changedAt,
+        changedBy: servicePriceHistory.changedBy,
+        changedByFirstName: users.firstName,
+        changedByLastName: users.lastName,
+        changedByEmail: users.email,
+        changedByRole: users.role,
+      })
+      .from(servicePriceHistory)
+      .leftJoin(users, eq(servicePriceHistory.changedBy, users.id))
+      .where(eq(servicePriceHistory.serviceId, serviceId))
+      .orderBy(desc(servicePriceHistory.changedAt));
+    return rows;
   }
 
   // Service Packages

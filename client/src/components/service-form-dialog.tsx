@@ -11,7 +11,11 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { showErrorModal } from "@/components/error-modal";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Plus, Upload, X, Info, Check, Pencil, Trash2 } from "lucide-react";
+import { Plus, Upload, X, Info, Check, Pencil, Trash2, History, User, Clock, TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 import type { Service, SubService } from "@shared/schema";
 
 const PROVIDER_TYPE_OPTIONS = [
@@ -54,6 +58,185 @@ interface Props {
   providerType?: string;
 }
 
+function fmt(val: string | number | null | undefined): string {
+  const n = Number(val);
+  if (val == null || val === "" || !Number.isFinite(n)) return "—";
+  return `$${n.toFixed(2)}`;
+}
+
+function fmtDate(d: string | Date | null | undefined): string {
+  if (!d) return "—";
+  try {
+    const dt = new Date(d);
+    return dt.toLocaleString(undefined, {
+      year: "numeric", month: "short", day: "numeric",
+      hour: "2-digit", minute: "2-digit",
+    });
+  } catch {
+    return String(d);
+  }
+}
+
+function PriceDelta({ prev, curr }: { prev: string | null | undefined; curr: string | null | undefined }) {
+  const p = Number(prev ?? 0);
+  const c = Number(curr ?? 0);
+  if (!Number.isFinite(p) || !Number.isFinite(c) || p === c) return null;
+  const diff = c - p;
+  const up = diff > 0;
+  return (
+    <span className={`inline-flex items-center gap-0.5 text-[10px] font-medium ${up ? "text-destructive" : "text-emerald-600 dark:text-emerald-400"}`}>
+      {up ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+      {up ? "+" : ""}{diff.toFixed(2)}
+    </span>
+  );
+}
+
+interface PriceHistoryPanelProps {
+  history: any[];
+  isLoading: boolean;
+  currentPrice: string;
+}
+
+function PriceHistoryPanel({ history, isLoading, currentPrice }: PriceHistoryPanelProps) {
+  if (isLoading) {
+    return (
+      <div className="flex flex-col gap-3 py-6">
+        {[0, 1, 2].map((i) => (
+          <div key={i} className="rounded-lg border p-4 animate-pulse bg-muted/30 h-24" />
+        ))}
+      </div>
+    );
+  }
+
+  if (history.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 text-center gap-3" data-testid="empty-price-history">
+        <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center">
+          <History className="h-5 w-5 text-muted-foreground" />
+        </div>
+        <p className="text-sm font-medium text-muted-foreground">No price changes recorded yet</p>
+        <p className="text-xs text-muted-foreground/70">Every time a price is saved, an entry will appear here.</p>
+      </div>
+    );
+  }
+
+  return (
+    <TooltipProvider>
+      <div className="space-y-1 mb-3 flex items-center justify-between">
+        <p className="text-sm text-muted-foreground">
+          {history.length} change{history.length !== 1 ? "s" : ""} — most recent first
+        </p>
+        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+          <span className="inline-flex items-center gap-0.5 text-emerald-600 dark:text-emerald-400"><TrendingDown className="h-3 w-3" /> = decrease</span>
+          <span className="mx-1">·</span>
+          <span className="inline-flex items-center gap-0.5 text-destructive"><TrendingUp className="h-3 w-3" /> = increase</span>
+        </div>
+      </div>
+      <ScrollArea className="h-[340px] pr-2">
+        <div className="space-y-3" data-testid="list-price-history">
+          {history.map((entry: any, idx: number) => {
+            const prev = history[idx + 1];
+            const authorName = entry.changedByFirstName
+              ? `${entry.changedByFirstName} ${entry.changedByLastName}`.trim()
+              : entry.changedByEmail ?? "System";
+            const role: string = entry.changedByRole ?? "";
+            const roleLabel = role === "admin" ? "Admin" : role === "provider" ? "Provider" : role || "—";
+            const isLatest = idx === 0;
+            return (
+              <div
+                key={entry.id}
+                className={`rounded-lg border p-4 space-y-3 ${isLatest ? "border-primary/40 bg-primary/5" : "bg-muted/20"}`}
+                data-testid={`entry-price-history-${entry.id}`}
+              >
+                <div className="flex items-start justify-between gap-2 flex-wrap">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className="h-7 w-7 rounded-full bg-muted border flex items-center justify-center shrink-0">
+                      <User className="h-3.5 w-3.5 text-muted-foreground" />
+                    </div>
+                    <div className="min-w-0">
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="text-sm font-medium truncate cursor-default" data-testid={`text-changed-by-${entry.id}`}>
+                            {authorName}
+                          </span>
+                        </TooltipTrigger>
+                        {entry.changedByEmail && (
+                          <TooltipContent side="top">
+                            <p>{entry.changedByEmail}</p>
+                          </TooltipContent>
+                        )}
+                      </Tooltip>
+                      <Badge variant="outline" className="text-[10px] h-4 px-1.5 ml-1">{roleLabel}</Badge>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground shrink-0">
+                    <Clock className="h-3 w-3" />
+                    <span data-testid={`text-changed-at-${entry.id}`}>{fmtDate(entry.changedAt)}</span>
+                    {isLatest && <Badge variant="secondary" className="text-[10px] h-4 px-1.5 ml-1">Latest</Badge>}
+                  </div>
+                </div>
+
+                <Separator />
+
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-2">
+                  <div data-testid={`text-ph-base-${entry.id}`}>
+                    <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Base price</p>
+                    <p className="text-sm font-semibold flex items-center gap-1">
+                      {fmt(entry.price)}
+                      {prev && <PriceDelta prev={prev.price} curr={entry.price} />}
+                    </p>
+                  </div>
+                  <div data-testid={`text-ph-home-${entry.id}`}>
+                    <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Home visit fee</p>
+                    <p className="text-sm font-semibold flex items-center gap-1">
+                      {fmt(entry.homeVisitFee)}
+                      {prev && <PriceDelta prev={prev.homeVisitFee} curr={entry.homeVisitFee} />}
+                    </p>
+                  </div>
+                  <div data-testid={`text-ph-clinic-${entry.id}`}>
+                    <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Clinic fee</p>
+                    <p className="text-sm font-semibold flex items-center gap-1">
+                      {fmt(entry.clinicFee)}
+                      {prev && <PriceDelta prev={prev.clinicFee} curr={entry.clinicFee} />}
+                    </p>
+                  </div>
+                  <div data-testid={`text-ph-tele-${entry.id}`}>
+                    <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Telemedicine fee</p>
+                    <p className="text-sm font-semibold flex items-center gap-1">
+                      {fmt(entry.telemedicineFee)}
+                      {prev && <PriceDelta prev={prev.telemedicineFee} curr={entry.telemedicineFee} />}
+                    </p>
+                  </div>
+                  <div data-testid={`text-ph-emergency-${entry.id}`}>
+                    <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Emergency fee</p>
+                    <p className="text-sm font-semibold flex items-center gap-1">
+                      {fmt(entry.emergencyFee)}
+                      {prev && <PriceDelta prev={prev.emergencyFee} curr={entry.emergencyFee} />}
+                    </p>
+                  </div>
+                  {entry.platformFeeOverride != null && (
+                    <div data-testid={`text-ph-platform-${entry.id}`}>
+                      <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Platform fee override</p>
+                      <p className="text-sm font-semibold">{fmt(entry.platformFeeOverride)}</p>
+                    </div>
+                  )}
+                </div>
+
+                {entry.reason && (
+                  <div className="text-xs text-muted-foreground bg-muted/40 rounded px-2 py-1.5 flex items-start gap-1.5" data-testid={`text-ph-reason-${entry.id}`}>
+                    <Minus className="h-3 w-3 mt-0.5 shrink-0" />
+                    <span>{entry.reason}</span>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </ScrollArea>
+    </TooltipProvider>
+  );
+}
+
 export function ServiceFormDialog({ open, onOpenChange, service, providerId, adminMode, providerType }: Props) {
   const { t } = useTranslation();
   const { toast } = useToast();
@@ -71,6 +254,14 @@ export function ServiceFormDialog({ open, onOpenChange, service, providerId, adm
   });
 
   const subServices = allSubServices;
+
+  const { data: priceHistory = [], isLoading: historyLoading } = useQuery<any[]>({
+    queryKey: ["/api/services", service?.id, "price-history"],
+    queryFn: () =>
+      fetch(`/api/services/${service!.id}/price-history`, { credentials: "include" }).then((r) => r.json()),
+    enabled: open && isEdit && !!service?.id,
+    staleTime: 0,
+  });
 
   const [imageUrl, setImageUrl] = useState("");
   const [color, setColor] = useState(CALENDAR_COLORS[0]);
@@ -325,6 +516,15 @@ export function ServiceFormDialog({ open, onOpenChange, service, providerId, adm
             <TabsTrigger value="extras" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent text-xs tracking-wider text-muted-foreground" data-testid="tab-service-extras">EXTRAS</TabsTrigger>
             <TabsTrigger value="settings" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent text-xs tracking-wider" data-testid="tab-service-settings">SETTINGS</TabsTrigger>
             <TabsTrigger value="limiter" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent text-xs tracking-wider text-muted-foreground" data-testid="tab-service-limiter">BOOKING LIMITER</TabsTrigger>
+            {isEdit && (
+              <TabsTrigger value="price-history" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent text-xs tracking-wider text-muted-foreground flex items-center gap-1" data-testid="tab-service-price-history">
+                <History className="h-3 w-3" />
+                PRICE HISTORY
+                {priceHistory.length > 0 && (
+                  <Badge variant="secondary" className="ml-1 text-[10px] h-4 px-1">{priceHistory.length}</Badge>
+                )}
+              </TabsTrigger>
+            )}
           </TabsList>
 
           <TabsContent value="details" className="space-y-6 pt-6">
@@ -716,6 +916,12 @@ export function ServiceFormDialog({ open, onOpenChange, service, providerId, adm
               />
             </div>
           </TabsContent>
+
+          {isEdit && (
+            <TabsContent value="price-history" className="pt-6" data-testid="tabcontent-price-history">
+              <PriceHistoryPanel history={priceHistory} isLoading={historyLoading} currentPrice={price} />
+            </TabsContent>
+          )}
         </Tabs>
 
         <DialogFooter className="gap-2">
