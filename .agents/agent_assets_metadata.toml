@@ -12,3 +12,9 @@ id = "DO4ULjCvERrvd9H_IVGWv"
 uri = "file://docs/patient-booking-flow.md"
 type = "text"
 title = "Patient Booking Flow — Audit"
+
+[[outputs]]
+id = "e0frRXghA6T9uu861WECW"
+uri = "file://docs/platform-features.md"
+type = "text"
+title = "Golden Life — Platform Features by Role"
