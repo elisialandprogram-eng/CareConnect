@@ -457,7 +457,7 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/admin/tax-settings", authenticateToken, async (req: AuthRequest, res: Response) => {
+  app.get("/api/admin/tax-settings", authenticateToken, requireAdmin, async (req: AuthRequest, res: Response) => {
     try {
       const settings = await storage.getAllTaxSettings();
       res.json(settings || []);
@@ -1358,6 +1358,12 @@ export async function registerRoutes(
 
   app.post("/api/providers/:providerId/practitioners", authenticateToken, async (req: AuthRequest, res) => {
     try {
+      // Ownership check: only the provider that owns this account, or an admin, can add practitioners.
+      const provider = await storage.getProvider(req.params.providerId);
+      if (!provider) return res.status(404).json({ message: "Provider not found" });
+      if (req.user?.role !== "admin" && provider.userId !== req.user?.id) {
+        return res.status(403).json({ message: "You can only manage your own provider's practitioners" });
+      }
       const practitioner = await storage.createPractitioner({
         ...req.body,
         providerId: req.params.providerId
@@ -2359,8 +2365,24 @@ export async function registerRoutes(
     }
   });
 
+  // Helper: confirm the requesting user owns the service that a service-practitioner row belongs to.
+  async function assertOwnsServicePractitioner(spId: string, user: AuthRequest["user"]): Promise<{ ok: boolean; status?: number; message?: string }> {
+    if (user?.role === "admin") return { ok: true };
+    const rows = await db.select().from(servicePractitioners).where(eq(servicePractitioners.id, spId)).limit(1);
+    if (rows.length === 0) return { ok: false, status: 404, message: "Assignment not found" };
+    const svc = await storage.getService(rows[0].serviceId);
+    if (!svc) return { ok: false, status: 404, message: "Service not found" };
+    const provider = await storage.getProvider(svc.providerId);
+    if (!provider || provider.userId !== user?.id) {
+      return { ok: false, status: 403, message: "You can only manage assignments for your own services" };
+    }
+    return { ok: true };
+  }
+
   app.delete("/api/service-practitioners/:id", authenticateToken, async (req: AuthRequest, res) => {
     try {
+      const guard = await assertOwnsServicePractitioner(req.params.id, req.user);
+      if (!guard.ok) return res.status(guard.status!).json({ message: guard.message });
       await storage.removePractitionerFromService(req.params.id);
       res.status(204).end();
     } catch (error) {
@@ -2370,6 +2392,8 @@ export async function registerRoutes(
 
   app.patch("/api/service-practitioners/:id", authenticateToken, async (req: AuthRequest, res) => {
     try {
+      const guard = await assertOwnsServicePractitioner(req.params.id, req.user);
+      if (!guard.ok) return res.status(guard.status!).json({ message: guard.message });
       const updates: Record<string, any> = {};
       if (req.body.isActive !== undefined) updates.isActive = req.body.isActive;
       if (req.body.fee !== undefined) updates.fee = req.body.fee;
@@ -2564,6 +2588,7 @@ export async function registerRoutes(
       const {
         serviceId,
         subServiceId,
+        practitionerId,
         visitType,
         sessions,
         promoCode,
@@ -2573,6 +2598,7 @@ export async function registerRoutes(
       } = req.body as {
         serviceId?: string;
         subServiceId?: string;
+        practitionerId?: string;
         visitType?: "online" | "home" | "clinic";
         sessions?: number;
         promoCode?: string;
@@ -2585,12 +2611,23 @@ export async function registerRoutes(
         return res.status(400).json({ message: "visitType is required (online | home | clinic)" });
       }
 
-      const svc = serviceId ? await storage.getService(serviceId) : null;
-      const subId = subServiceId || (svc?.subServiceId ?? null);
+      const svcRaw = serviceId ? await storage.getService(serviceId) : null;
+      const subId = subServiceId || (svcRaw?.subServiceId ?? null);
       const sub = subId ? await storage.getSubService(subId) : null;
 
-      if (!svc && !sub) {
+      if (!svcRaw && !sub) {
         return res.status(400).json({ message: "Provide serviceId or subServiceId" });
+      }
+
+      // Apply practitioner-specific fee override so the quote matches the
+      // price that POST /api/appointments will charge for the same combination.
+      let svc = svcRaw;
+      if (svcRaw && serviceId && practitionerId) {
+        const sps = await storage.getServicePractitioners(serviceId);
+        const sp = sps.find((p: any) => p.practitionerId === practitionerId);
+        if (sp?.fee) {
+          svc = { ...svcRaw, price: Number(sp.fee).toFixed(2) } as any;
+        }
       }
 
       let discount: { type: "percent" | "fixed"; value: number; code?: string } | null = null;

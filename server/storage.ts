@@ -2409,6 +2409,14 @@ export class DatabaseStorage implements IStorage {
   // mark it as booked. If the slot is already booked, throws.
   async reserveTimeSlot(providerId: string, date: string, startTime: string, endTime: string): Promise<TimeSlot> {
     return await db.transaction(async (tx) => {
+      // Acquire a transaction-scoped advisory lock keyed on provider+date+time so two
+      // concurrent reservations for the same slot are serialised at the DB level.
+      // hashtextextended() is deterministic and 64-bit, perfect for pg_advisory_xact_lock.
+      const lockKey = `${providerId}|${date}|${startTime}`;
+      await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtextextended(${lockKey}, 0))`);
+
+      // SELECT ... FOR UPDATE so any concurrent transaction that gets past the advisory
+      // lock (e.g. on a different connection that already passed it) still blocks here.
       const existing = await tx
         .select()
         .from(timeSlots)
@@ -2417,6 +2425,7 @@ export class DatabaseStorage implements IStorage {
           eq(timeSlots.date, date),
           eq(timeSlots.startTime, startTime),
         ))
+        .for("update")
         .limit(1);
 
       if (existing.length > 0) {
@@ -2430,15 +2439,25 @@ export class DatabaseStorage implements IStorage {
         return updated;
       }
 
-      const [created] = await tx.insert(timeSlots).values({
-        providerId,
-        date,
-        startTime,
-        endTime,
-        isBooked: true,
-        isBlocked: false,
-      }).returning();
-      return created;
+      try {
+        const [created] = await tx.insert(timeSlots).values({
+          providerId,
+          date,
+          startTime,
+          endTime,
+          isBooked: true,
+          isBlocked: false,
+        }).returning();
+        return created;
+      } catch (err: any) {
+        // Race fallback: if the unique constraint on (provider_id,date,start_time) tripped,
+        // it means another transaction inserted the same slot between our lock release and
+        // our insert. Surface a friendly conflict message.
+        if (err?.code === "23505") {
+          throw new Error("This time slot is already booked.");
+        }
+        throw err;
+      }
     });
   }
 

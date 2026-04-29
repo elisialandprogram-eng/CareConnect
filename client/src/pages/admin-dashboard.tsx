@@ -5201,6 +5201,8 @@ function UsersManagement() {
   );
 }
 
+function StripeSettingsPanel() {
+  const { t } = useTranslation();
   const { data: status, isLoading } = useQuery<{
     configured: boolean;
     mode: "live" | "test" | "unknown";
@@ -5461,10 +5463,6 @@ export default function AdminDashboard() {
               <ListTree className="h-4 w-4 mr-1.5" />
               {t("admin.service_catalog", "Service Catalog")}
             </TabsTrigger>
-            <TabsTrigger value="tax" data-testid="tab-tax">
-              <Shield className="h-4 w-4 mr-1.5" />
-              {t("admin.tax_management")}
-            </TabsTrigger>
             <TabsTrigger value="financial" data-testid="tab-financial">
               <DollarSign className="h-4 w-4 mr-1.5" />
               {t("admin.financial_reports")}
@@ -5500,10 +5498,6 @@ export default function AdminDashboard() {
               {t("admin.audit_logs")}
             </TabsTrigger>
           </TabsList>
-
-          <TabsContent value="tax">
-            <TaxManagement />
-          </TabsContent>
 
           <TabsContent value="catalog">
             <ServiceCatalogHierarchy />

@@ -1,0 +1,8 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "eolCfEwb_-DThPyNKgkSj"
+uri = "file://PRODUCTION_READINESS_REPORT.md"
+type = "text"
+title = "Production-Readiness Report"
