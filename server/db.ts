@@ -32,12 +32,12 @@ if (!process.env.SUPABASE_DATABASE_URL) {
   );
 }
 
-// Larger pool + sensible timeouts so concurrent requests aren't queued behind
-// a single connection. Supabase's pooled connection string supports this
-// because PgBouncer multiplexes our connections onto a smaller backend pool.
+// Pool sized below Supabase's per-session client cap (pool_size=15) so the
+// driver never asks PgBouncer for more connections than it will grant. Going
+// over the cap surfaces as `EMAXCONNSESSION` and 500s for end users.
 export const pool = new Pool({
   connectionString: databaseUrl,
-  max: 20,
+  max: 12,
   idleTimeoutMillis: 30_000,
   connectionTimeoutMillis: 10_000,
   keepAlive: true,

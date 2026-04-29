@@ -30,7 +30,8 @@ import {
   practitioners,
   servicePractitioners,
   users,
-  providers
+  providers,
+  reviews
 } from "@shared/schema";
 import crypto from 'crypto'; // Import crypto module for randomUUID
 import { Resend } from 'resend';
@@ -1423,13 +1424,24 @@ export async function registerRoutes(
   app.get("/api/appointments/patient", authenticateToken, async (req: AuthRequest, res: Response) => {
     try {
       const appointments = await storage.getAppointmentsByPatient(req.user!.id);
-      
-      // Check for reviews for each appointment
-      const appointmentsWithReviewStatus = await Promise.all(appointments.map(async (apt) => {
-        const review = await storage.getReviewByAppointment(apt.id);
-        return { ...apt, hasReview: !!review };
+
+      // Batch-load review existence in a single query to avoid N+1 / pool exhaustion.
+      const aptIds = appointments.map(a => a.id);
+      const reviewedSet = new Set<string>();
+      if (aptIds.length > 0) {
+        const reviewed = await db
+          .select({ appointmentId: reviews.appointmentId })
+          .from(reviews)
+          .where(inArray(reviews.appointmentId, aptIds));
+        for (const r of reviewed) {
+          if (r.appointmentId) reviewedSet.add(r.appointmentId);
+        }
+      }
+      const appointmentsWithReviewStatus = appointments.map(apt => ({
+        ...apt,
+        hasReview: reviewedSet.has(apt.id),
       }));
-      
+
       res.json(appointmentsWithReviewStatus);
     } catch (error) {
       console.error("Get patient appointments error:", error);
