@@ -352,7 +352,25 @@ export default function PatientDashboard() {
                 </p>
               </div>
               <Badge className={getStatusColor(appointment.status)}>
-                {appointment.status}
+                {appointment.status === "pending"
+                  ? t("status.awaiting_approval", "Awaiting Approval")
+                  : appointment.status === "approved"
+                  ? t("status.approved", "Approved")
+                  : appointment.status === "confirmed"
+                  ? t("status.confirmed", "Confirmed")
+                  : appointment.status === "in_progress"
+                  ? t("status.in_progress", "In Progress")
+                  : appointment.status === "completed"
+                  ? t("status.completed", "Completed")
+                  : appointment.status === "rejected"
+                  ? t("status.rejected", "Rejected")
+                  : appointment.status === "cancelled" || appointment.status === "cancelled_by_patient" || appointment.status === "cancelled_by_provider"
+                  ? t("status.cancelled", "Cancelled")
+                  : appointment.status === "rescheduled"
+                  ? t("status.rescheduled", "Rescheduled")
+                  : appointment.status === "no_show"
+                  ? t("status.no_show", "No Show")
+                  : appointment.status}
               </Badge>
             </div>
 

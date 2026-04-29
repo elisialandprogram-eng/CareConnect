@@ -1156,11 +1156,12 @@ export default function ProviderDashboard() {
               <>
                 <Button
                   size="sm"
+                  className="bg-green-600 hover:bg-green-700 text-white"
                   disabled={isUpdating}
-                  onClick={() => updateStatusMutation.mutate({ id: appointment.id, status: "approved" })}
+                  onClick={() => updateStatusMutation.mutate({ id: appointment.id, status: "confirmed" })}
                   data-testid={`button-approve-${appointment.id}`}
                 >
-                  {isUpdating && updateStatusMutation.variables?.status === "approved" ? (
+                  {isUpdating && updateStatusMutation.variables?.status === "confirmed" ? (
                     <Loader2 className="h-3 w-3 mr-1 animate-spin" />
                   ) : (
                     <CheckCircle className="h-3 w-3 mr-1" />
@@ -1182,21 +1183,6 @@ export default function ProviderDashboard() {
                   {t("dashboard.reject", "Reject")}
                 </Button>
               </>
-            )}
-            {isApproved && (
-              <Button
-                size="sm"
-                disabled={isUpdating}
-                onClick={() => updateStatusMutation.mutate({ id: appointment.id, status: "confirmed" })}
-                data-testid={`button-confirm-${appointment.id}`}
-              >
-                {isUpdating && updateStatusMutation.variables?.status === "confirmed" ? (
-                  <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                ) : (
-                  <CheckCircle className="h-3 w-3 mr-1" />
-                )}
-                {t("dashboard.confirm", "Confirm")}
-              </Button>
             )}
             {isConfirmed && (
               <Button
@@ -1383,11 +1369,11 @@ export default function ProviderDashboard() {
             <Card className="stat-card stat-orange" data-testid="card-stat-pending">
               <CardContent className="p-5">
                 <div className="flex items-center justify-between">
-                  <p className="text-sm text-muted-foreground">{t("provider_dashboard.stat_pending", "Pending")}</p>
+                  <p className="text-sm text-muted-foreground">{t("provider_dashboard.stat_pending", "Needs Approval")}</p>
                   <div className="stat-icon h-9 w-9"><Clock className="h-4 w-4" /></div>
                 </div>
                 <p className="text-3xl font-bold mt-1 text-orange-600 dark:text-orange-400" data-testid="text-pending-count">{pendingCount}</p>
-                <p className="text-xs text-muted-foreground mt-1">{t("provider_dashboard.stat_pending_desc", "awaiting your action")}</p>
+                <p className="text-xs text-muted-foreground mt-1">{t("provider_dashboard.stat_pending_desc", "requests awaiting approval")}</p>
               </CardContent>
             </Card>
             <Card className="stat-card stat-sky" data-testid="card-stat-upcoming">
@@ -1681,6 +1667,82 @@ export default function ProviderDashboard() {
                   <>
                     {pendingList.length > 0 && (
                       <div
+                        className="rounded-xl border-2 border-amber-400 dark:border-amber-600 bg-amber-50 dark:bg-amber-950/30 p-4 mb-1"
+                        data-testid="action-required-inbox"
+                      >
+                        <div className="flex items-center gap-2 mb-3">
+                          <div className="h-7 w-7 rounded-full bg-amber-500 flex items-center justify-center shrink-0">
+                            <Clock className="h-4 w-4 text-white" />
+                          </div>
+                          <div>
+                            <p className="font-semibold text-amber-800 dark:text-amber-300 text-sm">
+                              {t("provider_dashboard.action_required_title", "Action Required — {{count}} appointment request{{s}} awaiting your approval", {
+                                count: pendingList.length,
+                                s: pendingList.length !== 1 ? "s" : "",
+                              })}
+                            </p>
+                            <p className="text-xs text-amber-700 dark:text-amber-400">
+                              {t("provider_dashboard.action_required_desc", "Patients are waiting. Approve or reject each request below.")}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          {pendingList.map((a) => {
+                            const patientName = `${a.patient?.firstName ?? ""} ${a.patient?.lastName ?? ""}`.trim() || "Patient";
+                            const svcName = (a as any).service?.name || a.serviceId || "";
+                            const isUpdatingThis = updateStatusMutation.isPending && (updateStatusMutation.variables as any)?.id === a.id;
+                            return (
+                              <div key={a.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 rounded-lg bg-white dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 px-3 py-2" data-testid={`inbox-row-${a.id}`}>
+                                <div className="min-w-0">
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <span className="font-medium text-sm">{patientName}</span>
+                                    {(a as any).appointmentNumber && (
+                                      <span className="text-xs font-mono bg-amber-100 dark:bg-amber-900 text-amber-800 dark:text-amber-300 px-1.5 py-0.5 rounded">
+                                        {(a as any).appointmentNumber}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <p className="text-xs text-muted-foreground">{a.date} · {a.startTime}{svcName ? ` · ${svcName}` : ""}</p>
+                                </div>
+                                <div className="flex items-center gap-2 shrink-0">
+                                  <Button
+                                    size="sm"
+                                    className="bg-green-600 hover:bg-green-700 text-white h-8 px-3 text-xs"
+                                    disabled={isUpdatingThis}
+                                    onClick={() => updateStatusMutation.mutate({ id: a.id, status: "confirmed" })}
+                                    data-testid={`inbox-approve-${a.id}`}
+                                  >
+                                    {isUpdatingThis && (updateStatusMutation.variables as any)?.status === "confirmed" ? (
+                                      <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                                    ) : (
+                                      <CheckCircle className="h-3 w-3 mr-1" />
+                                    )}
+                                    {t("dashboard.approve", "Approve")}
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="destructive"
+                                    className="h-8 px-3 text-xs"
+                                    disabled={isUpdatingThis}
+                                    onClick={() => updateStatusMutation.mutate({ id: a.id, status: "rejected" })}
+                                    data-testid={`inbox-reject-${a.id}`}
+                                  >
+                                    {isUpdatingThis && (updateStatusMutation.variables as any)?.status === "rejected" ? (
+                                      <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                                    ) : (
+                                      <X className="h-3 w-3 mr-1" />
+                                    )}
+                                    {t("dashboard.reject", "Reject")}
+                                  </Button>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                    {pendingList.length > 0 && (
+                      <div
                         className="flex flex-wrap items-center gap-3 rounded-lg border bg-muted/30 px-4 py-3"
                         data-testid="bulk-action-bar"
                       >
@@ -1711,13 +1773,14 @@ export default function ProviderDashboard() {
                           <div className="flex flex-wrap items-center gap-2 ms-auto">
                             <Button
                               size="sm"
+                              className="bg-green-600 hover:bg-green-700 text-white"
                               disabled={isBulking}
                               onClick={() =>
-                                bulkStatusMutation.mutate({ ids: selectedPendingIds, status: "approved" })
+                                bulkStatusMutation.mutate({ ids: selectedPendingIds, status: "confirmed" })
                               }
                               data-testid="button-bulk-approve"
                             >
-                              {isBulking && bulkStatusMutation.variables?.status === "approved" ? (
+                              {isBulking && bulkStatusMutation.variables?.status === "confirmed" ? (
                                 <Loader2 className="h-3 w-3 mr-1 animate-spin" />
                               ) : (
                                 <CheckCircle className="h-3 w-3 mr-1" />

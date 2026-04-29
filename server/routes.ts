@@ -2854,7 +2854,8 @@ export async function registerRoutes(
             status: "completed",
             paymentMethod: "wallet",
           });
-          await storage.updateAppointment(appointment.id, { status: "confirmed" });
+          // Wallet payment collected — but the appointment still needs provider approval.
+          // Status stays "pending" so the approval workflow is not bypassed.
           walletPaid = true;
         } catch (walletErr: any) {
           // Mark the appointment cancelled so the patient can retry with another method.
@@ -2910,8 +2911,8 @@ export async function registerRoutes(
         await storage.createUserNotification({
           userId: userId,
           type: "appointment",
-          title: "Booking Confirmed",
-          message: `Your appointment with ${providerWithUser?.user.firstName} ${providerWithUser?.user.lastName} has been successfully booked for ${date} at ${startTime}.`,
+          title: "Booking Received — Awaiting Approval",
+          message: `Your appointment request with ${providerWithUser?.user.firstName} ${providerWithUser?.user.lastName} for ${date} at ${startTime} has been submitted. You'll be notified once the provider approves it.`,
           isRead: false,
         });
 
@@ -2919,8 +2920,8 @@ export async function registerRoutes(
         await storage.createUserNotification({
           userId: providerWithUser!.userId,
           type: "appointment",
-          title: "New Booking Received",
-          message: `You have a new booking from ${user.firstName} ${user.lastName} for ${date} at ${startTime}.`,
+          title: "New Appointment Request — Action Required",
+          message: `${user.firstName} ${user.lastName} has requested an appointment on ${date} at ${startTime}. Please approve or reject it from your dashboard.`,
           isRead: false,
         });
       } catch (notifyError) {
@@ -3150,8 +3151,9 @@ export async function registerRoutes(
         const patientId = appointment.patientId;
         const apptRef = appointment.appointmentNumber ? ` (${appointment.appointmentNumber})` : "";
         const statusMessages: Record<string, string> = {
-          confirmed: `Your appointment${apptRef} has been confirmed by the provider.`,
-          approved: `Your appointment${apptRef} has been approved.`,
+          confirmed: `Great news! Your appointment${apptRef} has been approved and confirmed by the provider.`,
+          approved: `Your appointment${apptRef} has been approved and is awaiting final confirmation.`,
+          rejected: `Your appointment request${apptRef} has been declined by the provider. You may rebook with another provider.`,
           cancelled: `Your appointment${apptRef} has been cancelled.`,
           cancelled_by_provider: `Your appointment${apptRef} has been cancelled by the provider.`,
           cancelled_by_patient: `Your appointment${apptRef} has been cancelled.`,

@@ -154,8 +154,8 @@ export default function Booking() {
     const stripeStatus = params.get("stripe");
     if (stripeStatus === "success") {
       toast({
-        title: "Payment successful",
-        description: "Your booking is confirmed. Thank you!",
+        title: "Payment received",
+        description: "Your booking request is awaiting provider approval. You'll be notified shortly.",
       });
       setStep("confirmed");
       queryClient.invalidateQueries({ queryKey: ["/api/appointments"] });
@@ -221,8 +221,8 @@ export default function Booking() {
         return;
       }
       toast({
-        title: "Success",
-        description: `Your appointment has been booked successfully!`,
+        title: "Booking request submitted",
+        description: `Your appointment request is awaiting provider approval. You'll be notified once it's confirmed.`,
       });
       setBookedAppointments(results || []);
       setStep("confirmed");
@@ -493,19 +493,22 @@ export default function Booking() {
           <div className="container mx-auto px-4 max-w-3xl">
             <Card className="border shadow-sm">
               <CardContent className="py-16 px-6 text-center">
-                <div className="inline-flex items-center justify-center w-20 h-20 rounded-full border-2 border-green-500 mx-auto mb-6">
-                  <Check className="h-10 w-10 text-green-500" strokeWidth={2.5} />
+                <div className="inline-flex items-center justify-center w-20 h-20 rounded-full border-2 border-amber-400 bg-amber-50 dark:bg-amber-950/30 mx-auto mb-6">
+                  <Clock className="h-10 w-10 text-amber-500" strokeWidth={2} />
                 </div>
                 <h1
-                  className="text-2xl md:text-3xl font-semibold text-green-500 mb-8"
+                  className="text-2xl md:text-3xl font-semibold text-amber-600 dark:text-amber-400 mb-2"
                   data-testid="heading-thank-you"
                 >
-                  {t("booking.thank_you", "Thank you for your request!")}
+                  {t("booking.thank_you", "Booking Request Submitted!")}
                 </h1>
+                <p className="text-sm text-muted-foreground mb-8 max-w-sm mx-auto">
+                  {t("booking.awaiting_approval_desc", "Your request is awaiting provider approval. You'll receive a notification once it's confirmed.")}
+                </p>
                 <p className="text-sm text-muted-foreground mb-3">
                   {t("booking.confirmation_number_label", "Your appointment reference:")}
                 </p>
-                <div className="inline-flex flex-col items-center mb-12">
+                <div className="inline-flex flex-col items-center mb-4">
                   <p
                     className="text-3xl md:text-4xl font-bold tracking-[0.2em] text-foreground"
                     data-testid="text-confirmation-number"
@@ -513,6 +516,10 @@ export default function Booking() {
                     {confirmationNumber}
                   </p>
                   <p className="text-xs text-muted-foreground mt-1">Save this number for your records</p>
+                </div>
+                <div className="inline-flex items-center gap-2 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 px-4 py-1.5 text-sm font-medium mb-8">
+                  <Clock className="h-3.5 w-3.5" />
+                  {t("booking.status_awaiting", "Awaiting Provider Approval")}
                 </div>
 
                 <div className="flex flex-wrap items-center justify-center gap-3">
