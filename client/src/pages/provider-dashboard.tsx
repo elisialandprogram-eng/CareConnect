@@ -994,6 +994,8 @@ export default function ProviderDashboard() {
       case "completed": return "bg-emerald-100 text-emerald-700";
       case "cancelled": return "bg-red-100 text-red-700";
       case "rejected": return "bg-rose-100 text-rose-700";
+      case "expired": return "bg-zinc-200 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300";
+      case "no_show": return "bg-stone-200 text-stone-700 dark:bg-stone-800 dark:text-stone-300";
       default: return "bg-gray-100 text-gray-700";
     }
   };

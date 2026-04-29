@@ -301,6 +301,10 @@ export default function PatientDashboard() {
         return "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400";
       case "rescheduled":
         return "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400";
+      case "expired":
+        return "bg-zinc-200 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300";
+      case "no_show":
+        return "bg-stone-200 text-stone-700 dark:bg-stone-800 dark:text-stone-300";
       default:
         return "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300";
     }

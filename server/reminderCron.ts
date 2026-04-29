@@ -1,9 +1,14 @@
 import { db } from "./db";
 import { appointments, providers, users } from "@shared/schema";
-import { and, eq, gte, lte, inArray } from "drizzle-orm";
+import { and, eq, gte, lte, lt, inArray, isNotNull } from "drizzle-orm";
 import { log } from "./index";
 import { notify } from "./services/notification-dispatcher";
 import { normalizeLang } from "./services/i18n";
+import { storage } from "./storage";
+
+// How long a "pending" appointment may sit unactioned before it auto-expires.
+// Override with PENDING_APPT_EXPIRY_HOURS (defaults to 24h).
+const PENDING_EXPIRY_HOURS = Number(process.env.PENDING_APPT_EXPIRY_HOURS || 24);
 
 /**
  * Three-tier appointment reminders:
@@ -151,15 +156,59 @@ async function sendPostVisit() {
 
 let hourlyTimer: NodeJS.Timeout | null = null;
 
+/**
+ * Auto-expire pending appointments that the provider has not acted on within
+ * PENDING_EXPIRY_HOURS hours. Notifies the patient when an appointment is
+ * expired so they can rebook.
+ */
+async function expireStalePending() {
+  const cutoff = new Date(Date.now() - PENDING_EXPIRY_HOURS * 60 * 60 * 1000);
+  const stale = await db
+    .select()
+    .from(appointments)
+    .where(and(
+      eq(appointments.status, "pending"),
+      isNotNull(appointments.createdAt),
+      lt(appointments.createdAt, cutoff),
+    ));
+  if (!stale.length) return 0;
+
+  let expired = 0;
+  for (const appt of stale) {
+    try {
+      await db.update(appointments)
+        .set({ status: "expired", updatedAt: new Date() })
+        .where(eq(appointments.id, appt.id));
+      try {
+        const apptRef = appt.appointmentNumber ? ` (${appt.appointmentNumber})` : "";
+        await storage.createUserNotification({
+          userId: appt.patientId,
+          type: "appointment",
+          title: "Appointment Expired",
+          message: `Your appointment request${apptRef} expired because the provider didn't respond within ${PENDING_EXPIRY_HOURS} hours. Please book again or choose a different provider.`,
+          isRead: false,
+        });
+      } catch (notifyErr) {
+        log(`reminderCron[expire]: notify failed for appt ${appt.id}: ${(notifyErr as Error).message}`);
+      }
+      expired++;
+    } catch (err) {
+      log(`reminderCron[expire]: failed for appt ${appt.id}: ${(err as Error).message}`);
+    }
+  }
+  return expired;
+}
+
 async function tick() {
   try {
     const totals = await Promise.all([
       sendForTier("1h"),
       sendForTier("15m"),
       sendPostVisit(),
+      expireStalePending(),
     ]);
     const sum = totals.reduce((a, b) => a + b, 0);
-    if (sum > 0) log(`reminderCron: 5-min tick sent ${sum} notification(s)`);
+    if (sum > 0) log(`reminderCron: 5-min tick processed ${sum} item(s)`);
   } catch (err) {
     log(`reminderCron: 5-min tick failed: ${(err as Error).message}`);
   }
