@@ -664,94 +664,116 @@ export default function ProviderProfile() {
 
             <div className="lg:col-span-1">
               {canBook ? (
-              <Card className="sticky top-24" data-testid="card-booking-widget">
-                <CardHeader>
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <CalendarIcon className="h-5 w-5" />
-                    {t("profile.book_appointment")}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <p className="text-sm font-medium">{t("common.service_type")}</p>
-                    <div className="grid grid-cols-2 gap-2">
-                      <Button
-                        variant={visitType === "online" ? "default" : "outline"}
-                        className="w-full"
-                        onClick={() => setVisitType("online")}
-                        data-testid="button-visit-online"
-                      >
-                        <Video className="h-4 w-4 mr-2" />
-                        {t("profile.online_consultation")}
-                      </Button>
-                      <Button
-                        variant={visitType === "clinic" ? "default" : "outline"}
-                        className="w-full"
-                        onClick={() => setVisitType("clinic")}
-                        data-testid="button-visit-clinic"
-                      >
-                        <Building2 className="h-4 w-4 mr-2" />
-                        {t("profile.visit_clinic")}
-                      </Button>
-                      {provider.homeVisitFee && (
-                        <Button
-                          variant={visitType === "home" ? "default" : "outline"}
-                          className="w-full"
-                          onClick={() => setVisitType("home")}
-                          data-testid="button-visit-home"
-                        >
-                          <Home className="h-4 w-4 mr-2" />
-                          {t("profile.home_visit")}
-                        </Button>
-                      )}
+              <Card className="sticky top-24 overflow-hidden border-border/60 shadow-sm" data-testid="card-booking-widget">
+                <div className="bg-gradient-to-br from-primary/10 via-primary/5 to-transparent px-6 py-5 border-b">
+                  <div className="flex items-center gap-2 mb-1">
+                    <div className="h-8 w-8 rounded-lg bg-primary/15 flex items-center justify-center">
+                      <CalendarIcon className="h-4 w-4 text-primary" />
+                    </div>
+                    <h3 className="text-lg font-semibold">{t("profile.book_appointment")}</h3>
+                  </div>
+                  <p className="text-xs text-muted-foreground ml-10">
+                    {t("profile.book_appointment_subtitle", "Choose your preferred slot")}
+                  </p>
+                </div>
+                <CardContent className="space-y-5 pt-5">
+                  <div className="space-y-2.5">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                      {t("common.service_type")}
+                    </p>
+                    <div className="grid grid-cols-3 gap-2">
+                      {([
+                        { type: "online" as const, icon: Video, label: t("profile.online_consultation"), show: true },
+                        { type: "clinic" as const, icon: Building2, label: t("profile.visit_clinic"), show: true },
+                        { type: "home" as const, icon: Home, label: t("profile.home_visit"), show: !!provider.homeVisitFee },
+                      ] as const).filter(o => o.show).map(({ type, icon: Icon, label }) => {
+                        const active = visitType === type;
+                        return (
+                          <button
+                            key={type}
+                            type="button"
+                            onClick={() => setVisitType(type)}
+                            data-testid={`button-visit-${type}`}
+                            className={`group flex flex-col items-center justify-center gap-1.5 rounded-lg border p-3 text-center transition-all hover-elevate ${
+                              active
+                                ? "border-primary bg-primary text-primary-foreground shadow-sm"
+                                : "border-border bg-background text-foreground"
+                            }`}
+                          >
+                            <Icon className={`h-4 w-4 ${active ? "" : "text-primary"}`} />
+                            <span className="text-[11px] font-medium leading-tight">{label}</span>
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
 
-                  <div className="space-y-2">
-                    <p className="text-sm font-medium">{t("profile.select_date")}</p>
-                    <Calendar
-                      mode="single"
-                      selected={selectedDate}
-                      onSelect={setSelectedDate}
-                      disabled={(date) => {
-                        const today = new Date();
-                        today.setHours(0, 0, 0, 0);
-                        return date < today;
-                      }}
-                      className="rounded-md border"
-                      data-testid="calendar-date"
-                    />
+                  <div className="space-y-2.5">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                      {t("profile.select_date")}
+                    </p>
+                    <div className="rounded-lg border bg-background/50 p-1">
+                      <Calendar
+                        mode="single"
+                        selected={selectedDate}
+                        onSelect={setSelectedDate}
+                        disabled={(date) => {
+                          const today = new Date();
+                          today.setHours(0, 0, 0, 0);
+                          return date < today;
+                        }}
+                        className="w-full"
+                        data-testid="calendar-date"
+                      />
+                    </div>
                   </div>
 
-                  <div className="space-y-2">
-                    <p className="text-sm font-medium">{t("profile.select_time")}</p>
-                    <div className="grid grid-cols-3 gap-2">
+                  <div className="space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                        {t("profile.select_time")}
+                      </p>
+                      {selectedSessions.length > 0 && (
+                        <Badge variant="secondary" className="text-[10px] h-5">
+                          {selectedSessions.length} {t("profile.selected", "selected")}
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-3 gap-1.5">
                       {timeSlots.map((time) => {
                         const isSelected = selectedSessions.some(s => s.date.toISOString().split("T")[0] === (selectedDate?.toISOString().split("T")[0]) && s.time === time);
                         const isUnavailable = unavailableTimes.has(time);
                         return (
-                          <Button
+                          <button
                             key={time}
-                            variant={isSelected ? "default" : "outline"}
-                            size="sm"
-                            onClick={() => toggleSession(time)}
+                            type="button"
+                            onClick={() => !isUnavailable && toggleSession(time)}
                             disabled={isUnavailable}
                             title={isUnavailable ? t("profile.slot_unavailable", "Already booked") : undefined}
                             data-testid={`time-${time}`}
-                            className={isUnavailable ? "opacity-50 line-through" : ""}
+                            className={`rounded-md border px-2 py-2 text-xs font-medium transition-all hover-elevate ${
+                              isSelected
+                                ? "border-primary bg-primary text-primary-foreground shadow-sm"
+                                : "border-border bg-background"
+                            } ${isUnavailable ? "opacity-40 line-through cursor-not-allowed hover:bg-background" : ""}`}
                           >
                             {time}
-                          </Button>
+                          </button>
                         );
                       })}
                     </div>
                     {selectedSessions.length > 0 && (
-                      <div className="mt-4 p-3 bg-muted rounded-md text-xs space-y-1">
-                        <p className="font-medium">{t("profile.selected_sessions")}</p>
+                      <div className="mt-3 rounded-lg border bg-muted/40 p-3 space-y-1.5">
+                        <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                          {t("profile.selected_sessions")}
+                        </p>
                         {selectedSessions.map((s, i) => (
-                          <div key={i} className="flex justify-between items-center">
-                            <span>{s.date.toLocaleDateString()} {t("common.at")} {s.time}</span>
-                            <Button variant="ghost" size="icon" className="h-4 w-4" onClick={() => {
+                          <div key={i} className="flex justify-between items-center text-xs">
+                            <span className="flex items-center gap-1.5">
+                              <CalendarIcon className="h-3 w-3 text-primary" />
+                              {s.date.toLocaleDateString()} {t("common.at")} {s.time}
+                            </span>
+                            <Button variant="ghost" size="icon" className="h-5 w-5 text-muted-foreground hover:text-destructive" onClick={() => {
                               setSelectedSessions(selectedSessions.filter((_, idx) => idx !== i));
                             }}>
                               <X className="h-3 w-3" />
@@ -762,25 +784,29 @@ export default function ProviderProfile() {
                     )}
                   </div>
 
-                  <div className="pt-4 border-t">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-muted-foreground">{t("profile.consultation_fee")}</span>
-                      <span className="font-semibold">
-                        {fmtMoney(visitType === "home" && provider.homeVisitFee
-                          ? provider.homeVisitFee
-                          : provider.consultationFee)}
-                      </span>
-                    </div>
-                    {selectedSessions.length > 1 && (
-                      <div className="flex items-center justify-between mb-4 text-primary font-bold">
-                        <span>{t("profile.total_price")} ({selectedSessions.length} {t("dashboard.appointments")})</span>
-                        <span>
-                          {fmtMoney(selectedSessions.length * (visitType === "home" && provider.homeVisitFee
-                            ? Number(provider.homeVisitFee)
-                            : Number(provider.consultationFee)))}
+                  <div className="pt-4 border-t space-y-3">
+                    <div className="rounded-lg bg-muted/40 p-3 space-y-2">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">{t("profile.consultation_fee")}</span>
+                        <span className="font-semibold">
+                          {fmtMoney(visitType === "home" && provider.homeVisitFee
+                            ? provider.homeVisitFee
+                            : provider.consultationFee)}
                         </span>
                       </div>
-                    )}
+                      {selectedSessions.length > 1 && (
+                        <div className="flex items-center justify-between pt-2 border-t border-border/60">
+                          <span className="text-sm font-medium">
+                            {t("profile.total_price")} · {selectedSessions.length}
+                          </span>
+                          <span className="text-lg font-bold text-primary">
+                            {fmtMoney(selectedSessions.length * (visitType === "home" && provider.homeVisitFee
+                              ? Number(provider.homeVisitFee)
+                              : Number(provider.consultationFee)))}
+                          </span>
+                        </div>
+                      )}
+                    </div>
                     <Button
                       className="w-full"
                       size="lg"
@@ -791,6 +817,11 @@ export default function ProviderProfile() {
                       {t("profile.book_now")}
                       <ChevronRight className="h-4 w-4 ml-2" />
                     </Button>
+                    {selectedSessions.length === 0 && (
+                      <p className="text-center text-[11px] text-muted-foreground">
+                        {t("profile.select_time_to_continue", "Pick a time slot to continue")}
+                      </p>
+                    )}
                   </div>
                 </CardContent>
               </Card>
