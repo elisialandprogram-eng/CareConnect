@@ -1356,6 +1356,24 @@ export async function registerRoutes(
         comment,
       });
 
+      // Notify the provider that a new review has landed
+      try {
+        const provWithUser = await storage.getProviderWithUser(providerId);
+        if (provWithUser?.userId) {
+          const patient = await storage.getUser(req.user!.id);
+          const patientName = patient
+            ? `${patient.firstName ?? ""} ${patient.lastName ?? ""}`.trim() || "A patient"
+            : "A patient";
+          notify.reviewLeft(provWithUser.userId, {
+            patientName,
+            rating: Number(rating),
+            reviewId: review.id,
+          }).catch(err => console.error("[notify] reviewLeft", err));
+        }
+      } catch (err) {
+        console.error("[notify] reviewLeft dispatch failed:", err);
+      }
+
       res.status(201).json(review);
     } catch (error) {
       console.error("Create review error:", error);

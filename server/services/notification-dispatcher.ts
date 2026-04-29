@@ -343,6 +343,19 @@ export const notify = {
       },
       data: { appointmentId: opts.appointmentId },
     }),
+  reviewLeft: (userId: string, opts: { patientName: string; rating: number; reviewId: string; lang?: Lang }) =>
+    dispatchNotification({
+      userId,
+      eventKey: "review.replied",
+      title: `New ${opts.rating}-star review`,
+      body: `${opts.patientName} left a ${opts.rating}-star review.`,
+      email: {
+        subject: `New ${opts.rating}-star review from ${opts.patientName}`,
+        intro: `${opts.patientName} just left a ${opts.rating}-star review on your profile.`,
+      },
+      data: { reviewId: opts.reviewId },
+      push: { url: `/provider-dashboard?tab=reviews` },
+    }),
   reviewReplied: (userId: string, opts: { providerName: string; reviewId: string; lang?: Lang }) =>
     dispatchNotification({
       userId,

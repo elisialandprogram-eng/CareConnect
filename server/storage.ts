@@ -268,6 +268,7 @@ export interface IStorage {
   createReview(review: InsertReview): Promise<Review>;
   getReviewByAppointment(appointmentId: string): Promise<Review | undefined>;
   replyToReview(reviewId: string, reply: string): Promise<Review | undefined>;
+  recomputeProviderRating(providerId: string): Promise<{ rating: string; totalReviews: number }>;
 
   // Service helpers
   duplicateService(id: string): Promise<Service | undefined>;
@@ -1259,7 +1260,26 @@ export class DatabaseStorage implements IStorage {
 
   async createReview(review: InsertReview): Promise<Review> {
     const [newReview] = await db.insert(reviews).values(review).returning();
+    // Keep provider.rating + provider.totalReviews in sync so search/sort by rating stays accurate
+    try {
+      await this.recomputeProviderRating(review.providerId);
+    } catch (err) {
+      console.error("recomputeProviderRating after createReview failed:", err);
+    }
     return newReview;
+  }
+
+  async recomputeProviderRating(providerId: string): Promise<{ rating: string; totalReviews: number }> {
+    const raw: any = await db.execute(
+      sql`SELECT AVG(rating)::numeric(2,1) AS avg_rating, COUNT(*)::int AS total FROM reviews WHERE provider_id = ${providerId}`
+    );
+    const row = Array.isArray(raw) ? raw[0] : raw?.rows?.[0];
+    const avg = row?.avg_rating != null ? String(row.avg_rating) : "0";
+    const total = row?.total != null ? Number(row.total) : 0;
+    await db.update(providers)
+      .set({ rating: avg, totalReviews: total })
+      .where(eq(providers.id, providerId));
+    return { rating: avg, totalReviews: total };
   }
 
   async getReviewByAppointment(appointmentId: string): Promise<Review | undefined> {
