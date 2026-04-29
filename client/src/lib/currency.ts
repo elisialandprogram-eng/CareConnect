@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next";
 
-export type SupportedCurrency = "USD" | "HUF" | "IRR";
+export type SupportedCurrency = "USD" | "HUF" | "IRR" | "EUR" | "GBP";
 
 type CurrencyConfig = {
   code: SupportedCurrency;
@@ -34,6 +34,24 @@ const CURRENCY_BY_LANG: Record<string, CurrencyConfig> = {
   },
 };
 
+// Additional currencies users can override to (not auto-bound to a language).
+const EXTRA_CURRENCIES: Record<string, CurrencyConfig> = {
+  EUR: {
+    code: "EUR",
+    locale: "en-IE",
+    symbol: "€",
+    rateFromUSD: 0.92,
+    fractionDigits: 2,
+  },
+  GBP: {
+    code: "GBP",
+    locale: "en-GB",
+    symbol: "£",
+    rateFromUSD: 0.79,
+    fractionDigits: 2,
+  },
+};
+
 const DEFAULT_CURRENCY: CurrencyConfig = CURRENCY_BY_LANG.en;
 
 function resolveConfig(language: string | undefined): CurrencyConfig {
@@ -48,6 +66,7 @@ function resolveByCode(code: SupportedCurrency | string | null | undefined): Cur
   for (const cfg of Object.values(CURRENCY_BY_LANG)) {
     if (cfg.code === upper) return cfg;
   }
+  if (EXTRA_CURRENCIES[upper]) return EXTRA_CURRENCIES[upper];
   return null;
 }
 

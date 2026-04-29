@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation, useSearch } from "wouter";
 import { useTranslation } from "react-i18next";
@@ -228,24 +228,34 @@ export default function BookWizard() {
   });
 
   /* ── Deep-link prefill ──────────────────────────────────────────── */
+  // The deep-link service auto-jump should only fire ONCE on initial mount,
+  // not every time the user picks a different provider (which reloads
+  // providerServices and would otherwise auto-skip the service step).
+  const deepLinkServiceApplied = useRef(false);
+  const deepLinkProviderApplied = useRef(false);
+
   // If providerId is in the URL, jump past the provider step.
   useEffect(() => {
+    if (deepLinkProviderApplied.current) return;
     if (initialProviderId && providers.length > 0 && !selectedProvider) {
       const match = providers.find(p => p.id === initialProviderId);
       if (match) {
         setSelectedProvider(match);
         setStep(s => Math.max(s, 1));
+        deepLinkProviderApplied.current = true;
       }
     }
   }, [initialProviderId, providers, selectedProvider]);
 
-  // If serviceId is in the URL, jump past the service step too.
+  // If serviceId is in the URL, jump past the service step too — first load only.
   useEffect(() => {
+    if (deepLinkServiceApplied.current) return;
     if (initialServiceId && providerServices.length > 0 && !selectedService) {
       const match = providerServices.find(p => p.id === initialServiceId);
       if (match) {
         setSelectedService(match);
         setStep(s => Math.max(s, 2));
+        deepLinkServiceApplied.current = true;
       }
     }
   }, [initialServiceId, providerServices, selectedService]);

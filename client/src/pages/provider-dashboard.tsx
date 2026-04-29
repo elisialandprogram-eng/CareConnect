@@ -328,7 +328,8 @@ export default function ProviderDashboard() {
   const { data: appointments, isLoading: isLoadingAppointments } = useQuery<AppointmentWithDetails[]>({
     queryKey: ["/api/appointments/provider"],
     enabled: !!providerData?.id,
-    refetchInterval: appointmentTabs.has(activeTab) ? 30000 : false,
+    refetchInterval: appointmentTabs.has(activeTab) ? 60000 : false,
+    staleTime: 30_000,
   });
 
   const { data: providerWithServices } = useQuery<ProviderWithServices>({

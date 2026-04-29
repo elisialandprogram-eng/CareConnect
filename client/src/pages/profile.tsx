@@ -1097,6 +1097,8 @@ export default function Profile() {
                           {t("profile_page.currency_auto", "Auto (match language)")}
                         </SelectItem>
                         <SelectItem value="USD">USD ($)</SelectItem>
+                        <SelectItem value="EUR">EUR (€)</SelectItem>
+                        <SelectItem value="GBP">GBP (£)</SelectItem>
                         <SelectItem value="HUF">HUF (Ft)</SelectItem>
                         <SelectItem value="IRR">IRR (﷼)</SelectItem>
                       </SelectContent>
@@ -1187,8 +1189,8 @@ export default function Profile() {
             </TabsContent>
           </Tabs>
 
-          {/* Sticky save bar (hidden on Security tab) */}
-          {activeTab !== "security" && activeTab !== "gallery" && activeTab !== "provider" && (
+          {/* Sticky save bar (hidden on Security/Gallery/Provider/Preferences tabs which have their own buttons) */}
+          {activeTab !== "security" && activeTab !== "gallery" && activeTab !== "provider" && activeTab !== "preferences" && (
             <div className="sticky bottom-4 mt-6 z-10">
               <Card className="shadow-lg border-primary/20">
                 <CardContent className="py-3 flex items-center justify-between gap-4">

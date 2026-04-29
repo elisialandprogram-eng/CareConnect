@@ -1009,7 +1009,21 @@ export const insertLocationSchema = createInsertSchema(locations).omit({ id: tru
 export const insertDailyMetricSchema = createInsertSchema(dailyMetrics).omit({ id: true, createdAt: true });
 export const insertPrescriptionSchema = createInsertSchema(prescriptions).omit({ id: true, issuedAt: true });
 export const insertMedicalHistorySchema = createInsertSchema(medicalHistory).omit({ id: true, createdAt: true });
-export const insertHealthMetricSchema = createInsertSchema(healthMetrics).omit({ id: true, createdAt: true });
+// Decimal columns become strings via drizzle-zod. Coerce numbers/strings into
+// strings so the frontend can send raw numbers without 400s.
+const decimalFromAny = z.preprocess((v) => {
+  if (v === null || v === undefined || v === "") return undefined;
+  if (typeof v === "number") return Number.isFinite(v) ? String(v) : undefined;
+  return v;
+}, z.string().optional());
+
+export const insertHealthMetricSchema = createInsertSchema(healthMetrics)
+  .omit({ id: true, createdAt: true })
+  .extend({
+    weightKg: decimalFromAny,
+    bloodGlucose: decimalFromAny,
+    temperatureC: decimalFromAny,
+  });
 
 export const insertMedicationSchema = createInsertSchema(medications).omit({
   id: true,

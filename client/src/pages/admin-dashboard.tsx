@@ -68,6 +68,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import type { User, ProviderWithUser, PromoCode, ProviderPricingOverride, SubService, Practitioner, ServicePractitioner, Service } from "@shared/schema";
+import { WeeklyScheduleGrid, type WeeklySchedule } from "@/components/weekly-schedule-grid";
 import { ServiceFormDialog } from "@/components/service-form-dialog";
 import { AssignServicesDialog } from "@/components/assign-services-dialog";
 import { ServiceCatalogHierarchy } from "@/components/service-catalog-hierarchy";
@@ -439,15 +440,7 @@ function AdminServicesPanel({
         </TabsContent>
 
         <TabsContent value="timesheet" className="pt-4">
-          <EmptyTabCard
-            icon={<Clock className="h-10 w-10" />}
-            title={t("admin.time_sheet", "Time Sheet")}
-            description={t(
-              "admin.time_sheet_desc",
-              "Set per-service working hours and breaks. Coming soon.",
-            )}
-            testId="empty-admin-timesheet"
-          />
+          <AdminTimesheetPanel providerId={providerId} />
         </TabsContent>
 
         <TabsContent value="extras" className="pt-4">
@@ -486,6 +479,72 @@ function AdminServicesPanel({
         adminMode
       />
     </div>
+  );
+}
+
+// Admin-side weekly schedule + bookable-slot publisher for a single provider.
+// Wires WeeklyScheduleGrid to the /api/admin/providers/:id/office-hours and
+// /api/admin/providers/:id/availability/bulk endpoints so admins can fix the
+// "no slots available on this date" problem without logging in as the provider.
+function AdminTimesheetPanel({ providerId }: { providerId: string }) {
+  const { t } = useTranslation();
+  const { toast } = useToast();
+  const { data, isLoading } = useQuery<any>({
+    queryKey: [`/api/admin/providers/${providerId}/office-hours`],
+  });
+
+  const saveSchedule = useMutation({
+    mutationFn: (weeklySchedule: WeeklySchedule) =>
+      apiRequest("PATCH", `/api/admin/providers/${providerId}/office-hours`, {
+        weeklySchedule,
+      }),
+    onSuccess: () => {
+      toast({ title: t("admin.schedule_saved", "Schedule saved") });
+      queryClient.invalidateQueries({ queryKey: [`/api/admin/providers/${providerId}/office-hours`] });
+    },
+    onError: () => toast({ title: t("admin.failed_save", "Failed to save"), variant: "destructive" }),
+  });
+
+  const publishSlots = useMutation({
+    mutationFn: (payload: { dates: string[]; slots: { startTime: string; endTime: string }[]; replaceExisting: boolean }) =>
+      apiRequest("POST", `/api/admin/providers/${providerId}/availability/bulk`, payload).then((r) => r.json()),
+    onSuccess: (data: any) => {
+      toast({ title: t("admin.slots_published", "Created {{count}} time slots", { count: data?.count ?? 0 }) });
+    },
+    onError: () => toast({ title: t("admin.failed_publish", "Failed to publish slots"), variant: "destructive" }),
+  });
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardContent className="py-8 flex justify-center">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>{t("admin.weekly_schedule_title", "Weekly schedule & bookable slots")}</CardTitle>
+        <CardDescription>
+          {t(
+            "admin.weekly_schedule_desc",
+            "Click or drag cells to mark this provider's working hours. Save the schedule, then publish to generate the bookable time slots patients see when booking.",
+          )}
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <WeeklyScheduleGrid
+          schedule={data?.weeklySchedule}
+          onSave={(sched) => saveSchedule.mutate(sched)}
+          onPublish={(payload) => publishSlots.mutate(payload)}
+          isPendingSave={saveSchedule.isPending}
+          isPendingPublish={publishSlots.isPending}
+        />
+      </CardContent>
+    </Card>
   );
 }
 
@@ -592,7 +651,7 @@ function ProviderEditDialog({ provider }: { provider: any }) {
         <DialogHeader className="p-6 pb-2">
           <DialogTitle>{t("admin.edit")} {t("admin.provider")}: {provider.user?.firstName} {provider.user?.lastName}</DialogTitle>
         </DialogHeader>
-        <ScrollArea className="flex-1 px-6 pb-6">
+        <div className="flex-1 overflow-y-auto px-6 pb-6 min-h-0">
           <Tabs defaultValue="details">
             <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="details">{t("admin.details_fees")}</TabsTrigger>
@@ -800,7 +859,7 @@ function ProviderEditDialog({ provider }: { provider: any }) {
               />
             </TabsContent>
           </Tabs>
-        </ScrollArea>
+        </div>
       </DialogContent>
     </Dialog>
   );
@@ -3434,13 +3493,15 @@ function SupportTickets() {
 
   const { data: tickets, refetch, isFetching } = useQuery<any[]>({
     queryKey: ["/api/admin/support-tickets"],
-    refetchInterval: 30000,
+    refetchInterval: 60000,
+    staleTime: 30_000,
   });
 
   const { data: ticketMessages, refetch: refetchMessages } = useQuery<any[]>({
     queryKey: ["/api/admin/support-tickets", selectedTicket?.id, "messages"],
     enabled: !!selectedTicket,
-    refetchInterval: 15000,
+    refetchInterval: 30000,
+    staleTime: 10_000,
   });
 
   const { data: allUsers } = useQuery<any[]>({

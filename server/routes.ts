@@ -5561,6 +5561,65 @@ export async function registerRoutes(
     } catch { res.status(500).json({ message: "Failed to save" }); }
   });
 
+  // ----- Admin: per-provider office hours + bulk slot publishing -----
+  // The admin can manage any provider's weekly schedule and publish bookable
+  // slots on their behalf. providerId here refers to the providers.id row.
+  app.get("/api/admin/providers/:providerId/office-hours", authenticateToken, requireAdmin, async (req: AuthRequest, res: Response) => {
+    try {
+      const provider = await storage.getProvider(req.params.providerId);
+      if (!provider) return res.status(404).json({ message: "Provider not found" });
+      const cfg = await storage.getProviderOfficeHours(provider.userId);
+      res.json(cfg || null);
+    } catch { res.status(500).json({ message: "Failed" }); }
+  });
+
+  app.patch("/api/admin/providers/:providerId/office-hours", authenticateToken, requireAdmin, async (req: AuthRequest, res: Response) => {
+    try {
+      const provider = await storage.getProvider(req.params.providerId);
+      if (!provider) return res.status(404).json({ message: "Provider not found" });
+      const allowed = ["weeklySchedule", "timezone", "autoReplyEnabled", "autoReplyMessage", "emergencyContact"];
+      const patch: Record<string, any> = {};
+      for (const k of allowed) if (req.body[k] !== undefined) patch[k] = req.body[k];
+      const updated = await storage.upsertProviderOfficeHours(provider.userId, patch);
+      res.json(updated);
+    } catch { res.status(500).json({ message: "Failed to save" }); }
+  });
+
+  app.post("/api/admin/providers/:providerId/availability/bulk", authenticateToken, requireAdmin, async (req: AuthRequest, res: Response) => {
+    try {
+      const provider = await storage.getProvider(req.params.providerId);
+      if (!provider) return res.status(404).json({ message: "Provider not found" });
+      const { dates, slots, replaceExisting } = req.body as {
+        dates: string[];
+        slots: { startTime: string; endTime: string }[];
+        replaceExisting?: boolean;
+      };
+      if (!Array.isArray(dates) || dates.length === 0 || !Array.isArray(slots) || slots.length === 0) {
+        return res.status(400).json({ message: "dates and slots required" });
+      }
+      if (replaceExisting) {
+        for (const d of dates) {
+          await storage.deleteTimeSlotsByProviderAndDate(provider.id, d);
+        }
+      }
+      const toCreate = dates.flatMap((date) =>
+        slots.map((s) => ({
+          providerId: provider.id,
+          date,
+          startTime: s.startTime,
+          endTime: s.endTime,
+          isBooked: false,
+          isBlocked: false,
+        })),
+      );
+      const created = await storage.bulkCreateTimeSlots(toCreate as any);
+      res.status(201).json({ count: created.length });
+    } catch (error) {
+      console.error("[admin/availability/bulk] error:", error);
+      res.status(500).json({ message: "Failed to create slots" });
+    }
+  });
+
   // ----- Support tickets: two-way messaging from the user side -----
   app.get("/api/support/tickets", authenticateToken, async (req: AuthRequest, res: Response) => {
     try {

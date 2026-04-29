@@ -144,28 +144,31 @@ export default function PatientDashboard() {
     enabled: !!user,
   });
 
-  // Fire-and-forget cleanup of stale appointments — runs once after the dashboard
-  // mounts, not as part of the appointments fetch. Refreshes the list when done.
+  // Fire-and-forget cleanup of stale appointments — deferred until AFTER the
+  // dashboard renders so it doesn't block the initial paint. Best-effort.
   useEffect(() => {
     if (!user) return;
     let cancelled = false;
-    apiRequest("POST", "/api/appointments/cleanup", {})
-      .then(async (res) => {
-        if (cancelled) return;
-        try {
-          const body = await res.json();
-          if (body && typeof body.cancelledCount === "number" && body.cancelledCount > 0) {
-            queryClient.invalidateQueries({ queryKey: ["/api/appointments/patient"] });
+    const handle = window.setTimeout(() => {
+      apiRequest("POST", "/api/appointments/cleanup", {})
+        .then(async (res) => {
+          if (cancelled) return;
+          try {
+            const body = await res.json();
+            if (body && typeof body.cancelledCount === "number" && body.cancelledCount > 0) {
+              queryClient.invalidateQueries({ queryKey: ["/api/appointments/patient"] });
+            }
+          } catch {
+            // ignore parse errors
           }
-        } catch {
-          // ignore parse errors
-        }
-      })
-      .catch(() => {
-        // ignore — cleanup is best-effort
-      });
+        })
+        .catch(() => {
+          // ignore — cleanup is best-effort
+        });
+    }, 1500);
     return () => {
       cancelled = true;
+      window.clearTimeout(handle);
     };
   }, [user?.id]);
 

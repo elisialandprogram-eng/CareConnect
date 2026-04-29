@@ -100,6 +100,19 @@ The admin dashboard exposes a single **Service Catalog** tab that renders `clien
 
 `server/routes.ts` is registered top-down and Express invokes the **first** handler matching method+path; later registrations are dead code. A 2026-04-29 audit found 14 distinct duplicate method+path pairs (17 dead handler bodies, ~180 lines), including two cases where ownership-check fixes had been applied to dead duplicates while the live handlers had no RBAC guard. All duplicates were removed; the file is now 4,819 lines with 195 unique routes. Helper `assertOwnsServicePractitioner` (in `server/routes.ts`) gates the live `PATCH` and `DELETE /api/service-practitioners/:id` so only the owning provider (or an admin) can mutate per-service practitioner assignments. **When adding a new route, search for the same `app.METHOD("/path"` first to avoid re-introducing duplicates.**
 
+### Recent Fixes (2026-04-29)
+
+A round of UX & data fixes addressing eight reported issues:
+
+1. **Admin Edit Provider dialog scroll** — replaced shadcn `<ScrollArea>` with a plain `overflow-y-auto` div inside a flex column so the long fees/services form scrolls reliably (`client/src/pages/admin-dashboard.tsx`).
+2. **Dashboard slowness** — provider appointments query now polls every 60s with a 30s `staleTime` (was 30s with no stale time); patient dashboard's stale-appointment cleanup is deferred 1.5s after mount so it never blocks initial paint; admin support-ticket polling relaxed (60s/30s).
+3. **Booking auto-skipping the service step** — the deep-link service `useEffect` in `book-wizard.tsx` now uses a `useRef` flag so it fires only on initial mount. Picking a different provider no longer triggers an auto-jump to the slot step.
+4. **Admin per-provider availability** — added admin endpoints `GET/PATCH /api/admin/providers/:providerId/office-hours` and `POST /api/admin/providers/:providerId/availability/bulk`, and wired the WeeklyScheduleGrid into the previously-empty **Time Sheet** tab inside Edit Provider → Services. Admins can now set a provider's weekly schedule and publish bookable slots without logging in as the provider.
+5. **Two "Save changes" buttons in Preferences** — added `preferences` to the sticky-save-bar exclusion list in `client/src/pages/profile.tsx`; the in-card button is now the only save control on that tab.
+6. **EUR + GBP currencies** — added EUR (€, en-IE, ~0.92 USD) and GBP (£, en-GB, ~0.79 USD) to `client/src/lib/currency.ts` (via a new `EXTRA_CURRENCIES` map) and surfaced them as options in the Preferences select.
+7. **Health-metrics save Zod error** — drizzle-zod typed the `decimal` columns (`weightKg`, `bloodGlucose`, `temperatureC`) as required strings, so the form's numeric values produced a confusing 400. `insertHealthMetricSchema` now extends with a `decimalFromAny` preprocessor that accepts numbers, strings or empties.
+8. **Invoice PDF revamp** — `server/utils/invoice-gen.ts` is no longer hardcoded to HUF. It now resolves currency from `invoice.currency || provider.currency`, supports USD/EUR/GBP/HUF/IRR with locale-aware formatting, switches the palette to Golden Life's gold + slate brand, adds an Appointment ref row, optional platform-fee and discount rows in the totals, and a paid/payment-instructions panel. `invoice-helper.ts` now passes the resolved currency when creating the invoice.
+
 ### Build Process
 
 The client-side React app is bundled using Vite, and the server-side Express app with esbuild. Shared types and schemas are maintained in a `shared/` directory.

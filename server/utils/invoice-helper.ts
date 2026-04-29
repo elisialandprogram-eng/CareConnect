@@ -30,6 +30,11 @@ export async function createInvoiceForAppointment(appointmentId: string): Promis
   const payment = await storage.getPaymentByAppointment(booking.id);
   const invoiceStatus = payment?.status === "completed" ? "paid" : "due";
 
+  // Resolve currency from provider profile (falls back to USD inside the PDF).
+  const invoiceCurrency = (appointment.provider as any)?.currency
+    || payment?.currency
+    || "USD";
+
   const invoiceNumber = `INV-${Date.now()}-${booking.id.slice(0, 4)}`.toUpperCase();
   const dueDate = new Date();
   dueDate.setDate(dueDate.getDate() + 7);
@@ -88,7 +93,8 @@ export async function createInvoiceForAppointment(appointmentId: string): Promis
       taxAmount,
       totalAmount,
       status: invoiceStatus,
-    },
+      currency: invoiceCurrency,
+    } as any,
     [
       {
         invoiceId: "",

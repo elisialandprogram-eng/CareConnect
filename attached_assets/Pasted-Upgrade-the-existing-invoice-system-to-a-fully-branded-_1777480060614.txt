@@ -1,0 +1,118 @@
+Upgrade the existing invoice system to a fully branded, professional, production-grade PDF without breaking current functionality.
+
+1. HEADER (BRANDING)
+- Add Golden Life logo (top-left, width ~120px)
+- Add company details below logo:
+  Golden Life Healthcare Pvt Ltd
+  Address: [full address]
+  Email: support@goldenlife.com
+  Phone: +91 XXXXX XXXXX
+  Website: www.goldenlife.com
+
+2. TITLE & IDENTIFIERS
+- Add "INVOICE" title aligned top-right (large font)
+- Display:
+  Invoice Number: GL-INV-000001 (auto-generated sequence)
+  Appointment Number: GL000001
+  Invoice Date
+  Appointment Date
+
+3. SECTION STRUCTURE (CLEAR LAYOUT)
+Create properly spaced sections:
+
+A. Provider Details
+- Provider/Clinic Name
+- Address
+- Contact details
+
+B. Patient Details
+- Patient Name
+- Email / Phone
+
+C. Appointment Details
+- Service Name
+- Sub-service (if exists)
+- Practitioner Name
+- Visit Type (Online / Home / Clinic)
+- Date & Time
+
+D. Pricing Breakdown
+- Consultation Fee
+- Additional Fees (home visit / emergency if applicable)
+- Platform Fee (optional display)
+- Discount (promo code)
+- Taxes
+- Divider line
+- TOTAL (highlighted, larger font)
+
+E. Payment Info
+- Payment Method (Card / Cash / Wallet etc.)
+- Payment Status (PAID / PENDING / FAILED)
+
+4. STYLING (IMPORTANT)
+- Use clean professional layout:
+  - bold section headers
+  - font sizes hierarchy (20 title, 12 normal, 10 meta)
+  - spacing between sections (10–20px)
+  - light divider lines (#e5e7eb style)
+- Highlight TOTAL amount (bold + larger font)
+- Align pricing in two columns (label left, value right)
+
+5. FOOTER
+- Add:
+  "Thank you for choosing Golden Life"
+  Support: support@goldenlife.com
+  "This is a system-generated invoice and does not require a signature."
+
+6. OPTIONAL ENHANCEMENTS (IMPLEMENT IF EASY)
+- Add QR code containing:
+  appointment number + invoice number
+- Add provider logo if available (fallback to Golden Life logo)
+- Add tax/GST fields (if present in DB)
+
+7. DATA INTEGRATION
+- Ensure invoice pulls correct data from:
+  appointments
+  providers
+  practitioners
+  services
+  payments
+  wallet (if used)
+- Handle missing optional fields gracefully
+
+8. PDF GENERATION
+- Use existing system (pdfkit preferred)
+- Ensure:
+  consistent margins
+  no overlapping text
+  works for long content
+
+9. STORAGE
+- Save generated invoice URL/path in database
+- Link it to appointment record
+
+10. ACCESS
+- Keep existing "Download Invoice" button
+- Ensure invoice opens/downloads correctly
+
+11. EMAIL INTEGRATION
+- Attach PDF invoice to:
+  appointment completion email
+
+12. VALIDATION
+- Only generate invoice if:
+  appointment status = COMPLETED
+  payment = successful or marked paid
+
+13. TEST
+- Generate multiple invoices:
+  - with discount
+  - without discount
+  - different visit types
+- Verify layout consistency and correctness
+
+14. OUTPUT
+- Confirm:
+  professional branded invoice
+  correct data rendering
+  working download + email attachment
