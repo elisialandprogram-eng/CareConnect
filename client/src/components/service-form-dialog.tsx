@@ -506,8 +506,8 @@ export function ServiceFormDialog({ open, onOpenChange, service, providerId, adm
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto" data-testid="dialog-service-form">
-        <DialogHeader>
+      <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col p-0 gap-0" data-testid="dialog-service-form">
+        <DialogHeader className="px-6 pt-6 pb-4 border-b shrink-0">
           <DialogTitle className="flex items-center gap-2">
             <span className="h-8 w-8 rounded-md bg-primary text-primary-foreground flex items-center justify-center">
               <Plus className="h-4 w-4" />
@@ -516,14 +516,11 @@ export function ServiceFormDialog({ open, onOpenChange, service, providerId, adm
           </DialogTitle>
         </DialogHeader>
 
-        <Tabs defaultValue="details" className="mt-2">
-          <TabsList className="w-full justify-start gap-4 bg-transparent border-b rounded-none h-auto p-0 overflow-x-auto">
+        <Tabs defaultValue="details" className="flex-1 flex flex-col min-h-0">
+          <TabsList className="w-full justify-start gap-4 bg-transparent border-b rounded-none h-auto p-0 px-6 overflow-x-auto shrink-0">
             <TabsTrigger value="details" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent text-xs tracking-wider" data-testid="tab-service-details">SERVICE DETAILS</TabsTrigger>
-            <TabsTrigger value="staff" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent text-xs tracking-wider text-muted-foreground" data-testid="tab-service-staff">STAFF</TabsTrigger>
             <TabsTrigger value="timesheet" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent text-xs tracking-wider text-muted-foreground" data-testid="tab-service-timesheet">TIME SHEET</TabsTrigger>
-            <TabsTrigger value="extras" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent text-xs tracking-wider text-muted-foreground" data-testid="tab-service-extras">EXTRAS</TabsTrigger>
             <TabsTrigger value="settings" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent text-xs tracking-wider" data-testid="tab-service-settings">SETTINGS</TabsTrigger>
-            <TabsTrigger value="limiter" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent text-xs tracking-wider text-muted-foreground" data-testid="tab-service-limiter">BOOKING LIMITER</TabsTrigger>
             {isEdit && (
               <TabsTrigger value="price-history" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent text-xs tracking-wider text-muted-foreground flex items-center gap-1" data-testid="tab-service-price-history">
                 <History className="h-3 w-3" />
@@ -534,6 +531,8 @@ export function ServiceFormDialog({ open, onOpenChange, service, providerId, adm
               </TabsTrigger>
             )}
           </TabsList>
+
+          <div className="flex-1 overflow-y-auto px-6 pb-6">
 
           <TabsContent value="details" className="space-y-6 pt-6">
             {/* Image + colors */}
@@ -939,9 +938,10 @@ export function ServiceFormDialog({ open, onOpenChange, service, providerId, adm
               <PriceHistoryPanel history={priceHistory} isLoading={historyLoading} currentPrice={price} />
             </TabsContent>
           )}
+          </div>
         </Tabs>
 
-        <DialogFooter className="gap-2">
+        <DialogFooter className="gap-2 px-6 py-4 border-t shrink-0">
           {isEdit && (
             <Button
               variant="outline"
