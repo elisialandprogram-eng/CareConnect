@@ -3491,7 +3491,6 @@ function InvoiceTemplateEditor() {
   const FIELDS: Array<{ key: string; label: string; type?: "text" | "textarea" | "color" | "url"; placeholder?: string; help?: string; }> = [
     { key: "companyName", label: "Company name", placeholder: "Golden Life" },
     { key: "tagline", label: "Tagline / subtitle", placeholder: "Quality healthcare delivered." },
-    { key: "logoUrl", label: "Logo URL", type: "url", placeholder: "https://…/logo.png", help: "Optional. Hosted PNG/JPG (rendered on a future revision)." },
     { key: "brandColorHex", label: "Brand color", type: "color" },
     { key: "accentColorHex", label: "Accent color", type: "color" },
     { key: "addressLine1", label: "Address line 1", placeholder: "123 Main St" },
@@ -3535,6 +3534,88 @@ function InvoiceTemplateEditor() {
           </Button>
         </div>
       </div>
+
+      <Card>
+        <CardContent className="p-6">
+          <div className="flex items-start gap-6 flex-wrap">
+            <div className="flex-shrink-0">
+              <Label className="text-sm font-medium block mb-2">Logo</Label>
+              <div
+                className="h-28 w-28 rounded-lg border-2 border-dashed flex items-center justify-center bg-muted/30 overflow-hidden"
+                data-testid="preview-tpl-logo"
+              >
+                {form.logoUrl ? (
+                  <img
+                    src={form.logoUrl}
+                    alt="Logo"
+                    className="max-h-full max-w-full object-contain"
+                  />
+                ) : (
+                  <span className="text-xs text-muted-foreground text-center px-2">No logo</span>
+                )}
+              </div>
+            </div>
+            <div className="flex-1 min-w-[240px] space-y-2">
+              <Label className="text-sm font-medium">Upload logo</Label>
+              <p className="text-xs text-muted-foreground">
+                PNG or JPEG, ideally square. Max 1 MB. Shown at the top-left of every invoice.
+              </p>
+              <div className="flex items-center gap-2 flex-wrap">
+                <Input
+                  type="file"
+                  accept="image/png,image/jpeg"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    if (file.size > 1024 * 1024) {
+                      toast({
+                        title: "Logo too large",
+                        description: "Please choose an image under 1 MB.",
+                        variant: "destructive",
+                      });
+                      e.target.value = "";
+                      return;
+                    }
+                    const reader = new FileReader();
+                    reader.onload = () => {
+                      const dataUrl = String(reader.result || "");
+                      set("logoUrl", dataUrl);
+                    };
+                    reader.onerror = () => {
+                      toast({ title: "Could not read file", variant: "destructive" });
+                    };
+                    reader.readAsDataURL(file);
+                    e.target.value = "";
+                  }}
+                  className="max-w-xs"
+                  data-testid="input-tpl-logo-file"
+                />
+                {form.logoUrl && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => set("logoUrl", "")}
+                    data-testid="button-tpl-logo-remove"
+                  >
+                    Remove
+                  </Button>
+                )}
+              </div>
+              <details className="text-xs text-muted-foreground">
+                <summary className="cursor-pointer select-none">Or paste a hosted URL</summary>
+                <Input
+                  type="url"
+                  value={form.logoUrl?.startsWith("data:") ? "" : (form.logoUrl ?? "")}
+                  onChange={(e) => set("logoUrl", e.target.value)}
+                  placeholder="https://…/logo.png"
+                  className="mt-2"
+                  data-testid="input-tpl-logo-url"
+                />
+              </details>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardContent className="p-6 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">

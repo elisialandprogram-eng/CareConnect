@@ -61,6 +61,46 @@ const SUBTLE: RGB = [156, 163, 175];      // gray-400
 const LINE: RGB = [229, 231, 235];        // gray-200
 const BG_SOFT: RGB = [250, 247, 237];     // soft cream
 
+/**
+ * Convert an admin-supplied logo URL into a data URL + image format that
+ * jsPDF can embed via `addImage`. Supports:
+ *   - data:image/(png|jpeg|jpg);base64,…  (returned as-is, parsed for format)
+ *   - http(s)://…                          (fetched server-side; png/jpeg only)
+ * Returns null on any failure so the PDF still renders without a logo.
+ */
+async function resolveLogoData(
+  logoUrl: string | null | undefined,
+): Promise<{ dataUrl: string; format: "PNG" | "JPEG" } | null> {
+  const raw = (logoUrl || "").trim();
+  if (!raw) return null;
+
+  // Already a data URL — pull the format out of the MIME type.
+  if (raw.startsWith("data:")) {
+    const m = raw.match(/^data:image\/(png|jpeg|jpg)(;base64)?,/i);
+    if (!m) return null;
+    const fmt = m[1].toLowerCase() === "png" ? "PNG" : "JPEG";
+    return { dataUrl: raw, format: fmt as "PNG" | "JPEG" };
+  }
+
+  // Remote URL — fetch and inline. Cap at ~3MB to avoid memory issues.
+  if (!/^https?:\/\//i.test(raw)) return null;
+  try {
+    const res = await fetch(raw);
+    if (!res.ok) return null;
+    const ct = (res.headers.get("content-type") || "").toLowerCase();
+    let format: "PNG" | "JPEG";
+    if (ct.includes("png")) format = "PNG";
+    else if (ct.includes("jpeg") || ct.includes("jpg")) format = "JPEG";
+    else return null;
+    const buf = Buffer.from(await res.arrayBuffer());
+    if (buf.byteLength > 3 * 1024 * 1024) return null;
+    const mime = format === "PNG" ? "image/png" : "image/jpeg";
+    return { dataUrl: `data:${mime};base64,${buf.toString("base64")}`, format };
+  } catch {
+    return null;
+  }
+}
+
 function statusColors(status: string): { fill: RGB; text: RGB; label: string } {
   const s = (status || "due").toLowerCase();
   if (s === "paid") {
@@ -118,19 +158,38 @@ export async function generateInvoicePDF(
   doc.setFillColor(...ACCENT_RGB);
   doc.rect(0, 8, pageW, 1.5, "F");
 
+  // ---------- LOGO (optional) ----------
+  // Render a logo to the left of the company name when the template provides
+  // one. Supports data: URLs (uploaded straight from the admin UI) and
+  // remote http(s) URLs (fetched and inlined here).
+  const logoData = await resolveLogoData(tpl.logoUrl);
+  let textOffsetX = M;
+  if (logoData) {
+    try {
+      // Reserve a 16x16 mm box at the top-left, vertically centered with the
+      // company name baseline at y=24.
+      const LOGO_BOX = 16;
+      const logoY = 14;
+      doc.addImage(logoData.dataUrl, logoData.format, M, logoY, LOGO_BOX, LOGO_BOX);
+      textOffsetX = M + LOGO_BOX + 4;
+    } catch (err) {
+      console.warn("[invoice-gen] failed to render logo:", err);
+    }
+  }
+
   // ---------- HEADER ----------
   // Brand
   doc.setFont("helvetica", "bold");
   doc.setFontSize(20);
   doc.setTextColor(...ACCENT_RGB);
-  doc.text(tpl.companyName || "Golden Life", M, 24);
+  doc.text(tpl.companyName || "Golden Life", textOffsetX, 24);
 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
   doc.setTextColor(...MUTED);
-  if (tpl.tagline) doc.text(tpl.tagline, M, 29);
+  if (tpl.tagline) doc.text(tpl.tagline, textOffsetX, 29);
   const contactBits = [tpl.website, tpl.email, tpl.phone].filter(Boolean).join("  ·  ");
-  if (contactBits) doc.text(contactBits, M, 34);
+  if (contactBits) doc.text(contactBits, textOffsetX, 34);
 
   // INVOICE title
   doc.setFont("helvetica", "bold");
