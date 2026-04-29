@@ -24,6 +24,8 @@ const ProviderDashboard = lazy(() => import("@/pages/provider-dashboard"));
 const ProviderSetup = lazy(() => import("@/pages/provider-setup"));
 const AdminDashboard = lazy(() => import("@/pages/admin-dashboard"));
 const AdminStaleBookings = lazy(() => import("@/pages/admin-stale-bookings"));
+const AdminEarnings = lazy(() => import("@/pages/admin-earnings"));
+const ProviderEarnings = lazy(() => import("@/pages/provider-earnings"));
 const Terms = lazy(() => import("@/pages/terms"));
 const Privacy = lazy(() => import("@/pages/privacy"));
 const About = lazy(() => import("@/pages/about"));
@@ -97,6 +99,7 @@ function Router() {
           <Route path="/patient/dashboard" component={PatientDashboard} />
           <Route path="/provider/dashboard" component={ProviderDashboard} />
           <Route path="/provider/setup" component={ProviderSetup} />
+          <Route path="/provider/earnings" component={ProviderEarnings} />
           <Route path="/provider/:id" component={ProviderProfile} />
           {/* Legacy /booking entry point — redirect to the consolidated wizard,
               preserving query params (providerId, serviceId, visitType, etc.). */}
@@ -112,6 +115,8 @@ function Router() {
           <Route path="/book-wizard" component={BookWizard} />
           <Route path="/admin" component={AdminDashboard} />
           <Route path="/admin/stale-bookings" component={AdminStaleBookings} />
+          <Route path="/admin/earnings" component={AdminEarnings} />
+          <Route path="/provider/earnings" component={ProviderEarnings} />
           <Route path="/messages" component={Messages} />
           <Route path="/notifications" component={Notifications} />
           <Route path="/terms" component={Terms} />

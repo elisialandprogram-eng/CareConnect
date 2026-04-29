@@ -46,6 +46,7 @@ import {
   medicalPractitioners,
   invoices,
   invoiceItems,
+  providerEarnings,
   appointmentEvents,
   type AppointmentEvent,
   type AppointmentEventWithActor,
@@ -145,6 +146,8 @@ import {
   type InsertInvoice,
   type InvoiceItem,
   type InsertInvoiceItem,
+  type ProviderEarning,
+  type InsertProviderEarning,
   notificationPreferences,
   pushSubscriptions,
   videoSessions,
@@ -539,6 +542,20 @@ export interface IStorage {
   createInvoice(invoice: InsertInvoice, items: InsertInvoiceItem[]): Promise<Invoice>;
   getInvoiceItems(invoiceId: string): Promise<InvoiceItem[]>;
   getPendingInvoiceAppointments(): Promise<any[]>;
+
+  // Provider earnings & payouts
+  recordProviderEarning(appointmentId: string): Promise<ProviderEarning | null>;
+  getProviderEarnings(providerId: string): Promise<ProviderEarning[]>;
+  getAllProviderEarnings(): Promise<Array<ProviderEarning & { providerName?: string; appointmentNumber?: string | null }>>;
+  getProviderEarningById(id: string): Promise<ProviderEarning | undefined>;
+  markEarningPaid(id: string, paidByUserId: string, payoutReference?: string): Promise<ProviderEarning | undefined>;
+  getEarningsSummary(providerId?: string): Promise<{
+    totalEarnings: string;
+    pendingAmount: string;
+    paidAmount: string;
+    platformRevenue: string;
+    count: number;
+  }>;
 
   // Notification preferences
   getNotificationPreferences(userId: string): Promise<NotificationPreferences | undefined>;
@@ -2550,6 +2567,126 @@ export class DatabaseStorage implements IStorage {
   async getPendingInvoiceAppointments(): Promise<any[]> {
     return db.select().from(appointments)
       .where(and(eq(appointments.status, "completed"), eq(appointments.invoiceGenerated, false)));
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Provider earnings & payouts
+  // Idempotent: relies on unique(appointment_id) so duplicate calls are no-ops.
+  // ─────────────────────────────────────────────────────────────────────────
+  async recordProviderEarning(appointmentId: string): Promise<ProviderEarning | null> {
+    const existing = await db.select().from(providerEarnings)
+      .where(eq(providerEarnings.appointmentId, appointmentId)).limit(1);
+    if (existing.length > 0) return existing[0];
+
+    const [appt] = await db.select().from(appointments)
+      .where(eq(appointments.id, appointmentId)).limit(1);
+    if (!appt) return null;
+    if (appt.status !== "completed") return null;
+
+    const payment = await this.getPaymentByAppointment(appointmentId);
+    if (!payment || payment.status !== "completed") return null;
+
+    const totalAmount = parseFloat(appt.totalAmount || "0");
+    const platformFee = parseFloat(appt.platformFeeAmount || "0");
+    const providerEarning = Math.max(0, totalAmount - platformFee);
+
+    try {
+      const [created] = await db.insert(providerEarnings).values({
+        providerId: appt.providerId,
+        appointmentId: appt.id,
+        totalAmount: totalAmount.toFixed(2),
+        platformFee: platformFee.toFixed(2),
+        providerEarning: providerEarning.toFixed(2),
+        status: "pending",
+      }).returning();
+      return created;
+    } catch (err: any) {
+      // Race condition: another concurrent call inserted first.
+      if (err?.code === "23505") {
+        const [row] = await db.select().from(providerEarnings)
+          .where(eq(providerEarnings.appointmentId, appointmentId)).limit(1);
+        return row || null;
+      }
+      throw err;
+    }
+  }
+
+  async getProviderEarnings(providerId: string): Promise<ProviderEarning[]> {
+    return db.select().from(providerEarnings)
+      .where(eq(providerEarnings.providerId, providerId))
+      .orderBy(desc(providerEarnings.createdAt));
+  }
+
+  async getAllProviderEarnings(): Promise<Array<ProviderEarning & { providerName?: string; appointmentNumber?: string | null }>> {
+    const rows = await db
+      .select({
+        earning: providerEarnings,
+        providerFirstName: users.firstName,
+        providerLastName: users.lastName,
+        appointmentNumber: appointments.appointmentNumber,
+      })
+      .from(providerEarnings)
+      .leftJoin(providers, eq(providers.id, providerEarnings.providerId))
+      .leftJoin(users, eq(users.id, providers.userId))
+      .leftJoin(appointments, eq(appointments.id, providerEarnings.appointmentId))
+      .orderBy(desc(providerEarnings.createdAt));
+
+    return rows.map((r) => ({
+      ...r.earning,
+      providerName: [r.providerFirstName, r.providerLastName].filter(Boolean).join(" ") || undefined,
+      appointmentNumber: r.appointmentNumber ?? null,
+    }));
+  }
+
+  async getProviderEarningById(id: string): Promise<ProviderEarning | undefined> {
+    const [row] = await db.select().from(providerEarnings)
+      .where(eq(providerEarnings.id, id)).limit(1);
+    return row;
+  }
+
+  async markEarningPaid(id: string, paidByUserId: string, payoutReference?: string): Promise<ProviderEarning | undefined> {
+    const [updated] = await db.update(providerEarnings)
+      .set({
+        status: "paid",
+        paidAt: new Date(),
+        paidByUserId,
+        payoutReference: payoutReference ?? null,
+      })
+      .where(eq(providerEarnings.id, id))
+      .returning();
+    return updated;
+  }
+
+  async getEarningsSummary(providerId?: string): Promise<{
+    totalEarnings: string;
+    pendingAmount: string;
+    paidAmount: string;
+    platformRevenue: string;
+    count: number;
+  }> {
+    const rows = providerId
+      ? await db.select().from(providerEarnings).where(eq(providerEarnings.providerId, providerId))
+      : await db.select().from(providerEarnings);
+
+    let totalEarnings = 0;
+    let pendingAmount = 0;
+    let paidAmount = 0;
+    let platformRevenue = 0;
+    for (const r of rows) {
+      const earn = parseFloat(r.providerEarning || "0");
+      const fee = parseFloat(r.platformFee || "0");
+      totalEarnings += earn;
+      platformRevenue += fee;
+      if (r.status === "paid") paidAmount += earn;
+      else pendingAmount += earn;
+    }
+    return {
+      totalEarnings: totalEarnings.toFixed(2),
+      pendingAmount: pendingAmount.toFixed(2),
+      paidAmount: paidAmount.toFixed(2),
+      platformRevenue: platformRevenue.toFixed(2),
+      count: rows.length,
+    };
   }
 
   // Find-or-create a time slot for an exact provider/date/time and atomically

@@ -1391,6 +1391,13 @@ export default function ProviderDashboard() {
                     {t("provider_dashboard.vs_prev_30", "vs previous 30 days")}
                   </span>
                 </div>
+                <Link
+                  href="/provider/earnings"
+                  className="inline-flex items-center gap-1 mt-3 text-xs font-medium text-white/90 hover:text-white underline-offset-2 hover:underline"
+                  data-testid="link-view-payouts"
+                >
+                  {t("provider_dashboard.view_payouts", "View earnings & payouts")} →
+                </Link>
               </div>
               <div className="md:col-span-2">
                 <ResponsiveContainer width="100%" height={110}>

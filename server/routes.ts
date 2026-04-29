@@ -3645,6 +3645,12 @@ export async function registerRoutes(
         } catch (invErr) {
           console.error("[routes] auto invoice generation failed:", invErr);
         }
+        // Record provider earning (idempotent — unique on appointmentId)
+        try {
+          await storage.recordProviderEarning(req.params.id);
+        } catch (earnErr) {
+          console.error("[routes] earnings record failed:", earnErr);
+        }
       }
 
       // Create notification for patient about status change
@@ -3738,6 +3744,15 @@ export async function registerRoutes(
           await createInvoiceForAppointment(appointment.id);
         } catch (invErr) {
           console.error("[routes] invoice generation after payment update failed:", invErr);
+        }
+      }
+
+      // Payment now successful & appointment completed → generate provider earning record (idempotent)
+      if (status === "completed" && appointment.status === "completed") {
+        try {
+          await storage.recordProviderEarning(appointment.id);
+        } catch (earnErr) {
+          console.error("[routes] earnings record failed (payment update):", earnErr);
         }
       }
 
@@ -4851,6 +4866,15 @@ export async function registerRoutes(
         }
       }
 
+      // Record provider earning when admin marks an appointment completed
+      if (status === "completed") {
+        try {
+          await storage.recordProviderEarning(booking.id);
+        } catch (earnErr) {
+          console.error("[routes] earnings record failed (admin booking update):", earnErr);
+        }
+      }
+
       res.json(updated);
     } catch (error) {
       console.error("Failed to update booking status:", error);
@@ -4864,6 +4888,101 @@ export async function registerRoutes(
       res.json(allInvoices);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch invoices" });
+    }
+  });
+
+  // ─── Provider Earnings & Payouts ──────────────────────────────────────────
+  app.get("/api/provider/earnings", authenticateToken, async (req: AuthRequest, res: Response) => {
+    try {
+      if (req.user?.role !== "provider") {
+        return res.status(403).json({ message: "Provider account required" });
+      }
+      const provider = await storage.getProviderByUserId(req.user.id);
+      if (!provider) return res.status(404).json({ message: "Provider not found" });
+
+      const [earnings, summary] = await Promise.all([
+        storage.getProviderEarnings(provider.id),
+        storage.getEarningsSummary(provider.id),
+      ]);
+      res.json({ earnings, summary });
+    } catch (error) {
+      console.error("[GET /api/provider/earnings] error:", error);
+      res.status(500).json({ message: "Failed to fetch earnings" });
+    }
+  });
+
+  app.get("/api/admin/earnings", authenticateToken, requireAdmin, async (_req: AuthRequest, res: Response) => {
+    try {
+      const [earnings, summary] = await Promise.all([
+        storage.getAllProviderEarnings(),
+        storage.getEarningsSummary(),
+      ]);
+      res.json({ earnings, summary });
+    } catch (error) {
+      console.error("[GET /api/admin/earnings] error:", error);
+      res.status(500).json({ message: "Failed to fetch earnings" });
+    }
+  });
+
+  app.patch("/api/admin/earnings/:id/pay", authenticateToken, requireAdmin, async (req: AuthRequest, res: Response) => {
+    try {
+      const existing = await storage.getProviderEarningById(req.params.id);
+      if (!existing) return res.status(404).json({ message: "Earning record not found" });
+      if (existing.status === "paid") {
+        return res.status(400).json({ message: "Earning has already been marked as paid" });
+      }
+
+      const payoutReference = typeof req.body?.payoutReference === "string"
+        ? req.body.payoutReference.trim() || undefined
+        : undefined;
+
+      const updated = await storage.markEarningPaid(req.params.id, req.user!.id, payoutReference);
+      if (!updated) return res.status(500).json({ message: "Failed to update earning" });
+
+      // Notify the provider that they've been paid
+      try {
+        const provider = await storage.getProviderWithUser(updated.providerId);
+        if (provider?.user) {
+          await storage.createUserNotification({
+            userId: provider.user.id,
+            type: "payment",
+            title: "Payout sent",
+            message: `Your payout of ${Number(updated.providerEarning).toFixed(0)} HUF has been marked as paid${payoutReference ? ` (ref: ${payoutReference})` : ""}.`,
+            isRead: false,
+          });
+        }
+      } catch (notifErr) {
+        console.error("[earnings pay] notification failed:", notifErr);
+      }
+
+      res.json(updated);
+    } catch (error) {
+      console.error("[PATCH /api/admin/earnings/:id/pay] error:", error);
+      res.status(500).json({ message: "Failed to mark earning as paid" });
+    }
+  });
+
+  // Admin tool: backfill earnings for previously-completed appointments that
+  // never had a record created (e.g. completed before this feature shipped).
+  app.post("/api/admin/earnings/backfill", authenticateToken, requireAdmin, async (_req: AuthRequest, res: Response) => {
+    try {
+      const all = await storage.getAllAppointments();
+      const completed = all.filter((a: any) => a.status === "completed");
+      const startedAt = Date.now();
+      let created = 0;
+      let skipped = 0;
+      for (const appt of completed) {
+        const result = await storage.recordProviderEarning(appt.id);
+        if (result && result.createdAt && new Date(result.createdAt).getTime() >= startedAt) {
+          created++;
+        } else {
+          skipped++;
+        }
+      }
+      res.json({ created, skipped, total: completed.length });
+    } catch (error) {
+      console.error("[POST /api/admin/earnings/backfill] error:", error);
+      res.status(500).json({ message: "Failed to backfill earnings" });
     }
   });
 

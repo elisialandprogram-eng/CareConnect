@@ -382,6 +382,36 @@ export type InsertInvoice = z.infer<typeof insertInvoiceSchema>;
 export type InvoiceItem = typeof invoiceItems.$inferSelect;
 export type InsertInvoiceItem = z.infer<typeof insertInvoiceItemSchema>;
 
+export const earningStatusEnum = pgEnum("earning_status", ["pending", "paid"]);
+
+export const providerEarnings = pgTable("provider_earnings", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  providerId: varchar("provider_id").notNull().references(() => providers.id),
+  appointmentId: varchar("appointment_id").notNull().unique().references(() => appointments.id),
+  totalAmount: decimal("total_amount", { precision: 10, scale: 2 }).notNull(),
+  platformFee: decimal("platform_fee", { precision: 10, scale: 2 }).notNull(),
+  providerEarning: decimal("provider_earning", { precision: 10, scale: 2 }).notNull(),
+  status: earningStatusEnum("status").notNull().default("pending"),
+  paidAt: timestamp("paid_at"),
+  paidByUserId: varchar("paid_by_user_id").references(() => users.id),
+  payoutReference: text("payout_reference"),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (t) => [
+  index("idx_provider_earnings_provider_id").on(t.providerId),
+  index("idx_provider_earnings_status").on(t.status),
+  index("idx_provider_earnings_created_at").on(t.createdAt),
+]);
+
+export const insertProviderEarningSchema = createInsertSchema(providerEarnings).omit({
+  id: true,
+  createdAt: true,
+  paidAt: true,
+  paidByUserId: true,
+  payoutReference: true,
+});
+export type ProviderEarning = typeof providerEarnings.$inferSelect;
+export type InsertProviderEarning = z.infer<typeof insertProviderEarningSchema>;
+
 
 export const reviews = pgTable("reviews", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),

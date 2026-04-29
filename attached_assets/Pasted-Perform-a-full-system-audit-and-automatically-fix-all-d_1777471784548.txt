@@ -1,0 +1,92 @@
+Perform a full system audit and automatically fix all detected inconsistencies across frontend, backend, and database.
+
+1. FRONTEND ROUTING AUDIT
+- Scan all pages and navigation flows
+- Fix:
+  - broken links
+  - incorrect redirects
+  - missing dynamic routes (/appointments/:id)
+  - unused or duplicate pages
+
+2. API AUDIT
+- List all backend endpoints
+- Map each feature to its API
+- Fix:
+  - missing endpoints
+  - wrong HTTP methods
+  - duplicate or deprecated endpoints
+  - inconsistent naming
+
+3. DATABASE VALIDATION
+- Compare database schema with backend queries
+- Fix:
+  - missing columns (e.g., practitioner_id, invoice_generated issues)
+  - enum mismatches
+  - missing tables (appointment_events etc.)
+- Add constraints where missing
+
+4. FEATURE CONNECTION AUDIT
+- Map:
+  UI → API → DB
+- Fix broken chains where:
+  UI exists but API fails
+  API exists but DB mismatch
+  DB exists but unused
+
+5. DUPLICATE LOGIC CLEANUP
+- Identify old vs new implementations:
+  services, pricing, booking, staff/practitioners
+- Remove deprecated code safely
+
+6. APPOINTMENT SYSTEM VALIDATION
+- Ensure lifecycle works:
+  BOOK → CONFIRM → RESCHEDULE → COMPLETE → CANCEL → NO_SHOW
+- Ensure appointment_events logs all actions
+- Fix any missing integrations
+
+7. REVIEWS SYSTEM CHECK
+- Ensure:
+  review only after COMPLETED
+  one review per appointment
+  ratings displayed correctly
+
+8. PAYMENTS & WALLET CHECK
+- Verify:
+  wallet balance updates correctly
+  transactions logged
+  refunds processed on cancel
+
+9. NOTIFICATIONS CHECK
+- Verify:
+  booking, cancel, reminder triggers
+  no duplicate notifications
+
+10. ERROR DETECTION
+- Scan logs for:
+  SQL errors (missing columns)
+  runtime errors
+  failed API calls
+
+11. END-TO-END TEST FLOWS
+- Simulate:
+  Patient full journey
+  Provider workflow
+  Admin operations
+- Fix any broken step
+
+12. PERFORMANCE CHECK
+- Ensure:
+  indexes exist on key tables
+  no heavy queries without optimization
+
+13. OUTPUT REPORT
+- Provide:
+  ✔ fixed issues
+  ❌ remaining issues
+  ⚠ potential risks
+  🧩 improvements made
+
+14. FINAL VALIDATION
+- Confirm:
+  system is consistent
+  no broken flows remain
