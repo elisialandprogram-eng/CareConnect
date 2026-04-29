@@ -828,24 +828,26 @@ export default function ProviderSetup() {
                               name={name}
                               render={({ field }) => (
                                 <FormItem>
-                                  <div
+                                  <label
+                                    htmlFor={`agreement-${name}`}
                                     className={`flex items-start gap-3 p-4 rounded-xl border cursor-pointer transition-all ${
                                       field.value
                                         ? "border-primary bg-primary/5"
                                         : "border-border hover:border-primary/30"
                                     }`}
-                                    onClick={() => field.onChange(!field.value)}
                                   >
                                     <Checkbox
+                                      id={`agreement-${name}`}
                                       checked={!!field.value}
-                                      onCheckedChange={field.onChange}
+                                      onCheckedChange={(checked) => field.onChange(checked === true)}
                                       className="mt-0.5"
+                                      data-testid={`checkbox-${name}`}
                                     />
                                     <div>
                                       <p className="text-sm font-semibold text-foreground">{title}</p>
                                       <p className="text-xs text-muted-foreground mt-0.5">{desc}</p>
                                     </div>
-                                  </div>
+                                  </label>
                                 </FormItem>
                               )}
                             />
