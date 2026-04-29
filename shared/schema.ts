@@ -385,7 +385,7 @@ export type InsertInvoiceItem = z.infer<typeof insertInvoiceItemSchema>;
 
 export const reviews = pgTable("reviews", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  appointmentId: varchar("appointment_id").notNull().references(() => appointments.id),
+  appointmentId: varchar("appointment_id").notNull().unique().references(() => appointments.id),
   patientId: varchar("patient_id").notNull().references(() => users.id),
   providerId: varchar("provider_id").notNull().references(() => providers.id),
   rating: integer("rating").notNull(),
@@ -393,7 +393,10 @@ export const reviews = pgTable("reviews", {
   providerReply: text("provider_reply"),
   providerReplyAt: timestamp("provider_reply_at"),
   createdAt: timestamp("created_at").defaultNow(),
-});
+}, (t) => [
+  index("idx_reviews_patient_id").on(t.patientId),
+  index("idx_reviews_provider_created").on(t.providerId, t.createdAt),
+]);
 
 export const payments = pgTable("payments", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),

@@ -1634,7 +1634,14 @@ export async function registerRoutes(
         invoiceId = inv?.id ?? null;
       } catch {}
 
-      res.json({ ...appointment, invoiceId });
+      // Has the patient already left a review? Lets the UI hide "Leave Review".
+      let hasReview = false;
+      try {
+        const ex = await storage.getReviewByAppointment(appointment.id);
+        hasReview = !!ex;
+      } catch {}
+
+      res.json({ ...appointment, invoiceId, hasReview });
     } catch (error) {
       console.error("Get appointment by id error:", error);
       res.status(500).json({ message: "Failed to get appointment" });
@@ -1644,35 +1651,72 @@ export async function registerRoutes(
   // Create a review
   app.post("/api/reviews", authenticateToken, async (req: AuthRequest, res: Response) => {
     try {
-      const { appointmentId, providerId, rating, comment } = req.body;
-      
-      // Validate appointment ownership and status
-      const appointment = await storage.getAppointment(appointmentId);
-      if (!appointment || appointment.patientId !== req.user!.id) {
-        return res.status(403).json({ message: "Unauthorized" });
+      // Patient-only — providers/admins should not be writing patient reviews
+      if (req.user?.role !== "patient") {
+        return res.status(403).json({ message: "Only patients can submit reviews" });
       }
-      
+
+      const { appointmentId, rating: rawRating, comment } = req.body as {
+        appointmentId?: string; rating?: unknown; comment?: unknown;
+      };
+
+      if (typeof appointmentId !== "string" || !appointmentId) {
+        return res.status(400).json({ message: "appointmentId is required" });
+      }
+
+      // Validate rating is an integer 1..5
+      const rating = Number(rawRating);
+      if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
+        return res.status(400).json({ message: "Rating must be an integer between 1 and 5" });
+      }
+
+      // Optional comment — coerce + cap length
+      const commentText = typeof comment === "string" ? comment.trim().slice(0, 2000) : null;
+
+      // Validate appointment exists, ownership, and status
+      const appointment = await storage.getAppointment(appointmentId);
+      if (!appointment) {
+        return res.status(404).json({ message: "Appointment not found" });
+      }
+      if (appointment.patientId !== req.user!.id) {
+        return res.status(403).json({ message: "You can only review your own appointments" });
+      }
       if (appointment.status !== "completed") {
         return res.status(400).json({ message: "Can only review completed appointments" });
       }
 
-      // Check if already reviewed
+      // Pre-check duplicate (race-safe fallback handled below via UNIQUE constraint)
       const existingReview = await storage.getReviewByAppointment(appointmentId);
       if (existingReview) {
-        return res.status(400).json({ message: "Review already exists for this appointment" });
+        return res.status(409).json({ message: "Review already exists for this appointment" });
       }
 
-      const review = await storage.createReview({
-        appointmentId,
-        patientId: req.user!.id,
-        providerId,
-        rating,
-        comment,
-      });
+      // IMPORTANT: derive providerId from the appointment, NOT from the request body
+      // (clients could otherwise post a review against the wrong provider).
+      let review;
+      try {
+        review = await storage.createReview({
+          appointmentId,
+          patientId: req.user!.id,
+          providerId: appointment.providerId,
+          rating,
+          comment: commentText,
+        });
+      } catch (err: any) {
+        // Postgres unique_violation — another tab won the race
+        if (err?.code === "23505") {
+          return res.status(409).json({ message: "Review already exists for this appointment" });
+        }
+        // Postgres check_violation (rating bounds at DB level)
+        if (err?.code === "23514") {
+          return res.status(400).json({ message: "Rating must be an integer between 1 and 5" });
+        }
+        throw err;
+      }
 
       // Notify the provider that a new review has landed
       try {
-        const provWithUser = await storage.getProviderWithUser(providerId);
+        const provWithUser = await storage.getProviderWithUser(appointment.providerId);
         if (provWithUser?.userId) {
           const patient = await storage.getUser(req.user!.id);
           const patientName = patient
@@ -1680,7 +1724,7 @@ export async function registerRoutes(
             : "A patient";
           notify.reviewLeft(provWithUser.userId, {
             patientName,
-            rating: Number(rating),
+            rating,
             reviewId: review.id,
           }).catch(err => console.error("[notify] reviewLeft", err));
         }

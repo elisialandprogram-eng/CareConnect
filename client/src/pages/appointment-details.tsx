@@ -34,6 +34,7 @@ import {
   ThumbsUp,
   ThumbsDown,
   PlusCircle,
+  Star,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
@@ -426,6 +427,28 @@ export default function AppointmentDetails() {
               >
                 <X className="h-4 w-4 mr-2" />
                 {t("appt_details.cancel", "Cancel")}
+              </Button>
+            )}
+            {appt.status === "completed" && !appt.hasReview && (
+              <Button
+                variant="outline"
+                asChild
+                data-testid="button-leave-review"
+              >
+                <Link href={`/review/${appt.id}`}>
+                  <Star className="h-4 w-4 mr-2 fill-yellow-400 text-yellow-400" />
+                  {t("appt_details.leave_review", "Leave review")}
+                </Link>
+              </Button>
+            )}
+            {appt.status === "completed" && appt.hasReview && (
+              <Button
+                variant="outline"
+                disabled
+                data-testid="button-already-reviewed"
+              >
+                <Star className="h-4 w-4 mr-2 fill-yellow-400 text-yellow-400" />
+                {t("appt_details.review_submitted", "Review submitted")}
               </Button>
             )}
             {appt.status === "completed" && (

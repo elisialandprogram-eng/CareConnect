@@ -404,12 +404,29 @@ export default function PatientDashboard() {
 
             {appointment.status === "completed" && (
               <div className="mt-4 flex flex-wrap gap-2">
-                <Button size="sm" variant="outline" asChild>
-                  <Link href={`/review/${appointment.id}`}>
-                    <Star className="h-4 w-4 mr-1" />
-                    {t("dashboard.leave_review")}
-                  </Link>
-                </Button>
+                {(appointment as any).hasReview ? (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled
+                    data-testid={`button-reviewed-${appointment.id}`}
+                  >
+                    <Star className="h-4 w-4 mr-1 fill-yellow-400 text-yellow-400" />
+                    {t("dashboard.review_submitted", "Review submitted")}
+                  </Button>
+                ) : (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    asChild
+                    data-testid={`button-leave-review-${appointment.id}`}
+                  >
+                    <Link href={`/review/${appointment.id}`}>
+                      <Star className="h-4 w-4 mr-1" />
+                      {t("dashboard.leave_review")}
+                    </Link>
+                  </Button>
+                )}
                 <Button
                   size="sm"
                   variant="outline"
