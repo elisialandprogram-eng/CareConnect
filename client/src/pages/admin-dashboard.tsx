@@ -2810,16 +2810,11 @@ function ContentManagement() {
         <TabsList className="tabs-colorful tabs-violet flex flex-wrap gap-1 h-auto w-full">
           <TabsTrigger value="providers" data-testid="tab-content-providers">{t("admin_dashboard.tab_providers")}</TabsTrigger>
           <TabsTrigger value="users" data-testid="tab-content-users">{t("admin_dashboard.tab_users")}</TabsTrigger>
-          <TabsTrigger value="catalog" data-testid="tab-catalog">Service Catalog</TabsTrigger>
           <TabsTrigger value="promo-codes" data-testid="tab-content-promo-codes">{t("admin_dashboard.tab_promo_codes")}</TabsTrigger>
           <TabsTrigger value="tickets" data-testid="tab-content-tickets">{t("admin_dashboard.tab_support")}</TabsTrigger>
           <TabsTrigger value="faqs" data-testid="tab-content-faqs">{t("admin_dashboard.tab_faqs")}</TabsTrigger>
           <TabsTrigger value="announcements" data-testid="tab-content-announcements">{t("admin_dashboard.tab_announcements")}</TabsTrigger>
         </TabsList>
-
-        <TabsContent value="catalog" className="pt-4">
-          <ServiceCatalogHierarchy />
-        </TabsContent>
 
         <TabsContent value="faqs" className="space-y-4">
           <Card>
@@ -6551,19 +6546,15 @@ export default function AdminDashboard() {
               <UserCheck className="h-4 w-4 mr-1.5" />
               {t("admin.staff", "Staff")}
             </TabsTrigger>
-            {/* — Fees & Finance — */}
+            {/* — Catalog & Finance — */}
             <span className="flex items-center px-1 text-muted-foreground/40 select-none">|</span>
-            <TabsTrigger value="sub-services" data-testid="tab-sub-services">
+            <TabsTrigger value="catalog" data-testid="tab-catalog">
               <ListTree className="h-4 w-4 mr-1.5" />
-              Categories &amp; Fees
+              {t("admin.service_catalog", "Service Catalog")}
             </TabsTrigger>
             <TabsTrigger value="tax" data-testid="tab-tax">
               <Shield className="h-4 w-4 mr-1.5" />
               {t("admin.tax_management")}
-            </TabsTrigger>
-            <TabsTrigger value="pricing" data-testid="tab-pricing">
-              <Tag className="h-4 w-4 mr-1.5" />
-              {t("admin.pricing_overrides")}
             </TabsTrigger>
             <TabsTrigger value="financial" data-testid="tab-financial">
               <DollarSign className="h-4 w-4 mr-1.5" />
@@ -6605,8 +6596,8 @@ export default function AdminDashboard() {
             <TaxManagement />
           </TabsContent>
 
-          <TabsContent value="sub-services">
-            <SubServicesManagement />
+          <TabsContent value="catalog">
+            <ServiceCatalogHierarchy />
           </TabsContent>
 
           <TabsContent value="overview">
@@ -6651,18 +6642,6 @@ export default function AdminDashboard() {
 
           <TabsContent value="content">
             <ContentManagement />
-          </TabsContent>
-
-          <TabsContent value="pricing">
-            <Card>
-              <CardHeader>
-                <CardTitle>{t("admin.pricing_overrides")}</CardTitle>
-                <CardDescription>{t("admin.manage_custom_pricing")}</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <PricingManagement providers={providers || []} />
-              </CardContent>
-            </Card>
           </TabsContent>
 
           <TabsContent value="promos">

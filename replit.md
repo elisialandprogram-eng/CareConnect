@@ -75,6 +75,10 @@ An in-app wallet allows patients to pre-load credits and pay for services. The s
 
 The project exclusively uses Supabase (PostgreSQL) for all data storage. The schema includes core tables for users, providers, services, time slots, appointments, reviews, payments, and refresh tokens, with UUID primary keys, foreign key constraints, and cascading deletes. Enums are used for data integrity.
 
+### Unified Service Catalog (Admin)
+
+The admin dashboard exposes a single **Service Catalog** tab that renders `client/src/components/service-catalog-hierarchy.tsx`. It manages the full **Category → Service Group (`catalog_services`) → Sub-service** hierarchy in one tree view, with inline pricing fields (`basePrice`, `platformFee`, `durationMinutes`, `taxPercentage`, `pricingType`) directly inside each sub-service row. Add / edit / delete / restore / activate-toggle work at every level. The previous standalone admin tabs **Categories & Fees** (`sub-services`) and **Pricing Overrides** (`pricing`), and the duplicate Service Catalog tab inside Content Management, have been removed. The separate **Tax Settings** tab is preserved as it is unrelated to per-sub-service tax.
+
 ### Safe Delete & Pricing Versioning
 
 `categories`, `sub_services`, and `services` carry both `is_active` and `deleted_at` columns. Delete handlers do a **usage check** first: if the row is referenced by appointments (or by provider services for sub-services / by sub-services for categories), the row is **soft-archived** (`is_active=false`, `deleted_at=now()`) instead of hard deleted. Past bookings keep their original `total_amount` snapshot, so historical pricing is never lost. Admins can pass `?force=true` for a real DELETE when allowed by FKs. `POST /api/{services|sub-services|admin/categories}/:id/restore` un-archives a row. A dedicated `service_price_history` table records every change to price/visit-fees/platform-fee-override on a service, exposed via `GET /api/services/:id/price-history`.
