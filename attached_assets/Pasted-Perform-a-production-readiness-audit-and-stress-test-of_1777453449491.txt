@@ -1,0 +1,94 @@
+Perform a production-readiness audit and stress test of the entire Golden Life platform.
+
+1. END-TO-END REAL SCENARIO TEST
+Simulate full real-world flow:
+- Register provider
+- Admin approves
+- Assign services
+- Add practitioners
+- Configure pricing
+- Patient books appointment
+- Provider accepts
+- Appointment completes
+- Invoice generated and sent
+
+Verify no step fails and data is consistent.
+
+2. CONCURRENT BOOKING TEST (CRITICAL)
+- Simulate 2–5 users booking the same time slot simultaneously
+- Ensure:
+  - only one booking succeeds
+  - others fail gracefully
+  - no duplicate bookings
+
+3. DATA CONSISTENCY CHECK
+- Verify:
+  - appointment_number always exists and unique
+  - no null provider_service_id
+  - no orphan practitioner_services
+  - pricing values are never undefined
+
+4. PRICING ACCURACY TEST
+- Test multiple cases:
+  - provider custom price
+  - practitioner override
+  - different visit types
+- Ensure invoice, UI, and backend all match exactly
+
+5. STATUS FLOW ENFORCEMENT
+- Attempt invalid transitions:
+  - REQUESTED → COMPLETED
+  - CANCELLED → CONFIRMED
+- Ensure system blocks invalid transitions
+
+6. FAILURE HANDLING TEST
+Simulate failures:
+- email sending fails
+- invoice generation fails
+- DB write fails
+
+Ensure:
+- system does not crash
+- retries or logs properly
+- user sees proper message
+
+7. PERFORMANCE CHECK
+- Load test:
+  - multiple bookings
+  - fetching providers/services
+- Identify slow queries
+- Add indexes if needed
+
+8. SECURITY CHECK
+- Ensure:
+  - provider cannot access another provider’s data
+  - patient cannot modify provider data
+  - admin-only routes protected
+
+9. UI CONSISTENCY CHECK
+- Ensure:
+  - no old UI elements exist
+  - no raw translation keys visible
+  - all flows smooth and responsive
+
+10. CLEAN DATABASE VALIDATION
+- Ensure:
+  - no unused columns
+  - no duplicate schema
+  - no legacy fields in use
+
+11. LOGGING & ERROR TRACKING
+- Ensure all errors are logged clearly
+- Add structured logs for:
+  - booking
+  - payments
+  - invoices
+
+12. FINAL OUTPUT
+Generate report:
+- bugs found
+- performance issues
+- security risks
+- recommended fixes
+
+Automatically fix all critical issues and confirm system is production-ready.
