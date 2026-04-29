@@ -593,7 +593,7 @@ export default function PatientDashboard() {
                       </AlertDialogContent>
                     </AlertDialog>
                     <Button asChild>
-                      <Link href={`/provider/${nextAppointment.providerId}`}>
+                      <Link href={`/appointments?id=${nextAppointment.id}`}>
                         {t("dashboard.view_details")}
                         <ChevronRight className="h-4 w-4 ml-2" />
                       </Link>

@@ -214,14 +214,16 @@ export default function BookWizard() {
   // Pricing quote (refreshes whenever inputs change)
   const { data: quote, isLoading: quotingPrice } = useQuery<any>({
     queryKey: ["/api/pricing/quote", selectedService?.id, visitType, sessions, promoCode],
-    queryFn: () =>
-      apiRequest("POST", "/api/pricing/quote", {
+    queryFn: async () => {
+      const res = await apiRequest("POST", "/api/pricing/quote", {
         serviceId: selectedService?.id,
         practitionerId: autoPractitioner?.id,
         visitType,
         sessions,
         promoCode: promoCode.trim() || undefined,
-      }),
+      });
+      return res.json();
+    },
     enabled: !!selectedService && step >= 2,
   });
 

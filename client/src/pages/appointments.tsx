@@ -145,6 +145,22 @@ export default function Appointments() {
     enabled: isAuthenticated && user?.role === "patient",
   });
 
+  const focusedAppointmentId = (() => {
+    if (typeof window === "undefined") return null;
+    return new URLSearchParams(window.location.search).get("id");
+  })();
+  const [highlightedId, setHighlightedId] = useState<string | null>(focusedAppointmentId);
+
+  useEffect(() => {
+    if (!focusedAppointmentId || !appointments?.length) return;
+    const el = document.querySelector(`[data-testid="card-appointment-${focusedAppointmentId}"]`);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      const t = setTimeout(() => setHighlightedId(null), 2500);
+      return () => clearTimeout(t);
+    }
+  }, [focusedAppointmentId, appointments]);
+
   if (authLoading) {
     return (
       <div className="min-h-screen flex flex-col">
@@ -218,7 +234,11 @@ export default function Appointments() {
         ) : appointments && appointments.length > 0 ? (
           <div className="space-y-4">
             {appointments.map((appointment) => (
-              <Card key={appointment.id} data-testid={`card-appointment-${appointment.id}`}>
+              <Card
+                key={appointment.id}
+                data-testid={`card-appointment-${appointment.id}`}
+                className={highlightedId === appointment.id ? "ring-2 ring-primary shadow-lg transition-all" : "transition-all"}
+              >
                 <CardHeader className="pb-2">
                   <div className="flex justify-between items-start">
                     <div>
