@@ -273,13 +273,18 @@ export default function BookWizard() {
 
   /* ── Booking mutation ──────────────────────────────────────────── */
   const bookMut = useMutation({
-    mutationFn: (payload: any) => apiRequest("POST", "/api/appointments", payload),
+    mutationFn: async (payload: any) => {
+      const res = await apiRequest("POST", "/api/appointments", payload);
+      return res.json();
+    },
     onSuccess: (data: any) => {
-      toast({ title: "Booking submitted!", description: `Reference: ${data.appointmentNumber || "pending"}` });
-      // If the backend returned a Stripe checkout URL, redirect there. Otherwise
-      // the booking is already confirmed (full-wallet or cash) — go to dashboard.
+      // If the backend returned a Stripe checkout URL, redirect there.
+      // Stripe's success URL points back at /booking/confirmation/:id.
+      // For wallet/cash bookings, jump straight to the confirmation page.
       if (data?.checkoutUrl) {
         window.location.assign(data.checkoutUrl);
+      } else if (data?.id) {
+        navigate(`/booking/confirmation/${data.id}`);
       } else {
         navigate("/patient-dashboard");
       }

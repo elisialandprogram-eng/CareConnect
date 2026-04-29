@@ -1594,6 +1594,44 @@ export async function registerRoutes(
     }
   });
 
+  // Get a single appointment with full details (patient owner / provider / admin only)
+  app.get("/api/appointments/:id", authenticateToken, async (req: AuthRequest, res: Response) => {
+    try {
+      const appointment = await storage.getAppointmentWithDetails(req.params.id);
+      if (!appointment) {
+        return res.status(404).json({ message: "Appointment not found" });
+      }
+
+      const role = req.user?.role;
+      if (role === "admin") {
+        // ok
+      } else if (role === "patient") {
+        if (appointment.patientId !== req.user!.id) {
+          return res.status(403).json({ message: "Access denied" });
+        }
+      } else if (role === "provider") {
+        const prov = await storage.getProviderByUserId(req.user!.id);
+        if (!prov || prov.id !== appointment.providerId) {
+          return res.status(403).json({ message: "Access denied" });
+        }
+      } else {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      // Attach existing invoice id (if any) so the client can offer a download link
+      let invoiceId: string | null = null;
+      try {
+        const inv = await storage.getInvoiceByAppointment(appointment.id);
+        invoiceId = inv?.id ?? null;
+      } catch {}
+
+      res.json({ ...appointment, invoiceId });
+    } catch (error) {
+      console.error("Get appointment by id error:", error);
+      res.status(500).json({ message: "Failed to get appointment" });
+    }
+  });
+
   // Create a review
   app.post("/api/reviews", authenticateToken, async (req: AuthRequest, res: Response) => {
     try {
@@ -3179,7 +3217,7 @@ export async function registerRoutes(
               ? `Appointment with ${providerName} on ${date} at ${startTime} (wallet credit ${walletApplied.toFixed(2)} applied)`
               : `Appointment with ${providerName} on ${date} at ${startTime}`,
             customerEmail: user.email,
-            successUrl: `${origin}/booking?stripe=success&appointment=${appointment.id}`,
+            successUrl: `${origin}/booking/confirmation/${appointment.id}?stripe=success`,
             cancelUrl: `${origin}/booking?stripe=cancelled&appointment=${appointment.id}`,
             metadata: {
               patientId: userId,
