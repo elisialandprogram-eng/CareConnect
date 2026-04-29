@@ -97,7 +97,17 @@ export function ProviderCard({ provider, nextAvailable }: ProviderCardProps) {
     }
   };
 
+  const isClinic = (provider as any).accountType === "clinic";
+  const clinicName = (provider as any).clinicName as string | undefined;
+  const displayName = isClinic && clinicName
+    ? clinicName
+    : `${provider.user.firstName ?? ""} ${provider.user.lastName ?? ""}`.trim();
+
   const getInitials = () => {
+    if (isClinic && clinicName) {
+      const parts = clinicName.trim().split(/\s+/);
+      return ((parts[0]?.[0] ?? "") + (parts[1]?.[0] ?? "")).toUpperCase() || "CL";
+    }
     return `${provider.user.firstName?.charAt(0) || ""}${provider.user.lastName?.charAt(0) || ""}`.toUpperCase();
   };
 
@@ -126,9 +136,14 @@ export function ProviderCard({ provider, nextAvailable }: ProviderCardProps) {
 
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <h3 className="font-bold text-lg truncate">
-                    {provider.user.firstName} {provider.user.lastName}
+                  <h3 className="font-bold text-lg truncate" data-testid={`text-provider-name-${provider.id}`}>
+                    {displayName}
                   </h3>
+                  {isClinic && (
+                    <Badge variant="outline" className="text-[10px] gap-1 border-primary/40 text-primary">
+                      Clinic
+                    </Badge>
+                  )}
                   {provider.isVerified && (
                     <motion.div
                       initial={{ scale: 0 }}

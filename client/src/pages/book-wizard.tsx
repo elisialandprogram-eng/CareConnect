@@ -32,6 +32,16 @@ interface Provider {
   specialization?: string; city?: string; rating?: string; totalReviews?: number;
   consultationFee?: string; homeVisitFee?: string; yearsExperience?: number;
   avatarUrl?: string; isVerified?: boolean; providerType?: string;
+  accountType?: string; clinicName?: string;
+  user?: { firstName?: string; lastName?: string; avatarUrl?: string };
+}
+
+function providerDisplayName(p?: Provider | null): string {
+  if (!p) return "";
+  if (p.accountType === "clinic" && p.clinicName) return p.clinicName;
+  const fn = p.firstName ?? p.user?.firstName ?? "";
+  const ln = p.lastName ?? p.user?.lastName ?? "";
+  return `${fn} ${ln}`.trim();
 }
 interface SubServiceLite {
   id: string; name: string; description?: string | null;
@@ -371,8 +381,13 @@ export default function BookWizard() {
   });
   const availableSlots = slots.filter(s => !s.isBooked && !s.isBlocked);
 
-  const initials = (p: Provider) =>
-    `${p.firstName?.[0] || ""}${p.lastName?.[0] || ""}`.toUpperCase() || "DR";
+  const initials = (p: Provider) => {
+    if (p.accountType === "clinic" && p.clinicName) {
+      const parts = p.clinicName.trim().split(/\s+/);
+      return ((parts[0]?.[0] ?? "") + (parts[1]?.[0] ?? "")).toUpperCase() || "CL";
+    }
+    return `${p.firstName?.[0] || ""}${p.lastName?.[0] || ""}`.toUpperCase() || "DR";
+  };
 
   /* ─────────────────────────────────────────────────────────────── */
   /*  Render                                                         */
@@ -389,7 +404,7 @@ export default function BookWizard() {
             <h1 className="text-lg font-semibold">Book an Appointment</h1>
             {selectedProvider && step > 0 && (
               <Badge variant="outline" data-testid="badge-selected-provider">
-                {selectedProvider.firstName} {selectedProvider.lastName}
+                {providerDisplayName(selectedProvider)}
               </Badge>
             )}
           </div>
@@ -444,8 +459,10 @@ export default function BookWizard() {
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center justify-between gap-2">
                               <div className="min-w-0">
-                                <p className="font-semibold truncate">{p.firstName} {p.lastName}</p>
-                                <p className="text-xs text-muted-foreground truncate">{p.professionalTitle || p.specialization}</p>
+                                <p className="font-semibold truncate" data-testid={`text-provider-display-${p.id}`}>{providerDisplayName(p)}</p>
+                                <p className="text-xs text-muted-foreground truncate">
+                                  {p.accountType === "clinic" ? "Clinic" : (p.professionalTitle || p.specialization)}
+                                </p>
                               </div>
                               {selectedProvider?.id === p.id && <Check className="h-5 w-5 text-primary shrink-0" />}
                             </div>
@@ -477,7 +494,7 @@ export default function BookWizard() {
                 <div>
                   <h2 className="text-xl font-bold">Pick a service</h2>
                   <p className="text-muted-foreground text-sm mt-1">
-                    Services offered by <strong>{selectedProvider?.firstName} {selectedProvider?.lastName}</strong>
+                    Services offered by <strong>{providerDisplayName(selectedProvider)}</strong>
                   </p>
                 </div>
                 {loadingProviderDetails ? (
@@ -929,7 +946,7 @@ export default function BookWizard() {
                     {selectedProvider ? (
                       <div className="flex justify-between gap-3">
                         <span className="text-muted-foreground">Provider</span>
-                        <span className="font-medium text-right truncate">{selectedProvider.firstName} {selectedProvider.lastName}</span>
+                        <span className="font-medium text-right truncate">{providerDisplayName(selectedProvider)}</span>
                       </div>
                     ) : (
                       <p className="text-xs text-muted-foreground italic">Pick a provider to begin.</p>

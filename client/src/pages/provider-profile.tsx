@@ -102,7 +102,17 @@ export default function ProviderProfile() {
     );
   }
 
+  const isClinic = (provider as any).accountType === "clinic";
+  const clinicName = (provider as any).clinicName as string | undefined;
+  const displayName = isClinic && clinicName
+    ? clinicName
+    : `${provider.user.firstName ?? ""} ${provider.user.lastName ?? ""}`.trim();
+
   const getInitials = () => {
+    if (isClinic && clinicName) {
+      const parts = clinicName.trim().split(/\s+/);
+      return ((parts[0]?.[0] ?? "") + (parts[1]?.[0] ?? "")).toUpperCase() || "CL";
+    }
     return `${provider.user.firstName?.charAt(0) || ""}${provider.user.lastName?.charAt(0) || ""}`.toUpperCase();
   };
 
@@ -137,9 +147,14 @@ export default function ProviderProfile() {
                       <div className="flex items-start justify-between gap-4 flex-wrap">
                         <div>
                           <div className="flex items-center gap-2">
-                            <h1 className="text-2xl font-semibold">
-                              {provider.user.firstName} {provider.user.lastName}
+                            <h1 className="text-2xl font-semibold" data-testid="text-provider-display-name">
+                              {displayName}
                             </h1>
+                            {isClinic && (
+                              <Badge variant="outline" className="text-xs border-primary/40 text-primary">
+                                Clinic
+                              </Badge>
+                            )}
                             {provider.isVerified && (
                               <CheckCircle className="h-5 w-5 text-primary" />
                             )}
@@ -156,7 +171,7 @@ export default function ProviderProfile() {
                             size="sm"
                             onClick={async () => {
                               const url = window.location.href;
-                              const title = `${provider.user.firstName} ${provider.user.lastName} – ${provider.specialization || ""}`.trim();
+                              const title = `${displayName} – ${provider.specialization || ""}`.trim();
                               try {
                                 if (navigator.share) {
                                   await navigator.share({ title, url });

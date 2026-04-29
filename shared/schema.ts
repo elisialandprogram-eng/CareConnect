@@ -154,6 +154,16 @@ export const providers = pgTable("providers", {
   longitude: decimal("longitude", { precision: 11, scale: 8 }),
   gallery: text("gallery").array().notNull().default(sql`'{}'::text[]`),
   practitionerData: text("practitioner_data"),
+  // ── Account type & clinic / organization fields ──
+  // 'individual' (single practitioner) or 'clinic' (organization with many practitioners).
+  // Defaults to 'individual' so existing rows stay backwards compatible.
+  accountType: text("account_type").notNull().default("individual"),
+  clinicName: text("clinic_name"),
+  clinicRegistrationNumber: text("clinic_registration_number"),
+  contactPersonName: text("contact_person_name"),
+  businessAddress: text("business_address"),
+  supportEmail: text("support_email"),
+  supportPhone: text("support_phone"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

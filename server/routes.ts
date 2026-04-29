@@ -2935,6 +2935,10 @@ export async function registerRoutes(
     try {
       const provider = await storage.getProviderByUserId(req.user.id);
       if (!provider) return res.status(404).json({ message: "Provider not found" });
+      // Clinics cannot author services or service packages — admins assign services to them.
+      if ((provider as any).accountType === "clinic") {
+        return res.status(403).json({ message: "Clinics cannot create service packages. Services and packages are assigned by an administrator." });
+      }
       const { serviceIds, ...rest } = req.body as { serviceIds?: string[]; [k: string]: any };
       if (!Array.isArray(serviceIds) || serviceIds.length < 2) {
         return res.status(400).json({ message: "A package must include at least 2 services" });

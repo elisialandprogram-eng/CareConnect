@@ -38,6 +38,8 @@ import {
   ChevronLeft,
   Sparkles,
   Clock,
+  UserRound,
+  Building2,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "framer-motion";
@@ -67,6 +69,14 @@ const optionalNumber = z.preprocess(
 );
 
 const providerSetupSchema = z.object({
+  accountType: z.enum(["individual", "clinic"]).optional().default("individual"),
+  // Clinic / organization fields (only required when accountType === "clinic")
+  clinicName: z.string().optional(),
+  clinicRegistrationNumber: z.string().optional(),
+  contactPersonName: z.string().optional(),
+  businessAddress: z.string().optional(),
+  supportEmail: z.string().email("Enter a valid email").optional().or(z.literal("")),
+  supportPhone: z.string().optional(),
   type: z.enum(["physiotherapist", "doctor", "nurse"]).optional().default("physiotherapist"),
   professionalTitle: z.string().optional(),
   specialization: z.string().optional(),
@@ -165,6 +175,13 @@ export default function ProviderSetup() {
   const form = useForm<ProviderSetupFormData>({
     resolver: zodResolver(providerSetupSchema),
     defaultValues: {
+      accountType: "individual",
+      clinicName: "",
+      clinicRegistrationNumber: "",
+      contactPersonName: "",
+      businessAddress: "",
+      supportEmail: "",
+      supportPhone: "",
       type: "physiotherapist",
       professionalTitle: "",
       specialization: "",
@@ -215,6 +232,13 @@ export default function ProviderSetup() {
       }
 
       form.reset({
+        accountType: (existingProvider.accountType === "clinic" ? "clinic" : "individual"),
+        clinicName: toStr(existingProvider.clinicName),
+        clinicRegistrationNumber: toStr(existingProvider.clinicRegistrationNumber),
+        contactPersonName: toStr(existingProvider.contactPersonName),
+        businessAddress: toStr(existingProvider.businessAddress),
+        supportEmail: toStr(existingProvider.supportEmail),
+        supportPhone: toStr(existingProvider.supportPhone),
         type: existingProvider.type || "physiotherapist",
         professionalTitle: toStr(existingProvider.professionalTitle),
         specialization: toStr(existingProvider.specialization),
@@ -406,6 +430,141 @@ export default function ProviderSetup() {
                       {/* ── STEP 1: Professional Profile ── */}
                       {step === 1 && (
                         <>
+                          {/* Account Type chooser — Individual vs Clinic */}
+                          <FormField
+                            control={form.control}
+                            name="accountType"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel className="text-sm font-medium">Account Type</FormLabel>
+                                <FormDescription className="text-xs">
+                                  Choose how you want to register. Clinics can host multiple practitioners; services for clinics are assigned by the GoldenLife admin team.
+                                </FormDescription>
+                                <div className="grid grid-cols-2 gap-3 pt-1">
+                                  {[
+                                    { value: "individual", label: "Individual practitioner", desc: "I'm a single practitioner offering my own services.", Icon: UserRound },
+                                    { value: "clinic", label: "Clinic / organization", desc: "We're a clinic with multiple practitioners.", Icon: Building2 },
+                                  ].map((opt) => {
+                                    const active = field.value === opt.value;
+                                    const Icon = opt.Icon;
+                                    return (
+                                      <button
+                                        key={opt.value}
+                                        type="button"
+                                        onClick={() => field.onChange(opt.value)}
+                                        data-testid={`button-account-type-${opt.value}`}
+                                        className={`text-left rounded-xl border p-4 transition-all ${
+                                          active
+                                            ? "border-primary bg-primary/10 shadow-sm"
+                                            : "border-border bg-background hover:border-primary/40"
+                                        }`}
+                                      >
+                                        <div className="flex items-start gap-3">
+                                          <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${active ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
+                                            <Icon className="w-4 h-4" />
+                                          </div>
+                                          <div className="min-w-0">
+                                            <p className={`text-sm font-semibold ${active ? "text-primary" : "text-foreground"}`}>{opt.label}</p>
+                                            <p className="text-xs text-muted-foreground mt-0.5">{opt.desc}</p>
+                                          </div>
+                                        </div>
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                              </FormItem>
+                            )}
+                          />
+
+                          {/* Clinic-specific identity fields */}
+                          {form.watch("accountType") === "clinic" && (
+                            <div className="space-y-4 rounded-xl border border-primary/20 bg-primary/5 p-4">
+                              <div className="flex items-center gap-2 text-sm font-semibold text-primary">
+                                <Building2 className="w-4 h-4" />
+                                Clinic information
+                              </div>
+                              <FormField
+                                control={form.control}
+                                name="clinicName"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel className="text-sm font-medium">Clinic Name</FormLabel>
+                                    <FormControl>
+                                      <Input placeholder="e.g. Budapest Wellness Clinic" {...field} className="rounded-xl" data-testid="input-clinic-name" />
+                                    </FormControl>
+                                  </FormItem>
+                                )}
+                              />
+                              <div className="grid grid-cols-2 gap-4">
+                                <FormField
+                                  control={form.control}
+                                  name="clinicRegistrationNumber"
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormLabel className="text-sm font-medium">Registration Number</FormLabel>
+                                      <FormControl>
+                                        <Input placeholder="Business / clinic reg. no." {...field} className="rounded-xl" data-testid="input-clinic-registration" />
+                                      </FormControl>
+                                    </FormItem>
+                                  )}
+                                />
+                                <FormField
+                                  control={form.control}
+                                  name="contactPersonName"
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormLabel className="text-sm font-medium">Contact Person</FormLabel>
+                                      <FormControl>
+                                        <Input placeholder="Primary contact at the clinic" {...field} className="rounded-xl" data-testid="input-contact-person" />
+                                      </FormControl>
+                                    </FormItem>
+                                  )}
+                                />
+                              </div>
+                              <FormField
+                                control={form.control}
+                                name="businessAddress"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel className="text-sm font-medium">Business Address</FormLabel>
+                                    <FormControl>
+                                      <Input placeholder="Street, city, country" {...field} className="rounded-xl" data-testid="input-business-address" />
+                                    </FormControl>
+                                  </FormItem>
+                                )}
+                              />
+                              <div className="grid grid-cols-2 gap-4">
+                                <FormField
+                                  control={form.control}
+                                  name="supportEmail"
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormLabel className="text-sm font-medium">Support Email</FormLabel>
+                                      <FormControl>
+                                        <Input type="email" placeholder="info@clinic.com" {...field} className="rounded-xl" data-testid="input-support-email" />
+                                      </FormControl>
+                                    </FormItem>
+                                  )}
+                                />
+                                <FormField
+                                  control={form.control}
+                                  name="supportPhone"
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormLabel className="text-sm font-medium">Support Phone</FormLabel>
+                                      <FormControl>
+                                        <Input placeholder="+36 …" {...field} className="rounded-xl" data-testid="input-support-phone" />
+                                      </FormControl>
+                                    </FormItem>
+                                  )}
+                                />
+                              </div>
+                              <p className="text-xs text-muted-foreground leading-relaxed">
+                                After approval, you'll be able to add practitioners on your dashboard. Services available to your clinic are assigned by the GoldenLife admin team — you'll then assign your practitioners to those services.
+                              </p>
+                            </div>
+                          )}
+
                           <div className="grid grid-cols-2 gap-4">
                             <FormField
                               control={form.control}

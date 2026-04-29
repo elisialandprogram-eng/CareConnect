@@ -1279,11 +1279,19 @@ export default function ProviderDashboard() {
                   <Shield className="h-7 w-7 text-white" />
                 </div>
                 <div>
-                  <p className="text-white/80 text-sm font-medium uppercase tracking-wider">Provider Dashboard</p>
-                  <h1 className="text-2xl md:text-3xl font-bold text-white">
-                    {user?.firstName ? `Welcome back, ${user.firstName}` : t("dashboard.provider_title")}
+                  <p className="text-white/80 text-sm font-medium uppercase tracking-wider">
+                    {(providerData as any)?.accountType === "clinic" ? "Clinic Dashboard" : "Provider Dashboard"}
+                  </p>
+                  <h1 className="text-2xl md:text-3xl font-bold text-white" data-testid="text-dashboard-welcome">
+                    {(providerData as any)?.accountType === "clinic" && (providerData as any)?.clinicName
+                      ? (providerData as any).clinicName
+                      : (user?.firstName ? `Welcome back, ${user.firstName}` : t("dashboard.provider_title"))}
                   </h1>
-                  <p className="text-white/70 text-sm mt-0.5">{t("dashboard.provider_desc")}</p>
+                  <p className="text-white/70 text-sm mt-0.5">
+                    {(providerData as any)?.accountType === "clinic"
+                      ? "Manage your practitioners and the services assigned to your clinic."
+                      : t("dashboard.provider_desc")}
+                  </p>
                 </div>
               </div>
               <div className="flex flex-wrap gap-2">
