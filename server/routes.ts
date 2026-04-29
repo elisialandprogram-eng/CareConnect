@@ -15,6 +15,7 @@ import {
   insertSupportTicketSchema,
   insertSubServiceSchema,
   insertCategorySchema,
+  insertCatalogServiceSchema,
   insertTaxSettingSchema,
   insertPatientConsentSchema,
   insertPractitionerSchema,
@@ -1306,6 +1307,45 @@ export async function registerRoutes(
     res.json(c);
   });
 
+  // ── Catalog Services (middle tier: Category → CatalogService → SubService) ──
+  app.get("/api/admin/catalog-services", authenticateToken, async (req: AuthRequest, res: Response) => {
+    if (req.user?.role !== "admin") return res.status(403).json({ message: "Admin access required" });
+    const all = await storage.getAllCatalogServices(true);
+    res.json(all);
+  });
+
+  app.get("/api/catalog-services", async (req: Request, res: Response) => {
+    const categoryId = typeof req.query.categoryId === "string" ? req.query.categoryId : undefined;
+    const items = categoryId
+      ? await storage.getCatalogServicesByCategory(categoryId)
+      : await storage.getAllCatalogServices(false);
+    res.json(items);
+  });
+
+  app.post("/api/admin/catalog-services", authenticateToken, async (req: AuthRequest, res: Response) => {
+    if (req.user?.role !== "admin") return res.status(403).json({ message: "Admin access required" });
+    try {
+      const data = insertCatalogServiceSchema.parse(req.body);
+      const cs = await storage.createCatalogService(data);
+      res.status(201).json(cs);
+    } catch (e: any) {
+      res.status(400).json({ message: e?.errors?.[0]?.message || e?.message || "Invalid data" });
+    }
+  });
+
+  app.patch("/api/admin/catalog-services/:id", authenticateToken, async (req: AuthRequest, res: Response) => {
+    if (req.user?.role !== "admin") return res.status(403).json({ message: "Admin access required" });
+    const cs = await storage.updateCatalogService(req.params.id, req.body);
+    if (!cs) return res.status(404).json({ message: "Not found" });
+    res.json(cs);
+  });
+
+  app.delete("/api/admin/catalog-services/:id", authenticateToken, async (req: AuthRequest, res: Response) => {
+    if (req.user?.role !== "admin") return res.status(403).json({ message: "Admin access required" });
+    await storage.deleteCatalogService(req.params.id);
+    res.json({ ok: true });
+  });
+
   // Practitioners
   app.get("/api/providers/:providerId/practitioners", async (req, res) => {
     try {
@@ -1580,13 +1620,25 @@ export async function registerRoutes(
         ? req.query.city.trim()
         : (typeof req.query.location === "string" ? req.query.location.trim() : "");
       const verifiedOnly = req.query.verifiedOnly === "true" || req.query.verifiedOnly === "1";
+      const subServiceId = typeof req.query.subServiceId === "string" ? req.query.subServiceId.trim() : "";
+
+      // If filtering by sub-service, find all providers who offer it
+      if (subServiceId) {
+        const svcRows = await db.select().from(services)
+          .where(and(eq(services.subServiceId, subServiceId), eq(services.isActive, true)));
+        const providerIds = [...new Set(svcRows.map((s: any) => s.providerId))];
+        if (providerIds.length === 0) return res.json([]);
+        const allProviders = await storage.getAllProviders();
+        const filtered = allProviders.filter(p => providerIds.includes(p.id) && (p as any).status === "active");
+        return res.set("Cache-Control", "no-store").json(filtered.map(p => sanitizeProviderListItem(p)));
+      }
 
       const useSearch = !!(q || type || city || verifiedOnly);
-      const providers = useSearch
+      const allProviders = useSearch
         ? await storage.searchProviders({ q: q || undefined, type: type || undefined, city: city || undefined, verifiedOnly })
         : await storage.getAllProviders();
 
-      const sanitized = providers.map(p => sanitizeProviderListItem(p));
+      const sanitized = allProviders.map(p => sanitizeProviderListItem(p));
       res.set("Cache-Control", useSearch ? "no-store" : "public, max-age=30");
       res.json(sanitized);
     } catch (error) {
@@ -2700,38 +2752,36 @@ export async function registerRoutes(
         console.error("Duplicate check failed (continuing):", dupErr);
       }
 
-      // Validate practitioner and fee if provided
-      let fee: any = totalAmount;
+      // ── Pricing: use centralised computeFinalPrice() ──
+      let svcRecord: any = null;
+      let subRecord: any = null;
+      let practitionerFee: number | null = null;
+      let appliedPromoCode: string | null = null;
+
+      // Validate practitioner assignment and capture their custom fee
       if (serviceId && practitionerId) {
-        const servicePractitioners = await storage.getServicePractitioners(serviceId);
-        const sp = servicePractitioners.find(p => p.practitionerId === practitionerId);
+        const sps = await storage.getServicePractitioners(serviceId);
+        const sp = sps.find(p => p.practitionerId === practitionerId);
         if (!sp) {
           return res.status(400).json({ message: "Practitioner not assigned to this service" });
         }
-        fee = sp.fee;
-      } else if (!totalAmount) {
-        fee = visitType === "home" && provider.homeVisitFee
-          ? provider.homeVisitFee
-          : provider.consultationFee;
+        if (sp.fee) practitionerFee = Number(sp.fee);
       }
 
-      // Compute platform fee from sub-service the service points to (if any)
-      let platformFee = 0;
-      let promoDiscount = 0;
-      let appliedPromoCode: string | null = null;
+      // Fetch service + sub-service for full pricing data
       try {
         if (serviceId) {
-          const svc = await storage.getService(serviceId);
-          if (svc?.subServiceId) {
-            const sub = await storage.getSubService(svc.subServiceId);
-            if (sub?.platformFee) platformFee = Number(sub.platformFee);
+          svcRecord = await storage.getService(serviceId);
+          if (svcRecord?.subServiceId) {
+            subRecord = await storage.getSubService(svcRecord.subServiceId);
           }
         }
       } catch (e) {
-        console.error("[booking] platform fee lookup failed:", e);
+        console.error("[booking] service/sub lookup failed:", e);
       }
 
-      // Apply promo code if provided
+      // Resolve promo discount
+      let promoDiscountInput: { type: "percent" | "fixed"; value: number; code: string } | null = null;
       if (promoCode && typeof promoCode === "string" && promoCode.trim()) {
         try {
           const promo = await storage.getPromoCodeByCode(promoCode.trim().toUpperCase());
@@ -2740,15 +2790,12 @@ export async function registerRoutes(
             const okWindow = new Date(promo.validFrom) <= now && new Date(promo.validUntil) >= now;
             const okUses = promo.maxUses == null || (promo.usedCount ?? 0) < promo.maxUses;
             const okProvider = !promo.applicableProviders || promo.applicableProviders.length === 0 || promo.applicableProviders.includes(providerId);
-            const baseForDiscount = Number(fee) + platformFee;
-            const okMin = promo.minAmount == null || baseForDiscount >= Number(promo.minAmount);
-            if (okWindow && okUses && okProvider && okMin) {
-              if (promo.discountType === "percentage") {
-                promoDiscount = (baseForDiscount * Number(promo.discountValue)) / 100;
-              } else {
-                promoDiscount = Number(promo.discountValue);
-              }
-              if (promoDiscount > baseForDiscount) promoDiscount = baseForDiscount;
+            if (okWindow && okUses && okProvider) {
+              promoDiscountInput = {
+                type: promo.discountType === "percentage" ? "percent" : "fixed",
+                value: Number(promo.discountValue),
+                code: promo.code,
+              };
               appliedPromoCode = promo.code;
               try {
                 await storage.updatePromoCode(promo.id, { usedCount: (promo.usedCount ?? 0) + 1 } as any);
@@ -2760,8 +2807,57 @@ export async function registerRoutes(
         }
       }
 
-      const finalTotal = Math.max(0, Number(fee) + platformFee - promoDiscount);
-      fee = finalTotal;
+      // Build effective service record: if practitioner has a custom fee, override service price
+      const effectiveSvc = svcRecord
+        ? { ...svcRecord, ...(practitionerFee !== null ? { price: practitionerFee.toFixed(2) } : {}) }
+        : null;
+
+      // Fallback price when no service record exists (e.g. direct provider booking)
+      const fallbackBase = visitType === "home" && provider.homeVisitFee
+        ? Number(provider.homeVisitFee)
+        : Number(provider.consultationFee || 0);
+
+      let fee: any;
+      let platformFee = 0;
+      let promoDiscount = 0;
+
+      if (effectiveSvc || subRecord) {
+        const breakdown = computeFinalPrice({
+          subService: subRecord ? {
+            basePrice: subRecord.basePrice,
+            platformFee: subRecord.platformFee,
+            taxPercentage: subRecord.taxPercentage,
+            pricingType: subRecord.pricingType,
+            durationMinutes: subRecord.durationMinutes,
+          } : null,
+          service: effectiveSvc ? {
+            price: effectiveSvc.price,
+            duration: effectiveSvc.duration,
+            platformFeeOverride: effectiveSvc.platformFeeOverride,
+            homeVisitFee: effectiveSvc.homeVisitFee,
+            clinicFee: effectiveSvc.clinicFee,
+            telemedicineFee: effectiveSvc.telemedicineFee,
+            emergencyFee: effectiveSvc.emergencyFee,
+          } : null,
+          visitType: (visitType || "clinic") as "online" | "home" | "clinic",
+          sessions: 1,
+          discount: promoDiscountInput,
+        });
+        fee = breakdown.total;
+        platformFee = breakdown.platformFee;
+        promoDiscount = breakdown.discount;
+      } else {
+        // No service record: use provider-level fees and manual promo handling
+        fee = fallbackBase;
+        if (promoDiscountInput) {
+          if (promoDiscountInput.type === "percent") {
+            promoDiscount = fee * (promoDiscountInput.value / 100);
+          } else {
+            promoDiscount = promoDiscountInput.value;
+          }
+          fee = Math.max(0, fee - promoDiscount);
+        }
+      }
 
       // Create appointment
       console.log("Creating appointment with data:", {

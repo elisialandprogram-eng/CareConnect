@@ -35,6 +35,7 @@ import {
   realtimeMessages,
   subServices,
   categories,
+  catalogServices,
   practitioners,
   servicePractitioners,
   servicePackages,
@@ -87,6 +88,8 @@ import {
   type InsertPlatformSetting,
   type ServiceCategory,
   type InsertServiceCategory,
+  type CatalogService,
+  type InsertCatalogService,
   type Location,
   type InsertLocation,
   type DailyMetric,
@@ -161,7 +164,7 @@ import {
   type InsertAdminBroadcast,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, desc, or, sql, count, asc, aliasedTable, inArray, gte, lte, ilike } from "drizzle-orm";
+import { eq, and, desc, or, sql, count, asc, aliasedTable, inArray, gte, lte, ilike, isNull } from "drizzle-orm";
 
 export interface IStorage {
   // Users
@@ -432,6 +435,14 @@ export interface IStorage {
   deleteCategory(id: string, opts?: { force?: boolean }): Promise<{ ok: true; soft: boolean } | { ok: false; reason: string }>;
   restoreCategory(id: string): Promise<Category | undefined>;
   ensureDefaultCategories(): Promise<void>;
+
+  // Catalog Services (middle tier)
+  getAllCatalogServices(includeInactive?: boolean): Promise<CatalogService[]>;
+  getCatalogServicesByCategory(categoryId: string): Promise<CatalogService[]>;
+  getCatalogService(id: string): Promise<CatalogService | undefined>;
+  createCatalogService(data: InsertCatalogService): Promise<CatalogService>;
+  updateCatalogService(id: string, data: Partial<CatalogService>): Promise<CatalogService | undefined>;
+  deleteCatalogService(id: string): Promise<void>;
 
   // Medical Data
   getPrescription(id: string): Promise<Prescription | undefined>;
@@ -1969,6 +1980,43 @@ export class DatabaseStorage implements IStorage {
       { slug: "nurse", name: "Nurse", sortOrder: 3, isActive: true } as any,
     ];
     await db.insert(categories).values(defaults).onConflictDoNothing();
+  }
+
+  // Catalog Services (middle tier: Category → CatalogService → SubService)
+  async getAllCatalogServices(includeInactive = false): Promise<CatalogService[]> {
+    const rows = await db.select().from(catalogServices)
+      .where(isNull(catalogServices.deletedAt))
+      .orderBy(asc(catalogServices.sortOrder), asc(catalogServices.name));
+    return includeInactive ? rows : rows.filter((r: any) => r.isActive !== false);
+  }
+
+  async getCatalogServicesByCategory(categoryId: string): Promise<CatalogService[]> {
+    return db.select().from(catalogServices)
+      .where(and(eq(catalogServices.categoryId, categoryId), isNull(catalogServices.deletedAt)))
+      .orderBy(asc(catalogServices.sortOrder), asc(catalogServices.name));
+  }
+
+  async getCatalogService(id: string): Promise<CatalogService | undefined> {
+    const [r] = await db.select().from(catalogServices).where(eq(catalogServices.id, id));
+    return r || undefined;
+  }
+
+  async createCatalogService(data: InsertCatalogService): Promise<CatalogService> {
+    const [r] = await db.insert(catalogServices).values(data as any).returning();
+    return r;
+  }
+
+  async updateCatalogService(id: string, data: Partial<CatalogService>): Promise<CatalogService | undefined> {
+    const [r] = await db.update(catalogServices).set(data as any).where(eq(catalogServices.id, id)).returning();
+    return r || undefined;
+  }
+
+  async deleteCatalogService(id: string): Promise<void> {
+    try {
+      await db.delete(catalogServices).where(eq(catalogServices.id, id));
+    } catch {
+      await db.update(catalogServices).set({ isActive: false, deletedAt: new Date() } as any).where(eq(catalogServices.id, id));
+    }
   }
 
   // Medical Data

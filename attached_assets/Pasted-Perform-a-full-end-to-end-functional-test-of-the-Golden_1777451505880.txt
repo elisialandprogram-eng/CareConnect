@@ -1,0 +1,76 @@
+Perform a full end-to-end functional test of the Golden Life platform to validate all core systems implemented today.
+
+1. SERVICE STRUCTURE TEST
+- Verify Category → Service → Sub-service hierarchy works
+- Ensure no flat or duplicate structures exist
+- Confirm pricing is attached only to sub-services
+
+2. ADMIN UI TEST
+- Ensure there is a single unified hierarchy screen
+- Confirm categories/services/sub-services editable in one place
+- Ensure no separate tabs for categories/services/fees exist
+
+3. PROVIDER FLOW TEST
+- Register a new provider
+- Confirm registration is simple (no services/pricing)
+- After approval, verify provider can:
+  - view assigned services
+  - enable/disable services
+  - configure pricing
+
+4. PRACTITIONER TEST
+- Add multiple practitioners
+- Assign different services to each
+- Set custom pricing per practitioner
+- Verify they appear correctly in booking
+
+5. BOOKING FLOW TEST
+Simulate:
+Patient → Select Service → Provider → Practitioner → Time → Book
+
+- Ensure correct data is used:
+  - provider_service_id
+  - practitioner_id
+- Ensure price calculation is correct
+
+6. PRICING VALIDATION
+- Verify final price:
+  base/custom + platform fee + visit fee + tax
+- Ensure no mismatch between UI and backend
+
+7. SLOT & AVAILABILITY TEST
+- Try booking same slot twice → must fail
+- Ensure availability updates in real-time
+
+8. STATUS FLOW TEST
+Validate transitions:
+REQUESTED → PENDING_PROVIDER_APPROVAL → CONFIRMED → IN_PROGRESS → COMPLETED
+
+- Ensure invalid transitions are blocked
+
+9. INVOICE TEST
+- Complete appointment
+- Verify:
+  - invoice generated
+  - appointment number (GLXXXXXX) included
+  - email sent
+  - invoice stored
+
+10. SOFT DELETE TEST
+- Disable a sub-service
+- Ensure:
+  - cannot book new
+  - old bookings still accessible
+
+11. CLEANUP VALIDATION
+- Ensure no old fields/tables are used anywhere
+- Confirm all APIs use new structure
+
+12. FINAL RESULT
+Output:
+- any broken flows
+- missing logic
+- UI inconsistencies
+- performance issues
+
+Fix all issues automatically and confirm system is production-ready.

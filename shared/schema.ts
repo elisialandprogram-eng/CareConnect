@@ -162,9 +162,25 @@ export const categories = pgTable("categories", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Middle tier: named service groups within a category (e.g. "Sports Rehab" under "Physiotherapy")
+export const catalogServices = pgTable("catalog_services", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  categoryId: varchar("category_id").references(() => categories.id, { onDelete: "set null" }),
+  name: text("name").notNull(),
+  description: text("description"),
+  icon: text("icon"),
+  sortOrder: integer("sort_order").default(0),
+  isActive: boolean("is_active").default(true),
+  deletedAt: timestamp("deleted_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (t) => [
+  index("idx_catalog_services_category_id").on(t.categoryId),
+]);
+
 export const subServices = pgTable("sub_services", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   category: providerTypeEnum("category").notNull(),
+  catalogServiceId: varchar("catalog_service_id").references(() => catalogServices.id, { onDelete: "set null" }),
   name: text("name").notNull(),
   description: text("description"),
   platformFee: decimal("platform_fee", { precision: 10, scale: 2 }).default("0.00"),
@@ -930,6 +946,7 @@ export const insertEmailTemplateSchema = createInsertSchema(emailTemplates).omit
 export const insertNotificationSchema = createInsertSchema(notificationQueue).omit({ id: true, createdAt: true, sentAt: true });
 export const insertPlatformSettingSchema = createInsertSchema(platformSettings).omit({ id: true, updatedAt: true });
 export const insertServiceCategorySchema = createInsertSchema(serviceCategories).omit({ id: true, createdAt: true });
+export const insertCatalogServiceSchema = createInsertSchema(catalogServices).omit({ id: true, createdAt: true, deletedAt: true });
 export const insertLocationSchema = createInsertSchema(locations).omit({ id: true, createdAt: true });
 export const insertDailyMetricSchema = createInsertSchema(dailyMetrics).omit({ id: true, createdAt: true });
 export const insertPrescriptionSchema = createInsertSchema(prescriptions).omit({ id: true, issuedAt: true });
@@ -1067,6 +1084,8 @@ export type SubService = typeof subServices.$inferSelect;
 export type Category = typeof categories.$inferSelect;
 export type InsertCategory = z.infer<typeof insertCategorySchema>;
 export type InsertSubService = z.infer<typeof insertSubServiceSchema>;
+export type CatalogService = typeof catalogServices.$inferSelect;
+export type InsertCatalogService = z.infer<typeof insertCatalogServiceSchema>;
 export type TaxSetting = typeof taxSettings.$inferSelect;
 export type InsertTaxSetting = z.infer<typeof insertTaxSettingSchema>;
 export type PatientConsent = typeof patientConsents.$inferSelect;
