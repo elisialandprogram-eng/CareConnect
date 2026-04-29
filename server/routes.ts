@@ -31,7 +31,8 @@ import {
   servicePractitioners,
   users,
   providers,
-  reviews
+  reviews,
+  walletTransactions,
 } from "@shared/schema";
 import crypto from 'crypto'; // Import crypto module for randomUUID
 import { Resend } from 'resend';
@@ -3096,34 +3097,61 @@ export async function registerRoutes(
 
       console.log("Payment record created:", payment.id);
 
-      // If paying from in-app wallet, debit immediately and confirm the appointment.
-      let walletPaid = false;
+      // ── Wallet usage (partial or full) ────────────────────────────────
+      // The client can pre-apply any portion of the wallet balance:
+      //   • paymentMethod === "wallet"        → full wallet (back-compat)
+      //   • walletAmountUsed > 0              → apply that exact amount
+      //   • walletAmountUsed >= fee           → effectively full wallet
+      //   • walletAmountUsed < fee            → remainder charged via the
+      //     selected method (card → Stripe checkout for the diff; cash /
+      //     bank_transfer → collected later, payment stays pending).
+      const feeNum = Number(fee);
+      const requestedWallet = Number(req.body.walletAmountUsed);
+      let walletApplied = 0;
       if (paymentMethod === "wallet") {
+        walletApplied = feeNum;
+      } else if (Number.isFinite(requestedWallet) && requestedWallet > 0) {
+        walletApplied = Math.min(
+          Math.round(requestedWallet * 100),
+          Math.round(feeNum * 100),
+        ) / 100;
+      }
+      const remainderDue = Math.max(0, Math.round((feeNum - walletApplied) * 100) / 100);
+
+      let walletPaid = false;
+      if (walletApplied > 0) {
         try {
           const wallet = await storage.getOrCreateWallet(userId);
           if (wallet.isFrozen) {
             throw new Error("Wallet is frozen");
           }
-          const idempotencyKey = `appointment:${appointment.id}`;
-          await storage.debitWallet(userId, Number(fee), {
-            description: `Appointment payment`,
+          if (Number(wallet.balance) + 1e-6 < walletApplied) {
+            throw new Error("Insufficient wallet balance");
+          }
+          await storage.debitWallet(userId, walletApplied, {
+            description: remainderDue === 0
+              ? "Appointment payment"
+              : `Appointment payment (partial — ${walletApplied.toFixed(2)} of ${feeNum.toFixed(2)})`,
             referenceType: "appointment",
             referenceId: appointment.id,
-            idempotencyKey,
+            idempotencyKey: `appointment:${appointment.id}:wallet`,
           });
-          await storage.updatePayment(payment.id, {
-            status: "completed",
-            paymentMethod: "wallet",
-          });
-          // Wallet payment collected — auto-confirm the appointment so the
-          // patient sees the same confirmed state as a successful Stripe pay.
-          // Mirrors stripeWebhook flipping status to "confirmed" on payment.
-          appointment = (await storage.updateAppointment(appointment.id, { status: "confirmed" })) ?? appointment;
-          walletPaid = true;
+          if (remainderDue === 0) {
+            // Fully paid via wallet — auto-confirm and mark payment completed.
+            await storage.updatePayment(payment.id, {
+              status: "completed",
+              paymentMethod: "wallet",
+            });
+            appointment = (await storage.updateAppointment(appointment.id, { status: "confirmed" })) ?? appointment;
+            walletPaid = true;
+          }
+          // Else: partial — payment row stays pending; remainder handled below.
         } catch (walletErr: any) {
-          // Mark the appointment cancelled so the patient can retry with another method.
+          // Roll back: cancel appointment, free slot, mark payment failed so
+          // the patient can retry with a different payment combination.
           try {
             await storage.updateAppointment(appointment.id, { status: "cancelled" });
+            if (reservedSlotId) await storage.updateTimeSlot(reservedSlotId, { isBooked: false });
             await storage.updatePayment(payment.id, { status: "failed" });
           } catch {}
           const msg = walletErr?.message || "Wallet payment failed";
@@ -3132,9 +3160,10 @@ export async function registerRoutes(
       }
 
       // If paying by card AND Stripe is configured, create a Checkout Session
-      // and capture the URL so we can redirect the patient to Stripe.
+      // for the remaining amount (= fee - walletApplied).
       let checkoutUrl: string | null = null;
-      if (!walletPaid && (paymentMethod === "card" || !paymentMethod) && isStripeConfigured()) {
+      const wantsCard = paymentMethod === "card" || (!paymentMethod && remainderDue > 0);
+      if (!walletPaid && remainderDue > 0 && wantsCard && isStripeConfigured()) {
         try {
           const origin =
             (req.headers.origin as string) ||
@@ -3145,14 +3174,17 @@ export async function registerRoutes(
             : "Provider";
           const session = await createCheckoutSession({
             appointmentId: appointment.id,
-            amount: Number(fee),
-            description: `Appointment with ${providerName} on ${date} at ${startTime}`,
+            amount: remainderDue,
+            description: walletApplied > 0
+              ? `Appointment with ${providerName} on ${date} at ${startTime} (wallet credit ${walletApplied.toFixed(2)} applied)`
+              : `Appointment with ${providerName} on ${date} at ${startTime}`,
             customerEmail: user.email,
             successUrl: `${origin}/booking?stripe=success&appointment=${appointment.id}`,
             cancelUrl: `${origin}/booking?stripe=cancelled&appointment=${appointment.id}`,
             metadata: {
               patientId: userId,
               providerId,
+              walletApplied: walletApplied.toFixed(2),
             },
           });
           checkoutUrl = session.url;
@@ -3894,6 +3926,34 @@ export async function registerRoutes(
         } catch (e) {
           console.error("Failed to free time slot on cancel:", e);
         }
+      }
+
+      // Refund any wallet debits linked to this appointment (full or partial
+      // wallet usage). The wallet ledger is the source of truth, so this
+      // works regardless of how much was applied. Idempotent via key.
+      try {
+        const debits = await db
+          .select()
+          .from(walletTransactions)
+          .where(and(
+            eq(walletTransactions.referenceType, "appointment"),
+            eq(walletTransactions.referenceId, appointment.id),
+            eq(walletTransactions.type, "debit"),
+          ));
+        const totalDebited = debits.reduce(
+          (sum, d) => sum + Math.abs(Number(d.amount || 0)),
+          0,
+        );
+        if (totalDebited > 0) {
+          await storage.refundWallet(appointment.patientId, totalDebited, {
+            description: `Refund for cancelled appointment ${appointment.appointmentNumber || appointment.id}`,
+            referenceType: "appointment",
+            referenceId: appointment.id,
+            idempotencyKey: `appointment:${appointment.id}:cancel-refund`,
+          });
+        }
+      } catch (refundErr) {
+        console.error("[cancel] wallet refund failed:", refundErr);
       }
 
       // Notify the other party + send cancellation emails to both sides

@@ -20,8 +20,9 @@ import {
   Loader2, ChevronLeft, ChevronRight, Check,
   Stethoscope, Layers, Users, User, Calendar, ClipboardList,
   Star, MapPin, Clock, DollarSign, Heart, Tag, ArrowRight,
-  Sparkles, Locate, Home,
+  Sparkles, Locate, Home, Wallet,
 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 
 /* ────────────────────────────────────────────────────────────────── */
 /*  Types                                                             */
@@ -118,6 +119,8 @@ export default function BookWizard() {
   const [locating,    setLocating]    = useState(false);
   const [autoAssigned, setAutoAssigned] = useState(false);
   const [autoAssignBusy, setAutoAssignBusy] = useState(false);
+  const [useWallet, setUseWallet] = useState(false);
+  const [walletAmountInput, setWalletAmountInput] = useState("");
 
   const handleUseCurrentLocation = () => {
     if (!navigator.geolocation) {
@@ -186,6 +189,14 @@ export default function BookWizard() {
   /* ── Find the specific service offered by the provider for the selected sub-service ── */
   const providerService = providerServices.find((s: any) => s.subServiceId === selectedSub?.id);
 
+  /* ── Wallet balance (loaded once we reach the confirm step) ── */
+  const { data: walletData } = useQuery<{ balance: string | number; currency?: string; isFrozen?: boolean }>({
+    queryKey: ["/api/wallet"],
+    enabled: step === 5,
+  });
+  const walletBalance = Number(walletData?.balance ?? 0) || 0;
+  const walletFrozen = !!walletData?.isFrozen;
+
   /* ── Pricing quote ── */
   const { data: quote, isLoading: quotingPrice } = useQuery<any>({
     queryKey: ["/api/pricing/quote", providerService?.id, visitType, promoCode],
@@ -210,12 +221,29 @@ export default function BookWizard() {
     onError: (e: any) => toast({ title: "Booking failed", description: e?.message || "Please try again", variant: "destructive" }),
   });
 
+  /* ── Wallet usage maths ── */
+  // The amount the patient wants to apply from their wallet, clamped to the
+  // available balance and the booking total. `walletApplied` flows into the
+  // payload AND into the sticky summary so the user always sees the truth.
+  const totalDue = Number(quote?.total ?? 0) || 0;
+  const requestedFromInput = Number(walletAmountInput);
+  const intendedWallet = useWallet
+    ? (Number.isFinite(requestedFromInput) && requestedFromInput > 0 ? requestedFromInput : walletBalance)
+    : 0;
+  const walletApplied = Math.min(intendedWallet, walletBalance, totalDue);
+  const walletAppliedRounded = Math.round(walletApplied * 100) / 100;
+  const remainderDue = Math.max(0, Math.round((totalDue - walletAppliedRounded) * 100) / 100);
+  const fullyCoveredByWallet = useWallet && walletAppliedRounded > 0 && remainderDue === 0;
+
   const handleConfirm = () => {
     if (!selectedProvider || !selectedSlot) return;
     // Generate a stable idempotency key so a double-tap doesn't book twice.
     const idemKey = (typeof crypto !== "undefined" && "randomUUID" in crypto)
       ? crypto.randomUUID()
       : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    // If the wallet covers the full total, treat as full-wallet payment so
+    // the backend auto-confirms and skips the Stripe checkout entirely.
+    const effectivePayMethod = fullyCoveredByWallet ? "wallet" : payMethod;
     bookMut.mutate({
       providerId: selectedProvider.id,
       serviceId: providerService?.id,
@@ -224,7 +252,8 @@ export default function BookWizard() {
       startTime: selectedSlot.startTime,
       endTime: selectedSlot.endTime,
       visitType,
-      paymentMethod: payMethod,
+      paymentMethod: effectivePayMethod,
+      walletAmountUsed: walletAppliedRounded > 0 ? walletAppliedRounded : undefined,
       notes,
       contactName,
       contactMobile: contactPhone,
@@ -723,6 +752,84 @@ export default function BookWizard() {
               <Input id="promo" value={promoCode} onChange={e => setPromoCode(e.target.value.toUpperCase())} placeholder="DISCOUNT10" data-testid="input-promo" />
             </div>
 
+            {/* Wallet credit */}
+            <div className="space-y-2 p-4 rounded-lg border-2 border-border bg-card/50">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-start gap-2.5 min-w-0">
+                  <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                    <Wallet className="h-4.5 w-4.5 text-primary" />
+                  </div>
+                  <div className="min-w-0">
+                    <Label htmlFor="use-wallet" className="font-semibold cursor-pointer">Apply wallet credit</Label>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Balance: <span className="font-medium text-foreground">{fmtMoney(walletBalance)}</span>
+                      {walletFrozen && <span className="ml-1 text-destructive">(frozen)</span>}
+                    </p>
+                  </div>
+                </div>
+                <Switch
+                  id="use-wallet"
+                  checked={useWallet}
+                  onCheckedChange={(v) => {
+                    setUseWallet(v);
+                    if (v) {
+                      const max = Math.min(walletBalance, totalDue);
+                      setWalletAmountInput(max > 0 ? max.toFixed(2) : "");
+                    } else {
+                      setWalletAmountInput("");
+                    }
+                  }}
+                  disabled={walletFrozen || walletBalance <= 0 || totalDue <= 0}
+                  data-testid="switch-use-wallet"
+                />
+              </div>
+
+              {useWallet && walletBalance > 0 && (
+                <div className="space-y-2 pt-1">
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="number"
+                      inputMode="decimal"
+                      min={0}
+                      max={Math.min(walletBalance, totalDue)}
+                      step="0.01"
+                      value={walletAmountInput}
+                      onChange={e => setWalletAmountInput(e.target.value)}
+                      placeholder="Amount"
+                      className="h-9"
+                      data-testid="input-wallet-amount"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setWalletAmountInput(Math.min(walletBalance, totalDue).toFixed(2))}
+                      data-testid="button-wallet-max"
+                      className="h-9 shrink-0"
+                    >
+                      Max
+                    </Button>
+                  </div>
+                  {walletAppliedRounded > 0 && (
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-muted-foreground">Applied to this booking</span>
+                      <span className="font-medium text-primary">−{fmtMoney(walletAppliedRounded)}</span>
+                    </div>
+                  )}
+                  {remainderDue > 0 && (
+                    <p className="text-xs text-muted-foreground">
+                      Remaining <span className="font-medium text-foreground">{fmtMoney(remainderDue)}</span> will be charged via your selected payment method.
+                    </p>
+                  )}
+                  {fullyCoveredByWallet && (
+                    <p className="text-xs text-green-600 font-medium flex items-center gap-1">
+                      <Check className="h-3 w-3" /> Wallet covers the full amount — no card needed.
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+
             {/* Payment method */}
             <div className="space-y-2">
               <Label>Payment method</Label>
@@ -847,9 +954,21 @@ export default function BookWizard() {
                           </div>
                         ))}
                         <div className="flex justify-between font-bold text-base pt-2 border-t mt-2">
-                          <span>Total</span>
+                          <span>Subtotal</span>
                           <span data-testid="text-summary-total">{fmtMoney(quote.total)}</span>
                         </div>
+                        {walletAppliedRounded > 0 && (
+                          <>
+                            <div className="flex justify-between text-xs text-green-600 pt-1">
+                              <span className="flex items-center gap-1"><Wallet className="h-3 w-3" /> Wallet credit</span>
+                              <span className="font-medium">−{fmtMoney(walletAppliedRounded)}</span>
+                            </div>
+                            <div className="flex justify-between font-bold text-base pt-2 border-t mt-1 text-primary">
+                              <span>Due now</span>
+                              <span data-testid="text-summary-remainder">{fmtMoney(remainderDue)}</span>
+                            </div>
+                          </>
+                        )}
                       </div>
                     ) : selectedSub ? (
                       <div className="flex justify-between text-sm">
@@ -864,7 +983,9 @@ export default function BookWizard() {
                   {step >= 5 && payMethod && (
                     <div className="flex items-center justify-between text-xs pt-2 border-t">
                       <span className="text-muted-foreground">Paying with</span>
-                      <span className="font-medium capitalize">{payMethod.replace("_", " ")}</span>
+                      <span className="font-medium capitalize">
+                        {fullyCoveredByWallet ? "Wallet" : payMethod.replace("_", " ")}
+                      </span>
                     </div>
                   )}
                 </CardContent>
