@@ -2809,6 +2809,7 @@ function ContentManagement() {
         <TabsList className="tabs-colorful tabs-violet flex flex-wrap gap-1 h-auto w-full">
           <TabsTrigger value="providers" data-testid="tab-content-providers">{t("admin_dashboard.tab_providers")}</TabsTrigger>
           <TabsTrigger value="users" data-testid="tab-content-users">{t("admin_dashboard.tab_users")}</TabsTrigger>
+          <TabsTrigger value="catalog" data-testid="tab-catalog">{t("admin_dashboard.tab_catalog", "Catalog")}</TabsTrigger>
           <TabsTrigger value="categories" data-testid="tab-categories">Categories</TabsTrigger>
           <TabsTrigger value="sub-services" data-testid="tab-sub-services">{t("admin_dashboard.tab_sub_services")}</TabsTrigger>
           <TabsTrigger value="promo-codes" data-testid="tab-content-promo-codes">{t("admin_dashboard.tab_promo_codes")}</TabsTrigger>
@@ -2816,6 +2817,10 @@ function ContentManagement() {
           <TabsTrigger value="faqs" data-testid="tab-content-faqs">{t("admin_dashboard.tab_faqs")}</TabsTrigger>
           <TabsTrigger value="announcements" data-testid="tab-content-announcements">{t("admin_dashboard.tab_announcements")}</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="catalog">
+          <ServiceCatalogTree />
+        </TabsContent>
 
         <TabsContent value="categories">
           <CategoriesManagement />
@@ -5431,6 +5436,312 @@ function UsersManagement() {
         </DialogContent>
       </Dialog>
     </>
+  );
+}
+
+// Unified Service Catalog Tree (Category → Sub-Service) — Phase 9
+function ServiceCatalogTree() {
+  const { t } = useTranslation();
+  const { toast } = useToast();
+  const { format: fmtMoney } = useCurrency();
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const [editingSub, setEditingSub] = useState<any | null>(null);
+  const [draft, setDraft] = useState<any>({});
+  const [addingFor, setAddingFor] = useState<string | null>(null);
+  const [newSubDraft, setNewSubDraft] = useState<any>({
+    name: "",
+    basePrice: "0.00",
+    platformFee: "0.00",
+    durationMinutes: 30,
+    taxPercentage: "0.00",
+    pricingType: "fixed",
+  });
+
+  const { data: categories = [], refetch: refetchCats, isLoading: loadCats } = useQuery<any[]>({
+    queryKey: ["/api/admin/categories"],
+  });
+  const { data: subs = [], refetch: refetchSubs, isLoading: loadSubs } = useQuery<any[]>({
+    queryKey: ["/api/admin/sub-services"],
+  });
+
+  const toggleCatActive = useMutation({
+    mutationFn: async ({ id, isActive }: { id: string; isActive: boolean }) =>
+      apiRequest("PATCH", `/api/admin/categories/${id}`, { isActive }),
+    onSuccess: () => { refetchCats(); queryClient.invalidateQueries({ queryKey: ["/api/categories"] }); },
+  });
+
+  const toggleSubActive = useMutation({
+    mutationFn: async ({ id, isActive }: { id: string; isActive: boolean }) =>
+      apiRequest("PATCH", `/api/admin/sub-services/${id}`, { isActive }),
+    onSuccess: () => { refetchSubs(); queryClient.invalidateQueries({ queryKey: ["/api/sub-services"] }); },
+  });
+
+  const saveSub = useMutation({
+    mutationFn: async ({ id, patch }: { id: string; patch: any }) =>
+      apiRequest("PATCH", `/api/admin/sub-services/${id}`, patch),
+    onSuccess: () => {
+      toast({ title: t("admin.sub_service_saved", "Sub-service saved") });
+      setEditingSub(null);
+      refetchSubs();
+      queryClient.invalidateQueries({ queryKey: ["/api/sub-services"] });
+    },
+  });
+
+  const deleteSub = useMutation({
+    mutationFn: async (id: string) => apiRequest("DELETE", `/api/admin/sub-services/${id}`),
+    onSuccess: () => {
+      toast({ title: t("admin.sub_service_deleted", "Sub-service deleted") });
+      refetchSubs();
+      queryClient.invalidateQueries({ queryKey: ["/api/sub-services"] });
+    },
+  });
+
+  const createSub = useMutation({
+    mutationFn: async (data: any) => apiRequest("POST", "/api/admin/sub-services", data),
+    onSuccess: () => {
+      toast({ title: t("admin.sub_service_created", "Sub-service created") });
+      setAddingFor(null);
+      setNewSubDraft({ name: "", basePrice: "0.00", platformFee: "0.00", durationMinutes: 30, taxPercentage: "0.00", pricingType: "fixed" });
+      refetchSubs();
+      queryClient.invalidateQueries({ queryKey: ["/api/sub-services"] });
+    },
+  });
+
+  const subsByCategory = useMemo(() => {
+    const map: Record<string, any[]> = {};
+    for (const s of subs) {
+      const k = s.category;
+      (map[k] ||= []).push(s);
+    }
+    return map;
+  }, [subs]);
+
+  if (loadCats || loadSubs) {
+    return <div className="flex justify-center p-12"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
+  }
+
+  const sortedCats = [...categories].sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+
+  return (
+    <div className="space-y-4">
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <ListTree className="h-5 w-5 text-primary" />
+                {t("admin.service_catalog", "Service Catalog")}
+              </CardTitle>
+              <CardDescription>
+                {t("admin.service_catalog_desc", "Manage your category → sub-service hierarchy with inline pricing.")}
+              </CardDescription>
+            </div>
+            <div className="text-xs text-muted-foreground">
+              <Badge variant="secondary" className="mr-2">{categories.length} {t("admin.categories", "categories")}</Badge>
+              <Badge variant="secondary">{subs.length} {t("admin.sub_services", "sub-services")}</Badge>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          {sortedCats.length === 0 && (
+            <div className="text-center py-10 text-sm text-muted-foreground" data-testid="empty-catalog-tree">
+              {t("admin.no_categories_yet", "No categories yet. Create one in the Categories tab.")}
+            </div>
+          )}
+          {sortedCats.map((cat) => {
+            const isOpen = !!expanded[cat.id];
+            const catSubs = subsByCategory[cat.slug] || [];
+            return (
+              <div key={cat.id} className="border rounded-lg overflow-hidden" data-testid={`tree-category-${cat.id}`}>
+                <div className="flex items-center justify-between p-3 bg-muted/30 hover-elevate">
+                  <button
+                    type="button"
+                    onClick={() => setExpanded(s => ({ ...s, [cat.id]: !isOpen }))}
+                    className="flex items-center gap-2 flex-1 text-left"
+                    data-testid={`button-toggle-cat-${cat.id}`}
+                  >
+                    {isOpen ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronUp className="h-4 w-4 rotate-90 text-muted-foreground" />}
+                    <span className="text-base font-semibold">{cat.name}</span>
+                    <span className="text-xs text-muted-foreground font-mono">/{cat.slug}</span>
+                    <Badge variant="outline" className="ml-1 text-xs">{catSubs.length}</Badge>
+                  </button>
+                  <div className="flex items-center gap-2">
+                    <Switch
+                      checked={!!cat.isActive}
+                      onCheckedChange={(v) => toggleCatActive.mutate({ id: cat.id, isActive: v })}
+                      data-testid={`switch-cat-active-${cat.id}`}
+                    />
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => { setAddingFor(cat.slug); setExpanded(s => ({ ...s, [cat.id]: true })); }}
+                      data-testid={`button-add-sub-under-${cat.id}`}
+                    >
+                      <Plus className="h-3 w-3 mr-1" /> {t("admin.add_subservice", "Add sub-service")}
+                    </Button>
+                  </div>
+                </div>
+
+                {isOpen && (
+                  <div className="p-3 space-y-2 bg-card">
+                    {addingFor === cat.slug && (
+                      <div className="border-2 border-primary/40 border-dashed rounded-md p-3 bg-primary/5 space-y-2" data-testid={`form-new-sub-${cat.id}`}>
+                        <div className="grid grid-cols-1 md:grid-cols-6 gap-2">
+                          <Input
+                            placeholder={t("admin.name", "Name")}
+                            value={newSubDraft.name}
+                            onChange={(e) => setNewSubDraft({ ...newSubDraft, name: e.target.value })}
+                            className="md:col-span-2"
+                            data-testid={`input-new-sub-name-${cat.id}`}
+                          />
+                          <Input
+                            type="number" step="0.01" placeholder="Base"
+                            value={newSubDraft.basePrice}
+                            onChange={(e) => setNewSubDraft({ ...newSubDraft, basePrice: e.target.value })}
+                            data-testid={`input-new-sub-base-${cat.id}`}
+                          />
+                          <Input
+                            type="number" step="0.01" placeholder="Fee"
+                            value={newSubDraft.platformFee}
+                            onChange={(e) => setNewSubDraft({ ...newSubDraft, platformFee: e.target.value })}
+                            data-testid={`input-new-sub-fee-${cat.id}`}
+                          />
+                          <Input
+                            type="number" placeholder="Min"
+                            value={newSubDraft.durationMinutes}
+                            onChange={(e) => setNewSubDraft({ ...newSubDraft, durationMinutes: parseInt(e.target.value) || 0 })}
+                            data-testid={`input-new-sub-dur-${cat.id}`}
+                          />
+                          <Input
+                            type="number" step="0.01" placeholder="Tax %"
+                            value={newSubDraft.taxPercentage}
+                            onChange={(e) => setNewSubDraft({ ...newSubDraft, taxPercentage: e.target.value })}
+                            data-testid={`input-new-sub-tax-${cat.id}`}
+                          />
+                        </div>
+                        <div className="flex justify-end gap-2">
+                          <Button size="sm" variant="outline" onClick={() => setAddingFor(null)} data-testid={`button-cancel-new-sub-${cat.id}`}>
+                            {t("admin.cancel", "Cancel")}
+                          </Button>
+                          <Button
+                            size="sm"
+                            disabled={!newSubDraft.name || createSub.isPending}
+                            onClick={() => createSub.mutate({ ...newSubDraft, category: cat.slug })}
+                            data-testid={`button-save-new-sub-${cat.id}`}
+                          >
+                            {createSub.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCircle className="h-3 w-3 mr-1" />}
+                            {t("admin.create", "Create")}
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+
+                    {catSubs.length === 0 && addingFor !== cat.slug && (
+                      <div className="text-xs text-center py-4 text-muted-foreground" data-testid={`empty-subs-${cat.id}`}>
+                        {t("admin.no_subs_in_cat", "No sub-services in this category yet.")}
+                      </div>
+                    )}
+
+                    {catSubs.map((s) => {
+                      const editing = editingSub?.id === s.id;
+                      return (
+                        <div key={s.id} className="border rounded-md p-2 hover-elevate" data-testid={`tree-sub-${s.id}`}>
+                          {editing ? (
+                            <div className="space-y-2">
+                              <div className="grid grid-cols-1 md:grid-cols-6 gap-2">
+                                <Input
+                                  value={draft.name}
+                                  onChange={(e) => setDraft({ ...draft, name: e.target.value })}
+                                  className="md:col-span-2"
+                                  data-testid={`input-edit-sub-name-${s.id}`}
+                                />
+                                <Input type="number" step="0.01" value={draft.basePrice}
+                                  onChange={(e) => setDraft({ ...draft, basePrice: e.target.value })}
+                                  data-testid={`input-edit-sub-base-${s.id}`} />
+                                <Input type="number" step="0.01" value={draft.platformFee}
+                                  onChange={(e) => setDraft({ ...draft, platformFee: e.target.value })}
+                                  data-testid={`input-edit-sub-fee-${s.id}`} />
+                                <Input type="number" value={draft.durationMinutes}
+                                  onChange={(e) => setDraft({ ...draft, durationMinutes: parseInt(e.target.value) || 0 })}
+                                  data-testid={`input-edit-sub-dur-${s.id}`} />
+                                <Input type="number" step="0.01" value={draft.taxPercentage}
+                                  onChange={(e) => setDraft({ ...draft, taxPercentage: e.target.value })}
+                                  data-testid={`input-edit-sub-tax-${s.id}`} />
+                              </div>
+                              <div className="flex justify-end gap-2">
+                                <Button size="sm" variant="outline" onClick={() => setEditingSub(null)} data-testid={`button-cancel-edit-sub-${s.id}`}>
+                                  {t("admin.cancel", "Cancel")}
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  disabled={saveSub.isPending}
+                                  onClick={() => saveSub.mutate({ id: s.id, patch: draft })}
+                                  data-testid={`button-save-sub-${s.id}`}
+                                >
+                                  {saveSub.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCircle className="h-3 w-3 mr-1" />}
+                                  {t("admin.save", "Save")}
+                                </Button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className="font-medium truncate" data-testid={`text-sub-name-${s.id}`}>{s.name}</span>
+                                  <Badge variant="outline" className="text-[10px]">{s.pricingType || "fixed"}</Badge>
+                                </div>
+                                <div className="text-xs text-muted-foreground mt-0.5 flex flex-wrap gap-x-3">
+                                  <span>{t("admin.base", "Base")}: {fmtMoney(s.basePrice)}</span>
+                                  <span>{t("admin.fee", "Fee")}: {fmtMoney(s.platformFee)}</span>
+                                  <span>{s.durationMinutes}{t("admin.min_short", "m")}</span>
+                                  <span>{t("admin.tax", "Tax")}: {Number(s.taxPercentage)}%</span>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <Switch
+                                  checked={!!s.isActive}
+                                  onCheckedChange={(v) => toggleSubActive.mutate({ id: s.id, isActive: v })}
+                                  data-testid={`switch-sub-active-${s.id}`}
+                                />
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-8 w-8"
+                                  onClick={() => { setEditingSub(s); setDraft({
+                                    name: s.name,
+                                    basePrice: s.basePrice,
+                                    platformFee: s.platformFee,
+                                    durationMinutes: s.durationMinutes,
+                                    taxPercentage: s.taxPercentage,
+                                    pricingType: s.pricingType,
+                                  }); }}
+                                  data-testid={`button-edit-sub-${s.id}`}
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-8 w-8 text-destructive"
+                                  onClick={() => { if (confirm(t("admin.confirm_delete", "Delete this sub-service?"))) deleteSub.mutate(s.id); }}
+                                  data-testid={`button-delete-sub-${s.id}`}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </CardContent>
+      </Card>
+    </div>
   );
 }
 
