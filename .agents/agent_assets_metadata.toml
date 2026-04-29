@@ -6,3 +6,9 @@ id = "eolCfEwb_-DThPyNKgkSj"
 uri = "file://PRODUCTION_READINESS_REPORT.md"
 type = "text"
 title = "Production-Readiness Report"
+
+[[outputs]]
+id = "DO4ULjCvERrvd9H_IVGWv"
+uri = "file://docs/patient-booking-flow.md"
+type = "text"
+title = "Patient Booking Flow — Audit"
