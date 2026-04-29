@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { ChevronDown, ChevronRight, Loader2, Search } from "lucide-react";
@@ -177,7 +176,7 @@ export function AssignServicesDialog({ providerId, trigger, onAssigned }: Props)
             })}
           </p>
         </div>
-        <ScrollArea className="flex-1 px-6">
+        <div className="flex-1 min-h-0 overflow-y-auto px-6" data-testid="scroll-assign-tree">
           {tree.length === 0 && (
             <div className="text-sm text-muted-foreground text-center py-10" data-testid="empty-assign-tree">
               {t("admin.no_catalog_services", "No services in the catalog match your search.")}
@@ -255,7 +254,7 @@ export function AssignServicesDialog({ providerId, trigger, onAssigned }: Props)
               );
             })}
           </div>
-        </ScrollArea>
+        </div>
         <DialogFooter className="p-6 pt-3 border-t">
           <Button variant="outline" onClick={() => setOpen(false)} data-testid="button-assign-cancel">
             {t("common.cancel", "Cancel")}

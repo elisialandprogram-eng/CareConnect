@@ -1952,6 +1952,7 @@ export async function registerRoutes(
         "insuranceProvider", "insurancePolicyNumber", "primaryCarePhysician",
         "languagePreference",
         "preferredCurrency",
+        "timezone",
       ] as const;
 
       const updateData: any = {};

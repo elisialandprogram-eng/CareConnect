@@ -28,6 +28,58 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 
+const COMMON_TIMEZONES = [
+  "Pacific/Honolulu", "America/Anchorage", "America/Los_Angeles", "America/Denver",
+  "America/Chicago", "America/New_York", "America/Toronto", "America/Mexico_City",
+  "America/Sao_Paulo", "America/Buenos_Aires",
+  "Atlantic/Azores", "Europe/London", "Europe/Lisbon", "Europe/Dublin",
+  "Europe/Paris", "Europe/Berlin", "Europe/Madrid", "Europe/Rome", "Europe/Amsterdam",
+  "Europe/Brussels", "Europe/Zurich", "Europe/Vienna", "Europe/Budapest",
+  "Europe/Prague", "Europe/Warsaw", "Europe/Stockholm", "Europe/Helsinki",
+  "Europe/Athens", "Europe/Istanbul", "Europe/Bucharest", "Europe/Moscow",
+  "Africa/Cairo", "Africa/Johannesburg", "Africa/Lagos", "Africa/Nairobi",
+  "Asia/Jerusalem", "Asia/Riyadh", "Asia/Dubai", "Asia/Tehran", "Asia/Karachi",
+  "Asia/Kolkata", "Asia/Dhaka", "Asia/Bangkok", "Asia/Jakarta", "Asia/Singapore",
+  "Asia/Hong_Kong", "Asia/Shanghai", "Asia/Taipei", "Asia/Tokyo", "Asia/Seoul",
+  "Australia/Perth", "Australia/Sydney", "Australia/Melbourne",
+  "Pacific/Auckland", "Pacific/Fiji",
+  "UTC",
+];
+
+function tzOffsetLabel(tz: string): string {
+  try {
+    const fmt = new Intl.DateTimeFormat("en-US", {
+      timeZone: tz,
+      timeZoneName: "shortOffset",
+    });
+    const parts = fmt.formatToParts(new Date());
+    const offset = parts.find((p) => p.type === "timeZoneName")?.value ?? "";
+    return offset.replace("GMT", "UTC");
+  } catch {
+    return "";
+  }
+}
+
+function getTimezoneOptions(): { value: string; label: string }[] {
+  let zones: string[] = [];
+  try {
+    const supported = (Intl as any).supportedValuesOf?.("timeZone") as string[] | undefined;
+    if (supported && supported.length) zones = supported;
+  } catch {
+    /* ignore */
+  }
+  if (!zones.length) zones = COMMON_TIMEZONES;
+  return zones
+    .map((z) => {
+      const off = tzOffsetLabel(z);
+      const pretty = z.replace(/_/g, " ");
+      return { value: z, label: off ? `(${off}) ${pretty}` : pretty };
+    })
+    .sort((a, b) => a.label.localeCompare(b.label));
+}
+
+const timezoneOptions = getTimezoneOptions();
+
 type FormState = {
   firstName: string;
   lastName: string;
@@ -60,6 +112,7 @@ type FormState = {
   // Preferences
   languagePreference: string;
   preferredCurrency: string;
+  timezone: string;
   // Provider fields
   professionalTitle: string;
   specialization: string;
@@ -79,7 +132,7 @@ const emptyForm: FormState = {
   knownAllergies: "", medicalConditions: "", currentMedications: "", pastSurgeries: "",
   insuranceProvider: "", insurancePolicyNumber: "", primaryCarePhysician: "",
   avatarUrl: "",
-  languagePreference: "en", preferredCurrency: "",
+  languagePreference: "en", preferredCurrency: "", timezone: "",
   professionalTitle: "", specialization: "", bio: "",
   yearsExperience: 0, licenseNumber: "", consultationFee: "0",
 };
@@ -145,6 +198,7 @@ export default function Profile() {
         avatarUrl: u.avatarUrl || "",
         languagePreference: u.languagePreference || "en",
         preferredCurrency: u.preferredCurrency || "",
+        timezone: u.timezone || "",
         professionalTitle: providerData?.professionalTitle || "",
         specialization: providerData?.specialization || "",
         bio: providerData?.bio || "",
@@ -276,6 +330,7 @@ export default function Profile() {
         primaryCarePhysician: data.primaryCarePhysician || null,
         languagePreference: data.languagePreference || null,
         preferredCurrency: data.preferredCurrency || null,
+        timezone: data.timezone || null,
       };
       const response = await apiRequest("PATCH", "/api/auth/profile", payload);
       if (!response.ok) throw new Error("Failed to update profile");
@@ -1107,6 +1162,33 @@ export default function Profile() {
                       {t(
                         "profile_page.preferred_currency_hint",
                         "Override the auto-selected currency. Saved on this device until you change it.",
+                      )}
+                    </p>
+                  </div>
+                  <div className="space-y-2 md:col-span-2">
+                    <Label>{t("profile_page.preferred_timezone", "Time zone")}</Label>
+                    <Select
+                      value={formData.timezone || "auto"}
+                      onValueChange={(v) => set("timezone", v === "auto" ? "" : v)}
+                    >
+                      <SelectTrigger data-testid="select-preferred-timezone">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="max-h-80">
+                        <SelectItem value="auto">
+                          {t("profile_page.timezone_auto", "Auto-detect ({{tz}})", {
+                            tz: Intl.DateTimeFormat().resolvedOptions().timeZone,
+                          })}
+                        </SelectItem>
+                        {timezoneOptions.map((tz) => (
+                          <SelectItem key={tz.value} value={tz.value}>{tz.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">
+                      {t(
+                        "profile_page.preferred_timezone_hint",
+                        "Used to display appointment times and send reminders in your local time.",
                       )}
                     </p>
                   </div>

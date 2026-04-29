@@ -7,11 +7,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { showErrorModal } from "@/components/error-modal";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Plus, Upload, X, Info, Check, Pencil, Trash2, History, User, Clock, TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { Plus, Upload, X, Info, Check, Pencil, Trash2, History, User, Clock, TrendingUp, TrendingDown, Minus, ChevronDown } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
@@ -298,6 +297,7 @@ export function ServiceFormDialog({ open, onOpenChange, service, providerId, adm
   const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
   const [editingCategoryName, setEditingCategoryName] = useState("");
   const [editingCategoryType, setEditingCategoryType] = useState<string>("physiotherapist");
+  const [showHistory, setShowHistory] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -516,24 +516,9 @@ export function ServiceFormDialog({ open, onOpenChange, service, providerId, adm
           </DialogTitle>
         </DialogHeader>
 
-        <Tabs defaultValue="details" className="flex-1 flex flex-col min-h-0">
-          <TabsList className="w-full justify-start gap-4 bg-transparent border-b rounded-none h-auto p-0 px-6 overflow-x-auto shrink-0">
-            <TabsTrigger value="details" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent text-xs tracking-wider" data-testid="tab-service-details">SERVICE DETAILS</TabsTrigger>
-            <TabsTrigger value="settings" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent text-xs tracking-wider" data-testid="tab-service-settings">SETTINGS</TabsTrigger>
-            {isEdit && (
-              <TabsTrigger value="price-history" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent text-xs tracking-wider text-muted-foreground flex items-center gap-1" data-testid="tab-service-price-history">
-                <History className="h-3 w-3" />
-                PRICE HISTORY
-                {priceHistory.length > 0 && (
-                  <Badge variant="secondary" className="ml-1 text-[10px] h-4 px-1">{priceHistory.length}</Badge>
-                )}
-              </TabsTrigger>
-            )}
-          </TabsList>
+        <div className="flex-1 min-h-0 overflow-y-auto px-6 pb-6" data-testid="scroll-service-form">
 
-          <div className="flex-1 overflow-y-auto px-6 pb-6">
-
-          <TabsContent value="details" className="space-y-6 pt-6">
+          <div className="space-y-6 pt-6">
             {/* Image + colors */}
             <div className="flex items-start justify-between gap-6">
               <div className="flex items-center gap-4">
@@ -881,9 +866,14 @@ export function ServiceFormDialog({ open, onOpenChange, service, providerId, adm
                 <Switch checked={hideDuration} onCheckedChange={setHideDuration} data-testid="switch-hide-duration" />
               </div>
             </div>
-          </TabsContent>
 
-          <TabsContent value="settings" className="space-y-4 pt-6">
+            <Separator className="my-2" />
+
+            {/* Settings section */}
+            <div className="space-y-2">
+              <h3 className="text-sm font-semibold tracking-wide text-muted-foreground uppercase">Settings</h3>
+            </div>
+
             <div className="flex items-center justify-between rounded-md border px-3 py-3">
               <div>
                 <Label className="text-sm m-0">{t("service_form.is_active_label")}</Label>
@@ -930,15 +920,33 @@ export function ServiceFormDialog({ open, onOpenChange, service, providerId, adm
                 data-testid="input-max-patients-per-day"
               />
             </div>
-          </TabsContent>
 
-          {isEdit && (
-            <TabsContent value="price-history" className="pt-6" data-testid="tabcontent-price-history">
-              <PriceHistoryPanel history={priceHistory} isLoading={historyLoading} currentPrice={price} />
-            </TabsContent>
-          )}
+            {isEdit && (
+              <div className="rounded-md border" data-testid="section-price-history">
+                <button
+                  type="button"
+                  className="w-full flex items-center justify-between gap-2 px-4 py-3 text-left hover:bg-muted/40 rounded-md"
+                  onClick={() => setShowHistory((v) => !v)}
+                  data-testid="button-toggle-price-history"
+                >
+                  <span className="flex items-center gap-2 text-sm font-medium">
+                    <History className="h-4 w-4 text-muted-foreground" />
+                    Price history
+                    {priceHistory.length > 0 && (
+                      <Badge variant="secondary" className="ml-1 text-[10px] h-4 px-1.5">{priceHistory.length}</Badge>
+                    )}
+                  </span>
+                  <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${showHistory ? "rotate-180" : ""}`} />
+                </button>
+                {showHistory && (
+                  <div className="px-4 pb-4 pt-1 border-t">
+                    <PriceHistoryPanel history={priceHistory} isLoading={historyLoading} currentPrice={price} />
+                  </div>
+                )}
+              </div>
+            )}
           </div>
-        </Tabs>
+        </div>
 
         <DialogFooter className="gap-2 px-6 py-4 border-t shrink-0">
           {isEdit && (

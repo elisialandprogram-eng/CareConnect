@@ -78,6 +78,7 @@ export const users = pgTable("users", {
   lastOtpSentAt: timestamp("last_otp_sent_at"),
   languagePreference: text("language_preference").default("en"),
   preferredCurrency: text("preferred_currency"),
+  timezone: text("timezone"),
   // ── Referral program ──
   // Auto-generated unique short code shared by this user to invite friends.
   // Lazily created on first GET /api/referrals/me to avoid backfill churn.
