@@ -87,6 +87,11 @@ export function ServiceFormDialog({ open, onOpenChange, service, providerId, adm
   const [hidePrice, setHidePrice] = useState(false);
   const [hideDuration, setHideDuration] = useState(false);
   const [isActive, setIsActive] = useState(true);
+  const [homeVisitFee, setHomeVisitFee] = useState("0");
+  const [clinicFee, setClinicFee] = useState("0");
+  const [telemedicineFee, setTelemedicineFee] = useState("0");
+  const [emergencyFee, setEmergencyFee] = useState("0");
+  const [maxPatientsPerDay, setMaxPatientsPerDay] = useState("");
   const [uploading, setUploading] = useState(false);
   const [showNewCategory, setShowNewCategory] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState("");
@@ -113,6 +118,11 @@ export function ServiceFormDialog({ open, onOpenChange, service, providerId, adm
         setHidePrice(!!service.hidePrice);
         setHideDuration(!!service.hideDuration);
         setIsActive(service.isActive ?? true);
+        setHomeVisitFee(String(service.homeVisitFee ?? "0"));
+        setClinicFee(String(service.clinicFee ?? "0"));
+        setTelemedicineFee(String(service.telemedicineFee ?? "0"));
+        setEmergencyFee(String(service.emergencyFee ?? "0"));
+        setMaxPatientsPerDay(service.maxPatientsPerDay != null ? String(service.maxPatientsPerDay) : "");
       } else {
         setImageUrl("");
         setColor(CALENDAR_COLORS[0]);
@@ -129,6 +139,11 @@ export function ServiceFormDialog({ open, onOpenChange, service, providerId, adm
         setHidePrice(false);
         setHideDuration(false);
         setIsActive(true);
+        setHomeVisitFee("0");
+        setClinicFee("0");
+        setTelemedicineFee("0");
+        setEmergencyFee("0");
+        setMaxPatientsPerDay("");
       }
     }
   }, [open, service]);
@@ -255,6 +270,11 @@ export function ServiceFormDialog({ open, onOpenChange, service, providerId, adm
         hidePrice,
         hideDuration,
         isActive,
+        homeVisitFee: homeVisitFee || "0",
+        clinicFee: clinicFee || "0",
+        telemedicineFee: telemedicineFee || "0",
+        emergencyFee: emergencyFee || "0",
+        maxPatientsPerDay: maxPatientsPerDay ? Number(maxPatientsPerDay) : null,
       };
       if (isEdit && service) {
         const url = adminMode
@@ -655,6 +675,45 @@ export function ServiceFormDialog({ open, onOpenChange, service, providerId, adm
                 <p className="text-xs text-muted-foreground">{t("service_form.is_active_desc")}</p>
               </div>
               <Switch checked={isActive} onCheckedChange={setIsActive} data-testid="switch-service-active" />
+            </div>
+
+            <div className="space-y-3 rounded-md border p-4">
+              <div>
+                <Label className="text-sm font-medium">Visit-type fees</Label>
+                <p className="text-xs text-muted-foreground">Extra fee added on top of the base price for each visit type. Leave at 0 if not applicable.</p>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs">Home visit ($)</Label>
+                  <Input type="number" step="0.01" value={homeVisitFee} onChange={(e) => setHomeVisitFee(e.target.value)} data-testid="input-home-visit-fee" />
+                </div>
+                <div>
+                  <Label className="text-xs">Clinic ($)</Label>
+                  <Input type="number" step="0.01" value={clinicFee} onChange={(e) => setClinicFee(e.target.value)} data-testid="input-clinic-fee" />
+                </div>
+                <div>
+                  <Label className="text-xs">Telemedicine ($)</Label>
+                  <Input type="number" step="0.01" value={telemedicineFee} onChange={(e) => setTelemedicineFee(e.target.value)} data-testid="input-telemedicine-fee" />
+                </div>
+                <div>
+                  <Label className="text-xs">Emergency ($)</Label>
+                  <Input type="number" step="0.01" value={emergencyFee} onChange={(e) => setEmergencyFee(e.target.value)} data-testid="input-emergency-fee" />
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-md border p-4 space-y-2">
+              <Label className="text-sm font-medium">Daily capacity</Label>
+              <p className="text-xs text-muted-foreground">Max patients per day for this service. Leave empty for no limit.</p>
+              <Input
+                type="number"
+                min="0"
+                value={maxPatientsPerDay}
+                onChange={(e) => setMaxPatientsPerDay(e.target.value)}
+                placeholder="No limit"
+                className="max-w-xs"
+                data-testid="input-max-patients-per-day"
+              />
             </div>
           </TabsContent>
         </Tabs>

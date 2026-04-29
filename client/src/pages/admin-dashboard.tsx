@@ -5442,6 +5442,10 @@ function SubServicesManagement() {
       category: "physiotherapist",
       description: "",
       platformFee: "0.00",
+      basePrice: "0.00",
+      durationMinutes: 30,
+      taxPercentage: "0.00",
+      pricingType: "fixed",
     }
   });
 
@@ -5515,17 +5519,77 @@ function SubServicesManagement() {
                     )}
                   />
                 </div>
-                <FormField
-                  control={form.control}
-                  name="platformFee"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t("booking.platform_fee")} ($)</FormLabel>
-                      <FormControl><Input {...field} type="number" step="0.01" data-testid="input-platform-fee" /></FormControl>
-                      <FormDescription>{t("admin.platform_fee_desc")}</FormDescription>
-                    </FormItem>
-                  )}
-                />
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="basePrice"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Base price ($)</FormLabel>
+                        <FormControl><Input {...field} type="number" step="0.01" data-testid="input-base-price" /></FormControl>
+                        <FormDescription>Default price providers will charge unless overridden.</FormDescription>
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="platformFee"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t("booking.platform_fee")} ($)</FormLabel>
+                        <FormControl><Input {...field} type="number" step="0.01" data-testid="input-platform-fee" /></FormControl>
+                        <FormDescription>{t("admin.platform_fee_desc")}</FormDescription>
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                <div className="grid grid-cols-3 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="durationMinutes"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Duration (min)</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            step="5"
+                            value={field.value ?? 30}
+                            onChange={(e) => field.onChange(Number(e.target.value))}
+                            data-testid="input-duration-minutes"
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="taxPercentage"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Tax (%)</FormLabel>
+                        <FormControl><Input {...field} type="number" step="0.01" data-testid="input-tax-percentage" /></FormControl>
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="pricingType"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Pricing type</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl><SelectTrigger data-testid="select-pricing-type"><SelectValue /></SelectTrigger></FormControl>
+                          <SelectContent>
+                            <SelectItem value="fixed">Fixed</SelectItem>
+                            <SelectItem value="hourly">Hourly</SelectItem>
+                            <SelectItem value="session">Per session</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </FormItem>
+                    )}
+                  />
+                </div>
                 <FormField
                   control={form.control}
                   name="description"

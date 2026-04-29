@@ -269,7 +269,7 @@ export default function Booking() {
       patientLongitude: location.longitude,
       contactPerson,
       contactMobile,
-      totalAmount: feeWithPlatform.toString(),
+      totalAmount: (priceQuote?.perSession ?? feeWithPlatform).toString(),
       date: finalSessions[0].date,
       startTime: finalSessions[0].time,
       endTime: addMinutesToTime(finalSessions[0].time, durationMin),
@@ -350,7 +350,34 @@ export default function Booking() {
   const subTotal = totalBaseAmount + platformFeeAmount;
   const taxableAmount = Math.max(0, subTotal - promoDiscount);
   const taxAmount = paymentMethod !== "cash" ? taxableAmount * (taxPercentage / 100) : 0;
-  const totalAmount = Math.max(0, taxableAmount + taxAmount);
+  const localTotalAmount = Math.max(0, taxableAmount + taxAmount);
+
+  // Live pricing breakdown from the unified pricing engine (admin defaults +
+  // provider overrides + visit type fee + tax + discount). Falls back to the
+  // local math above when no service is selected.
+  const sessionsCount = finalSessions.length || 1;
+  const { data: priceQuote } = useQuery<any>({
+    queryKey: [
+      "/api/pricing/quote",
+      serviceId || null,
+      visitType,
+      sessionsCount,
+      appliedPromo?.code || null,
+    ],
+    enabled: !!serviceId && !!visitType,
+    queryFn: async () => {
+      const r = await apiRequest("POST", "/api/pricing/quote", {
+        serviceId,
+        visitType,
+        sessions: sessionsCount,
+        promoCode: appliedPromo?.code || undefined,
+      });
+      return r.json();
+    },
+    staleTime: 30_000,
+  });
+
+  const totalAmount = Number(priceQuote?.total ?? localTotalAmount);
 
   const handleApplyPromo = async () => {
     setPromoError(null);
@@ -834,42 +861,72 @@ export default function Booking() {
                   <CardTitle>{t("booking.summary_title")}</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Consultation Fee</span>
-                      <span>{fmtMoney(baseFee)}</span>
-                    </div>
-                    {platformFeeAmount > 0 && (
-                      <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Platform Fee</span>
-                        <span>+{fmtMoney(platformFeeAmount)}</span>
-                      </div>
-                    )}
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Sessions</span>
-                      <span>x {finalSessions.length}</span>
-                    </div>
-                    {visitType === "home" && (
-                      <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Home Visit</span>
-                        <Badge variant="secondary">Included</Badge>
-                      </div>
-                    )}
-                    <div className="flex justify-between text-sm font-semibold">
-                      <span>Subtotal</span>
-                      <span>{fmtMoney(totalBaseAmount)}</span>
-                    </div>
-                    {appliedPromo && (
-                      <div className="flex justify-between text-sm text-green-600 dark:text-green-400 font-medium">
-                        <span>Promo ({appliedPromo.code})</span>
-                        <span>-{fmtMoney(appliedPromo.discount)}</span>
-                      </div>
-                    )}
-                    {taxAmount > 0 && (
-                      <div className="flex justify-between text-sm text-primary font-medium">
-                        <span>Tax ({taxPercentage}%)</span>
-                        <span>+{fmtMoney(taxAmount)}</span>
-                      </div>
+                  <div className="space-y-2" data-testid="pricing-breakdown">
+                    {priceQuote?.lines?.length ? (
+                      <>
+                        {priceQuote.lines.map((line: any, idx: number) => {
+                          const isDiscount = Number(line.amount) < 0;
+                          const isTax = /tax/i.test(line.label);
+                          return (
+                            <div
+                              key={idx}
+                              className={`flex justify-between text-sm ${
+                                isDiscount
+                                  ? "text-green-600 dark:text-green-400 font-medium"
+                                  : isTax
+                                  ? "text-primary font-medium"
+                                  : ""
+                              }`}
+                              data-testid={`pricing-line-${idx}`}
+                            >
+                              <span className={isDiscount || isTax ? "" : "text-muted-foreground"}>
+                                {line.label}
+                              </span>
+                              <span>
+                                {isDiscount ? "-" : line.label.toLowerCase().includes("base") ? "" : "+"}
+                                {fmtMoney(Math.abs(Number(line.amount)))}
+                              </span>
+                            </div>
+                          );
+                        })}
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">Sessions</span>
+                          <span>x {priceQuote.sessions}</span>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">Consultation Fee</span>
+                          <span>{fmtMoney(baseFee)}</span>
+                        </div>
+                        {platformFeeAmount > 0 && (
+                          <div className="flex justify-between text-sm">
+                            <span className="text-muted-foreground">Platform Fee</span>
+                            <span>+{fmtMoney(platformFeeAmount)}</span>
+                          </div>
+                        )}
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">Sessions</span>
+                          <span>x {finalSessions.length}</span>
+                        </div>
+                        <div className="flex justify-between text-sm font-semibold">
+                          <span>Subtotal</span>
+                          <span>{fmtMoney(totalBaseAmount)}</span>
+                        </div>
+                        {appliedPromo && (
+                          <div className="flex justify-between text-sm text-green-600 dark:text-green-400 font-medium">
+                            <span>Promo ({appliedPromo.code})</span>
+                            <span>-{fmtMoney(appliedPromo.discount)}</span>
+                          </div>
+                        )}
+                        {taxAmount > 0 && (
+                          <div className="flex justify-between text-sm text-primary font-medium">
+                            <span>Tax ({taxPercentage}%)</span>
+                            <span>+{fmtMoney(taxAmount)}</span>
+                          </div>
+                        )}
+                      </>
                     )}
                   </div>
 
