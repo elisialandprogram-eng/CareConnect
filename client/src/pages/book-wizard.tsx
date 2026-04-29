@@ -696,6 +696,18 @@ export default function BookWizard() {
                           Balance: <span className="font-medium text-foreground">{fmtMoney(walletBalance)}</span>
                           {walletFrozen && <span className="ml-1 text-destructive">(frozen)</span>}
                         </p>
+                        {!walletFrozen && (walletBalance === 0 || walletBalance < totalDue) && (
+                          <a
+                            href="/wallet"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs text-primary hover:underline mt-1 inline-flex items-center gap-1"
+                            data-testid="link-wallet-topup"
+                          >
+                            <Plus className="h-3 w-3" />
+                            {walletBalance === 0 ? "Add credit" : "Top up for more"}
+                          </a>
+                        )}
                       </div>
                     </div>
                     <Switch
