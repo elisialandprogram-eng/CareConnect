@@ -58,7 +58,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(null);
       }
     } catch (error) {
-      console.error("Auth check error:", error);
+      // 401s are expected before login; only log unexpected network/parse failures.
+      if (error instanceof TypeError) {
+        console.error("Auth check error:", error);
+      }
       setUser(null);
     } finally {
       setIsLoading(false);

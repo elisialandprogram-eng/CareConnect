@@ -211,22 +211,24 @@ How slots are created in the first place: providers publish a weekly grid (`clie
 
 ## 10. Inconsistencies & Gaps
 
-1. **Two parallel booking UIs.** `book-wizard.tsx` (wizard) and `booking.tsx` (direct page) both call the same APIs but with separate code paths — easy for one to drift from the other (e.g. promo handling, validation messages, address-saving).
+> **Status legend:** ✅ fixed · ⏭ deferred · ⏳ open
 
-2. **Wallet path leaves the appointment in `pending`.** When a wallet payment succeeds inside `POST /api/appointments`, `payment_status` becomes `completed` but the appointment status stays `pending`. Stripe's webhook flips status to `confirmed` after payment, but the wallet flow has no equivalent — the provider has to manually approve. Recommend setting status=`confirmed` (or `approved`) in the wallet branch around line 2962.
+1. ⏭ **Two parallel booking UIs.** `book-wizard.tsx` (wizard) and `booking.tsx` (direct page) both call the same APIs but with separate code paths — easy for one to drift. Consolidating into a single page is a multi-day refactor; deferred.
 
-3. **Stripe race / abandoned checkouts.** The slot is reserved and the appointment is created **before** Stripe payment completes. If the patient closes the tab, the slot stays held in `pending` until `POST /api/appointments/cleanup` runs. There's no automatic Stripe-side timeout cleanup tied to the slot release.
+2. ✅ **Wallet path now auto-confirms.** After a successful wallet debit, `POST /api/appointments` calls `updateAppointment(id, { status: "confirmed" })` so wallet bookings reach the same state as a successful Stripe payment. Patient notification text is conditional on the resulting status.
 
-4. **`POST /api/appointments/cleanup` has no scheduler.** The startup log shows `reminderCron` but no automated cleanup tick — the endpoint exists but nothing calls it. Stale `pending` rows (and their reservations) will accumulate unless something runs it on a schedule.
+3. ✅ **Stripe race / abandoned checkouts** — covered by the cleanup scheduler (#4). Stale `pending` Stripe rows now expire (and free their slot) every 5 minutes via `expireStalePending` in `reminderCron`.
 
-5. **Practitioner is optional at booking, even when the service has practitioners assigned.** The validation at lines 2748–2755 only fires *if* `practitionerId` is provided. The wizard auto-skips step 3 when the provider has zero practitioners (good), but a buggy client could submit without a practitioner even when one exists. Backend should require `practitionerId` whenever the service has at least one assigned practitioner.
+4. ✅ **Cleanup is scheduled.** `expireStalePending` runs every 5 min as part of `tick()`; a new `cancelStaleConfirmed` also auto-cancels approved/confirmed/rescheduled appointments more than 24h past their date and frees their slot. The HTTP endpoint stays as a manual trigger.
 
-6. **Invoice only on `completed`.** No invoice/receipt is generated at the time of payment for paid wallet/Stripe bookings — the patient gets a confirmation email but no receipt until the provider marks the visit completed. Consider generating a receipt on payment success and a final invoice on completion.
+5. ✅ **Practitioner required when assigned.** `POST /api/appointments` now refuses the booking if the chosen service has any active `service_practitioners` rows but the request omits `practitionerId`. If the service has none, the field stays optional.
 
-7. **Status update on `completed` doesn't gate on payment.** `PATCH /api/appointments/:id/status` to `completed` triggers `createInvoiceForAppointment` regardless of `payment_status`. A provider could mark "completed" before the patient has paid.
+6. ⏭ **Invoice on payment success.** Product decision — left as "invoice on completion" for now. Revisit once receipts/invoices are split into separate documents.
 
-8. **`/api/auth/me` returning 401 spam in logs.** Benign — the SPA polls before login — but worth gating in the client to avoid noisy logs.
+7. ✅ **`completed` is gated on payment.** `PATCH /api/appointments/:id/status` rejects the transition to `completed` unless `payments.status === "completed"`. Admins can override.
 
-9. **Slot release on cancel** is implemented for `PATCH /api/appointments/:id/cancel` (good), but worth verifying it also runs for `cancelled_by_patient`, `cancelled_by_provider`, `rejected`, `expired`, `no_show` paths through `PATCH /api/appointments/:id/status`. If not, terminal-status changes leak reserved slots.
+8. ✅ **401 console spam silenced.** `client/src/lib/auth.tsx` no longer logs the expected pre-login 401 from `/api/auth/me`; it still logs real network/parse errors.
 
-10. **No idempotency key on `POST /api/appointments`.** A double-tap on "Confirm" can produce two pending appointments before the slot reservation lock kicks in (the second one gets the 409, but the price quote may also have been re-fetched twice and the promo `usedCount` could double-increment in a tight race).
+9. ✅ **Slot release on every terminal transition.** `PATCH /api/appointments/:id/status` now releases the time slot whenever the new status is `cancelled`, `cancelled_by_patient`, `cancelled_by_provider`, `rejected`, `expired`, or `no_show`. Cron-driven expirations and stale cancellations free the slot too.
+
+10. ✅ **Idempotency-Key supported on `POST /api/appointments`.** Clients can send `Idempotency-Key: <uuid>`; matching keys (per user) within 10 minutes return the original response instead of creating a second appointment. In-memory cache — single-process only; swap for shared storage if scaling out.

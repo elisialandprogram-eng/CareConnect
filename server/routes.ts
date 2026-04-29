@@ -41,6 +41,25 @@ import { eq, and, desc, or } from "drizzle-orm";
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 const FROM_EMAIL = "GoldenLife <no-reply@goldenlife.health>";
 
+// In-memory idempotency cache for POST /api/appointments. Single-process only;
+// a multi-instance deployment should swap this for a shared store. Prevents a
+// double-tap on "Confirm" from creating two pending appointments.
+const APPT_IDEMPOTENCY_TTL_MS = 10 * 60 * 1000;
+type CachedApptResponse = { status: number; body: any; expiresAt: number };
+const apptIdempotencyCache = new Map<string, CachedApptResponse>();
+function getApptIdempotent(key: string): CachedApptResponse | null {
+  const hit = apptIdempotencyCache.get(key);
+  if (!hit) return null;
+  if (hit.expiresAt < Date.now()) {
+    apptIdempotencyCache.delete(key);
+    return null;
+  }
+  return hit;
+}
+function setApptIdempotent(key: string, status: number, body: any) {
+  apptIdempotencyCache.set(key, { status, body, expiresAt: Date.now() + APPT_IDEMPOTENCY_TTL_MS });
+}
+
 async function sendAppointmentEmail(opts: {
   to: string;
   subject: string;
@@ -2662,6 +2681,15 @@ export async function registerRoutes(
       const { providerId, serviceId, practitionerId, date, startTime, endTime, visitType, paymentMethod, notes, patientAddress, patientLatitude, patientLongitude, totalAmount, promoCode, contactMobile, familyMemberId } = req.body;
       const userId = req.user?.id;
 
+      // Idempotency: if the client retries with the same Idempotency-Key within
+      // the TTL window, return the cached response instead of creating a duplicate.
+      const idemKey = req.header("Idempotency-Key") || req.header("idempotency-key");
+      const idemCacheKey = idemKey && userId ? `${userId}:${idemKey}` : null;
+      if (idemCacheKey) {
+        const cached = getApptIdempotent(idemCacheKey);
+        if (cached) return res.status(cached.status).json(cached.body);
+      }
+
       // Validate family member ownership if provided
       let validatedFamilyMemberId: string | null = null;
       if (familyMemberId) {
@@ -2744,14 +2772,24 @@ export async function registerRoutes(
       let practitionerFee: number | null = null;
       let appliedPromoCode: string | null = null;
 
-      // Validate practitioner assignment and capture their custom fee
-      if (serviceId && practitionerId) {
+      // Practitioner is required when the service has at least one assigned
+      // active practitioner. If none are assigned the booking continues with
+      // no practitioner (legacy services that haven't onboarded staff yet).
+      if (serviceId) {
         const sps = await storage.getServicePractitioners(serviceId);
-        const sp = sps.find(p => p.practitionerId === practitionerId);
-        if (!sp) {
-          return res.status(400).json({ message: "Practitioner not assigned to this service" });
+        const activeSps = sps.filter(p => p.isActive !== false);
+        if (activeSps.length > 0) {
+          if (!practitionerId) {
+            return res.status(400).json({ message: "Please choose a practitioner for this service." });
+          }
+          const sp = activeSps.find(p => p.practitionerId === practitionerId);
+          if (!sp) {
+            return res.status(400).json({ message: "Practitioner not assigned to this service" });
+          }
+          if (sp.fee) practitionerFee = Number(sp.fee);
+        } else if (practitionerId) {
+          return res.status(400).json({ message: "This service has no assigned practitioners" });
         }
-        if (sp.fee) practitionerFee = Number(sp.fee);
       }
 
       // Fetch service + sub-service for full pricing data, AND enforce that
@@ -2885,7 +2923,7 @@ export async function registerRoutes(
         return res.status(409).json({ message: slotErr?.message || "This time slot is no longer available." });
       }
 
-      const appointment = await storage.createAppointment({
+      let appointment = await storage.createAppointment({
         patientId: userId,
         familyMemberId: validatedFamilyMemberId,
         providerId,
@@ -2952,8 +2990,10 @@ export async function registerRoutes(
             status: "completed",
             paymentMethod: "wallet",
           });
-          // Wallet payment collected — but the appointment still needs provider approval.
-          // Status stays "pending" so the approval workflow is not bypassed.
+          // Wallet payment collected — auto-confirm the appointment so the
+          // patient sees the same confirmed state as a successful Stripe pay.
+          // Mirrors stripeWebhook flipping status to "confirmed" on payment.
+          appointment = (await storage.updateAppointment(appointment.id, { status: "confirmed" })) ?? appointment;
           walletPaid = true;
         } catch (walletErr: any) {
           // Mark the appointment cancelled so the patient can retry with another method.
@@ -3005,12 +3045,19 @@ export async function registerRoutes(
       try {
         const providerWithUser = await storage.getProviderWithUser(providerId);
         
-        // Notification for Patient
+        // Notification for Patient — wording depends on whether payment already
+        // confirmed the booking (wallet path) or it still needs provider approval.
+        const patientNotifTitle = appointment.status === "confirmed"
+          ? "Booking Confirmed"
+          : "Booking Received — Awaiting Approval";
+        const patientNotifMsg = appointment.status === "confirmed"
+          ? `Your appointment with ${providerWithUser?.user.firstName} ${providerWithUser?.user.lastName} on ${date} at ${startTime} is confirmed.`
+          : `Your appointment request with ${providerWithUser?.user.firstName} ${providerWithUser?.user.lastName} for ${date} at ${startTime} has been submitted. You'll be notified once the provider approves it.`;
         await storage.createUserNotification({
           userId: userId,
           type: "appointment",
-          title: "Booking Received — Awaiting Approval",
-          message: `Your appointment request with ${providerWithUser?.user.firstName} ${providerWithUser?.user.lastName} for ${date} at ${startTime} has been submitted. You'll be notified once the provider approves it.`,
+          title: patientNotifTitle,
+          message: patientNotifMsg,
           isRead: false,
         });
 
@@ -3146,7 +3193,9 @@ export async function registerRoutes(
         }
       }
 
-      res.status(201).json({ ...appointment, checkoutUrl });
+      const responseBody = { ...appointment, checkoutUrl };
+      if (idemCacheKey) setApptIdempotent(idemCacheKey, 201, responseBody);
+      res.status(201).json(responseBody);
     } catch (error) {
       console.error("Create appointment error:", error);
       res.status(500).json({ message: "Failed to create appointment" });
@@ -3229,9 +3278,33 @@ export async function registerRoutes(
         }
       }
 
+      // Block "completed" if payment hasn't been collected yet. Admins can override.
+      if (status === "completed" && req.user?.role !== "admin") {
+        const existingPayment = await storage.getPaymentByAppointment(req.params.id);
+        if (!existingPayment || existingPayment.status !== "completed") {
+          return res.status(400).json({
+            message: "Payment must be marked as completed before this appointment can be closed.",
+          });
+        }
+      }
+
       const appointment = await storage.updateAppointment(req.params.id, { status: status as any });
       if (!appointment) {
         return res.status(404).json({ message: "Appointment not found" });
+      }
+
+      // Free the reserved time slot whenever the appointment enters a terminal
+      // state that no longer holds the slot (cancellations / rejection / expiry / no-show).
+      const slotReleaseStatuses = new Set([
+        "cancelled", "cancelled_by_patient", "cancelled_by_provider",
+        "rejected", "expired", "no_show",
+      ]);
+      if (slotReleaseStatuses.has(status) && appointment.timeSlotId) {
+        try {
+          await storage.updateTimeSlot(appointment.timeSlotId, { isBooked: false });
+        } catch (e) {
+          console.error("Failed to free time slot on terminal status:", e);
+        }
       }
 
       // Auto-generate invoice when an appointment is completed (provider/admin path).

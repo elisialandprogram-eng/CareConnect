@@ -159,7 +159,7 @@ let hourlyTimer: NodeJS.Timeout | null = null;
 /**
  * Auto-expire pending appointments that the provider has not acted on within
  * PENDING_EXPIRY_HOURS hours. Notifies the patient when an appointment is
- * expired so they can rebook.
+ * expired so they can rebook. Also frees the reserved time slot.
  */
 async function expireStalePending() {
   const cutoff = new Date(Date.now() - PENDING_EXPIRY_HOURS * 60 * 60 * 1000);
@@ -179,6 +179,14 @@ async function expireStalePending() {
       await db.update(appointments)
         .set({ status: "expired", updatedAt: new Date() })
         .where(eq(appointments.id, appt.id));
+      // Release the held time slot so other patients can book it.
+      if (appt.timeSlotId) {
+        try {
+          await storage.updateTimeSlot(appt.timeSlotId, { isBooked: false });
+        } catch (slotErr) {
+          log(`reminderCron[expire]: free slot failed for appt ${appt.id}: ${(slotErr as Error).message}`);
+        }
+      }
       try {
         const apptRef = appt.appointmentNumber ? ` (${appt.appointmentNumber})` : "";
         await storage.createUserNotification({
@@ -199,6 +207,43 @@ async function expireStalePending() {
   return expired;
 }
 
+/**
+ * Auto-cancel approved/confirmed/rescheduled appointments that ended more than
+ * 24h ago and were never marked completed. Frees the reserved slot too.
+ */
+async function cancelStaleConfirmed() {
+  const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  const cutoffDate = isoDate(cutoff);
+  const stale = await db
+    .select()
+    .from(appointments)
+    .where(and(
+      inArray(appointments.status, ["approved", "confirmed", "rescheduled"]),
+      lt(appointments.date, cutoffDate),
+    ));
+  if (!stale.length) return 0;
+
+  let cancelled = 0;
+  for (const appt of stale) {
+    try {
+      await db.update(appointments)
+        .set({ status: "cancelled", updatedAt: new Date() })
+        .where(eq(appointments.id, appt.id));
+      if (appt.timeSlotId) {
+        try {
+          await storage.updateTimeSlot(appt.timeSlotId, { isBooked: false });
+        } catch (slotErr) {
+          log(`reminderCron[stale]: free slot failed for appt ${appt.id}: ${(slotErr as Error).message}`);
+        }
+      }
+      cancelled++;
+    } catch (err) {
+      log(`reminderCron[stale]: failed for appt ${appt.id}: ${(err as Error).message}`);
+    }
+  }
+  return cancelled;
+}
+
 async function tick() {
   try {
     const totals = await Promise.all([
@@ -206,6 +251,7 @@ async function tick() {
       sendForTier("15m"),
       sendPostVisit(),
       expireStalePending(),
+      cancelStaleConfirmed(),
     ]);
     const sum = totals.reduce((a, b) => a + b, 0);
     if (sum > 0) log(`reminderCron: 5-min tick processed ${sum} item(s)`);
