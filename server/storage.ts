@@ -231,6 +231,7 @@ export interface IStorage {
 
   // Service Practitioners
   getServicePractitioners(serviceId: string): Promise<(ServicePractitioner & { practitioner: Practitioner })[]>;
+  getPractitionerServices(practitionerId: string): Promise<(ServicePractitioner & { service: Pick<Service, 'id' | 'name' | 'price'> })[]>;
   addPractitionerToService(data: InsertServicePractitioner): Promise<ServicePractitioner>;
   removePractitionerFromService(id: string): Promise<void>;
   updateServicePractitionerFee(id: string, fee: string): Promise<ServicePractitioner>;
@@ -1079,6 +1080,18 @@ export class DatabaseStorage implements IStorage {
     return results.map(r => ({
       ...r.service_practitioners,
       practitioner: r.practitioners
+    }));
+  }
+
+  async getPractitionerServices(practitionerId: string): Promise<(ServicePractitioner & { service: Pick<Service, 'id' | 'name' | 'price'> })[]> {
+    const results = await db
+      .select()
+      .from(servicePractitioners)
+      .innerJoin(services, eq(servicePractitioners.serviceId, services.id))
+      .where(eq(servicePractitioners.practitionerId, practitionerId));
+    return results.map(r => ({
+      ...r.service_practitioners,
+      service: { id: r.services.id, name: r.services.name, price: r.services.price },
     }));
   }
 

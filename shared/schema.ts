@@ -257,6 +257,7 @@ export const practitioners = pgTable("practitioners", {
   title: text("title"),
   specialization: text("specialization"),
   bio: text("bio"),
+  yearsExperience: integer("years_experience").default(0),
   languages: text("languages").array().notNull().default(sql`'{}'::text[]`),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),

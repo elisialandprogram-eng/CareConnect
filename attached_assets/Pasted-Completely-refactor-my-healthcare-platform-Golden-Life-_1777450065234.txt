@@ -1,0 +1,178 @@
+Completely refactor my healthcare platform (Golden Life) into a scalable, production-grade system with clean backend architecture, modern UI, advanced pricing engine, and optimized booking UX.
+
+-----------------------------------
+1. REMOVE OLD STRUCTURE (MANDATORY)
+-----------------------------------
+- Remove all existing inconsistent service/category/provider-service structures
+- Remove service-related fields from provider table
+- Remove duplicate/flat service lists
+- Remove scattered pricing columns
+- Clean all backend queries and API routes using old schema
+- Archive old tables if needed, but do not use them
+
+-----------------------------------
+2. CREATE CLEAN SERVICE ARCHITECTURE
+-----------------------------------
+Implement hierarchy:
+Category → Service → Sub-Service
+
+Tables:
+- categories (id, name, description, is_active)
+- services (id, category_id, name, description)
+- sub_services (id, service_id, name, description)
+
+-----------------------------------
+3. GLOBAL PRICING (ADMIN DEFAULTS)
+-----------------------------------
+Add to sub_services:
+- base_price
+- platform_fee
+- duration_minutes
+- tax_percentage
+- pricing_type (fixed/hourly/session)
+
+-----------------------------------
+4. PROVIDER SERVICE SYSTEM
+-----------------------------------
+Create provider_services:
+- id
+- provider_id
+- sub_service_id
+- is_active
+- custom_price
+- platform_fee_override
+- home_visit_fee
+- clinic_fee
+- telemedicine_fee
+- max_patients_per_day
+
+-----------------------------------
+5. PRACTITIONER SYSTEM
+-----------------------------------
+Create:
+practitioners:
+- id, provider_id, name, specialization, experience
+
+practitioner_services:
+- id
+- practitioner_id
+- provider_service_id
+- custom_fee
+- is_available
+
+-----------------------------------
+6. BOOKING SYSTEM (FIX FLOW)
+-----------------------------------
+Appointments must include:
+- appointment_number (GL000001 format)
+- provider_service_id
+- practitioner_id
+- status
+- payment_status
+- start_time, end_time
+
+Implement strict status flow:
+REQUESTED → PENDING_PROVIDER_APPROVAL → CONFIRMED → IN_PROGRESS → COMPLETED
+
+-----------------------------------
+7. ADVANCED PRICING ENGINE
+-----------------------------------
+Final price calculation:
+
+Final Price =
+(base_price OR custom_price)
++ platform_fee
++ visit_type_fee
++ tax
+
+Add support for:
+- discounts (percentage/fixed)
+- surge pricing (time-based)
+- package pricing (multi-session)
+- emergency fees
+
+Create pricing utility function used across backend.
+
+-----------------------------------
+8. FAST BOOKING UX (PATIENT SIDE)
+-----------------------------------
+Redesign booking flow:
+
+Step 1: Select Category
+Step 2: Select Service
+Step 3: Select Provider
+Step 4: Select Practitioner (optional)
+Step 5: Select date/time
+Step 6: Confirm booking
+
+Enhancements:
+- Preload available slots
+- Show real-time availability
+- One-click rebooking
+- Save favorite providers
+- Show total price before confirm
+
+-----------------------------------
+9. ADMIN DASHBOARD (MODERN UI)
+-----------------------------------
+Build modern UI using:
+- React + Tailwind CSS
+- Clean cards, spacing, rounded corners
+- Lucide icons
+- Responsive layout
+
+Features:
+- Tree view (Category → Service → Sub-service)
+- Inline editing
+- Pricing controls
+- Assign services to providers
+- Toggle active/inactive
+
+-----------------------------------
+10. PROVIDER DASHBOARD (MODERN UI)
+-----------------------------------
+Features:
+- View assigned services
+- Enable/disable services
+- Edit pricing
+- Assign practitioners
+- Set availability
+
+UI:
+- Card layout
+- Toggle switches
+- Drawer/modal editing
+- Clean tables
+
+-----------------------------------
+11. INVOICE SYSTEM
+-----------------------------------
+- Auto generate invoice after COMPLETED
+- Include:
+  - appointment_number
+  - services
+  - fees breakdown
+- Send via email
+- Store invoice URL
+
+-----------------------------------
+12. SEARCH & PERFORMANCE
+-----------------------------------
+- Add indexes on:
+  - appointment_number
+  - provider_id
+  - sub_service_id
+
+-----------------------------------
+13. FINAL STRUCTURE GOAL
+-----------------------------------
+Admin → Defines services & pricing
+Provider → Configures offerings
+Patient → Books seamlessly
+
+-----------------------------------
+IMPORTANT
+-----------------------------------
+- Do not break authentication
+- Apply migrations safely
+- Keep system modular and scalable

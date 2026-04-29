@@ -2318,13 +2318,36 @@ export async function registerRoutes(
 
   app.patch("/api/service-practitioners/:id", authenticateToken, async (req: AuthRequest, res) => {
     try {
-      const { isActive } = req.body;
-      // Note: storage.ts might need a more general update method, but for now we use what's there
-      // or assume the storage interface supports Partial updates if I added them
-      const result = await db.update(servicePractitioners).set({ isActive }).where(eq(servicePractitioners.id, req.params.id)).returning();
+      const updates: Record<string, any> = {};
+      if (req.body.isActive !== undefined) updates.isActive = req.body.isActive;
+      if (req.body.fee !== undefined) updates.fee = req.body.fee;
+      const result = await db.update(servicePractitioners).set(updates).where(eq(servicePractitioners.id, req.params.id)).returning();
       res.json(result[0]);
     } catch (error) {
       res.status(400).json({ message: "Failed to update assignment" });
+    }
+  });
+
+  // Fetch service assignments for a practitioner (with service details)
+  app.get("/api/practitioners/:id/services", authenticateToken, async (req: AuthRequest, res: Response) => {
+    try {
+      const assignments = await storage.getPractitionerServices(req.params.id);
+      res.json(assignments);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch practitioner services" });
+    }
+  });
+
+  // Authenticated provider: fetch own practitioners
+  app.get("/api/provider/practitioners", authenticateToken, async (req: AuthRequest, res: Response) => {
+    if (req.user?.role !== "provider") return res.status(403).json({ message: "Provider access required" });
+    try {
+      const provider = await storage.getProviderByUserId(req.user.id);
+      if (!provider) return res.status(404).json({ message: "Provider not found" });
+      const list = await storage.getPractitionersByProvider(provider.id);
+      res.json(list);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch practitioners" });
     }
   });
 

@@ -247,6 +247,14 @@ export default function Booking() {
       }
       return;
     }
+    if (activePractitioners.length > 0 && !selectedPractitionerId) {
+      toast({
+        title: "Practitioner required",
+        description: "Please select a practitioner before confirming.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     const durationMin = selectedService?.duration ?? 30;
     const addMinutesToTime = (hhmm: string, mins: number) => {
@@ -618,24 +626,71 @@ export default function Booking() {
                       </div>
                     </div>
 
-                    {serviceId && (
-                      <div className="space-y-4">
-                        <Label>{t("booking.select_practitioner", "Select Practitioner")}</Label>
-                        <div className="grid gap-3">
-                          {activePractitioners.map((sp) => (
-                            <Button
-                              key={sp.practitionerId}
-                              variant={selectedPractitionerId === sp.practitionerId ? "default" : "outline"}
-                              className="justify-between h-auto py-4"
-                              onClick={() => setSelectedPractitionerId(sp.practitionerId)}
-                            >
-                              <div className="text-left">
-                                <p className="font-semibold">{sp.practitioner.name}</p>
-                                <p className="text-sm opacity-80">{sp.practitioner.title} - {sp.practitioner.specialization}</p>
-                              </div>
-                              <span className="font-bold">{fmtMoney(sp.fee)}</span>
-                            </Button>
-                          ))}
+                    {serviceId && activePractitioners.length > 0 && (
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <Label className="flex items-center gap-1.5">
+                            {t("booking.select_practitioner", "Select Practitioner")}
+                            <span className="text-destructive">*</span>
+                          </Label>
+                          {!selectedPractitionerId && (
+                            <span className="text-xs text-amber-600 dark:text-amber-400 font-medium">
+                              {t("booking.practitioner_required", "Required to continue")}
+                            </span>
+                          )}
+                        </div>
+                        <div className="grid gap-2">
+                          {activePractitioners.map((sp) => {
+                            const isSelected = selectedPractitionerId === sp.practitionerId;
+                            const yrs = sp.practitioner?.yearsExperience;
+                            const langs = sp.practitioner?.languages ?? [];
+                            return (
+                              <button
+                                key={sp.practitionerId}
+                                type="button"
+                                onClick={() => setSelectedPractitionerId(sp.practitionerId)}
+                                className={`w-full text-left rounded-xl border-2 p-4 transition-all duration-150 ${
+                                  isSelected
+                                    ? "border-primary bg-primary/5 shadow-sm"
+                                    : "border-border hover:border-primary/40 hover:bg-muted/30"
+                                }`}
+                                data-testid={`button-select-practitioner-${sp.practitionerId}`}
+                              >
+                                <div className="flex items-start justify-between gap-3">
+                                  <div className="flex items-start gap-3 min-w-0">
+                                    <div className={`h-10 w-10 rounded-full flex items-center justify-center text-sm font-bold shrink-0 ${
+                                      isSelected ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                                    }`}>
+                                      {sp.practitioner.name.split(" ").map((w: string) => w[0]).slice(0, 2).join("").toUpperCase()}
+                                    </div>
+                                    <div className="min-w-0">
+                                      <p className="font-semibold text-sm">{sp.practitioner.name}</p>
+                                      {sp.practitioner.title && (
+                                        <p className="text-xs text-muted-foreground">{sp.practitioner.title}</p>
+                                      )}
+                                      {sp.practitioner.specialization && (
+                                        <p className="text-xs text-muted-foreground">{sp.practitioner.specialization}</p>
+                                      )}
+                                      <div className="flex items-center gap-2 mt-1 flex-wrap">
+                                        {yrs > 0 && (
+                                          <span className="text-xs bg-muted rounded-full px-2 py-0.5">
+                                            {yrs} yr{yrs !== 1 ? "s" : ""} exp.
+                                          </span>
+                                        )}
+                                        {langs.slice(0, 2).map((l: string) => (
+                                          <span key={l} className="text-xs bg-muted rounded-full px-2 py-0.5">{l}</span>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  </div>
+                                  <div className="text-right shrink-0">
+                                    <p className="font-bold text-primary">{fmtMoney(sp.fee)}</p>
+                                    <p className="text-xs text-muted-foreground">{t("booking.per_session", "/ session")}</p>
+                                  </div>
+                                </div>
+                              </button>
+                            );
+                          })}
                         </div>
                       </div>
                     )}
@@ -983,7 +1038,7 @@ export default function Booking() {
                     className="w-full"
                     size="lg"
                     onClick={handleConfirmBooking}
-                    disabled={bookingMutation.isPending || (visitType === "home" && !location.address) || !contactPerson || !contactMobile}
+                    disabled={bookingMutation.isPending || (visitType === "home" && !location.address) || !contactPerson || !contactMobile || (activePractitioners.length > 0 && !selectedPractitionerId)}
                     data-testid="button-confirm-booking"
                   >
                     {bookingMutation.isPending ? (

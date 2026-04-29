@@ -7,6 +7,7 @@ import { Header } from "@/components/header";
 import { ServiceFormDialog } from "@/components/service-form-dialog";
 import { NewTicketDialog } from "@/components/new-ticket-dialog";
 import { WeeklyScheduleGrid, type WeeklySchedule } from "@/components/weekly-schedule-grid";
+import { PractitionerManagementCard } from "@/components/practitioner-management";
 import { DialogDescription } from "@/components/ui/dialog";
 import type { ServicePackageWithServices } from "@shared/schema";
 import { Footer } from "@/components/footer";
@@ -319,11 +320,6 @@ export default function ProviderDashboard() {
     queryKey: ["/api/provider/me"],
   });
 
-  const { data: practitioners } = useQuery<Practitioner[]>({
-    queryKey: [`/api/providers/${providerData?.id}/practitioners`],
-    enabled: !!providerData?.id && (activeTab === "services" || activeTab === "upcoming" || activeTab === "pricing"),
-  });
-
   // Appointments are needed on most tabs and for live counts; poll only when an
   // appointment-centric tab is active. 30s is plenty fresh and avoids hammering
   // the connection pool (which previously caused 100s+ stalls under load).
@@ -347,28 +343,6 @@ export default function ProviderDashboard() {
     queryFn: () => fetch(subServicesUrl, { credentials: "include" }).then(r => r.json()),
     enabled: !!providerData?.providerType && activeTab === "services",
     staleTime: 0,
-  });
-
-  const addPractitionerMutation = useMutation({
-    mutationFn: async (data: any) => {
-      const res = await apiRequest("POST", "/api/practitioners", data);
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/providers/${providerData?.id}/practitioners`] });
-      toast({ title: t("provider_dashboard.toast_practitioner_added", "Practitioner added") });
-    },
-  });
-
-  const assignMutation = useMutation({
-    mutationFn: async (data: any) => {
-      const res = await apiRequest("POST", "/api/service-practitioners", data);
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [/api\/services\/.*\/practitioners/] });
-      toast({ title: t("provider_dashboard.toast_practitioner_assigned", "Practitioner assigned to service") });
-    },
   });
 
   const addServiceMutation = useMutation({
@@ -521,44 +495,6 @@ export default function ProviderDashboard() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/providers", providerData?.id] });
-    },
-  });
-
-  const deletePractitionerMutation = useMutation({
-    mutationFn: async (id: string) => {
-      await apiRequest("DELETE", `/api/practitioners/${id}`);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/providers/${providerData?.id}/practitioners`] });
-      toast({ title: t("provider_dashboard.toast_practitioner_deleted", "Practitioner deleted") });
-    },
-  });
-
-  const togglePractitionerMutation = useMutation({
-    mutationFn: async ({ id, isActive }: { id: string; isActive: boolean }) => {
-      await apiRequest("PATCH", `/api/practitioners/${id}`, { isActive });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/providers/${providerData?.id}/practitioners`] });
-    },
-  });
-
-  const deleteAssignmentMutation = useMutation({
-    mutationFn: async (id: string) => {
-      await apiRequest("DELETE", `/api/service-practitioners/${id}`);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [/api\/services\/.*\/practitioners/] });
-      toast({ title: t("provider_dashboard.toast_assignment_removed", "Assignment removed") });
-    },
-  });
-
-  const toggleAssignmentMutation = useMutation({
-    mutationFn: async ({ id, isActive }: { id: string; isActive: boolean }) => {
-      await apiRequest("PATCH", `/api/service-practitioners/${id}`, { isActive });
-    },
-    onSuccess: () => {
-       queryClient.invalidateQueries({ queryKey: [/api\/services\/.*\/practitioners/] });
     },
   });
 
@@ -2242,67 +2178,14 @@ export default function ProviderDashboard() {
                   </CardContent>
                 </Card>
 
-                <Card>
-                  <CardHeader><CardTitle>{t("provider_dashboard.staff", "Staff")}</CardTitle></CardHeader>
-                  <CardContent className="space-y-4">
-                    <form className="flex gap-2" onSubmit={e => {
-                      e.preventDefault();
-                      const fd = new FormData(e.currentTarget);
-                      addPractitionerMutation.mutate({ name: fd.get("name"), title: fd.get("title"), providerId: providerData?.id });
-                      e.currentTarget.reset();
-                    }}>
-                      <Input name="name" placeholder={t("provider_dashboard.name_placeholder", "Name")} required />
-                      <Input name="title" placeholder={t("provider_dashboard.title_placeholder", "Title")} />
-                      <Button type="submit">{t("provider_dashboard.add_btn", "Add")}</Button>
-                    </form>
-                    <div className="space-y-2">
-                      {practitioners?.map(p => (
-                        <div key={p.id} className="flex justify-between items-center p-3 border rounded-lg">
-                          <span>{p.name} ({p.title})</span>
-                          <div className="flex gap-1">
-                            <Button 
-                              size="sm" 
-                              variant={(p as any).isActive ? "default" : "outline"} 
-                              onClick={() => togglePractitionerMutation.mutate({ id: p.id, isActive: !(p as any).isActive })}
-                            >
-                              {(p as any).isActive ? t("provider_dashboard.active", "Active") : t("provider_dashboard.paused", "Paused")}
-                            </Button>
-                            <Button size="icon" variant="ghost" className="text-destructive" onClick={() => deletePractitionerMutation.mutate(p.id)}><Trash2 className="h-4 w-4" /></Button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
               </div>
 
-              <Card>
-                <CardHeader><CardTitle>{t("provider_dashboard.staff_assignments", "Staff Assignments")}</CardTitle></CardHeader>
-                <CardContent className="space-y-4">
-                  <form className="grid grid-cols-1 md:grid-cols-4 gap-2" onSubmit={e => {
-                    e.preventDefault();
-                    const fd = new FormData(e.currentTarget);
-                    assignMutation.mutate({ serviceId: fd.get("serviceId"), practitionerId: fd.get("practitionerId"), fee: fd.get("fee") });
-                  }}>
-                    <Select name="serviceId"><SelectTrigger><SelectValue placeholder={t("provider_dashboard.service_placeholder", "Service")} /></SelectTrigger>
-                      <SelectContent>{providerWithServices?.services?.filter(s => s.isActive).map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent>
-                    </Select>
-                    <Select name="practitionerId"><SelectTrigger><SelectValue placeholder={t("provider_dashboard.staff_placeholder", "Staff")} /></SelectTrigger>
-                      <SelectContent>{practitioners?.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}</SelectContent>
-                    </Select>
-                    <Input name="fee" type="number" placeholder={t("provider_dashboard.fee_placeholder", "Fee")} required />
-                    <Button type="submit">{t("provider_dashboard.assign_btn", "Assign")}</Button>
-                  </form>
-                  <div className="space-y-4">
-                    {providerWithServices?.services?.filter(s => s.isActive).map(s => (
-                      <div key={s.id} className="p-4 border rounded-lg bg-card">
-                        <p className="font-semibold mb-2">{s.name}</p>
-                        <ServiceStaffList serviceId={s.id} onDelete={deleteAssignmentMutation.mutate} onToggle={toggleAssignmentMutation.mutate} />
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
+              {providerData?.id && (
+                <PractitionerManagementCard
+                  providerId={providerData.id}
+                  services={(providerWithServices?.services?.filter(s => s.isActive) ?? []) as any}
+                />
+              )}
 
               {/* Service Packages */}
               <Card data-testid="card-service-packages">
