@@ -42,7 +42,7 @@ interface SubService {
 /* ────────────────────────────────────────────────────────────────── */
 /*  Inline forms                                                      */
 /* ────────────────────────────────────────────────────────────────── */
-const EMPTY_SUB = { name: "", basePrice: "0.00", platformFee: "0.00", durationMinutes: 30, taxPercentage: "0.00", pricingType: "fixed" as const };
+const EMPTY_SUB = { name: "", basePrice: "0.00", platformFee: "0.00", durationMinutes: 30, taxPercentage: "0.00", pricingType: "fixed" as string };
 const EMPTY_CAT = { name: "", slug: "", description: "", icon: "", sortOrder: 0 };
 const EMPTY_CS  = { name: "", description: "", icon: "" };
 

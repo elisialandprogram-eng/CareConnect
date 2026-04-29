@@ -476,7 +476,7 @@ export default function BookWizard() {
                   <div className="text-center py-12 text-muted-foreground border-2 border-dashed rounded-xl">
                     <Layers className="h-10 w-10 mx-auto mb-3 opacity-30" />
                     <p>This provider hasn't listed any services yet.</p>
-                    <Button variant="link" onClick={() => setStep(0)} className="mt-2">Choose a different provider</Button>
+                    <Button variant="ghost" onClick={() => setStep(0)} className="mt-2">Choose a different provider</Button>
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 gap-3">

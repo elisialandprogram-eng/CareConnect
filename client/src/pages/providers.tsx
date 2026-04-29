@@ -388,6 +388,7 @@ export default function Providers() {
                     <Button
                       variant="outline"
                       onClick={() => setFilters({
+                        q: "",
                         type: "",
                         location: "",
                         minRating: 0,

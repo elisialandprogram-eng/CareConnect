@@ -415,7 +415,7 @@ export default function ProviderDashboard() {
   const clearSelected = () => setSelectedIds(new Set());
 
   const bulkStatusMutation = useMutation({
-    mutationFn: async ({ ids, status }: { ids: string[]; status: "approved" | "rejected" | "cancelled" }) => {
+    mutationFn: async ({ ids, status }: { ids: string[]; status: "confirmed" | "rejected" | "cancelled" }) => {
       const results = await Promise.allSettled(
         ids.map((id) => apiRequest("PATCH", `/api/appointments/${id}/status`, { status })),
       );
