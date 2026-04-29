@@ -483,6 +483,275 @@ function AdminServicesPanel({
   );
 }
 
+// Admin queue for service requests submitted by providers.
+// Lets admin edit the request, approve (creates the real service + notifies provider),
+// or reject with a reason.
+function AdminServiceRequestsPanel() {
+  const { toast } = useToast();
+  const { data: items = [], isLoading } = useQuery<any[]>({
+    queryKey: ["/api/admin/service-requests"],
+  });
+  const [editing, setEditing] = useState<any>(null);
+  const [editForm, setEditForm] = useState({
+    category: "",
+    serviceName: "",
+    subServiceName: "",
+    suggestedPrice: "",
+    description: "",
+    adminNotes: "",
+  });
+  const [approving, setApproving] = useState<any>(null);
+  const [approveForm, setApproveForm] = useState({ duration: "30", finalPrice: "" });
+  const [rejecting, setRejecting] = useState<any>(null);
+  const [rejectionReason, setRejectionReason] = useState("");
+  const [filter, setFilter] = useState<string>("pending_review");
+
+  const invalidate = () => queryClient.invalidateQueries({ queryKey: ["/api/admin/service-requests"] });
+
+  const editMut = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: any }) => {
+      const res = await apiRequest("PATCH", `/api/admin/service-requests/${id}`, data);
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Request updated" });
+      setEditing(null);
+      invalidate();
+    },
+    onError: (e: any) => toast({ title: "Update failed", description: e?.message, variant: "destructive" }),
+  });
+
+  const approveMut = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: any }) => {
+      const res = await apiRequest("POST", `/api/admin/service-requests/${id}/approve`, data);
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Approved", description: "Service was created and provider notified." });
+      setApproving(null);
+      invalidate();
+    },
+    onError: (e: any) => toast({ title: "Approve failed", description: e?.message, variant: "destructive" }),
+  });
+
+  const rejectMut = useMutation({
+    mutationFn: async ({ id, reason }: { id: string; reason: string }) => {
+      const res = await apiRequest("POST", `/api/admin/service-requests/${id}/reject`, { rejectionReason: reason });
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Rejected", description: "Provider notified." });
+      setRejecting(null);
+      setRejectionReason("");
+      invalidate();
+    },
+    onError: (e: any) => toast({ title: "Reject failed", description: e?.message, variant: "destructive" }),
+  });
+
+  const openEdit = (r: any) => {
+    setEditing(r);
+    setEditForm({
+      category: r.category ?? "",
+      serviceName: r.serviceName ?? "",
+      subServiceName: r.subServiceName ?? "",
+      suggestedPrice: r.suggestedPrice ?? "",
+      description: r.description ?? "",
+      adminNotes: r.adminNotes ?? "",
+    });
+  };
+
+  const openApprove = (r: any) => {
+    setApproving(r);
+    setApproveForm({ duration: "30", finalPrice: r.suggestedPrice ?? "" });
+  };
+
+  const filtered = items.filter((r: any) => filter === "all" || r.status === filter);
+
+  const statusBadge = (status: string) => {
+    const map: Record<string, { label: string; cls: string }> = {
+      pending_review: { label: "Pending", cls: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300" },
+      approved: { label: "Approved", cls: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300" },
+      rejected: { label: "Rejected", cls: "bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-300" },
+    };
+    const m = map[status] ?? { label: status, cls: "bg-muted text-foreground" };
+    return <Badge className={m.cls}>{m.label}</Badge>;
+  };
+
+  return (
+    <div className="space-y-4">
+      <Card>
+        <CardHeader>
+          <CardTitle>Service Requests</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center gap-2 mb-4">
+            <Select value={filter} onValueChange={setFilter}>
+              <SelectTrigger className="w-[200px]" data-testid="select-request-filter"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="pending_review">Pending review</SelectItem>
+                <SelectItem value="approved">Approved</SelectItem>
+                <SelectItem value="rejected">Rejected</SelectItem>
+                <SelectItem value="all">All</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          {isLoading ? (
+            <div className="py-8 text-center text-muted-foreground">Loading…</div>
+          ) : filtered.length === 0 ? (
+            <div className="py-8 text-center text-muted-foreground">No requests in this view.</div>
+          ) : (
+            <div className="space-y-3">
+              {filtered.map((r: any) => {
+                const provName =
+                  r.provider?.accountType === "clinic"
+                    ? r.provider?.clinicName ?? r.provider?.user?.name
+                    : r.provider?.user?.name ?? r.provider?.businessName ?? "Provider";
+                return (
+                  <div key={r.id} className="rounded-lg border p-3" data-testid={`row-admin-request-${r.id}`}>
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-medium" data-testid={`text-admin-request-name-${r.id}`}>{r.serviceName}</span>
+                          {statusBadge(r.status)}
+                        </div>
+                        <div className="text-xs text-muted-foreground mt-1">
+                          {r.category} · {r.subServiceName}
+                          {r.suggestedPrice ? ` · Suggested $${r.suggestedPrice}` : ""}
+                        </div>
+                        <div className="text-xs text-muted-foreground mt-1">
+                          From: <span className="font-medium">{provName}</span>
+                          {r.provider?.user?.email ? ` · ${r.provider.user.email}` : ""}
+                        </div>
+                        {r.description && <div className="text-sm mt-2">{r.description}</div>}
+                        {r.adminNotes && <div className="text-sm mt-1 text-muted-foreground"><strong>Notes:</strong> {r.adminNotes}</div>}
+                        {r.rejectionReason && <div className="text-sm mt-1 text-rose-600 dark:text-rose-400"><strong>Reason:</strong> {r.rejectionReason}</div>}
+                      </div>
+                      {r.status === "pending_review" && (
+                        <div className="flex flex-wrap gap-2">
+                          <Button size="sm" variant="outline" onClick={() => openEdit(r)} data-testid={`button-edit-request-${r.id}`}>Edit</Button>
+                          <Button size="sm" onClick={() => openApprove(r)} data-testid={`button-approve-request-${r.id}`}>Approve</Button>
+                          <Button size="sm" variant="destructive" onClick={() => setRejecting(r)} data-testid={`button-reject-request-${r.id}`}>Reject</Button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Edit dialog */}
+      <Dialog open={!!editing} onOpenChange={(open) => !open && setEditing(null)}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Edit request</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <label className="text-sm font-medium">Category</label>
+              <Input value={editForm.category} onChange={(e) => setEditForm({ ...editForm, category: e.target.value })} data-testid="input-edit-category" />
+            </div>
+            <div>
+              <label className="text-sm font-medium">Service name</label>
+              <Input value={editForm.serviceName} onChange={(e) => setEditForm({ ...editForm, serviceName: e.target.value })} data-testid="input-edit-service-name" />
+            </div>
+            <div>
+              <label className="text-sm font-medium">Sub-service</label>
+              <Input value={editForm.subServiceName} onChange={(e) => setEditForm({ ...editForm, subServiceName: e.target.value })} data-testid="input-edit-sub-service" />
+            </div>
+            <div>
+              <label className="text-sm font-medium">Suggested price</label>
+              <Input type="number" step="0.01" value={editForm.suggestedPrice} onChange={(e) => setEditForm({ ...editForm, suggestedPrice: e.target.value })} data-testid="input-edit-price" />
+            </div>
+            <div>
+              <label className="text-sm font-medium">Description</label>
+              <Textarea value={editForm.description} onChange={(e) => setEditForm({ ...editForm, description: e.target.value })} rows={2} />
+            </div>
+            <div>
+              <label className="text-sm font-medium">Admin notes</label>
+              <Textarea value={editForm.adminNotes} onChange={(e) => setEditForm({ ...editForm, adminNotes: e.target.value })} rows={2} data-testid="textarea-edit-notes" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditing(null)}>Cancel</Button>
+            <Button
+              onClick={() => editing && editMut.mutate({ id: editing.id, data: editForm })}
+              disabled={editMut.isPending}
+              data-testid="button-save-edit"
+            >
+              {editMut.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Save
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Approve dialog */}
+      <Dialog open={!!approving} onOpenChange={(open) => !open && setApproving(null)}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Approve & create service</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              This creates "{approving?.serviceName}" in the catalog and assigns it to the provider.
+            </p>
+            <div>
+              <label className="text-sm font-medium">Duration (minutes)</label>
+              <Input type="number" min={5} max={480} value={approveForm.duration} onChange={(e) => setApproveForm({ ...approveForm, duration: e.target.value })} data-testid="input-approve-duration" />
+            </div>
+            <div>
+              <label className="text-sm font-medium">Final price</label>
+              <Input type="number" step="0.01" value={approveForm.finalPrice} onChange={(e) => setApproveForm({ ...approveForm, finalPrice: e.target.value })} data-testid="input-approve-price" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setApproving(null)}>Cancel</Button>
+            <Button
+              onClick={() =>
+                approving &&
+                approveMut.mutate({
+                  id: approving.id,
+                  data: {
+                    duration: Number(approveForm.duration) || 30,
+                    finalPrice: approveForm.finalPrice || undefined,
+                  },
+                })
+              }
+              disabled={approveMut.isPending}
+              data-testid="button-confirm-approve"
+            >
+              {approveMut.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Approve
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Reject dialog */}
+      <Dialog open={!!rejecting} onOpenChange={(open) => { if (!open) { setRejecting(null); setRejectionReason(""); } }}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Reject request</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <label className="text-sm font-medium">Reason (will be sent to provider)</label>
+            <Textarea value={rejectionReason} onChange={(e) => setRejectionReason(e.target.value)} rows={3} data-testid="textarea-reject-reason" />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setRejecting(null); setRejectionReason(""); }}>Cancel</Button>
+            <Button
+              variant="destructive"
+              onClick={() => rejecting && rejectionReason.trim() && rejectMut.mutate({ id: rejecting.id, reason: rejectionReason.trim() })}
+              disabled={rejectMut.isPending || !rejectionReason.trim()}
+              data-testid="button-confirm-reject"
+            >
+              {rejectMut.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Reject
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
 // Admin-side weekly schedule + bookable-slot publisher for a single provider.
 // Wires WeeklyScheduleGrid to the /api/admin/providers/:id/office-hours and
 // /api/admin/providers/:id/availability/bulk endpoints so admins can fix the
@@ -5814,6 +6083,10 @@ export default function AdminDashboard() {
               <ListTree className="h-4 w-4 mr-1.5" />
               {t("admin.service_catalog", "Service Catalog")}
             </TabsTrigger>
+            <TabsTrigger value="service-requests" data-testid="tab-service-requests">
+              <ListTree className="h-4 w-4 mr-1.5" />
+              {t("admin.service_requests", "Service Requests")}
+            </TabsTrigger>
             <TabsTrigger value="financial" data-testid="tab-financial">
               <DollarSign className="h-4 w-4 mr-1.5" />
               {t("admin.financial_reports")}
@@ -5852,6 +6125,10 @@ export default function AdminDashboard() {
 
           <TabsContent value="catalog">
             <ServiceCatalogHierarchy />
+          </TabsContent>
+
+          <TabsContent value="service-requests">
+            <AdminServiceRequestsPanel />
           </TabsContent>
 
           <TabsContent value="overview">

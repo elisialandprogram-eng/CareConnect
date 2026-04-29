@@ -309,6 +309,175 @@ function ProfileCompletenessCard({ provider, services }: { provider: any; servic
   );
 }
 
+function ProviderServiceRequestsPanel() {
+  const { toast } = useToast();
+  const [form, setForm] = useState({
+    category: "",
+    serviceName: "",
+    subServiceName: "",
+    suggestedPrice: "",
+    description: "",
+  });
+
+  const { data: categories } = useQuery<any[]>({ queryKey: ["/api/categories"] });
+  const { data: requests = [], isLoading } = useQuery<any[]>({
+    queryKey: ["/api/provider/service-requests"],
+  });
+
+  const createMut = useMutation({
+    mutationFn: async (payload: typeof form) => {
+      const res = await apiRequest("POST", "/api/provider/service-requests", payload);
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Request submitted", description: "Admin will review your request shortly." });
+      setForm({ category: "", serviceName: "", subServiceName: "", suggestedPrice: "", description: "" });
+      queryClient.invalidateQueries({ queryKey: ["/api/provider/service-requests"] });
+    },
+    onError: (err: any) => {
+      toast({
+        title: "Could not submit",
+        description: err?.message || "Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const onSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.category || !form.serviceName || !form.subServiceName) {
+      toast({ title: "Missing fields", description: "Category, service name, and sub-service are required.", variant: "destructive" });
+      return;
+    }
+    createMut.mutate(form);
+  };
+
+  const statusBadge = (status: string) => {
+    const map: Record<string, { label: string; cls: string }> = {
+      pending_review: { label: "Pending review", cls: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300" },
+      approved: { label: "Approved", cls: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300" },
+      rejected: { label: "Rejected", cls: "bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-300" },
+    };
+    const m = map[status] ?? { label: status, cls: "bg-muted text-foreground" };
+    return <Badge className={m.cls} data-testid={`badge-request-status-${status}`}>{m.label}</Badge>;
+  };
+
+  return (
+    <div className="space-y-4">
+      <Card>
+        <CardHeader>
+          <CardTitle>Request a new service</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={onSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+              <label className="text-sm font-medium">Category</label>
+              <Select value={form.category} onValueChange={(v) => setForm((f) => ({ ...f, category: v }))}>
+                <SelectTrigger data-testid="select-request-category"><SelectValue placeholder="Select category" /></SelectTrigger>
+                <SelectContent>
+                  {(categories ?? []).map((c: any) => (
+                    <SelectItem key={c.id ?? c.slug ?? c.name} value={c.slug ?? c.name}>
+                      {c.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label className="text-sm font-medium">Service name</label>
+              <Input
+                value={form.serviceName}
+                onChange={(e) => setForm((f) => ({ ...f, serviceName: e.target.value }))}
+                placeholder="e.g. Pediatric Cardiology Consult"
+                data-testid="input-request-service-name"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium">Sub-service / specialty</label>
+              <Input
+                value={form.subServiceName}
+                onChange={(e) => setForm((f) => ({ ...f, subServiceName: e.target.value }))}
+                placeholder="e.g. Pediatric Cardiology"
+                data-testid="input-request-sub-service"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium">Suggested price (optional)</label>
+              <Input
+                type="number"
+                step="0.01"
+                value={form.suggestedPrice}
+                onChange={(e) => setForm((f) => ({ ...f, suggestedPrice: e.target.value }))}
+                placeholder="0.00"
+                data-testid="input-request-price"
+              />
+            </div>
+            <div className="md:col-span-2">
+              <label className="text-sm font-medium">Description (optional)</label>
+              <Textarea
+                value={form.description}
+                onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+                placeholder="Briefly describe what this service includes."
+                rows={3}
+                data-testid="textarea-request-description"
+              />
+            </div>
+            <div className="md:col-span-2">
+              <Button type="submit" disabled={createMut.isPending} data-testid="button-submit-request">
+                {createMut.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                Submit request
+              </Button>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>My requests</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <div className="py-8 text-center text-muted-foreground">Loading…</div>
+          ) : requests.length === 0 ? (
+            <div className="py-8 text-center text-muted-foreground" data-testid="text-no-requests">
+              You haven't submitted any service requests yet.
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {requests.map((r: any) => (
+                <div key={r.id} className="rounded-lg border p-3" data-testid={`row-request-${r.id}`}>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="font-medium truncate" data-testid={`text-request-name-${r.id}`}>{r.serviceName}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {r.category} · {r.subServiceName}
+                        {r.suggestedPrice ? ` · Suggested $${r.suggestedPrice}` : ""}
+                      </div>
+                      {r.description && <div className="text-sm mt-1">{r.description}</div>}
+                      {r.adminNotes && (
+                        <div className="text-sm mt-2 text-muted-foreground">
+                          <strong>Admin notes:</strong> {r.adminNotes}
+                        </div>
+                      )}
+                      {r.status === "rejected" && r.rejectionReason && (
+                        <div className="text-sm mt-2 text-rose-600 dark:text-rose-400">
+                          <strong>Reason:</strong> {r.rejectionReason}
+                        </div>
+                      )}
+                    </div>
+                    <div className="shrink-0">{statusBadge(r.status)}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 export default function ProviderDashboard() {
   const { t } = useTranslation();
   const { user } = useAuth();
@@ -1588,6 +1757,9 @@ export default function ProviderDashboard() {
                 <TrendingUp className="h-4 w-4 mr-1" /> {t("provider_dashboard.tab_analytics", "Analytics")}
               </TabsTrigger>
               <TabsTrigger value="services" data-testid="tab-services">{t("provider_dashboard.tab_services", "Service Catalog")}</TabsTrigger>
+              <TabsTrigger value="service-requests" data-testid="tab-service-requests">
+                {t("provider_dashboard.tab_service_requests", "Request Service")}
+              </TabsTrigger>
               <TabsTrigger value="preferences" data-testid="tab-preferences">
                 <Settings className="h-4 w-4 mr-1" /> {t("provider_dashboard.tab_preferences", "Preferences")}
               </TabsTrigger>
@@ -2516,6 +2688,10 @@ export default function ProviderDashboard() {
             </TabsContent>
 
             {/* ── PREFERENCES TAB ── */}
+            <TabsContent value="service-requests" className="mt-6 space-y-4">
+              <ProviderServiceRequestsPanel />
+            </TabsContent>
+
             <TabsContent value="preferences" className="mt-6 space-y-4">
               <Card>
                 <CardHeader>

@@ -2903,6 +2903,217 @@ export async function registerRoutes(
     }
   });
 
+  // ========== SERVICE REQUESTS (provider → admin approval) ==========
+  // Provider submits a request for a new service to be added to their offerings.
+  app.post("/api/provider/service-requests", authenticateToken, async (req: AuthRequest, res: Response) => {
+    if (req.user?.role !== "provider") return res.status(403).json({ message: "Provider access required" });
+    try {
+      const provider = await storage.getProviderByUserId(req.user.id);
+      if (!provider) return res.status(404).json({ message: "Provider not found" });
+
+      const schema = z.object({
+        category: z.string().min(1),
+        serviceName: z.string().min(2),
+        subServiceName: z.string().min(2),
+        suggestedPrice: z.union([z.string(), z.number()]).optional().nullable(),
+        description: z.string().optional().nullable(),
+      });
+      const parsed = schema.parse(req.body);
+
+      const dup = await storage.findPendingServiceRequest(provider.id, parsed.serviceName);
+      if (dup) {
+        return res.status(409).json({
+          message: "You already have a pending request for this service.",
+          existingId: dup.id,
+        });
+      }
+
+      const created = await storage.createServiceRequest({
+        providerId: provider.id,
+        category: parsed.category,
+        serviceName: parsed.serviceName,
+        subServiceName: parsed.subServiceName,
+        suggestedPrice: parsed.suggestedPrice != null ? String(parsed.suggestedPrice) : null,
+        description: parsed.description ?? null,
+      });
+
+      // Notify the requesting provider that their request was received.
+      await storage.createNotification({
+        userId: req.user.id,
+        type: "service_request_submitted",
+        subject: "Service request submitted",
+        body: `Your request for "${parsed.serviceName}" is awaiting admin review.`,
+      });
+
+      res.status(201).json(created);
+    } catch (error: any) {
+      if (error?.name === "ZodError") {
+        return res.status(400).json({ message: "Invalid input", errors: error.errors });
+      }
+      console.error("Error creating service request:", error);
+      res.status(500).json({ message: "Failed to create service request" });
+    }
+  });
+
+  // Provider lists their own service requests.
+  app.get("/api/provider/service-requests", authenticateToken, async (req: AuthRequest, res: Response) => {
+    if (req.user?.role !== "provider") return res.status(403).json({ message: "Provider access required" });
+    try {
+      const provider = await storage.getProviderByUserId(req.user.id);
+      if (!provider) return res.status(404).json({ message: "Provider not found" });
+      const items = await storage.listServiceRequestsByProvider(provider.id);
+      res.json(items);
+    } catch (error) {
+      console.error("Error listing provider service requests:", error);
+      res.status(500).json({ message: "Failed to list service requests" });
+    }
+  });
+
+  // Admin lists all service requests (with provider info).
+  app.get("/api/admin/service-requests", authenticateToken, requireAdmin, async (_req: AuthRequest, res: Response) => {
+    try {
+      const items = await storage.listAllServiceRequests();
+      res.json(items);
+    } catch (error) {
+      console.error("Error listing all service requests:", error);
+      res.status(500).json({ message: "Failed to list service requests" });
+    }
+  });
+
+  // Admin edits the request fields prior to approval.
+  app.patch("/api/admin/service-requests/:id", authenticateToken, requireAdmin, async (req: AuthRequest, res: Response) => {
+    try {
+      const existing = await storage.getServiceRequest(req.params.id);
+      if (!existing) return res.status(404).json({ message: "Service request not found" });
+
+      const schema = z.object({
+        category: z.string().min(1).optional(),
+        serviceName: z.string().min(2).optional(),
+        subServiceName: z.string().min(2).optional(),
+        suggestedPrice: z.union([z.string(), z.number()]).optional().nullable(),
+        description: z.string().optional().nullable(),
+        adminNotes: z.string().optional().nullable(),
+      });
+      const data = schema.parse(req.body);
+
+      const updates: Partial<typeof existing> = { ...data } as any;
+      if (data.suggestedPrice !== undefined) {
+        updates.suggestedPrice = data.suggestedPrice != null ? String(data.suggestedPrice) : null;
+      }
+
+      const updated = await storage.updateServiceRequest(req.params.id, updates);
+      res.json(updated);
+    } catch (error: any) {
+      if (error?.name === "ZodError") {
+        return res.status(400).json({ message: "Invalid input", errors: error.errors });
+      }
+      console.error("Error updating service request:", error);
+      res.status(500).json({ message: "Failed to update service request" });
+    }
+  });
+
+  // Admin approves the request: ensures a sub-service exists in the catalog,
+  // creates a per-provider service row, marks the request approved, and notifies the provider.
+  app.post("/api/admin/service-requests/:id/approve", authenticateToken, requireAdmin, async (req: AuthRequest, res: Response) => {
+    try {
+      const reqRow = await storage.getServiceRequest(req.params.id);
+      if (!reqRow) return res.status(404).json({ message: "Service request not found" });
+      if (reqRow.status === "approved") return res.status(400).json({ message: "Request already approved" });
+
+      const schema = z.object({
+        duration: z.coerce.number().int().min(5).max(480).optional(),
+        finalPrice: z.union([z.string(), z.number()]).optional(),
+      });
+      const opts = schema.parse(req.body ?? {});
+      const duration = opts.duration ?? 30;
+      const price = opts.finalPrice != null
+        ? String(opts.finalPrice)
+        : (reqRow.suggestedPrice ?? "0.00");
+
+      // Find or create matching sub-service in the catalog.
+      const allSubs = await storage.getAllSubServices();
+      let sub = allSubs.find(
+        (s: any) =>
+          s.name?.toLowerCase() === reqRow.subServiceName.toLowerCase() &&
+          (s.category?.toLowerCase?.() ?? "") === reqRow.category.toLowerCase(),
+      );
+      if (!sub) {
+        sub = await storage.createSubService({
+          name: reqRow.subServiceName,
+          category: reqRow.category,
+        } as any);
+      }
+
+      // Create the per-provider service row.
+      const service = await storage.createService({
+        providerId: reqRow.providerId,
+        subServiceId: sub.id,
+        name: reqRow.serviceName,
+        description: reqRow.description ?? undefined,
+        duration,
+        price,
+      } as any);
+
+      const updated = await storage.updateServiceRequest(reqRow.id, {
+        status: "approved",
+        createdServiceId: service.id,
+      });
+
+      // Notify the requesting provider.
+      const provider = await storage.getProvider(reqRow.providerId);
+      if (provider?.userId) {
+        await storage.createNotification({
+          userId: provider.userId,
+          type: "service_request_approved",
+          subject: "Service request approved",
+          body: `Your request "${reqRow.serviceName}" has been approved and added to your services.`,
+        });
+      }
+
+      res.json({ request: updated, service });
+    } catch (error: any) {
+      if (error?.name === "ZodError") {
+        return res.status(400).json({ message: "Invalid input", errors: error.errors });
+      }
+      console.error("Error approving service request:", error);
+      res.status(500).json({ message: "Failed to approve service request" });
+    }
+  });
+
+  // Admin rejects the request with a reason; provider is notified.
+  app.post("/api/admin/service-requests/:id/reject", authenticateToken, requireAdmin, async (req: AuthRequest, res: Response) => {
+    try {
+      const reqRow = await storage.getServiceRequest(req.params.id);
+      if (!reqRow) return res.status(404).json({ message: "Service request not found" });
+
+      const schema = z.object({ rejectionReason: z.string().min(1) });
+      const { rejectionReason } = schema.parse(req.body);
+
+      const updated = await storage.updateServiceRequest(reqRow.id, {
+        status: "rejected",
+        rejectionReason,
+      });
+
+      const provider = await storage.getProvider(reqRow.providerId);
+      if (provider?.userId) {
+        await storage.createNotification({
+          userId: provider.userId,
+          type: "service_request_rejected",
+          subject: "Service request rejected",
+          body: `Your request "${reqRow.serviceName}" was rejected. Reason: ${rejectionReason}`,
+        });
+      }
+
+      res.json(updated);
+    } catch (error: any) {
+      if (error?.name === "ZodError") {
+        return res.status(400).json({ message: "Invalid input", errors: error.errors });
+      }
+      console.error("Error rejecting service request:", error);
+      res.status(500).json({ message: "Failed to reject service request" });
+    }
+  });
+
   // ========== SERVICE PACKAGES ==========
   // Public: list active packages for a provider (used on provider profile)
   app.get("/api/providers/:providerId/packages", async (req: Request, res: Response) => {

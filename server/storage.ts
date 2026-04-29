@@ -40,6 +40,7 @@ import {
   servicePractitioners,
   servicePackages,
   servicePriceHistory,
+  serviceRequests,
   packageServices,
   taxSettings,
   patientConsents,
@@ -132,6 +133,9 @@ import {
   type InsertPatientConsent,
   type MedicalPractitioner,
   type InsertMedicalPractitioner,
+  type ServiceRequest,
+  type InsertServiceRequest,
+  type ServiceRequestWithProvider,
   savedProviders,
   type SavedProvider,
   type InsertSavedProvider,
@@ -403,6 +407,14 @@ export interface IStorage {
   getAllEmailTemplates(): Promise<EmailTemplate[]>;
   updateEmailTemplate(id: string, data: Partial<EmailTemplate>): Promise<EmailTemplate | undefined>;
   deleteEmailTemplate(id: string): Promise<void>;
+
+  // Service Requests (provider → admin approval workflow)
+  createServiceRequest(data: InsertServiceRequest): Promise<ServiceRequest>;
+  getServiceRequest(id: string): Promise<ServiceRequest | undefined>;
+  listServiceRequestsByProvider(providerId: string): Promise<ServiceRequest[]>;
+  listAllServiceRequests(): Promise<ServiceRequestWithProvider[]>;
+  findPendingServiceRequest(providerId: string, serviceName: string): Promise<ServiceRequest | undefined>;
+  updateServiceRequest(id: string, data: Partial<ServiceRequest>): Promise<ServiceRequest | undefined>;
 
   // Notifications
   createNotification(data: InsertNotification): Promise<Notification>;
@@ -1982,6 +1994,63 @@ export class DatabaseStorage implements IStorage {
 
   async deleteEmailTemplate(id: string): Promise<void> {
     await db.delete(emailTemplates).where(eq(emailTemplates.id, id));
+  }
+
+  // Service Requests (provider → admin approval workflow)
+  async createServiceRequest(data: InsertServiceRequest): Promise<ServiceRequest> {
+    const [r] = await db.insert(serviceRequests).values(data).returning();
+    return r;
+  }
+
+  async getServiceRequest(id: string): Promise<ServiceRequest | undefined> {
+    const [r] = await db.select().from(serviceRequests).where(eq(serviceRequests.id, id));
+    return r || undefined;
+  }
+
+  async listServiceRequestsByProvider(providerId: string): Promise<ServiceRequest[]> {
+    return db
+      .select()
+      .from(serviceRequests)
+      .where(eq(serviceRequests.providerId, providerId))
+      .orderBy(desc(serviceRequests.createdAt));
+  }
+
+  async listAllServiceRequests(): Promise<ServiceRequestWithProvider[]> {
+    const rows = await db
+      .select()
+      .from(serviceRequests)
+      .leftJoin(providers, eq(serviceRequests.providerId, providers.id))
+      .leftJoin(users, eq(providers.userId, users.id))
+      .orderBy(desc(serviceRequests.createdAt));
+    return rows
+      .filter((r) => r.providers && r.users)
+      .map((r) => ({
+        ...(r.service_requests as ServiceRequest),
+        provider: { ...(r.providers as Provider), user: r.users as User },
+      }));
+  }
+
+  async findPendingServiceRequest(providerId: string, serviceName: string): Promise<ServiceRequest | undefined> {
+    const [r] = await db
+      .select()
+      .from(serviceRequests)
+      .where(
+        and(
+          eq(serviceRequests.providerId, providerId),
+          eq(serviceRequests.serviceName, serviceName),
+          eq(serviceRequests.status, "pending_review"),
+        ),
+      );
+    return r || undefined;
+  }
+
+  async updateServiceRequest(id: string, data: Partial<ServiceRequest>): Promise<ServiceRequest | undefined> {
+    const [r] = await db
+      .update(serviceRequests)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(serviceRequests.id, id))
+      .returning();
+    return r || undefined;
   }
 
   // Notifications

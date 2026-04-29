@@ -668,6 +668,27 @@ export const notificationQueue = pgTable("notification_queue", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Provider-submitted requests for new services that admins must review.
+// Lifecycle: pending_review → approved | rejected (admin can edit before approving).
+export const serviceRequests = pgTable("service_requests", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  providerId: varchar("provider_id").notNull().references(() => providers.id, { onDelete: "cascade" }),
+  category: text("category").notNull(),
+  serviceName: text("service_name").notNull(),
+  subServiceName: text("sub_service_name").notNull(),
+  suggestedPrice: decimal("suggested_price", { precision: 10, scale: 2 }),
+  description: text("description"),
+  status: text("status").notNull().default("pending_review"),
+  adminNotes: text("admin_notes"),
+  rejectionReason: text("rejection_reason"),
+  createdServiceId: varchar("created_service_id").references(() => services.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (t) => [
+  index("idx_service_requests_provider_id").on(t.providerId),
+  index("idx_service_requests_status").on(t.status),
+]);
+
 export const platformSettings = pgTable("platform_settings", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   key: text("key").notNull().unique(),
@@ -1219,6 +1240,20 @@ export type EmailTemplate = typeof emailTemplates.$inferSelect;
 export type InsertEmailTemplate = z.infer<typeof insertEmailTemplateSchema>;
 export type Notification = typeof notificationQueue.$inferSelect;
 export type InsertNotification = z.infer<typeof insertNotificationSchema>;
+export const insertServiceRequestSchema = createInsertSchema(serviceRequests).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  status: true,
+  adminNotes: true,
+  rejectionReason: true,
+  createdServiceId: true,
+});
+export type ServiceRequest = typeof serviceRequests.$inferSelect;
+export type InsertServiceRequest = z.infer<typeof insertServiceRequestSchema>;
+export type ServiceRequestWithProvider = ServiceRequest & {
+  provider: Provider & { user: User };
+};
 export type PlatformSetting = typeof platformSettings.$inferSelect;
 export type InsertPlatformSetting = z.infer<typeof insertPlatformSettingSchema>;
 export type ServiceCategory = typeof serviceCategories.$inferSelect;
