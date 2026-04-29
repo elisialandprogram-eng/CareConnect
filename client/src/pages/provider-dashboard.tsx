@@ -989,6 +989,7 @@ export default function ProviderDashboard() {
       case "pending": return "bg-orange-100 text-orange-700";
       case "approved": return "bg-blue-100 text-blue-700";
       case "confirmed": return "bg-green-100 text-green-700";
+      case "in_progress": return "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400";
       case "rescheduled": return "bg-purple-100 text-purple-700";
       case "completed": return "bg-emerald-100 text-emerald-700";
       case "cancelled": return "bg-red-100 text-red-700";
@@ -1028,6 +1029,7 @@ export default function ProviderDashboard() {
     const isPending = appointment.status === "pending";
     const isApproved = appointment.status === "approved";
     const isConfirmed = appointment.status === "confirmed" || appointment.status === "rescheduled";
+    const isInProgress = appointment.status === "in_progress";
     const canMarkPaid =
       paymentStatus === "pending" &&
       paymentMethod !== "card" &&
@@ -1191,6 +1193,21 @@ export default function ProviderDashboard() {
               </Button>
             )}
             {isConfirmed && (
+              <Button
+                size="sm"
+                disabled={isUpdating}
+                onClick={() => updateStatusMutation.mutate({ id: appointment.id, status: "in_progress" })}
+                data-testid={`button-start-${appointment.id}`}
+              >
+                {isUpdating && updateStatusMutation.variables?.status === "in_progress" ? (
+                  <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                ) : (
+                  <Clock className="h-3 w-3 mr-1" />
+                )}
+                {t("dashboard.start_visit", "Start Visit")}
+              </Button>
+            )}
+            {isInProgress && (
               <Button
                 size="sm"
                 disabled={isUpdating}

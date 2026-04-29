@@ -90,6 +90,7 @@ import { generateInvoicePDF } from "./utils/invoice-gen";
 import { createInvoiceForAppointment } from "./utils/invoice-helper";
 import { sanitizeUser, sanitizeProviderWithUser, sanitizeProviderListItem } from "./utils/sanitize";
 import { computeFinalPrice } from "./lib/pricing";
+import { canTransition, isTerminalStatus, nextStatusesFor } from "./lib/appointmentStatus";
 import cookieParserModule from "cookie-parser";
 import {
   isStripeConfigured,
@@ -2878,6 +2879,22 @@ export async function registerRoutes(
       const existing = await storage.getAppointment(req.params.id);
       if (!existing) {
         return res.status(404).json({ message: "Appointment not found" });
+      }
+
+      // Enforce state-machine: cannot move out of a terminal state, and the
+      // requested transition must be a legal one. Admin may force any change.
+      if (req.user?.role !== "admin") {
+        if (isTerminalStatus(existing.status)) {
+          return res.status(409).json({
+            message: `Appointment is already ${existing.status} and cannot be changed.`,
+          });
+        }
+        if (!canTransition(existing.status, status)) {
+          return res.status(409).json({
+            message: `Cannot move appointment from ${existing.status} to ${status}.`,
+            allowed: nextStatusesFor(existing.status),
+          });
+        }
       }
 
       // Authorisation: admin OR the provider who owns the appointment OR the patient (cancel-only)
