@@ -15,6 +15,8 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Switch } from "@/components/ui/switch";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter } from "@/components/ui/sheet";
 import { Calendar } from "@/components/ui/calendar";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -551,6 +553,8 @@ export default function ProviderDashboard() {
   const [serviceFormOpen, setServiceFormOpen] = useState(false);
   const [newTicketOpen, setNewTicketOpen] = useState(false);
   const [editingService, setEditingService] = useState<any>(null);
+  const [pricingService, setPricingService] = useState<any | null>(null);
+  const [pricingDraft, setPricingDraft] = useState<any>({});
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [visitTypeFilter, setVisitTypeFilter] = useState<string>("all");
@@ -2016,37 +2020,112 @@ export default function ProviderDashboard() {
                     </Button>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <div className="space-y-2">
-                      {!providerWithServices?.services?.length && (
-                        <div className="text-center py-6 text-sm text-muted-foreground" data-testid="empty-services">
-                          No services yet. Add your first service.
-                        </div>
-                      )}
-                      {providerWithServices?.services?.map(s => (
-                        <div key={s.id} className="flex justify-between items-center p-3 border rounded-lg" data-testid={`row-service-${s.id}`}>
-                          <div className="flex items-center gap-3">
-                            <div className="h-3 w-3 rounded-full" style={{ backgroundColor: (s as any).calendarColor || "#10b981" }} />
-                            {(s as any).imageUrl && (
-                              <img src={(s as any).imageUrl} alt="" className="h-8 w-8 rounded-full object-cover" />
-                            )}
-                            <div>
-                              <p className="font-medium">{s.name}</p>
-                              <p className="text-xs text-muted-foreground">${Number(s.price).toFixed(2)} · {s.duration}m</p>
+                    {!providerWithServices?.services?.length && (
+                      <div className="text-center py-10 text-sm text-muted-foreground border-2 border-dashed rounded-lg" data-testid="empty-services">
+                        <Tag className="h-10 w-10 mx-auto mb-2 text-muted-foreground/50" />
+                        {t("provider_dashboard.empty_services_title", "No services yet. Add your first service.")}
+                      </div>
+                    )}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {providerWithServices?.services?.map(s => {
+                        const sa: any = s;
+                        const visitFees = [
+                          { icon: Home, label: t("provider_dashboard.fee_home", "Home"), val: Number(sa.homeVisitFee || 0) },
+                          { icon: Building2, label: t("provider_dashboard.fee_clinic", "Clinic"), val: Number(sa.clinicFee || 0) },
+                          { icon: Video, label: t("provider_dashboard.fee_online", "Online"), val: Number(sa.telemedicineFee || 0) },
+                        ].filter(v => v.val > 0);
+                        return (
+                          <div
+                            key={s.id}
+                            className={`group relative border rounded-xl bg-card p-4 transition-all hover-elevate ${!s.isActive ? "opacity-60" : ""}`}
+                            data-testid={`row-service-${s.id}`}
+                          >
+                            <div
+                              className="absolute left-0 top-3 bottom-3 w-1 rounded-r"
+                              style={{ backgroundColor: sa.calendarColor || "#10b981" }}
+                              aria-hidden
+                            />
+                            <div className="pl-2">
+                              <div className="flex items-start justify-between gap-2 mb-2">
+                                <div className="flex items-center gap-2 min-w-0 flex-1">
+                                  {sa.imageUrl ? (
+                                    <img src={sa.imageUrl} alt="" className="h-9 w-9 rounded-lg object-cover shrink-0" />
+                                  ) : (
+                                    <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                                      <Tag className="h-4 w-4 text-primary" />
+                                    </div>
+                                  )}
+                                  <div className="min-w-0">
+                                    <p className="font-semibold truncate" data-testid={`text-service-name-${s.id}`}>{s.name}</p>
+                                    <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                                      <Clock className="h-3 w-3" /> {s.duration}{t("provider_dashboard.min_short", "m")}
+                                      {sa.maxPatientsPerDay ? <> · <Users className="h-3 w-3" /> {sa.maxPatientsPerDay}/{t("provider_dashboard.day_short", "d")}</> : null}
+                                    </p>
+                                  </div>
+                                </div>
+                                <Switch
+                                  checked={!!s.isActive}
+                                  onCheckedChange={(v) => toggleServiceMutation.mutate({ id: s.id, isActive: v })}
+                                  data-testid={`switch-service-active-${s.id}`}
+                                />
+                              </div>
+                              <div className="flex items-baseline justify-between mt-1">
+                                <span className="text-lg font-bold text-primary" data-testid={`text-service-price-${s.id}`}>
+                                  ${Number(s.price).toFixed(2)}
+                                </span>
+                                <Badge variant={s.isActive ? "default" : "secondary"} className="text-[10px]">
+                                  {s.isActive ? t("provider_dashboard.active", "Active") : t("provider_dashboard.paused", "Paused")}
+                                </Badge>
+                              </div>
+                              {visitFees.length > 0 && (
+                                <div className="flex flex-wrap gap-1.5 mt-2">
+                                  {visitFees.map((vf, i) => {
+                                    const Ic = vf.icon;
+                                    return (
+                                      <span
+                                        key={i}
+                                        className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-md bg-muted text-foreground/80"
+                                        data-testid={`chip-fee-${vf.label.toLowerCase()}-${s.id}`}
+                                      >
+                                        <Ic className="h-3 w-3" /> {vf.label}: +${vf.val.toFixed(0)}
+                                      </span>
+                                    );
+                                  })}
+                                </div>
+                              )}
+                              <div className="flex justify-end gap-1 mt-3 pt-2 border-t border-dashed">
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-8"
+                                  onClick={() => { setPricingDraft({ ...sa }); setPricingService(s); }}
+                                  data-testid={`button-pricing-service-${s.id}`}
+                                >
+                                  <DollarSign className="h-3.5 w-3.5 mr-1" /> {t("provider_dashboard.pricing", "Pricing")}
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-8"
+                                  onClick={() => { setEditingService(s); setServiceFormOpen(true); }}
+                                  data-testid={`button-edit-service-${s.id}`}
+                                >
+                                  <Pencil className="h-3.5 w-3.5 mr-1" /> {t("provider_dashboard.edit", "Edit")}
+                                </Button>
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-8 w-8 text-destructive"
+                                  onClick={() => { if (confirm(t("provider_dashboard.confirm_delete_service", "Delete this service?"))) deleteServiceMutation.mutate(s.id); }}
+                                  data-testid={`button-delete-service-${s.id}`}
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                              </div>
                             </div>
                           </div>
-                          <div className="flex gap-1">
-                            <Button size="sm" variant="outline" onClick={() => { setEditingService(s); setServiceFormOpen(true); }} data-testid={`button-edit-service-${s.id}`}>
-                              {t("provider_dashboard.edit")}
-                            </Button>
-                            <Button size="sm" variant={s.isActive ? "default" : "outline"} onClick={() => toggleServiceMutation.mutate({ id: s.id, isActive: !s.isActive })} data-testid={`button-toggle-service-${s.id}`}>
-                              {s.isActive ? t("provider_dashboard.active", "Active") : t("provider_dashboard.paused", "Paused")}
-                            </Button>
-                            <Button size="icon" variant="ghost" className="text-destructive" onClick={() => deleteServiceMutation.mutate(s.id)} data-testid={`button-delete-service-${s.id}`}>
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </CardContent>
                 </Card>
@@ -2574,6 +2653,105 @@ export default function ProviderDashboard() {
             providerId={providerData?.id}
             providerType={providerData?.providerType}
           />
+
+          <Sheet open={!!pricingService} onOpenChange={(o) => { if (!o) setPricingService(null); }}>
+            <SheetContent className="sm:max-w-md overflow-y-auto" data-testid="sheet-pricing">
+              <SheetHeader>
+                <SheetTitle className="flex items-center gap-2">
+                  <DollarSign className="h-5 w-5 text-primary" />
+                  {t("provider_dashboard.edit_pricing", "Edit pricing")}
+                </SheetTitle>
+                <SheetDescription>
+                  {pricingService?.name}
+                </SheetDescription>
+              </SheetHeader>
+              <div className="space-y-4 py-6">
+                <div className="space-y-1.5">
+                  <Label htmlFor="ps-price">{t("provider_dashboard.base_price", "Base price")}</Label>
+                  <Input
+                    id="ps-price"
+                    type="number"
+                    step="0.01"
+                    value={pricingDraft.price ?? ""}
+                    onChange={(e) => setPricingDraft({ ...pricingDraft, price: e.target.value })}
+                    data-testid="input-pricing-base"
+                  />
+                </div>
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="ps-home" className="flex items-center gap-1 text-xs"><Home className="h-3 w-3" /> {t("provider_dashboard.fee_home", "Home")}</Label>
+                    <Input id="ps-home" type="number" step="0.01"
+                      value={pricingDraft.homeVisitFee ?? ""}
+                      onChange={(e) => setPricingDraft({ ...pricingDraft, homeVisitFee: e.target.value })}
+                      data-testid="input-pricing-home" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="ps-clinic" className="flex items-center gap-1 text-xs"><Building2 className="h-3 w-3" /> {t("provider_dashboard.fee_clinic", "Clinic")}</Label>
+                    <Input id="ps-clinic" type="number" step="0.01"
+                      value={pricingDraft.clinicFee ?? ""}
+                      onChange={(e) => setPricingDraft({ ...pricingDraft, clinicFee: e.target.value })}
+                      data-testid="input-pricing-clinic" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="ps-online" className="flex items-center gap-1 text-xs"><Video className="h-3 w-3" /> {t("provider_dashboard.fee_online", "Online")}</Label>
+                    <Input id="ps-online" type="number" step="0.01"
+                      value={pricingDraft.telemedicineFee ?? ""}
+                      onChange={(e) => setPricingDraft({ ...pricingDraft, telemedicineFee: e.target.value })}
+                      data-testid="input-pricing-online" />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="ps-dur" className="flex items-center gap-1 text-xs"><Clock className="h-3 w-3" /> {t("provider_dashboard.duration", "Duration (min)")}</Label>
+                    <Input id="ps-dur" type="number"
+                      value={pricingDraft.duration ?? ""}
+                      onChange={(e) => setPricingDraft({ ...pricingDraft, duration: parseInt(e.target.value) || 0 })}
+                      data-testid="input-pricing-duration" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="ps-cap" className="flex items-center gap-1 text-xs"><Users className="h-3 w-3" /> {t("provider_dashboard.max_per_day", "Max per day")}</Label>
+                    <Input id="ps-cap" type="number"
+                      value={pricingDraft.maxPatientsPerDay ?? ""}
+                      onChange={(e) => setPricingDraft({ ...pricingDraft, maxPatientsPerDay: e.target.value ? parseInt(e.target.value) : null })}
+                      data-testid="input-pricing-cap" />
+                  </div>
+                </div>
+                <div className="rounded-md border p-3 text-xs text-muted-foreground bg-muted/30">
+                  {t("provider_dashboard.pricing_hint", "Visit-type fees are added on top of the base price at booking time.")}
+                </div>
+              </div>
+              <SheetFooter className="flex-row justify-end gap-2 sm:space-x-0">
+                <Button variant="outline" onClick={() => setPricingService(null)} data-testid="button-pricing-cancel">
+                  {t("provider_dashboard.cancel", "Cancel")}
+                </Button>
+                <Button
+                  onClick={async () => {
+                    if (!pricingService) return;
+                    try {
+                      await apiRequest("PATCH", `/api/services/${pricingService.id}`, {
+                        price: pricingDraft.price,
+                        homeVisitFee: pricingDraft.homeVisitFee,
+                        clinicFee: pricingDraft.clinicFee,
+                        telemedicineFee: pricingDraft.telemedicineFee,
+                        duration: pricingDraft.duration,
+                        maxPatientsPerDay: pricingDraft.maxPatientsPerDay,
+                      });
+                      toast({ title: t("provider_dashboard.pricing_saved", "Pricing saved") });
+                      queryClient.invalidateQueries({ queryKey: [`/api/providers/${providerData?.id}`] });
+                      queryClient.invalidateQueries({ queryKey: ["/api/providers/me"] });
+                      setPricingService(null);
+                    } catch (e: any) {
+                      toast({ title: t("provider_dashboard.pricing_error", "Failed to save pricing"), description: e.message, variant: "destructive" });
+                    }
+                  }}
+                  data-testid="button-pricing-save"
+                >
+                  <CheckCircle className="h-4 w-4 mr-1" />
+                  {t("provider_dashboard.save", "Save")}
+                </Button>
+              </SheetFooter>
+            </SheetContent>
+          </Sheet>
         </div>
       </main>
       <Footer />
