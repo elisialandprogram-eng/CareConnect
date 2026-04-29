@@ -2074,17 +2074,20 @@ export default function ProviderDashboard() {
             <TabsContent value="services" className="mt-6 space-y-6">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <Card>
-                  <CardHeader className="flex flex-row items-center justify-between">
+                  <CardHeader>
                     <CardTitle>{t("provider_dashboard.services", "Services")}</CardTitle>
-                    <Button size="sm" onClick={() => { setEditingService(null); setServiceFormOpen(true); }} data-testid="button-add-service">
-                      <Plus className="h-4 w-4 mr-1" /> {t("provider_dashboard.add_btn", "Add")}
-                    </Button>
+                    <CardDescription>
+                      {t(
+                        "provider_dashboard.services_desc",
+                        "These services were assigned to you by an administrator. You can pause/resume each one and override its price, duration and visit fees, but the catalog itself can only be changed by an admin."
+                      )}
+                    </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     {!providerWithServices?.services?.length && (
                       <div className="text-center py-10 text-sm text-muted-foreground border-2 border-dashed rounded-lg" data-testid="empty-services">
                         <Tag className="h-10 w-10 mx-auto mb-2 text-muted-foreground/50" />
-                        {t("provider_dashboard.empty_services_title", "No services yet. Add your first service.")}
+                        {t("provider_dashboard.empty_services_title", "No services have been assigned to you yet. An administrator will grant you services from the catalog.")}
                       </div>
                     )}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -2829,6 +2832,7 @@ export default function ProviderDashboard() {
             service={editingService}
             providerId={providerData?.id}
             providerType={providerData?.providerType}
+            lockCategory
           />
 
           <Sheet open={!!pricingService} onOpenChange={(o) => { if (!o) setPricingService(null); }}>

@@ -56,6 +56,14 @@ interface Props {
   providerId?: string;
   adminMode?: boolean;
   providerType?: string;
+  /**
+   * When true, the catalog/sub-service category is read-only (display-only) and
+   * the inline "add new" / "edit" / "delete" controls for catalog rows are
+   * hidden. Use for the provider dashboard, where providers can override
+   * pricing on assigned services but must NOT be able to mutate the global
+   * catalog.
+   */
+  lockCategory?: boolean;
 }
 
 function fmt(val: string | number | null | undefined): string {
@@ -237,7 +245,7 @@ function PriceHistoryPanel({ history, isLoading, currentPrice }: PriceHistoryPan
   );
 }
 
-export function ServiceFormDialog({ open, onOpenChange, service, providerId, adminMode, providerType }: Props) {
+export function ServiceFormDialog({ open, onOpenChange, service, providerId, adminMode, providerType, lockCategory }: Props) {
   const { t } = useTranslation();
   const { toast } = useToast();
   const isEdit = !!service;
@@ -614,6 +622,14 @@ export function ServiceFormDialog({ open, onOpenChange, service, providerId, adm
               </div>
               <div className="space-y-2">
                 <Label className="text-sm">{t("service_form.category_label")} <span className="text-destructive">*</span></Label>
+                {lockCategory ? (
+                  <div
+                    className="flex h-10 w-full items-center rounded-md border border-input bg-muted/40 px-3 text-sm"
+                    data-testid="display-service-category-locked"
+                  >
+                    {subServices.find((s) => s.id === subServiceId)?.name ?? <span className="text-muted-foreground">—</span>}
+                  </div>
+                ) : (
                 <Select
                   value={subServiceId}
                   onValueChange={(v) => {
@@ -673,8 +689,9 @@ export function ServiceFormDialog({ open, onOpenChange, service, providerId, adm
                     </SelectItem>
                   </SelectContent>
                 </Select>
+                )}
 
-                {editingCategoryId && (
+                {!lockCategory && editingCategoryId && (
                   <div className="rounded-md border bg-muted/30 p-3 space-y-2" data-testid="form-edit-category">
                     <Label className="text-xs text-muted-foreground">Edit category</Label>
                     <Input
@@ -716,7 +733,7 @@ export function ServiceFormDialog({ open, onOpenChange, service, providerId, adm
                   </div>
                 )}
 
-                {showNewCategory && (
+                {!lockCategory && showNewCategory && (
                   <div className="rounded-md border bg-muted/30 p-3 space-y-2" data-testid="form-new-category">
                     <Label className="text-xs text-muted-foreground">New category</Label>
                     <Input

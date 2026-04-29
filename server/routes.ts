@@ -1119,9 +1119,8 @@ export async function registerRoutes(
     }
   });
 
-  // Allow any authenticated user (provider or admin) to create new sub-service
-  // categories so providers can add their own services from the dashboard.
-  app.post("/api/sub-services", authenticateToken, async (req: AuthRequest, res: Response) => {
+  // Admin-only: providers must not create global catalog rows.
+  app.post("/api/sub-services", authenticateToken, requireAdmin, async (req: AuthRequest, res: Response) => {
     try {
       const data = insertSubServiceSchema.parse(req.body);
       // Avoid duplicate (name, category) collisions with a clearer error
@@ -1143,8 +1142,8 @@ export async function registerRoutes(
     }
   });
 
-  // Allow any authenticated user to rename a sub-service category.
-  app.patch("/api/sub-services/:id", authenticateToken, async (req: AuthRequest, res: Response) => {
+  // Admin-only: rename a sub-service catalog row.
+  app.patch("/api/sub-services/:id", authenticateToken, requireAdmin, async (req: AuthRequest, res: Response) => {
     try {
       const id = req.params.id;
       const existing = await storage.getSubService(id);
@@ -1180,9 +1179,8 @@ export async function registerRoutes(
     }
   });
 
-  // Allow any authenticated user to delete a sub-service category, but only if
-  // no services currently reference it.
-  app.delete("/api/sub-services/:id", authenticateToken, async (req: AuthRequest, res: Response) => {
+  // Admin-only: archive/delete a sub-service catalog row.
+  app.delete("/api/sub-services/:id", authenticateToken, requireAdmin, async (req: AuthRequest, res: Response) => {
     try {
       const id = req.params.id;
       const existing = await storage.getSubService(id);
@@ -2052,17 +2050,11 @@ export async function registerRoutes(
     }
   });
 
-  // Duplicate service
-  app.post("/api/services/:id/duplicate", authenticateToken, async (req: AuthRequest, res: Response) => {
+  // Duplicate service — admin only (creates a brand-new service row).
+  app.post("/api/services/:id/duplicate", authenticateToken, requireAdmin, async (req: AuthRequest, res: Response) => {
     try {
       const src = await storage.getService(req.params.id);
       if (!src) return res.status(404).json({ message: "Service not found" });
-      if (req.user?.role !== "admin") {
-        const provider = await storage.getProviderByUserId(req.user!.id);
-        if (!provider || provider.id !== src.providerId) {
-          return res.status(403).json({ message: "Forbidden" });
-        }
-      }
       const copy = await storage.duplicateService(req.params.id);
       res.status(201).json(copy);
     } catch (error) {
@@ -2348,12 +2340,26 @@ export async function registerRoutes(
 
   app.post("/api/service-practitioners", authenticateToken, async (req: AuthRequest, res) => {
     try {
-      const provider = await storage.getProviderByUserId(req.user!.id);
-      if (!provider) {
-        return res.status(403).json({ message: "Unauthorized" });
+      const data = insertServicePractitionerSchema.parse(req.body);
+
+      // Ownership: the service AND the practitioner must both belong to the
+      // requesting provider (or the caller must be admin).
+      if (req.user?.role !== "admin") {
+        const provider = await storage.getProviderByUserId(req.user!.id);
+        if (!provider) return res.status(403).json({ message: "Unauthorized" });
+
+        const svc = await storage.getService(data.serviceId);
+        if (!svc) return res.status(404).json({ message: "Service not found" });
+        if (svc.providerId !== provider.id) {
+          return res.status(403).json({ message: "You can only assign practitioners to your own services" });
+        }
+        const pract = await storage.getPractitioner(data.practitionerId);
+        if (!pract) return res.status(404).json({ message: "Practitioner not found" });
+        if (pract.providerId !== provider.id) {
+          return res.status(403).json({ message: "You can only assign your own practitioners" });
+        }
       }
 
-      const data = insertServicePractitionerSchema.parse(req.body);
       const result = await storage.addPractitionerToService(data);
       res.status(201).json(result);
     } catch (error) {
@@ -2399,12 +2405,14 @@ export async function registerRoutes(
   });
 
   // Services & Practitioners
-  app.post("/api/services", authenticateToken, async (req: AuthRequest, res) => {
-    if (req.user?.role !== "provider") return res.status(403).json({ message: "Provider access required" });
+  // Admin-only: providers can only operate on services that the admin has
+  // assigned to them via POST /api/admin/providers/:id/assign-services.
+  app.post("/api/services", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
     try {
-      const provider = await storage.getProviderByUserId(req.user.id);
+      const data = insertServiceSchema.parse(req.body);
+      if (!data.providerId) return res.status(400).json({ message: "providerId is required" });
+      const provider = await storage.getProvider(data.providerId);
       if (!provider) return res.status(404).json({ message: "Provider not found" });
-      const data = insertServiceSchema.parse({ ...req.body, providerId: provider.id });
       const service = await storage.createService(data);
       res.status(201).json(service);
     } catch (error) {
@@ -2734,11 +2742,27 @@ export async function registerRoutes(
         if (sp.fee) practitionerFee = Number(sp.fee);
       }
 
-      // Fetch service + sub-service for full pricing data
+      // Fetch service + sub-service for full pricing data, AND enforce that
+      // the service is one the admin has assigned to this provider and is
+      // currently active. Booking is only allowed against assigned + active
+      // services — never against another provider's row, an inactive row, or
+      // an archived/soft-deleted row.
       try {
         if (serviceId) {
           svcRecord = await storage.getService(serviceId);
-          if (svcRecord?.subServiceId) {
+          if (!svcRecord) {
+            return res.status(404).json({ message: "Service not found" });
+          }
+          if (svcRecord.providerId !== providerId) {
+            return res.status(400).json({ message: "Selected service does not belong to this provider." });
+          }
+          if (svcRecord.deletedAt) {
+            return res.status(400).json({ message: "This service is no longer offered." });
+          }
+          if (!svcRecord.isActive) {
+            return res.status(400).json({ message: "This service is currently paused. Please pick a different one." });
+          }
+          if (svcRecord.subServiceId) {
             subRecord = await storage.getSubService(svcRecord.subServiceId);
           }
         }
@@ -4462,6 +4486,25 @@ export async function registerRoutes(
         ...req.body,
         serviceId: req.params.serviceId
       });
+
+      // Ownership: caller must be admin OR own the underlying service AND
+      // the practitioner being assigned must belong to the same provider.
+      if (req.user?.role !== "admin") {
+        const provider = await storage.getProviderByUserId(req.user!.id);
+        if (!provider) return res.status(403).json({ message: "Unauthorized" });
+
+        const svc = await storage.getService(data.serviceId);
+        if (!svc) return res.status(404).json({ message: "Service not found" });
+        if (svc.providerId !== provider.id) {
+          return res.status(403).json({ message: "You can only assign practitioners to your own services" });
+        }
+        const pract = await storage.getPractitioner(data.practitionerId);
+        if (!pract) return res.status(404).json({ message: "Practitioner not found" });
+        if (pract.providerId !== provider.id) {
+          return res.status(403).json({ message: "You can only assign your own practitioners" });
+        }
+      }
+
       const result = await storage.addPractitionerToService(data);
       res.status(201).json(result);
     } catch (error) {

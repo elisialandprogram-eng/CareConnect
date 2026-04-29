@@ -69,7 +69,16 @@ Provider service add/edit uses `client/src/components/service-form-dialog.tsx`, 
 
 ### Catalog → Provider Service Assignment
 
-Important: there is **no `provider_services` join table**. The `services` table *is* the (provider × sub_service) join — each row carries `providerId`, `subServiceId`, plus the per-provider `name`, `price`, `duration`, `isActive`, etc. Bookings are constrained to assigned services via `appointments.service_id → services.id`. Admins can bulk-grant a provider catalog sub-services through `client/src/components/assign-services-dialog.tsx` (an "Assign from catalog" button next to the "Add" button in the admin Services panel). It posts to `POST /api/admin/providers/:id/assign-services` with `{ subServiceIds: uuid[] }`; the storage method `assignSubServicesToProvider` (in `server/storage.ts`) inserts a `services` row per sub-service using the catalog defaults, and skips any that are missing, inactive, or already assigned (returning a `skipped[]` array with a `reason`). The single-service `service-form-dialog.tsx` flow remains for ad-hoc cases. `PATCH` and `DELETE /api/services/:id` are guarded so only the owning provider (or an admin) can mutate or remove a row.
+Important: there is **no `provider_services` join table**. The `services` table *is* the (provider × sub_service) join — each row carries `providerId`, `subServiceId`, plus the per-provider `name`, `price`, `duration`, `isActive`, etc. Bookings are constrained to assigned services via `appointments.service_id → services.id`.
+
+**Only admins may grant a provider new services.** The provider dashboard is read-only for the catalog and for service creation; the "Add" button has been removed and the sub-service category in `service-form-dialog.tsx` is locked when the dialog is opened from the provider dashboard (via the `lockCategory` prop). Providers retain full control over their assigned rows: pause/resume, override `price` / `duration` / visit fees, hide-price/hide-duration toggles, archive, restore, and attach their own practitioners. Backend enforces this:
+
+- `POST /api/services`, `POST /api/services/:id/duplicate`, and all of `POST/PATCH/DELETE /api/sub-services` require **admin** (no provider can mutate the global catalog or self-create a service).
+- `POST /api/service-practitioners` and `POST /api/services/:serviceId/practitioners` enforce **dual ownership**: the caller must be admin OR own both the service AND the practitioner being assigned.
+- `PATCH` and `DELETE /api/services/:id` are guarded so only the owning provider (or an admin) can mutate or remove a row.
+- `POST /api/appointments` rejects (`400`) any booking whose `serviceId` does not belong to the booked `providerId`, or whose service is paused (`isActive=false`) or soft-archived (`deletedAt` set).
+
+Admins assign services via the dialog at `client/src/components/assign-services-dialog.tsx` ("Assign from catalog" button in the admin Services panel). It posts to `POST /api/admin/providers/:id/assign-services` with `{ subServiceIds: uuid[] }`; the storage method `assignSubServicesToProvider` (in `server/storage.ts`) inserts a `services` row per sub-service using the catalog defaults, and skips any that are missing, inactive, or already assigned (returning `skipped[]` with a `reason`).
 
 ### Wallet System
 
