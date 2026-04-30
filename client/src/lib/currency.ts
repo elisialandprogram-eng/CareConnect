@@ -151,3 +151,29 @@ export function getCurrencyConfigForCountry(countryCode: string | null | undefin
   if (countryCode === "HU" || countryCode === "IR") return CURRENCY_BY_COUNTRY[countryCode];
   return DEFAULT_CURRENCY;
 }
+
+/**
+ * Format an amount using a specific country's currency. Used when an entity
+ * (e.g. a provider) has its own country and prices should be shown in that
+ * country's currency regardless of the viewer's UI language. Treats the input
+ * as already-denominated in the target currency (no FX conversion); if the
+ * source amount is in USD, convert first using getCurrencyConfigForCountry().
+ */
+export function formatCurrencyForCountry(
+  amount: number | string | null | undefined,
+  countryCode: string | null | undefined,
+): string {
+  const cfg = getCurrencyConfigForCountry(countryCode);
+  const numeric = Number(amount ?? 0);
+  const safe = Number.isFinite(numeric) ? numeric : 0;
+  try {
+    return new Intl.NumberFormat(cfg.locale, {
+      style: "currency",
+      currency: cfg.code,
+      maximumFractionDigits: cfg.fractionDigits,
+      minimumFractionDigits: cfg.fractionDigits === 0 ? 0 : 2,
+    }).format(safe);
+  } catch {
+    return `${cfg.symbol}${safe.toFixed(cfg.fractionDigits)}`;
+  }
+}

@@ -39,7 +39,7 @@ import {
 } from "@shared/schema";
 import crypto from 'crypto'; // Import crypto module for randomUUID
 import { Resend } from 'resend';
-import { db } from "./db";
+import { db, pool } from "./db";
 import { eq, and, desc, or, gte, lte, like, inArray } from "drizzle-orm";
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
@@ -2765,6 +2765,175 @@ export async function registerRoutes(
     }
   });
 
+  // ───────────────────────────────────────────────────────────────────────────
+  // Provider-staged service edits: a provider proposes changes that go into a
+  // pending state on the same row (services.pending_changes JSONB). The admin
+  // then approves (merges into the live row) or rejects (clears the staging
+  // fields). While pendingChangeStatus = 'pending' the service cannot be booked.
+  // Whitelist of fields a provider is allowed to stage. We keep this short on
+  // purpose — anything broader (provider_id, country_code, deleted_at) must
+  // remain admin-only.
+  const PROVIDER_EDITABLE_SERVICE_FIELDS = new Set([
+    "subServiceId",
+    "name",
+    "description",
+    "duration",
+    "price",
+    "homeVisitFee",
+    "clinicFee",
+    "telemedicineFee",
+    "emergencyFee",
+    "depositAmount",
+    "enableDeposit",
+    "locationMode",
+  ]);
+
+  app.post("/api/provider/services/:id/submit-changes", authenticateToken, async (req: AuthRequest, res: Response) => {
+    try {
+      const svc: any = await storage.getService(req.params.id);
+      if (!svc) return res.status(404).json({ message: "Service not found" });
+      const provider = await storage.getProviderByUserId(req.user!.id);
+      if (!provider || provider.id !== svc.providerId) {
+        return res.status(403).json({ message: "You can only edit services assigned to you" });
+      }
+
+      const incoming = (req.body && typeof req.body === "object") ? req.body : {};
+      const reason: string | null = typeof incoming.reason === "string" ? incoming.reason : null;
+      const staged: Record<string, any> = {};
+      for (const [k, v] of Object.entries(incoming)) {
+        if (k === "reason") continue;
+        if (PROVIDER_EDITABLE_SERVICE_FIELDS.has(k)) staged[k] = v;
+      }
+      if (Object.keys(staged).length === 0) {
+        return res.status(400).json({ message: "No editable fields submitted." });
+      }
+
+      // Defense-in-depth: if the provider tries to assign a sub-service that
+      // belongs to another country we reject. Sub-services already inherit a
+      // country from the catalog, so this preserves tenancy isolation.
+      if (staged.subServiceId) {
+        const sub: any = await storage.getSubService(staged.subServiceId);
+        if (!sub) return res.status(400).json({ message: "Selected category does not exist." });
+        if ((sub as any).countryCode && (svc as any).countryCode && (sub as any).countryCode !== (svc as any).countryCode) {
+          return res.status(400).json({ message: "Selected category is not available in this country." });
+        }
+      }
+
+      await pool.query(
+        `UPDATE services
+         SET pending_changes = $1::jsonb,
+             pending_change_status = 'pending',
+             pending_change_submitted_by = $2,
+             pending_change_submitted_at = NOW(),
+             pending_change_reviewed_by = NULL,
+             pending_change_reviewed_at = NULL,
+             pending_change_reason = $3,
+             updated_at = NOW()
+         WHERE id = $4`,
+        [JSON.stringify(staged), req.user!.id, reason, req.params.id],
+      );
+      const updated = await storage.getService(req.params.id);
+      res.json(updated);
+    } catch (error) {
+      console.error("[POST /api/provider/services/:id/submit-changes] error:", error);
+      res.status(500).json({ message: "Failed to submit changes" });
+    }
+  });
+
+  app.get("/api/admin/services/pending-changes", authenticateToken, requireAdmin, async (req: AuthRequest, res: Response) => {
+    try {
+      const countryFilter = listingCountryFilter(req.user!, req.query as any);
+      const params: any[] = [];
+      let where = `WHERE s.pending_change_status = 'pending'`;
+      if (countryFilter) {
+        params.push(countryFilter);
+        where += ` AND s.country_code = $${params.length}`;
+      }
+      const result = await pool.query(
+        `SELECT s.*,
+                p.business_name AS provider_business_name,
+                u.first_name AS provider_first_name,
+                u.last_name AS provider_last_name,
+                u.email AS provider_email
+         FROM services s
+         LEFT JOIN providers p ON p.id = s.provider_id
+         LEFT JOIN users u ON u.id = p.user_id
+         ${where}
+         ORDER BY s.pending_change_submitted_at DESC NULLS LAST`,
+        params,
+      );
+      res.json(result.rows);
+    } catch (error) {
+      console.error("[GET /api/admin/services/pending-changes] error:", error);
+      res.status(500).json({ message: "Failed to load pending changes" });
+    }
+  });
+
+  app.post("/api/admin/services/:id/approve-changes", authenticateToken, requireAdmin, async (req: AuthRequest, res: Response) => {
+    try {
+      const svc: any = await storage.getService(req.params.id);
+      if (!svc) return res.status(404).json({ message: "Service not found" });
+      if (!canAccessCountry(req.user!, svc.countryCode)) {
+        return res.status(404).json({ message: "Service not found" });
+      }
+      if (svc.pendingChangeStatus !== "pending" || !svc.pendingChanges) {
+        return res.status(400).json({ message: "No pending changes to approve." });
+      }
+      const staged: Record<string, any> = svc.pendingChanges || {};
+      const safe: Record<string, any> = {};
+      for (const [k, v] of Object.entries(staged)) {
+        if (PROVIDER_EDITABLE_SERVICE_FIELDS.has(k)) safe[k] = v;
+      }
+      // Apply through the storage layer so price-history and updated_at hooks
+      // stay consistent with regular admin edits.
+      await storage.updateService(req.params.id, safe, { changedBy: req.user?.id });
+      await pool.query(
+        `UPDATE services
+         SET pending_changes = NULL,
+             pending_change_status = NULL,
+             pending_change_reviewed_by = $1,
+             pending_change_reviewed_at = NOW(),
+             pending_change_reason = NULL
+         WHERE id = $2`,
+        [req.user!.id, req.params.id],
+      );
+      const updated = await storage.getService(req.params.id);
+      res.json(updated);
+    } catch (error) {
+      console.error("[POST /api/admin/services/:id/approve-changes] error:", error);
+      res.status(500).json({ message: "Failed to approve changes" });
+    }
+  });
+
+  app.post("/api/admin/services/:id/reject-changes", authenticateToken, requireAdmin, async (req: AuthRequest, res: Response) => {
+    try {
+      const svc: any = await storage.getService(req.params.id);
+      if (!svc) return res.status(404).json({ message: "Service not found" });
+      if (!canAccessCountry(req.user!, svc.countryCode)) {
+        return res.status(404).json({ message: "Service not found" });
+      }
+      if (svc.pendingChangeStatus !== "pending") {
+        return res.status(400).json({ message: "No pending changes to reject." });
+      }
+      const note: string | null = typeof req.body?.reason === "string" ? req.body.reason : null;
+      await pool.query(
+        `UPDATE services
+         SET pending_changes = NULL,
+             pending_change_status = NULL,
+             pending_change_reviewed_by = $1,
+             pending_change_reviewed_at = NOW(),
+             pending_change_reason = $2
+         WHERE id = $3`,
+        [req.user!.id, note, req.params.id],
+      );
+      const updated = await storage.getService(req.params.id);
+      res.json(updated);
+    } catch (error) {
+      console.error("[POST /api/admin/services/:id/reject-changes] error:", error);
+      res.status(500).json({ message: "Failed to reject changes" });
+    }
+  });
+
   app.delete("/api/services/:id", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const force = req.query.force === "true" && isAdminRole(req.user?.role);
@@ -4054,6 +4223,15 @@ export async function registerRoutes(
           }
           if (!svcRecord.isActive) {
             return res.status(400).json({ message: "This service is currently paused. Please pick a different one." });
+          }
+          // Provider has staged edits awaiting admin review — service is locked
+          // for booking until the changes are approved or rejected. Without this
+          // guard a patient could book at the old price right before the new
+          // price is applied.
+          if ((svcRecord as any).pendingChangeStatus === "pending") {
+            return res.status(400).json({
+              message: "This service is being updated by the provider and is temporarily unavailable. Please try again shortly.",
+            });
           }
           if (svcRecord.subServiceId) {
             subRecord = await storage.getSubService(svcRecord.subServiceId);

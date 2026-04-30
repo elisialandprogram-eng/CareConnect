@@ -484,6 +484,155 @@ function AdminServicesPanel({
   );
 }
 
+// Admin queue for provider-staged edits on existing services.
+// Each row shows the diff between current values and the proposed values, plus
+// Approve / Reject controls. Approving merges the staged values into the live
+// service row; rejecting clears the staging fields and unlocks the service.
+function ServicePendingChangesPanel() {
+  const { toast } = useToast();
+  const { data: items = [], isLoading } = useQuery<any[]>({
+    queryKey: ["/api/admin/services/pending-changes"],
+  });
+
+  const approve = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await apiRequest("POST", `/api/admin/services/${id}/approve-changes`, {});
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Changes applied" });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/services/pending-changes"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/services-overview"] });
+    },
+    onError: (e: any) => toast({ title: "Approve failed", description: e?.message, variant: "destructive" }),
+  });
+
+  const reject = useMutation({
+    mutationFn: async ({ id, reason }: { id: string; reason: string }) => {
+      const res = await apiRequest("POST", `/api/admin/services/${id}/reject-changes`, { reason });
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Changes rejected" });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/services/pending-changes"] });
+    },
+    onError: (e: any) => toast({ title: "Reject failed", description: e?.message, variant: "destructive" }),
+  });
+
+  // Field labels are kept short — only the fields the provider is allowed to
+  // submit appear here. Anything submitted outside the server's whitelist is
+  // dropped and never appears in this UI.
+  const FIELD_LABELS: Record<string, string> = {
+    subServiceId: "Category",
+    name: "Name",
+    description: "Description",
+    duration: "Duration (min)",
+    price: "Base price",
+    homeVisitFee: "Home fee",
+    clinicFee: "Clinic fee",
+    telemedicineFee: "Online fee",
+    emergencyFee: "Emergency fee",
+    depositAmount: "Deposit",
+    enableDeposit: "Deposit on?",
+    locationMode: "Location mode",
+  };
+
+  const renderVal = (v: any) => {
+    if (v == null || v === "") return "—";
+    if (typeof v === "boolean") return v ? "Yes" : "No";
+    return String(v);
+  };
+
+  return (
+    <Card data-testid="card-service-pending-changes">
+      <CardHeader>
+        <CardTitle>Pending service edits</CardTitle>
+        <CardDescription>
+          Edits submitted by providers for admin-managed services. Services with pending edits are paused for booking until you approve or reject.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <div className="flex items-center justify-center p-6">
+            <Loader2 className="h-5 w-5 animate-spin" />
+          </div>
+        ) : items.length === 0 ? (
+          <p className="text-sm text-muted-foreground" data-testid="text-no-pending-edits">
+            No pending edits.
+          </p>
+        ) : (
+          <div className="space-y-3">
+            {items.map((row: any) => {
+              const provName = row.provider_business_name
+                || `${row.provider_first_name || ""} ${row.provider_last_name || ""}`.trim()
+                || row.provider_email
+                || "—";
+              const staged = row.pending_changes || {};
+              const keys = Object.keys(staged).filter((k) => FIELD_LABELS[k]);
+              return (
+                <div
+                  key={row.id}
+                  className="border rounded-lg p-4 bg-card"
+                  data-testid={`row-pending-${row.id}`}
+                >
+                  <div className="flex items-start justify-between gap-3 flex-wrap">
+                    <div className="min-w-0">
+                      <p className="font-semibold" data-testid={`text-pending-name-${row.id}`}>{row.name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        Provider: <span className="font-medium text-foreground">{provName}</span>
+                        {row.pending_change_reason ? <> · Reason: <em>{row.pending_change_reason}</em></> : null}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        size="sm"
+                        onClick={() => approve.mutate(row.id)}
+                        disabled={approve.isPending}
+                        data-testid={`button-approve-${row.id}`}
+                      >
+                        Approve
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={() => {
+                          const reason = window.prompt("Reason for rejection (optional):") || "";
+                          reject.mutate({ id: row.id, reason });
+                        }}
+                        disabled={reject.isPending}
+                        data-testid={`button-reject-${row.id}`}
+                      >
+                        Reject
+                      </Button>
+                    </div>
+                  </div>
+                  {keys.length > 0 && (
+                    <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                      {keys.map((k) => (
+                        <div key={k} className="flex items-center justify-between gap-2 border rounded px-2 py-1">
+                          <span className="text-xs text-muted-foreground">{FIELD_LABELS[k]}</span>
+                          <span className="text-xs">
+                            <span className="line-through text-muted-foreground mr-2">
+                              {renderVal((row as any)[k === "subServiceId" ? "sub_service_id" : k.replace(/[A-Z]/g, (m) => "_" + m.toLowerCase())])}
+                            </span>
+                            <span className="font-semibold text-primary" data-testid={`text-staged-${k}-${row.id}`}>
+                              {renderVal(staged[k])}
+                            </span>
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 // Admin queue for service requests submitted by providers.
 // Lets admin edit the request, approve (creates the real service + notifies provider),
 // or reject with a reason.
@@ -1653,9 +1802,16 @@ function BookingsManagementComponent() {
   const { t } = useTranslation();
   const { toast } = useToast();
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [providerFilter, setProviderFilter] = useState<string>("all");
 
   const { data: bookings, isLoading, refetch } = useQuery<any[]>({
     queryKey: ["/api/admin/bookings"],
+  });
+
+  // Provider list for the "by provider" dropdown filter. Country-isolated on
+  // the server; we just render whatever the backend returns for this admin.
+  const { data: providersForFilter } = useQuery<any[]>({
+    queryKey: ["/api/admin/providers"],
   });
 
   const updateBookingMutation = useMutation({
@@ -1675,11 +1831,22 @@ function BookingsManagementComponent() {
   });
 
   const [bookingSearch, setBookingSearch] = useState<string>("");
+
+  const providerLabel = (p: any): string => {
+    if (!p) return "—";
+    if (p.businessName) return p.businessName;
+    const u = p.user || {};
+    const full = `${u.firstName || ""} ${u.lastName || ""}`.trim();
+    return full || u.email || `Provider ${String(p.id).slice(0, 6)}`;
+  };
+
   const filteredBookings = bookings?.filter((b: any) => {
     const matchesStatus = statusFilter === "all" || b.status === statusFilter;
-    if (!bookingSearch.trim()) return matchesStatus;
+    const matchesProvider = providerFilter === "all" || b.providerId === providerFilter;
+    if (!matchesStatus || !matchesProvider) return false;
+    if (!bookingSearch.trim()) return true;
     const q = bookingSearch.trim().toLowerCase();
-    return matchesStatus && (
+    return (
       (b.appointmentNumber && b.appointmentNumber.toLowerCase().includes(q)) ||
       (b.patientName && b.patientName.toLowerCase().includes(q)) ||
       (b.providerName && b.providerName.toLowerCase().includes(q)) ||
@@ -1721,6 +1888,19 @@ function BookingsManagementComponent() {
             <SelectItem value="cancelled_by_provider">Cancelled by Provider</SelectItem>
             <SelectItem value="no_show">No-Show</SelectItem>
             <SelectItem value="rescheduled">Rescheduled</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={providerFilter} onValueChange={setProviderFilter}>
+          <SelectTrigger className="w-56" data-testid="select-booking-provider-filter">
+            <SelectValue placeholder="Filter by provider" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All providers</SelectItem>
+            {(providersForFilter || []).map((p: any) => (
+              <SelectItem key={p.id} value={p.id} data-testid={`option-provider-${p.id}`}>
+                {providerLabel(p)}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
         <span className="text-sm text-muted-foreground">
@@ -6453,7 +6633,10 @@ export default function AdminDashboard() {
           </TabsList>
 
           <TabsContent value="catalog">
-            <ServiceCatalogHierarchy />
+            <div className="space-y-6">
+              <ServicePendingChangesPanel />
+              <ServiceCatalogHierarchy />
+            </div>
           </TabsContent>
 
           <TabsContent value="service-requests">

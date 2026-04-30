@@ -500,16 +500,31 @@
   .stat-orange      { @apply border-l-orange-500  bg-gradient-to-br from-orange-50  to-transparent dark:from-orange-950/40  dark:to-transparent; }
   .stat-orange .stat-icon { @apply bg-orange-100  text-orange-600  dark:bg-orange-900/60  dark:text-orange-300; }
 
-  /* Scrollable tabs wrapper — allows horizontal scroll with a fade hint */
+  /* Scrollable tabs wrapper — allows horizontal scroll with a fade hint.
+     Used by dashboards that have many tabs (provider/admin) so the list never
+     wraps and stays visually anchored at the top of the page. */
   .tabs-scroll-wrapper {
-    @apply relative overflow-x-auto pb-1;
+    @apply relative overflow-x-auto overflow-y-hidden pb-2;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: thin;
-    scrollbar-color: hsl(var(--border)) transparent;
+    scrollbar-color: hsl(var(--primary) / 0.5) transparent;
   }
-  .tabs-scroll-wrapper::-webkit-scrollbar { height: 4px; }
-  .tabs-scroll-wrapper::-webkit-scrollbar-track { background: transparent; }
-  .tabs-scroll-wrapper::-webkit-scrollbar-thumb { @apply bg-border rounded-full; }
+  .tabs-scroll-wrapper::-webkit-scrollbar { height: 8px; }
+  .tabs-scroll-wrapper::-webkit-scrollbar-track {
+    background: hsl(var(--muted) / 0.4);
+    border-radius: 4px;
+  }
+  .tabs-scroll-wrapper::-webkit-scrollbar-thumb {
+    @apply bg-primary/50 rounded-full;
+  }
+  .tabs-scroll-wrapper::-webkit-scrollbar-thumb:hover {
+    @apply bg-primary/70;
+  }
+  /* When the inner TabsList lives inside the scroll wrapper, let it stretch
+     naturally so the scrollbar drives the overflow, not the list itself. */
+  .tabs-scroll-wrapper > [role="tablist"] {
+    @apply w-max min-w-full;
+  }
 
   /* Colorful tabs: gradient pill on active state, subtle hover, pop of color even when idle */
   .tabs-colorful {

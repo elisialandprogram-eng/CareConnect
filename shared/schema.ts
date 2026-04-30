@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, integer, decimal, boolean, timestamp, pgEnum, serial, doublePrecision, index, uniqueIndex } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, integer, decimal, boolean, timestamp, pgEnum, serial, doublePrecision, index, uniqueIndex, jsonb } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -266,6 +266,17 @@ export const services = pgTable("services", {
   locationMode: text("location_mode").notNull().default("both"),
   // Multi-country tenancy: inherited from provider on insert; used for fast filtering.
   countryCode: countryCodeEnum("country_code").notNull().default("HU"),
+  // Provider-staged edits awaiting admin approval. While
+  // pendingChangeStatus = 'pending', the service is NOT bookable. On approval
+  // the staged values from pendingChanges are merged into this row and these
+  // fields are cleared.
+  pendingChanges: jsonb("pending_changes"),
+  pendingChangeStatus: text("pending_change_status"), // 'pending' | 'approved' | 'rejected' | null
+  pendingChangeSubmittedBy: varchar("pending_change_submitted_by"),
+  pendingChangeSubmittedAt: timestamp("pending_change_submitted_at"),
+  pendingChangeReviewedBy: varchar("pending_change_reviewed_by"),
+  pendingChangeReviewedAt: timestamp("pending_change_reviewed_at"),
+  pendingChangeReason: text("pending_change_reason"),
   deletedAt: timestamp("deleted_at"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
@@ -274,6 +285,7 @@ export const services = pgTable("services", {
   index("idx_services_is_active").on(t.isActive),
   index("idx_services_sub_service_id").on(t.subServiceId),
   index("idx_services_country_code").on(t.countryCode),
+  index("idx_services_pending_change_status").on(t.pendingChangeStatus),
 ]);
 
 export const servicePriceHistory = pgTable("service_price_history", {

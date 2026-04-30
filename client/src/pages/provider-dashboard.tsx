@@ -702,6 +702,9 @@ export default function ProviderDashboard() {
   const [editingService, setEditingService] = useState<any>(null);
   const [pricingService, setPricingService] = useState<any | null>(null);
   const [pricingDraft, setPricingDraft] = useState<any>({});
+  // Admin-assigned services use a request-edit flow that stages provider edits
+  // until an admin approves them.
+  const [editRequestService, setEditRequestService] = useState<any | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [visitTypeFilter, setVisitTypeFilter] = useState<string>("all");
@@ -1744,7 +1747,8 @@ export default function ProviderDashboard() {
           <NewTicketDialog open={newTicketOpen} onOpenChange={setNewTicketOpen} />
 
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="tabs-colorful tabs-emerald flex flex-nowrap h-auto w-full overflow-x-auto whitespace-nowrap">
+            <div className="tabs-scroll-wrapper">
+            <TabsList className="tabs-colorful tabs-emerald flex flex-nowrap h-auto whitespace-nowrap">
               <TabsTrigger value="upcoming" data-testid="tab-upcoming">
                 {t("provider_dashboard.tab_upcoming", "Upcoming")}
                 {upcomingAppointments.length > 0 && (
@@ -1793,6 +1797,7 @@ export default function ProviderDashboard() {
                 <Settings className="h-4 w-4 mr-1" /> {t("provider_dashboard.tab_preferences", "Preferences")}
               </TabsTrigger>
             </TabsList>
+            </div>
 
             <div className="mt-6 mb-4 flex flex-col sm:flex-row gap-3">
               <Input
@@ -2417,9 +2422,32 @@ export default function ProviderDashboard() {
                                     <RotateCcw className="h-3.5 w-3.5 mr-1" /> {t("provider_dashboard.restore", "Restore")}
                                   </Button>
                                 ) : (s as any).subServiceId ? (
-                                  <span className="text-[11px] text-muted-foreground italic" data-testid={`text-assigned-service-${s.id}`}>
-                                    Managed by Admin · use the toggle above to pause
-                                  </span>
+                                  <div className="flex items-center justify-between w-full gap-2 flex-wrap">
+                                    <span className="text-[11px] text-muted-foreground italic" data-testid={`text-assigned-service-${s.id}`}>
+                                      Managed by Admin
+                                    </span>
+                                    <div className="flex items-center gap-2">
+                                      {(sa as any).pendingChangeStatus === "pending" ? (
+                                        <Badge
+                                          variant="outline"
+                                          className="text-[10px] border-amber-500/60 text-amber-700 dark:text-amber-400"
+                                          data-testid={`badge-pending-approval-${s.id}`}
+                                        >
+                                          Pending approval
+                                        </Badge>
+                                      ) : null}
+                                      <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        className="h-8"
+                                        disabled={(sa as any).pendingChangeStatus === "pending"}
+                                        onClick={() => setEditRequestService(s)}
+                                        data-testid={`button-request-edit-service-${s.id}`}
+                                      >
+                                        <Pencil className="h-3.5 w-3.5 mr-1" /> Request edit
+                                      </Button>
+                                    </div>
+                                  </div>
                                 ) : (
                                   <>
                                     <Button
@@ -3034,6 +3062,12 @@ export default function ProviderDashboard() {
             lockCategory
           />
 
+          <RequestServiceEditDialog
+            service={editRequestService}
+            subServices={subServices ?? []}
+            onClose={() => setEditRequestService(null)}
+          />
+
           <Sheet open={!!pricingService} onOpenChange={(o) => { if (!o) setPricingService(null); }}>
             <SheetContent className="sm:max-w-md overflow-y-auto" data-testid="sheet-pricing">
               <SheetHeader>
@@ -3473,5 +3507,188 @@ function ProviderTimeOffCard() {
         )}
       </CardContent>
     </Card>
+  );
+}
+
+// ───────── Provider request-edit dialog (admin-assigned services) ─────────
+// Used for services that were assigned by the admin (services.subServiceId set).
+// Submits proposed edits to a staging area; the service stays bookable at its
+// current values until the admin approves, at which point the change is merged.
+function RequestServiceEditDialog({
+  service,
+  subServices,
+  onClose,
+}: {
+  service: any | null;
+  subServices: any[];
+  onClose: () => void;
+}) {
+  const { toast } = useToast();
+  const [draft, setDraft] = useState<any>({});
+  const [reason, setReason] = useState("");
+
+  useEffect(() => {
+    if (service) {
+      setDraft({
+        subServiceId: service.subServiceId || "",
+        name: service.name || "",
+        description: service.description || "",
+        duration: service.duration ?? 30,
+        price: service.price ?? "0",
+        homeVisitFee: service.homeVisitFee ?? "0",
+        clinicFee: service.clinicFee ?? "0",
+        telemedicineFee: service.telemedicineFee ?? "0",
+      });
+      setReason("");
+    }
+  }, [service]);
+
+  const submit = useMutation({
+    mutationFn: async () => {
+      // Send only the fields the provider is allowed to stage; the server
+      // re-validates against its own whitelist for defense-in-depth.
+      const payload: any = {
+        subServiceId: draft.subServiceId || null,
+        name: draft.name,
+        description: draft.description || null,
+        duration: Number(draft.duration) || 0,
+        price: String(draft.price ?? "0"),
+        homeVisitFee: String(draft.homeVisitFee ?? "0"),
+        clinicFee: String(draft.clinicFee ?? "0"),
+        telemedicineFee: String(draft.telemedicineFee ?? "0"),
+        reason: reason || null,
+      };
+      const res = await apiRequest("POST", `/api/provider/services/${service.id}/submit-changes`, payload);
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Changes submitted",
+        description: "Your edits are pending admin approval. The service is paused until approved.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/providers/me"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/provider/services"] });
+      onClose();
+    },
+    onError: (err: any) => {
+      toast({ title: "Submission failed", description: err?.message || "Try again.", variant: "destructive" });
+    },
+  });
+
+  if (!service) return null;
+  return (
+    <Dialog open={!!service} onOpenChange={(o) => { if (!o) onClose(); }}>
+      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto" data-testid="dialog-request-service-edit">
+        <DialogHeader>
+          <DialogTitle>Request edit · {service.name}</DialogTitle>
+          <DialogDescription>
+            Edits to admin-managed services need approval. The service will be unavailable for booking until an admin approves.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div>
+            <Label>Category</Label>
+            <Select
+              value={draft.subServiceId || ""}
+              onValueChange={(v) => setDraft((d: any) => ({ ...d, subServiceId: v }))}
+            >
+              <SelectTrigger data-testid="select-edit-sub-service">
+                <SelectValue placeholder="Select category" />
+              </SelectTrigger>
+              <SelectContent>
+                {(subServices || []).map((s) => (
+                  <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label>Service name</Label>
+            <Input
+              value={draft.name || ""}
+              onChange={(e) => setDraft((d: any) => ({ ...d, name: e.target.value }))}
+              data-testid="input-edit-name"
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label>Duration (min)</Label>
+              <Input
+                type="number"
+                min={1}
+                value={draft.duration ?? 0}
+                onChange={(e) => setDraft((d: any) => ({ ...d, duration: e.target.value }))}
+                data-testid="input-edit-duration"
+              />
+            </div>
+            <div>
+              <Label>Base price</Label>
+              <Input
+                type="number"
+                step="0.01"
+                min={0}
+                value={draft.price ?? "0"}
+                onChange={(e) => setDraft((d: any) => ({ ...d, price: e.target.value }))}
+                data-testid="input-edit-price"
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            <div>
+              <Label>Home fee</Label>
+              <Input
+                type="number"
+                step="0.01"
+                min={0}
+                value={draft.homeVisitFee ?? "0"}
+                onChange={(e) => setDraft((d: any) => ({ ...d, homeVisitFee: e.target.value }))}
+                data-testid="input-edit-home-fee"
+              />
+            </div>
+            <div>
+              <Label>Clinic fee</Label>
+              <Input
+                type="number"
+                step="0.01"
+                min={0}
+                value={draft.clinicFee ?? "0"}
+                onChange={(e) => setDraft((d: any) => ({ ...d, clinicFee: e.target.value }))}
+                data-testid="input-edit-clinic-fee"
+              />
+            </div>
+            <div>
+              <Label>Online fee</Label>
+              <Input
+                type="number"
+                step="0.01"
+                min={0}
+                value={draft.telemedicineFee ?? "0"}
+                onChange={(e) => setDraft((d: any) => ({ ...d, telemedicineFee: e.target.value }))}
+                data-testid="input-edit-telemedicine-fee"
+              />
+            </div>
+          </div>
+          <div>
+            <Label>Reason for change (optional)</Label>
+            <Textarea
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              placeholder="Why are you requesting this change?"
+              data-testid="textarea-edit-reason"
+            />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={onClose} data-testid="button-cancel-edit-request">Cancel</Button>
+          <Button
+            onClick={() => submit.mutate()}
+            disabled={submit.isPending}
+            data-testid="button-submit-edit-request"
+          >
+            {submit.isPending ? "Submitting…" : "Submit for approval"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
@@ -6,13 +7,13 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Star, MapPin, Clock, CheckCircle, Video, Home, Heart, MessageSquare, Zap } from "lucide-react";
 import { motion } from "framer-motion";
-import type { ProviderWithUser, ReviewWithPatient } from "@shared/schema";
+import type { ProviderWithUser, ReviewWithPatient, Service } from "@shared/schema";
 import { useAuth } from "@/lib/auth";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { showErrorModal } from "@/components/error-modal";
-import { useCurrency } from "@/lib/currency";
+import { formatCurrencyForCountry } from "@/lib/currency";
 
 interface ProviderCardProps {
   provider: ProviderWithUser;
@@ -25,7 +26,50 @@ export function ProviderCard({ provider, nextAvailable }: ProviderCardProps) {
   const canBook = !user || user.role === "patient";
   const { toast } = useToast();
   const isPatient = isAuthenticated && user?.role === "patient";
-  const { format: fmtMoney } = useCurrency();
+
+  // Currency is driven by the provider's country (HU → HUF, IR → IRR, …) so a
+  // patient browsing in English still sees prices in the provider's local
+  // currency. We never hardcode the currency string anywhere in the JSX.
+  const providerCountry = (provider as any).countryCode as string | undefined;
+  const consultationFeeNum = Number(provider.consultationFee ?? 0);
+
+  // Only fetch services if we'll need them (no consultation fee set). Excluded
+  // services that are pending admin approval — those should never influence the
+  // price the patient sees because they cannot be booked yet.
+  const needServicesForPrice = !(consultationFeeNum > 0);
+  const { data: providerServices } = useQuery<Service[]>({
+    queryKey: ["/api/providers", provider.id, "services"],
+    queryFn: async () => {
+      const res = await fetch(`/api/providers/${provider.id}/services`);
+      if (!res.ok) return [];
+      return res.json();
+    },
+    enabled: needServicesForPrice,
+    staleTime: 60_000,
+  });
+
+  // Compute the displayed price string once per data change rather than on
+  // every render. Returns null when we should fall back to the
+  // "Contact for pricing" label.
+  const priceLabel = useMemo<{ kind: "from" | "free" | "contact"; text?: string }>(() => {
+    if (consultationFeeNum > 0) {
+      return { kind: "from", text: formatCurrencyForCountry(consultationFeeNum, providerCountry) };
+    }
+    if (!providerServices || providerServices.length === 0) {
+      return { kind: "contact" };
+    }
+    const bookable = providerServices.filter(
+      (s: any) => s.isActive !== false && (s as any).pendingChangeStatus !== "pending",
+    );
+    if (bookable.length === 0) return { kind: "contact" };
+    const min = bookable.reduce((acc, s) => {
+      const p = Number((s as any).price ?? 0);
+      return Number.isFinite(p) && p < acc ? p : acc;
+    }, Number.POSITIVE_INFINITY);
+    if (!Number.isFinite(min)) return { kind: "contact" };
+    if (min <= 0) return { kind: "free" };
+    return { kind: "from", text: formatCurrencyForCountry(min, providerCountry) };
+  }, [consultationFeeNum, providerServices, providerCountry]);
 
   // Lightweight extras only fetched when the card is on screen
   const { data: savedRes } = useQuery<{ saved: boolean }>({
@@ -261,9 +305,27 @@ export function ProviderCard({ provider, nextAvailable }: ProviderCardProps) {
             )}
 
             <div className="flex items-center justify-between pt-4 border-t">
-              <div>
-                <p className="text-xs text-muted-foreground font-medium">Starting from</p>
-                <p className="text-2xl font-bold text-primary">{fmtMoney(provider.consultationFee)}</p>
+              <div data-testid={`price-${provider.id}`}>
+                {priceLabel.kind === "from" && (
+                  <>
+                    <p className="text-xs text-muted-foreground font-medium">
+                      {t("provider_card.from_label", "From")}
+                    </p>
+                    <p className="text-2xl font-bold text-primary" data-testid={`text-price-${provider.id}`}>
+                      {priceLabel.text}
+                    </p>
+                  </>
+                )}
+                {priceLabel.kind === "free" && (
+                  <p className="text-2xl font-bold text-emerald-600" data-testid={`text-price-${provider.id}`}>
+                    {t("provider_card.free", "Free")}
+                  </p>
+                )}
+                {priceLabel.kind === "contact" && (
+                  <p className="text-base font-semibold text-muted-foreground" data-testid={`text-price-${provider.id}`}>
+                    {t("provider_card.contact_for_pricing", "Contact for pricing")}
+                  </p>
+                )}
               </div>
               <div className="text-right">
                 {nextAvailable && (

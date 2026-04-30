@@ -127,6 +127,19 @@ export async function runStartupMigrations() {
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_group_participants_user_id ON group_session_participants(user_id)`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_group_participants_session_id ON group_session_participants(session_id)`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_group_participants_country_code ON group_session_participants(country_code)`);
+
+    // Service edits approval workflow — provider-staged edits live in
+    // pending_changes (jsonb). While pending_change_status = 'pending', the
+    // service is hidden from booking flows. On approval, the staged values are
+    // merged into the row and these columns are cleared.
+    await pool.query(`ALTER TABLE services ADD COLUMN IF NOT EXISTS pending_changes JSONB`);
+    await pool.query(`ALTER TABLE services ADD COLUMN IF NOT EXISTS pending_change_status TEXT`);
+    await pool.query(`ALTER TABLE services ADD COLUMN IF NOT EXISTS pending_change_submitted_by VARCHAR`);
+    await pool.query(`ALTER TABLE services ADD COLUMN IF NOT EXISTS pending_change_submitted_at TIMESTAMP`);
+    await pool.query(`ALTER TABLE services ADD COLUMN IF NOT EXISTS pending_change_reviewed_by VARCHAR`);
+    await pool.query(`ALTER TABLE services ADD COLUMN IF NOT EXISTS pending_change_reviewed_at TIMESTAMP`);
+    await pool.query(`ALTER TABLE services ADD COLUMN IF NOT EXISTS pending_change_reason TEXT`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_services_pending_change_status ON services(pending_change_status)`);
   } catch (err) {
     console.warn("[db] startup migration warning:", (err as Error).message);
   }
