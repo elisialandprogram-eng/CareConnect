@@ -3,6 +3,7 @@ import {
   providers,
   services,
   timeSlots,
+  providerTimeOff,
   appointments,
   reviews,
   payments,
@@ -60,6 +61,8 @@ import {
   type InsertService,
   type TimeSlot,
   type InsertTimeSlot,
+  type ProviderTimeOff,
+  type InsertProviderTimeOff,
   type Appointment,
   type InsertAppointment,
   type Review,
@@ -268,6 +271,12 @@ export interface IStorage {
   updateTimeSlot(id: string, data: Partial<InsertTimeSlot>): Promise<TimeSlot | undefined>;
   deleteTimeSlot(id: string): Promise<void>;
   reserveTimeSlot(providerId: string, date: string, startTime: string, endTime: string): Promise<TimeSlot>;
+
+  // Provider Time Off (vacation mode)
+  listProviderTimeOff(providerId: string): Promise<ProviderTimeOff[]>;
+  createProviderTimeOff(data: InsertProviderTimeOff): Promise<ProviderTimeOff>;
+  deleteProviderTimeOff(id: string, providerId: string): Promise<boolean>;
+  isProviderOnTimeOff(providerId: string, date: string): Promise<ProviderTimeOff | null>;
 
   // Saved Providers (favourites)
   addSavedProvider(patientId: string, providerId: string): Promise<SavedProvider>;
@@ -2920,6 +2929,40 @@ export class DatabaseStorage implements IStorage {
         throw err;
       }
     });
+  }
+
+  async listProviderTimeOff(providerId: string): Promise<ProviderTimeOff[]> {
+    return await db
+      .select()
+      .from(providerTimeOff)
+      .where(eq(providerTimeOff.providerId, providerId))
+      .orderBy(desc(providerTimeOff.startDate));
+  }
+
+  async createProviderTimeOff(data: InsertProviderTimeOff): Promise<ProviderTimeOff> {
+    const [created] = await db.insert(providerTimeOff).values(data).returning();
+    return created;
+  }
+
+  async deleteProviderTimeOff(id: string, providerId: string): Promise<boolean> {
+    const result = await db
+      .delete(providerTimeOff)
+      .where(and(eq(providerTimeOff.id, id), eq(providerTimeOff.providerId, providerId)))
+      .returning({ id: providerTimeOff.id });
+    return result.length > 0;
+  }
+
+  async isProviderOnTimeOff(providerId: string, date: string): Promise<ProviderTimeOff | null> {
+    const rows = await db
+      .select()
+      .from(providerTimeOff)
+      .where(and(
+        eq(providerTimeOff.providerId, providerId),
+        lte(providerTimeOff.startDate, date),
+        gte(providerTimeOff.endDate, date),
+      ))
+      .limit(1);
+    return rows[0] || null;
   }
 
   async addSavedProvider(patientId: string, providerId: string): Promise<SavedProvider> {

@@ -334,6 +334,18 @@ export const timeSlots = pgTable("time_slots", {
   index("idx_time_slots_is_booked").on(t.isBooked),
 ]);
 
+export const providerTimeOff = pgTable("provider_time_off", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  providerId: varchar("provider_id").notNull().references(() => providers.id),
+  startDate: text("start_date").notNull(),
+  endDate: text("end_date").notNull(),
+  reason: text("reason"),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (t) => [
+  index("idx_provider_time_off_provider_id").on(t.providerId),
+  index("idx_provider_time_off_dates").on(t.providerId, t.startDate, t.endDate),
+]);
+
 export const appointments = pgTable("appointments", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   appointmentNumber: text("appointment_number").unique(),
@@ -1102,6 +1114,7 @@ export const insertPackageServiceSchema = createInsertSchema(packageServices).om
 export const insertPractitionerSchema = createInsertSchema(practitioners).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertServicePractitionerSchema = createInsertSchema(servicePractitioners).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertTimeSlotSchema = createInsertSchema(timeSlots).omit({ id: true });
+export const insertProviderTimeOffSchema = createInsertSchema(providerTimeOff).omit({ id: true, createdAt: true });
 export const insertAppointmentSchema = createInsertSchema(appointments).omit({ id: true, appointmentNumber: true, createdAt: true, updatedAt: true });
 export const insertReviewSchema = createInsertSchema(reviews).omit({ id: true, createdAt: true });
 export const insertPaymentSchema = createInsertSchema(payments).omit({ id: true, createdAt: true });
@@ -1210,6 +1223,8 @@ export type PackageService = typeof packageServices.$inferSelect;
 export type ServicePackageWithServices = ServicePackage & { services: Service[] };
 export type TimeSlot = typeof timeSlots.$inferSelect;
 export type InsertTimeSlot = z.infer<typeof insertTimeSlotSchema>;
+export type ProviderTimeOff = typeof providerTimeOff.$inferSelect;
+export type InsertProviderTimeOff = z.infer<typeof insertProviderTimeOffSchema>;
 export type Appointment = typeof appointments.$inferSelect;
 export type InsertAppointment = z.infer<typeof insertAppointmentSchema>;
 export type AppointmentEvent = typeof appointmentEvents.$inferSelect;

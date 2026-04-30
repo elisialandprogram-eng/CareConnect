@@ -26,6 +26,7 @@ import {
   insertFamilyMemberSchema,
   insertMedicationSchema,
   insertMedicationLogSchema,
+  insertProviderTimeOffSchema,
   services,
   practitioners,
   servicePractitioners,
@@ -2119,6 +2120,14 @@ export async function registerRoutes(
       if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
         return res.status(400).json({ message: "date query param required (YYYY-MM-DD)" });
       }
+      // Vacation mode: if the provider has an active time-off range covering
+      // this date, return zero slots so patients can't pick the day.
+      try {
+        const off = await storage.isProviderOnTimeOff(req.params.id, date);
+        if (off) return res.json([]);
+      } catch (offErr) {
+        console.error("Time-off lookup failed (continuing):", offErr);
+      }
       // Run in parallel; the booked-times query is a lightweight scan with no joins.
       const [slots, blockedList] = await Promise.all([
         storage.getTimeSlotsByProvider(req.params.id, date),
@@ -2975,6 +2984,71 @@ export async function registerRoutes(
     }
   });
 
+  // ============ PROVIDER TIME OFF (vacation mode) ============
+  // Provider lists their own time-off blocks (upcoming + past, newest first).
+  app.get("/api/provider/time-off", authenticateToken, async (req: AuthRequest, res: Response) => {
+    if (req.user?.role !== "provider") return res.status(403).json({ message: "Provider access required" });
+    try {
+      const provider = await storage.getProviderByUserId(req.user.id);
+      if (!provider) return res.status(404).json({ message: "Provider not found" });
+      const items = await storage.listProviderTimeOff(provider.id);
+      res.json(items);
+    } catch (error) {
+      console.error("Error listing provider time-off:", error);
+      res.status(500).json({ message: "Failed to load time-off list" });
+    }
+  });
+
+  // Provider adds a new time-off block.
+  app.post("/api/provider/time-off", authenticateToken, async (req: AuthRequest, res: Response) => {
+    if (req.user?.role !== "provider") return res.status(403).json({ message: "Provider access required" });
+    try {
+      const provider = await storage.getProviderByUserId(req.user.id);
+      if (!provider) return res.status(404).json({ message: "Provider not found" });
+      const parsed = insertProviderTimeOffSchema.parse({
+        providerId: provider.id,
+        startDate: String(req.body?.startDate || ""),
+        endDate: String(req.body?.endDate || ""),
+        reason: req.body?.reason ? String(req.body.reason).slice(0, 200) : null,
+      });
+      // Date format check (YYYY-MM-DD) and ordering.
+      const dRe = /^\d{4}-\d{2}-\d{2}$/;
+      if (!dRe.test(parsed.startDate) || !dRe.test(parsed.endDate)) {
+        return res.status(400).json({ message: "Please pick a valid start and end date." });
+      }
+      if (parsed.endDate < parsed.startDate) {
+        return res.status(400).json({ message: "End date must be on or after the start date." });
+      }
+      const today = new Date().toISOString().slice(0, 10);
+      if (parsed.endDate < today) {
+        return res.status(400).json({ message: "Time-off cannot end in the past." });
+      }
+      const created = await storage.createProviderTimeOff(parsed);
+      res.json(created);
+    } catch (error: any) {
+      if (error?.name === "ZodError") {
+        return res.status(400).json({ message: "Please fill in all required fields.", errors: error.errors });
+      }
+      console.error("Error creating provider time-off:", error);
+      res.status(500).json({ message: "Failed to add time-off" });
+    }
+  });
+
+  // Provider deletes a time-off block (must be the owner).
+  app.delete("/api/provider/time-off/:id", authenticateToken, async (req: AuthRequest, res: Response) => {
+    if (req.user?.role !== "provider") return res.status(403).json({ message: "Provider access required" });
+    try {
+      const provider = await storage.getProviderByUserId(req.user.id);
+      if (!provider) return res.status(404).json({ message: "Provider not found" });
+      const ok = await storage.deleteProviderTimeOff(req.params.id, provider.id);
+      if (!ok) return res.status(404).json({ message: "Time-off block not found" });
+      res.json({ ok: true });
+    } catch (error) {
+      console.error("Error deleting provider time-off:", error);
+      res.status(500).json({ message: "Failed to delete time-off" });
+    }
+  });
+
   // Provider lists their own service requests.
   app.get("/api/provider/service-requests", authenticateToken, async (req: AuthRequest, res: Response) => {
     if (req.user?.role !== "provider") return res.status(403).json({ message: "Provider access required" });
@@ -3433,6 +3507,24 @@ export async function registerRoutes(
       if (!provider) {
         console.log("Booking failed: Provider not found", providerId);
         return res.status(404).json({ message: "Provider not found" });
+      }
+
+      // Vacation mode: refuse if the provider has an active time-off range
+      // covering the requested date OR any of the additional session dates.
+      try {
+        const datesToCheck = [date, ...additionalSlots.map(s => s.date)];
+        for (const d of datesToCheck) {
+          const off = await storage.isProviderOnTimeOff(providerId, d);
+          if (off) {
+            const sameDay = off.startDate === off.endDate;
+            const range = sameDay ? off.startDate : `${off.startDate} – ${off.endDate}`;
+            return res.status(400).json({
+              message: `This provider is unavailable on ${d} (time off ${range})${off.reason ? `: ${off.reason}` : ""}. Please pick another date.`,
+            });
+          }
+        }
+      } catch (offErr) {
+        console.error("Time-off check failed (continuing):", offErr);
       }
 
       // Prevent double-booking: refuse if the same provider already has an active

@@ -2202,6 +2202,7 @@ export default function ProviderDashboard() {
                 onPublish={(payload) => bulkAvailabilityMutation.mutate(payload)}
                 isPendingPublish={bulkAvailabilityMutation.isPending}
               />
+              <ProviderTimeOffCard />
             </TabsContent>
 
             <TabsContent value="analytics" className="mt-2 space-y-4">
@@ -3260,5 +3261,209 @@ function ProviderOfficeHoursCard({
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+// ─── Provider Time Off (vacation mode) ────────────────────────────────────
+type TimeOffRow = {
+  id: string;
+  providerId: string;
+  startDate: string;
+  endDate: string;
+  reason: string | null;
+  createdAt: string | null;
+};
+
+function ProviderTimeOffCard() {
+  const { t } = useTranslation();
+  const { toast } = useToast();
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const [startDate, setStartDate] = useState(todayStr);
+  const [endDate, setEndDate] = useState(todayStr);
+  const [reason, setReason] = useState("");
+
+  const { data: items = [], isLoading } = useQuery<TimeOffRow[]>({
+    queryKey: ["/api/provider/time-off"],
+  });
+
+  const addMut = useMutation({
+    mutationFn: (payload: { startDate: string; endDate: string; reason?: string }) =>
+      apiRequest("POST", "/api/provider/time-off", payload),
+    onSuccess: () => {
+      toast({ title: t("provider_dashboard.time_off_added", "Time off added") });
+      queryClient.invalidateQueries({ queryKey: ["/api/provider/time-off"] });
+      setReason("");
+    },
+    onError: (err: any) => {
+      toast({
+        title: t("provider_dashboard.time_off_failed", "Could not add time off"),
+        description: err?.message || "Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const delMut = useMutation({
+    mutationFn: (id: string) => apiRequest("DELETE", `/api/provider/time-off/${id}`),
+    onSuccess: () => {
+      toast({ title: t("provider_dashboard.time_off_removed", "Time off removed") });
+      queryClient.invalidateQueries({ queryKey: ["/api/provider/time-off"] });
+    },
+    onError: (err: any) => {
+      toast({
+        title: t("provider_dashboard.time_off_remove_failed", "Could not remove time off"),
+        description: err?.message || "Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const upcoming = items.filter((it) => it.endDate >= todayStr);
+  const past = items.filter((it) => it.endDate < todayStr);
+
+  const fmtRange = (s: string, e: string) => (s === e ? s : `${s} → ${e}`);
+
+  return (
+    <Card data-testid="card-time-off">
+      <CardHeader>
+        <CardTitle className="text-base flex items-center gap-2">
+          <CalendarDays className="h-4 w-4" />
+          {t("provider_dashboard.time_off_title", "Time off / vacation")}
+        </CardTitle>
+        <CardDescription>
+          {t(
+            "provider_dashboard.time_off_desc",
+            "Block a date range so patients can't book new appointments while you're away. Existing appointments are not affected — cancel them manually if needed.",
+          )}
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <Label htmlFor="time-off-start" className="text-xs">
+              {t("provider_dashboard.time_off_start", "Start date")}
+            </Label>
+            <Input
+              id="time-off-start"
+              type="date"
+              min={todayStr}
+              value={startDate}
+              onChange={(e) => {
+                const v = e.target.value;
+                setStartDate(v);
+                if (endDate < v) setEndDate(v);
+              }}
+              data-testid="input-time-off-start"
+            />
+          </div>
+          <div>
+            <Label htmlFor="time-off-end" className="text-xs">
+              {t("provider_dashboard.time_off_end", "End date")}
+            </Label>
+            <Input
+              id="time-off-end"
+              type="date"
+              min={startDate || todayStr}
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              data-testid="input-time-off-end"
+            />
+          </div>
+        </div>
+        <div>
+          <Label htmlFor="time-off-reason" className="text-xs">
+            {t("provider_dashboard.time_off_reason", "Reason (optional, shown to patients)")}
+          </Label>
+          <Input
+            id="time-off-reason"
+            placeholder={t("provider_dashboard.time_off_reason_placeholder", "e.g. Conference, vacation, personal leave")}
+            maxLength={200}
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            data-testid="input-time-off-reason"
+          />
+        </div>
+        <div className="flex justify-end">
+          <Button
+            className="rounded-xl gap-2"
+            disabled={addMut.isPending || !startDate || !endDate}
+            onClick={() => addMut.mutate({ startDate, endDate, reason: reason.trim() || undefined })}
+            data-testid="button-add-time-off"
+          >
+            {addMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+            {t("provider_dashboard.time_off_add", "Add time off")}
+          </Button>
+        </div>
+
+        <Separator />
+
+        <div className="space-y-2">
+          <h4 className="text-sm font-medium">
+            {t("provider_dashboard.time_off_upcoming", "Upcoming & active")}
+          </h4>
+          {isLoading ? (
+            <Skeleton className="h-12 w-full" />
+          ) : upcoming.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              {t("provider_dashboard.time_off_none_upcoming", "No upcoming time off.")}
+            </p>
+          ) : (
+            <ul className="space-y-2">
+              {upcoming.map((it) => {
+                const active = it.startDate <= todayStr && it.endDate >= todayStr;
+                return (
+                  <li
+                    key={it.id}
+                    className="flex items-start justify-between gap-3 rounded-lg border bg-card px-3 py-2"
+                    data-testid={`row-time-off-${it.id}`}
+                  >
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-medium text-sm" data-testid={`text-time-off-range-${it.id}`}>
+                          {fmtRange(it.startDate, it.endDate)}
+                        </span>
+                        {active && (
+                          <Badge variant="secondary" className="text-[10px]">
+                            {t("provider_dashboard.time_off_active", "Active now")}
+                          </Badge>
+                        )}
+                      </div>
+                      {it.reason && (
+                        <p className="text-xs text-muted-foreground mt-0.5 break-words">{it.reason}</p>
+                      )}
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="text-destructive hover:text-destructive shrink-0"
+                      onClick={() => delMut.mutate(it.id)}
+                      disabled={delMut.isPending}
+                      data-testid={`button-delete-time-off-${it.id}`}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
+
+        {past.length > 0 && (
+          <div className="space-y-2">
+            <h4 className="text-sm font-medium text-muted-foreground">
+              {t("provider_dashboard.time_off_past", "Past")}
+            </h4>
+            <ul className="space-y-1.5">
+              {past.slice(0, 5).map((it) => (
+                <li key={it.id} className="text-xs text-muted-foreground flex justify-between gap-2">
+                  <span>{fmtRange(it.startDate, it.endDate)}{it.reason ? ` — ${it.reason}` : ""}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }
