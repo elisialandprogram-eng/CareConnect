@@ -73,6 +73,12 @@ export async function runStartupMigrations() {
       UPDATE appointments SET appointment_number = numbered.gen_num
       FROM numbered WHERE appointments.id = numbered.id
     `);
+    // Multi-country tenancy hardening: indexes on country_code for the
+    // tables that drive the most filtered listings. Idempotent.
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_users_country_code ON users(country_code)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_providers_country_code ON providers(country_code)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_invoices_country_code ON invoices(country_code)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_payments_country_code ON payments(country_code)`);
   } catch (err) {
     console.warn("[db] startup migration warning:", (err as Error).message);
   }

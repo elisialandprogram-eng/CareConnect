@@ -1,0 +1,136 @@
+Perform full verification of multi-country architecture (Hungary HU and Iran IR) and automatically fix any detected issues. Generate a final validation report.
+
+========================
+1. TEST DATA SETUP
+========================
+- Create test entities:
+  HU user + HU provider
+  IR user + IR provider
+
+========================
+2. VISIBILITY TEST
+========================
+- Verify:
+  HU user sees only HU providers/services
+  IR user sees only IR providers/services
+
+AUTO-FIX:
+- If cross-country data is visible:
+  enforce backend filtering using country_code
+  update all queries to include:
+    WHERE country_code = current_user.country_code
+
+========================
+3. BOOKING VALIDATION
+========================
+- Attempt cross-country booking (HU → IR)
+
+AUTO-FIX:
+- If booking succeeds:
+  add validation:
+    patient.country_code === provider.country_code
+    service.country_code === patient.country_code
+  reject mismatches
+
+========================
+4. API SECURITY TEST
+========================
+- Attempt to fetch cross-country data via API
+
+AUTO-FIX:
+- Add middleware:
+  enforce country access on every request
+- Block access with 404 (not 403)
+
+========================
+5. ADMIN ISOLATION
+========================
+- Verify:
+  country_admin sees only their country data
+
+AUTO-FIX:
+- Add role-based filters:
+  if role = country_admin:
+    restrict queries by country_code
+
+========================
+6. SERVICE REQUEST TEST
+========================
+- Submit request in HU
+
+AUTO-FIX:
+- Ensure:
+  service_requests.country_code exists
+  queries filter by country_code
+
+========================
+7. DATA CONSISTENCY
+========================
+- Verify:
+  appointments, invoices, payments all carry correct country_code
+
+AUTO-FIX:
+- Backfill missing country_code using:
+  parent entity (appointment → invoice)
+- Add DB constraint:
+  NOT NULL country_code
+
+========================
+8. EDGE CASES
+========================
+- Test:
+  change country after booking
+  access foreign appointment
+
+AUTO-FIX:
+- Prevent country change if:
+  user has appointments/providers
+- Enforce ownership checks
+
+========================
+9. DATABASE HARDENING
+========================
+AUTO-FIX:
+- Add indexes:
+  idx_<table>_country_code
+- Add constraints:
+  country_code NOT NULL
+- Add foreign key consistency where missing
+
+========================
+10. FRONTEND VALIDATION
+========================
+- Verify UI hides cross-country data
+
+AUTO-FIX:
+- Ensure API responses already filtered
+- Remove any client-side-only filtering
+
+========================
+11. PERFORMANCE CHECK
+========================
+- Ensure queries using country_code are optimized
+
+AUTO-FIX:
+- Add missing indexes
+- Optimize slow queries
+
+========================
+12. FINAL VALIDATION REPORT
+========================
+Generate detailed report:
+
+A. Tests executed
+B. Issues found
+C. Fixes applied automatically
+D. Remaining risks (if any)
+E. Security validation (data leakage check)
+F. Performance notes
+
+========================
+13. FINAL STATUS
+========================
+Return one of:
+✔ SAFE FOR PRODUCTION
+⚠ NEEDS MANUAL REVIEW
+❌ CRITICAL ISSUES REMAIN

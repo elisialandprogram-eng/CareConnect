@@ -403,7 +403,11 @@ export function getCachedUser(userId: string): any | null {
     }
   };
 
-// Optional auth - doesn't fail if no token
+// Optional auth - doesn't fail if no token. CRITICAL: hydrates `countryCode`
+// from the cached/persisted user record so multi-country tenancy filters work
+// correctly on optionalAuth-protected listings (e.g. GET /api/providers).
+// Without this, the JWT-only payload omits countryCode and the listing filter
+// silently falls back to DEFAULT_COUNTRY ("HU"), leaking HU data to IR users.
 const optionalAuth = async (req: AuthRequest, res: Response, next: NextFunction) => {
   const authHeader = req.headers.authorization;
   const token = authHeader && authHeader.split(" ")[1];
@@ -413,7 +417,37 @@ const optionalAuth = async (req: AuthRequest, res: Response, next: NextFunction)
   if (finalToken) {
     try {
       const decoded = jwt.verify(finalToken, JWT_SECRET) as { id: string; email: string; role: string };
-      req.user = decoded;
+      const now = Date.now();
+      let cached = userAuthCache.get(decoded.id);
+      if (!cached || cached.expires < now) {
+        try {
+          const user = await storage.getUser(decoded.id);
+          if (user) {
+            const { password: _pw, ...full } = user as any;
+            cached = {
+              isEmailVerified: !!user.isEmailVerified,
+              role: user.role,
+              countryCode: (isCountryCode((user as any).countryCode) ? (user as any).countryCode : "HU") as CountryCode,
+              isSuspended: user.isSuspended,
+              full,
+              expires: now + AUTH_CACHE_TTL_MS,
+            };
+            userAuthCache.set(decoded.id, cached);
+          }
+        } catch {
+          // DB lookup failure: fall back to JWT-only identity (no country),
+          // which means the request is treated as anonymous-with-id. Better
+          // to be safe than to leak data.
+        }
+      }
+      const adminScope = cached ? adminScopeFor(cached.role) : null;
+      req.user = {
+        id: decoded.id,
+        email: decoded.email,
+        role: cached?.role ?? decoded.role,
+        ...(cached?.countryCode ? { countryCode: cached.countryCode } : {}),
+        ...(adminScope ? { adminScope } : {}),
+      };
     } catch {
       // Token invalid, but continue without user
     }
@@ -1879,19 +1913,25 @@ export async function registerRoutes(
       }
 
       const role = req.user?.role;
+      // Tenancy + ownership: admins must be able to access the appointment's
+      // country, patients must own it, providers must be the assigned one.
+      // Cross-country / cross-tenant lookups return 404 (not 403) so we never
+      // leak the existence of another tenant's appointment.
       if (isAdminRole(role)) {
-        // ok
+        if (!canAccessCountry(req.user, (appointment as any).countryCode)) {
+          return res.status(404).json({ message: "Appointment not found" });
+        }
       } else if (role === "patient") {
         if (appointment.patientId !== req.user!.id) {
-          return res.status(403).json({ message: "Access denied" });
+          return res.status(404).json({ message: "Appointment not found" });
         }
       } else if (role === "provider") {
         const prov = await storage.getProviderByUserId(req.user!.id);
         if (!prov || prov.id !== appointment.providerId) {
-          return res.status(403).json({ message: "Access denied" });
+          return res.status(404).json({ message: "Appointment not found" });
         }
       } else {
-        return res.status(403).json({ message: "Access denied" });
+        return res.status(404).json({ message: "Appointment not found" });
       }
 
       // Attach existing invoice id (if any) so the client can offer a download link
@@ -2026,13 +2066,35 @@ export async function registerRoutes(
 
       // Country switch is allowed but locked to the supported set; admin
       // accounts can never change their own country here (their scope is
-      // managed via the admin endpoints).
+      // managed via the admin endpoints). Once the user has any tenancy-bound
+      // data (provider profile, appointments, invoices, payments) the country
+      // is frozen, otherwise we'd orphan their existing rows in the old tenant
+      // and they'd see nothing in the new one.
       if (req.body.countryCode !== undefined) {
         if (isAdminRole(req.user!.role)) {
           return res.status(403).json({ message: "Admins cannot change their own country" });
         }
         if (!isCountryCode(req.body.countryCode)) {
           return res.status(400).json({ message: "Invalid country" });
+        }
+        const currentUser = await storage.getUser(req.user!.id);
+        const currentCountry = (currentUser as any)?.countryCode as CountryCode | undefined;
+        if (currentCountry && req.body.countryCode !== currentCountry) {
+          // Audit-grade lock: any data tying the account to its current country
+          // blocks the switch. The patient must contact support if they really
+          // need to migrate (admin override).
+          const [appts, invs, prov] = await Promise.all([
+            storage.getAppointmentsByPatient(req.user!.id).catch(() => []),
+            storage.getInvoicesByPatient(req.user!.id).catch(() => []),
+            storage.getProviderByUserId(req.user!.id).catch(() => undefined),
+          ]);
+          if ((appts && appts.length > 0) || (invs && invs.length > 0) || prov) {
+            return res.status(409).json({
+              message:
+                "Your country cannot be changed because your account already has appointments, invoices, or a provider profile. Please contact support.",
+              code: "COUNTRY_CHANGE_BLOCKED",
+            });
+          }
         }
       }
 
@@ -3754,6 +3816,13 @@ export async function registerRoutes(
           }
           if (svcRecord.providerId !== providerId) {
             return res.status(400).json({ message: "Selected service does not belong to this provider." });
+          }
+          // Defense-in-depth: explicit country tenancy check on the service
+          // row. Provider tenancy was already validated above; this guards
+          // against any future drift between provider.country_code and
+          // services.country_code.
+          if ((svcRecord as any).countryCode && (svcRecord as any).countryCode !== patientCountry) {
+            return res.status(404).json({ message: "Service not found" });
           }
           if (svcRecord.deletedAt) {
             return res.status(400).json({ message: "This service is no longer offered." });

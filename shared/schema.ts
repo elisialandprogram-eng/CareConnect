@@ -94,7 +94,9 @@ export const users = pgTable("users", {
   isDeleted: boolean("is_deleted").notNull().default(false),
   deletedAt: timestamp("deleted_at"),
   createdAt: timestamp("created_at").defaultNow(),
-});
+}, (t) => [
+  index("idx_users_country_code").on(t.countryCode),
+]);
 
 export const providers = pgTable("providers", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -172,7 +174,9 @@ export const providers = pgTable("providers", {
   supportEmail: text("support_email"),
   supportPhone: text("support_phone"),
   createdAt: timestamp("created_at").defaultNow(),
-});
+}, (t) => [
+  index("idx_providers_country_code").on(t.countryCode),
+]);
 
 export const serviceCategories = pgTable("service_categories", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -419,7 +423,9 @@ export const invoices = pgTable("invoices", {
   // Multi-country tenancy: copied from appointment on insert.
   countryCode: countryCodeEnum("country_code").notNull().default("HU"),
   createdAt: timestamp("created_at").defaultNow(),
-});
+}, (t) => [
+  index("idx_invoices_country_code").on(t.countryCode),
+]);
 
 export const invoiceItems = pgTable("invoice_items", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -501,6 +507,7 @@ export const payments = pgTable("payments", {
   index("idx_payments_appointment_id").on(t.appointmentId),
   index("idx_payments_patient_id").on(t.patientId),
   index("idx_payments_status").on(t.status),
+  index("idx_payments_country_code").on(t.countryCode),
 ]);
 
 export const chatConversations = pgTable("chat_conversations", {
