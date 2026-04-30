@@ -5455,6 +5455,12 @@ function UsersManagement() {
   const [adminEmail, setAdminEmail] = useState("");
   const [adminPhone, setAdminPhone] = useState("");
   const [adminPassword, setAdminPassword] = useState("");
+  const { user: adminCurrentUser } = useAuth();
+  const isGlobalAdminUI = adminCurrentUser?.role === "global_admin";
+  // Country migration dialog state — global admin only.
+  const [migrateUser, setMigrateUser] = useState<User | null>(null);
+  const [migrateTarget, setMigrateTarget] = useState<string>("HU");
+  const [migrateReason, setMigrateReason] = useState<string>("");
 
   const { data: users, isLoading } = useQuery<User[]>({
     queryKey: ["/api/admin/users"],
@@ -5549,6 +5555,35 @@ function UsersManagement() {
       if (context?.previous) {
         queryClient.setQueryData(["/api/admin/users"], context.previous);
       }
+      toast({ title: t("common.error"), description: error.message, variant: "destructive" });
+    },
+  });
+
+  // Tenancy migration — global admin only. Posts to /api/admin/users/:id/migrate-country.
+  const migrateCountryMutation = useMutation({
+    mutationFn: async (vars: { id: string; targetCountryCode: string; reason: string }) => {
+      const response = await apiRequest("POST", `/api/admin/users/${vars.id}/migrate-country`, {
+        targetCountryCode: vars.targetCountryCode,
+        reason: vars.reason,
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error((data as any)?.message || "Failed to migrate user");
+      }
+      return data;
+    },
+    onSuccess: (data: any) => {
+      const counts = data?.counts || {};
+      const summary = Object.entries(counts).map(([k, v]) => `${k}: ${v}`).join(", ");
+      toast({
+        title: t("admin.user_country_migrated", "User country migrated"),
+        description: `${data?.fromCountry} → ${data?.toCountry} (${summary})`,
+      });
+      setMigrateUser(null);
+      setMigrateReason("");
+      invalidateUserCaches();
+    },
+    onError: (error: Error) => {
       toast({ title: t("common.error"), description: error.message, variant: "destructive" });
     },
   });
@@ -5753,6 +5788,22 @@ function UsersManagement() {
                       {t("admin.suspend", "Suspend")}
                     </Button>
                   )}
+                  {isGlobalAdminUI && !isAdminRole(user.role) && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        setMigrateUser(user);
+                        setMigrateTarget((user as any).countryCode === "HU" ? "IR" : "HU");
+                        setMigrateReason("");
+                      }}
+                      data-testid={`button-migrate-country-${user.id}`}
+                      title={t("admin.migrate_country", "Migrate country")}
+                    >
+                      <Globe className="h-4 w-4 mr-2" />
+                      <span className="text-xs uppercase">{(user as any).countryCode || "—"}</span>
+                    </Button>
+                  )}
                   <Button
                     size="sm"
                     variant="ghost"
@@ -5817,6 +5868,87 @@ function UsersManagement() {
               )}
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Country migration dialog — global admin only. */}
+      <Dialog
+        open={!!migrateUser}
+        onOpenChange={(open) => {
+          if (!open) {
+            setMigrateUser(null);
+            setMigrateReason("");
+          }
+        }}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>{t("admin.migrate_country_title", "Migrate user to another country")}</DialogTitle>
+            <DialogDescription>
+              {t(
+                "admin.migrate_country_desc",
+                "This rewrites the country tag on the user and every booking, invoice, payment, and provider profile attached to them. The action is logged in the audit trail and cannot be undone in bulk.",
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          {migrateUser && (
+            <div className="space-y-4 py-2">
+              <div className="rounded-md border p-3 bg-muted/30 text-sm">
+                <div><span className="text-muted-foreground">{t("admin.name")}:</span> <span className="font-medium">{migrateUser.firstName} {migrateUser.lastName}</span></div>
+                <div><span className="text-muted-foreground">{t("common.email")}:</span> {migrateUser.email}</div>
+                <div><span className="text-muted-foreground">{t("admin.migrate_current_country", "Current country")}:</span> <span className="font-mono">{(migrateUser as any).countryCode || "—"}</span></div>
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="migrate-target">{t("admin.migrate_target_country", "Target country")}</Label>
+                <Select value={migrateTarget} onValueChange={setMigrateTarget}>
+                  <SelectTrigger id="migrate-target" data-testid="select-migrate-target">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="HU">HU — Hungary</SelectItem>
+                    <SelectItem value="IR">IR — Iran</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="migrate-reason">{t("admin.migrate_reason", "Reason (required, min 5 chars)")}</Label>
+                <Textarea
+                  id="migrate-reason"
+                  value={migrateReason}
+                  onChange={(e) => setMigrateReason(e.target.value)}
+                  rows={3}
+                  placeholder={t("admin.migrate_reason_placeholder", "e.g. patient relocated; verified via support ticket #1234")}
+                  data-testid="input-migrate-reason"
+                />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setMigrateUser(null); setMigrateReason(""); }} data-testid="button-migrate-cancel">
+              {t("common.cancel", "Cancel")}
+            </Button>
+            <Button
+              onClick={() => {
+                if (!migrateUser) return;
+                migrateCountryMutation.mutate({
+                  id: migrateUser.id,
+                  targetCountryCode: migrateTarget,
+                  reason: migrateReason.trim(),
+                });
+              }}
+              disabled={
+                !migrateUser ||
+                migrateReason.trim().length < 5 ||
+                migrateTarget === ((migrateUser as any)?.countryCode) ||
+                migrateCountryMutation.isPending
+              }
+              data-testid="button-migrate-confirm"
+            >
+              {migrateCountryMutation.isPending
+                ? t("common.processing", "Processing...")
+                : t("admin.migrate_confirm", "Migrate")}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </>

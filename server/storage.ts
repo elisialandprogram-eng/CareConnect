@@ -367,6 +367,15 @@ export interface IStorage {
   getAllAuditLogs(): Promise<AuditLog[]>;
   getAuditLogsByUser(userId: string): Promise<AuditLog[]>;
 
+  // Tenancy migration: move a user (and every row tied to them by tenancy)
+  // from one country to another. Returns counts per table.
+  migrateUserCountry(userId: string, targetCountry: string): Promise<{
+    userId: string;
+    fromCountry: string;
+    toCountry: string;
+    counts: Record<string, number>;
+  }>;
+
   // Support Tickets
   createSupportTicket(data: InsertSupportTicket): Promise<SupportTicket>;
   getSupportTicket(id: string): Promise<SupportTicket | undefined>;
@@ -1836,6 +1845,68 @@ export class DatabaseStorage implements IStorage {
 
   async getAuditLogsByUser(userId: string): Promise<AuditLog[]> {
     return db.select().from(auditLogs).where(eq(auditLogs.userId, userId)).orderBy(desc(auditLogs.createdAt));
+  }
+
+  // Tenancy migration: atomically rewrite country_code on the user and every
+  // tenancy-bound row that depends on them. Implemented as a single
+  // transaction so a partial failure leaves nothing orphaned. We touch only
+  // the tables that actually have a country_code column today.
+  async migrateUserCountry(userId: string, targetCountry: string): Promise<{
+    userId: string;
+    fromCountry: string;
+    toCountry: string;
+    counts: Record<string, number>;
+  }> {
+    const counts: Record<string, number> = {};
+    let fromCountry = "";
+    await db.transaction(async (tx) => {
+      const userRow = await tx.execute(sql`SELECT country_code FROM users WHERE id = ${userId} FOR UPDATE`);
+      const rows = (userRow as any).rows ?? userRow;
+      if (!rows || rows.length === 0) {
+        throw new Error("User not found");
+      }
+      fromCountry = rows[0].country_code as string;
+      if (fromCountry === targetCountry) {
+        throw new Error("User is already in target country");
+      }
+
+      const providerRows = await tx.execute(sql`SELECT id FROM providers WHERE user_id = ${userId}`);
+      const providerIds: string[] = ((providerRows as any).rows ?? providerRows).map((r: any) => r.id);
+      const provIn = providerIds.length
+        ? sql`(${sql.join(providerIds.map((v) => sql`${v}`), sql.raw(','))})`
+        : null;
+
+      const u = await tx.execute(sql`UPDATE users SET country_code = ${targetCountry}::country_code WHERE id = ${userId}`);
+      counts.users = (u as any).rowCount ?? 0;
+
+      if (provIn) {
+        const p = await tx.execute(sql`UPDATE providers SET country_code = ${targetCountry}::country_code WHERE id IN ${provIn}`);
+        counts.providers = (p as any).rowCount ?? 0;
+        const s = await tx.execute(sql`UPDATE services SET country_code = ${targetCountry}::country_code WHERE provider_id IN ${provIn}`);
+        counts.services = (s as any).rowCount ?? 0;
+        const sr = await tx.execute(sql`UPDATE service_requests SET country_code = ${targetCountry}::country_code WHERE provider_id IN ${provIn}`);
+        counts.service_requests = (sr as any).rowCount ?? 0;
+      } else {
+        counts.providers = 0;
+        counts.services = 0;
+        counts.service_requests = 0;
+      }
+
+      // Appointments: as patient OR as provider.
+      const apptWhereClauses: any[] = [sql`patient_id = ${userId}`];
+      if (provIn) apptWhereClauses.push(sql`provider_id IN ${provIn}`);
+      const apptWhere = sql.join(apptWhereClauses, sql.raw(' OR '));
+      const a = await tx.execute(sql`UPDATE appointments SET country_code = ${targetCountry}::country_code WHERE ${apptWhere}`);
+      counts.appointments = (a as any).rowCount ?? 0;
+
+      // Invoices & payments: by patient (covers everything they owe/have paid).
+      const inv = await tx.execute(sql`UPDATE invoices SET country_code = ${targetCountry}::country_code WHERE patient_id = ${userId}`);
+      counts.invoices = (inv as any).rowCount ?? 0;
+      const pay = await tx.execute(sql`UPDATE payments SET country_code = ${targetCountry}::country_code WHERE patient_id = ${userId}`);
+      counts.payments = (pay as any).rowCount ?? 0;
+    });
+
+    return { userId, fromCountry, toCountry: targetCountry, counts };
   }
 
   // Support Tickets

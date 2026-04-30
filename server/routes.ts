@@ -2450,6 +2450,67 @@ export async function registerRoutes(
   });
 
   // Update user suspension status
+  // Migrate a user (and every tenancy-bound row attached to them) from one
+  // country to another. Global-admin only — country admins are intentionally
+  // not allowed because the operation crosses their tenant boundary. Profile
+  // self-service was tightened to block this; this endpoint is the safe,
+  // audited override.
+  app.post("/api/admin/users/:id/migrate-country", authenticateToken, requireGlobalAdmin, async (req: AuthRequest, res: Response) => {
+    try {
+      const { targetCountryCode, reason } = (req.body || {}) as { targetCountryCode?: string; reason?: string };
+      if (!targetCountryCode || !isCountryCode(targetCountryCode)) {
+        return res.status(400).json({ message: "Invalid or missing targetCountryCode" });
+      }
+      if (!reason || typeof reason !== "string" || reason.trim().length < 5) {
+        return res.status(400).json({ message: "A reason (min 5 chars) is required for the audit trail" });
+      }
+      const target = await storage.getUser(req.params.id);
+      if (!target) return res.status(404).json({ message: "User not found" });
+      if (isAdminRole(target.role)) {
+        return res.status(400).json({ message: "Admin accounts cannot be migrated; their scope is managed via /api/admin/admins." });
+      }
+
+      let result: Awaited<ReturnType<typeof storage.migrateUserCountry>>;
+      try {
+        result = await storage.migrateUserCountry(req.params.id, targetCountryCode);
+      } catch (err: any) {
+        const msg = err?.message || "Migration failed";
+        if (/already in target country/i.test(msg)) return res.status(409).json({ message: msg });
+        if (/User not found/i.test(msg)) return res.status(404).json({ message: msg });
+        throw err;
+      }
+
+      invalidateAuthCache(req.params.id);
+
+      try {
+        await storage.createAuditLog({
+          userId: req.user!.id,
+          action: "update",
+          entityType: "user_country_migration",
+          entityId: req.params.id,
+          details: JSON.stringify({
+            targetUserId: req.params.id,
+            targetUserEmail: target.email,
+            fromCountry: result.fromCountry,
+            toCountry: result.toCountry,
+            counts: result.counts,
+            reason: reason.trim(),
+            performedBy: req.user!.id,
+          }),
+          ipAddress: req.ip || null,
+          userAgent: req.get("user-agent") || null,
+        } as any);
+      } catch (auditErr) {
+        console.error("[admin/migrateCountry] audit log failed:", auditErr);
+      }
+
+      return res.json(result);
+    } catch (error: any) {
+      console.error("[admin/migrateCountry] failed:", error?.message);
+      res.status(500).json({ message: "Failed to migrate user country" });
+    }
+  });
+
   app.patch("/api/admin/users/:id/suspend", authenticateToken, async (req: AuthRequest, res: Response) => {
     try {
       if (!isAdminRole(req.user!.role)) {

@@ -82,33 +82,48 @@ async function login(email: string) {
 async function main() {
   console.log(`\n=== AUDIT START — base ${BASE} ===\n`);
 
-  // Cleanup any prior audit data
-  // Generic cascade cleanup: walk every FK that ultimately references our
-  // audit users / providers and TRUNCATE-style delete via dynamic SQL. We
-  // collect referencing tables from information_schema so the cleanup keeps
-  // working as the schema grows.
-  const auditUsersCte = `WITH au AS (SELECT id FROM users WHERE email LIKE 'audit-%@example.com'), ap AS (SELECT id FROM providers WHERE user_id IN (SELECT id FROM au))`;
-  const userRefs = await sql(`
-    SELECT tc.table_name, kcu.column_name
-    FROM information_schema.table_constraints tc
-    JOIN information_schema.key_column_usage kcu ON tc.constraint_name = kcu.constraint_name
-    JOIN information_schema.constraint_column_usage ccu ON tc.constraint_name = ccu.constraint_name
-    WHERE tc.constraint_type='FOREIGN KEY' AND ccu.table_name='users'`);
-  const providerRefs = await sql(`
-    SELECT tc.table_name, kcu.column_name
-    FROM information_schema.table_constraints tc
-    JOIN information_schema.key_column_usage kcu ON tc.constraint_name = kcu.constraint_name
-    JOIN information_schema.constraint_column_usage ccu ON tc.constraint_name = ccu.constraint_name
-    WHERE tc.constraint_type='FOREIGN KEY' AND ccu.table_name='providers'`);
-  for (const r of providerRefs as any[]) {
-    await sql(`${auditUsersCte} DELETE FROM "${r.table_name}" WHERE "${r.column_name}" IN (SELECT id FROM ap)`).catch(()=>{});
+  // Cleanup any prior audit data. Ordered top-down through the FK graph so
+  // child rows are removed before their parents. Each statement is wrapped in
+  // catch() so a missing table (e.g. across schema versions) is non-fatal.
+  const cte = `WITH au AS (SELECT id FROM users WHERE email LIKE 'audit-%@example.com'), ap AS (SELECT id FROM providers WHERE user_id IN (SELECT id FROM au))`;
+  const ordered: Array<[string, string]> = [
+    // Deepest leaves first.
+    ["payments", `${cte} DELETE FROM payments WHERE patient_id IN (SELECT id FROM au) OR appointment_id IN (SELECT id FROM appointments WHERE patient_id IN (SELECT id FROM au) OR provider_id IN (SELECT id FROM ap))`],
+    ["invoice_items", `${cte} DELETE FROM invoice_items WHERE invoice_id IN (SELECT id FROM invoices WHERE patient_id IN (SELECT id FROM au) OR provider_id IN (SELECT id FROM ap))`],
+    ["invoices", `${cte} DELETE FROM invoices WHERE patient_id IN (SELECT id FROM au) OR provider_id IN (SELECT id FROM ap)`],
+    ["appointment_events", `${cte} DELETE FROM appointment_events WHERE actor_user_id IN (SELECT id FROM au) OR appointment_id IN (SELECT id FROM appointments WHERE patient_id IN (SELECT id FROM au) OR provider_id IN (SELECT id FROM ap))`],
+    ["appointments", `${cte} DELETE FROM appointments WHERE patient_id IN (SELECT id FROM au) OR provider_id IN (SELECT id FROM ap)`],
+    ["service_requests", `${cte} DELETE FROM service_requests WHERE provider_id IN (SELECT id FROM ap)`],
+    ["services", `${cte} DELETE FROM services WHERE provider_id IN (SELECT id FROM ap)`],
+    ["time_slots", `${cte} DELETE FROM time_slots WHERE provider_id IN (SELECT id FROM ap)`],
+    ["provider_pricing_overrides", `${cte} DELETE FROM provider_pricing_overrides WHERE provider_id IN (SELECT id FROM ap)`],
+    ["provider_time_off", `${cte} DELETE FROM provider_time_off WHERE provider_id IN (SELECT id FROM ap)`],
+    ["provider_earnings", `${cte} DELETE FROM provider_earnings WHERE provider_id IN (SELECT id FROM ap)`],
+    ["reviews", `${cte} DELETE FROM reviews WHERE provider_id IN (SELECT id FROM ap) OR patient_id IN (SELECT id FROM au)`],
+    ["saved_providers", `${cte} DELETE FROM saved_providers WHERE provider_id IN (SELECT id FROM ap) OR patient_id IN (SELECT id FROM au)`],
+    ["service_packages", `${cte} DELETE FROM service_packages WHERE provider_id IN (SELECT id FROM ap)`],
+    ["waitlist_entries", `${cte} DELETE FROM waitlist_entries WHERE provider_id IN (SELECT id FROM ap)`],
+    ["medical_history", `${cte} DELETE FROM medical_history WHERE provider_id IN (SELECT id FROM ap) OR patient_id IN (SELECT id FROM au)`],
+    ["prescriptions", `${cte} DELETE FROM prescriptions WHERE provider_id IN (SELECT id FROM ap)`],
+    ["medical_practitioners", `${cte} DELETE FROM medical_practitioners WHERE provider_id IN (SELECT id FROM ap)`],
+    ["practitioners", `${cte} DELETE FROM practitioners WHERE provider_id IN (SELECT id FROM ap)`],
+    ["providers", `DELETE FROM providers WHERE user_id IN (SELECT id FROM users WHERE email LIKE 'audit-%@example.com')`],
+    // Now user-only references.
+    ["audit_logs", `DELETE FROM audit_logs WHERE user_id IN (SELECT id FROM users WHERE email LIKE 'audit-%@example.com') OR entity_id IN (SELECT id FROM users WHERE email LIKE 'audit-%@example.com')`],
+    ["refresh_tokens", `DELETE FROM refresh_tokens WHERE user_id IN (SELECT id FROM users WHERE email LIKE 'audit-%@example.com')`],
+    ["notification_queue", `DELETE FROM notification_queue WHERE user_id IN (SELECT id FROM users WHERE email LIKE 'audit-%@example.com')`],
+    ["notifications", `DELETE FROM notifications WHERE user_id IN (SELECT id FROM users WHERE email LIKE 'audit-%@example.com')`],
+    ["user_notifications", `DELETE FROM user_notifications WHERE user_id IN (SELECT id FROM users WHERE email LIKE 'audit-%@example.com')`],
+    ["notification_preferences", `DELETE FROM notification_preferences WHERE user_id IN (SELECT id FROM users WHERE email LIKE 'audit-%@example.com')`],
+    ["notification_delivery_logs", `DELETE FROM notification_delivery_logs WHERE user_id IN (SELECT id FROM users WHERE email LIKE 'audit-%@example.com')`],
+    ["push_subscriptions", `DELETE FROM push_subscriptions WHERE user_id IN (SELECT id FROM users WHERE email LIKE 'audit-%@example.com')`],
+    ["patient_consents", `DELETE FROM patient_consents WHERE user_id IN (SELECT id FROM users WHERE email LIKE 'audit-%@example.com')`],
+    ["conversations", `DELETE FROM conversations WHERE user_id IN (SELECT id FROM users WHERE email LIKE 'audit-%@example.com')`],
+    ["users", `DELETE FROM users WHERE email LIKE 'audit-%@example.com'`],
+  ];
+  for (const [name, q] of ordered) {
+    await sql(q).catch((e) => console.warn(`[cleanup ${name}] ${e.message}`));
   }
-  await sql(`DELETE FROM providers WHERE user_id IN (SELECT id FROM users WHERE email LIKE 'audit-%@example.com')`);
-  for (const r of userRefs as any[]) {
-    if (r.table_name === 'providers') continue;
-    await sql(`${auditUsersCte} DELETE FROM "${r.table_name}" WHERE "${r.column_name}" IN (SELECT id FROM au)`).catch(()=>{});
-  }
-  await sql(`DELETE FROM users WHERE email LIKE 'audit-%@example.com'`);
 
   // 1. Test data setup
   const huPatient = await makeUser("patient", "HU", "hu-pat");
@@ -314,6 +329,85 @@ async function main() {
       `IR patient → GET HU appointment ${huAppointmentId} returned ${crossAppt.status}`,
       crossAppt.status >= 400 ? "info" : "critical");
   }
+
+  // 8c. Global-admin country migration tool — make a global admin, exercise
+  //     the new migration endpoint and re-verify tenancy on the moved rows.
+  const gAdmin = await makeUser("patient", "HU", "g-admin");
+  await sql(`UPDATE users SET role='global_admin' WHERE id=$1`, [gAdmin.userId]);
+  const gAdminToken = await login(gAdmin.email);
+
+  // 1) Country admins must NOT be able to call the migration endpoint.
+  const countryAdminAttempt = await api(`/api/admin/users/${huPatient.userId}/migrate-country`, {
+    method: "POST",
+    body: JSON.stringify({ targetCountryCode: "IR", reason: "should be denied" }),
+  }, huAdminToken);
+  record("8c.migrate.country-admin-denied", countryAdminAttempt.status === 403,
+    `country_admin → migrate endpoint returned ${countryAdminAttempt.status} (want 403)`,
+    countryAdminAttempt.status === 403 ? "info" : "critical");
+
+  // 2) Bad payloads — missing reason, invalid country.
+  const noReason = await api(`/api/admin/users/${huPatient.userId}/migrate-country`, {
+    method: "POST",
+    body: JSON.stringify({ targetCountryCode: "IR" }),
+  }, gAdminToken);
+  record("8c.migrate.requires-reason", noReason.status === 400,
+    `missing reason → ${noReason.status} (want 400)`,
+    noReason.status === 400 ? "info" : "high");
+
+  const badCountry = await api(`/api/admin/users/${huPatient.userId}/migrate-country`, {
+    method: "POST",
+    body: JSON.stringify({ targetCountryCode: "ZZ", reason: "invalid country test" }),
+  }, gAdminToken);
+  record("8c.migrate.invalid-country", badCountry.status === 400,
+    `invalid country → ${badCountry.status} (want 400)`,
+    badCountry.status === 400 ? "info" : "high");
+
+  // 3) Refuse to migrate admin accounts.
+  const adminTarget = await api(`/api/admin/users/${huAdmin.userId}/migrate-country`, {
+    method: "POST",
+    body: JSON.stringify({ targetCountryCode: "IR", reason: "should refuse for admins" }),
+  }, gAdminToken);
+  record("8c.migrate.admin-refused", adminTarget.status === 400,
+    `migrating an admin account → ${adminTarget.status} (want 400)`,
+    adminTarget.status === 400 ? "info" : "high");
+
+  // 4) Happy path — migrate the HU patient (with their existing appointment) to IR.
+  const beforeAppt = await sql(`SELECT country_code FROM appointments WHERE patient_id=$1`, [huPatient.userId]);
+  const beforePay = await sql(`SELECT country_code FROM payments WHERE patient_id=$1`, [huPatient.userId]);
+  const beforeUser = (await sql(`SELECT country_code FROM users WHERE id=$1`, [huPatient.userId]))[0];
+  const migrate = await api(`/api/admin/users/${huPatient.userId}/migrate-country`, {
+    method: "POST",
+    body: JSON.stringify({ targetCountryCode: "IR", reason: "auditor verifying tenancy migration tool" }),
+  }, gAdminToken);
+  const afterUser = (await sql(`SELECT country_code FROM users WHERE id=$1`, [huPatient.userId]))[0];
+  const afterAppt = await sql(`SELECT country_code FROM appointments WHERE patient_id=$1`, [huPatient.userId]);
+  const afterPay = await sql(`SELECT country_code FROM payments WHERE patient_id=$1`, [huPatient.userId]);
+  const userMoved = beforeUser.country_code === "HU" && afterUser.country_code === "IR";
+  const apptMoved = afterAppt.length === 0 || afterAppt.every((r: any) => r.country_code === "IR");
+  const payMoved = afterPay.length === 0 || afterPay.every((r: any) => r.country_code === "IR");
+  record("8c.migrate.happy-path",
+    migrate.status === 200 && userMoved && apptMoved && payMoved,
+    `migrate HU→IR: status=${migrate.status} user=${beforeUser.country_code}→${afterUser.country_code} appts=${beforeAppt.length}→IR(${apptMoved}) payments=${beforePay.length}→IR(${payMoved})`,
+    migrate.status === 200 && userMoved && apptMoved && payMoved ? "info" : "critical");
+
+  // 5) Idempotency — calling again with same target returns 409.
+  const dupe = await api(`/api/admin/users/${huPatient.userId}/migrate-country`, {
+    method: "POST",
+    body: JSON.stringify({ targetCountryCode: "IR", reason: "second call should 409" }),
+  }, gAdminToken);
+  record("8c.migrate.no-op-409", dupe.status === 409,
+    `re-migrating to same country → ${dupe.status} (want 409)`,
+    dupe.status === 409 ? "info" : "warn");
+
+  // 6) Audit log entry was written.
+  const auditRow = await sql(
+    `SELECT id, action, entity_type, details FROM audit_logs WHERE entity_type='user_country_migration' AND entity_id=$1 ORDER BY created_at DESC LIMIT 1`,
+    [huPatient.userId],
+  );
+  const auditOk = auditRow.length === 1 && auditRow[0].details && (auditRow[0].details as string).includes("auditor verifying");
+  record("8c.migrate.audit-logged", auditOk,
+    `audit_logs row for migration present? ${auditOk}`,
+    auditOk ? "info" : "high");
 
   // 9. DB hardening — check indexes
   const idxRows = await sql(`
