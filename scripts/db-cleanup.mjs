@@ -256,26 +256,36 @@ async function main() {
       }
     }
 
-    // 6. Sanity FK / orphan checks (best-effort: only check tables we know about).
-    // Anything that should reference users/providers but doesn't have CASCADE
-    // would surface here. With the TRUNCATE ... CASCADE above this should be empty.
-    const orphanChecks = [
-      ["appointments", "user_id", "users", "id"],
-      ["appointments", "provider_id", "providers", "id"],
-      ["invoices", "user_id", "users", "id"],
-      ["payments", "invoice_id", "invoices", "id"],
-      ["reviews", "user_id", "users", "id"],
-      ["messages", "conversation_id", "conversations", "id"],
-      ["notifications", "user_id", "users", "id"],
-    ];
-    for (const [child, fk, parent, pk] of orphanChecks) {
+    // 6. Sanity FK / orphan checks: discovered dynamically from
+    // information_schema so we never reference columns that don't exist.
+    const fks = await client.query(`
+      SELECT
+        tc.table_name        AS child,
+        kcu.column_name      AS fk,
+        ccu.table_name       AS parent,
+        ccu.column_name      AS pk
+      FROM information_schema.table_constraints tc
+      JOIN information_schema.key_column_usage kcu
+        ON tc.constraint_name = kcu.constraint_name
+       AND tc.table_schema    = kcu.table_schema
+      JOIN information_schema.constraint_column_usage ccu
+        ON ccu.constraint_name = tc.constraint_name
+       AND ccu.table_schema    = tc.table_schema
+      WHERE tc.constraint_type = 'FOREIGN KEY'
+        AND tc.table_schema    = 'public'
+    `);
+    for (const { child, fk, parent, pk } of fks.rows) {
       if (!existing.has(child) || !existing.has(parent)) continue;
-      const r = await client.query(
-        `SELECT COUNT(*)::int AS n FROM "${child}" c
-         WHERE c."${fk}" IS NOT NULL
-           AND NOT EXISTS (SELECT 1 FROM "${parent}" p WHERE p."${pk}" = c."${fk}")`
-      );
-      if (r.rows[0].n > 0) report.orphans[`${child}.${fk} -> ${parent}.${pk}`] = r.rows[0].n;
+      try {
+        const r = await client.query(
+          `SELECT COUNT(*)::int AS n FROM "${child}" c
+           WHERE c."${fk}" IS NOT NULL
+             AND NOT EXISTS (SELECT 1 FROM "${parent}" p WHERE p."${pk}" = c."${fk}")`
+        );
+        if (r.rows[0].n > 0) report.orphans[`${child}.${fk} -> ${parent}.${pk}`] = r.rows[0].n;
+      } catch (e) {
+        report.notes.push(`orphan check ${child}.${fk}: ${e.message}`);
+      }
     }
 
     await client.query("COMMIT");
