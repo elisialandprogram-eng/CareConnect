@@ -366,6 +366,20 @@ export interface IStorage {
   createAuditLog(data: InsertAuditLog): Promise<AuditLog>;
   getAllAuditLogs(): Promise<AuditLog[]>;
   getAuditLogsByUser(userId: string): Promise<AuditLog[]>;
+  getCountryMigrationHistory(): Promise<Array<{
+    id: string;
+    createdAt: Date | null;
+    targetUserId: string | null;
+    targetUserEmail: string | null;
+    targetUserName: string | null;
+    fromCountry: string | null;
+    toCountry: string | null;
+    counts: Record<string, number> | null;
+    reason: string | null;
+    performedById: string | null;
+    performedByEmail: string | null;
+    performedByName: string | null;
+  }>>;
 
   // Tenancy migration: move a user (and every row tied to them by tenancy)
   // from one country to another. Returns counts per table.
@@ -1845,6 +1859,58 @@ export class DatabaseStorage implements IStorage {
 
   async getAuditLogsByUser(userId: string): Promise<AuditLog[]> {
     return db.select().from(auditLogs).where(eq(auditLogs.userId, userId)).orderBy(desc(auditLogs.createdAt));
+  }
+
+  async getCountryMigrationHistory() {
+    // One row per global-admin country migration. We left-join users twice:
+    // once to fetch the latest contact info for the migrated user (their email
+    // in details may be stale if they later changed it), once for the operator
+    // who performed the migration.
+    const rows = await db.execute(sql`
+      SELECT
+        al.id              AS id,
+        al.created_at      AS created_at,
+        al.entity_id       AS target_user_id,
+        al.details         AS details,
+        tu.email           AS target_email_now,
+        tu.first_name      AS target_first,
+        tu.last_name       AS target_last,
+        al.user_id         AS performer_id,
+        pu.email           AS performer_email,
+        pu.first_name      AS performer_first,
+        pu.last_name       AS performer_last
+      FROM audit_logs al
+      LEFT JOIN users tu ON tu.id = al.entity_id
+      LEFT JOIN users pu ON pu.id = al.user_id
+      WHERE al.entity_type = 'user_country_migration'
+      ORDER BY al.created_at DESC
+    `);
+    const data = ((rows as any).rows ?? rows) as any[];
+    return data.map((r) => {
+      let parsed: any = {};
+      if (typeof r.details === "string") {
+        try { parsed = JSON.parse(r.details); } catch { parsed = {}; }
+      } else if (r.details && typeof r.details === "object") {
+        parsed = r.details;
+      }
+      const targetEmail = r.target_email_now || parsed.targetUserEmail || null;
+      const targetName = [r.target_first, r.target_last].filter(Boolean).join(" ").trim() || null;
+      const performerName = [r.performer_first, r.performer_last].filter(Boolean).join(" ").trim() || null;
+      return {
+        id: r.id as string,
+        createdAt: r.created_at ? new Date(r.created_at) : null,
+        targetUserId: (r.target_user_id ?? parsed.targetUserId ?? null) as string | null,
+        targetUserEmail: targetEmail,
+        targetUserName: targetName,
+        fromCountry: (parsed.fromCountry ?? null) as string | null,
+        toCountry: (parsed.toCountry ?? null) as string | null,
+        counts: (parsed.counts ?? null) as Record<string, number> | null,
+        reason: (parsed.reason ?? null) as string | null,
+        performedById: (r.performer_id ?? null) as string | null,
+        performedByEmail: (r.performer_email ?? null) as string | null,
+        performedByName: performerName,
+      };
+    });
   }
 
   // Tenancy migration: atomically rewrite country_code on the user and every

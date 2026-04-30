@@ -409,6 +409,28 @@ async function main() {
     `audit_logs row for migration present? ${auditOk}`,
     auditOk ? "info" : "high");
 
+  // 7) Migration history endpoint — global admin only, returns parsed history.
+  const histDeniedCountry = await api("/api/admin/country-migrations", {}, huAdminToken);
+  record("8c.migrate.history-country-admin-denied", histDeniedCountry.status === 403,
+    `country admin GET /country-migrations → ${histDeniedCountry.status} (want 403)`,
+    histDeniedCountry.status === 403 ? "info" : "high");
+
+  const hist = await api("/api/admin/country-migrations", {}, gAdminToken);
+  const histRows = Array.isArray(hist.body) ? hist.body : [];
+  const ourEntry = histRows.find((r: any) => r.targetUserId === huPatient.userId);
+  const histOk = hist.status === 200
+    && !!ourEntry
+    && ourEntry.fromCountry === "HU"
+    && ourEntry.toCountry === "IR"
+    && typeof ourEntry.reason === "string"
+    && ourEntry.reason.includes("auditor verifying")
+    && ourEntry.counts && typeof ourEntry.counts.users === "number"
+    && !!ourEntry.performedById
+    && !!ourEntry.targetUserEmail;
+  record("8c.migrate.history-listed", histOk,
+    `migration history endpoint returned a parsed entry for the test user? ${histOk}`,
+    histOk ? "info" : "high");
+
   // 9. DB hardening — check indexes
   const idxRows = await sql(`
     SELECT t.relname AS table_name, i.relname AS index_name

@@ -2511,6 +2511,18 @@ export async function registerRoutes(
     }
   });
 
+  // History of every cross-country user migration. Global-admin only because
+  // it cuts across tenants by design.
+  app.get("/api/admin/country-migrations", authenticateToken, requireGlobalAdmin, async (_req: AuthRequest, res: Response) => {
+    try {
+      const history = await storage.getCountryMigrationHistory();
+      res.json(history);
+    } catch (error: any) {
+      console.error("[admin/countryMigrations] failed:", error?.message);
+      res.status(500).json({ message: "Failed to load migration history" });
+    }
+  });
+
   app.patch("/api/admin/users/:id/suspend", authenticateToken, async (req: AuthRequest, res: Response) => {
     try {
       if (!isAdminRole(req.user!.role)) {
