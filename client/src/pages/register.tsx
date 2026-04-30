@@ -76,6 +76,7 @@ export default function Register() {
     password: z.string().min(6, t("validation.password_min")),
     confirmPassword: z.string().min(6, t("validation.confirm_password")),
     role: z.enum(["patient", "provider"]),
+    countryCode: z.enum(["HU", "IR"]),
     treatmentConsent: z.boolean().default(false),
     privacyConsent: z.boolean().default(false),
     telemedicineConsent: z.boolean().default(false),
@@ -106,6 +107,7 @@ export default function Register() {
       password: "",
       confirmPassword: "",
       role: roleParam || "patient",
+      countryCode: "HU",
       treatmentConsent: false,
       privacyConsent: false,
       telemedicineConsent: false,
@@ -307,6 +309,28 @@ export default function Register() {
                           <SelectContent>
                             <SelectItem value="patient">{t("common.patient_looking")}</SelectItem>
                             <SelectItem value="provider">{t("common.healthcare_provider")}</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="countryCode"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t("country.label")}</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger data-testid="select-country">
+                              <SelectValue placeholder={t("country.placeholder")} />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="HU">🇭🇺 {t("country.hungary")}</SelectItem>
+                            <SelectItem value="IR">🇮🇷 {t("country.iran")}</SelectItem>
                           </SelectContent>
                         </Select>
                         <FormMessage />

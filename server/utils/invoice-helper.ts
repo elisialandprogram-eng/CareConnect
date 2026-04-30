@@ -95,6 +95,7 @@ export async function createInvoiceForAppointment(appointmentId: string): Promis
       totalAmount,
       status: invoiceStatus,
       currency: invoiceCurrency,
+      countryCode: (booking as any).countryCode || "HU",
     } as any,
     [
       {

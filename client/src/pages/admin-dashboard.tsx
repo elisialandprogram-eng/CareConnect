@@ -32,6 +32,7 @@ import { Label } from "@/components/ui/label";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth";
+import { isAdminRole } from "@/lib/roles";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useCurrency } from "@/lib/currency";
 import { useForm, useFieldArray } from "react-hook-form";
@@ -4055,7 +4056,7 @@ function SupportTickets() {
   const { data: allUsers } = useQuery<any[]>({
     queryKey: ["/api/admin/users"],
   });
-  const adminUsers = (allUsers ?? []).filter(u => u.role === "admin");
+  const adminUsers = (allUsers ?? []).filter(u => isAdminRole(u.role));
 
   const updateTicketMutation = useMutation({
     mutationFn: async ({ id, ...patch }: { id: string; status?: string; priority?: string; assignedTo?: string | null }) => {
@@ -5963,7 +5964,7 @@ export default function AdminDashboard() {
 
   const { data: users } = useQuery<User[]>({
     queryKey: ["/api/admin/users"],
-    enabled: user?.role === "admin",
+    enabled: isAdminRole(user?.role),
   });
 
   const form = useForm<AdminProviderData>({
@@ -6014,7 +6015,7 @@ export default function AdminDashboard() {
     },
   });
 
-  if (user?.role !== "admin") {
+  if (!isAdminRole(user?.role)) {
     return (
       <div className="min-h-screen flex flex-col">
         <Header />

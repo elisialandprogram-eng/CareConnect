@@ -35,6 +35,14 @@ const CURRENCY_BY_LANG: Record<string, CurrencyConfig> = {
   },
 };
 
+// Country → currency mapping. The country a user belongs to is the strongest
+// signal for which currency to display, regardless of UI language. e.g. an
+// English-speaking user living in Hungary should still see prices in HUF.
+const CURRENCY_BY_COUNTRY: Record<"HU" | "IR", CurrencyConfig> = {
+  HU: CURRENCY_BY_LANG.hu,
+  IR: CURRENCY_BY_LANG.fa,
+};
+
 // Additional currencies users can override to (not auto-bound to a language).
 const EXTRA_CURRENCIES: Record<string, CurrencyConfig> = {
   EUR: {
@@ -102,10 +110,13 @@ export function useCurrency() {
   const { i18n } = useTranslation();
   const lang = i18n.language;
   let userPreferred: string | null = null;
+  let userCountry: "HU" | "IR" | null = null;
   try {
     // useAuth is safe to call here; this hook always runs inside React tree.
     const { user } = useAuth();
     userPreferred = user?.preferredCurrency ?? null;
+    const cc = (user as any)?.countryCode;
+    if (cc === "HU" || cc === "IR") userCountry = cc;
   } catch {
     userPreferred = null;
   }
@@ -117,7 +128,11 @@ export function useCurrency() {
       overrideCode = null;
     }
   }
-  const config = resolveByCode(overrideCode) ?? resolveConfig(lang);
+  // Priority: explicit per-user override > user's country > UI language fallback.
+  const config =
+    resolveByCode(overrideCode) ??
+    (userCountry ? CURRENCY_BY_COUNTRY[userCountry] : null) ??
+    resolveConfig(lang);
   return {
     config,
     code: config.code,
@@ -130,4 +145,9 @@ export function useCurrency() {
       return safe * config.rateFromUSD;
     },
   };
+}
+
+export function getCurrencyConfigForCountry(countryCode: string | null | undefined): CurrencyConfig {
+  if (countryCode === "HU" || countryCode === "IR") return CURRENCY_BY_COUNTRY[countryCode];
+  return DEFAULT_CURRENCY;
 }

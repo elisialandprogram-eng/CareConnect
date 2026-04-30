@@ -18,7 +18,11 @@ Both Patient and Provider Dashboards offer comprehensive appointment management,
 
 ### Backend
 
-The backend is developed with Node.js and TypeScript, using Express.js and Drizzle ORM for database interactions. Authentication is JWT-based with bcrypt for password hashing and supports role-based access control (patient, provider, admin). The API is RESTful, uses JSON, and includes centralized error handling and request logging. A Data Access Layer (DAL) abstracts database operations.
+The backend is developed with Node.js and TypeScript, using Express.js and Drizzle ORM for database interactions. Authentication is JWT-based with bcrypt for password hashing and supports role-based access control (patient, provider, admin, global_admin, country_admin). The API is RESTful, uses JSON, and includes centralized error handling and request logging. A Data Access Layer (DAL) abstracts database operations.
+
+### Multi-Country Tenancy (HU + IR)
+
+The platform supports two isolated tenants — Hungary (`HU`) and Iran (`IR`) — selected via a `country_code` enum on `users`, `providers`, `services`, `appointments`, `invoices`, `payments`, and `service_requests` (all NOT NULL, default `HU`, indexed where lists are filtered). The `user_role` enum includes `global_admin` (cross-country) and `country_admin` (locked to its own country); legacy `admin` is treated as `global_admin`. Isolation is enforced server-side by `server/middleware/country.ts` (`canAccessCountry`, `listingCountryFilter`, `isAdminRole`, `isGlobalAdmin`) which is wired into every public listing, admin listing, single-record read, and booking/service/service-request write path in `server/routes.ts`. Cross-country booking attempts return `404`. Registration requires a `countryCode`; non-admin users can switch country in Settings, which PATCHes `/api/auth/profile` and re-runs all queries. The frontend currency formatter (`client/src/lib/currency.ts`) keys off `user.countryCode` (HU→HUF, IR→IRR), the header dropdown shows the country flag, and `client/src/lib/roles.ts` (`isAdminRole`/`isGlobalAdmin`) is used for client-side admin gates so the new admin roles are recognised. Persian is text-only — no RTL was applied. Full details in `IMPLEMENTATION_REPORT.md`.
 
 ### Performance & Response Sanitization
 

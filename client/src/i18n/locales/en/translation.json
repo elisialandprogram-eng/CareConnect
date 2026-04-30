@@ -1790,5 +1790,14 @@
       "as_needed": "As needed",
       "weekly": "Weekly"
     }
+  },
+  "country": {
+    "label": "Country",
+    "placeholder": "Select your country",
+    "hungary": "Hungary",
+    "iran": "Iran",
+    "switcher_title": "Country",
+    "switcher_help": "Switching country changes the data and currency you see.",
+    "current": "Current country"
   }
 }

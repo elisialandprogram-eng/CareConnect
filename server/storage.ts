@@ -224,8 +224,8 @@ export interface IStorage {
   getProviderByUserId(userId: string): Promise<Provider | undefined>;
   getProviderWithUser(id: string): Promise<ProviderWithUser | undefined>;
   getProviderWithServices(id: string): Promise<ProviderWithServices | undefined>;
-  getAllProviders(): Promise<ProviderWithUser[]>;
-  searchProviders(opts: { q?: string; type?: string; city?: string; verifiedOnly?: boolean }): Promise<ProviderWithUser[]>;
+  getAllProviders(opts?: { countryCode?: "HU" | "IR" | null }): Promise<ProviderWithUser[]>;
+  searchProviders(opts: { q?: string; type?: string; city?: string; verifiedOnly?: boolean; countryCode?: "HU" | "IR" | null }): Promise<ProviderWithUser[]>;
   createProvider(provider: InsertProvider): Promise<Provider>;
   updateProvider(id: string, data: Partial<InsertProvider>): Promise<Provider | undefined>;
   deleteProvider(id: string): Promise<void>;
@@ -985,12 +985,15 @@ export class DatabaseStorage implements IStorage {
     };
   }
 
-  async getAllProviders(): Promise<ProviderWithUser[]> {
-    const result = await db
+  async getAllProviders(opts?: { countryCode?: "HU" | "IR" | null }): Promise<ProviderWithUser[]> {
+    const baseQuery = db
       .select()
       .from(providers)
-      .innerJoin(users, eq(providers.userId, users.id))
-      .orderBy(desc(providers.createdAt));
+      .innerJoin(users, eq(providers.userId, users.id));
+
+    const result = opts?.countryCode
+      ? await baseQuery.where(eq(providers.countryCode, opts.countryCode)).orderBy(desc(providers.createdAt))
+      : await baseQuery.orderBy(desc(providers.createdAt));
 
     return result.map(r => ({
       ...r.providers,
@@ -998,8 +1001,11 @@ export class DatabaseStorage implements IStorage {
     }));
   }
 
-  async searchProviders(opts: { q?: string; type?: string; city?: string; verifiedOnly?: boolean }): Promise<ProviderWithUser[]> {
+  async searchProviders(opts: { q?: string; type?: string; city?: string; verifiedOnly?: boolean; countryCode?: "HU" | "IR" | null }): Promise<ProviderWithUser[]> {
     const conds: any[] = [];
+    if (opts.countryCode) {
+      conds.push(eq(providers.countryCode, opts.countryCode));
+    }
     if (opts.type && opts.type !== "all") {
       conds.push(eq(providers.providerType, opts.type));
     }

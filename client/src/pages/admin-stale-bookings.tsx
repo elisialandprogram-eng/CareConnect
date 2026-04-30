@@ -14,6 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useAuth } from "@/lib/auth";
+import { isAdminRole } from "@/lib/roles";
 import { ArrowLeft, ClockAlert, Loader2, RefreshCw, ShieldAlert } from "lucide-react";
 
 interface StaleBookingItem {
@@ -65,7 +66,7 @@ export default function AdminStaleBookings() {
       if (!res.ok) throw new Error("Failed to load stale bookings");
       return res.json();
     },
-    enabled: !!user && user.role === "admin",
+    enabled: !!user && isAdminRole(user.role),
   });
 
   const grouped = useMemo(() => {
@@ -83,7 +84,7 @@ export default function AdminStaleBookings() {
     );
   }
 
-  if (!user || user.role !== "admin") {
+  if (!user || !isAdminRole(user.role)) {
     return (
       <div className="min-h-screen flex flex-col">
         <Header />

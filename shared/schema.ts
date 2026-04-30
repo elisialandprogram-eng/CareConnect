@@ -4,7 +4,8 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
 // Enums
-export const userRoleEnum = pgEnum("user_role", ["patient", "provider", "admin"]);
+export const userRoleEnum = pgEnum("user_role", ["patient", "provider", "admin", "global_admin", "country_admin"]);
+export const countryCodeEnum = pgEnum("country_code", ["HU", "IR"]);
 export const providerTypeEnum = pgEnum("provider_type", ["physiotherapist", "doctor", "nurse"]);
 export const appointmentStatusEnum = pgEnum("appointment_status", [
   // Legacy values (kept for backward compat)
@@ -79,6 +80,9 @@ export const users = pgTable("users", {
   languagePreference: text("language_preference").default("en"),
   preferredCurrency: text("preferred_currency"),
   timezone: text("timezone"),
+  // Multi-country tenancy. Determines which country's data the user can see/use.
+  // For country_admin, this is the country they administer.
+  countryCode: countryCodeEnum("country_code").notNull().default("HU"),
   // ── Referral program ──
   // Auto-generated unique short code shared by this user to invite friends.
   // Lazily created on first GET /api/referrals/me to avoid backfill churn.
@@ -120,6 +124,8 @@ export const providers = pgTable("providers", {
   city: text("city"),
   state: text("state"),
   country: text("country"),
+  // Multi-country tenancy: which country this provider operates in.
+  countryCode: countryCodeEnum("country_code").notNull().default("HU"),
   serviceRadiusKm: integer("service_radius_km"),
   multipleServiceAreas: boolean("multiple_service_areas").default(false),
   googleMapsLocation: text("google_maps_location"),
@@ -252,6 +258,8 @@ export const services = pgTable("services", {
   // in-clinic visits, 'home_only' to home visits, 'both' allows either.
   // Telemedicine availability is governed separately by telemedicineFee > 0.
   locationMode: text("location_mode").notNull().default("both"),
+  // Multi-country tenancy: inherited from provider on insert; used for fast filtering.
+  countryCode: countryCodeEnum("country_code").notNull().default("HU"),
   deletedAt: timestamp("deleted_at"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
@@ -259,6 +267,7 @@ export const services = pgTable("services", {
   index("idx_services_provider_id").on(t.providerId),
   index("idx_services_is_active").on(t.isActive),
   index("idx_services_sub_service_id").on(t.subServiceId),
+  index("idx_services_country_code").on(t.countryCode),
 ]);
 
 export const servicePriceHistory = pgTable("service_price_history", {
@@ -376,6 +385,8 @@ export const appointments = pgTable("appointments", {
   parentAppointmentId: varchar("parent_appointment_id"),
   isRescheduled: boolean("is_rescheduled").default(false),
   googleCalendarEventId: text("google_calendar_event_id"),
+  // Multi-country tenancy. Must match patient's, provider's, and service's countryCode.
+  countryCode: countryCodeEnum("country_code").notNull().default("HU"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 }, (t) => [
@@ -384,6 +395,7 @@ export const appointments = pgTable("appointments", {
   index("idx_appointments_status").on(t.status),
   index("idx_appointments_date").on(t.date),
   index("idx_appointments_created_at").on(t.createdAt),
+  index("idx_appointments_country_code").on(t.countryCode),
 ]);
 
 export const invoices = pgTable("invoices", {
@@ -404,6 +416,8 @@ export const invoices = pgTable("invoices", {
   // honors a per-invoice cooldown so we never spam the patient.
   lastReminderAt: timestamp("last_reminder_at"),
   reminderCount: integer("reminder_count").notNull().default(0),
+  // Multi-country tenancy: copied from appointment on insert.
+  countryCode: countryCodeEnum("country_code").notNull().default("HU"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -480,6 +494,8 @@ export const payments = pgTable("payments", {
   status: paymentStatusEnum("status").notNull().default("pending"),
   stripePaymentId: text("stripe_payment_id"),
   stripeSessionId: text("stripe_session_id"),
+  // Multi-country tenancy: copied from appointment on insert.
+  countryCode: countryCodeEnum("country_code").notNull().default("HU"),
   createdAt: timestamp("created_at").defaultNow(),
 }, (t) => [
   index("idx_payments_appointment_id").on(t.appointmentId),
@@ -701,11 +717,15 @@ export const serviceRequests = pgTable("service_requests", {
   adminNotes: text("admin_notes"),
   rejectionReason: text("rejection_reason"),
   createdServiceId: varchar("created_service_id").references(() => services.id, { onDelete: "set null" }),
+  // Multi-country tenancy: copied from provider on insert. A country admin only
+  // sees and approves requests for their own country.
+  countryCode: countryCodeEnum("country_code").notNull().default("HU"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 }, (t) => [
   index("idx_service_requests_provider_id").on(t.providerId),
   index("idx_service_requests_status").on(t.status),
+  index("idx_service_requests_country_code").on(t.countryCode),
 ]);
 
 export const platformSettings = pgTable("platform_settings", {

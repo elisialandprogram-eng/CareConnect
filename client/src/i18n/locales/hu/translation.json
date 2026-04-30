@@ -1790,5 +1790,14 @@
       "as_needed": "Szükség szerint",
       "weekly": "Hetente"
     }
+  },
+  "country": {
+    "label": "Ország",
+    "placeholder": "Válassz országot",
+    "hungary": "Magyarország",
+    "iran": "Irán",
+    "switcher_title": "Ország",
+    "switcher_help": "Az ország váltása megváltoztatja a megjelenített adatokat és pénznemet.",
+    "current": "Jelenlegi ország"
   }
 }

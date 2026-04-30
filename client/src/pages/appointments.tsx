@@ -1,6 +1,7 @@
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
 import { useAuth } from "@/lib/auth";
+import { isAdminRole } from "@/lib/roles";
 import { useLocation } from "wouter";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -136,7 +137,7 @@ export default function Appointments() {
       navigate("/login");
     } else if (!authLoading && user?.role === "provider") {
       navigate("/provider/dashboard");
-    } else if (!authLoading && user?.role === "admin") {
+    } else if (!authLoading && isAdminRole(user?.role)) {
       navigate("/admin");
     }
   }, [isAuthenticated, authLoading, user?.role, navigate]);

@@ -16,7 +16,7 @@ import { showErrorModal } from "@/components/error-modal";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { subscribeToPush, unsubscribeFromPush, getPushCapability } from "@/lib/push";
-import { Bell, Lock, Shield, Eye, EyeOff, Smartphone, MessageSquare, Mail, Monitor } from "lucide-react";
+import { Bell, Lock, Shield, Eye, EyeOff, Smartphone, MessageSquare, Mail, Monitor, Globe } from "lucide-react";
 
 export default function Settings() {
   const { isAuthenticated, user, isLoading: authLoading } = useAuth();
@@ -44,6 +44,20 @@ export default function Settings() {
     mutationFn: async (patch: Record<string, any>) => apiRequest("PATCH", "/api/notification-preferences", patch),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/notification-preferences"] }),
     onError: () => showErrorModal({ title: "Failed to save preference", context: "settings.updatePrefs" }),
+  });
+
+  // Country switcher: PATCH the user's profile so all listing/search calls
+  // start scoping to the new country immediately. We invalidate every query
+  // because most lists are now country-scoped on the server.
+  const updateCountry = useMutation({
+    mutationFn: async (countryCode: "HU" | "IR") =>
+      apiRequest("PATCH", "/api/auth/profile", { countryCode }),
+    onSuccess: () => {
+      queryClient.invalidateQueries();
+      toast({ title: t("country.switcher_title"), description: t("country.switcher_help") });
+    },
+    onError: (e: any) =>
+      showErrorModal({ title: "Failed to switch country", description: e?.message, context: "settings.country" }),
   });
 
   const togglePush = async (on: boolean) => {
@@ -310,6 +324,33 @@ export default function Settings() {
               </div>
             </CardContent>
           </Card>
+
+          {/* Country switcher: lets a user move themselves between supported
+              tenants. Hidden for admins because their country is fixed. */}
+          {user && !["admin", "global_admin", "country_admin"].includes((user as any).role) && (
+            <Card>
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <Globe className="h-5 w-5 text-primary" />
+                  <CardTitle className="text-lg">{t("country.switcher_title")}</CardTitle>
+                </div>
+                <CardDescription>{t("country.switcher_help")}</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p className="font-medium mb-2">{t("country.current")}</p>
+                <select
+                  data-testid="select-country"
+                  className="w-full border border-input rounded-md h-10 px-3 bg-background"
+                  value={(user as any).countryCode || "HU"}
+                  disabled={updateCountry.isPending}
+                  onChange={(e) => updateCountry.mutate(e.target.value as "HU" | "IR")}
+                >
+                  <option value="HU">🇭🇺 {t("country.hungary")}</option>
+                  <option value="IR">🇮🇷 {t("country.iran")}</option>
+                </select>
+              </CardContent>
+            </Card>
+          )}
 
           <Card>
             <CardHeader>

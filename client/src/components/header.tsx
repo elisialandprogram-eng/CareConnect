@@ -14,6 +14,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { User, Calendar, LogOut, Settings, LayoutDashboard, Menu, X, Stethoscope, MessageSquare, Bell, Languages, Wallet, LifeBuoy, Search, HeartPulse, Sparkles, Activity, UserRound, Tag } from "lucide-react";
 import { useCurrency } from "@/lib/currency";
+import { isAdminRole } from "@/lib/roles";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -102,7 +103,7 @@ export function Header() {
 
   const getDashboardLink = () => {
     if (user?.role === "provider") return "/provider/dashboard";
-    if (user?.role === "admin") return "/admin";
+    if (isAdminRole(user?.role)) return "/admin";
     return "/patient/dashboard";
   };
 
@@ -210,13 +211,17 @@ export function Header() {
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex flex-col space-y-1">
-                    <p className="text-sm font-medium">{user?.firstName} {user?.lastName}</p>
+                    <p className="text-sm font-medium flex items-center gap-1">
+                      {user?.firstName} {user?.lastName}
+                      {(user as any)?.countryCode === "HU" && <span title="Hungary" data-testid="badge-country">🇭🇺</span>}
+                      {(user as any)?.countryCode === "IR" && <span title="Iran" data-testid="badge-country">🇮🇷</span>}
+                    </p>
                     <p className="text-xs text-muted-foreground">{user?.email}</p>
                   </div>
                 </div>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
-                  {user?.role === "admin" ? (
+                  {isAdminRole(user?.role) ? (
                     <Link href="/admin" className="cursor-pointer">
                       <LayoutDashboard className="mr-2 h-4 w-4" />
                       {t("common.dashboard")}

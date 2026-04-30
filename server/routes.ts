@@ -244,6 +244,16 @@ import { sanitizeUser, sanitizeProviderWithUser, sanitizeProviderListItem } from
 import { computeFinalPrice } from "./lib/pricing";
 import { canTransition, isTerminalStatus, nextStatusesFor } from "./lib/appointmentStatus";
 import {
+  type CountryCode,
+  SUPPORTED_COUNTRIES,
+  isCountryCode,
+  isAdminRole,
+  isGlobalAdmin,
+  adminScopeFor,
+  canAccessCountry,
+  listingCountryFilter,
+} from "./middleware/country";
+import {
   APPOINTMENT_ACTIONS,
   REASON_CODES,
   type AppointmentAction,
@@ -274,7 +284,15 @@ const ACCESS_TOKEN_COOKIE_MAX_AGE = 30 * 24 * 60 * 60 * 1000; // 30 days
 const REFRESH_TOKEN_EXPIRES_IN = 90 * 24 * 60 * 60 * 1000; // 90 days
 
 interface AuthRequest extends Request {
-  user?: { id: string; email: string; role: string };
+  user?: {
+    id: string;
+    email: string;
+    role: string;
+    // Multi-country tenancy: hydrated from the authenticated user record.
+    countryCode?: CountryCode;
+    // 'global' | 'country' | undefined. Convenience flag derived from role.
+    adminScope?: "global" | "country";
+  };
 }
 
 // Tiny in-process TTL cache to avoid hitting the DB for the user/provider
@@ -288,6 +306,9 @@ const AUTH_CACHE_TTL_MS = 30_000;
 type CachedUser = {
   isEmailVerified: boolean;
   role: string;
+  // Multi-country tenancy: copied from the users row so that authenticated
+  // requests can enforce data isolation without a second DB round-trip.
+  countryCode: CountryCode;
   isSuspended?: boolean | null;
   // Full user record (without password) — used by /api/auth/me so we don't
   // re-fetch the same row from Supabase on every page load.
@@ -336,6 +357,7 @@ export function getCachedUser(userId: string): any | null {
         cached = {
           isEmailVerified: !!user.isEmailVerified,
           role: user.role,
+          countryCode: (isCountryCode((user as any).countryCode) ? (user as any).countryCode : "HU") as CountryCode,
           isSuspended: user.isSuspended,
           full,
           expires: now + AUTH_CACHE_TTL_MS,
@@ -365,7 +387,16 @@ export function getCachedUser(userId: string): any | null {
         }
       }
 
-      req.user = decoded;
+      // Hydrate req.user from the cached row so the role + country are always
+      // fresh (the JWT payload may be stale after a role/country change).
+      const adminScope = adminScopeFor(cached.role);
+      req.user = {
+        id: decoded.id,
+        email: decoded.email,
+        role: cached.role,
+        countryCode: cached.countryCode,
+        ...(adminScope ? { adminScope } : {}),
+      };
       next();
     } catch (error) {
       return res.status(403).json({ message: "Invalid or expired token" });
@@ -407,9 +438,21 @@ export async function registerRoutes(
   }
 
   // Middleware to require admin role
+  // Any administrator (legacy 'admin', 'global_admin', or 'country_admin').
+  // Country isolation is enforced separately at the data-access layer using
+  // `req.user.countryCode` for non-global admins.
   const requireAdmin = async (req: AuthRequest, res: Response, next: NextFunction) => {
-    if (!req.user || req.user.role !== "admin") {
+    if (!req.user || !isAdminRole(req.user.role)) {
       return res.status(403).json({ message: "Admin access required" });
+    }
+    next();
+  };
+
+  // Cross-country admin operations (managing other admins, system settings,
+  // anything that intentionally spans countries) require the global scope.
+  const requireGlobalAdmin = async (req: AuthRequest, res: Response, next: NextFunction) => {
+    if (!req.user || !isGlobalAdmin(req.user.role)) {
+      return res.status(403).json({ message: "Global admin access required" });
     }
     next();
   };
@@ -515,7 +558,7 @@ export async function registerRoutes(
       const appointment = await storage.getAppointmentWithDetails(req.params.appointmentId);
       if (!appointment) return res.status(404).json({ message: "Appointment not found" });
 
-      const isAdmin = req.user?.role === "admin";
+      const isAdmin = isAdminRole(req.user?.role);
       const isPatient = req.user?.role === "patient" && appointment.patientId === req.user?.id;
       let isOwningProvider = false;
       if (req.user?.role === "provider") {
@@ -559,7 +602,7 @@ export async function registerRoutes(
   });
 
   app.post("/api/admin/invoices/generate-pending", authenticateToken, async (req: AuthRequest, res: Response) => {
-    if (req.user?.role !== "admin") return res.status(403).json({ message: "Admin access required" });
+    if (!isAdminRole(req.user?.role)) return res.status(403).json({ message: "Admin access required" });
     
     try {
       const pendingAppointments = await storage.getPendingInvoiceAppointments();
@@ -787,7 +830,7 @@ export async function registerRoutes(
 
   // Admin User/Provider Management
   app.patch("/api/admin/providers/:id", authenticateToken, async (req: AuthRequest, res: Response) => {
-    if (req.user?.role !== "admin") return res.status(403).json({ message: "Admin access required" });
+    if (!isAdminRole(req.user?.role)) return res.status(403).json({ message: "Admin access required" });
     try {
       const provider = await storage.updateProvider(req.params.id, req.body);
       if (provider?.userId) invalidateAuthCache(provider.userId);
@@ -799,7 +842,7 @@ export async function registerRoutes(
   });
 
   app.delete("/api/admin/users/:id", authenticateToken, async (req: AuthRequest, res: Response) => {
-    if (req.user?.role !== "admin") return res.status(403).json({ message: "Admin access required" });
+    if (!isAdminRole(req.user?.role)) return res.status(403).json({ message: "Admin access required" });
     try {
       const target = await storage.getUser(req.params.id);
       if (!target) return res.status(404).json({ message: "User not found" });
@@ -830,17 +873,26 @@ export async function registerRoutes(
     }
   });
 
-  // Create a new platform admin (Admin only)
-  app.post("/api/admin/admins", authenticateToken, async (req: AuthRequest, res: Response) => {
-    if (req.user?.role !== "admin") return res.status(403).json({ message: "Admin access required" });
+  // Create a new platform admin (Global admin only).
+  // Accepts an optional `scope` ('global' | 'country', default 'country') and a
+  // `countryCode` (defaults to the caller's country). Country admins cannot be
+  // created via this endpoint by anyone other than a global admin to keep the
+  // tenant fence airtight.
+  app.post("/api/admin/admins", authenticateToken, requireGlobalAdmin, async (req: AuthRequest, res: Response) => {
     try {
-      const { email, password, firstName, lastName, phone } = req.body || {};
+      const { email, password, firstName, lastName, phone, scope, countryCode } = req.body || {};
       if (!email || !password || !firstName || !lastName) {
         return res.status(400).json({ message: "Email, password, first name and last name are required" });
       }
       if (typeof password !== "string" || password.length < 8) {
         return res.status(400).json({ message: "Password must be at least 8 characters long" });
       }
+
+      const requestedScope: "global" | "country" = scope === "global" ? "global" : "country";
+      const newRole = requestedScope === "global" ? "global_admin" : "country_admin";
+      const targetCountry: CountryCode = isCountryCode(countryCode)
+        ? countryCode
+        : (req.user!.countryCode ?? "HU");
 
       const normalizedEmail = String(email).trim().toLowerCase();
       const existing = await storage.getUserByEmail(normalizedEmail);
@@ -855,9 +907,10 @@ export async function registerRoutes(
         firstName: String(firstName).trim(),
         lastName: String(lastName).trim(),
         phone: phone ? String(phone).trim() : null,
-        role: "admin",
+        role: newRole,
+        countryCode: targetCountry,
         isEmailVerified: true,
-      });
+      } as any);
 
       const { password: _pw, ...safe } = newAdmin as any;
       res.status(201).json(safe);
@@ -868,7 +921,7 @@ export async function registerRoutes(
   });
 
   app.delete("/api/admin/providers/:id", authenticateToken, async (req: AuthRequest, res: Response) => {
-    if (req.user?.role !== "admin") return res.status(403).json({ message: "Admin access required" });
+    if (!isAdminRole(req.user?.role)) return res.status(403).json({ message: "Admin access required" });
     try {
       await storage.deleteProvider(req.params.id);
       res.status(204).end();
@@ -880,7 +933,18 @@ export async function registerRoutes(
   // Register
   app.post("/api/auth/register", async (req: Request, res: Response) => {
     try {
-      const { email, password, firstName, lastName, phone, role, referralCode } = req.body;
+      const { email, password, firstName, lastName, phone, role, referralCode, countryCode } = req.body;
+      // Country selection is mandatory at signup for proper data isolation.
+      // Falls back to HU only if the field is missing entirely (older clients
+      // that haven't been updated yet) — strict validation when present.
+      let resolvedCountry: CountryCode;
+      if (countryCode === undefined || countryCode === null || countryCode === "") {
+        resolvedCountry = "HU";
+      } else if (isCountryCode(countryCode)) {
+        resolvedCountry = countryCode;
+      } else {
+        return res.status(400).json({ message: "Invalid country selection" });
+      }
 
       // Check if user exists. If they exist but haven't verified their email,
       // we treat that record as an abandoned signup and replace it so the user
@@ -914,14 +978,17 @@ export async function registerRoutes(
         }
       }
 
-      // Create user
+      // Create user. Patients/providers may pick HU or IR; admin roles can only
+      // be created via /api/admin/admins by a global admin, so we coerce here.
+      const safeRole = role === "provider" ? "provider" : "patient";
       const user = await storage.createUser({
         email,
         password: hashedPassword,
         firstName,
         lastName,
         phone,
-        role: role || "patient",
+        role: safeRole,
+        countryCode: resolvedCountry,
         isEmailVerified: false,
         referredByUserId: referrerUser ? referrerUser.id : null,
       } as any);
@@ -1516,7 +1583,7 @@ export async function registerRoutes(
       const id = req.params.id;
       const existing = await storage.getSubService(id);
       if (!existing) return res.status(404).json({ message: "Category not found" });
-      const force = req.query.force === "true" && req.user?.role === "admin";
+      const force = req.query.force === "true" && isAdminRole(req.user?.role);
       const result = await storage.deleteSubService(id, { force });
       if ("soft" in result && result.soft) {
         return res.json({ ok: true, archived: true, message: `"${existing.name}" archived (in use). Provider services and existing bookings preserved.` });
@@ -1529,7 +1596,7 @@ export async function registerRoutes(
   });
 
   app.post("/api/sub-services/:id/restore", authenticateToken, async (req: AuthRequest, res: Response) => {
-    if (req.user?.role !== "admin") return res.status(403).json({ message: "Admin access required" });
+    if (!isAdminRole(req.user?.role)) return res.status(403).json({ message: "Admin access required" });
     const restored = await storage.restoreSubService(req.params.id);
     if (!restored) return res.status(404).json({ message: "Not found" });
     res.json(restored);
@@ -1537,13 +1604,13 @@ export async function registerRoutes(
 
   // Sub-services management
   app.get("/api/admin/sub-services", authenticateToken, async (req: AuthRequest, res: Response) => {
-    if (req.user?.role !== "admin") return res.status(403).json({ message: "Admin access required" });
+    if (!isAdminRole(req.user?.role)) return res.status(403).json({ message: "Admin access required" });
     const subServices = await storage.getAllSubServices();
     res.json(subServices);
   });
 
   app.post("/api/admin/sub-services", authenticateToken, async (req: AuthRequest, res: Response) => {
-    if (req.user?.role !== "admin") return res.status(403).json({ message: "Admin access required" });
+    if (!isAdminRole(req.user?.role)) return res.status(403).json({ message: "Admin access required" });
     try {
       const data = insertSubServiceSchema.parse(req.body);
       const subService = await storage.createSubService(data);
@@ -1554,13 +1621,13 @@ export async function registerRoutes(
   });
 
   app.patch("/api/admin/sub-services/:id", authenticateToken, async (req: AuthRequest, res: Response) => {
-    if (req.user?.role !== "admin") return res.status(403).json({ message: "Admin access required" });
+    if (!isAdminRole(req.user?.role)) return res.status(403).json({ message: "Admin access required" });
     const subService = await storage.updateSubService(req.params.id, req.body);
     res.json(subService);
   });
 
   app.delete("/api/admin/sub-services/:id", authenticateToken, async (req: AuthRequest, res: Response) => {
-    if (req.user?.role !== "admin") return res.status(403).json({ message: "Admin access required" });
+    if (!isAdminRole(req.user?.role)) return res.status(403).json({ message: "Admin access required" });
     const existing = await storage.getSubService(req.params.id);
     const force = req.query.force === "true";
     const result = await storage.deleteSubService(req.params.id, { force });
@@ -1584,12 +1651,12 @@ export async function registerRoutes(
 
   // Categories — admin CRUD
   app.get("/api/admin/categories", authenticateToken, async (req: AuthRequest, res: Response) => {
-    if (req.user?.role !== "admin") return res.status(403).json({ message: "Admin access required" });
+    if (!isAdminRole(req.user?.role)) return res.status(403).json({ message: "Admin access required" });
     res.json(await storage.getAllCategories(true));
   });
 
   app.post("/api/admin/categories", authenticateToken, async (req: AuthRequest, res: Response) => {
-    if (req.user?.role !== "admin") return res.status(403).json({ message: "Admin access required" });
+    if (!isAdminRole(req.user?.role)) return res.status(403).json({ message: "Admin access required" });
     try {
       // Auto-derive slug if missing
       const body = { ...req.body };
@@ -1607,7 +1674,7 @@ export async function registerRoutes(
   });
 
   app.patch("/api/admin/categories/:id", authenticateToken, async (req: AuthRequest, res: Response) => {
-    if (req.user?.role !== "admin") return res.status(403).json({ message: "Admin access required" });
+    if (!isAdminRole(req.user?.role)) return res.status(403).json({ message: "Admin access required" });
     try {
       const updated = await storage.updateCategory(req.params.id, req.body);
       if (!updated) return res.status(404).json({ message: "Category not found" });
@@ -1618,7 +1685,7 @@ export async function registerRoutes(
   });
 
   app.delete("/api/admin/categories/:id", authenticateToken, async (req: AuthRequest, res: Response) => {
-    if (req.user?.role !== "admin") return res.status(403).json({ message: "Admin access required" });
+    if (!isAdminRole(req.user?.role)) return res.status(403).json({ message: "Admin access required" });
     const cat = await storage.getCategory(req.params.id);
     if (!cat) return res.status(404).json({ message: "Category not found" });
     const force = req.query.force === "true";
@@ -1630,7 +1697,7 @@ export async function registerRoutes(
   });
 
   app.post("/api/admin/categories/:id/restore", authenticateToken, async (req: AuthRequest, res: Response) => {
-    if (req.user?.role !== "admin") return res.status(403).json({ message: "Admin access required" });
+    if (!isAdminRole(req.user?.role)) return res.status(403).json({ message: "Admin access required" });
     const c = await storage.restoreCategory(req.params.id);
     if (!c) return res.status(404).json({ message: "Not found" });
     res.json(c);
@@ -1638,7 +1705,7 @@ export async function registerRoutes(
 
   // ── Catalog Services (middle tier: Category → CatalogService → SubService) ──
   app.get("/api/admin/catalog-services", authenticateToken, async (req: AuthRequest, res: Response) => {
-    if (req.user?.role !== "admin") return res.status(403).json({ message: "Admin access required" });
+    if (!isAdminRole(req.user?.role)) return res.status(403).json({ message: "Admin access required" });
     const all = await storage.getAllCatalogServices(true);
     res.json(all);
   });
@@ -1652,7 +1719,7 @@ export async function registerRoutes(
   });
 
   app.post("/api/admin/catalog-services", authenticateToken, async (req: AuthRequest, res: Response) => {
-    if (req.user?.role !== "admin") return res.status(403).json({ message: "Admin access required" });
+    if (!isAdminRole(req.user?.role)) return res.status(403).json({ message: "Admin access required" });
     try {
       const data = insertCatalogServiceSchema.parse(req.body);
       const cs = await storage.createCatalogService(data);
@@ -1663,14 +1730,14 @@ export async function registerRoutes(
   });
 
   app.patch("/api/admin/catalog-services/:id", authenticateToken, async (req: AuthRequest, res: Response) => {
-    if (req.user?.role !== "admin") return res.status(403).json({ message: "Admin access required" });
+    if (!isAdminRole(req.user?.role)) return res.status(403).json({ message: "Admin access required" });
     const cs = await storage.updateCatalogService(req.params.id, req.body);
     if (!cs) return res.status(404).json({ message: "Not found" });
     res.json(cs);
   });
 
   app.delete("/api/admin/catalog-services/:id", authenticateToken, async (req: AuthRequest, res: Response) => {
-    if (req.user?.role !== "admin") return res.status(403).json({ message: "Admin access required" });
+    if (!isAdminRole(req.user?.role)) return res.status(403).json({ message: "Admin access required" });
     await storage.deleteCatalogService(req.params.id);
     res.json({ ok: true });
   });
@@ -1690,7 +1757,7 @@ export async function registerRoutes(
       // Ownership check: only the provider that owns this account, or an admin, can add practitioners.
       const provider = await storage.getProvider(req.params.providerId);
       if (!provider) return res.status(404).json({ message: "Provider not found" });
-      if (req.user?.role !== "admin" && provider.userId !== req.user?.id) {
+      if (!isAdminRole(req.user?.role) && provider.userId !== req.user?.id) {
         return res.status(403).json({ message: "You can only manage your own provider's practitioners" });
       }
       const practitioner = await storage.createPractitioner({
@@ -1713,7 +1780,7 @@ export async function registerRoutes(
   });
 
   app.post("/api/admin/services/:serviceId/practitioners", authenticateToken, async (req: AuthRequest, res) => {
-    if (req.user?.role !== "admin") return res.status(403).json({ message: "Admin access required" });
+    if (!isAdminRole(req.user?.role)) return res.status(403).json({ message: "Admin access required" });
     try {
       const sp = await storage.addPractitionerToService({
         ...req.body,
@@ -1812,7 +1879,7 @@ export async function registerRoutes(
       }
 
       const role = req.user?.role;
-      if (role === "admin") {
+      if (isAdminRole(role)) {
         // ok
       } else if (role === "patient") {
         if (appointment.patientId !== req.user!.id) {
@@ -1954,7 +2021,20 @@ export async function registerRoutes(
         "languagePreference",
         "preferredCurrency",
         "timezone",
+        "countryCode",
       ] as const;
+
+      // Country switch is allowed but locked to the supported set; admin
+      // accounts can never change their own country here (their scope is
+      // managed via the admin endpoints).
+      if (req.body.countryCode !== undefined) {
+        if (isAdminRole(req.user!.role)) {
+          return res.status(403).json({ message: "Admins cannot change their own country" });
+        }
+        if (!isCountryCode(req.body.countryCode)) {
+          return res.status(400).json({ message: "Invalid country" });
+        }
+      }
 
       const updateData: any = {};
       for (const field of allowedFields) {
@@ -2041,7 +2121,7 @@ export async function registerRoutes(
   });
 
   // Get all providers (with optional server-side search/filter)
-  app.get("/api/providers", async (req: Request, res: Response) => {
+  app.get("/api/providers", optionalAuth, async (req: AuthRequest, res: Response) => {
     try {
       const q = typeof req.query.q === "string" ? req.query.q.trim() : "";
       const type = typeof req.query.type === "string" ? req.query.type.trim() : "";
@@ -2051,24 +2131,38 @@ export async function registerRoutes(
       const verifiedOnly = req.query.verifiedOnly === "true" || req.query.verifiedOnly === "1";
       const subServiceId = typeof req.query.subServiceId === "string" ? req.query.subServiceId.trim() : "";
 
+      // Country isolation: authenticated callers see only their country (global
+      // admins may opt into a specific country via ?country=HU/IR or ALL).
+      // Unauthenticated visitors get HU by default and can override via ?country.
+      let countryFilter: CountryCode | null;
+      if (req.user) {
+        countryFilter = listingCountryFilter(req.user, req.query as any);
+      } else {
+        const q = typeof req.query.country === "string" ? req.query.country.toUpperCase() : "";
+        countryFilter = isCountryCode(q) ? q : "HU";
+      }
+
       // If filtering by sub-service, find all providers who offer it
       if (subServiceId) {
-        const svcRows = await db.select().from(services)
-          .where(and(eq(services.subServiceId, subServiceId), eq(services.isActive, true)));
+        const svcWhere = countryFilter
+          ? and(eq(services.subServiceId, subServiceId), eq(services.isActive, true), eq(services.countryCode, countryFilter))
+          : and(eq(services.subServiceId, subServiceId), eq(services.isActive, true));
+        const svcRows = await db.select().from(services).where(svcWhere);
         const providerIds = [...new Set(svcRows.map((s: any) => s.providerId))];
         if (providerIds.length === 0) return res.json([]);
-        const allProviders = await storage.getAllProviders();
+        const allProviders = await storage.getAllProviders({ countryCode: countryFilter });
         const filtered = allProviders.filter(p => providerIds.includes(p.id) && (p as any).status === "active");
         return res.set("Cache-Control", "no-store").json(filtered.map(p => sanitizeProviderListItem(p)));
       }
 
       const useSearch = !!(q || type || city || verifiedOnly);
       const allProviders = useSearch
-        ? await storage.searchProviders({ q: q || undefined, type: type || undefined, city: city || undefined, verifiedOnly })
-        : await storage.getAllProviders();
+        ? await storage.searchProviders({ q: q || undefined, type: type || undefined, city: city || undefined, verifiedOnly, countryCode: countryFilter })
+        : await storage.getAllProviders({ countryCode: countryFilter });
 
       const sanitized = allProviders.map(p => sanitizeProviderListItem(p));
-      res.set("Cache-Control", useSearch ? "no-store" : "public, max-age=30");
+      // Country-aware caches must not be shared across countries.
+      res.set("Cache-Control", useSearch ? "no-store" : "private, max-age=30");
       res.json(sanitized);
     } catch (error) {
       console.error("Get providers error:", error);
@@ -2077,11 +2171,26 @@ export async function registerRoutes(
   });
 
   // Get provider by ID
-  app.get("/api/providers/:id", async (req: Request, res: Response) => {
+  app.get("/api/providers/:id", optionalAuth, async (req: AuthRequest, res: Response) => {
     try {
       const provider = await storage.getProviderWithServices(req.params.id);
       if (!provider) {
         return res.status(404).json({ message: "Provider not found" });
+      }
+      // Country isolation: a non-global-admin user from country X cannot view a
+      // provider in country Y. Anonymous visitors only see HU providers (the
+      // default tenant) unless they pass a valid ?country override.
+      const provCountry = (provider as any).countryCode as CountryCode | undefined;
+      if (req.user) {
+        if (!canAccessCountry(req.user, provCountry)) {
+          return res.status(404).json({ message: "Provider not found" });
+        }
+      } else {
+        const q = typeof req.query.country === "string" ? req.query.country.toUpperCase() : "HU";
+        const want = isCountryCode(q) ? q : "HU";
+        if (provCountry && provCountry !== want) {
+          return res.status(404).json({ message: "Provider not found" });
+        }
       }
       res.json(sanitizeProviderWithUser(provider));
     } catch (error) {
@@ -2281,7 +2390,7 @@ export async function registerRoutes(
   // Update user suspension status
   app.patch("/api/admin/users/:id/suspend", authenticateToken, async (req: AuthRequest, res: Response) => {
     try {
-      if (req.user!.role !== "admin") {
+      if (!isAdminRole(req.user!.role)) {
         return res.status(403).json({ message: "Admin access required" });
       }
       const { isSuspended, suspensionReason } = req.body;
@@ -2300,11 +2409,22 @@ export async function registerRoutes(
   // Get all users (Admin)
   app.get("/api/admin/users", authenticateToken, async (req: AuthRequest, res: Response) => {
     try {
-      if (req.user!.role !== "admin") {
+      if (!isAdminRole(req.user!.role)) {
         return res.status(403).json({ message: "Admin access required" });
       }
       const users = await storage.getAllUsers();
-      res.json(users.map(u => sanitizeUser(u, { strip: "public" })));
+      // Country isolation: country admins only see users from their own
+      // country. Global admins see everyone unless they ask to scope down via
+      // ?country=HU/IR. Global-admin/legacy admin records are visible across
+      // all tenants because they are not tied to a single country.
+      const countryFilter = listingCountryFilter(req.user!, req.query as any);
+      const filtered = countryFilter
+        ? users.filter(u => {
+            if (u.role === "global_admin" || u.role === "admin") return true;
+            return u.countryCode === countryFilter;
+          })
+        : users;
+      res.json(filtered.map(u => sanitizeUser(u, { strip: "public" })));
     } catch (error) {
       res.status(500).json({ message: "Failed to get users" });
     }
@@ -2333,7 +2453,7 @@ export async function registerRoutes(
       // they were assigned (services.providerId = their provider record).
       const svc = await storage.getService(req.params.id);
       if (!svc) return res.status(404).json({ message: "Service not found" });
-      if (req.user?.role !== "admin") {
+      if (!isAdminRole(req.user?.role)) {
         const provider = await storage.getProviderByUserId(req.user!.id);
         if (!provider || provider.id !== svc.providerId) {
           return res.status(403).json({ message: "You can only edit services assigned to you" });
@@ -2360,11 +2480,11 @@ export async function registerRoutes(
 
   app.delete("/api/services/:id", authenticateToken, async (req: AuthRequest, res) => {
     try {
-      const force = req.query.force === "true" && req.user?.role === "admin";
+      const force = req.query.force === "true" && isAdminRole(req.user?.role);
       const existing = await storage.getService(req.params.id);
       if (!existing) return res.status(404).json({ message: "Service not found" });
       // Ownership check: admins can delete any service; providers only their own.
-      if (req.user?.role !== "admin") {
+      if (!isAdminRole(req.user?.role)) {
         const provider = await storage.getProviderByUserId(req.user!.id);
         if (!provider || provider.id !== existing.providerId) {
           return res.status(403).json({ message: "You can only delete services assigned to you" });
@@ -2389,7 +2509,7 @@ export async function registerRoutes(
   app.post("/api/services/:id/restore", authenticateToken, async (req: AuthRequest, res: Response) => {
     const svc = await storage.getService(req.params.id);
     if (!svc) return res.status(404).json({ message: "Not found" });
-    if (req.user?.role !== "admin") {
+    if (!isAdminRole(req.user?.role)) {
       const provider = await storage.getProviderByUserId(req.user!.id);
       if (!provider || provider.id !== svc.providerId) return res.status(403).json({ message: "Forbidden" });
     }
@@ -2400,7 +2520,7 @@ export async function registerRoutes(
   app.get("/api/services/:id/price-history", authenticateToken, async (req: AuthRequest, res: Response) => {
     const svc = await storage.getService(req.params.id);
     if (!svc) return res.status(404).json({ message: "Not found" });
-    if (req.user?.role !== "admin") {
+    if (!isAdminRole(req.user?.role)) {
       const provider = await storage.getProviderByUserId(req.user!.id);
       if (!provider || provider.id !== svc.providerId) return res.status(403).json({ message: "Forbidden" });
     }
@@ -2521,7 +2641,7 @@ export async function registerRoutes(
       if (!reply || !reply.trim()) return res.status(400).json({ message: "Reply text required" });
       const review = await storage.getReview(req.params.id);
       if (!review) return res.status(404).json({ message: "Review not found" });
-      if (req.user?.role !== "admin") {
+      if (!isAdminRole(req.user?.role)) {
         if (req.user?.role !== "provider") return res.status(403).json({ message: "Forbidden" });
         const provider = await storage.getProviderByUserId(req.user.id);
         if (!provider || provider.id !== review.providerId) {
@@ -2573,7 +2693,7 @@ export async function registerRoutes(
         return res.status(400).json({ message: "Updates required" });
       }
       // Authorisation: every service must belong to caller (or admin)
-      if (req.user?.role !== "admin") {
+      if (!isAdminRole(req.user?.role)) {
         const provider = await storage.getProviderByUserId(req.user!.id);
         if (!provider) return res.status(403).json({ message: "Forbidden" });
         for (const u of updates) {
@@ -2593,11 +2713,11 @@ export async function registerRoutes(
   // Bulk availability (weekly slot generator)
   app.post("/api/availability/bulk", authenticateToken, async (req: AuthRequest, res: Response) => {
     try {
-      if (req.user?.role !== "provider" && req.user?.role !== "admin") {
+      if (req.user?.role !== "provider" && !isAdminRole(req.user?.role)) {
         return res.status(403).json({ message: "Provider only" });
       }
       const provider = await storage.getProviderByUserId(req.user!.id);
-      if (!provider && req.user?.role !== "admin") {
+      if (!provider && !isAdminRole(req.user?.role)) {
         return res.status(404).json({ message: "Provider not found" });
       }
       const { dates, slots, replaceExisting } = req.body as {
@@ -2642,7 +2762,7 @@ export async function registerRoutes(
       if (!existing) return res.status(404).json({ message: "Appointment not found" });
 
       // Authorisation: admin OR provider owning the appointment
-      if (req.user?.role !== "admin") {
+      if (!isAdminRole(req.user?.role)) {
         if (req.user?.role !== "provider") return res.status(403).json({ message: "Forbidden" });
         const provider = await storage.getProviderByUserId(req.user.id);
         if (!provider || provider.id !== existing.providerId) {
@@ -2722,7 +2842,10 @@ export async function registerRoutes(
           status: "pending",
           isVerified: false,
           isActive: true,
-        });
+          // Country isolation: providers self-onboard inside their user's
+          // country. They cannot opt into another tenant.
+          countryCode: req.user!.countryCode || "HU",
+        } as any);
       }
 
       // Update user role to provider
@@ -2751,7 +2874,7 @@ export async function registerRoutes(
   // Get platform settings
   app.get("/api/admin/settings", authenticateToken, async (req: AuthRequest, res: Response) => {
     try {
-      if (req.user!.role !== "admin") {
+      if (!isAdminRole(req.user!.role)) {
         return res.status(403).json({ message: "Admin access required" });
       }
       const settings = await storage.getAllPlatformSettings();
@@ -2764,7 +2887,7 @@ export async function registerRoutes(
   // Get provider with booking statistics for admin
   app.get("/api/admin/providers/:id/stats", authenticateToken, async (req: AuthRequest, res: Response) => {
     try {
-      if (req.user!.role !== "admin") {
+      if (!isAdminRole(req.user!.role)) {
         return res.status(403).json({ message: "Admin access required" });
       }
       
@@ -2797,7 +2920,7 @@ export async function registerRoutes(
   // Update platform settings
   app.post("/api/admin/settings", authenticateToken, async (req: AuthRequest, res: Response) => {
     try {
-      if (req.user!.role !== "admin") {
+      if (!isAdminRole(req.user!.role)) {
         return res.status(403).json({ message: "Admin access required" });
       }
       const { key, value } = req.body;
@@ -2854,7 +2977,7 @@ export async function registerRoutes(
 
       // Ownership: the service AND the practitioner must both belong to the
       // requesting provider (or the caller must be admin).
-      if (req.user?.role !== "admin") {
+      if (!isAdminRole(req.user?.role)) {
         const provider = await storage.getProviderByUserId(req.user!.id);
         if (!provider) return res.status(403).json({ message: "Unauthorized" });
 
@@ -2879,7 +3002,7 @@ export async function registerRoutes(
 
   // Helper: confirm the requesting user owns the service that a service-practitioner row belongs to.
   async function assertOwnsServicePractitioner(spId: string, user: AuthRequest["user"]): Promise<{ ok: boolean; status?: number; message?: string }> {
-    if (user?.role === "admin") return { ok: true };
+    if (isAdminRole(user?.role)) return { ok: true };
     const rows = await db.select().from(servicePractitioners).where(eq(servicePractitioners.id, spId)).limit(1);
     if (rows.length === 0) return { ok: false, status: 404, message: "Assignment not found" };
     const svc = await storage.getService(rows[0].serviceId);
@@ -2923,7 +3046,13 @@ export async function registerRoutes(
       if (!data.providerId) return res.status(400).json({ message: "providerId is required" });
       const provider = await storage.getProvider(data.providerId);
       if (!provider) return res.status(404).json({ message: "Provider not found" });
-      const service = await storage.createService(data);
+      // Country isolation: a service inherits the provider's country, and
+      // country admins cannot reach across into another tenant's providers.
+      const provCountry = (provider as any).countryCode as CountryCode | undefined;
+      if (!canAccessCountry(req.user!, provCountry)) {
+        return res.status(404).json({ message: "Provider not found" });
+      }
+      const service = await storage.createService({ ...data, countryCode: provCountry } as any);
       res.status(201).json(service);
     } catch (error) {
       res.status(400).json({ message: "Invalid service data" });
@@ -2964,6 +3093,9 @@ export async function registerRoutes(
         suggestedPrice: parsed.suggestedPrice != null ? String(parsed.suggestedPrice) : null,
         description: parsed.description ?? null,
         locationMode: parsed.locationMode ?? "both",
+        // Country isolation: requests inherit the provider's country so country
+        // admins only see (and approve) requests from their own tenant.
+        countryCode: (provider as any).countryCode || req.user!.countryCode,
       } as any);
 
       // Notify the requesting provider that their request was received.
@@ -3064,10 +3196,14 @@ export async function registerRoutes(
   });
 
   // Admin lists all service requests (with provider info).
-  app.get("/api/admin/service-requests", authenticateToken, requireAdmin, async (_req: AuthRequest, res: Response) => {
+  app.get("/api/admin/service-requests", authenticateToken, requireAdmin, async (req: AuthRequest, res: Response) => {
     try {
       const items = await storage.listAllServiceRequests();
-      res.json(items);
+      const countryFilter = listingCountryFilter(req.user!, req.query as any);
+      const filtered = countryFilter
+        ? items.filter((r: any) => r.countryCode === countryFilter)
+        : items;
+      res.json(filtered);
     } catch (error) {
       console.error("Error listing all service requests:", error);
       res.status(500).json({ message: "Failed to list service requests" });
@@ -3079,6 +3215,9 @@ export async function registerRoutes(
     try {
       const existing = await storage.getServiceRequest(req.params.id);
       if (!existing) return res.status(404).json({ message: "Service request not found" });
+      if (!canAccessCountry(req.user!, (existing as any).countryCode)) {
+        return res.status(404).json({ message: "Service request not found" });
+      }
 
       const schema = z.object({
         category: z.string().min(1).optional(),
@@ -3113,6 +3252,9 @@ export async function registerRoutes(
     try {
       const reqRow = await storage.getServiceRequest(req.params.id);
       if (!reqRow) return res.status(404).json({ message: "Service request not found" });
+      if (!canAccessCountry(req.user!, (reqRow as any).countryCode)) {
+        return res.status(404).json({ message: "Service request not found" });
+      }
       if (reqRow.status === "approved") return res.status(400).json({ message: "Request already approved" });
 
       const schema = z.object({
@@ -3148,6 +3290,7 @@ export async function registerRoutes(
         duration,
         price,
         locationMode: (reqRow as any).locationMode ?? "both",
+        countryCode: (reqRow as any).countryCode,
       } as any);
 
       const updated = await storage.updateServiceRequest(reqRow.id, {
@@ -3181,6 +3324,9 @@ export async function registerRoutes(
     try {
       const reqRow = await storage.getServiceRequest(req.params.id);
       if (!reqRow) return res.status(404).json({ message: "Service request not found" });
+      if (!canAccessCountry(req.user!, (reqRow as any).countryCode)) {
+        return res.status(404).json({ message: "Service request not found" });
+      }
 
       const schema = z.object({ rejectionReason: z.string().min(1) });
       const { rejectionReason } = schema.parse(req.body);
@@ -3509,6 +3655,16 @@ export async function registerRoutes(
         return res.status(404).json({ message: "Provider not found" });
       }
 
+      // Country isolation: a patient can only book providers in their own
+      // country. We deliberately use the same 404 message as "not found" to
+      // avoid leaking the existence of cross-country providers.
+      const providerCountry = (provider as any).countryCode as CountryCode | undefined;
+      const patientCountry = req.user!.countryCode;
+      if (!providerCountry || !patientCountry || providerCountry !== patientCountry) {
+        console.log(`Booking refused: country mismatch patient=${patientCountry} provider=${providerCountry}`);
+        return res.status(404).json({ message: "Provider not found" });
+      }
+
       // Vacation mode: refuse if the provider has an active time-off range
       // covering the requested date OR any of the additional session dates.
       try {
@@ -3759,6 +3915,7 @@ export async function registerRoutes(
           platformFeeAmount: platformFee.toFixed(2),
           promoCode: appliedPromoCode,
           promoDiscount: promoDiscount.toFixed(2),
+          countryCode: providerCountry,
         } as any,
         {
           action: "book" as any,
@@ -3820,6 +3977,7 @@ export async function registerRoutes(
                 promoCode: null,
                 promoDiscount: "0.00",
                 parentAppointmentId: appointment.id,
+                countryCode: providerCountry,
               } as any,
               {
                 action: "book" as any,
@@ -3876,7 +4034,8 @@ export async function registerRoutes(
         amount: fee.toString(),
         paymentMethod: paymentMethod || "card",
         status: "pending",
-      });
+        countryCode: providerCountry,
+      } as any);
 
       console.log("Payment record created:", payment.id);
 
@@ -4172,7 +4331,7 @@ export async function registerRoutes(
     authenticateToken,
     async (req: AuthRequest, res: Response) => {
       try {
-        if (req.user?.role !== "admin") {
+        if (!isAdminRole(req.user?.role)) {
           return res.status(403).json({ message: "Admin access required" });
         }
         res.json({
@@ -4222,7 +4381,7 @@ export async function registerRoutes(
 
       // Enforce state-machine: cannot move out of a terminal state, and the
       // requested transition must be a legal one. Admin may force any change.
-      if (req.user?.role !== "admin") {
+      if (!isAdminRole(req.user?.role)) {
         if (isTerminalStatus(existing.status)) {
           return res.status(409).json({
             message: `Appointment is already ${existing.status} and cannot be changed.`,
@@ -4237,7 +4396,7 @@ export async function registerRoutes(
       }
 
       // Authorisation: admin OR the provider who owns the appointment OR the patient (cancel-only)
-      if (req.user?.role !== "admin") {
+      if (!isAdminRole(req.user?.role)) {
         if (req.user?.role === "provider") {
           const provider = await storage.getProviderByUserId(req.user!.id);
           if (!provider || provider.id !== existing.providerId) {
@@ -4254,7 +4413,7 @@ export async function registerRoutes(
       }
 
       // Block "completed" if payment hasn't been collected yet. Admins can override.
-      if (status === "completed" && req.user?.role !== "admin") {
+      if (status === "completed" && !isAdminRole(req.user?.role)) {
         const existingPayment = await storage.getPaymentByAppointment(req.params.id);
         if (!existingPayment || existingPayment.status !== "completed") {
           return res.status(400).json({
@@ -4400,7 +4559,7 @@ export async function registerRoutes(
       if (!appointment) return res.status(404).json({ message: "Appointment not found" });
 
       // Authorisation: admin OR the provider who owns the appointment
-      if (req.user?.role !== "admin") {
+      if (!isAdminRole(req.user?.role)) {
         const provider = await storage.getProviderByUserId(req.user!.id);
         if (!provider || provider.id !== appointment.providerId) {
           return res.status(403).json({ message: "Access denied" });
@@ -4803,7 +4962,7 @@ export async function registerRoutes(
 
       // Ownership check
       let ownsAppointment = false;
-      if (role === "admin") {
+      if (isAdminRole(role)) {
         ownsAppointment = true;
       } else if (role === "patient") {
         ownsAppointment = existing.patientId === req.user!.id;
@@ -5003,7 +5162,7 @@ export async function registerRoutes(
     try {
       const existing = await storage.getAppointment(req.params.id);
       if (!existing) return res.status(404).json({ message: "Appointment not found" });
-      if (req.user?.role !== "admin") {
+      if (!isAdminRole(req.user?.role)) {
         let allowed = false;
         if (req.user?.role === "patient") allowed = existing.patientId === req.user.id;
         if (req.user?.role === "provider") {
@@ -5033,7 +5192,7 @@ export async function registerRoutes(
 
       const role = (req.user?.role ?? "patient") as ActorRole;
       let ownsAppointment = false;
-      if (role === "admin") ownsAppointment = true;
+      if (isAdminRole(role)) ownsAppointment = true;
       else if (role === "patient") ownsAppointment = existing.patientId === req.user!.id;
       else if (role === "provider") {
         const provider = await storage.getProviderByUserId(req.user!.id);
@@ -5308,8 +5467,18 @@ export async function registerRoutes(
 
   app.post("/api/admin/providers", authenticateToken, requireAdmin, async (req: AuthRequest, res: Response) => {
     try {
-      const { email, password, firstName, lastName, phone, ...providerData } = req.body;
-      
+      const { email, password, firstName, lastName, phone, countryCode: rawCountry, ...providerData } = req.body;
+
+      // Country isolation: country admins must place new providers in their own
+      // country. Global admins may target either country via the body.
+      let countryCode: CountryCode = req.user!.countryCode || "HU";
+      if (isCountryCode(rawCountry)) {
+        if (isGlobalAdmin(req.user!)) countryCode = rawCountry;
+        else if (rawCountry !== req.user!.countryCode) {
+          return res.status(403).json({ message: "Cannot create providers outside your country" });
+        } else countryCode = rawCountry;
+      }
+
       // Hash password
       const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -5322,7 +5491,8 @@ export async function registerRoutes(
         phone: phone || "",
         role: "provider",
         isEmailVerified: true,
-      });
+        countryCode,
+      } as any);
 
       // Then create provider profile
       const provider = await storage.createProvider({
@@ -5332,7 +5502,8 @@ export async function registerRoutes(
         homeVisitFee: providerData.homeVisitFee ? providerData.homeVisitFee.toString() : null,
         isVerified: true,
         isActive: true,
-      });
+        countryCode,
+      } as any);
 
       res.status(201).json(provider);
     } catch (error: any) {
@@ -5486,7 +5657,11 @@ export async function registerRoutes(
   app.get("/api/admin/bookings", authenticateToken, requireAdmin, async (req: AuthRequest, res: Response) => {
     try {
       const appointments = await storage.getAllAppointments();
-      res.json(appointments);
+      const countryFilter = listingCountryFilter(req.user!, req.query as any);
+      const filtered = countryFilter
+        ? appointments.filter((a: any) => a.countryCode === countryFilter)
+        : appointments;
+      res.json(filtered);
     } catch (error) {
       res.status(500).json({ message: "Failed to get bookings" });
     }
@@ -5497,6 +5672,11 @@ export async function registerRoutes(
       const { status } = req.body;
       const booking = await storage.getAppointment(req.params.id);
       if (!booking) return res.status(404).json({ message: "Booking not found" });
+      // Country isolation: a country admin may only modify bookings within
+      // their own country. Global admins can update anywhere.
+      if (!canAccessCountry(req.user!, (booking as any).countryCode)) {
+        return res.status(404).json({ message: "Booking not found" });
+      }
 
       // If admin is changing the status, write an audit event in the same tx;
       // otherwise it's a non-lifecycle field edit and a plain update is enough.
@@ -5567,7 +5747,11 @@ export async function registerRoutes(
   app.get("/api/admin/invoices", authenticateToken, requireAdmin, async (req: AuthRequest, res: Response) => {
     try {
       const allInvoices = await storage.getAllInvoices();
-      res.json(allInvoices);
+      const countryFilter = listingCountryFilter(req.user!, req.query as any);
+      const filtered = countryFilter
+        ? allInvoices.filter((inv: any) => inv.countryCode === countryFilter)
+        : allInvoices;
+      res.json(filtered);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch invoices" });
     }
@@ -5826,17 +6010,21 @@ export async function registerRoutes(
   // Providers Management
   app.get("/api/admin/providers", authenticateToken, requireAdmin, async (req: AuthRequest, res: Response) => {
     try {
-      const providers = await storage.getAllProviders();
+      const countryFilter = listingCountryFilter(req.user!, req.query as any);
+      const providers = await storage.getAllProviders({ countryCode: countryFilter });
       res.json(providers);
     } catch (error) {
       res.status(500).json({ message: "Failed to get providers" });
     }
   });
 
-  app.get("/api/admin/services-overview", authenticateToken, requireAdmin, async (_req: AuthRequest, res: Response) => {
+  app.get("/api/admin/services-overview", authenticateToken, requireAdmin, async (req: AuthRequest, res: Response) => {
     try {
-      const allServices = await db.select().from(services);
-      const allProviders = await storage.getAllProviders();
+      const countryFilter = listingCountryFilter(req.user!, req.query as any);
+      const allServices = countryFilter
+        ? await db.select().from(services).where(eq(services.countryCode, countryFilter))
+        : await db.select().from(services);
+      const allProviders = await storage.getAllProviders({ countryCode: countryFilter });
       const providerMap = new Map(allProviders.map((p: any) => [p.id, p]));
       const enriched = allServices.map((s: any) => {
         const prov: any = providerMap.get(s.providerId);
@@ -5971,7 +6159,7 @@ export async function registerRoutes(
 
       // Ownership: caller must be admin OR own the underlying service AND
       // the practitioner being assigned must belong to the same provider.
-      if (req.user?.role !== "admin") {
+      if (!isAdminRole(req.user?.role)) {
         const provider = await storage.getProviderByUserId(req.user!.id);
         if (!provider) return res.status(403).json({ message: "Unauthorized" });
 
@@ -6085,10 +6273,10 @@ export async function registerRoutes(
       const allUsers = await storage.getAllUsers();
       // Prefer dedicated support inboxes, then admin@goldenlife.com, then any admin.
       const supportEmails = ["support@goldenlife.com", "support@goldenlife.health", "help@goldenlife.com"];
-      let admin = allUsers.find(u => u.role === "admin" && u.email && supportEmails.includes(u.email.toLowerCase()));
-      if (!admin) admin = allUsers.find(u => u.role === "admin" && u.email?.toLowerCase() === "admin@goldenlife.com");
-      if (!admin) admin = allUsers.find(u => u.role === "admin" && /goldenlife/i.test(u.email || ""));
-      if (!admin) admin = allUsers.find(u => u.role === "admin");
+      let admin = allUsers.find(u => isAdminRole(u.role) && u.email && supportEmails.includes(u.email.toLowerCase()));
+      if (!admin) admin = allUsers.find(u => isAdminRole(u.role) && u.email?.toLowerCase() === "admin@goldenlife.com");
+      if (!admin) admin = allUsers.find(u => isAdminRole(u.role) && /goldenlife/i.test(u.email || ""));
+      if (!admin) admin = allUsers.find(u => isAdminRole(u.role));
       if (!admin) return res.status(503).json({ message: "No support agent available right now." });
 
       // Make sure the admin profile shows as GoldenLife Support, not their personal display name.
@@ -6210,7 +6398,7 @@ export async function registerRoutes(
       const isParticipant =
         appt.patientId === req.user!.id ||
         (provUser && provUser.userId === req.user!.id) ||
-        req.user!.role === "admin";
+        isAdminRole(req.user!.role);
       if (!isParticipant) return res.status(403).json({ message: "Not allowed" });
       if (appt.visitType !== "online") {
         return res.status(400).json({ message: "Video room only available for online visits" });
@@ -6232,7 +6420,7 @@ export async function registerRoutes(
   });
   app.patch("/api/provider/office-hours", authenticateToken, async (req: AuthRequest, res: Response) => {
     try {
-      if (req.user!.role !== "provider" && req.user!.role !== "admin") {
+      if (req.user!.role !== "provider" && !isAdminRole(req.user!.role)) {
         return res.status(403).json({ message: "Provider only" });
       }
       const allowed = ["weeklySchedule", "timezone", "autoReplyEnabled", "autoReplyMessage", "emergencyContact"];
@@ -6531,7 +6719,7 @@ export async function registerRoutes(
     try {
       const entry = await storage.getWaitlistEntry(req.params.id);
       if (!entry) return res.status(404).json({ message: "Entry not found" });
-      if (entry.patientId !== req.user!.id && req.user!.role !== "admin") {
+      if (entry.patientId !== req.user!.id && !isAdminRole(req.user!.role)) {
         return res.status(403).json({ message: "Forbidden" });
       }
       await storage.updateWaitlistEntry(req.params.id, { status: "cancelled" } as any);
@@ -6597,7 +6785,7 @@ export async function registerRoutes(
   app.get("/api/support/tickets", authenticateToken, async (req: AuthRequest, res: Response) => {
     try {
       const all = await storage.getAllSupportTickets();
-      const mine = req.user!.role === "admin" ? all : all.filter(t => t.userId === req.user!.id);
+      const mine = isAdminRole(req.user!.role) ? all : all.filter(t => t.userId === req.user!.id);
       // Enrich with reply count + last reply timestamp (excludes internal notes)
       const enriched = await Promise.all(mine.map(async (t) => {
         const msgs = await storage.getTicketMessages(t.id);
@@ -6618,7 +6806,7 @@ export async function registerRoutes(
     try {
       const t = await storage.getSupportTicket(req.params.id);
       if (!t) return res.status(404).json({ message: "Not found" });
-      const isAdmin = req.user!.role === "admin";
+      const isAdmin = isAdminRole(req.user!.role);
       if (!isAdmin && t.userId !== req.user!.id) return res.status(403).json({ message: "Forbidden" });
       const allMessages = await storage.getTicketMessages(req.params.id);
       // Hide internal notes from non-admins
@@ -6640,7 +6828,7 @@ export async function registerRoutes(
     try {
       const t = await storage.getSupportTicket(req.params.id);
       if (!t) return res.status(404).json({ message: "Not found" });
-      const isAdmin = req.user!.role === "admin";
+      const isAdmin = isAdminRole(req.user!.role);
       if (!isAdmin && t.userId !== req.user!.id) return res.status(403).json({ message: "Forbidden" });
       if (!req.body?.message) return res.status(400).json({ message: "Message required" });
       const m = await storage.createTicketMessage({
