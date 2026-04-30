@@ -88,6 +88,10 @@ async function main() {
   const cte = `WITH au AS (SELECT id FROM users WHERE email LIKE 'audit-%@example.com'), ap AS (SELECT id FROM providers WHERE user_id IN (SELECT id FROM au))`;
   const ordered: Array<[string, string]> = [
     // Deepest leaves first.
+    ["group_session_participants", `${cte} DELETE FROM group_session_participants WHERE user_id IN (SELECT id FROM au) OR session_id IN (SELECT id FROM group_sessions WHERE provider_id IN (SELECT id FROM ap))`],
+    ["group_sessions", `${cte} DELETE FROM group_sessions WHERE provider_id IN (SELECT id FROM ap)`],
+    ["wallet_transactions", `DELETE FROM wallet_transactions WHERE user_id IN (SELECT id FROM users WHERE email LIKE 'audit-%@example.com')`],
+    ["wallets", `DELETE FROM wallets WHERE user_id IN (SELECT id FROM users WHERE email LIKE 'audit-%@example.com')`],
     ["payments", `${cte} DELETE FROM payments WHERE patient_id IN (SELECT id FROM au) OR appointment_id IN (SELECT id FROM appointments WHERE patient_id IN (SELECT id FROM au) OR provider_id IN (SELECT id FROM ap))`],
     ["invoice_items", `${cte} DELETE FROM invoice_items WHERE invoice_id IN (SELECT id FROM invoices WHERE patient_id IN (SELECT id FROM au) OR provider_id IN (SELECT id FROM ap))`],
     ["invoices", `${cte} DELETE FROM invoices WHERE patient_id IN (SELECT id FROM au) OR provider_id IN (SELECT id FROM ap)`],
@@ -328,6 +332,150 @@ async function main() {
     record("8.edge.foreign-appt-access", crossAppt.status === 404 || crossAppt.status === 403,
       `IR patient → GET HU appointment ${huAppointmentId} returned ${crossAppt.status}`,
       crossAppt.status >= 400 ? "info" : "critical");
+  }
+
+  // 8d. Group sessions — provider creates, patient books with wallet, capacity
+  //     guard holds, cross-country booking is denied, cancel refunds all paid.
+  //     Funded both HU patients with wallet credit so booking succeeds.
+  for (const u of [huPatient, irPatient]) {
+    await sql(
+      `INSERT INTO wallets (user_id, balance, currency) VALUES ($1, '500.00', 'HUF')
+       ON CONFLICT (user_id) DO UPDATE SET balance='500.00'`,
+      [u.userId],
+    );
+  }
+
+  // Two HU patients sharing capacity = 2; the third booking must hit "full".
+  const huPatient2 = await makeUser("patient", "HU", "hu-pat2");
+  const huPatient3 = await makeUser("patient", "HU", "hu-pat3");
+  await sql(`INSERT INTO wallets (user_id, balance, currency) VALUES ($1,'500.00','HUF') ON CONFLICT (user_id) DO UPDATE SET balance='500.00'`, [huPatient2.userId]);
+  await sql(`INSERT INTO wallets (user_id, balance, currency) VALUES ($1,'500.00','HUF') ON CONFLICT (user_id) DO UPDATE SET balance='500.00'`, [huPatient3.userId]);
+  const huPatient2Token = await login(huPatient2.email);
+  const huPatient3Token = await login(huPatient3.email);
+
+  // 8d.1 — patient is forbidden from creating group sessions.
+  const patientCreate = await api("/api/provider/group-sessions", {
+    method: "POST",
+    body: JSON.stringify({
+      title: "Should fail",
+      startTime: new Date(Date.now() + 3600_000).toISOString(),
+      endTime: new Date(Date.now() + 5400_000).toISOString(),
+      maxParticipants: 5,
+      pricePerUser: 25,
+    }),
+  }, huPatientToken);
+  record("8d.group.patient-cant-create", patientCreate.status === 403,
+    `patient POST /provider/group-sessions → ${patientCreate.status} (want 403)`,
+    patientCreate.status === 403 ? "info" : "high");
+
+  // 8d.2 — HU provider creates a group session with capacity 2.
+  const startsAt = new Date(Date.now() + 60 * 60 * 1000); // +60min
+  const endsAt = new Date(Date.now() + 90 * 60 * 1000);   // +90min
+  const groupCreate = await api("/api/provider/group-sessions", {
+    method: "POST",
+    body: JSON.stringify({
+      title: "Audit Group Therapy",
+      description: "audit run",
+      startTime: startsAt.toISOString(),
+      endTime: endsAt.toISOString(),
+      maxParticipants: 2,
+      pricePerUser: 25,
+    }),
+  }, huProvToken);
+  record("8d.group.create", groupCreate.status === 201 && !!groupCreate.body?.id,
+    `HU provider create group session → ${groupCreate.status} ${JSON.stringify(groupCreate.body).slice(0,140)}`,
+    groupCreate.status === 201 ? "info" : "critical");
+  const groupId: string | null = groupCreate.body?.id || null;
+
+  // 8d.3 — HU provider's session must NOT appear in IR patient's listing
+  //         and must NOT be bookable by IR patient (country tenancy).
+  if (groupId) {
+    const huList = await api("/api/group-sessions", {}, huPatientToken);
+    const irList = await api("/api/group-sessions", {}, irPatientToken);
+    const huSees = Array.isArray(huList.body) && huList.body.some((g: any) => g.id === groupId);
+    const irSees = Array.isArray(irList.body) && irList.body.some((g: any) => g.id === groupId);
+    record("8d.group.list.country-scope", huSees && !irSees,
+      `HU patient sees session=${huSees}; IR patient leak=${irSees}`,
+      irSees ? "critical" : "info");
+
+    const irBook = await api(`/api/group-sessions/${groupId}/book`, { method: "POST" }, irPatientToken);
+    record("8d.group.cross-country-book-blocked", irBook.status === 403,
+      `IR patient book HU session → ${irBook.status} ${JSON.stringify(irBook.body).slice(0,120)}`,
+      irBook.status === 403 ? "info" : "critical");
+
+    // 8d.4 — first two HU patients book successfully and wallet is debited.
+    const balBefore = (await sql(`SELECT balance FROM wallets WHERE user_id=$1`, [huPatient.userId]))[0].balance;
+    const book1 = await api(`/api/group-sessions/${groupId}/book`, { method: "POST" }, huPatientToken);
+    const book2 = await api(`/api/group-sessions/${groupId}/book`, { method: "POST" }, huPatient2Token);
+    const balAfter = (await sql(`SELECT balance FROM wallets WHERE user_id=$1`, [huPatient.userId]))[0].balance;
+    const debited = Math.round((Number(balBefore) - Number(balAfter)) * 100) === 25 * 100;
+    record("8d.group.book.success", book1.status === 201 && book2.status === 201,
+      `book1=${book1.status} book2=${book2.status}`,
+      book1.status === 201 && book2.status === 201 ? "info" : "critical");
+    record("8d.group.book.wallet-debited", debited,
+      `wallet debited 25.00? before=${balBefore} after=${balAfter}`,
+      debited ? "info" : "high");
+
+    // 8d.5 — third HU patient hits capacity guard.
+    const book3 = await api(`/api/group-sessions/${groupId}/book`, { method: "POST" }, huPatient3Token);
+    record("8d.group.book.capacity-full", book3.status === 409,
+      `third booking → ${book3.status} ${JSON.stringify(book3.body).slice(0,120)} (want 409)`,
+      book3.status === 409 ? "info" : "critical");
+
+    // 8d.6 — duplicate booking by same user is rejected with 409.
+    const dupBook = await api(`/api/group-sessions/${groupId}/book`, { method: "POST" }, huPatientToken);
+    record("8d.group.book.duplicate-blocked", dupBook.status === 409,
+      `duplicate booking → ${dupBook.status} ${JSON.stringify(dupBook.body).slice(0,120)} (want 409)`,
+      dupBook.status === 409 ? "info" : "high");
+
+    // 8d.7 — provider can list their own session and see participants.
+    const provList = await api("/api/provider/group-sessions", {}, huProvToken);
+    const sessionDetail = await api(`/api/provider/group-sessions/${groupId}`, {}, huProvToken);
+    const partCount = Array.isArray(sessionDetail.body?.participants) ? sessionDetail.body.participants.length : 0;
+    record("8d.group.provider.detail", sessionDetail.status === 200 && partCount === 2,
+      `provider detail status=${sessionDetail.status} participants=${partCount}`,
+      sessionDetail.status === 200 && partCount === 2 ? "info" : "high");
+
+    // 8d.8 — IR provider must not be able to fetch HU provider's session.
+    const fgnDetail = await api(`/api/provider/group-sessions/${groupId}`, {}, irProvToken);
+    record("8d.group.provider.foreign-blocked", fgnDetail.status === 403,
+      `IR provider GET HU session → ${fgnDetail.status} (want 403)`,
+      fgnDetail.status === 403 ? "info" : "high");
+
+    // 8d.9 — provider cancels and both paid patients get refunded via wallet.
+    const balBeforeRefund1 = (await sql(`SELECT balance FROM wallets WHERE user_id=$1`, [huPatient.userId]))[0].balance;
+    const balBeforeRefund2 = (await sql(`SELECT balance FROM wallets WHERE user_id=$1`, [huPatient2.userId]))[0].balance;
+    const cancel = await api(`/api/provider/group-sessions/${groupId}/cancel`, { method: "POST" }, huProvToken);
+    const balAfterRefund1 = (await sql(`SELECT balance FROM wallets WHERE user_id=$1`, [huPatient.userId]))[0].balance;
+    const balAfterRefund2 = (await sql(`SELECT balance FROM wallets WHERE user_id=$1`, [huPatient2.userId]))[0].balance;
+    const refund1 = Math.round((Number(balAfterRefund1) - Number(balBeforeRefund1)) * 100) === 25 * 100;
+    const refund2 = Math.round((Number(balAfterRefund2) - Number(balBeforeRefund2)) * 100) === 25 * 100;
+    record("8d.group.cancel.refund-all", cancel.status === 200 && refund1 && refund2,
+      `cancel status=${cancel.status} refundedCount=${cancel.body?.refundedCount} p1=${refund1} p2=${refund2}`,
+      cancel.status === 200 && refund1 && refund2 ? "info" : "critical");
+
+    // 8d.10 — double-cancel is idempotent (no extra refunds, status 200).
+    const balBeforeDouble = (await sql(`SELECT balance FROM wallets WHERE user_id=$1`, [huPatient.userId]))[0].balance;
+    const cancel2 = await api(`/api/provider/group-sessions/${groupId}/cancel`, { method: "POST" }, huProvToken);
+    const balAfterDouble = (await sql(`SELECT balance FROM wallets WHERE user_id=$1`, [huPatient.userId]))[0].balance;
+    const noDoubleCredit = Number(balBeforeDouble) === Number(balAfterDouble);
+    record("8d.group.cancel.idempotent", cancel2.status === 200 && noDoubleCredit && cancel2.body?.refundedCount === 0,
+      `2nd cancel status=${cancel2.status} refundedCount=${cancel2.body?.refundedCount} balance unchanged=${noDoubleCredit}`,
+      cancel2.status === 200 && noDoubleCredit ? "info" : "high");
+
+    // 8d.11 — once cancelled, participants are 'refunded' and session is gone
+    //         from the public listing.
+    const partRows = await sql(`SELECT payment_status FROM group_session_participants WHERE session_id=$1`, [groupId]);
+    const allRefunded = partRows.length > 0 && partRows.every((r: any) => r.payment_status === "refunded");
+    record("8d.group.cancel.participants-refunded", allRefunded,
+      `${partRows.length} participants all refunded? ${allRefunded}`,
+      allRefunded ? "info" : "high");
+
+    const huListAfter = await api("/api/group-sessions", {}, huPatientToken);
+    const stillVisible = Array.isArray(huListAfter.body) && huListAfter.body.some((g: any) => g.id === groupId);
+    record("8d.group.cancel.delisted", !stillVisible,
+      `cancelled session removed from public list? ${!stillVisible}`,
+      stillVisible ? "high" : "info");
   }
 
   // 8c. Global-admin country migration tool — make a global admin, exercise

@@ -12,7 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { User, Calendar, LogOut, Settings, LayoutDashboard, Menu, X, Stethoscope, MessageSquare, Bell, Languages, Wallet, LifeBuoy, Search, HeartPulse, Sparkles, Activity, UserRound, Tag } from "lucide-react";
+import { User, Calendar, LogOut, Settings, LayoutDashboard, Menu, X, Stethoscope, MessageSquare, Bell, Languages, Wallet, LifeBuoy, Search, HeartPulse, Sparkles, Activity, UserRound, Tag, Users } from "lucide-react";
 import { useCurrency } from "@/lib/currency";
 import { isAdminRole } from "@/lib/roles";
 import { useState } from "react";
@@ -136,6 +136,14 @@ export function Header() {
           >
             <Tag className="h-4 w-4" strokeWidth={2.5} />
             {t("common.services", "Services")}
+          </Link>
+          <Link
+            href="/group-sessions"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-bold text-purple-700 dark:text-purple-300 hover:bg-purple-500/10 hover:text-purple-800 dark:hover:text-purple-200 transition-all"
+            data-testid="link-group-sessions"
+          >
+            <Users className="h-4 w-4" strokeWidth={2.5} />
+            {t("common.groups", "Groups")}
           </Link>
           <Link
             href="/providers?type=physiotherapist"

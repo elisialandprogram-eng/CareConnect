@@ -27,6 +27,7 @@ import {
   insertMedicationSchema,
   insertMedicationLogSchema,
   insertProviderTimeOffSchema,
+  insertGroupSessionSchema,
   services,
   practitioners,
   servicePractitioners,
@@ -2520,6 +2521,157 @@ export async function registerRoutes(
     } catch (error: any) {
       console.error("[admin/countryMigrations] failed:", error?.message);
       res.status(500).json({ message: "Failed to load migration history" });
+    }
+  });
+
+  // ─── Group sessions ────────────────────────────────────────────────────────
+  // Provider creates a group session for their own practice. Country is forced
+  // to the provider's country so a logged-in HU provider can never publish into
+  // IR by tampering with the body.
+  app.post("/api/provider/group-sessions", authenticateToken, async (req: AuthRequest, res: Response) => {
+    try {
+      const provider = await storage.getProviderByUserId(req.user!.id);
+      if (!provider) return res.status(403).json({ message: "Provider profile required" });
+      const parsed = insertGroupSessionSchema.parse({
+        ...req.body,
+        providerId: provider.id,
+        countryCode: provider.countryCode,
+      });
+      const created = await storage.createGroupSession(parsed as any);
+      res.status(201).json(created);
+    } catch (e: any) {
+      if (e?.issues) return res.status(400).json({ message: "Validation failed", errors: e.issues });
+      res.status(400).json({ message: e?.message || "Failed to create group session" });
+    }
+  });
+
+  // Provider's own list (any status, sorted newest start first).
+  app.get("/api/provider/group-sessions", authenticateToken, async (req: AuthRequest, res: Response) => {
+    try {
+      const provider = await storage.getProviderByUserId(req.user!.id);
+      if (!provider) return res.status(403).json({ message: "Provider profile required" });
+      const list = await storage.listGroupSessionsByProvider(provider.id);
+      res.json(list);
+    } catch (e: any) {
+      res.status(500).json({ message: e?.message || "Failed to list group sessions" });
+    }
+  });
+
+  // Provider sees the participants for one of their sessions (with attendance).
+  app.get("/api/provider/group-sessions/:id", authenticateToken, async (req: AuthRequest, res: Response) => {
+    try {
+      const provider = await storage.getProviderByUserId(req.user!.id);
+      if (!provider) return res.status(403).json({ message: "Provider profile required" });
+      const detail = await storage.getGroupSessionWithParticipants(req.params.id);
+      if (!detail) return res.status(404).json({ message: "Not found" });
+      if (detail.session.providerId !== provider.id) return res.status(403).json({ message: "Forbidden" });
+      res.json(detail);
+    } catch (e: any) {
+      res.status(500).json({ message: e?.message || "Failed to load session" });
+    }
+  });
+
+  // Provider edits a non-cancelled session. Status / countryCode / providerId
+  // cannot be changed via this route — those go through dedicated flows.
+  app.patch("/api/provider/group-sessions/:id", authenticateToken, async (req: AuthRequest, res: Response) => {
+    try {
+      const provider = await storage.getProviderByUserId(req.user!.id);
+      if (!provider) return res.status(403).json({ message: "Provider profile required" });
+      const existing = await storage.getGroupSession(req.params.id);
+      if (!existing) return res.status(404).json({ message: "Not found" });
+      if (existing.providerId !== provider.id) return res.status(403).json({ message: "Forbidden" });
+      const { providerId: _p, countryCode: _c, status: _s, id: _i, createdAt: _ca, updatedAt: _ua, ...rest } = req.body || {};
+      const updated = await storage.updateGroupSession(req.params.id, rest);
+      res.json(updated);
+    } catch (e: any) {
+      res.status(400).json({ message: e?.message || "Failed to update session" });
+    }
+  });
+
+  // Provider cancels and refunds every paid participant via wallet.
+  app.post("/api/provider/group-sessions/:id/cancel", authenticateToken, async (req: AuthRequest, res: Response) => {
+    try {
+      const provider = await storage.getProviderByUserId(req.user!.id);
+      if (!provider) return res.status(403).json({ message: "Provider profile required" });
+      const existing = await storage.getGroupSession(req.params.id);
+      if (!existing) return res.status(404).json({ message: "Not found" });
+      if (existing.providerId !== provider.id) return res.status(403).json({ message: "Forbidden" });
+      const result = await storage.cancelGroupSessionAndRefund(req.params.id, req.user!.id);
+      res.json(result);
+    } catch (e: any) {
+      res.status(400).json({ message: e?.message || "Failed to cancel session" });
+    }
+  });
+
+  // Provider marks attendance for one participant in their own session.
+  app.patch("/api/provider/group-sessions/:id/participants/:participantId", authenticateToken, async (req: AuthRequest, res: Response) => {
+    try {
+      const provider = await storage.getProviderByUserId(req.user!.id);
+      if (!provider) return res.status(403).json({ message: "Provider profile required" });
+      const status = String(req.body?.attendanceStatus);
+      if (!["registered", "joined", "no_show"].includes(status)) {
+        return res.status(400).json({ message: "Invalid attendanceStatus" });
+      }
+      const updated = await storage.markGroupParticipantAttendance(req.params.participantId, status as any, req.user!.id);
+      res.json(updated);
+    } catch (e: any) {
+      res.status(400).json({ message: e?.message || "Failed to update attendance" });
+    }
+  });
+
+  // Patients in the same country see the public catalog (scheduled or live).
+  app.get("/api/group-sessions", authenticateToken, async (req: AuthRequest, res: Response) => {
+    try {
+      const u = await storage.getUser(req.user!.id);
+      if (!u) return res.status(401).json({ message: "Unauthenticated" });
+      const list = await storage.listGroupSessionsByCountry(u.countryCode || "HU", { onlyUpcoming: true });
+      res.json(list);
+    } catch (e: any) {
+      res.status(500).json({ message: e?.message || "Failed to list group sessions" });
+    }
+  });
+
+  // Patient books — wallet-only in v1. Returns { participant, sessionStatus }.
+  app.post("/api/group-sessions/:id/book", authenticateToken, async (req: AuthRequest, res: Response) => {
+    try {
+      const result = await storage.bookGroupSessionWithWallet({
+        sessionId: req.params.id,
+        userId: req.user!.id,
+      });
+      res.status(201).json(result);
+    } catch (e: any) {
+      const msg = e?.message || "Failed to book";
+      const status =
+        msg.includes("full") ? 409 :
+        msg.includes("Already") ? 409 :
+        msg.includes("Country") ? 403 :
+        msg.includes("Insufficient") ? 402 :
+        msg.includes("not found") ? 404 :
+        msg.includes("ended") ? 410 :
+        msg.includes("cancelled") ? 410 :
+        400;
+      res.status(status).json({ message: msg });
+    }
+  });
+
+  // Patient marks themselves as joined (within the join window).
+  app.post("/api/group-sessions/:id/join", authenticateToken, async (req: AuthRequest, res: Response) => {
+    try {
+      const row = await storage.recordGroupSessionJoin(req.params.id, req.user!.id);
+      if (!row) return res.status(409).json({ message: "Cannot join now" });
+      res.json(row);
+    } catch (e: any) {
+      res.status(400).json({ message: e?.message || "Failed to join" });
+    }
+  });
+
+  // Patient sees their own bookings (across statuses) for the My Sessions tab.
+  app.get("/api/me/group-sessions", authenticateToken, async (req: AuthRequest, res: Response) => {
+    try {
+      const list = await storage.listMyGroupBookings(req.user!.id);
+      res.json(list);
+    } catch (e: any) {
+      res.status(500).json({ message: e?.message || "Failed to load bookings" });
     }
   });
 

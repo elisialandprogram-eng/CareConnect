@@ -3,8 +3,8 @@ import { appointments, providers, users } from "@shared/schema";
 import { and, eq, gte, lte, lt, inArray, isNotNull } from "drizzle-orm";
 import { log } from "./index";
 import { notify, dispatchNotification } from "./services/notification-dispatcher";
-import { normalizeLang } from "./services/i18n";
 import { storage } from "./storage";
+import { normalizeLang } from "./services/i18n";
 
 // Cooldown between successive overdue-invoice reminders for the same invoice.
 // Override with INVOICE_REMINDER_COOLDOWN_DAYS. Default 7 days keeps it polite.
@@ -266,6 +266,15 @@ async function tick() {
     ]);
     const sum = totals.reduce((a, b) => a + b, 0);
     if (sum > 0) log(`reminderCron: 5-min tick processed ${sum} item(s)`);
+    // Auto-advance group session statuses (scheduled→live→completed).
+    try {
+      const gs = await storage.tickGroupSessionStatuses();
+      if ((gs.toLive || 0) + (gs.toCompleted || 0) > 0) {
+        log(`reminderCron[group]: live=${gs.toLive} completed=${gs.toCompleted}`);
+      }
+    } catch (e) {
+      log(`reminderCron[group]: failed: ${(e as Error).message}`);
+    }
   } catch (err) {
     log(`reminderCron: 5-min tick failed: ${(err as Error).message}`);
   }

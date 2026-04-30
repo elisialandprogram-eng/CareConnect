@@ -8,6 +8,7 @@ import { ServiceFormDialog } from "@/components/service-form-dialog";
 import { NewTicketDialog } from "@/components/new-ticket-dialog";
 import { WeeklyScheduleGrid, type WeeklySchedule } from "@/components/weekly-schedule-grid";
 import { PractitionerManagementCard } from "@/components/practitioner-management";
+import { GroupSessionsPanel } from "@/components/group-sessions-panel";
 import { DialogDescription } from "@/components/ui/dialog";
 import type { ServicePackageWithServices } from "@shared/schema";
 import { Footer } from "@/components/footer";
@@ -1785,6 +1786,9 @@ export default function ProviderDashboard() {
               <TabsTrigger value="service-requests" data-testid="tab-service-requests">
                 {t("provider_dashboard.tab_service_requests", "Request Service")}
               </TabsTrigger>
+              <TabsTrigger value="group-sessions" data-testid="tab-group-sessions">
+                {t("provider_dashboard.tab_group_sessions", "Group Sessions")}
+              </TabsTrigger>
               <TabsTrigger value="preferences" data-testid="tab-preferences">
                 <Settings className="h-4 w-4 mr-1" /> {t("provider_dashboard.tab_preferences", "Preferences")}
               </TabsTrigger>
@@ -2753,6 +2757,10 @@ export default function ProviderDashboard() {
             {/* ── PREFERENCES TAB ── */}
             <TabsContent value="service-requests" className="mt-6 space-y-4">
               <ProviderServiceRequestsPanel />
+            </TabsContent>
+
+            <TabsContent value="group-sessions" className="mt-6 space-y-4">
+              <GroupSessionsPanel />
             </TabsContent>
 
             <TabsContent value="preferences" className="mt-6 space-y-4">

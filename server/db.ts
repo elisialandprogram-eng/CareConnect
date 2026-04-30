@@ -79,6 +79,54 @@ export async function runStartupMigrations() {
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_providers_country_code ON providers(country_code)`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_invoices_country_code ON invoices(country_code)`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_payments_country_code ON payments(country_code)`);
+
+    // Group sessions feature — tables, enums, indexes. Idempotent so we don't
+    // need a separate migration step in CI/dev.
+    await pool.query(`DO $$ BEGIN
+      CREATE TYPE group_session_status AS ENUM ('scheduled','live','completed','cancelled');
+    EXCEPTION WHEN duplicate_object THEN NULL; END $$`);
+    await pool.query(`DO $$ BEGIN
+      CREATE TYPE group_attendance AS ENUM ('registered','joined','no_show');
+    EXCEPTION WHEN duplicate_object THEN NULL; END $$`);
+
+    await pool.query(`CREATE TABLE IF NOT EXISTS group_sessions (
+      id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+      provider_id VARCHAR NOT NULL REFERENCES providers(id),
+      service_id VARCHAR REFERENCES services(id),
+      title TEXT NOT NULL,
+      description TEXT,
+      start_time TIMESTAMP NOT NULL,
+      end_time TIMESTAMP NOT NULL,
+      max_participants INTEGER NOT NULL,
+      price_per_user NUMERIC(10,2) NOT NULL,
+      status group_session_status NOT NULL DEFAULT 'scheduled',
+      meeting_link TEXT,
+      country_code country_code NOT NULL DEFAULT 'HU',
+      created_at TIMESTAMP DEFAULT NOW(),
+      updated_at TIMESTAMP DEFAULT NOW()
+    )`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_group_sessions_provider_id ON group_sessions(provider_id)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_group_sessions_status ON group_sessions(status)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_group_sessions_start_time ON group_sessions(start_time)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_group_sessions_country_code ON group_sessions(country_code)`);
+
+    await pool.query(`CREATE TABLE IF NOT EXISTS group_session_participants (
+      id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+      session_id VARCHAR NOT NULL REFERENCES group_sessions(id) ON DELETE CASCADE,
+      user_id VARCHAR NOT NULL REFERENCES users(id),
+      payment_status payment_status NOT NULL DEFAULT 'pending',
+      attendance_status group_attendance NOT NULL DEFAULT 'registered',
+      amount_paid NUMERIC(10,2) NOT NULL DEFAULT 0,
+      payment_method TEXT,
+      joined_at TIMESTAMP,
+      refunded_at TIMESTAMP,
+      country_code country_code NOT NULL DEFAULT 'HU',
+      created_at TIMESTAMP DEFAULT NOW()
+    )`);
+    await pool.query(`CREATE UNIQUE INDEX IF NOT EXISTS uq_group_participant_session_user ON group_session_participants(session_id, user_id)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_group_participants_user_id ON group_session_participants(user_id)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_group_participants_session_id ON group_session_participants(session_id)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_group_participants_country_code ON group_session_participants(country_code)`);
   } catch (err) {
     console.warn("[db] startup migration warning:", (err as Error).message);
   }

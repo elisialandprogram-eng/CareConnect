@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, integer, decimal, boolean, timestamp, pgEnum, serial, doublePrecision, index } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, integer, decimal, boolean, timestamp, pgEnum, serial, doublePrecision, index, uniqueIndex } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -16,6 +16,8 @@ export const appointmentStatusEnum = pgEnum("appointment_status", [
 export const visitTypeEnum = pgEnum("visit_type", ["online", "home", "clinic"]);
 export const paymentStatusEnum = pgEnum("payment_status", ["pending", "completed", "refunded", "failed"]);
 export const paymentMethodEnum = pgEnum("payment_method", ["card", "crypto", "cash", "bank_transfer"]);
+export const groupSessionStatusEnum = pgEnum("group_session_status", ["scheduled", "live", "completed", "cancelled"]);
+export const groupAttendanceEnum = pgEnum("group_attendance", ["registered", "joined", "no_show"]);
 export const ticketStatusEnum = pgEnum("ticket_status", ["open", "in_progress", "resolved", "closed"]);
 export const ticketPriorityEnum = pgEnum("ticket_priority", ["low", "medium", "high", "urgent"]);
 export const auditActionEnum = pgEnum("audit_action", ["create", "update", "delete", "login", "logout", "view", "export"]);
@@ -508,6 +510,52 @@ export const payments = pgTable("payments", {
   index("idx_payments_patient_id").on(t.patientId),
   index("idx_payments_status").on(t.status),
   index("idx_payments_country_code").on(t.countryCode),
+]);
+
+// ─── Group sessions (1 provider → many patients in one slot) ──────────────
+// Payment is tracked on the participant row directly (not in `payments`)
+// because `payments.appointment_id` is NOT NULL and there is no 1:1
+// appointment for these. Refunds go through wallet using a deterministic
+// idempotency key so a double-cancel never double-credits.
+export const groupSessions = pgTable("group_sessions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  providerId: varchar("provider_id").notNull().references(() => providers.id),
+  serviceId: varchar("service_id").references(() => services.id),
+  title: text("title").notNull(),
+  description: text("description"),
+  startTime: timestamp("start_time").notNull(),
+  endTime: timestamp("end_time").notNull(),
+  maxParticipants: integer("max_participants").notNull(),
+  pricePerUser: decimal("price_per_user", { precision: 10, scale: 2 }).notNull(),
+  status: groupSessionStatusEnum("status").notNull().default("scheduled"),
+  meetingLink: text("meeting_link"),
+  countryCode: countryCodeEnum("country_code").notNull().default("HU"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (t) => [
+  index("idx_group_sessions_provider_id").on(t.providerId),
+  index("idx_group_sessions_status").on(t.status),
+  index("idx_group_sessions_start_time").on(t.startTime),
+  index("idx_group_sessions_country_code").on(t.countryCode),
+]);
+
+export const groupSessionParticipants = pgTable("group_session_participants", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  sessionId: varchar("session_id").notNull().references(() => groupSessions.id, { onDelete: "cascade" }),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  paymentStatus: paymentStatusEnum("payment_status").notNull().default("pending"),
+  attendanceStatus: groupAttendanceEnum("attendance_status").notNull().default("registered"),
+  amountPaid: decimal("amount_paid", { precision: 10, scale: 2 }).notNull().default("0.00"),
+  paymentMethod: text("payment_method"), // "wallet" today; "card" reserved
+  joinedAt: timestamp("joined_at"),
+  refundedAt: timestamp("refunded_at"),
+  countryCode: countryCodeEnum("country_code").notNull().default("HU"),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (t) => [
+  uniqueIndex("uq_group_participant_session_user").on(t.sessionId, t.userId),
+  index("idx_group_participants_user_id").on(t.userId),
+  index("idx_group_participants_session_id").on(t.sessionId),
+  index("idx_group_participants_country_code").on(t.countryCode),
 ]);
 
 export const chatConversations = pgTable("chat_conversations", {
@@ -1220,6 +1268,17 @@ export const insertAdminBroadcastSchema = createInsertSchema(adminBroadcasts).om
 export const insertWalletSchema = createInsertSchema(wallets).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertWalletTransactionSchema = createInsertSchema(walletTransactions).omit({ id: true, createdAt: true });
 
+// Group sessions — insert schemas. We accept startTime/endTime as ISO strings
+// from the client and coerce to Date in the route.
+export const insertGroupSessionSchema = createInsertSchema(groupSessions, {
+  startTime: z.coerce.date(),
+  endTime: z.coerce.date(),
+  pricePerUser: z.union([z.number().nonnegative(), z.string()]).transform((v) => String(v)),
+}).omit({ id: true, createdAt: true, updatedAt: true, status: true });
+export const insertGroupSessionParticipantSchema = createInsertSchema(groupSessionParticipants).omit({
+  id: true, createdAt: true, joinedAt: true, refundedAt: true,
+});
+
 export const loginSchema = z.object({
   email: z.string().email(),
   password: z.string().min(6),
@@ -1359,6 +1418,10 @@ export type InsertNotificationDeliveryLog = z.infer<typeof insertNotificationDel
 export type AdminBroadcast = typeof adminBroadcasts.$inferSelect;
 export type InsertAdminBroadcast = z.infer<typeof insertAdminBroadcastSchema>;
 export type Wallet = typeof wallets.$inferSelect;
+export type GroupSession = typeof groupSessions.$inferSelect;
+export type InsertGroupSession = z.infer<typeof insertGroupSessionSchema>;
+export type GroupSessionParticipant = typeof groupSessionParticipants.$inferSelect;
+export type InsertGroupSessionParticipant = z.infer<typeof insertGroupSessionParticipantSchema>;
 export type InsertWallet = z.infer<typeof insertWalletSchema>;
 export type WalletTransaction = typeof walletTransactions.$inferSelect;
 export type InsertWalletTransaction = z.infer<typeof insertWalletTransactionSchema>;

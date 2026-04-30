@@ -169,6 +169,11 @@ import {
   type InsertWaitlistEntry,
   wallets,
   walletTransactions,
+  groupSessions,
+  groupSessionParticipants,
+  type GroupSession,
+  type InsertGroupSession,
+  type GroupSessionParticipant,
   type Wallet,
   type WalletTransaction,
   type InsertWalletTransaction,
@@ -389,6 +394,20 @@ export interface IStorage {
     toCountry: string;
     counts: Record<string, number>;
   }>;
+
+  // Group sessions
+  createGroupSession(data: InsertGroupSession): Promise<GroupSession>;
+  listGroupSessionsByCountry(country: string, opts?: { onlyUpcoming?: boolean }): Promise<Array<GroupSession & { participantCount: number }>>;
+  listGroupSessionsByProvider(providerId: string): Promise<Array<GroupSession & { participantCount: number }>>;
+  getGroupSession(id: string): Promise<GroupSession | undefined>;
+  getGroupSessionWithParticipants(id: string): Promise<{ session: GroupSession; participants: Array<GroupSessionParticipant & { userEmail: string | null; userFirstName: string | null; userLastName: string | null }> } | undefined>;
+  updateGroupSession(id: string, data: Partial<GroupSession>): Promise<GroupSession | undefined>;
+  bookGroupSessionWithWallet(opts: { sessionId: string; userId: string }): Promise<{ participant: GroupSessionParticipant; sessionStatus: string }>;
+  cancelGroupSessionAndRefund(sessionId: string, performedBy: string): Promise<{ refundedCount: number; refundedTotal: number }>;
+  markGroupParticipantAttendance(participantId: string, status: "registered" | "joined" | "no_show", providerUserId: string): Promise<GroupSessionParticipant>;
+  recordGroupSessionJoin(sessionId: string, userId: string): Promise<GroupSessionParticipant | undefined>;
+  listMyGroupBookings(userId: string): Promise<Array<GroupSessionParticipant & { session: GroupSession }>>;
+  tickGroupSessionStatuses(): Promise<{ toLive: number; toCompleted: number }>;
 
   // Support Tickets
   createSupportTicket(data: InsertSupportTicket): Promise<SupportTicket>;
@@ -1970,9 +1989,391 @@ export class DatabaseStorage implements IStorage {
       counts.invoices = (inv as any).rowCount ?? 0;
       const pay = await tx.execute(sql`UPDATE payments SET country_code = ${targetCountry}::country_code WHERE patient_id = ${userId}`);
       counts.payments = (pay as any).rowCount ?? 0;
+
+      // Group session participations the user owns (the sessions themselves
+      // are tenanted by the provider, so we don't touch group_sessions here).
+      const gsp = await tx.execute(sql`UPDATE group_session_participants SET country_code = ${targetCountry}::country_code WHERE user_id = ${userId}`);
+      counts.groupSessionParticipants = (gsp as any).rowCount ?? 0;
     });
 
     return { userId, fromCountry, toCountry: targetCountry, counts };
+  }
+
+  // ─── Group sessions ──────────────────────────────────────────────────────
+  async createGroupSession(data: InsertGroupSession): Promise<GroupSession> {
+    if (!(data.endTime > data.startTime)) {
+      throw new Error("endTime must be after startTime");
+    }
+    if (!(data.maxParticipants > 0)) {
+      throw new Error("maxParticipants must be > 0");
+    }
+    const [row] = await db.insert(groupSessions).values(data as any).returning();
+    return row;
+  }
+
+  async listGroupSessionsByCountry(country: string, opts: { onlyUpcoming?: boolean } = {}) {
+    const result = await db.execute(sql`
+      SELECT gs.*, COALESCE(p.cnt, 0)::int AS participant_count
+      FROM group_sessions gs
+      LEFT JOIN (
+        SELECT session_id, COUNT(*) AS cnt
+        FROM group_session_participants
+        WHERE payment_status IN ('pending','completed')
+        GROUP BY session_id
+      ) p ON p.session_id = gs.id
+      WHERE gs.country_code = ${country}::country_code
+        AND gs.status IN ('scheduled','live')
+        ${opts.onlyUpcoming ? sql`AND gs.end_time > NOW()` : sql``}
+      ORDER BY gs.start_time ASC
+    `);
+    const rows = ((result as any).rows ?? result) as any[];
+    return rows.map((r) => ({
+      id: r.id,
+      providerId: r.provider_id,
+      serviceId: r.service_id,
+      title: r.title,
+      description: r.description,
+      startTime: new Date(r.start_time),
+      endTime: new Date(r.end_time),
+      maxParticipants: r.max_participants,
+      pricePerUser: r.price_per_user,
+      status: r.status,
+      meetingLink: r.meeting_link,
+      countryCode: r.country_code,
+      createdAt: r.created_at ? new Date(r.created_at) : null,
+      updatedAt: r.updated_at ? new Date(r.updated_at) : null,
+      participantCount: Number(r.participant_count) || 0,
+    })) as Array<GroupSession & { participantCount: number }>;
+  }
+
+  async listGroupSessionsByProvider(providerId: string) {
+    const result = await db.execute(sql`
+      SELECT gs.*, COALESCE(p.cnt, 0)::int AS participant_count
+      FROM group_sessions gs
+      LEFT JOIN (
+        SELECT session_id, COUNT(*) AS cnt
+        FROM group_session_participants
+        WHERE payment_status IN ('pending','completed')
+        GROUP BY session_id
+      ) p ON p.session_id = gs.id
+      WHERE gs.provider_id = ${providerId}
+      ORDER BY gs.start_time DESC
+    `);
+    const rows = ((result as any).rows ?? result) as any[];
+    return rows.map((r) => ({
+      id: r.id,
+      providerId: r.provider_id,
+      serviceId: r.service_id,
+      title: r.title,
+      description: r.description,
+      startTime: new Date(r.start_time),
+      endTime: new Date(r.end_time),
+      maxParticipants: r.max_participants,
+      pricePerUser: r.price_per_user,
+      status: r.status,
+      meetingLink: r.meeting_link,
+      countryCode: r.country_code,
+      createdAt: r.created_at ? new Date(r.created_at) : null,
+      updatedAt: r.updated_at ? new Date(r.updated_at) : null,
+      participantCount: Number(r.participant_count) || 0,
+    })) as Array<GroupSession & { participantCount: number }>;
+  }
+
+  async getGroupSession(id: string): Promise<GroupSession | undefined> {
+    const [row] = await db.select().from(groupSessions).where(eq(groupSessions.id, id)).limit(1);
+    return row;
+  }
+
+  async getGroupSessionWithParticipants(id: string) {
+    const session = await this.getGroupSession(id);
+    if (!session) return undefined;
+    const result = await db.execute(sql`
+      SELECT p.*, u.email AS user_email, u.first_name AS user_first_name, u.last_name AS user_last_name
+      FROM group_session_participants p
+      LEFT JOIN users u ON u.id = p.user_id
+      WHERE p.session_id = ${id}
+      ORDER BY p.created_at ASC
+    `);
+    const rows = ((result as any).rows ?? result) as any[];
+    const participants = rows.map((r) => ({
+      id: r.id,
+      sessionId: r.session_id,
+      userId: r.user_id,
+      paymentStatus: r.payment_status,
+      attendanceStatus: r.attendance_status,
+      amountPaid: r.amount_paid,
+      paymentMethod: r.payment_method,
+      joinedAt: r.joined_at ? new Date(r.joined_at) : null,
+      refundedAt: r.refunded_at ? new Date(r.refunded_at) : null,
+      countryCode: r.country_code,
+      createdAt: r.created_at ? new Date(r.created_at) : null,
+      userEmail: r.user_email,
+      userFirstName: r.user_first_name,
+      userLastName: r.user_last_name,
+    }));
+    return { session, participants };
+  }
+
+  async updateGroupSession(id: string, data: Partial<GroupSession>): Promise<GroupSession | undefined> {
+    const [row] = await db.update(groupSessions).set({ ...data, updatedAt: new Date() } as any).where(eq(groupSessions.id, id)).returning();
+    return row;
+  }
+
+  // Books a patient into a group session, debiting their wallet atomically.
+  // Capacity is checked under SELECT FOR UPDATE on the session row so two
+  // concurrent bookings for the last seat cannot both win.
+  async bookGroupSessionWithWallet(opts: { sessionId: string; userId: string }) {
+    const { sessionId, userId } = opts;
+    return db.transaction(async (tx) => {
+      const sRows = await tx.execute(sql`
+        SELECT id, provider_id, max_participants, price_per_user, status, country_code, start_time, end_time
+        FROM group_sessions WHERE id = ${sessionId} FOR UPDATE
+      `);
+      const sArr = ((sRows as any).rows ?? sRows) as any[];
+      if (sArr.length === 0) throw new Error("Session not found");
+      const s = sArr[0];
+      if (s.status === "cancelled") throw new Error("Session is cancelled");
+      if (s.status === "completed") throw new Error("Session has ended");
+      if (new Date(s.end_time).getTime() <= Date.now()) throw new Error("Session has ended");
+
+      // Tenancy: patient country must match session country.
+      const uRows = await tx.execute(sql`SELECT country_code FROM users WHERE id = ${userId}`);
+      const uArr = ((uRows as any).rows ?? uRows) as any[];
+      if (uArr.length === 0) throw new Error("User not found");
+      if (uArr[0].country_code !== s.country_code) throw new Error("Country mismatch");
+
+      // Already booked?
+      const dup = await tx.execute(sql`
+        SELECT id, payment_status FROM group_session_participants
+        WHERE session_id = ${sessionId} AND user_id = ${userId}
+      `);
+      const dupArr = ((dup as any).rows ?? dup) as any[];
+      if (dupArr.length > 0 && dupArr[0].payment_status !== "refunded") {
+        throw new Error("Already booked");
+      }
+
+      // Capacity check — count seats currently taken (paid or pending).
+      const cnt = await tx.execute(sql`
+        SELECT COUNT(*)::int AS c FROM group_session_participants
+        WHERE session_id = ${sessionId} AND payment_status IN ('pending','completed')
+      `);
+      const cntArr = ((cnt as any).rows ?? cnt) as any[];
+      const taken = Number(cntArr[0]?.c) || 0;
+      if (taken >= Number(s.max_participants)) throw new Error("Session is full");
+
+      const price = Number(s.price_per_user);
+
+      // Debit wallet for paid sessions. We use a deterministic idempotency
+      // key so a retried booking can never double-charge.
+      if (price > 0) {
+        const idem = `group_book_${sessionId}_${userId}`;
+        // Idempotency short-circuit — if a previous successful debit exists,
+        // skip charging again (the participant row will still be upserted).
+        const prior = await tx.execute(sql`SELECT id FROM wallet_transactions WHERE idempotency_key = ${idem}`);
+        const priorArr = ((prior as any).rows ?? prior) as any[];
+        if (priorArr.length === 0) {
+          // Get-or-create wallet, then row-lock it.
+          await tx.execute(sql`INSERT INTO wallets (user_id) VALUES (${userId}) ON CONFLICT (user_id) DO NOTHING`);
+          const wRows = await tx.execute(sql`SELECT id, balance, currency, is_frozen FROM wallets WHERE user_id = ${userId} FOR UPDATE`);
+          const wArr = ((wRows as any).rows ?? wRows) as any[];
+          if (wArr.length === 0) throw new Error("Wallet missing");
+          const w = wArr[0];
+          if (w.is_frozen) throw new Error("Wallet is frozen");
+          const balanceCents = Math.round(Number(w.balance) * 100);
+          const priceCents = Math.round(price * 100);
+          if (balanceCents < priceCents) throw new Error("Insufficient wallet balance");
+          const nextCents = balanceCents - priceCents;
+          const nextBal = (nextCents / 100).toFixed(2);
+          await tx.execute(sql`UPDATE wallets SET balance = ${nextBal}, updated_at = NOW() WHERE id = ${w.id}`);
+          await tx.execute(sql`
+            INSERT INTO wallet_transactions
+              (wallet_id, user_id, type, status, amount, balance_after, currency, description, reference_type, reference_id, idempotency_key)
+            VALUES
+              (${w.id}, ${userId}, 'debit', 'completed', ${(-price).toFixed(2)}, ${nextBal}, ${w.currency}, ${'Group session booking: ' + sessionId}, 'group_session', ${sessionId}, ${idem})
+          `);
+        }
+      }
+
+      // Insert or revive the participant row.
+      let participant: GroupSessionParticipant;
+      if (dupArr.length > 0) {
+        const upd = await tx.execute(sql`
+          UPDATE group_session_participants
+          SET payment_status = 'completed', attendance_status = 'registered',
+              amount_paid = ${price}, payment_method = 'wallet', refunded_at = NULL,
+              country_code = ${s.country_code}::country_code
+          WHERE id = ${dupArr[0].id}
+          RETURNING *
+        `);
+        participant = (((upd as any).rows ?? upd) as any[])[0];
+      } else {
+        const ins = await tx.execute(sql`
+          INSERT INTO group_session_participants
+            (session_id, user_id, payment_status, attendance_status, amount_paid, payment_method, country_code)
+          VALUES (${sessionId}, ${userId}, 'completed', 'registered', ${price}, 'wallet', ${s.country_code}::country_code)
+          RETURNING *
+        `);
+        participant = (((ins as any).rows ?? ins) as any[])[0];
+      }
+
+      return { participant, sessionStatus: s.status as string };
+    });
+  }
+
+  // Cancels a group session and refunds every paid participant via wallet
+  // using a deterministic idempotency key so a double-cancel is a no-op.
+  async cancelGroupSessionAndRefund(sessionId: string, performedBy: string) {
+    return db.transaction(async (tx) => {
+      const sRows = await tx.execute(sql`
+        SELECT id, status FROM group_sessions WHERE id = ${sessionId} FOR UPDATE
+      `);
+      const sArr = ((sRows as any).rows ?? sRows) as any[];
+      if (sArr.length === 0) throw new Error("Session not found");
+      if (sArr[0].status === "cancelled") return { refundedCount: 0, refundedTotal: 0 };
+      if (sArr[0].status === "completed") throw new Error("Session already completed");
+
+      const pRows = await tx.execute(sql`
+        SELECT id, user_id, amount_paid FROM group_session_participants
+        WHERE session_id = ${sessionId} AND payment_status = 'completed'
+      `);
+      const participants = ((pRows as any).rows ?? pRows) as any[];
+
+      let refundedTotal = 0;
+      for (const p of participants) {
+        const amt = Number(p.amount_paid);
+        if (amt > 0) {
+          const idem = `group_refund_${sessionId}_${p.user_id}`;
+          const prior = await tx.execute(sql`SELECT id FROM wallet_transactions WHERE idempotency_key = ${idem}`);
+          const priorArr = ((prior as any).rows ?? prior) as any[];
+          if (priorArr.length === 0) {
+            await tx.execute(sql`INSERT INTO wallets (user_id) VALUES (${p.user_id}) ON CONFLICT (user_id) DO NOTHING`);
+            const wRows = await tx.execute(sql`SELECT id, balance, currency FROM wallets WHERE user_id = ${p.user_id} FOR UPDATE`);
+            const w = (((wRows as any).rows ?? wRows) as any[])[0];
+            const nextCents = Math.round(Number(w.balance) * 100) + Math.round(amt * 100);
+            const nextBal = (nextCents / 100).toFixed(2);
+            await tx.execute(sql`UPDATE wallets SET balance = ${nextBal}, updated_at = NOW() WHERE id = ${w.id}`);
+            await tx.execute(sql`
+              INSERT INTO wallet_transactions
+                (wallet_id, user_id, type, status, amount, balance_after, currency, description, reference_type, reference_id, idempotency_key, created_by_id)
+              VALUES
+                (${w.id}, ${p.user_id}, 'refund', 'completed', ${amt.toFixed(2)}, ${nextBal}, ${w.currency}, ${'Group session cancelled: ' + sessionId}, 'group_session', ${sessionId}, ${idem}, ${performedBy})
+            `);
+          }
+          refundedTotal += amt;
+        }
+        await tx.execute(sql`
+          UPDATE group_session_participants
+          SET payment_status = 'refunded', refunded_at = NOW()
+          WHERE id = ${p.id}
+        `);
+      }
+
+      await tx.execute(sql`
+        UPDATE group_sessions SET status = 'cancelled', updated_at = NOW() WHERE id = ${sessionId}
+      `);
+
+      return { refundedCount: participants.length, refundedTotal };
+    });
+  }
+
+  async markGroupParticipantAttendance(participantId: string, status: "registered" | "joined" | "no_show", providerUserId: string) {
+    // Authorization: the participant's session must belong to a provider
+    // owned by `providerUserId`. We do this in the SQL filter so a wrong
+    // provider can't update other providers' attendance even by guessing
+    // the participant id.
+    const result = await db.execute(sql`
+      UPDATE group_session_participants
+      SET attendance_status = ${status}::group_attendance,
+          joined_at = CASE WHEN ${status} = 'joined' THEN COALESCE(joined_at, NOW()) ELSE joined_at END
+      WHERE id = ${participantId}
+        AND session_id IN (
+          SELECT gs.id FROM group_sessions gs
+          JOIN providers p ON p.id = gs.provider_id
+          WHERE p.user_id = ${providerUserId}
+        )
+      RETURNING *
+    `);
+    const rows = ((result as any).rows ?? result) as any[];
+    if (rows.length === 0) throw new Error("Participant not found or not authorized");
+    return rows[0] as GroupSessionParticipant;
+  }
+
+  // Patient-side join: only allowed if paid + within the join window
+  // (15 min before start until 30 min after end). Records `joined_at`.
+  async recordGroupSessionJoin(sessionId: string, userId: string): Promise<GroupSessionParticipant | undefined> {
+    const result = await db.execute(sql`
+      UPDATE group_session_participants p
+      SET attendance_status = 'joined', joined_at = COALESCE(p.joined_at, NOW())
+      FROM group_sessions s
+      WHERE p.session_id = s.id
+        AND p.session_id = ${sessionId}
+        AND p.user_id = ${userId}
+        AND p.payment_status = 'completed'
+        AND s.status IN ('scheduled','live')
+        AND NOW() BETWEEN s.start_time - INTERVAL '15 minutes' AND s.end_time + INTERVAL '30 minutes'
+      RETURNING p.*
+    `);
+    const rows = ((result as any).rows ?? result) as any[];
+    return rows[0];
+  }
+
+  async listMyGroupBookings(userId: string) {
+    const result = await db.execute(sql`
+      SELECT p.*, s.id AS s_id, s.title AS s_title, s.start_time AS s_start, s.end_time AS s_end,
+             s.meeting_link AS s_link, s.status AS s_status, s.price_per_user AS s_price,
+             s.provider_id AS s_provider, s.country_code AS s_country, s.max_participants AS s_max
+      FROM group_session_participants p
+      JOIN group_sessions s ON s.id = p.session_id
+      WHERE p.user_id = ${userId}
+      ORDER BY s.start_time DESC
+    `);
+    const rows = ((result as any).rows ?? result) as any[];
+    return rows.map((r) => ({
+      id: r.id,
+      sessionId: r.session_id,
+      userId: r.user_id,
+      paymentStatus: r.payment_status,
+      attendanceStatus: r.attendance_status,
+      amountPaid: r.amount_paid,
+      paymentMethod: r.payment_method,
+      joinedAt: r.joined_at ? new Date(r.joined_at) : null,
+      refundedAt: r.refunded_at ? new Date(r.refunded_at) : null,
+      countryCode: r.country_code,
+      createdAt: r.created_at ? new Date(r.created_at) : null,
+      session: {
+        id: r.s_id,
+        providerId: r.s_provider,
+        serviceId: null,
+        title: r.s_title,
+        description: null,
+        startTime: new Date(r.s_start),
+        endTime: new Date(r.s_end),
+        maxParticipants: r.s_max,
+        pricePerUser: r.s_price,
+        status: r.s_status,
+        meetingLink: r.s_link,
+        countryCode: r.s_country,
+        createdAt: null,
+        updatedAt: null,
+      } as GroupSession,
+    }));
+  }
+
+  // Auto-status: scheduled→live when now ≥ start_time, live→completed when
+  // now > end_time. Idempotent. Called from the existing reminder cron.
+  async tickGroupSessionStatuses() {
+    const liveRes = await db.execute(sql`
+      UPDATE group_sessions SET status = 'live', updated_at = NOW()
+      WHERE status = 'scheduled' AND NOW() >= start_time AND NOW() <= end_time
+    `);
+    const doneRes = await db.execute(sql`
+      UPDATE group_sessions SET status = 'completed', updated_at = NOW()
+      WHERE status IN ('scheduled','live') AND NOW() > end_time
+    `);
+    return {
+      toLive: (liveRes as any).rowCount ?? 0,
+      toCompleted: (doneRes as any).rowCount ?? 0,
+    };
   }
 
   // Support Tickets

@@ -45,6 +45,7 @@ const ReferralsPage = lazy(() => import("@/pages/referrals"));
 const WaitlistPage = lazy(() => import("@/pages/waitlist"));
 const Review = lazy(() => import("@/pages/review"));
 const SupportTickets = lazy(() => import("@/pages/support-tickets"));
+const GroupSessionsPage = lazy(() => import("@/pages/group-sessions"));
 
 import { ScrollProgress } from "@/components/scroll-progress";
 import { ScrollToTop } from "@/components/scroll-to-top";
@@ -96,6 +97,7 @@ function Router() {
           <Route path="/login" component={Login} />
           <Route path="/register" component={Register} />
           <Route path="/providers" component={Providers} />
+          <Route path="/group-sessions" component={GroupSessionsPage} />
           <Route path="/services" component={Services} />
           <Route path="/dashboard" component={PatientDashboard} />
           <Route path="/patient/dashboard" component={PatientDashboard} />
