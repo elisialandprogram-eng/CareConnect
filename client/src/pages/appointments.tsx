@@ -287,6 +287,24 @@ export default function Appointments() {
                         {getVisitTypeIcon(appointment.visitType)}
                         {getVisitTypeLabel(appointment.visitType)}
                       </div>
+                      {appointment.visitType === "clinic" && (appointment as any).provider?.primaryServiceLocation && (
+                        <div
+                          className="flex items-start gap-1 basis-full text-xs"
+                          data-testid={`text-clinic-address-${appointment.id}`}
+                        >
+                          <MapPin className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                          <span className="leading-snug">{(appointment as any).provider.primaryServiceLocation}</span>
+                        </div>
+                      )}
+                      {appointment.visitType === "home" && (appointment as any).patientAddress && (
+                        <div
+                          className="flex items-start gap-1 basis-full text-xs"
+                          data-testid={`text-home-address-${appointment.id}`}
+                        >
+                          <MapPin className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                          <span className="leading-snug">{(appointment as any).patientAddress}</span>
+                        </div>
+                      )}
                     </div>
                     <div className="flex items-center gap-2 flex-wrap">
                       {!["cancelled", "rejected", "completed"].includes(appointment.status) && (

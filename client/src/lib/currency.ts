@@ -1,4 +1,5 @@
 import { useTranslation } from "react-i18next";
+import { useAuth } from "@/lib/auth";
 
 export type SupportedCurrency = "USD" | "HUF" | "IRR" | "EUR" | "GBP";
 
@@ -100,8 +101,16 @@ export function getCurrencyConfig(language: string | undefined): CurrencyConfig 
 export function useCurrency() {
   const { i18n } = useTranslation();
   const lang = i18n.language;
-  let overrideCode: string | null = null;
-  if (typeof window !== "undefined") {
+  let userPreferred: string | null = null;
+  try {
+    // useAuth is safe to call here; this hook always runs inside React tree.
+    const { user } = useAuth();
+    userPreferred = user?.preferredCurrency ?? null;
+  } catch {
+    userPreferred = null;
+  }
+  let overrideCode: string | null = userPreferred;
+  if (!overrideCode && typeof window !== "undefined") {
     try {
       overrideCode = window.localStorage.getItem("preferredCurrency");
     } catch {

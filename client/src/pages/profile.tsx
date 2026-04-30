@@ -1111,7 +1111,7 @@ export default function Profile() {
                   <CardDescription>
                     {t(
                       "profile_page.preferences_desc",
-                      "Choose how the app should appear when you sign in. Currency is shown across the app while prices stay stored in HUF.",
+                      "Choose how the app should appear when you sign in. Your currency choice is used across the app for all prices.",
                     )}
                   </CardDescription>
                 </CardHeader>

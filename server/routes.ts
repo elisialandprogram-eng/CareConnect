@@ -2329,6 +2329,18 @@ export async function registerRoutes(
         if (!provider || provider.id !== svc.providerId) {
           return res.status(403).json({ message: "You can only edit services assigned to you" });
         }
+        // Admin-assigned services (linked to a catalog sub-service) are locked.
+        // Providers may only toggle isActive (pause/resume); everything else is admin-only.
+        if ((svc as any).subServiceId) {
+          const allowed = new Set(["isActive"]);
+          const submittedKeys = Object.keys(req.body || {});
+          const disallowed = submittedKeys.filter((k) => !allowed.has(k));
+          if (disallowed.length > 0) {
+            return res.status(403).json({
+              message: "This service is managed by Admin. You can only pause or resume it.",
+            });
+          }
+        }
       }
       const service = await storage.updateService(req.params.id, req.body, { changedBy: req.user?.id });
       res.json(service);
@@ -2347,6 +2359,11 @@ export async function registerRoutes(
         const provider = await storage.getProviderByUserId(req.user!.id);
         if (!provider || provider.id !== existing.providerId) {
           return res.status(403).json({ message: "You can only delete services assigned to you" });
+        }
+        if ((existing as any).subServiceId) {
+          return res.status(403).json({
+            message: "This service is managed by Admin and cannot be deleted. You can pause it instead.",
+          });
         }
       }
       const result = await storage.deleteService(req.params.id, { force });
@@ -2918,6 +2935,7 @@ export async function registerRoutes(
         subServiceName: z.string().min(2),
         suggestedPrice: z.union([z.string(), z.number()]).optional().nullable(),
         description: z.string().optional().nullable(),
+        locationMode: z.enum(["both", "clinic_only", "home_only"]).optional(),
       });
       const parsed = schema.parse(req.body);
 
@@ -2936,7 +2954,8 @@ export async function registerRoutes(
         subServiceName: parsed.subServiceName,
         suggestedPrice: parsed.suggestedPrice != null ? String(parsed.suggestedPrice) : null,
         description: parsed.description ?? null,
-      });
+        locationMode: parsed.locationMode ?? "both",
+      } as any);
 
       // Notify the requesting provider that their request was received.
       await storage.createNotification({
@@ -2994,6 +3013,7 @@ export async function registerRoutes(
         suggestedPrice: z.union([z.string(), z.number()]).optional().nullable(),
         description: z.string().optional().nullable(),
         adminNotes: z.string().optional().nullable(),
+        locationMode: z.enum(["both", "clinic_only", "home_only"]).optional(),
       });
       const data = schema.parse(req.body);
 
@@ -3053,6 +3073,7 @@ export async function registerRoutes(
         description: reqRow.description ?? undefined,
         duration,
         price,
+        locationMode: (reqRow as any).locationMode ?? "both",
       } as any);
 
       const updated = await storage.updateServiceRequest(reqRow.id, {
@@ -3347,6 +3368,18 @@ export async function registerRoutes(
   app.post("/api/appointments", authenticateToken, async (req: AuthRequest, res: Response) => {
     try {
       const { providerId, serviceId, practitionerId, date, startTime, endTime, visitType, paymentMethod, notes, patientAddress, patientLatitude, patientLongitude, totalAmount, promoCode, contactMobile, familyMemberId } = req.body;
+      // Multi-session bookings carry an array of additional slots; each one
+      // becomes a child appointment that shares the parent's payment.
+      const additionalSlotsRaw = Array.isArray((req.body as any).additionalSlots)
+        ? (req.body as any).additionalSlots
+        : [];
+      const additionalSlots: Array<{ date: string; startTime: string; endTime: string }> = additionalSlotsRaw
+        .map((s: any) => ({
+          date: typeof s?.date === "string" ? s.date : "",
+          startTime: typeof s?.startTime === "string" ? s.startTime : "",
+          endTime: typeof s?.endTime === "string" ? s.endTime : "",
+        }))
+        .filter((s: any) => s.date && s.startTime && s.endTime);
       const userId = req.user?.id;
 
       // Idempotency: if the client retries with the same Idempotency-Key within
@@ -3483,9 +3516,29 @@ export async function registerRoutes(
           if (svcRecord.subServiceId) {
             subRecord = await storage.getSubService(svcRecord.subServiceId);
           }
+
+          // Enforce service.locationMode: services flagged "clinic_only" can't
+          // be booked as home visits, and "home_only" can't be booked in clinic.
+          // Online is governed by telemedicineFee > 0 (checked elsewhere).
+          const svcLocMode = (svcRecord as any).locationMode || "both";
+          if (visitType === "home" && svcLocMode === "clinic_only") {
+            return res.status(400).json({ message: "This service is offered at the clinic only." });
+          }
+          if (visitType === "clinic" && svcLocMode === "home_only") {
+            return res.status(400).json({ message: "This service is offered as a home visit only." });
+          }
         }
       } catch (e) {
         console.error("[booking] service/sub lookup failed:", e);
+      }
+
+      // Mandatory clinic address: an in-clinic visit cannot be booked unless
+      // the provider has set their primary clinic location. Surface a clear
+      // message so the patient knows to pick a different visit type.
+      if (visitType === "clinic" && !((provider as any).primaryServiceLocation || "").trim()) {
+        return res.status(400).json({
+          message: "This provider has not set a clinic address yet. Please choose a home or online visit, or pick another provider.",
+        });
       }
 
       // Resolve promo discount
@@ -3630,6 +3683,84 @@ export async function registerRoutes(
         },
       );
       let appointment = bookingResult.appointment;
+
+      // ── Multi-session: create child appointments tied to this parent ──
+      // Each child shares the same payment (totalAmount=0, paymentMethod
+      // "bundled") and follows the parent's status. Children are created
+      // BEFORE payment so an idempotent retry sees the full picture, but
+      // any conflict on a child causes the whole booking to fail.
+      const childAppointments: any[] = [];
+      if (additionalSlots.length > 0) {
+        try {
+          for (const extra of additionalSlots) {
+            // Re-validate each extra slot is in the future
+            const t = new Date(`${extra.date}T${extra.startTime}:00`);
+            if (isNaN(t.getTime()) || t.getTime() < Date.now() - 60_000) {
+              throw new Error(`Session date/time is invalid or in the past: ${extra.date} ${extra.startTime}`);
+            }
+            // Conflict checks (provider + same patient)
+            const provExisting = await storage.getAppointmentsByProvider(providerId);
+            if (provExisting.find(a =>
+              a.date === extra.date && a.startTime === extra.startTime &&
+              !["cancelled", "rejected"].includes(a.status))) {
+              throw new Error(`Time slot ${extra.date} ${extra.startTime} is no longer available.`);
+            }
+            const reservedExtra = await storage.reserveTimeSlot(providerId, extra.date, extra.startTime, extra.endTime);
+            const childRes = await storage.createAppointmentWithEvent(
+              {
+                patientId: userId,
+                familyMemberId: validatedFamilyMemberId,
+                providerId,
+                serviceId: serviceId || null,
+                practitionerId: practitionerId || null,
+                timeSlotId: reservedExtra.id,
+                date: extra.date,
+                startTime: extra.startTime,
+                endTime: extra.endTime,
+                visitType: visitType || "online",
+                status: "pending",
+                notes: notes || null,
+                patientAddress: patientAddress || null,
+                patientLatitude: typeof patientLatitude === "number" ? patientLatitude : null,
+                patientLongitude: typeof patientLongitude === "number" ? patientLongitude : null,
+                totalAmount: "0.00",
+                platformFeeAmount: "0.00",
+                promoCode: null,
+                promoDiscount: "0.00",
+                parentAppointmentId: appointment.id,
+              } as any,
+              {
+                action: "book" as any,
+                actorUserId: userId,
+                actorRole: "patient" as any,
+                fromStatus: null,
+                toStatus: "pending" as any,
+                reason: null,
+                metadata: JSON.stringify({
+                  visitType: visitType || "online",
+                  parent: appointment.id,
+                  paymentMethod: "bundled",
+                }),
+              },
+            );
+            childAppointments.push(childRes.appointment);
+          }
+        } catch (multiErr: any) {
+          // Roll back: cancel the parent + any successful children and
+          // release their reserved slots so the patient is not left with a
+          // partial booking.
+          console.error("Multi-session booking failed, rolling back:", multiErr);
+          try {
+            for (const c of childAppointments) {
+              await storage.updateAppointment(c.id, { status: "cancelled" } as any);
+            }
+            await storage.updateAppointment(appointment.id, { status: "cancelled" } as any);
+          } catch (rbErr) {
+            console.error("Rollback failed:", rbErr);
+          }
+          return res.status(409).json({ message: multiErr?.message || "Could not book all the sessions you picked." });
+        }
+      }
 
       // Optionally save the address to the patient's profile for next time.
       if (req.body.saveAddressToProfile === true && patientAddress) {

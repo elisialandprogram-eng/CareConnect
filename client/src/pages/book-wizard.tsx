@@ -3,7 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation, useSearch } from "wouter";
 import { useTranslation } from "react-i18next";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useCurrency } from "@/lib/currency";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
@@ -102,6 +102,105 @@ function ProgressBar({ current }: { current: number }) {
 }
 
 /* ────────────────────────────────────────────────────────────────── */
+/*  Per-extra-session date+time picker                                */
+/* ────────────────────────────────────────────────────────────────── */
+function SessionSlotPicker({
+  index,
+  providerId,
+  value,
+  onChange,
+}: {
+  index: number;
+  providerId: string;
+  value: { date: string; slot: TimeSlot | null };
+  onChange: (next: { date: string; slot: TimeSlot | null }) => void;
+}) {
+  const days = useMemo(
+    () =>
+      Array.from({ length: 30 }, (_, i) => {
+        const d = new Date();
+        d.setDate(d.getDate() + i + 1);
+        return d.toISOString().split("T")[0];
+      }),
+    [],
+  );
+  const { data: slots = [], isLoading } = useQuery<TimeSlot[]>({
+    queryKey: ["/api/providers", providerId, "slots", value.date],
+    queryFn: () =>
+      fetch(`/api/providers/${providerId}/available-slots?date=${value.date}`).then(r => r.json()),
+    enabled: !!providerId && !!value.date,
+  });
+  const free = slots.filter(s => !s.isBooked && !s.isBlocked);
+
+  return (
+    <div className="rounded-lg border p-3 bg-card space-y-3" data-testid={`session-picker-${index}`}>
+      <div className="flex items-center justify-between gap-2">
+        <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          Session {index}
+        </div>
+        {value.slot && (
+          <div className="text-xs text-emerald-700 dark:text-emerald-400 font-medium" data-testid={`text-session-${index}-picked`}>
+            {new Date(value.slot.date + "T12:00:00").toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+            {" · "}
+            {value.slot.startTime}
+          </div>
+        )}
+      </div>
+
+      <div>
+        <Label className="text-xs">Date</Label>
+        <div className="grid grid-cols-7 gap-1 mt-1">
+          {days.slice(0, 14).map(day => {
+            const d = new Date(day + "T12:00:00");
+            const isPicked = value.date === day;
+            return (
+              <button
+                key={day}
+                type="button"
+                onClick={() => onChange({ date: day, slot: null })}
+                data-testid={`session-${index}-date-${day}`}
+                className={`p-1.5 rounded text-center text-[11px] border transition-all ${isPicked ? "bg-primary text-primary-foreground border-primary" : "border-border hover:border-primary/40"}`}
+              >
+                <div className="text-[9px]">{d.toLocaleDateString(undefined, { weekday: "short" })}</div>
+                <div className="font-semibold">{d.getDate()}</div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {value.date && (
+        <div>
+          <Label className="text-xs">Time</Label>
+          {isLoading ? (
+            <div className="text-xs text-muted-foreground py-2">Loading slots…</div>
+          ) : free.length === 0 ? (
+            <div className="text-xs text-muted-foreground py-2">No open times that day. Pick another date.</div>
+          ) : (
+            <div className="grid grid-cols-4 gap-1 mt-1">
+              {free.map(s => {
+                const isPicked = value.slot?.id === s.id;
+                return (
+                  <button
+                    key={s.id}
+                    type="button"
+                    onClick={() => onChange({ date: value.date, slot: s })}
+                    data-testid={`session-${index}-time-${s.startTime}`}
+                    className={`py-1.5 rounded text-[11px] border transition-all ${isPicked ? "bg-primary text-primary-foreground border-primary" : "border-border hover:border-primary/40"}`}
+                  >
+                    {s.startTime}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ────────────────────────────────────────────────────────────────── */
 /*  Main wizard                                                       */
 /* ────────────────────────────────────────────────────────────────── */
 export default function BookWizard() {
@@ -135,6 +234,21 @@ export default function BookWizard() {
 
   // Step 3: sessions
   const [sessions, setSessions] = useState(1);
+  // Per-extra-session slots (length = sessions - 1). Null until the patient
+  // picks a date+time. These become child appointments tied to the same
+  // payment so a multi-session course is fully scheduled up front.
+  const [additionalSlots, setAdditionalSlots] = useState<Array<{ date: string; slot: TimeSlot | null }>>([]);
+
+  // Keep additionalSlots in sync with the sessions count: trim or pad with
+  // empty placeholders so the UI always renders (sessions - 1) pickers.
+  useEffect(() => {
+    setAdditionalSlots(prev => {
+      const need = Math.max(0, sessions - 1);
+      if (prev.length === need) return prev;
+      if (prev.length > need) return prev.slice(0, need);
+      return [...prev, ...Array.from({ length: need - prev.length }, () => ({ date: "", slot: null as TimeSlot | null }))];
+    });
+  }, [sessions]);
 
   // Step 4: payment
   const [payMethod, setPayMethod] = useState<"card" | "wallet" | "cash" | "bank_transfer">("card");
@@ -270,6 +384,25 @@ export default function BookWizard() {
     }
   }, [initialServiceId, providerServices, selectedService]);
 
+  /* ── Auto-correct visit type for service.locationMode ─────────── */
+  useEffect(() => {
+    if (!selectedService) return;
+    const svc: any = selectedService;
+    const locMode = (svc?.locationMode as string) || "both";
+    const onlineFee = Number(svc?.telemedicineFee || 0);
+    const validForType = (vt: "clinic" | "home" | "online") => {
+      if (vt === "clinic") return locMode !== "home_only";
+      if (vt === "home") return locMode !== "clinic_only";
+      if (vt === "online") return onlineFee > 0;
+      return true;
+    };
+    if (!validForType(visitType)) {
+      if (locMode === "home_only") setVisitType("home");
+      else if (locMode === "clinic_only") setVisitType("clinic");
+      else setVisitType("clinic");
+    }
+  }, [selectedService, visitType]);
+
   /* ── Silent practitioner auto-assign ───────────────────────────── */
   // Once a service is picked, quietly grab the best-available practitioner so
   // the appointment payload includes one. The user never sees this happen.
@@ -298,6 +431,13 @@ export default function BookWizard() {
       return res.json();
     },
     onSuccess: (data: any) => {
+      // Invalidate the patient + provider appointment lists so newly created
+      // bookings appear immediately on the appointments page and the
+      // provider dashboard without requiring a manual refresh.
+      queryClient.invalidateQueries({ queryKey: ["/api/appointments/patient"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/appointments/provider"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/wallet"] });
+
       // If the backend returned a Stripe checkout URL, redirect there.
       // Stripe's success URL points back at /booking/confirmation/:id.
       // For wallet/cash bookings, jump straight to the confirmation page.
@@ -339,6 +479,10 @@ export default function BookWizard() {
       endTime: selectedSlot.endTime,
       visitType,
       sessions,
+      // Send only the picked slots — server will validate length matches.
+      additionalSlots: additionalSlots
+        .filter(s => s.slot)
+        .map(s => ({ date: s.slot!.date, startTime: s.slot!.startTime, endTime: s.slot!.endTime })),
       paymentMethod: effectivePayMethod,
       walletAmountUsed: walletAppliedRounded > 0 ? walletAppliedRounded : undefined,
       notes,
@@ -359,7 +503,12 @@ export default function BookWizard() {
       case 0: return !!selectedProvider;
       case 1: return !!selectedService;
       case 2: return !!selectedSlot;
-      case 3: return sessions >= 1 && sessions <= 10;
+      case 3: {
+        if (sessions < 1 || sessions > 10) return false;
+        // Every additional session must have a chosen date+slot.
+        if (sessions > 1 && additionalSlots.some(s => !s.slot)) return false;
+        return true;
+      }
       case 4: return !!payMethod && (!useWallet || walletAppliedRounded > 0 || walletBalance === 0);
       case 5: {
         if (!consent || contactName.trim().length === 0 || contactPhone.trim().length === 0) return false;
@@ -558,27 +707,46 @@ export default function BookWizard() {
                   <p className="text-muted-foreground text-sm mt-1">Pick the visit type, then a date and time.</p>
                 </div>
 
-                {/* Visit type */}
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium">Visit type</Label>
-                  <div className="grid grid-cols-3 gap-2">
-                    {[
-                      { v: "clinic", label: "In-clinic" },
-                      { v: "home",   label: "Home visit" },
-                      { v: "online", label: "Online" },
-                    ].map(({ v, label }) => (
-                      <button
-                        key={v}
-                        type="button"
-                        onClick={() => setVisitType(v as any)}
-                        data-testid={`visit-type-${v}`}
-                        className={`py-2 px-3 rounded-lg text-sm font-medium border-2 transition-all ${visitType === v ? "border-primary bg-primary/5" : "border-border hover:border-primary/40"}`}
-                      >
-                        {label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
+                {/* Visit type — restricted by service.locationMode */}
+                {(() => {
+                  const svc: any = selectedService as any;
+                  const locMode = (svc?.locationMode as string) || "both";
+                  const onlineFee = Number(svc?.telemedicineFee || 0);
+                  const clinicAllowed = locMode !== "home_only";
+                  const homeAllowed = locMode !== "clinic_only";
+                  const onlineAllowed = onlineFee > 0;
+                  const opts = [
+                    { v: "clinic", label: "In-clinic", allowed: clinicAllowed },
+                    { v: "home",   label: "Home visit", allowed: homeAllowed },
+                    { v: "online", label: "Online",     allowed: onlineAllowed },
+                  ];
+                  return (
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">Visit type</Label>
+                      <div className="grid grid-cols-3 gap-2">
+                        {opts.map(({ v, label, allowed }) => (
+                          <button
+                            key={v}
+                            type="button"
+                            disabled={!allowed}
+                            onClick={() => allowed && setVisitType(v as any)}
+                            data-testid={`visit-type-${v}`}
+                            className={`py-2 px-3 rounded-lg text-sm font-medium border-2 transition-all ${visitType === v ? "border-primary bg-primary/5" : "border-border hover:border-primary/40"} ${!allowed ? "opacity-40 cursor-not-allowed" : ""}`}
+                            title={!allowed ? "Not available for this service" : undefined}
+                          >
+                            {label}
+                          </button>
+                        ))}
+                      </div>
+                      {locMode === "clinic_only" && (
+                        <p className="text-xs text-muted-foreground">This service is offered at the clinic only.</p>
+                      )}
+                      {locMode === "home_only" && (
+                        <p className="text-xs text-muted-foreground">This service is offered as a home visit only.</p>
+                      )}
+                    </div>
+                  );
+                })()}
 
                 {/* Calendar */}
                 <div className="space-y-2">
@@ -690,8 +858,37 @@ export default function BookWizard() {
                 </Card>
 
                 {sessions > 1 && (
-                  <div className="text-xs text-muted-foreground p-3 rounded-lg bg-muted/40 border">
-                    Pricing reflects all {sessions} sessions. Only the first session uses the slot you picked — your provider will help schedule the rest.
+                  <div className="space-y-3">
+                    <div className="text-xs text-muted-foreground p-3 rounded-lg bg-muted/40 border">
+                      Pricing reflects all {sessions} sessions. Pick a date and time for each additional session below — they're all booked together with one payment.
+                    </div>
+                    <div className="space-y-3">
+                      <div className="rounded-lg border p-3 bg-card">
+                        <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">
+                          Session 1
+                        </div>
+                        <div className="text-sm" data-testid="text-session-1-summary">
+                          {selectedSlot ? (
+                            <>
+                              {new Date(selectedSlot.date + "T12:00:00").toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}
+                              {" · "}
+                              {selectedSlot.startTime} – {selectedSlot.endTime}
+                            </>
+                          ) : (
+                            <span className="text-muted-foreground italic">Pick this on the previous step</span>
+                          )}
+                        </div>
+                      </div>
+                      {additionalSlots.map((entry, i) => (
+                        <SessionSlotPicker
+                          key={i}
+                          index={i + 2}
+                          providerId={selectedProvider!.id}
+                          value={entry}
+                          onChange={(next) => setAdditionalSlots(prev => prev.map((e, j) => j === i ? next : e))}
+                        />
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>

@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { useCurrency } from "@/lib/currency";
 import { Link } from "wouter";
 import { useTranslation } from "react-i18next";
 import { Header } from "@/components/header";
@@ -29,11 +30,6 @@ interface EarningsPayload {
   };
 }
 
-function formatHUF(value: number | string) {
-  const n = typeof value === "string" ? parseFloat(value) : value;
-  if (!isFinite(n)) return "0 HUF";
-  return `${Math.round(n).toLocaleString("hu-HU")} HUF`;
-}
 
 function formatDate(value: Date | string | null | undefined) {
   if (!value) return "—";
@@ -46,6 +42,7 @@ function formatDate(value: Date | string | null | undefined) {
 
 export default function ProviderEarnings() {
   const { t } = useTranslation();
+  const { format: formatHUF } = useCurrency();
   const { data, isLoading } = useQuery<EarningsPayload>({
     queryKey: ["/api/provider/earnings"],
   });

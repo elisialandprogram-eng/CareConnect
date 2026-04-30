@@ -113,7 +113,7 @@ export default function WalletPage() {
     if (!Number.isFinite(n) || n <= 0) {
       showErrorModal({
         title: t("wallet.invalid_amount", "Invalid amount"),
-        description: t("wallet.invalid_amount_desc", "Enter a positive amount in HUF."),
+        description: t("wallet.invalid_amount_desc", "Enter a positive amount."),
         context: "wallet.invalidAmount",
       });
       return;
@@ -204,7 +204,7 @@ export default function WalletPage() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="wallet-amount">
-                    {t("wallet.custom_amount", "Custom amount (HUF)")}
+                    {t("wallet.custom_amount", "Custom amount")}
                   </Label>
                   <Input
                     id="wallet-amount"

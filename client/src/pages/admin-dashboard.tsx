@@ -499,6 +499,7 @@ function AdminServiceRequestsPanel() {
     suggestedPrice: "",
     description: "",
     adminNotes: "",
+    locationMode: "both" as "both" | "clinic_only" | "home_only",
   });
   const [approving, setApproving] = useState<any>(null);
   const [approveForm, setApproveForm] = useState({ duration: "30", finalPrice: "" });
@@ -557,6 +558,7 @@ function AdminServiceRequestsPanel() {
       suggestedPrice: r.suggestedPrice ?? "",
       description: r.description ?? "",
       adminNotes: r.adminNotes ?? "",
+      locationMode: (r.locationMode ?? "both") as any,
     });
   };
 
@@ -617,6 +619,11 @@ function AdminServiceRequestsPanel() {
                         <div className="text-xs text-muted-foreground mt-1">
                           {r.category} · {r.subServiceName}
                           {r.suggestedPrice ? ` · Suggested $${r.suggestedPrice}` : ""}
+                          {r.locationMode && r.locationMode !== "both" ? (
+                            <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
+                              {r.locationMode === "clinic_only" ? "Clinic Only" : "Home Only"}
+                            </span>
+                          ) : null}
                         </div>
                         <div className="text-xs text-muted-foreground mt-1">
                           From: <span className="font-medium">{provName}</span>
@@ -666,6 +673,26 @@ function AdminServiceRequestsPanel() {
             <div>
               <label className="text-sm font-medium">Description</label>
               <Textarea value={editForm.description} onChange={(e) => setEditForm({ ...editForm, description: e.target.value })} rows={2} />
+            </div>
+            <div>
+              <label className="text-sm font-medium">Where can this service be delivered?</label>
+              <div className="grid grid-cols-3 gap-2 mt-1">
+                {[
+                  { value: "both", label: "Clinic & Home" },
+                  { value: "clinic_only", label: "Clinic Only" },
+                  { value: "home_only", label: "Home Only" },
+                ].map((opt) => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => setEditForm({ ...editForm, locationMode: opt.value as any })}
+                    data-testid={`button-edit-location-${opt.value}`}
+                    className={`p-2 rounded-md border-2 text-xs transition-all ${editForm.locationMode === opt.value ? "border-primary bg-primary/5 font-semibold" : "border-border hover:border-primary/50"}`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
             </div>
             <div>
               <label className="text-sm font-medium">Admin notes</label>
@@ -6695,7 +6722,7 @@ function AdminWallets() {
             <>
               <div className="space-y-2">
                 <Label htmlFor="adj-amount">
-                  {t("admin_wallets.amount_label", "Amount (HUF, negative to debit)")}
+                  {t("admin_wallets.amount_label", "Amount (negative to debit)")}
                 </Label>
                 <Input
                   id="adj-amount"

@@ -317,6 +317,7 @@ function ProviderServiceRequestsPanel() {
     subServiceName: "",
     suggestedPrice: "",
     description: "",
+    locationMode: "both" as "both" | "clinic_only" | "home_only",
   });
 
   const { data: categories } = useQuery<any[]>({ queryKey: ["/api/categories"] });
@@ -331,7 +332,7 @@ function ProviderServiceRequestsPanel() {
     },
     onSuccess: () => {
       toast({ title: "Request submitted", description: "Admin will review your request shortly." });
-      setForm({ category: "", serviceName: "", subServiceName: "", suggestedPrice: "", description: "" });
+      setForm({ category: "", serviceName: "", subServiceName: "", suggestedPrice: "", description: "", locationMode: "both" });
       queryClient.invalidateQueries({ queryKey: ["/api/provider/service-requests"] });
     },
     onError: (err: any) => {
@@ -411,6 +412,30 @@ function ProviderServiceRequestsPanel() {
                 placeholder="0.00"
                 data-testid="input-request-price"
               />
+            </div>
+            <div className="md:col-span-2">
+              <label className="text-sm font-medium">Where will you provide this service?</label>
+              <p className="text-xs text-muted-foreground mb-2">
+                If approved, patients will only see the visit options you choose here.
+              </p>
+              <div className="grid grid-cols-3 gap-2">
+                {[
+                  { value: "both", label: "Clinic & Home", icon: "🏥🏠" },
+                  { value: "clinic_only", label: "Clinic Only", icon: "🏥" },
+                  { value: "home_only", label: "Home Only", icon: "🏠" },
+                ].map((opt) => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => setForm((f) => ({ ...f, locationMode: opt.value as any }))}
+                    data-testid={`button-request-location-${opt.value}`}
+                    className={`p-3 rounded-lg border-2 text-sm text-center transition-all ${form.locationMode === opt.value ? "border-primary bg-primary/5 font-semibold" : "border-border hover:border-primary/50"}`}
+                  >
+                    <div className="text-base mb-1">{opt.icon}</div>
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
             </div>
             <div className="md:col-span-2">
               <label className="text-sm font-medium">Description (optional)</label>
@@ -825,7 +850,7 @@ export default function ProviderDashboard() {
   } | null>(null);
 
   const prefData = prefDraft ?? {
-    currency: providerData?.currency || "HUF",
+    currency: providerData?.currency || "USD",
     paymentMethods: Array.isArray(providerData?.paymentMethods) ? providerData.paymentMethods : [],
     preferredContactMethod: providerData?.preferredContactMethod || "email",
     onCallAvailability: !!providerData?.onCallAvailability,
@@ -2246,6 +2271,39 @@ export default function ProviderDashboard() {
             </TabsContent>
 
             <TabsContent value="services" className="mt-6 space-y-6">
+              {(() => {
+                const hasClinicAddress = !!(providerData as any)?.primaryServiceLocation?.trim?.();
+                const hasClinicService = !!(providerWithServices?.services ?? []).some(
+                  (s: any) => s.isActive && (s.locationMode ?? "both") !== "home_only"
+                );
+                if (hasClinicAddress || !hasClinicService) return null;
+                return (
+                  <div
+                    className="rounded-lg border border-amber-300 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-700/50 p-4 flex items-start gap-3"
+                    data-testid="banner-no-clinic-address"
+                  >
+                    <Building2 className="h-5 w-5 text-amber-700 dark:text-amber-300 mt-0.5 shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium text-amber-900 dark:text-amber-100">
+                        Add your clinic address
+                      </div>
+                      <p className="text-sm text-amber-800 dark:text-amber-200 mt-1">
+                        Patients can't book in-clinic visits until you set your clinic location.
+                        Open the Profile tab and fill in "Primary location".
+                      </p>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="mt-2 border-amber-300 dark:border-amber-700"
+                        onClick={() => setActiveTab("profile")}
+                        data-testid="button-set-clinic-address"
+                      >
+                        Go to Profile
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })()}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <Card>
                   <CardHeader>
@@ -2353,6 +2411,10 @@ export default function ProviderDashboard() {
                                   >
                                     <RotateCcw className="h-3.5 w-3.5 mr-1" /> {t("provider_dashboard.restore", "Restore")}
                                   </Button>
+                                ) : (s as any).subServiceId ? (
+                                  <span className="text-[11px] text-muted-foreground italic" data-testid={`text-assigned-service-${s.id}`}>
+                                    Managed by Admin · use the toggle above to pause
+                                  </span>
                                 ) : (
                                   <>
                                     <Button

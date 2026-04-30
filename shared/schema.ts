@@ -248,6 +248,10 @@ export const services = pgTable("services", {
   telemedicineFee: decimal("telemedicine_fee", { precision: 10, scale: 2 }).default("0.00"),
   emergencyFee: decimal("emergency_fee", { precision: 10, scale: 2 }).default("0.00"),
   maxPatientsPerDay: integer("max_patients_per_day"),
+  // Where the service can be delivered. 'clinic_only' restricts patients to
+  // in-clinic visits, 'home_only' to home visits, 'both' allows either.
+  // Telemedicine availability is governed separately by telemedicineFee > 0.
+  locationMode: text("location_mode").notNull().default("both"),
   deletedAt: timestamp("deleted_at"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
@@ -679,6 +683,8 @@ export const serviceRequests = pgTable("service_requests", {
   subServiceName: text("sub_service_name").notNull(),
   suggestedPrice: decimal("suggested_price", { precision: 10, scale: 2 }),
   description: text("description"),
+  // Provider's preferred delivery mode for the service (admin can override).
+  locationMode: text("location_mode").notNull().default("both"),
   status: text("status").notNull().default("pending_review"),
   adminNotes: text("admin_notes"),
   rejectionReason: text("rejection_reason"),
