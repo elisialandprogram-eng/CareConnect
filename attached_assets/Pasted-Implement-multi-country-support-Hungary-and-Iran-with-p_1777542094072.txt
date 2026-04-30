@@ -1,0 +1,138 @@
+Implement multi-country support (Hungary 🇭🇺 and Iran 🇮🇷) with proper data isolation, localization, and generate a detailed implementation report.
+
+========================
+1. COUNTRY MODEL SETUP
+========================
+- Add country_code field (HU, IR) to:
+  users
+  providers
+  services
+  appointments
+  invoices
+  payments (if exists)
+- Default country from user registration
+
+========================
+2. DATA ISOLATION
+========================
+- Update all backend queries to enforce:
+  WHERE country_code = current_user.country_code
+- Prevent cross-country data access
+- Add middleware to inject country context
+
+========================
+3. REGISTRATION FLOW
+========================
+- Add country selection step:
+  Hungary / Iran
+- Store selected country_code in user profile
+- Auto-detect browser language (optional fallback)
+
+========================
+4. ADMIN STRUCTURE
+========================
+- Add roles:
+  GLOBAL_ADMIN
+  COUNTRY_ADMIN
+- Restrict COUNTRY_ADMIN to only their country data
+- Admin dashboards must filter by country
+
+========================
+5. SERVICE CATALOG SPLIT
+========================
+- Ensure services are country-specific
+- Update service_requests:
+  include country_code
+- Providers can only request services in their country
+- Admin approves within same country
+
+========================
+6. BOOKING FLOW UPDATE
+========================
+- Patients can only:
+  view providers in same country
+  book services in same country
+- Validate country consistency before booking
+
+========================
+7. LOCALIZATION
+========================
+- Support:
+  Hungary → language: Hungarian, currency: HUF
+  Iran → language: Persian, currency: IRR
+- Format:
+  currency display
+  date/time format
+
+========================
+8. UI UPDATES
+========================
+- Show country flag/name in dashboards
+- Optional:
+  country switcher (if multi-country login allowed)
+- Ensure branding consistent per country
+
+========================
+9. SECURITY CHECK
+========================
+- Ensure no API allows cross-country data access
+- Validate all endpoints use country filter
+
+========================
+10. DATABASE SAFETY
+========================
+- Backfill existing records with default country (HU)
+- Ensure no NULL country_code remains
+
+========================
+11. TESTING
+========================
+- Create:
+  Hungary user + provider
+  Iran user + provider
+- Verify:
+  no cross visibility
+  booking works per country
+  service requests isolated
+
+========================
+12. CLEANUP
+========================
+- Remove any old global (non-country-aware) queries
+- Remove duplicate logic if exists
+
+========================
+13. IMPLEMENTATION REPORT (IMPORTANT)
+========================
+Generate a clear report including:
+
+A. Changes Made
+- Tables updated
+- Columns added
+- APIs modified
+- UI changes
+
+B. Data Migration
+- How existing data was handled
+- Default country assignment
+
+C. Isolation Verification
+- How cross-country access is prevented
+
+D. Risks / Limitations
+- Any edge cases or future improvements
+
+E. Testing Results
+- What scenarios were tested
+- Results
+
+F. Pending Improvements (if any)
+
+========================
+14. FINAL OUTPUT
+========================
+- Confirm:
+  multi-country system working
+  strict data isolation enforced
+  localization applied
+  report generated and readable
