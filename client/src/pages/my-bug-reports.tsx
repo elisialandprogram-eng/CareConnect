@@ -1,3 +1,4 @@
+import { formatDate, formatDateTime } from "@/lib/datetime";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { QK } from "@/lib/query-keys";
@@ -64,7 +65,7 @@ function ReportCard({ report, onClick }: { report: BugReport; onClick: () => voi
             <span>{CATEGORY_LABELS[report.category] ?? report.category}</span>
             <span className="flex items-center gap-1">
               <Clock className="h-3 w-3" />
-              {new Date(report.created_at).toLocaleDateString()}
+              {formatDate(report.created_at)}
             </span>
           </div>
         </div>
@@ -125,7 +126,7 @@ function ReportDetail({ reportId, onBack }: { reportId: string; onBack: () => vo
         <CardContent className="space-y-4">
           <div>
             <p className="text-xs font-medium text-muted-foreground mb-1">Submitted</p>
-            <p className="text-sm">{new Date(report.created_at).toLocaleString()}</p>
+            <p className="text-sm">{formatDateTime(report.created_at)}</p>
           </div>
           {report.resolution_notes && (
             <div className="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
@@ -163,7 +164,7 @@ function ReportDetail({ reportId, onBack }: { reportId: string; onBack: () => vo
                     {c.message}
                   </div>
                   <div className="text-xs text-muted-foreground mt-1">
-                    {new Date(c.created_at).toLocaleString()}
+                    {formatDateTime(c.created_at)}
                   </div>
                 </div>
               </div>

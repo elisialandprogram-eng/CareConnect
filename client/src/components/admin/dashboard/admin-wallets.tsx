@@ -1,3 +1,4 @@
+import { formatDateTime } from "@/lib/datetime";
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
@@ -236,7 +237,7 @@ export function AdminWallets() {
                           )}
                           <p className="text-[11px] text-muted-foreground">
                             {tx.createdAt
-                              ? new Date(tx.createdAt).toLocaleString()
+                              ? formatDateTime(tx.createdAt)
                               : ""}{" "}
                             · bal {fmt(tx.balanceAfter)}
                           </p>
@@ -371,7 +372,7 @@ export function BroadcastPanel() {
                   <span className="text-muted-foreground shrink-0">
                     {b.audience} · {b.recipientCount ?? 0} recipients ·{" "}
                     {b.createdAt
-                      ? new Date(b.createdAt).toLocaleString()
+                      ? formatDateTime(b.createdAt)
                       : ""}
                   </span>
                 </div>
@@ -427,7 +428,7 @@ export function DeliveryLogsPanel() {
                   {l.errorMessage || ""}
                 </span>
                 <span className="col-span-2 text-muted-foreground">
-                  {l.createdAt ? new Date(l.createdAt).toLocaleString() : ""}
+                  {l.createdAt ? formatDateTime(l.createdAt) : ""}
                 </span>
               </div>
             ))

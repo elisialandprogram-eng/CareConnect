@@ -3,7 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { useCurrency } from "@/lib/currency";
+import { useCurrency, formatInCurrency } from "@/lib/currency";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -630,7 +630,7 @@ export function ServiceCatalogHierarchy() {
             {(s.minPrice || s.maxPrice) && (
               <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
                 <AlertTriangle className="h-2.5 w-2.5 text-amber-500" />
-                ${s.minPrice ?? "0"}–{s.maxPrice ? `$${s.maxPrice}` : "∞"}
+                {formatInCurrency(Number(s.minPrice ?? 0), "USD")}–{s.maxPrice ? formatInCurrency(Number(s.maxPrice), "USD") : "∞"}
               </span>
             )}
           </div>

@@ -1,3 +1,4 @@
+import { formatDate } from "@/lib/datetime";
 import { useState, useMemo } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
@@ -351,7 +352,7 @@ export function PromoCodeManagement({
   const formatDateRange = (from: string | Date, until: string | Date) => {
     const f = new Date(from);
     const u = new Date(until);
-    return `${f.toLocaleDateString()} → ${u.toLocaleDateString()}`;
+    return `${formatDate(f)} → ${formatDate(u)}`;
   };
 
   return (

@@ -1,3 +1,4 @@
+import { formatDate } from "@/lib/datetime";
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
@@ -329,7 +330,7 @@ function PractitionerScheduleDialog({
             <div className="flex flex-wrap gap-3">
               {(utilData.utilization ?? []).slice(0, 7).map((u: any) => (
                 <div key={u.date} className="text-xs text-center min-w-[52px]" data-testid={`util-day-${u.date}`}>
-                  <p className="font-medium">{new Date(u.date + "T12:00:00").toLocaleDateString("en", { weekday: "short", month: "short", day: "numeric" })}</p>
+                  <p className="font-medium">{formatDate(u.date + "T12:00:00", { weekday: "short", month: "short", day: "numeric" })}</p>
                   <p className="text-muted-foreground">{u.appointmentCount} appt{u.appointmentCount !== 1 ? "s" : ""}</p>
                 </div>
               ))}

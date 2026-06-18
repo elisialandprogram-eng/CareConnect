@@ -1,3 +1,4 @@
+import { formatDate } from "@/lib/datetime";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { useAdminCurrency } from "@/lib/currency";
@@ -80,7 +81,7 @@ export function AnalyticsOverview({ onNavigate }: { onNavigate?: (tab: string) =
   const series: any[] = Array.isArray(analytics?.revenueSeries) && analytics.revenueSeries.length > 0
     ? analytics.revenueSeries
     : Array.from({ length: 12 }, (_, i) => ({
-        name: new Date(0, i).toLocaleString(undefined, { month: "short" }),
+        name: formatDate(new Date(0, i), { month: "short" }),
         revenue: 0,
         bookings: 0,
       }));

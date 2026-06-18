@@ -1,3 +1,4 @@
+import { formatDate } from "@/lib/datetime";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -243,7 +244,7 @@ export default function ReferralsPage() {
                           : "A friend"}
                       </div>
                       <div className="text-xs text-muted-foreground">
-                        Joined {new Date(r.createdAt).toLocaleDateString()}
+                        Joined {formatDate(r.createdAt)}
                       </div>
                     </div>
                     <div className="flex items-center gap-3">

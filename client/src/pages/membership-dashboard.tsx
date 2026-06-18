@@ -2,7 +2,8 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { QK } from "@/lib/query-keys";
 import { Link } from "wouter";
-import { format, formatDistanceToNow, isPast } from "date-fns";
+import { formatDistanceToNow, isPast } from "date-fns";
+import { formatDate } from "@/lib/datetime";
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
 import {
@@ -29,7 +30,7 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.
 
 function fmtDate(d: string | Date | null | undefined) {
   if (!d) return "—";
-  return format(new Date(d), "d MMM yyyy");
+  return formatDate(new Date(d), { day: "numeric", month: "short", year: "numeric" });
 }
 
 

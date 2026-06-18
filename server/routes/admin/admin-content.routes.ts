@@ -6,6 +6,7 @@
  */
 
 import type { Express, Request, Response } from "express";
+import { formatLocal } from "../../services/currency";
 import { storage } from "../../storage";
 import { pool } from "../../db";
 import { z } from "zod";
@@ -481,7 +482,7 @@ export function registerAdminContentRoutes(app: Express): void {
         details: [
           { label: "Service", value: row.service_name },
           { label: "Duration", value: `${durationMins} min` },
-          { label: "Price", value: `$${price}` },
+          { label: "Price", value: formatLocal(Number(price || 0), "USD") },
         ],
         cta: "Patients can now discover and book this service on your profile.",
       });

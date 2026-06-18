@@ -1,3 +1,4 @@
+import { formatDate } from "@/lib/datetime";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
@@ -258,7 +259,7 @@ export function LedgerOverrides() {
                     {row.amount && parseFloat(row.amount) !== 0 && (
                       <p className="text-sm font-semibold">{fmt(parseFloat(row.amount))}</p>
                     )}
-                    <p className="text-xs text-muted-foreground">{new Date(row.created_at).toLocaleDateString()}</p>
+                    <p className="text-xs text-muted-foreground">{formatDate(row.created_at)}</p>
                   </div>
                 </div>
               ))}

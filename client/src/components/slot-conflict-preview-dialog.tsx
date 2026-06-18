@@ -1,3 +1,4 @@
+import { formatDate } from "@/lib/datetime";
 import {
   Dialog,
   DialogContent,
@@ -37,7 +38,7 @@ interface Props {
 function fmtDate(iso: string): string {
   try {
     const [y, m, d] = iso.split("-").map(Number);
-    return new Date(y, m - 1, d).toLocaleDateString("en-GB", {
+    return formatDate(new Date(y, m - 1, d), {
       weekday: "short",
       day: "numeric",
       month: "short",

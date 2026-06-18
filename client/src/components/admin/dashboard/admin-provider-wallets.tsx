@@ -1,3 +1,4 @@
+import { formatDate, formatDateTime } from "@/lib/datetime";
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
@@ -92,10 +93,7 @@ function timeAgo(iso: string): string {
 }
 
 function fmtDate(iso: string): string {
-  return new Date(iso).toLocaleString("en-US", {
-    month: "short", day: "numeric", year: "numeric",
-    hour: "numeric", minute: "2-digit",
-  });
+  return formatDateTime(iso);
 }
 
 // ── Ledger history sheet ──────────────────────────────────────────────────────
@@ -282,7 +280,7 @@ function LedgerHistorySheet({
                           </p>
                         )}
                         <p className="text-[11px] text-muted-foreground">
-                          {new Date(entry.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                          {formatDate(entry.createdAt, { month: "short", day: "numeric" })}
                         </p>
                       </div>
                     </div>

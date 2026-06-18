@@ -1,3 +1,4 @@
+import { formatDateTime } from "@/lib/datetime";
 import { useState, useMemo, useCallback, useEffect } from "react";
 import { useAdminCurrency, formatInCurrency } from "@/lib/currency";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -2166,7 +2167,7 @@ function ProviderNotesPanel({ providerId }: { providerId: string }) {
                 <div className="flex items-center gap-2 text-xs text-slate-400">
                   <span className="font-medium text-slate-500 dark:text-slate-400">{note.adminName}</span>
                   <span>·</span>
-                  <span>{new Date(note.createdAt).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" })}</span>
+                  <span>{formatDateTime(note.createdAt)}</span>
                   {note.isPinned && <span className="ml-1 text-amber-500 font-semibold">📌 Pinned</span>}
                 </div>
                 <div className="flex items-center gap-1">

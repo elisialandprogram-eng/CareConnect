@@ -1,3 +1,4 @@
+import { formatDate } from "@/lib/datetime";
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
@@ -215,12 +216,12 @@ export function AdminPayoutsPanel() {
                         </p>
                       )}
                       <p className="text-xs text-muted-foreground mt-1">
-                        Requested {new Date(r.created_at).toLocaleDateString()}
+                        Requested {formatDate(r.created_at)}
                         {r.reviewed_by_name
                           ? ` · Reviewed by ${r.reviewed_by_name}`
                           : ""}
                         {r.paid_at
-                          ? ` · Paid ${new Date(r.paid_at).toLocaleDateString()}`
+                          ? ` · Paid ${formatDate(r.paid_at)}`
                           : ""}
                       </p>
                     </div>

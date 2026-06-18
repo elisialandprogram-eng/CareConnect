@@ -1,3 +1,4 @@
+import { formatDate, formatDateTime } from "@/lib/datetime";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -152,10 +153,7 @@ export function HealthMetricsTab() {
     return [...metrics]
       .reverse()
       .map((m) => ({
-        date: new Date(m.measuredAt).toLocaleDateString(i18n.language, {
-          month: "short",
-          day: "numeric",
-        }),
+        date: formatDate(m.measuredAt, { month: "short", day: "numeric" }),
         weight: m.weightKg != null ? Number(m.weightKg) : null,
         systolic: m.systolic ?? null,
         diastolic: m.diastolic ?? null,
@@ -632,7 +630,7 @@ export function HealthMetricsTab() {
                 >
                   <div className="flex-1 min-w-0">
                     <div className="text-sm font-medium">
-                      {new Date(m.measuredAt).toLocaleString(i18n.language)}
+                      {formatDateTime(m.measuredAt)}
                     </div>
                     <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
                       {m.weightKg != null && (

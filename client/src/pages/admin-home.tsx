@@ -22,6 +22,7 @@ import {
 import { cn } from "@/lib/utils";
 import { isAdminRole } from "@/lib/roles";
 import { formatInCurrency } from "@/lib/currency";
+import { formatTime } from "@/lib/datetime";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface HomeSummary {
@@ -126,9 +127,6 @@ function timeAgo(iso: string): string {
   return `${days}d ago`;
 }
 
-function formatCurrency(n: number): string {
-  return formatInCurrency(n, "USD");
-}
 
 function actionLabel(action: string): string {
   return action
@@ -311,7 +309,7 @@ function useOperationalMessage(data: HomeSummary | undefined): string {
     if (data.compliance.expiringCredentials > 0)
       msgs.push(`${data.compliance.expiringCredentials} provider credential${data.compliance.expiringCredentials !== 1 ? "s" : ""} expire${data.compliance.expiringCredentials === 1 ? "s" : ""} within 30 days.`);
     if (data.financial.revenueToday > 0)
-      msgs.push(`Today's revenue: ${formatCurrency(data.financial.revenueToday)}.`);
+      msgs.push(`Today's revenue: ${formatInCurrency(data.financial.revenueToday, "USD")}.`);
     if (data.appointments.totalToday > 0)
       msgs.push(`${data.appointments.totalToday} appointment${data.appointments.totalToday !== 1 ? "s" : ""} scheduled today.`);
     if (data.scheduler.failingJobs > 0)
@@ -353,7 +351,7 @@ export default function AdminHome() {
   const opMessage = useOperationalMessage(data);
 
   const lastUpdated = dataUpdatedAt
-    ? new Date(dataUpdatedAt).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })
+    ? formatTime(dataUpdatedAt, { hour: "numeric", minute: "2-digit" })
     : null;
 
   // ── Guard ──────────────────────────────────────────────────────────────────
@@ -391,7 +389,7 @@ export default function AdminHome() {
     if (d.support.openTickets < 5) ins.push("Support queue is well-managed — response times are healthy.");
     if (d.appointments.completedToday > d.appointments.cancelledToday && d.appointments.totalToday > 0)
       ins.push("Appointment completion rate is strong today.");
-    if (d.financial.revenueToday > 0) ins.push(`Platform generated ${formatCurrency(d.financial.revenueToday)} in revenue today.`);
+    if (d.financial.revenueToday > 0) ins.push(`Platform generated ${formatInCurrency(d.financial.revenueToday, "USD")} in revenue today.`);
     if (d.platform.newUsersToday > 0) ins.push(`${d.platform.newUsersToday} new user${d.platform.newUsersToday !== 1 ? "s" : ""} joined the platform today.`);
     if (d.bugs.criticalBugs > 0) ins.push(`${d.bugs.criticalBugs} critical bug${d.bugs.criticalBugs !== 1 ? "s" : ""} require${d.bugs.criticalBugs === 1 ? "s" : ""} immediate attention.`);
     if (ins.length === 0) ins.push("All key platform metrics are within normal range.");
@@ -801,7 +799,7 @@ export default function AdminHome() {
                   <div className="grid grid-cols-2 gap-2.5">
                     <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-900/50">
                       <p className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">Revenue Today</p>
-                      <p className="text-lg font-bold text-emerald-700 dark:text-emerald-300 mt-0.5">{formatCurrency(d.financial.revenueToday)}</p>
+                      <p className="text-lg font-bold text-emerald-700 dark:text-emerald-300 mt-0.5">{formatInCurrency(d.financial.revenueToday, "USD")}</p>
                     </div>
                     <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-100 dark:border-amber-900/50">
                       <p className="text-xs text-amber-600 dark:text-amber-400 font-medium">Pending Payouts</p>
@@ -1146,7 +1144,7 @@ export default function AdminHome() {
         {/* ── Contextual link to full dashboard ───────────────────────────── */}
         <div className="flex items-center justify-between py-2 border-t border-border/50">
           <p className="text-xs text-muted-foreground">
-            {d && `Data as of ${new Date(d.generatedAt).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })} · Auto-refreshes every 60s`}
+            {d && `Data as of ${formatTime(d.generatedAt, { hour: "numeric", minute: "2-digit" })} · Auto-refreshes every 60s`}
           </p>
           <Link href="/admin">
             <Button variant="outline" size="sm" className="gap-2 h-8 text-xs" data-testid="button-open-full-dashboard">

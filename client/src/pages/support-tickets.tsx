@@ -1,3 +1,4 @@
+import { formatDate } from "@/lib/datetime";
 import { useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useLocation } from "wouter";
@@ -73,7 +74,7 @@ function timeAgo(iso: string, t: any) {
   if (h < 24) return t("support.hour_ago", "{{count}}h ago", { count: h });
   const d = Math.floor(h / 24);
   if (d < 7) return t("support.day_ago", "{{count}}d ago", { count: d });
-  return new Date(iso).toLocaleDateString();
+  return formatDate(iso);
 }
 
 export default function SupportTicketsPage() {

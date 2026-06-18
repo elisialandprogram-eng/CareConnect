@@ -1,3 +1,4 @@
+import { formatDate } from "@/lib/datetime";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { QK } from "@/lib/query-keys";
 import { Header } from "@/components/header";
@@ -124,7 +125,7 @@ export default function WaitlistPage() {
                             {r.preferredStartTime || "—"} – {r.preferredEndTime || "—"}
                           </span>
                         )}
-                        <span>Joined {new Date(r.createdAt).toLocaleDateString()}</span>
+                        <span>Joined {formatDate(r.createdAt)}</span>
                       </div>
                       {r.notes && <p className="text-xs italic text-muted-foreground">"{r.notes}"</p>}
                     </div>

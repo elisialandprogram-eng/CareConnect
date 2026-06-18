@@ -1,3 +1,4 @@
+import { formatDate } from "@/lib/datetime";
 import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -242,8 +243,8 @@ export function ProviderPayoutPanel() {
                       <p className="text-xs text-emerald-700 mt-1">Ref: {r.payment_reference}</p>
                     )}
                     <p className="text-xs text-muted-foreground mt-1">
-                      Requested {new Date(r.created_at).toLocaleDateString()}
-                      {r.paid_at ? ` · Paid ${new Date(r.paid_at).toLocaleDateString()}` : r.reviewed_at ? ` · Reviewed ${new Date(r.reviewed_at).toLocaleDateString()}` : ""}
+                      Requested {formatDate(r.created_at)}
+                      {r.paid_at ? ` · Paid ${formatDate(r.paid_at)}` : r.reviewed_at ? ` · Reviewed ${formatDate(r.reviewed_at)}` : ""}
                     </p>
                   </div>
                   {r.status === "pending" && (

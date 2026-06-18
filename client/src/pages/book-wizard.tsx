@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useCurrency, formatInCurrency, getCurrencyConfigForCountry } from "@/lib/currency";
+import { formatDate, formatTime } from "@/lib/datetime";
 import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -881,7 +882,7 @@ export default function BookWizard() {
                   <Timer className="h-3.5 w-3.5 shrink-0" />
                   Current time:{" "}
                   <span className="font-semibold font-mono text-foreground">
-                    {new Date().toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })}
+                    {formatTime(new Date(), { hour: "2-digit", minute: "2-digit" })}
                   </span>
                 </p>
               </div>
@@ -910,7 +911,7 @@ export default function BookWizard() {
                         )}
                       >
                         <div className="text-[10px] uppercase font-medium opacity-70">
-                          {d.toLocaleDateString(undefined, { weekday: "short" })}
+                          {formatDate(d, { weekday: "short" })}
                         </div>
                         <div className="text-base font-bold">{d.getDate()}</div>
                         {isToday && !isSelected && (
@@ -929,9 +930,7 @@ export default function BookWizard() {
                     {t("booking.wizard.available_slots", "Available slots")}
                     {" — "}
                     <span className="normal-case font-normal">
-                      {new Date(selectedDate + "T12:00:00").toLocaleDateString(undefined, {
-                        weekday: "long", month: "long", day: "numeric",
-                      })}
+                      {formatDate(selectedDate + "T12:00:00", { weekday: "long", month: "long", day: "numeric" })}
                     </span>
                   </p>
                   {loadingSlots ? (

@@ -1,3 +1,4 @@
+import { formatDate } from "@/lib/datetime";
 import React, { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
@@ -197,9 +198,9 @@ export function StructuredScheduleEditor({
     const start = new Date(monday);
     const end = new Date(monday);
     end.setDate(end.getDate() + 6);
-    const fmt = (d: Date) =>
-      d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
-    return `${fmt(start)} – ${fmt(end)}`;
+    const fmtD = (d: Date) =>
+      formatDate(d, { day: "numeric", month: "short", year: "numeric" });
+    return `${fmtD(start)} – ${fmtD(end)}`;
   };
 
   const selectedWeekStart = getWeekMonday(publishWeekOffset);

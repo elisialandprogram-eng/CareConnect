@@ -1,3 +1,4 @@
+import { formatDate } from "@/lib/datetime";
 import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
@@ -886,10 +887,10 @@ export function ProviderAppointmentsTabs({ providerData, highlightApptId, active
           };
 
           const periodLabel = calendarView === "day"
-            ? selectedDate.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric", year: "numeric" })
+            ? formatDate(selectedDate, { weekday: "long", month: "long", day: "numeric", year: "numeric" })
             : calendarView === "week"
-            ? `${weekStart.toLocaleDateString(undefined, { month: "short", day: "numeric" })} – ${weekDays[6].toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}`
-            : selectedDate.toLocaleDateString(undefined, { month: "long", year: "numeric" });
+            ? `${formatDate(weekStart, { month: "short", day: "numeric" })} – ${formatDate(weekDays[6], { month: "short", day: "numeric", year: "numeric" })}`
+            : formatDate(selectedDate, { month: "long", year: "numeric" });
 
           const dayAppointments = sortByDateAsc(allAppts.filter((a) => a.date === selectedCalendarDate));
 
@@ -940,7 +941,7 @@ export function ProviderAppointmentsTabs({ providerData, highlightApptId, active
                   </Card>
                   <div className="space-y-3">
                     <h3 className="font-semibold text-lg" data-testid="text-selected-date">
-                      {selectedDate.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
+                      {formatDate(selectedDate, { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
                       <Badge variant="secondary" className="ml-2">{dayAppointments.length}</Badge>
                     </h3>
                     {dayAppointments.length > 0
@@ -966,7 +967,7 @@ export function ProviderAppointmentsTabs({ providerData, highlightApptId, active
                             onClick={() => setSelectedCalendarDate(iso)}
                             className={`p-2 text-center border-b hover:bg-muted/50 transition-colors ${isSelected ? "bg-primary/10" : ""}`}
                             data-testid={`week-day-${i}`}>
-                            <div className="text-xs text-muted-foreground">{d.toLocaleDateString(undefined, { weekday: "short" })}</div>
+                            <div className="text-xs text-muted-foreground">{formatDate(d, { weekday: "short" })}</div>
                             <div className={`text-sm font-semibold mx-auto w-7 h-7 flex items-center justify-center rounded-full ${isToday ? "bg-primary text-primary-foreground" : isSelected ? "bg-primary/20 text-primary" : ""}`}>
                               {d.getDate()}
                             </div>

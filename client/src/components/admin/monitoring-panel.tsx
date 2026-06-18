@@ -1,3 +1,4 @@
+import { formatDateTime } from "@/lib/datetime";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -266,7 +267,7 @@ export default function MonitoringPanel() {
                         <div className="flex items-center gap-3 mt-1">
                           <span className="text-xs text-muted-foreground font-mono">{ev.source}</span>
                           <span className="text-xs text-muted-foreground">
-                            {new Date(ev.createdAt).toLocaleString()}
+                            {formatDateTime(ev.createdAt)}
                           </span>
                         </div>
                       </div>

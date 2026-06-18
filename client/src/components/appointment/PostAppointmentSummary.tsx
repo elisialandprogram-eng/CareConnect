@@ -1,3 +1,4 @@
+import { formatInCurrency } from "@/lib/currency";
 import { CheckCircle2, Star, FileText, RefreshCw, MessageSquare, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
@@ -53,7 +54,7 @@ export function PostAppointmentSummary({
           <div className="rounded-lg bg-white dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 px-3 py-2 text-center">
             <p className="text-xs text-muted-foreground">Paid</p>
             <p className="font-semibold text-sm">
-              {new Intl.NumberFormat(undefined, { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(total)}
+              {formatInCurrency(total ?? 0, currency ?? "USD")}
             </p>
           </div>
         )}

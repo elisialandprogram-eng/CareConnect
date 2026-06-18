@@ -1,3 +1,4 @@
+import { formatDate } from "@/lib/datetime";
 import { useState, useRef } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Header } from "@/components/header";
@@ -285,7 +286,7 @@ export default function MyDocumentsPage() {
                         )}
                       </div>
                       <div className="text-xs text-muted-foreground flex flex-wrap gap-x-3">
-                        <span>Uploaded {new Date(doc.createdAt).toLocaleDateString()}</span>
+                        <span>Uploaded {formatDate(doc.createdAt)}</span>
                         {doc.mimeType && (
                           <span>{doc.mimeType.split("/")[1]?.toUpperCase()}</span>
                         )}

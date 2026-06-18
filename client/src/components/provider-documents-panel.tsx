@@ -1,3 +1,4 @@
+import { formatDate } from "@/lib/datetime";
 import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -502,13 +503,13 @@ function UnifiedDocumentsSection() {
               )}
               {existing?.createdAt && (
                 <p className="text-xs text-muted-foreground mt-1">
-                  Uploaded {new Date(existing.createdAt).toLocaleDateString()}
+                  Uploaded {formatDate(existing.createdAt)}
                   {existing.fileName && ` · ${existing.fileName}`}
                 </p>
               )}
               {s === "approved" && existing?.verifiedAt && (
                 <p className="text-xs text-emerald-600 mt-1">
-                  Verified {new Date(existing.verifiedAt).toLocaleDateString()}
+                  Verified {formatDate(existing.verifiedAt)}
                 </p>
               )}
             </div>

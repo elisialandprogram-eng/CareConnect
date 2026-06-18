@@ -1,3 +1,4 @@
+import { formatDateTime } from "@/lib/datetime";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
@@ -173,7 +174,7 @@ export function MigrationHistory() {
                       </span>
                       <span className="ml-auto text-xs text-muted-foreground">
                         {r.createdAt
-                          ? new Date(r.createdAt).toLocaleString()
+                          ? formatDateTime(r.createdAt)
                           : "—"}
                       </span>
                     </div>

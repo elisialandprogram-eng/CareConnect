@@ -1,3 +1,4 @@
+import { formatDateTime } from "@/lib/datetime";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
@@ -193,7 +194,7 @@ export function SystemBreaker() {
                   <Clock className="h-5 w-5 text-red-500 flex-shrink-0" />
                   <div>
                     <p className="text-xs text-muted-foreground">Frozen at</p>
-                    <p className="text-sm font-medium">{new Date(data.frozenAt).toLocaleString()}</p>
+                    <p className="text-sm font-medium">{formatDateTime(data.frozenAt)}</p>
                   </div>
                 </CardContent>
               </Card>
