@@ -10,6 +10,7 @@ import { withJobTracking, recordJobStart, recordJobEnd } from "./lib/cronState";
 import { logScheduler } from "./lib/logger";
 import { fireAdminNotification } from "./routes/shared/helpers";
 import { trackEvent } from "./services/analyticsTracker";
+import { formatLocal } from "./services/currency";
 
 // Cooldown between successive overdue-invoice reminders for the same invoice.
 // Override with INVOICE_REMINDER_COOLDOWN_DAYS. Default 7 days keeps it polite.
@@ -511,7 +512,7 @@ async function sendOverdueInvoiceReminders() {
         userId: patient.id,
         eventKey: "invoice.overdue",
         title: `Reminder: Invoice ${inv.invoiceNumber} is overdue${ordinal}`,
-        body: `Hello ${patient.firstName}, your invoice ${inv.invoiceNumber} for ${inv.totalAmount} ${inv.countryCode === "IR" ? "IRR" : inv.countryCode === "HU" ? "HUF" : "USD"} was due on ${dueIso} and is still unpaid. Please log in to settle it at your earliest convenience.`,
+        body: `Hello ${patient.firstName}, your invoice ${inv.invoiceNumber} for ${formatLocal(Number(inv.totalAmount), inv.countryCode === "IR" ? "IRR" : inv.countryCode === "HU" ? "HUF" : "USD")} was due on ${dueIso} and is still unpaid. Please log in to settle it at your earliest convenience.`,
         data: { invoiceId: inv.id, invoiceNumber: inv.invoiceNumber, dueDate: dueIso },
       });
       await storage.markInvoiceReminderSent(inv.id);
@@ -748,8 +749,8 @@ async function sendProviderSummaries(window: "week" | "month"): Promise<number> 
 
   let sent = 0;
   try {
-    const providerRows = await pool.query<{ id: string; user_id: string }>(
-      `SELECT id, user_id FROM providers WHERE is_verified = true AND is_active = true LIMIT 500`,
+    const providerRows = await pool.query<{ id: string; user_id: string; country_code: string }>(
+      `SELECT id, user_id, country_code FROM providers WHERE is_verified = true AND is_active = true LIMIT 500`,
     );
     if (!providerRows.rows.length) return 0;
 
@@ -765,11 +766,12 @@ async function sendProviderSummaries(window: "week" | "month"): Promise<number> 
         const s = stats.rows[0] ?? { completed: "0", revenue: "0" };
         const completed = Number(s.completed);
         const revenue = Number(s.revenue);
+        const providerCurrency = row.country_code === "IR" ? "IRR" : row.country_code === "HU" ? "HUF" : "USD";
         await storage.createUserNotification({
           userId: row.user_id,
           type: "system",
           title: `Your ${window === "week" ? "weekly" : "monthly"} summary`,
-          message: `${windowLabel.charAt(0).toUpperCase() + windowLabel.slice(1)}: ${completed} appointment${completed !== 1 ? "s" : ""} completed, revenue $${revenue.toFixed(2)} USD. Open your Insights tab to see full details.`,
+          message: `${windowLabel.charAt(0).toUpperCase() + windowLabel.slice(1)}: ${completed} appointment${completed !== 1 ? "s" : ""} completed, revenue ${formatLocal(revenue, providerCurrency)}. Open your Insights tab to see full details.`,
           isRead: false,
         } as any);
         sent++;
@@ -1192,7 +1194,7 @@ async function renewExpiredPackages(): Promise<number> {
           newExpiry2.setDate(newExpiry2.getDate() + (row.duration_days || 30));
           notify.membershipRenewed(row.user_id, {
             packageName: row.package_name,
-            formattedAmount: `$${priceUSD.toFixed(2)} USD`,
+            formattedAmount: formatLocal(priceUSD, "USD"),
             expiresAt: newExpiry2.toISOString().slice(0, 10),
           }).catch(() => {});
           renewed++;

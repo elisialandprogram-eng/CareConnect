@@ -14,6 +14,7 @@ import {
 } from "../middleware/auth";
 import { giftCardLimiter } from "../middleware/rateLimiter";
 import { sendAppointmentEmail } from "./shared/helpers";
+import { formatLocal } from "../services/currency";
 
 function generateGiftCardCode(): string {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -50,8 +51,8 @@ export function registerPaymentRoutes(app: Express): void {
           intro: "Someone sent you a gift card for healthcare services on GoldenLife.",
           details: [
             { label: "Gift card code", value: card.code },
-            { label: "Value", value: `${currency} ${amount.toFixed(2)}` },
-            { label: "Valid until", value: expiresAt.toLocaleDateString() },
+            { label: "Value", value: formatLocal(amount, currency) },
+            { label: "Valid until", value: expiresAt.toISOString().slice(0, 10) },
           ],
           cta: "Use this code at checkout when booking any service.",
         });

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { formatDateTime } from "@/lib/datetime";
 import { useTranslation } from "react-i18next";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -80,15 +81,7 @@ function fmt(val: string | number | null | undefined): string {
 
 function fmtDate(d: string | Date | null | undefined): string {
   if (!d) return "—";
-  try {
-    const dt = new Date(d);
-    return dt.toLocaleString(undefined, {
-      year: "numeric", month: "short", day: "numeric",
-      hour: "2-digit", minute: "2-digit",
-    });
-  } catch {
-    return String(d);
-  }
+  return formatDateTime(d, { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) || String(d);
 }
 
 function PriceDelta({ prev, curr }: { prev: string | null | undefined; curr: string | null | undefined }) {

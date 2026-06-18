@@ -15,6 +15,7 @@ import { storage } from "../../storage";
 import { pool } from "../../db";
 import { dispatchNotification } from "../../services/notification-dispatcher";
 import { trackEvent } from "../../services/analyticsTracker";
+import { formatLocal } from "../../services/currency";
 
 // ── Email ──────────────────────────────────────────────────────────────────
 export const resend = process.env.RESEND_API_KEY
@@ -119,7 +120,7 @@ export async function maybeQualifyReferralForAppointment(
           userId: referral.referrerUserId,
           type: "wallet",
           title: "Referral reward earned",
-          message: `Your friend just completed their first appointment! ${REFERRAL_REWARD_CURRENCY} ${REFERRAL_REFERRER_REWARD.toFixed(2)} has been credited to your wallet.`,
+          message: `Your friend just completed their first appointment! ${formatLocal(REFERRAL_REFERRER_REWARD, REFERRAL_REWARD_CURRENCY)} has been credited to your wallet.`,
           isRead: false,
         } as any)
         .catch(() => {})
@@ -144,7 +145,7 @@ export async function maybeQualifyReferralForAppointment(
           userId: appt.patientId,
           type: "wallet",
           title: "Welcome bonus credited",
-          message: `Thanks for joining! ${REFERRAL_REWARD_CURRENCY} ${REFERRAL_REFERRED_REWARD.toFixed(2)} has been credited to your wallet as a referral bonus.`,
+          message: `Thanks for joining! ${formatLocal(REFERRAL_REFERRED_REWARD, REFERRAL_REWARD_CURRENCY)} has been credited to your wallet as a referral bonus.`,
           isRead: false,
         } as any)
         .catch(() => {})

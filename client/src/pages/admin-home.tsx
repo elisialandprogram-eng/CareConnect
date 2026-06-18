@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { isAdminRole } from "@/lib/roles";
+import { formatInCurrency } from "@/lib/currency";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface HomeSummary {
@@ -126,7 +127,7 @@ function timeAgo(iso: string): string {
 }
 
 function formatCurrency(n: number): string {
-  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 0 }).format(n);
+  return formatInCurrency(n, "USD");
 }
 
 function actionLabel(action: string): string {
