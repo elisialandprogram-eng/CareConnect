@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useCurrency, getCurrencySymbol, formatInCurrency, convertBetweenCurrencies, SupportedCurrency } from "@/lib/currency";
+import { formatDateTime } from "@/lib/datetime";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -220,7 +221,7 @@ export function GroupSessionsPanel() {
                     <div className="text-xs text-muted-foreground flex items-center gap-3 mt-0.5">
                       <span className="inline-flex items-center gap-1">
                         <Calendar className="h-3.5 w-3.5" />
-                        {new Date(s.startTime).toLocaleString()}
+                        {formatDateTime(s.startTime)}
                       </span>
                       <span className="inline-flex items-center gap-1">
                         <Users className="h-3.5 w-3.5" />
@@ -289,8 +290,8 @@ function GroupSessionDetailDialog({ sessionId, onClose }: { sessionId: string | 
           <DialogDescription>
             {detail.data?.session && (
               <>
-                {new Date(detail.data.session.startTime).toLocaleString()} —{" "}
-                {new Date(detail.data.session.endTime).toLocaleString()}
+                {formatDateTime(detail.data.session.startTime)} —{" "}
+                {formatDateTime(detail.data.session.endTime)}
               </>
             )}
           </DialogDescription>

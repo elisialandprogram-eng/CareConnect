@@ -13,6 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { QK } from "@/lib/query-keys";
 import { useCurrency, formatInCurrency, getCurrencyConfigForCountry } from "@/lib/currency";
+import { formatDateTime } from "@/lib/datetime";
 
 type GroupSession = {
   id: string;
@@ -136,7 +137,7 @@ function BrowseList() {
               <div className="text-sm text-muted-foreground space-y-1">
                 <div className="flex items-center gap-2">
                   <Calendar className="h-4 w-4" />
-                  {new Date(s.startTime).toLocaleString()}
+                  {formatDateTime(s.startTime)}
                 </div>
                 <div className="flex items-center gap-2">
                   <Users className="h-4 w-4" />
@@ -215,7 +216,7 @@ function MyBookingsList() {
                   )}
                 </div>
                 <div className="text-xs text-muted-foreground mt-0.5 space-x-3">
-                  <span>{new Date(b.session.startTime).toLocaleString()}</span>
+                  <span>{formatDateTime(b.session.startTime)}</span>
                   <span>· {fmtMoney(b.amountPaid)}</span>
                   <span>· {t("group_page.attendance", "Attendance")}: {b.attendanceStatus}</span>
                 </div>

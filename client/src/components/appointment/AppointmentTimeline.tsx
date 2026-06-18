@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { QK } from "@/lib/query-keys";
 import { Skeleton } from "@/components/ui/skeleton";
+import { formatDateTime } from "@/lib/datetime";
 import {
   CheckCircle2, XCircle, Clock, CalendarClock, PlayCircle, RefreshCw,
   ThumbsUp, ThumbsDown, UserX, AlertCircle, RotateCcw, CreditCard,
@@ -38,15 +39,7 @@ const EVENT_CONFIG: Record<string, { label: string; icon: React.ReactNode; color
 };
 
 function formatEventTime(iso: string): string {
-  try {
-    const d = new Date(iso);
-    return d.toLocaleString(undefined, {
-      month: "short", day: "numeric",
-      hour: "2-digit", minute: "2-digit",
-    });
-  } catch {
-    return iso;
-  }
+  return formatDateTime(iso, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) || iso;
 }
 
 function resolveConfig(eventType: string | undefined | null) {
