@@ -1,0 +1,414 @@
+GOLDENLIFE FINAL REVENUE ENGINE CONSOLIDATION & PRICING TRUTH SPRINT
+
+OBJECTIVE
+
+A major pricing drift issue was discovered and fixed:
+
+Provider entered:
+5000 HUF
+
+Patient later saw:
+4981 HUF
+
+Root cause:
+
+services.price was being stored in USD and converted back into local currency using current exchange rates.
+
+This has now been corrected so that:
+
+services.price = native provider amount
+services.currency = provider currency
+
+This sprint is the FINAL revenue architecture audit.
+
+The goal is to ensure:
+
+* ONE pricing architecture
+* ONE source of truth
+* ZERO price drift
+* ZERO legacy revenue logic
+* ZERO USD-derived service pricing
+* ZERO pricing backfills
+* ZERO pricing migrations
+* ZERO duplicate calculation paths
+
+====================================================
+REVENUE RULES (FINAL ARCHITECTURE)
+==================================
+
+These are the authoritative rules.
+
+# Provider Currency
+
+Authoritative Currency
+
+# Provider Service Price
+
+Authoritative Price
+
+# Platform Fees
+
+Calculated in Service Currency
+
+# Travel Fees
+
+Calculated in Service Currency
+
+# Online Visit Fees
+
+Calculated in Service Currency
+
+# Membership Pricing
+
+Stored in Native Currency
+
+# Package Pricing
+
+Stored in Native Currency
+
+# Gift Card Pricing
+
+Stored in Native Currency
+
+# Patient Pricing
+
+Displayed in Native Currency
+
+# USD
+
+Accounting Currency Only
+
+USD MUST NEVER determine displayed service prices.
+
+====================================================
+PHASE 1 — FULL PRICING TRACE
+============================
+
+Trace pricing from end-to-end.
+
+Audit:
+
+Services
+Packages
+Memberships
+Gift Cards
+Wallet Topups
+Appointments
+Invoices
+Provider Earnings
+Payouts
+Revenue Shares
+Promo Codes
+
+For each:
+
+Document:
+
+* authoritative field
+* authoritative currency
+* display currency
+* accounting currency
+* exchange rate usage
+
+====================================================
+PHASE 2 — FIND ALL USD-FIRST LOGIC
+==================================
+
+Search the entire codebase.
+
+Find:
+
+fromUSD
+toUSD
+formatFromUSD
+usdPrice
+priceUsd
+amountUsd
+convertFromUsd
+convertToUsd
+
+and any similar logic.
+
+For each occurrence:
+
+Classify:
+
+A. Accounting-only
+B. Display pricing
+C. Legacy
+
+Remove:
+
+B
+C
+
+Only accounting-related USD conversions may remain.
+
+====================================================
+PHASE 3 — SERVICE PRICING AUDIT
+===============================
+
+Verify:
+
+services.price
+
+is always:
+
+native amount
+
+Verify:
+
+services.currency
+
+is always:
+
+native currency
+
+Confirm:
+
+No dynamic exchange-rate multiplication is used anywhere for displaying service prices.
+
+====================================================
+PHASE 4 — PACKAGE AUDIT
+=======================
+
+Verify:
+
+Packages purchased or advertised as:
+
+50,000 HUF
+
+remain:
+
+50,000 HUF
+
+regardless of exchange-rate changes.
+
+Remove any drift logic.
+
+====================================================
+PHASE 5 — MEMBERSHIP AUDIT
+==========================
+
+Verify:
+
+Membership prices remain fixed in their configured currency.
+
+No daily rate-based changes.
+
+====================================================
+PHASE 6 — GIFT CARD AUDIT
+=========================
+
+Verify:
+
+Gift cards remain fixed in configured currency.
+
+No dynamic recalculation.
+
+====================================================
+PHASE 7 — BOOKING ENGINE AUDIT
+==============================
+
+Audit:
+
+Booking Wizard
+Booking Canvas
+Quote APIs
+Appointment Creation
+
+Verify:
+
+Base Price
+Travel Fee
+Platform Fee
+Payment Fee
+Discounts
+Membership Benefits
+Package Benefits
+
+All calculations must happen in the service currency.
+
+Only after finalization may accounting snapshots be generated.
+
+====================================================
+PHASE 8 — WALLET AUDIT
+======================
+
+Audit:
+
+Wallet balances
+Wallet topups
+Wallet deductions
+Wallet refunds
+
+Verify:
+
+No display drift.
+
+No pricing drift.
+
+Accounting conversion only where required.
+
+====================================================
+PHASE 9 — PROVIDER EARNINGS AUDIT
+=================================
+
+Verify:
+
+Provider earnings are calculated correctly.
+
+Displayed values must match booking snapshots.
+
+No hidden exchange-rate recalculation.
+
+====================================================
+PHASE 10 — PAYOUT AUDIT
+=======================
+
+Verify:
+
+Payout requests
+Payout schedules
+Payout reports
+
+Use the correct authoritative values.
+
+No duplicated calculations.
+
+====================================================
+PHASE 11 — ADMIN FINANCIALS AUDIT
+=================================
+
+Audit:
+
+Financial Dashboard
+Revenue Center
+Master Report
+Exports
+CSV
+PDF
+
+Verify:
+
+Numbers reconcile exactly with booking snapshots.
+
+No derived pricing drift.
+
+====================================================
+PHASE 12 — REMOVE LEGACY PRICING LOGIC
+======================================
+
+Remove:
+
+* USD-derived service pricing
+* historical conversion paths
+* duplicate pricing paths
+* fallback pricing paths
+* obsolete revenue helpers
+* unused pricing utilities
+
+Remove any code no longer required after the native-currency refactor.
+
+====================================================
+PHASE 13 — REMOVE REVENUE MIGRATIONS & BACKFILLS
+================================================
+
+Audit startup.
+
+Find:
+
+pricing backfills
+currency backfills
+service conversion scripts
+revenue repair logic
+
+If existing production data is already corrected:
+
+REMOVE THEM.
+
+Goal:
+
+No pricing mutations during startup.
+
+No revenue repairs during startup.
+
+No currency backfills during startup.
+
+Startup should contain only:
+
+* schema guards
+* required seeds
+
+====================================================
+PHASE 14 — VALIDATION
+=====================
+
+Create test services:
+
+5000 HUF
+100 EUR
+20000 INR
+100 AED
+
+Verify:
+
+Provider Profile
+Search
+Browse
+Booking Wizard
+Booking Confirmation
+Appointments
+Invoices
+
+display exactly the configured values.
+
+Verify exchange-rate changes do NOT alter displayed prices.
+
+====================================================
+FINAL VALIDATION
+================
+
+Run:
+
+npx tsc --noEmit --skipLibCheck
+
+npm run build
+
+Start application.
+
+Verify:
+
+* no revenue backfills
+* no pricing repairs
+* no pricing migrations
+* no startup mutations
+* no drift
+
+====================================================
+DELIVERABLE
+===========
+
+Create:
+
+ops/FINAL-REVENUE-CONSOLIDATION-REPORT.md
+
+Include:
+
+1. Pricing Architecture Diagram
+2. Pricing Source of Truth
+3. Remaining USD Dependencies
+4. Legacy Logic Removed
+5. Backfills Removed
+6. Migrations Removed
+7. Validation Results
+8. Test Cases
+9. Final Revenue Verdict
+
+Conclude with:
+
+REVENUE ENGINE CONSOLIDATED
+
+PRICING DRIFT ELIMINATED
+
+SINGLE SOURCE OF TRUTH ACHIEVED

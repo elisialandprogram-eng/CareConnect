@@ -1,0 +1,415 @@
+import { Header } from "@/components/header";
+import { Footer } from "@/components/footer";
+import { useAuth } from "@/lib/auth";
+import { isAdminRole } from "@/lib/roles";
+import { useLocation } from "wouter";
+import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Link } from "wouter";
+import { Calendar, Clock, User, MapPin, Video, Building, Star, MessageSquare, RefreshCw } from "lucide-react";
+import { formatDate } from "@/lib/datetime";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { Badge } from "@/components/ui/badge";
+import { EmptyState } from "@/components/ui/empty-state";
+import { StatusBadge } from "@/components/ui/status-badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/hooks/use-toast";
+import { showErrorModal } from "@/components/error-modal";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { PageBreadcrumbs } from "@/components/page-breadcrumbs";
+import { usePageTitle } from "@/hooks/use-page-title";
+import { QK } from "@/lib/query-keys";
+import { RescheduleProposalBanner } from "@/components/appointment/RescheduleProposalBanner";
+
+interface Appointment {
+  id: string;
+  appointmentNumber?: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  status: string;
+  visitType: string;
+  notes?: string;
+  providerId: string;
+  provider: {
+    id: string;
+    type: string;
+    user: {
+      firstName: string;
+      lastName: string;
+    };
+  };
+  service: {
+    id: string;
+    name: string;
+    price: string;
+  } | null;
+  hasReview?: boolean;
+}
+
+function RatingDialog({ appointment }: { appointment: Appointment }) {
+  const { toast } = useToast();
+  const { t } = useTranslation();
+  const [rating, setRating] = useState(5);
+  const [comment, setComment] = useState("");
+  const [isOpen, setIsOpen] = useState(false);
+
+  const mutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/reviews", {
+        appointmentId: appointment.id,
+        providerId: appointment.providerId,
+        rating,
+        comment,
+      });
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({ title: t("appointments.review_submitted") });
+      queryClient.invalidateQueries({ queryKey: QK.patientAppointments() });
+      setIsOpen(false);
+    },
+    onError: (error: Error) => {
+      showErrorModal({
+        title: t("appointments.review_failed"),
+        description: error.message,
+        context: "appointments.submitReview",
+      });
+    },
+  });
+
+  return (
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <DialogTrigger asChild>
+        <Button variant="outline" size="sm" data-testid={`button-rate-${appointment.id}`}>{t("appointments.rate_service")}</Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{t("appointments.rate_dialog_title")}</DialogTitle>
+          <DialogDescription>
+            {t("appointments.rate_dialog_desc", { firstName: appointment.provider.user.firstName, lastName: appointment.provider.user.lastName })}
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4 py-4">
+          <div className="flex justify-center gap-2">
+            {[1, 2, 3, 4, 5].map((s) => (
+              <button
+                key={s}
+                onClick={() => setRating(s)}
+                className="focus:outline-none"
+                data-testid={`star-${s}`}
+              >
+                <Star
+                  className={`h-8 w-8 ${s <= rating ? "fill-yellow-400 text-yellow-400" : "text-muted"}`}
+                />
+              </button>
+            ))}
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium">{t("appointments.comments")}</label>
+            <Textarea
+              placeholder={t("appointments.comments_placeholder")}
+              value={comment}
+              onChange={(e) => setComment(e.target.value)}
+              data-testid="input-review-comment"
+            />
+          </div>
+          <Button
+            className="w-full"
+            onClick={() => mutation.mutate()}
+            disabled={mutation.isPending}
+            data-testid="button-submit-review"
+          >
+            {mutation.isPending ? t("appointments.submitting") : t("appointments.submit_review")}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+export default function Appointments() {
+  const { isAuthenticated, user, isLoading: authLoading } = useAuth();
+  const [, navigate] = useLocation();
+  const { t } = useTranslation();
+  usePageTitle(t("appointments.meta_title", "My Appointments"));
+  const { toast } = useToast();
+
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) {
+      navigate("/login");
+    } else if (!authLoading && user?.role === "provider") {
+      navigate("/provider/dashboard");
+    } else if (!authLoading && isAdminRole(user?.role)) {
+      navigate("/admin");
+    }
+  }, [isAuthenticated, authLoading, user?.role, navigate]);
+
+  const { data: appointments, isLoading } = useQuery<Appointment[]>({
+    queryKey: QK.patientAppointments(),
+    enabled: isAuthenticated && user?.role === "patient",
+  });
+
+  const focusedAppointmentId = (() => {
+    if (typeof window === "undefined") return null;
+    return new URLSearchParams(window.location.search).get("id");
+  })();
+  const [highlightedId, setHighlightedId] = useState<string | null>(focusedAppointmentId);
+
+  useEffect(() => {
+    if (!focusedAppointmentId || !appointments?.length) return;
+    const el = document.querySelector(`[data-testid="card-appointment-${focusedAppointmentId}"]`);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      const t = setTimeout(() => setHighlightedId(null), 2500);
+      return () => clearTimeout(t);
+    }
+  }, [focusedAppointmentId, appointments]);
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Header />
+        <main className="flex-1 container mx-auto px-4 py-8">
+          <Skeleton className="h-8 w-48 mb-8" />
+          <div className="space-y-4">
+            {[1, 2, 3].map((i) => (
+              <Skeleton key={i} className="h-32 w-full" />
+            ))}
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return null;
+  }
+
+
+  const getVisitTypeIcon = (visitType: string) => {
+    if (visitType === "online") {
+      return <Video className="h-4 w-4" />;
+    }
+    if (visitType === "clinic") {
+      return <Building className="h-4 w-4" />;
+    }
+    return <MapPin className="h-4 w-4" />;
+  };
+
+  const getVisitTypeLabel = (visitType: string) => {
+    switch (visitType) {
+      case "online": return t("appointments.visit_type_online");
+      case "clinic": return t("appointments.visit_type_clinic");
+      case "home": return t("appointments.visit_type_home");
+      default: return t("appointments.visit_type_default");
+    }
+  };
+
+  return (
+    <div className="min-h-screen flex flex-col">
+      <Header />
+      <main className="flex-1 container mx-auto px-4 py-8">
+        <PageBreadcrumbs
+          items={[{ label: "Home", href: "/" }, { label: t("appointments.my_appointments", "My Appointments") }]}
+          fallback="/"
+        />
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-3xl font-bold" data-testid="text-page-title">{t("appointments.my_appointments", "My Appointments")}</h1>
+          {user?.role === "patient" && (
+            <Button asChild data-testid="button-book-new">
+              <Link href="/providers">{t("dashboard.book_new")}</Link>
+            </Button>
+          )}
+        </div>
+
+        {isLoading ? (
+          <div className="space-y-4">
+            {[1, 2, 3].map((i) => (
+              <Skeleton key={i} className="h-32 w-full" />
+            ))}
+          </div>
+        ) : appointments && appointments.length > 0 ? (
+          <div className="space-y-4">
+            {appointments.map((appointment) => (
+              <Card
+                key={appointment.id}
+                data-testid={`card-appointment-${appointment.id}`}
+                onClick={(e) => {
+                  // Don't hijack clicks on inner buttons / links
+                  const target = e.target as HTMLElement;
+                  if (target.closest("button, a, [role='dialog']")) return;
+                  navigate(`/appointments/${appointment.id}`);
+                }}
+                className={`cursor-pointer hover:shadow-md transition-all ${
+                  highlightedId === appointment.id ? "ring-2 ring-primary shadow-lg" : ""
+                }`}
+              >
+                <CardHeader className="pb-2">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <div className="flex items-center gap-2 mb-0.5">
+                        <CardTitle className="text-lg">
+                          {appointment.service?.name || "Consultation"}
+                        </CardTitle>
+                        {appointment.appointmentNumber && (
+                          <span
+                            className="text-xs font-mono font-semibold text-primary/80 bg-primary/10 px-2 py-0.5 rounded"
+                            data-testid={`text-appt-number-${appointment.id}`}
+                          >
+                            {appointment.appointmentNumber}
+                          </span>
+                        )}
+                      </div>
+                      <CardDescription className="flex items-center gap-2 mt-1">
+                        <User className="h-4 w-4" />
+                        Dr. {appointment.provider.user.firstName} {appointment.provider.user.lastName}
+                      </CardDescription>
+                    </div>
+                    <StatusBadge status={appointment.status} />
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-end gap-3">
+                    <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
+                      <div className="flex items-center gap-1">
+                        <Calendar className="h-4 w-4" />
+                        {formatDate(appointment.date)}
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Clock className="h-4 w-4" />
+                        {appointment.startTime} - {appointment.endTime}
+                      </div>
+                      <div className="flex items-center gap-1">
+                        {getVisitTypeIcon(appointment.visitType)}
+                        {getVisitTypeLabel(appointment.visitType)}
+                      </div>
+                      {appointment.visitType === "clinic" && (appointment as any).provider?.primaryServiceLocation && (
+                        <div
+                          className="flex items-start gap-1 basis-full text-xs"
+                          data-testid={`text-clinic-address-${appointment.id}`}
+                        >
+                          <MapPin className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                          <span className="leading-snug">{(appointment as any).provider.primaryServiceLocation}</span>
+                        </div>
+                      )}
+                      {appointment.visitType === "home" && (appointment as any).patientAddress && (
+                        <div
+                          className="flex items-start gap-1 basis-full text-xs"
+                          data-testid={`text-home-address-${appointment.id}`}
+                        >
+                          <MapPin className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                          <span className="leading-snug">{(appointment as any).patientAddress}</span>
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2 flex-wrap shrink-0">
+                      {!["cancelled", "rejected", "completed"].includes(appointment.status) && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="gap-1"
+                          data-testid={`button-message-provider-${appointment.id}`}
+                          onClick={async () => {
+                            try {
+                              const provider = await fetch(`/api/providers/${appointment.providerId}`, { credentials: "include" }).then(r => r.json());
+                              const participantId = provider?.userId;
+                              if (!participantId) throw new Error("Provider not available");
+                              await fetch("/api/chat/start", {
+                                method: "POST",
+                                credentials: "include",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({ participantId }),
+                              });
+                              window.dispatchEvent(new CustomEvent("open-chat"));
+                              toast({ title: t("appointments.chat_opened"), description: t("appointments.chat_opened_desc") });
+                            } catch (e: any) {
+                              showErrorModal({
+                                title: t("appointments.chat_failed"),
+                                description: e.message,
+                                context: "appointments.startChat",
+                              });
+                            }
+                          }}
+                        >
+                          <MessageSquare className="h-3 w-3" /> {t("appointments.message_btn")}
+                        </Button>
+                      )}
+                      {appointment.visitType === "online" &&
+                        ["confirmed", "approved", "rescheduled", "in_progress"].includes(appointment.status) && (
+                          <Button
+                            size="sm"
+                            variant="default"
+                            className="gap-1"
+                            data-testid={`button-join-call-${appointment.id}`}
+                            onClick={async () => {
+                              try {
+                                const res = await fetch(`/api/video/room/${appointment.id}`, { credentials: "include" });
+                                const j = await res.json();
+                                if (j.url) window.open(j.url, "_blank", "noopener,noreferrer");
+                                else throw new Error(j.message || "Could not open call");
+                              } catch (e: any) {
+                                showErrorModal({
+                                  title: t("appointments.join_call_failed"),
+                                  description: e.message,
+                                  context: "appointments.joinCall",
+                                });
+                              }
+                            }}
+                          >
+                            <Video className="h-3 w-3" /> {t("appointments.join_call")}
+                          </Button>
+                        )}
+                      {appointment.status === "completed" && !appointment.hasReview && (
+                        <RatingDialog appointment={appointment} />
+                      )}
+                      {appointment.status === "completed" && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="gap-1"
+                          asChild
+                          data-testid={`button-rebook-${appointment.id}`}
+                        >
+                          <Link
+                            href={`/book?providerId=${appointment.providerId}${appointment.service?.id ? `&serviceId=${appointment.service.id}` : ""}&visitType=${appointment.visitType}`}
+                          >
+                            <RefreshCw className="h-3 w-3" />
+                            {t("appointments.book_again", "Book again")}
+                          </Link>
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                  {appointment.status === "reschedule_proposed" && user?.role === "patient" && (
+                    <div className="mt-4">
+                      <RescheduleProposalBanner
+                        appointmentId={appointment.id}
+                        appointmentNumber={appointment.appointmentNumber}
+                        invalidateKeys={[["/api/appointments"], ["/api/patient/appointments"]]}
+                      />
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : (
+          <EmptyState
+            icon={Calendar}
+            title={t("appointments.none_yet", "No appointments yet")}
+            description={user?.role === "patient" ? t("appointments.book_first", "Book your first appointment with a healthcare provider.") : undefined}
+            action={user?.role === "patient" ? { label: t("appointments.find_provider", "Find a Provider"), onClick: () => window.location.href = "/providers" } : undefined}
+            data-testid="empty-appointments"
+          />
+        )}
+      </main>
+      <Footer />
+    </div>
+  );
+}

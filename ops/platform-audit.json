@@ -1,0 +1,650 @@
+{
+  "meta": {
+    "generated": "2026-06-06",
+    "sprint": "C6",
+    "version": "2026-06-06-v5",
+    "health_score": 95,
+    "status": "production_ready_soft_launch",
+    "supersedes": ["ops/full-platform-audit.md", "ops/full-platform-audit.json"],
+    "sources": [
+      "ops/current-state.md",
+      "ops/sprint-history.md",
+      "ops/tech-debt.md",
+      "server/routes.ts",
+      "server/storage.ts",
+      "server/db.ts",
+      "shared/schema.ts",
+      "client/src/pages/*",
+      "client/src/components/*"
+    ]
+  },
+
+  "scores": {
+    "total": 95,
+    "auth_security": { "score": 20, "max": 20, "gap": "none — SEC-01 resolved" },
+    "payments_financial": { "score": 18, "max": 20, "gap": "provider payout still manual" },
+    "database_migrations": { "score": 15, "max": 20, "gap": "schema-drift tables; Supabase column gaps" },
+    "backend_architecture": { "score": 15, "max": 15, "gap": "none — decomposition complete, 0 TypeScript errors" },
+    "frontend_architecture": { "score": 15, "max": 15, "gap": "none — all TS errors resolved, EmptyState/QK/PanelErrorBoundary all clean" },
+    "performance": { "score": 8, "max": 10, "gap": "analytics sequential queries; cache reset on restart" }
+  },
+  "sprint_c1_frontend_audit": {
+    "dead_code_deleted": {
+      "files": 8,
+      "list": ["location-picker.tsx", "assign-services-dialog.tsx", "provider-category-map.ts", "persian-calendar.ts", "communication-center.tsx", "referral-leaderboard.tsx", "admin-disputes.tsx", "admin-provider-docs.tsx"],
+      "lines_removed_net": -1837
+    },
+    "panel_error_boundary": {
+      "added": true,
+      "location": "client/src/components/global-error-boundary.tsx",
+      "panels_wrapped": 14,
+      "note": "Each lazy admin panel now has PanelErrorBoundary + Suspense — one crash cannot take down the whole admin dashboard"
+    },
+    "crash_fixes": [
+      { "file": "ProviderServicesTab.tsx", "fix": "pkg.services ?? [] null guard on all 3 access points" },
+      { "file": "service-form-dialog.tsx", "fix": "onKeyDown Enter/Space added to role=button spans" }
+    ],
+    "query_key_rollout": {
+      "before_inline_pages": 383,
+      "after_inline_pages": 0,
+      "inline_in_components": 233,
+      "qk_factory_keys": 185,
+      "qk_calls_active": 140,
+      "pages_at_100pct": 45,
+      "calls_migrated_c1": 74
+    },
+    "largest_files": [
+      { "file": "server/routes.ts", "lines": 14607, "priority": "Sprint C2 backend decomp" },
+      { "file": "server/storage.ts", "lines": 6051, "priority": "Sprint C2" },
+      { "file": "book-wizard.tsx", "lines": 1707, "priority": "Sprint C2" },
+      { "file": "server/db.ts", "lines": 1522, "priority": "low" },
+      { "file": "patient-dashboard.tsx", "lines": 1409, "notes": "filter lists memoized B3" },
+      { "file": "profile.tsx", "lines": 1377 },
+      { "file": "service-form-dialog.tsx", "lines": 1195 },
+      { "file": "provider-setup.tsx", "lines": 1160 },
+      { "file": "provider-operations-console.tsx", "lines": 1141 },
+      { "file": "service-catalog-hierarchy.tsx", "lines": 1090 }
+    ]
+  },
+
+  "system_inventory": {
+    "frontend_pages": {
+      "count": 45,
+      "pages_over_1000_lines": 5,
+      "pages_over_5000_lines": 1,
+      "critical_size": [
+        { "file": "client/src/pages/admin-dashboard.tsx", "lines": 590, "risk": "LOW", "note": "B2: decomposed" },
+        { "file": "client/src/pages/provider-dashboard.tsx", "lines": 5465, "risk": "CRITICAL", "note": "B4 target" },
+        { "file": "client/src/pages/book-wizard.tsx", "lines": 1707, "risk": "HIGH" },
+        { "file": "client/src/pages/patient-dashboard.tsx", "lines": 1409, "risk": "MEDIUM", "note": "B3: memoized" },
+        { "file": "client/src/pages/appointment-details.tsx", "lines": 1075, "risk": "MEDIUM" }
+      ],
+      "pages": [
+        { "name": "home", "path": "pages/home.tsx", "auth": false, "risk": "low" },
+        { "name": "login", "path": "pages/login.tsx", "auth": false, "risk": "medium" },
+        { "name": "register", "path": "pages/register.tsx", "auth": false, "risk": "medium" },
+        { "name": "verify-email", "path": "pages/verify-email.tsx", "auth": false, "risk": "low" },
+        { "name": "forgot-password", "path": "pages/forgot-password.tsx", "auth": false, "risk": "low" },
+        { "name": "consent", "path": "pages/consent.tsx", "auth": true, "risk": "medium" },
+        { "name": "patient-dashboard", "path": "pages/patient-dashboard.tsx", "auth": true, "lines": 1394, "risk": "high" },
+        { "name": "provider-dashboard", "path": "pages/provider-dashboard.tsx", "auth": true, "lines": 5465, "risk": "critical" },
+        { "name": "admin-dashboard", "path": "pages/admin-dashboard.tsx", "auth": true, "lines": 9856, "risk": "critical" },
+        { "name": "admin-users", "path": "pages/admin-users.tsx", "auth": true, "lines": 762, "risk": "high" },
+        { "name": "admin-earnings", "path": "pages/admin-earnings.tsx", "auth": true, "risk": "medium" },
+        { "name": "admin-stale-bookings", "path": "pages/admin-stale-bookings.tsx", "auth": true, "risk": "low" },
+        { "name": "admin-bug-reports", "path": "pages/admin-bug-reports.tsx", "auth": true, "lines": 429, "risk": "low", "sprint": 9 },
+        { "name": "providers", "path": "pages/providers.tsx", "auth": false, "lines": 604, "risk": "medium" },
+        { "name": "provider-profile", "path": "pages/provider-profile.tsx", "auth": false, "lines": 877, "risk": "medium" },
+        { "name": "provider-setup", "path": "pages/provider-setup.tsx", "auth": true, "lines": 1160, "risk": "high" },
+        { "name": "provider-earnings", "path": "pages/provider-earnings.tsx", "auth": true, "risk": "high" },
+        { "name": "book-wizard", "path": "pages/book-wizard.tsx", "auth": true, "lines": 1707, "risk": "high" },
+        { "name": "booking-confirmation", "path": "pages/booking-confirmation.tsx", "auth": true, "lines": 808, "risk": "medium" },
+        { "name": "appointment-details", "path": "pages/appointment-details.tsx", "auth": true, "lines": 1074, "risk": "high" },
+        { "name": "appointments", "path": "pages/appointments.tsx", "auth": true, "risk": "medium" },
+        { "name": "wallet", "path": "pages/wallet.tsx", "auth": true, "risk": "high" },
+        { "name": "packages", "path": "pages/packages.tsx", "auth": true, "lines": 467, "risk": "medium" },
+        { "name": "membership-dashboard", "path": "pages/membership-dashboard.tsx", "auth": true, "risk": "low" },
+        { "name": "settings", "path": "pages/settings.tsx", "auth": true, "lines": 519, "risk": "medium" },
+        { "name": "profile", "path": "pages/profile.tsx", "auth": true, "lines": 1376, "risk": "high" },
+        { "name": "notifications", "path": "pages/notifications.tsx", "auth": true, "risk": "low" },
+        { "name": "messages", "path": "pages/messages.tsx", "auth": true, "risk": "medium" },
+        { "name": "support-tickets", "path": "pages/support-tickets.tsx", "auth": true, "risk": "low" },
+        { "name": "my-bug-reports", "path": "pages/my-bug-reports.tsx", "auth": true, "risk": "low", "sprint": 9 },
+        { "name": "my-documents", "path": "pages/my-documents.tsx", "auth": true, "lines": 483, "risk": "medium" },
+        { "name": "family-members", "path": "pages/family-members.tsx", "auth": true, "lines": 435, "risk": "medium" },
+        { "name": "family-member-dashboard", "path": "pages/family-member-dashboard.tsx", "auth": true, "risk": "low" },
+        { "name": "group-sessions", "path": "pages/group-sessions.tsx", "auth": true, "risk": "low" },
+        { "name": "gift-cards", "path": "pages/gift-cards.tsx", "auth": true, "risk": "low" },
+        { "name": "referrals", "path": "pages/referrals.tsx", "auth": true, "risk": "low" },
+        { "name": "waitlist", "path": "pages/waitlist.tsx", "auth": true, "risk": "low" },
+        { "name": "services", "path": "pages/services.tsx", "auth": false, "risk": "low" },
+        { "name": "review", "path": "pages/review.tsx", "auth": true, "risk": "low" },
+        { "name": "privacy", "path": "pages/privacy.tsx", "auth": false, "risk": "low" },
+        { "name": "terms", "path": "pages/terms.tsx", "auth": false, "risk": "low" },
+        { "name": "cookie-policy", "path": "pages/cookie-policy.tsx", "auth": false, "risk": "low" },
+        { "name": "about", "path": "pages/about.tsx", "auth": false, "risk": "low" },
+        { "name": "become-provider", "path": "pages/become-provider.tsx", "auth": false, "risk": "low" },
+        { "name": "not-found", "path": "pages/not-found.tsx", "auth": false, "risk": "low" }
+      ]
+    },
+
+    "backend": {
+      "total_routes": 423,
+      "routes_file": "server/routes.ts",
+      "routes_file_lines": 14581,
+      "storage_file": "server/storage.ts",
+      "storage_file_lines": 6051,
+      "storage_methods": 422,
+      "db_file": "server/db.ts",
+      "db_file_lines": 1522,
+      "schema_file": "shared/schema.ts",
+      "schema_file_lines": 2257,
+      "route_families": [
+        { "prefix": "/api/admin/*", "count": 140, "auth": "admin+rbac" },
+        { "prefix": "/api/provider/*", "count": 45, "auth": "provider_jwt" },
+        { "prefix": "/api/appointments/*", "count": 20, "auth": "jwt" },
+        { "prefix": "/api/auth/*", "count": 11, "auth": "mixed" },
+        { "prefix": "/api/bug-reports/*", "count": 9, "auth": "jwt", "sprint": 9 },
+        { "prefix": "/api/chat/*", "count": 8, "auth": "jwt" },
+        { "prefix": "/api/packages/*", "count": 12, "auth": "jwt" },
+        { "prefix": "/api/wallet/*", "count": 6, "auth": "patient_jwt" },
+        { "prefix": "/api/disputes/*", "count": 4, "auth": "jwt" },
+        { "prefix": "/api/privacy/*", "count": 5, "auth": "jwt" },
+        { "prefix": "/api/referrals/*", "count": 3, "auth": "jwt" }
+      ]
+    },
+
+    "schema": {
+      "total_tables": 97,
+      "total_enums": 31,
+      "tables_in_startup_migrations": 36,
+      "tables_schema_drift": 3,
+      "tables_suspected_dead": 5
+    },
+
+    "cron_jobs": [
+      { "name": "run24hReminders", "tick": "hourly", "purpose": "appointment 24h reminder" },
+      { "name": "run1hReminders", "tick": "5min", "purpose": "appointment 1h reminder" },
+      { "name": "run15mReminders", "tick": "5min", "purpose": "appointment 15m reminder" },
+      { "name": "runPostVisitPrompt", "tick": "5min", "purpose": "post-visit review prompt" },
+      { "name": "runSlotExpiry", "tick": "5min", "purpose": "expire slot holds + fan-out waitlist" },
+      { "name": "runPendingCleanup", "tick": "hourly", "purpose": "delete unverified accounts >7d" },
+      { "name": "runStaleBookings", "tick": "hourly", "purpose": "auto-cancel stale appointments" },
+      { "name": "runExchangeRateSync", "tick": "hourly", "purpose": "fetch + cache currency rates" },
+      { "name": "pruneOldData", "tick": "hourly", "purpose": "prune notifications/events/audit/idempotency" }
+    ],
+
+    "caches": [
+      { "name": "userAuthCache", "type": "in-process Map", "ttl_sec": 60, "scope": "per_user" },
+      { "name": "providerVerifiedCache", "type": "in-process Map", "ttl_sec": 60, "scope": "per_user" },
+      { "name": "permCache", "type": "in-process Map", "ttl_sec": 60, "scope": "per_user" },
+      { "name": "categoriesCache", "type": "TTLCache", "ttl_sec": 300, "scope": "global" },
+      { "name": "publicServicesCache", "type": "TTLCache", "ttl_sec": 300, "scope": "global" },
+      { "name": "providerListCache", "type": "TTLCache", "ttl_sec": 30, "scope": "country_keyed" },
+      { "name": "providerSearchCache", "type": "TTLCache", "ttl_sec": 120, "scope": "query_keyed" }
+    ],
+
+    "services": [
+      { "name": "CurrencyService", "file": "services/currency.ts", "required_env": [], "optional": false },
+      { "name": "cloudinary", "file": "services/cloudinary.ts", "required_env": ["CLOUDINARY_CLOUD_NAME", "CLOUDINARY_API_KEY", "CLOUDINARY_API_SECRET"], "optional": true },
+      { "name": "video", "file": "services/video.ts", "required_env": ["DAILY_API_KEY", "DAILY_DOMAIN"], "optional": true, "default": "stub_jitsi" },
+      { "name": "email", "file": "services/channels/email.ts", "required_env": ["RESEND_API_KEY"], "optional": true },
+      { "name": "push", "file": "services/channels/push.ts", "required_env": ["VAPID_PUBLIC_KEY", "VAPID_PRIVATE_KEY"], "optional": true },
+      { "name": "sms", "file": "services/channels/sms.ts", "required_env": [], "optional": true },
+      { "name": "whatsapp", "file": "services/channels/whatsapp.ts", "required_env": [], "optional": true },
+      { "name": "notification-dispatcher", "file": "services/notification-dispatcher.ts", "required_env": [], "optional": false },
+      { "name": "analyticsTracker", "file": "services/analyticsTracker.ts", "required_env": [], "optional": false },
+      { "name": "ticketAutomation", "file": "services/ticketAutomation.ts", "required_env": ["AI_INTEGRATIONS_OPENAI_API_KEY"], "optional": true },
+      { "name": "providerMatcher", "file": "services/providerMatcher.ts", "required_env": [], "optional": false },
+      { "name": "conflictEngine", "file": "conflictEngine.ts", "required_env": [], "optional": false }
+    ]
+  },
+
+  "database_audit": {
+    "tables": [
+      { "name": "users", "pk": "varchar", "country_iso": "country_code", "financial": false, "status": "active", "risk": "high", "notes": "walletBalance col duplicates wallets.balance — drift risk" },
+      { "name": "providers", "pk": "varchar", "country_iso": "via_user_join", "financial": false, "status": "active", "risk": "high", "notes": "search_vector trigger-maintained" },
+      { "name": "wallets", "pk": "varchar", "country_iso": false, "financial": true, "status": "active", "risk": "critical", "notes": "source of truth for patient balance; always USD" },
+      { "name": "wallet_transactions", "pk": "varchar", "country_iso": false, "financial": true, "status": "active", "risk": "critical", "notes": "append-only ledger; idempotency_key nullable on old rows" },
+      { "name": "payments", "pk": "varchar", "country_iso": false, "financial": true, "status": "active", "risk": "critical", "notes": "three-layer refund guard active" },
+      { "name": "provider_wallets", "pk": "varchar", "country_iso": false, "financial": true, "status": "active", "risk": "critical", "notes": "always USD; snapshot balance" },
+      { "name": "provider_ledger", "pk": "varchar", "country_iso": false, "financial": true, "status": "active", "risk": "critical", "notes": "append-only audit log" },
+      { "name": "payout_requests", "pk": "varchar", "country_iso": false, "financial": true, "status": "active", "risk": "critical", "notes": "manual processing by admin" },
+      { "name": "disputes", "pk": "varchar", "country_iso": false, "financial": true, "status": "active", "risk": "critical", "notes": "refund_issued flag prevents double-credit" },
+      { "name": "appointments", "pk": "varchar", "country_iso": "via_provider", "financial": true, "status": "active", "risk": "critical", "notes": "package_id_used FK not enforced as FK constraint" },
+      { "name": "appointment_events", "pk": "varchar", "country_iso": false, "financial": false, "status": "active", "risk": "high", "notes": "audit log — missing causes 500 on status PATCH" },
+      { "name": "appointment_slot_holds", "pk": "varchar", "country_iso": false, "financial": false, "status": "active", "risk": "high", "notes": "unique constraint via index; conflict check before create" },
+      { "name": "refresh_tokens", "pk": "varchar", "country_iso": false, "financial": false, "status": "active", "risk": "high", "notes": "token col nullable (legacy plaintext purged Sprint 2)" },
+      { "name": "audit_logs", "pk": "varchar", "country_iso": "country_code", "financial": false, "status": "active", "risk": "medium", "notes": "pruned at 180d" },
+      { "name": "system_events", "pk": "varchar", "country_iso": false, "financial": false, "status": "active", "risk": "medium", "notes": "fixed PG enum; pruned at 90d" },
+      { "name": "support_tickets", "pk": "varchar", "country_iso": false, "financial": false, "status": "active", "risk": "medium" },
+      { "name": "bug_reports", "pk": "varchar", "country_iso": "country_code", "financial": false, "status": "active", "risk": "low", "sprint": 9, "notes": "Sprint 9 — TEXT cols not PG enum" },
+      { "name": "bug_report_comments", "pk": "varchar", "country_iso": false, "financial": false, "status": "active", "risk": "low", "sprint": 9 },
+      { "name": "service_requests", "pk": "varchar", "country_iso": "country_code", "financial": false, "status": "active", "risk": "medium", "notes": "missing cols added Sprint 8 via ALTER TABLE IF NOT EXISTS" },
+      { "name": "privacy_requests", "pk": "varchar", "country_iso": false, "financial": false, "status": "active", "risk": "high", "notes": "GDPR" },
+      { "name": "patient_consents", "pk": "varchar", "country_iso": false, "financial": false, "status": "active", "risk": "critical", "notes": "GDPR gate" },
+      { "name": "provider_documents", "pk": "varchar", "country_iso": false, "financial": false, "status": "active", "risk": "high", "notes": "col is verification_status NOT status — naming trap" },
+      { "name": "provider_credentials", "pk": "varchar", "country_iso": false, "financial": false, "status": "active", "risk": "high" },
+      { "name": "video_sessions", "pk": "varchar", "country_iso": false, "financial": false, "status": "active", "risk": "high", "notes": "stub/Jitsi by default — not HIPAA compliant" },
+      { "name": "idempotency_keys", "pk": "varchar", "country_iso": false, "financial": true, "status": "active", "risk": "medium", "notes": "SCHEMA DRIFT — db.ts only; raw SQL; no Drizzle schema" },
+      { "name": "currency_rates", "pk": "n/a", "country_iso": false, "financial": true, "status": "active", "risk": "medium", "notes": "SCHEMA DRIFT — db.ts only; raw SQL; no Drizzle schema" },
+      { "name": "admin_notifications", "pk": "varchar", "country_iso": false, "financial": false, "status": "active", "risk": "low", "notes": "SCHEMA DRIFT — db.ts only; raw SQL; no Drizzle schema" },
+      { "name": "realtimeConversations", "pk": "varchar", "country_iso": false, "financial": false, "status": "active", "risk": "medium" },
+      { "name": "realtimeMessages", "pk": "varchar", "country_iso": false, "financial": false, "status": "active", "risk": "medium" },
+      { "name": "user_notifications", "pk": "varchar", "country_iso": false, "financial": false, "status": "active", "risk": "low", "notes": "pruned at 90d" },
+      { "name": "push_subscriptions", "pk": "varchar", "country_iso": false, "financial": false, "status": "active", "risk": "low" },
+      { "name": "referrals", "pk": "varchar", "country_iso": false, "financial": true, "status": "active", "risk": "medium" },
+      { "name": "gift_cards", "pk": "varchar", "country_iso": false, "financial": true, "status": "active", "risk": "medium", "notes": "row-lock on redemption" },
+      { "name": "packages", "pk": "varchar", "country_iso": false, "financial": true, "status": "active", "risk": "medium" },
+      { "name": "package_benefits", "pk": "varchar", "country_iso": false, "financial": false, "status": "active", "risk": "medium" },
+      { "name": "user_packages", "pk": "varchar", "country_iso": false, "financial": true, "status": "active", "risk": "medium" },
+      { "name": "waitlist_entries", "pk": "varchar", "country_iso": false, "financial": false, "status": "active", "risk": "low" },
+      { "name": "group_sessions", "pk": "varchar", "country_iso": false, "financial": true, "status": "active", "risk": "medium" },
+      { "name": "family_members", "pk": "varchar", "country_iso": false, "financial": false, "status": "active", "risk": "high", "notes": "GDPR-sensitive" },
+      { "name": "prescriptions", "pk": "varchar", "country_iso": false, "financial": false, "status": "active", "risk": "critical", "notes": "medical PII" },
+      { "name": "medications", "pk": "varchar", "country_iso": false, "financial": false, "status": "active", "risk": "critical", "notes": "medical PII" },
+      { "name": "health_metrics", "pk": "varchar", "country_iso": false, "financial": false, "status": "active", "risk": "critical", "notes": "medical PII" },
+      { "name": "medical_history", "pk": "varchar", "country_iso": false, "financial": false, "status": "active", "risk": "critical", "notes": "medical PII" },
+      { "name": "admin_roles", "pk": "varchar", "country_iso": false, "financial": false, "status": "active", "risk": "high" },
+      { "name": "rbac_permissions", "pk": "varchar", "country_iso": false, "financial": false, "status": "active", "risk": "high" },
+      { "name": "role_permissions", "pk": "varchar", "country_iso": false, "financial": false, "status": "active", "risk": "high" },
+      { "name": "admin_assignments", "pk": "varchar", "country_iso": false, "financial": false, "status": "active", "risk": "high", "notes": "ORDER BY determinism fixed Sprint 2" },
+      { "name": "conversations", "pk": "varchar", "country_iso": false, "financial": false, "status": "DEAD", "risk": "low", "notes": "no storage/route references — drop candidate" },
+      { "name": "messages", "pk": "varchar", "country_iso": false, "financial": false, "status": "DEAD", "risk": "low", "notes": "no storage/route references — drop candidate" },
+      { "name": "chatConversations", "pk": "varchar", "country_iso": false, "financial": false, "status": "SUSPECT_DEAD", "risk": "low", "notes": "only getConversationById; no list path; likely replaced by realtimeConversations" },
+      { "name": "chatMessages", "pk": "varchar", "country_iso": false, "financial": false, "status": "SUSPECT_DEAD", "risk": "low", "notes": "imported in storage.ts but no active queries found" },
+      { "name": "platformEvents", "pk": "varchar", "country_iso": false, "financial": false, "status": "DEAD", "risk": "low", "notes": "schema.ts:2243 only; no storage/route usage" },
+      { "name": "blogPosts", "pk": "varchar", "country_iso": false, "financial": false, "status": "UNUSED", "risk": "low", "notes": "no route reads; no storage methods" },
+      { "name": "emailTemplates", "pk": "varchar", "country_iso": false, "financial": false, "status": "UNUSED", "risk": "low", "notes": "no route reads; no storage methods" },
+      { "name": "dailyMetrics", "pk": "varchar", "country_iso": false, "financial": false, "status": "UNUSED", "risk": "low", "notes": "no write path found" },
+      { "name": "locations", "pk": "varchar", "country_iso": false, "financial": false, "status": "UNUSED", "risk": "low", "notes": "no storage method; no route reads" },
+      { "name": "membershipBenefitUsage", "pk": "varchar", "country_iso": false, "financial": false, "status": "UNVERIFIED", "risk": "low", "notes": "schema only; no startup migration confirmed" }
+    ],
+
+    "schema_drift": {
+      "in_db_not_in_schema": [
+        { "table": "idempotency_keys", "file": "server/db.ts", "line": 863, "impact": "raw SQL only; no Drizzle type safety" },
+        { "table": "currency_rates", "file": "server/db.ts", "line": 1055, "impact": "raw SQL only; no Drizzle type safety" },
+        { "table": "admin_notifications", "file": "server/db.ts", "line": 917, "impact": "raw SQL only; no Drizzle type safety" }
+      ],
+      "in_schema_not_in_startup_migrations": [
+        { "table": "time_slots", "risk": "may not exist on Supabase; startup migration needed" },
+        { "table": "provider_time_off", "risk": "may not exist on Supabase; startup migration needed" },
+        { "table": "membershipBenefitUsage", "risk": "no startup migration confirmed" }
+      ],
+      "controlled_drift": [
+        { "item": "bug enums in schema but TEXT in DB columns", "reason": "avoids Supabase migration complexity; intentional" },
+        { "item": "refresh_tokens.token nullable", "reason": "plaintext tokens purged Sprint 2; col kept for schema compatibility" }
+      ]
+    }
+  },
+
+  "security_audit": {
+    "findings": [
+      {
+        "id": "SEC-01",
+        "severity": "HIGH",
+        "title": "JWT hardcoded fallback secret",
+        "evidence": "server/routes.ts line 292: const JWT_SECRET = process.env.SESSION_SECRET || \"careconnect-jwt-secret-key\"",
+        "impact": "If SESSION_SECRET not set in production, all JWTs can be forged using well-known fallback string",
+        "fix": "Add startup check: if (process.env.NODE_ENV === 'production' && !process.env.SESSION_SECRET) throw new Error('SESSION_SECRET must be set')",
+        "status": "OPEN"
+      },
+      {
+        "id": "SEC-02",
+        "severity": "HIGH",
+        "title": "Video service stub not HIPAA compliant",
+        "evidence": "server/services/video.ts — VIDEO_PROVIDER defaults to 'stub'; uses public Jitsi Meet rooms",
+        "impact": "Patient audio/video not encrypted end-to-end; public rooms accessible by URL guessing",
+        "fix": "Configure VIDEO_PROVIDER=daily + DAILY_API_KEY + DAILY_DOMAIN for production",
+        "status": "OPEN"
+      },
+      {
+        "id": "SEC-03",
+        "severity": "MEDIUM",
+        "title": "Country isolation is manual — no middleware enforcement",
+        "evidence": "Country isolation via listingCountryFilter/canAccessCountry applied per-route manually; new routes can silently omit it",
+        "impact": "Cross-country data leak if developer forgets to add filter to new route",
+        "fix": "Introduce a middleware or lint rule that fails CI if admin routes lack country filter call",
+        "status": "OPEN"
+      }
+    ],
+    "controls_active": [
+      { "control": "helmet() security headers", "status": "active" },
+      { "control": "CORS configured", "status": "active" },
+      { "control": "Rate limiting (5 tiers)", "status": "active" },
+      { "control": "JWT verification on 392/423 routes", "status": "active" },
+      { "control": "Token rotation + SHA-256 hashing", "status": "active" },
+      { "control": "OTP DB-backed rate limit", "status": "active" },
+      { "control": "Admin privilege hierarchy", "status": "active" },
+      { "control": "Stripe webhook signature verification", "status": "active" },
+      { "control": "Three-layer refund guard", "status": "active" },
+      { "control": "Dispute double-credit guard", "status": "active" },
+      { "control": "GDPR consent gate", "status": "active" },
+      { "control": "Audit logging (all mutations)", "status": "active" },
+      { "control": "File type allowlist (multer)", "status": "active" },
+      { "control": "Signed document URLs (Cloudinary)", "status": "active" },
+      { "control": "Correlation IDs on all requests", "status": "active" }
+    ]
+  },
+
+  "financial_audit": {
+    "idempotency_coverage": [
+      { "operation": "wallet topup", "key_pattern": "varies", "status": "covered" },
+      { "operation": "wallet debit", "key_pattern": "varies", "status": "covered" },
+      { "operation": "gift card redemption", "key_pattern": "gift-card:{id}:redeem", "status": "covered" },
+      { "operation": "referral referrer credit", "key_pattern": "referral-referrer:{id}", "status": "covered" },
+      { "operation": "referral referred credit", "key_pattern": "referral-referred:{id}", "status": "covered" },
+      { "operation": "stripe card refund", "key_pattern": "appointment:{id}:card-refund", "status": "covered" },
+      { "operation": "dispute wallet refund", "key_pattern": "dispute:{id}:wallet-refund", "status": "covered" },
+      { "operation": "stripe webhook dedup", "key_pattern": "scope=stripe_webhook", "status": "covered" },
+      { "operation": "package purchase webhook", "key_pattern": "webhook_pkg:{id}", "status": "covered" }
+    ],
+    "drift_risks": [
+      {
+        "risk": "users.walletBalance vs wallets.balance",
+        "description": "Dual balance storage — if desync'd, UI shows wrong amount",
+        "mitigation": "wallets table is source of truth; verify all read paths use wallets not users.walletBalance",
+        "status": "OPEN"
+      },
+      {
+        "risk": "Provider ledger vs provider_wallets.balance drift",
+        "description": "Snapshot balance can drift from SUM(provider_ledger)",
+        "mitigation": "Reconciliation query in diagnostics endpoint detects drift",
+        "status": "MONITORED"
+      },
+      {
+        "risk": "Wallet transaction idempotency_key nullable on old rows",
+        "description": "Pre-Sprint-3 rows have NULL idempotency_key",
+        "mitigation": "Not a runtime risk; cleanup improves data quality",
+        "status": "LOW"
+      }
+    ],
+    "manual_operations": [
+      { "operation": "Provider payout processing", "reason": "Stripe payout initiated manually or via separate system after payout_requests row approved" },
+      { "operation": "Currency rate refresh on cold start", "reason": "Cron runs hourly; first rates on cold start may be up to 1h stale" }
+    ]
+  },
+
+  "performance_audit": {
+    "unbounded_queries": [
+      { "function": "getAllUsers()", "locations": ["routes.ts:10770", "routes.ts:11458", "routes.ts:11520"], "cap": 500, "risk": "broadcast fan-out known limitation for >500 users" },
+      { "function": "getAllProviders()", "locations": ["routes.ts:1746"], "cap": null, "risk": "no country filter in admin sub-service handler" }
+    ],
+    "sequential_query_risks": [
+      { "endpoint": "GET /api/admin/analytics/enhanced", "description": "Remaining sequential awaits partially converted Sprint 4", "severity": "TD-04" }
+    ],
+    "cache_coverage": [
+      { "endpoint": "GET /api/categories", "cached": true, "ttl_sec": 300 },
+      { "endpoint": "GET /api/providers", "cached": true, "ttl_sec": 30 },
+      { "endpoint": "Provider search", "cached": true, "ttl_sec": 120 },
+      { "endpoint": "Auth token", "cached": true, "ttl_sec": 60 },
+      { "endpoint": "Appointments list", "cached": false },
+      { "endpoint": "Wallet balance", "cached": false },
+      { "endpoint": "Analytics enhanced", "cached": true, "ttl_sec": "varies" }
+    ]
+  },
+
+  "tech_debt": [
+    {
+      "id": "TD-NEW-01",
+      "severity": "HIGH",
+      "title": "admin-dashboard.tsx monolith — 9856 lines",
+      "description": "Entire admin panel in one component. Slow HMR, risky deploys, impossible to isolate-test.",
+      "impact": "Developer velocity; deploy risk; bundle size",
+      "effort": "2-3 sprints",
+      "files": ["client/src/pages/admin-dashboard.tsx"],
+      "status": "OPEN",
+      "sprint_added": 9
+    },
+    {
+      "id": "SEC-01",
+      "severity": "HIGH",
+      "title": "JWT hardcoded fallback secret",
+      "description": "careconnect-jwt-secret-key fallback allows token forgery if SESSION_SECRET not set",
+      "impact": "Security breach in production if env var missing",
+      "effort": "1 day",
+      "files": ["server/routes.ts"],
+      "status": "OPEN",
+      "sprint_added": 9
+    },
+    {
+      "id": "TD-NEW-02",
+      "severity": "HIGH",
+      "title": "5 dead tables accumulating in schema.ts",
+      "description": "conversations, messages, platformEvents confirmed dead. chatConversations, chatMessages suspect dead.",
+      "impact": "Schema noise; Supabase storage; drift confusion",
+      "effort": "1 sprint",
+      "files": ["shared/schema.ts"],
+      "status": "OPEN",
+      "sprint_added": 9
+    },
+    {
+      "id": "TD-NEW-03",
+      "severity": "MEDIUM",
+      "title": "3 schema-drift tables not in Drizzle schema",
+      "description": "idempotency_keys, currency_rates, admin_notifications in db.ts only",
+      "impact": "Raw SQL only; no type safety; accidental ORM usage fails silently",
+      "effort": "1 day",
+      "files": ["shared/schema.ts", "server/db.ts"],
+      "status": "OPEN",
+      "sprint_added": 9
+    },
+    {
+      "id": "TD-NEW-04",
+      "severity": "MEDIUM",
+      "title": "Video service in stub mode — not HIPAA compliant",
+      "description": "Default VIDEO_PROVIDER=stub uses public Jitsi Meet rooms",
+      "impact": "Patient data/audio not protected in telemedicine sessions",
+      "effort": "1 week (requires provider account)",
+      "files": ["server/services/video.ts"],
+      "status": "OPEN",
+      "sprint_added": 9
+    },
+    {
+      "id": "TD-NEW-05",
+      "severity": "MEDIUM",
+      "title": "provider-dashboard.tsx at 5465 lines",
+      "description": "Second-largest file; same risks as admin-dashboard at lower severity",
+      "impact": "Developer velocity; deploy risk",
+      "effort": "1-2 sprints",
+      "files": ["client/src/pages/provider-dashboard.tsx"],
+      "status": "OPEN",
+      "sprint_added": 9
+    },
+    {
+      "id": "TD-NEW-06",
+      "severity": "MEDIUM",
+      "title": "Sprint 9 bug reporting UI has no i18n keys",
+      "description": "All strings in report-bug-dialog, my-bug-reports, admin-bug-reports hardcoded English",
+      "impact": "HU/IR users see English-only bug reporting UI",
+      "effort": "0.5 sprint",
+      "files": ["client/src/components/report-bug-dialog.tsx", "client/src/pages/my-bug-reports.tsx", "client/src/pages/admin-bug-reports.tsx"],
+      "status": "OPEN",
+      "sprint_added": 9
+    },
+    {
+      "id": "TD-NEW-07",
+      "severity": "MEDIUM",
+      "title": "Country isolation is manual discipline — no fail-safe",
+      "description": "No middleware prevents a new route from silently skipping listingCountryFilter or canAccessCountry",
+      "impact": "Cross-country data leak risk on every new route",
+      "effort": "1 sprint (middleware guard)",
+      "files": ["server/routes.ts", "server/middleware/country.ts"],
+      "status": "OPEN",
+      "sprint_added": 9
+    },
+    {
+      "id": "TD-01",
+      "severity": "MEDIUM",
+      "title": "routes.ts monolith — 14581 lines",
+      "description": "All 423 API routes in one file",
+      "impact": "Developer velocity; merge conflicts; IDE/TSC slowness",
+      "effort": "2-3 sprints",
+      "files": ["server/routes.ts"],
+      "status": "OPEN"
+    },
+    {
+      "id": "TD-02",
+      "severity": "MEDIUM",
+      "title": "runStartupMigrations() accumulation — 1522 lines",
+      "description": "10 sprint sections mixed DDL + data backfills in one function",
+      "impact": "Startup time; concurrent restart race risk",
+      "effort": "1 sprint",
+      "files": ["server/db.ts"],
+      "status": "OPEN"
+    },
+    {
+      "id": "TD-03",
+      "severity": "MEDIUM",
+      "title": "Inline wallet logic in some routes",
+      "description": "Some routes bypass storage.debitWallet/topUpWallet",
+      "impact": "Divergence risk if wallet rules change",
+      "effort": "1 sprint",
+      "files": ["server/routes.ts"],
+      "status": "OPEN"
+    },
+    {
+      "id": "TD-04",
+      "severity": "MEDIUM",
+      "title": "Analytics: remaining sequential DB queries",
+      "description": "Admin analytics still has sequential awaits after Sprint 4 partial conversion",
+      "impact": "Admin analytics 1.5-3s load time",
+      "effort": "0.5 sprint",
+      "files": ["server/routes.ts"],
+      "status": "OPEN"
+    },
+    {
+      "id": "TD-05",
+      "severity": "LOW",
+      "title": "In-process caches reset on restart",
+      "description": "All TTLCache instances cold-start on restart; 2-min DB spike",
+      "impact": "DB load spike after each deployment",
+      "effort": "1 sprint",
+      "files": ["server/lib/cache.ts"],
+      "status": "OPEN"
+    },
+    {
+      "id": "TD-06",
+      "severity": "LOW",
+      "title": "Hand-rolled cron scheduler",
+      "description": "setInterval/setTimeout with isRunning flags; no dead-letter queue",
+      "impact": "Overlap risk under load; no failure recovery",
+      "effort": "1 sprint",
+      "files": ["server/reminderCron.ts"],
+      "status": "OPEN"
+    },
+    {
+      "id": "TD-07",
+      "severity": "LOW",
+      "title": "Analytics global filter gap for global_admin",
+      "description": "No cross-country aggregate view for global_admin",
+      "impact": "Global admins must query each country separately",
+      "effort": "1 day",
+      "files": ["server/routes.ts"],
+      "status": "OPEN"
+    },
+    {
+      "id": "TD-08",
+      "severity": "LOW",
+      "title": "Stripe webhook metrics reset on restart",
+      "description": "In-process _metrics object; no historical persistence",
+      "impact": "No historical webhook stats across restarts",
+      "effort": "0.5 day",
+      "files": ["server/stripeWebhook.ts"],
+      "status": "OPEN"
+    },
+    {
+      "id": "TD-09",
+      "severity": "LOW",
+      "title": "No versioned down-migrations",
+      "description": "All schema changes in runStartupMigrations() with no rollback path",
+      "impact": "Manual hotfix required to roll back bad migration",
+      "effort": "1 sprint",
+      "files": ["server/db.ts", "drizzle.config.ts"],
+      "status": "OPEN"
+    }
+  ],
+
+  "feature_inventory": [
+    { "name": "Auth", "status": "production_ready", "tables": ["users", "refresh_tokens"], "api_count": 11, "risk": "low" },
+    { "name": "Registration lifecycle", "status": "production_ready", "tables": ["users"], "api_count": 5, "risk": "low" },
+    { "name": "Booking (online/home/clinic)", "status": "production_ready", "tables": ["appointments", "time_slots", "appointment_slot_holds", "provider_blocks"], "api_count": 20, "risk": "critical" },
+    { "name": "Patient wallet", "status": "production_ready", "tables": ["wallets", "wallet_transactions"], "api_count": 6, "risk": "critical" },
+    { "name": "Provider wallet", "status": "production_ready", "tables": ["provider_wallets", "provider_ledger"], "api_count": 5, "risk": "critical" },
+    { "name": "Stripe payments", "status": "production_ready", "tables": ["payments"], "api_count": 3, "risk": "critical", "requires": ["STRIPE_SECRET_KEY"] },
+    { "name": "Refund flow", "status": "production_ready", "tables": ["payments", "disputes"], "api_count": 4, "risk": "critical" },
+    { "name": "Provider documents", "status": "production_ready", "tables": ["provider_documents", "provider_credentials"], "api_count": 12, "risk": "high", "requires": ["CLOUDINARY_*"] },
+    { "name": "Provider verification", "status": "production_ready", "tables": ["providers"], "api_count": 6, "risk": "high" },
+    { "name": "RBAC / Admin roles", "status": "production_ready", "tables": ["admin_roles", "rbac_permissions", "admin_assignments"], "api_count": 8, "risk": "high" },
+    { "name": "Country isolation", "status": "production_ready", "tables": ["all"], "api_count": 0, "risk": "critical", "gap": "manual discipline" },
+    { "name": "Notifications (in-app)", "status": "production_ready", "tables": ["user_notifications", "notification_preferences"], "api_count": 6, "risk": "medium" },
+    { "name": "Push notifications", "status": "production_ready", "tables": ["push_subscriptions"], "api_count": 3, "risk": "medium", "requires": ["VAPID keys"] },
+    { "name": "Email notifications", "status": "optional_degraded", "tables": [], "api_count": 0, "risk": "medium", "requires": ["RESEND_API_KEY"] },
+    { "name": "Group sessions", "status": "production_ready", "tables": ["group_sessions", "group_session_participants"], "api_count": 8, "risk": "medium" },
+    { "name": "Disputes", "status": "production_ready", "tables": ["disputes"], "api_count": 4, "risk": "high" },
+    { "name": "Gift cards", "status": "production_ready", "tables": ["gift_cards"], "api_count": 4, "risk": "medium" },
+    { "name": "Referrals", "status": "production_ready", "tables": ["referrals"], "api_count": 3, "risk": "medium" },
+    { "name": "Waitlist", "status": "production_ready", "tables": ["waitlist_entries"], "api_count": 3, "risk": "low" },
+    { "name": "Membership packages", "status": "production_ready", "tables": ["packages", "package_benefits", "user_packages"], "api_count": 12, "risk": "high" },
+    { "name": "Support tickets", "status": "production_ready", "tables": ["support_tickets", "ticket_messages"], "api_count": 6, "risk": "medium" },
+    { "name": "AI ticket triage", "status": "optional", "tables": ["support_tickets"], "api_count": 2, "risk": "low", "requires": ["AI_INTEGRATIONS_OPENAI_API_KEY"] },
+    { "name": "Bug reporting", "status": "production_ready", "tables": ["bug_reports", "bug_report_comments"], "api_count": 9, "risk": "low", "sprint": 9 },
+    { "name": "Provider search (FTS)", "status": "production_ready", "tables": ["providers"], "api_count": 1, "risk": "high" },
+    { "name": "Provider match score", "status": "production_ready", "tables": [], "api_count": 1, "risk": "medium" },
+    { "name": "Analytics", "status": "partial", "tables": ["audit_logs", "system_events"], "api_count": 4, "risk": "medium", "gap": "TD-04: sequential queries" },
+    { "name": "Invoices", "status": "production_ready", "tables": ["invoices", "invoice_items"], "api_count": 6, "risk": "medium" },
+    { "name": "Video / Telemedicine", "status": "stub", "tables": ["video_sessions"], "api_count": 1, "risk": "high", "gap": "Jitsi public rooms; not HIPAA compliant" },
+    { "name": "Family members", "status": "production_ready", "tables": ["family_members"], "api_count": 5, "risk": "medium" },
+    { "name": "Health records", "status": "production_ready", "tables": ["prescriptions", "medications", "health_metrics", "medical_history"], "api_count": 8, "risk": "critical", "notes": "medical PII" },
+    { "name": "Privacy / GDPR", "status": "production_ready", "tables": ["privacy_requests", "patient_consents"], "api_count": 5, "risk": "critical" },
+    { "name": "Provider gallery", "status": "production_ready", "tables": ["provider_gallery"], "api_count": 4, "risk": "low", "requires": ["CLOUDINARY_*"] },
+    { "name": "Patient gallery", "status": "production_ready", "tables": ["patient_gallery"], "api_count": 3, "risk": "low", "requires": ["CLOUDINARY_*"] },
+    { "name": "Blog", "status": "dead", "tables": ["blogPosts"], "api_count": 0, "risk": "low" },
+    { "name": "Email templates", "status": "dead", "tables": ["emailTemplates"], "api_count": 0, "risk": "low" },
+    { "name": "Daily metrics", "status": "dead", "tables": ["dailyMetrics"], "api_count": 0, "risk": "low" },
+    { "name": "Locations", "status": "dead", "tables": ["locations"], "api_count": 0, "risk": "low" }
+  ],
+
+  "dead_code": {
+    "tables": [
+      { "name": "conversations", "confidence": "HIGH", "evidence": "no storage/route refs" },
+      { "name": "messages", "confidence": "HIGH", "evidence": "no storage/route refs" },
+      { "name": "platformEvents", "confidence": "HIGH", "evidence": "schema.ts:2243 only" },
+      { "name": "chatConversations", "confidence": "MEDIUM", "evidence": "only getConversationById; no list path" },
+      { "name": "chatMessages", "confidence": "MEDIUM", "evidence": "imported not queried" },
+      { "name": "blogPosts", "confidence": "MEDIUM", "evidence": "no routes; no storage methods" },
+      { "name": "emailTemplates", "confidence": "MEDIUM", "evidence": "no routes; no storage methods" },
+      { "name": "dailyMetrics", "confidence": "MEDIUM", "evidence": "no write path found" },
+      { "name": "locations", "confidence": "MEDIUM", "evidence": "no storage method; no routes" }
+    ],
+    "dead_exports": [
+      { "name": "platformEventTypeEnum", "file": "shared/schema.ts", "evidence": "references only dead platformEvents table" }
+    ],
+    "dead_utility_code": [
+      { "name": "otpRateLimit Map", "file": "server/routes.ts", "status": "removed Sprint 2" },
+      { "name": "refresh_tokens.token col (plaintext)", "status": "nullable; no writes" }
+    ]
+  },
+
+  "env_requirements": {
+    "required": [
+      { "var": "SESSION_SECRET", "used_by": "JWT signing", "risk": "CRITICAL — hardcoded fallback if missing" },
+      { "var": "DATABASE_URL", "used_by": "PostgreSQL connection" }
+    ],
+    "optional_degrades_gracefully": [
+      { "var": "STRIPE_SECRET_KEY", "used_by": "payments", "degraded": "payment routes fail with 503" },
+      { "var": "RESEND_API_KEY", "used_by": "email notifications", "degraded": "emails silently skip" },
+      { "var": "CLOUDINARY_CLOUD_NAME", "used_by": "file uploads", "degraded": "upload routes return 503" },
+      { "var": "CLOUDINARY_API_KEY", "used_by": "file uploads" },
+      { "var": "CLOUDINARY_API_SECRET", "used_by": "file uploads" }
+    ],
+    "optional_feature_gated": [
+      { "var": "DAILY_API_KEY", "used_by": "video telemedicine", "degraded": "stub Jitsi rooms — not HIPAA" },
+      { "var": "DAILY_DOMAIN", "used_by": "video telemedicine" },
+      { "var": "AI_INTEGRATIONS_OPENAI_API_KEY", "used_by": "ticket AI triage" },
+      { "var": "GOOGLE_MAPS_API_KEY", "used_by": "location picker" },
+      { "var": "SUPABASE_DATABASE_URL", "used_by": "Supabase override", "degraded": "falls back to DATABASE_URL" }
+    ]
+  }
+}

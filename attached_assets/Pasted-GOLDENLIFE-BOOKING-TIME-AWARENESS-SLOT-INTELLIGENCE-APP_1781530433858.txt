@@ -1,0 +1,818 @@
+GOLDENLIFE BOOKING TIME AWARENESS, SLOT INTELLIGENCE, APPOINTMENT CONTEXT & SCHEDULING UX HARDENING SPRINT
+
+Before making any changes:
+
+Read and follow:
+
+* GoldenLife Project Continuation Manual
+* Latest Launch Baseline Report
+* Latest Booking Audit Report
+* Latest Appointment Experience Enhancement Report
+
+GoldenLife booking, scheduling, payments, wallet, provider onboarding, patient onboarding, appointment lifecycle, communication hub, service catalogue, radius validation, earnings, and appointment engine are already functioning.
+
+This sprint is NOT a booking engine rewrite.
+
+This sprint is NOT a migration sprint.
+
+This sprint is NOT a schema redesign.
+
+This sprint is NOT a legacy compatibility sprint.
+
+This sprint is focused on improving booking-time awareness, appointment timing visibility, scheduling clarity, slot quality, and overall user understanding of appointments.
+
+Use existing architecture wherever possible.
+
+Do not create duplicate systems.
+
+Do not create parallel calculations.
+
+Do not add migration debt.
+
+Do not add legacy fallbacks.
+
+Use existing appointment, slot, scheduling, availability, and timeline data.
+
+======================================================================
+FORENSIC AUDIT FIRST
+====================
+
+Before implementing anything:
+
+Audit the recently delivered Appointment Time Context system.
+
+Real-user testing indicates the feature technically exists but is not sufficiently clear or useful.
+
+Current examples:
+
+"Confirmed"
+"In 2m"
+
+This is ambiguous and not user-friendly.
+
+Audit:
+
+* AppointmentTimeContext component
+* AppointmentTimeline
+* Provider appointment cards
+* Provider dashboard widgets
+* Patient dashboard cards
+* Appointment details pages
+* Booking canvas
+* Slot picker
+* Reschedule flow
+
+Verify:
+
+* Actual rendering
+* Data correctness
+* User comprehension
+* Mobile responsiveness
+* Timezone accuracy
+* Status-awareness
+
+Fix anything discovered.
+
+Do not merely report issues.
+
+======================================================================
+SLOT QUALITY HARDENING AUDIT
+============================
+
+Conduct a full forensic audit of slot generation.
+
+Verify:
+
+* Booking slots
+* Availability slots
+* Provider schedules
+* Reschedule slots
+* Home visit bookings
+* Online visits
+* Clinic visits
+
+Past slots must never appear.
+
+Example:
+
+Current Time
+15:00
+
+Available Slots:
+
+09:00 ❌
+10:00 ❌
+11:00 ❌
+
+16:00 ✅
+17:00 ✅
+
+Audit all slot generation logic.
+
+Audit timezone handling.
+
+Audit provider timezone vs patient timezone.
+
+Audit daylight savings handling where applicable.
+
+Filtering must use actual slot datetime values, not time strings.
+
+Fix everything discovered.
+
+======================================================================
+BOOKING TIME AWARENESS SYSTEM
+=============================
+
+When a patient selects a slot during booking:
+
+Immediately display a booking timing panel.
+
+Example:
+
+Current Time:
+18:53
+
+Selected Appointment:
+19:00
+
+Display:
+
+Appointment Start
+19:00
+
+Current Time
+18:53
+
+Starts In
+7 Minutes
+
+The countdown must update automatically while the booking screen remains open.
+
+Examples:
+
+Tomorrow 09:00
+
+Display:
+
+Starts In
+14 Hours 07 Minutes
+
+Future Date:
+
+18 June 2026
+14:00
+
+Display:
+
+Starts In
+2 Days 19 Hours
+
+Users must understand exactly what they are booking.
+
+======================================================================
+SLOT VISIBILITY, COLORIZATION & BOOKING INTELLIGENCE
+====================================================
+
+The slot picker currently provides insufficient visual context.
+
+Users should instantly understand:
+
+* Which slots are available
+* Which slots are starting soon
+* Which slots require urgent attendance
+* Which slot is selected
+* How much time remains before the appointment starts
+
+without performing any mental calculations.
+
+---
+
+## AVAILABLE FUTURE SLOTS
+
+Green
+
+Examples:
+
+19:00
+19:30
+20:00
+
+Meaning:
+
+Comfortably available.
+
+---
+
+## STARTING SOON SLOTS
+
+Yellow
+
+Examples:
+
+Current Time:
+18:53
+
+Slot:
+19:15
+
+Display:
+
+Starts in 22 minutes
+
+Meaning:
+
+Appointment approaching.
+
+Recommended threshold:
+
+0–30 minutes.
+
+---
+
+## URGENT / LAST-MINUTE SLOTS
+
+Orange
+
+Examples:
+
+Current Time:
+18:53
+
+Slot:
+18:58
+
+Display:
+
+Starts in 5 minutes
+
+Meaning:
+
+Immediate attendance required.
+
+Recommended threshold:
+
+0–10 minutes.
+
+---
+
+## UNAVAILABLE SLOTS
+
+Red
+
+Examples:
+
+Outside provider coverage
+
+Unavailable
+
+Booking restriction triggered
+
+Capacity reached
+
+Blocked availability
+
+Meaning:
+
+Cannot be booked.
+
+---
+
+## SELECTED SLOT
+
+Blue Highlight
+
+When a user selects a slot:
+
+Selected state must override all other slot colors.
+
+Example:
+
+Selected
+
+19:00
+
+Starts in 7 minutes
+
+The selected slot should be visually obvious.
+
+---
+
+## REAL-TIME SLOT COUNTDOWN
+
+While booking remains open:
+
+Countdowns must update automatically.
+
+Examples:
+
+Starts In:
+
+7 Minutes
+
+6 Minutes
+
+5 Minutes
+
+Use lightweight updates.
+
+Do not introduce heavy polling.
+
+======================================================================
+URGENT APPOINTMENT WARNINGS
+===========================
+
+When appointments begin soon:
+
+Display contextual warnings.
+
+Examples:
+
+Starts in 15 Minutes
+
+Display:
+
+This appointment begins soon.
+Please ensure you can attend on time.
+
+---
+
+Starts in 5 Minutes
+
+Display:
+
+Immediate attendance may be required.
+
+Please confirm you can arrive on time.
+
+======================================================================
+PATIENT ARRIVAL CONFIDENCE INDICATOR
+====================================
+
+Provide booking guidance.
+
+Green:
+
+Comfortable Arrival Window
+
+Yellow:
+
+Limited Preparation Time
+
+Orange:
+
+Immediate Attendance Required
+
+Especially useful for:
+
+* Clinic Visits
+* Home Visits
+* Video Consultations
+
+======================================================================
+CURRENT TIME VISIBILITY
+=======================
+
+Users frequently compare appointment times with current time.
+
+Display current local time where relevant.
+
+Examples:
+
+* Booking screen
+* Slot selection
+* Appointment details
+* Provider appointment details
+* Patient appointment details
+* Reschedule screens
+
+Current time should be obvious and easy to understand.
+
+======================================================================
+BOOKING CONFIRMATION IMPROVEMENTS
+=================================
+
+Before final booking confirmation:
+
+Display a concise appointment summary.
+
+Show:
+
+Provider
+
+Service
+
+Sub-Service
+
+Visit Type
+
+Appointment Date
+
+Appointment Time
+
+Duration
+
+Time Until Appointment
+
+Location (if applicable)
+
+Coverage Status (if Home Visit)
+
+Appointment Reference Preview (if available)
+
+This acts as the final booking verification step.
+
+======================================================================
+APPOINTMENT TIMING CARD
+=======================
+
+Create a dedicated timing section.
+
+Display:
+
+Current Time
+
+Appointment Start
+
+Appointment End
+
+Duration
+
+Time Until Start
+
+Time Since Start
+
+Time Since Completion
+
+depending on appointment status.
+
+Examples:
+
+Confirmed:
+
+Current Time
+18:53
+
+Appointment Start
+19:00
+
+Starts In
+7 Minutes
+
+---
+
+In Progress:
+
+Started
+5 Minutes Ago
+
+Elapsed
+5 Minutes
+
+---
+
+Completed:
+
+Completed
+2 Days Ago
+
+Duration
+30 Minutes
+
+This must be significantly clearer than small relative badges.
+
+======================================================================
+SMART STATUS + TIME CONTEXT
+===========================
+
+Replace vague labels.
+
+Current:
+
+Confirmed
+In 2m
+
+Replace with:
+
+Confirmed
+Starts In: 2 Minutes
+
+---
+
+In Progress
+Started: 5 Minutes Ago
+
+---
+
+Completed
+Completed: 2 Days Ago
+
+---
+
+Cancelled
+Cancelled: Yesterday
+
+---
+
+Reschedule Proposed
+Awaiting Response
+
+Status and timing must work together.
+
+======================================================================
+RESCHEDULE EXPERIENCE IMPROVEMENTS
+==================================
+
+When selecting a new slot during rescheduling:
+
+Display:
+
+Current Appointment
+
+New Appointment
+
+Difference
+
+Time Until New Appointment
+
+Use the same booking time awareness system.
+
+Users must clearly understand what they are changing.
+
+======================================================================
+HOME VISIT ENHANCEMENTS
+=======================
+
+For Home Visit appointments display:
+
+Provider Travel Radius
+
+Patient Distance
+
+Coverage Validation Status
+
+Appointment Address
+
+Estimated Travel Distance
+
+Reuse existing radius logic.
+
+Do not duplicate calculations.
+
+======================================================================
+PROVIDER SCHEDULE INTELLIGENCE
+==============================
+
+Improve provider scheduling awareness.
+
+Show:
+
+Starts In
+
+Running Late
+
+Started X Ago
+
+Completed X Ago
+
+Current Day Schedule Summary
+
+Next Appointment Countdown
+
+Remaining Appointments Today
+
+Total Clinical Hours Today
+
+Gaps Between Appointments
+
+Potential Overlaps
+
+Only use existing scheduling data.
+
+Do not create a second scheduling engine.
+
+======================================================================
+PROVIDER SCHEDULE COLORIZATION
+==============================
+
+Apply the same visual language to provider schedules.
+
+Green
+Upcoming
+
+Yellow
+Starts Soon
+
+Blue
+In Progress
+
+Grey
+Completed
+
+Red
+Cancelled
+
+Providers should understand their day instantly.
+
+======================================================================
+PATIENT APPOINTMENT EXPERIENCE
+==============================
+
+Patient appointment cards should clearly show:
+
+Date
+
+Time
+
+Duration
+
+Status
+
+Time Until Appointment
+
+Time Since Completion
+
+Visit Type
+
+No vague labels.
+
+Users should understand appointments immediately.
+
+======================================================================
+MISSED APPOINTMENT PREVENTION
+=============================
+
+Add visual warnings for:
+
+Appointments starting soon
+
+Appointments within 1 hour
+
+Appointments within 15 minutes
+
+Late arrivals
+
+Reschedule proposals awaiting response
+
+Anything that reduces no-shows and confusion.
+
+======================================================================
+PRE-EXISTING DEFECT REMEDIATION
+===============================
+
+While working in these areas:
+
+Audit for:
+
+* Scheduling bugs
+* Booking bugs
+* Slot bugs
+* UI bugs
+* Timezone bugs
+* State bugs
+* Display bugs
+* Data inconsistencies
+* Permission issues
+* Runtime issues
+* TypeScript issues
+* Build issues
+* Dead code
+* Duplicate logic
+* Orphan code
+
+Fix all discovered issues.
+
+Do not merely report them.
+
+The platform should leave this sprint in a better state than it entered.
+
+======================================================================
+CLEANUP REQUIREMENT
+===================
+
+Remove:
+
+* Dead scheduling code
+* Unused timing utilities
+* Duplicate countdown logic
+* Orphan appointment UI code
+* Unused slot helper functions
+
+Only if safe and validated.
+
+======================================================================
+VALIDATION REQUIREMENTS
+=======================
+
+Validate as real users.
+
+Patient:
+
+* Same-day booking
+* Future booking
+* Home Visit booking
+* Online booking
+* Clinic booking
+* Reschedule flow
+* Appointment details
+
+Provider:
+
+* Schedule view
+* Today schedule
+* Upcoming appointments
+* Appointment details
+
+Admin:
+
+* Appointment monitoring
+
+Validate:
+
+* Countdown accuracy
+* Timezone accuracy
+* Slot filtering
+* Current time display
+* Slot colorization
+* Status display
+* Timeline display
+
+Run:
+
+npm run build
+
+npx tsc --noEmit --skipLibCheck
+
+No TypeScript errors.
+
+No build errors.
+
+======================================================================
+REPORTING REQUIREMENTS
+======================
+
+Create ONE report only.
+
+Include:
+
+* Time Context Audit Findings
+* Slot Audit Findings
+* Booking Time Awareness Implementation
+* Slot Colorization Implementation
+* Appointment Timing Card Implementation
+* Provider Schedule Intelligence Improvements
+* Patient Experience Improvements
+* Home Visit Improvements
+* Additional Bugs Found & Fixed
+* Dead Code Removed
+* Build Validation
+* TypeScript Validation
+* Workflow Validation
+* Remaining Risks
+
+======================================================================
+SUCCESS CRITERIA
+================
+
+Success is achieved only if:
+
+✓ Users always understand when an appointment starts
+
+✓ Users always understand how much time remains
+
+✓ Current time is clearly visible where needed
+
+✓ Slot selection shows real-time countdowns
+
+✓ Slot colors communicate urgency
+
+✓ Selected slots are visually obvious
+
+✓ Same-day bookings are safer
+
+✓ Past slots never appear
+
+✓ Timezone calculations are correct
+
+✓ Rescheduling uses the same timing awareness system
+
+✓ Provider scheduling intelligence is improved
+
+✓ Patient appointment experience is improved
+
+✓ Home Visit visibility is improved
+
+✓ Pre-existing defects are fixed
+
+✓ Dead code is removed safely
+
+✓ No migrations are introduced
+
+✓ No legacy logic is introduced
+
+✓ Existing booking architecture remains authoritative
+
+✓ Build passes
+
+✓ TypeScript passes
+
+✓ GoldenLife delivers a modern healthcare scheduling experience with clear time awareness throughout the entire booking lifecycle.

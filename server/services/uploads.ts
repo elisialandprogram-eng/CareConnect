@@ -1,0 +1,73 @@
+/**
+ * Chat attachment / voice note uploads.
+ *
+ * Uploads are stored on Cloudinary when credentials are configured (production).
+ * Falls back to local disk (./uploads/chat/) in dev environments without Cloudinary.
+ *
+ * Allowed types and size limits are enforced here.
+ */
+import fs from "fs/promises";
+import path from "path";
+import crypto from "crypto";
+import { uploadChatFile, isCloudinaryConfigured } from "./cloudinary";
+
+const LOCAL_ROOT = path.resolve(process.cwd(), "uploads", "chat");
+const MAX_BYTES = 10 * 1024 * 1024; // 10 MB
+const ALLOWED_PREFIXES = ["image/", "audio/", "application/pdf"];
+
+export interface SavedFile {
+  url: string;
+  filename: string;
+  mimetype: string;
+  size: number;
+}
+
+export async function saveChatUpload(
+  buffer: Buffer,
+  originalName: string,
+  mimetype: string,
+): Promise<SavedFile> {
+  if (buffer.byteLength > MAX_BYTES) {
+    throw new Error(`File too large (max ${MAX_BYTES / 1024 / 1024} MB)`);
+  }
+  if (!ALLOWED_PREFIXES.some((p) => mimetype === p || mimetype.startsWith(p))) {
+    throw new Error(`File type not allowed: ${mimetype}`);
+  }
+
+  if (isCloudinaryConfigured()) {
+    const result = await uploadChatFile(buffer, originalName, mimetype);
+    return {
+      url: result.url,
+      filename: originalName,
+      mimetype,
+      size: result.bytes,
+    };
+  }
+
+  // Fallback: local disk (dev only)
+  await fs.mkdir(LOCAL_ROOT, { recursive: true });
+  const ext = path.extname(originalName) || mimeToExt(mimetype);
+  const safeBase = crypto.randomBytes(8).toString("hex");
+  const filename = `${Date.now()}-${safeBase}${ext}`;
+  const full = path.join(LOCAL_ROOT, filename);
+  await fs.writeFile(full, buffer);
+  return {
+    url: `/uploads/chat/${filename}`,
+    filename: originalName,
+    mimetype,
+    size: buffer.byteLength,
+  };
+}
+
+function mimeToExt(m: string) {
+  if (m === "image/jpeg") return ".jpg";
+  if (m === "image/png") return ".png";
+  if (m === "image/webp") return ".webp";
+  if (m === "image/gif") return ".gif";
+  if (m === "audio/webm") return ".webm";
+  if (m === "audio/mpeg") return ".mp3";
+  if (m === "audio/wav") return ".wav";
+  if (m === "audio/ogg") return ".ogg";
+  if (m === "application/pdf") return ".pdf";
+  return "";
+}

@@ -1,0 +1,298 @@
+GOLDENLIFE FINAL ARCHITECTURE CONSOLIDATION & MIGRATION ELIMINATION SPRINT
+
+OBJECTIVE
+
+GoldenLife is now pre-launch.
+
+We have already completed:
+
+* Legacy migration removal
+* Revenue engine consolidation
+* Timezone architecture hardening
+* Service catalogue consolidation
+* Provider category consolidation
+* Startup cleanup
+* Scheduler cleanup
+* Navigation audit
+* Workflow audits
+* UI/UX audits
+
+This sprint is the FINAL architecture verification and consolidation sprint.
+
+The goal is to ensure there is:
+
+* ONE source of truth
+* ZERO migration debt
+* ZERO legacy logic
+* ZERO historical upgrade logic
+* ZERO startup backfills
+* ZERO startup repair operations
+* ZERO duplicate business systems
+
+We do NOT need backward compatibility.
+
+We do NOT need fallbacks for old systems.
+
+We do NOT need historical data conversion logic.
+
+Treat the current architecture as the only valid architecture.
+
+====================================================
+PHASE 1 — FULL STARTUP AUDIT
+============================
+
+Inspect all startup code.
+
+Classify every startup operation as:
+
+1. Runtime Schema Guard
+2. Catalog Seed
+3. Bootstrap Seed
+4. Historical Migration
+5. Repair Logic
+6. Backfill Logic
+7. Legacy Compatibility Logic
+
+Remove categories:
+
+4
+5
+6
+7
+
+Only categories:
+
+1
+2
+3
+
+may remain.
+
+====================================================
+PHASE 2 — SCHEMA CONSOLIDATION
+==============================
+
+Audit every table, column, index, enum, and schema ensure.
+
+Verify:
+
+* no duplicate columns
+* no obsolete columns
+* no abandoned fields
+* no historical sprint leftovers
+* no shadow data structures
+
+Remove anything no longer used.
+
+The schema must reflect the CURRENT platform only.
+
+====================================================
+PHASE 3 — SINGLE SOURCE OF TRUTH AUDIT
+======================================
+
+Audit:
+
+Revenue Engine
+Booking Engine
+Timezone System
+Provider Categories
+Service Catalogue
+Wallets
+Payouts
+Memberships
+Packages
+Notifications
+
+Verify every domain has one authoritative source.
+
+Remove duplicate logic.
+
+Remove fallback logic.
+
+Remove secondary implementations.
+
+Remove historical compatibility layers.
+
+====================================================
+PHASE 4 — SEED SYSTEM AUDIT
+===========================
+
+Audit all seeds.
+
+Verify:
+
+* deterministic
+* idempotent
+* required
+
+Remove:
+
+* historical seeds
+* upgrade seeds
+* repair seeds
+* conversion seeds
+
+Only bootstrap/catalog seeds should remain.
+
+====================================================
+PHASE 5 — RUNTIME LOG AUDIT
+===========================
+
+Review all startup logs.
+
+Remove:
+
+* historical terminology
+* migration terminology
+* sprint terminology
+* phase terminology
+* redundant startup noise
+
+Keep only:
+
+* startup success
+* startup warning
+* startup failure
+* scheduler health
+
+Startup output should be concise and production-grade.
+
+====================================================
+PHASE 6 — DUPLICATE DATA MODEL AUDIT
+====================================
+
+Find any duplicated ownership.
+
+Examples:
+
+payment_method in multiple places
+currency in multiple places
+provider category in multiple places
+service type in multiple places
+
+For each:
+
+Identify authoritative source.
+
+Remove unnecessary duplication where safe.
+
+Document any intentional snapshots.
+
+====================================================
+PHASE 7 — PERFORMANCE REVIEW
+============================
+
+Profile startup.
+
+Identify:
+
+* slow startup tasks
+* repeated queries
+* unnecessary schema scans
+* unnecessary seed operations
+
+Optimize where possible.
+
+====================================================
+PHASE 8 — DEAD CODE ELIMINATION
+===============================
+
+Search entire codebase for:
+
+* unused services
+* unused routes
+* unused schemas
+* unused utilities
+* unused hooks
+* unused components
+* unreachable code
+* deprecated comments
+
+Remove safely.
+
+====================================================
+PHASE 9 — FINAL VALIDATION
+==========================
+
+Verify:
+
+Revenue Engine
+Timezone Engine
+Booking Engine
+Wallet System
+Membership System
+Package System
+Provider Workflow
+Patient Workflow
+Admin Workflow
+
+Confirm no old architecture paths remain.
+
+====================================================
+IMPLEMENTATION RULES
+====================
+
+Do NOT create new migrations.
+
+Do NOT create legacy fallbacks.
+
+Do NOT preserve historical upgrade paths.
+
+Do NOT create compatibility layers.
+
+Use current architecture only.
+
+If data restructuring is required:
+
+* directly align schema to current architecture
+* remove obsolete structures
+* avoid transitional code
+
+====================================================
+VALIDATION
+==========
+
+Run:
+
+npx tsc --noEmit --skipLibCheck
+
+npm run build
+
+Start application.
+
+Verify:
+
+* clean startup
+* clean scheduler
+* no migration execution
+* no repair execution
+* no backfill execution
+* no startup failures
+
+====================================================
+DELIVERABLE
+===========
+
+Create:
+
+ops/FINAL-ARCHITECTURE-CONSOLIDATION-REPORT.md
+
+Include:
+
+1. Remaining migration debt found
+2. Remaining legacy logic found
+3. Remaining duplicate systems found
+4. Dead code removed
+5. Startup simplifications
+6. Schema simplifications
+7. Performance improvements
+8. Final startup output
+9. Final architecture verdict
+
+End with one of:
+
+"MIGRATION-FREE ARCHITECTURE ACHIEVED"
+
+or
+
+list exactly what still prevents that status.

@@ -1,0 +1,459 @@
+GOLDENLIFE — BOOKING TIMEZONE & SCHEDULING FORENSIC AUDIT SPRINT
+
+READ FIRST
+
+This is a P0 scheduling integrity audit.
+
+A real-world issue has been observed:
+
+* Provider registered in Hungary
+* Patient registered in Hungary
+* Booking wizard showed next available slot in ~10 minutes
+* After booking, appointment appeared ~5 hours away
+
+This indicates a possible timezone, UTC conversion, slot-generation, relative-time, or display inconsistency.
+
+Scheduling is a core healthcare workflow.
+
+Any mismatch between:
+
+* Availability
+* Booking
+* Confirmation
+* Dashboard
+* Notifications
+* Calendars
+
+is considered a critical defect.
+
+DO NOT APPLY PATCHES IMMEDIATELY.
+
+FIRST COMPLETE A FULL FORENSIC AUDIT.
+
+No migrations.
+No backfills.
+No schema changes unless absolutely required.
+No temporary fixes.
+No hidden timezone offsets.
+No hardcoded country assumptions.
+
+====================================================
+PHASE 1 — TRACE ONE REAL BOOKING
+================================
+
+Take a real booking that reproduces the issue.
+
+Trace the same booking through:
+
+1. Slot Generation
+2. Availability API
+3. Slot Selection UI
+4. Booking Creation
+5. Booking Confirmation
+6. Patient Dashboard
+7. Provider Dashboard
+8. Admin Booking Center
+9. Notifications
+10. Calendar Exports
+11. Reminder Engine
+
+Document:
+
+* booking id
+* appointment id
+* provider id
+* patient id
+
+For every step capture:
+
+UTC Timestamp
+Stored Timestamp
+Provider Timezone
+Patient Timezone
+Browser Timezone
+Displayed Time
+Relative Time
+
+Create:
+
+ops/BOOKING-TIMEZONE-TRACE.md
+
+====================================================
+PHASE 2 — TIMEZONE INVENTORY
+============================
+
+Audit entire scheduling system.
+
+Find every usage of:
+
+Date
+new Date()
+Date.now()
+toLocaleString
+toLocaleTimeString
+toISOString
+moment
+dayjs
+luxon
+timezone conversion helpers
+formatters
+
+Document:
+
+File
+Function
+Purpose
+
+Create:
+
+ops/TIMEZONE-INVENTORY.md
+
+====================================================
+PHASE 3 — SLOT GENERATION AUDIT
+===============================
+
+Audit:
+
+Provider Office Hours
+Provider Schedule Templates
+Availability Engine
+Blocked Dates
+Time Off
+Recurring Availability
+
+Verify:
+
+Provider availability is generated using provider timezone.
+
+Not:
+
+Server timezone
+Browser timezone
+Country timezone
+
+Check:
+
+* office hours
+* schedule templates
+* recurring schedules
+* overrides
+
+====================================================
+PHASE 4 — SLOT DISPLAY AUDIT
+============================
+
+Audit booking wizard.
+
+Verify:
+
+Displayed slot time
+Relative time
+Next available slot
+
+Example:
+
+If appointment starts in 10 minutes:
+
+Booking Wizard:
+"Starts in 10 minutes"
+
+Confirmation:
+"Starts in 10 minutes"
+
+Dashboard:
+"Starts in 10 minutes"
+
+All must reference same UTC instant.
+
+No drift allowed.
+
+====================================================
+PHASE 5 — BOOKING CREATION AUDIT
+================================
+
+Verify what is stored.
+
+For every appointment capture:
+
+appointment_date
+appointment_time
+scheduled_start
+scheduled_end
+timezone fields
+provider timezone
+patient timezone
+
+Verify:
+
+UTC stored once.
+
+No double conversion.
+
+No timezone baked into timestamp.
+
+====================================================
+PHASE 6 — CONFIRMATION AUDIT
+============================
+
+Audit:
+
+Booking Confirmation Page
+
+Verify:
+
+Displayed appointment time
+Relative countdown
+Calendar invite data
+
+must match booking wizard.
+
+====================================================
+PHASE 7 — DASHBOARD AUDIT
+=========================
+
+Audit:
+
+Patient Dashboard
+Provider Dashboard
+Admin Bookings Center
+
+For the SAME booking.
+
+Verify:
+
+Displayed date
+Displayed time
+Relative countdown
+
+All must represent the same instant.
+
+====================================================
+PHASE 8 — NOTIFICATION AUDIT
+============================
+
+Audit:
+
+Email
+SMS
+Push
+In-App
+
+Verify:
+
+Appointment times
+Reminder times
+
+use correct timezone.
+
+Check:
+
+Booking Created
+Booking Confirmed
+Reminder 24h
+Reminder 1h
+Reminder 15m
+
+====================================================
+PHASE 9 — CALENDAR EXPORT AUDIT
+===============================
+
+Audit:
+
+ICS
+Google Calendar
+Outlook
+Apple Calendar
+
+Verify:
+
+Exported UTC timestamp
+
+matches actual appointment.
+
+No offset drift.
+
+====================================================
+PHASE 10 — COUNTRY VS TIMEZONE AUDIT
+====================================
+
+Verify system is NOT assuming:
+
+Hungary user => Hungary timezone
+
+India user => India timezone
+
+Country and timezone are different concepts.
+
+Rules:
+
+Country:
+billing
+currency
+regulation
+
+Timezone:
+display
+availability
+scheduling
+
+Audit entire scheduling flow for accidental country-based time calculations.
+
+====================================================
+PHASE 11 — ROOT CAUSE IDENTIFICATION
+====================================
+
+Classify every issue found.
+
+Examples:
+
+T1:
+Double UTC conversion
+
+T2:
+Browser timezone ignored
+
+T3:
+Provider timezone ignored
+
+T4:
+Relative time calculated from wrong timezone
+
+T5:
+Calendar export offset
+
+T6:
+Reminder offset
+
+T7:
+Confirmation display bug
+
+T8:
+Availability generation bug
+
+Document exact root cause.
+
+====================================================
+PHASE 12 — FIX IMPLEMENTATION
+=============================
+
+After audit:
+
+Implement proper scheduling model.
+
+Canonical Rules:
+
+Storage:
+UTC only
+
+Availability generation:
+Provider timezone
+
+Display:
+Viewer timezone
+
+Relative time:
+Viewer current time vs UTC appointment
+
+Notifications:
+Recipient timezone
+
+Calendar exports:
+UTC standard
+
+No exceptions.
+
+====================================================
+PHASE 13 — REGRESSION TEST MATRIX
+=================================
+
+Test combinations:
+
+Provider HU
+Patient HU
+Browser HU
+
+Provider HU
+Patient HU
+Browser IN
+
+Provider HU
+Patient IN
+Browser IN
+
+Provider IN
+Patient HU
+Browser IN
+
+Provider IN
+Patient IN
+Browser HU
+
+Provider US
+Patient HU
+Browser IN
+
+Provider UK
+Patient IN
+Browser HU
+
+Verify:
+
+Slot availability
+Booking
+Confirmation
+Dashboards
+Notifications
+Calendar exports
+
+all show the same appointment instant.
+
+====================================================
+PHASE 14 — FINAL CLEANUP
+========================
+
+Remove:
+
+Dead timezone helpers
+Duplicate timezone conversions
+Unused date utilities
+Legacy scheduling code
+Duplicate relative-time calculations
+
+Keep one scheduling architecture.
+
+====================================================
+FINAL REPORT
+============
+
+Create:
+
+ops/BOOKING-TIMEZONE-FORENSIC-AUDIT.md
+
+Must include:
+
+1. Full booking trace
+2. Timezone inventory
+3. Root causes found
+4. Fixes applied
+5. Files changed
+6. Scheduling architecture decision
+7. Regression matrix
+8. Remaining gaps (if any)
+
+Goal:
+
+A slot shown as "10 minutes away"
+must remain the same appointment instant everywhere:
+
+* Booking Wizard
+* Confirmation
+* Patient Dashboard
+* Provider Dashboard
+* Admin Dashboard
+* Notifications
+* Calendar Exports
+
+No timezone drift.
+No country-time confusion.
+No double conversion.
+No hidden offsets.

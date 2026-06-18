@@ -1,0 +1,390 @@
+GOLDENLIFE – PROVIDER COMMAND CENTER PRODUCTION READINESS AUDIT
+
+Objective:
+
+Perform a complete end-to-end audit of the newly redesigned Provider Command Center and all connected provider-management workflows.
+
+This is NOT a feature sprint.
+
+This is a forensic QA, UX, permissions, workflow, currency, and operational audit.
+
+Goal:
+
+Deliver a production-ready Provider Command Center with zero broken flows, zero dead actions, zero missing states, zero currency inconsistencies, and zero permission leaks.
+
+==================================================
+PHASE 1 — FULL COMMAND CENTER WALKTHROUGH
+=========================================
+
+Audit every Provider Command Center tab:
+
+1. Overview
+2. Profile
+3. KYC & Documents
+4. Services
+5. Schedule
+6. Bookings
+7. Patients
+8. Financials
+9. Staff
+10. Timeline
+11. Admin Notes
+
+For each tab verify:
+
+* Data loads correctly
+* Empty state exists
+* Loading state exists
+* Error state exists
+* Permissions enforced
+* Mobile responsive
+* No overflow issues
+* No clipped text
+* No hidden buttons
+* No dead links
+* No broken API calls
+* No console errors
+* No duplicate information
+* No raw database values shown
+
+==================================================
+PHASE 2 — PROVIDER PROFILE AUDIT
+================================
+
+Verify all profile information is present and correctly labeled.
+
+Required sections:
+
+Identity
+
+* Provider ID
+* Account ID
+* Verification status
+* Approval status
+* Risk level
+* Join date
+
+Professional
+
+* Provider category
+* Provider subcategory
+* Specialization
+* Display title
+* Education
+* Experience
+* Languages
+* Service modes
+
+Location
+
+* Practice address
+* Home visit address
+* City
+* State
+* Country
+* Timezone
+
+Currency & Billing
+
+* Native currency
+* Wallet currency
+* Lifetime earnings
+* Current wallet balance
+
+Emergency Contact
+
+* Name
+* Relationship
+* Phone
+* Email
+
+Verify:
+
+* No raw enum values
+* No snake_case labels
+* No internal database names
+* No missing fields
+* No duplicated fields
+
+==================================================
+PHASE 3 — SERVICES TAB AUDIT
+============================
+
+Verify service management.
+
+For every service:
+
+Display:
+
+* Name
+* Duration
+* Price
+* Currency
+* Status
+* Delivery modes
+
+Actions:
+
+* Suspend
+* Reactivate
+* Archive
+* Restore
+
+Verify:
+
+* Action buttons work
+* UI refreshes immediately
+* Correct permissions enforced
+* Archived services cannot be booked
+* Suspended services cannot be booked
+* Active services can be booked
+
+Currency verification:
+
+Service prices MUST use service.currency.
+
+No USD conversion.
+
+Provider-entered:
+
+5000 HUF
+
+must display:
+
+5000 HUF
+
+everywhere.
+
+==================================================
+PHASE 4 — SCHEDULE TAB AUDIT
+============================
+
+Verify:
+
+Office hours
+Schedule templates
+Overrides
+Blocked dates
+Time off periods
+
+Check:
+
+* Weekly schedule accuracy
+* Correct timezone handling
+* Empty schedule states
+* Mobile layout
+* Readability
+
+Verify data matches actual provider schedule data.
+
+==================================================
+PHASE 5 — FINANCIALS AUDIT
+==========================
+
+CRITICAL
+
+Verify every financial number.
+
+Rules:
+
+Admin financial reporting:
+USD
+
+Provider operational pricing:
+Provider currency
+
+Booking prices:
+Booking currency
+
+Patient prices:
+Patient currency
+
+Check:
+
+* Revenue
+* Earnings
+* Wallet
+* Payouts
+* Booking totals
+* Refunds
+* Platform fees
+* Discounts
+* Taxes
+
+Identify ANY remaining currency leaks.
+
+Search entire Provider Command Center for:
+
+fmtMoney(
+formatPrice(
+formatFromUSD(
+toUSD(
+amountUsd
+currency conversion helpers
+
+Verify every usage is correct.
+
+==================================================
+PHASE 6 — BOOKINGS TAB AUDIT
+============================
+
+Verify:
+
+* Upcoming
+* Active
+* Completed
+* Cancelled
+* No-show
+* Expired
+
+Check:
+
+* Booking totals
+* Refund values
+* Platform fees
+* Payment method
+* Currency display
+
+Ensure:
+
+5000 HUF booking
+
+never displays as:
+
+$5000
+
+or
+
+1,825,000 HUF
+
+==================================================
+PHASE 7 — PATIENTS TAB AUDIT
+============================
+
+Verify:
+
+* Patient list
+* Statistics
+* Engagement metrics
+* Empty states
+* Search
+* Sorting
+
+Check:
+
+* Names
+* Counts
+* Totals
+* Filters
+
+==================================================
+PHASE 8 — STAFF TAB AUDIT
+=========================
+
+Verify:
+
+* Staff listing
+* Roles
+* Status
+* Permissions
+
+Check:
+
+* Missing data
+* Broken actions
+* Empty states
+
+==================================================
+PHASE 9 — TIMELINE AUDIT
+========================
+
+Verify:
+
+Every timeline event uses human-readable labels.
+
+Examples:
+
+booking_created → Booking Created
+provider_approved → Provider Approved
+
+No raw enums.
+
+No raw keys.
+
+No technical values.
+
+==================================================
+PHASE 10 — ACTION AUDIT
+=======================
+
+Verify every admin action:
+
+Approve
+Reject
+Request Changes
+Suspend
+Deactivate
+Enable Bookings
+Disable Bookings
+Reset Verification
+Request Documents
+Send Notification
+
+For each action:
+
+* API exists
+* Permission exists
+* Success message exists
+* Failure message exists
+* UI refreshes correctly
+* Audit trail written
+
+==================================================
+PHASE 11 — MOBILE AUDIT
+=======================
+
+Test:
+
+320px
+375px
+390px
+768px
+
+Verify:
+
+* No horizontal scroll
+* No clipped buttons
+* No overlapping cards
+* Tabs usable
+* Modals usable
+
+==================================================
+PHASE 12 — FINAL REPORT
+=======================
+
+Generate:
+
+ops/PROVIDER-COMMAND-CENTER-PRODUCTION-READINESS-AUDIT.md
+
+Include:
+
+1. Issues Found
+2. Severity
+3. Root Cause
+4. Fix Applied
+5. Verification Evidence
+6. Remaining Risks
+
+DO NOT ADD NEW FEATURES.
+
+DO NOT CREATE NEW ENDPOINTS.
+
+DO NOT CREATE FALLBACKS.
+
+DO NOT CREATE LEGACY SUPPORT.
+
+DO NOT CREATE MIGRATIONS.
+
+Use existing APIs and architecture only.
+
+Fix every issue found and verify all fixes before closing the sprint.

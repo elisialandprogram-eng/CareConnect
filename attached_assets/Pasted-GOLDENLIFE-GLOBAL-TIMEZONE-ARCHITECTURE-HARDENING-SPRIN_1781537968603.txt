@@ -1,0 +1,669 @@
+GOLDENLIFE GLOBAL TIMEZONE ARCHITECTURE HARDENING SPRINT (POST-AUDIT IMPLEMENTATION)
+
+Before making ANY changes:
+
+Read and follow:
+
+* GoldenLife Project Continuation Manual
+* GoldenLife Launch Baseline Report
+* Latest Booking Audit Report
+* Latest Scheduling UX Report
+* TIMEZONE-FORENSIC-AUDIT.md
+
+The forensic audit has already identified critical timezone architecture defects.
+
+This sprint is NOT an audit.
+
+This sprint is the implementation phase.
+
+The objective is to make GoldenLife internationally safe for scheduling, booking, reminders, countdowns, rescheduling, and appointment management.
+
+======================================================================
+NON-NEGOTIABLE RULES
+====================
+
+GoldenLife has already undergone:
+
+* Launch Baseline Cleanup
+* Legacy Removal Sprint
+* Database Reset
+* Service Catalogue Canonicalization
+* Provider Type Canonicalization
+* Booking Engine Hardening
+
+Therefore:
+
+DO NOT create legacy compatibility layers.
+
+DO NOT create migration fallbacks.
+
+DO NOT support old appointment formats.
+
+DO NOT preserve obsolete logic.
+
+DO NOT introduce dual systems.
+
+DO NOT create temporary compatibility code.
+
+DO NOT create transitional architecture.
+
+This is a clean development environment.
+
+We want ONE authoritative implementation.
+
+======================================================================
+PRE-IMPLEMENTATION AUDIT
+========================
+
+Before coding:
+
+Perform a final dependency audit.
+
+Identify every location using:
+
+* appointment.date
+* appointment.start_time
+* appointment.end_time
+* new Date()
+* Date.now()
+* local browser time assumptions
+* server-local time assumptions
+* timezone guessing
+* implicit UTC conversions
+
+Generate dependency map.
+
+This is required so no hidden timezone logic survives.
+
+======================================================================
+AUTHORITATIVE TIME ARCHITECTURE
+===============================
+
+GoldenLife must operate on one principle:
+
+Store absolute appointment moments.
+
+Display localized appointment times.
+
+Implementation target:
+
+Appointment:
+
+provider_timezone
+
+start_at_utc
+
+end_at_utc
+
+become the authoritative scheduling fields.
+
+All scheduling calculations must derive from UTC timestamps.
+
+No business logic should depend on:
+
+* date string comparisons
+* time string comparisons
+* local server time
+* browser timezone assumptions
+
+======================================================================
+APPOINTMENT MODEL HARDENING
+===========================
+
+Implement authoritative appointment timestamps.
+
+Create:
+
+provider_timezone
+
+start_at_utc
+
+end_at_utc
+
+Ensure:
+
+Appointment creation
+
+Rescheduling
+
+Slot generation
+
+Countdowns
+
+Reminders
+
+Timeline events
+
+Appointment status transitions
+
+all use UTC timestamps as source of truth.
+
+Existing text date/time fields may remain ONLY if required for display or reporting.
+
+Business logic must not depend on them.
+
+======================================================================
+PROVIDER TIMEZONE CORRECTION
+============================
+
+Audit provider timezone storage.
+
+The forensic report identified:
+
+Slot engine reads:
+
+providers.timezone
+
+Setup writes:
+
+users.timezone
+
+This inconsistency must be eliminated.
+
+Choose ONE authoritative location.
+
+Remove duplicate timezone ownership.
+
+Every provider must have one canonical timezone.
+
+Every scheduling workflow must use that same source.
+
+No fallbacks.
+
+No silent UTC defaults.
+
+No guessing.
+
+======================================================================
+PATIENT TIMEZONE HANDLING
+=========================
+
+Implement clear patient timezone handling.
+
+Determine authoritative source.
+
+Possible examples:
+
+Browser timezone
+
+Stored profile timezone
+
+Explicit user setting
+
+Document actual implementation.
+
+Apply consistently everywhere.
+
+No mixed behavior.
+
+======================================================================
+SLOT ENGINE HARDENING
+=====================
+
+Refactor slot generation.
+
+Requirements:
+
+Provider availability interpreted in provider timezone.
+
+Slots converted correctly.
+
+Slots exposed consistently.
+
+Slot filtering uses actual UTC moments.
+
+Not time strings.
+
+Not server-local time.
+
+Not browser-local time.
+
+Validate:
+
+Hungary provider
+
+India patient
+
+USA patient
+
+Australia patient
+
+All see correct appointment times.
+
+======================================================================
+PAST SLOT FILTERING FIX
+=======================
+
+Past slot filtering must operate on UTC timestamps.
+
+Never compare:
+
+"09:00"
+
+against current local time.
+
+Always compare:
+
+Actual appointment moment
+
+vs
+
+Current UTC moment.
+
+Audit every slot endpoint.
+
+Fix all occurrences.
+
+======================================================================
+COUNTDOWN SYSTEM REWRITE
+========================
+
+Fix all countdown calculations.
+
+Current audit finding:
+
+Cross-timezone countdowns are incorrect.
+
+Implementation requirements:
+
+Starts In
+
+Started Ago
+
+Completed Ago
+
+Remaining Time
+
+Elapsed Time
+
+must all calculate from:
+
+start_at_utc
+
+end_at_utc
+
+and current UTC time.
+
+Never from local wall-clock strings.
+
+Validate:
+
+Provider:
+Europe/Budapest
+
+Patient:
+Asia/Kolkata
+
+Patient:
+America/New_York
+
+Patient:
+Australia/Sydney
+
+Countdown must match reality.
+
+======================================================================
+TIMEZONE LABEL VISIBILITY
+=========================
+
+Current audit finding:
+
+Users see:
+
+09:00
+
+with no timezone context.
+
+This is unacceptable.
+
+Display timezone context wherever appointments appear.
+
+Examples:
+
+15 Jun 2026
+09:00 CEST
+
+or
+
+15 Jun 2026
+09:00 Europe/Budapest
+
+Examples:
+
+Booking Screen
+
+Appointment Confirmation
+
+Patient Dashboard
+
+Provider Dashboard
+
+Appointment Details
+
+Notifications
+
+Communication Hub
+
+Reschedule Flow
+
+Emails
+
+Reminder Messages
+
+Timeline Entries
+
+Users must always understand the appointment timezone.
+
+======================================================================
+BOOKING FLOW HARDENING
+======================
+
+When booking:
+
+Store:
+
+provider_timezone
+
+start_at_utc
+
+end_at_utc
+
+Validate all calculations.
+
+Validate all displays.
+
+Ensure appointment summaries display timezone clearly.
+
+======================================================================
+RESCHEDULE FLOW HARDENING
+=========================
+
+When proposing new times:
+
+Store and calculate using UTC.
+
+Display timezone context.
+
+Validate:
+
+Provider timezone
+
+Patient timezone
+
+Reschedule acceptance
+
+Reschedule rejection
+
+Notification generation
+
+No ambiguity allowed.
+
+======================================================================
+REMINDER CRON REWRITE
+=====================
+
+Current audit finding:
+
+UTC and local time are mixed.
+
+Audit every reminder workflow.
+
+Requirements:
+
+24h reminders
+
+48h reminders
+
+1h reminders
+
+15m reminders
+
+Preparation reminders
+
+must calculate from:
+
+start_at_utc
+
+Never:
+
+server-local time
+
+Never:
+
+mixed UTC/local calculations
+
+Eliminate all mixed behavior.
+
+======================================================================
+SCHEDULE GENERATION FIX
+=======================
+
+Current audit finding:
+
+Server midnight drives generation.
+
+Replace with provider-timezone aware generation.
+
+Provider schedule creation must respect:
+
+provider local date
+
+provider local working hours
+
+provider timezone
+
+Validate:
+
+Europe/Budapest
+
+Australia/Sydney
+
+America/New_York
+
+Asia/Kolkata
+
+======================================================================
+DAYLIGHT SAVING HARDENING
+=========================
+
+Validate and support:
+
+Europe/Budapest DST
+
+America/New_York DST
+
+Australia DST
+
+Any timezone conversion must use IANA timezone identifiers.
+
+Examples:
+
+Europe/Budapest
+
+America/New_York
+
+Australia/Sydney
+
+Asia/Kolkata
+
+Do not use fixed offsets.
+
+Do not use manual calculations.
+
+======================================================================
+CODEBASE CLEANUP
+================
+
+Remove:
+
+* Dead timezone helpers
+* Duplicate conversion utilities
+* Obsolete scheduling calculations
+* Legacy date comparison logic
+* String-based appointment calculations
+* Redundant timezone fields
+* Orphan timezone code
+
+Only if safe.
+
+No residues.
+
+No zombie logic.
+
+No fallback code.
+
+======================================================================
+PRE-EXISTING DEFECT REMEDIATION
+===============================
+
+While implementing:
+
+Audit for:
+
+* Slot bugs
+* Reminder bugs
+* Countdown bugs
+* Display bugs
+* Notification bugs
+* Reschedule bugs
+* Schedule generation bugs
+* UTC conversion bugs
+* DST bugs
+* Runtime errors
+* TypeScript errors
+* Build issues
+
+Fix all discovered issues.
+
+Do not merely report them.
+
+======================================================================
+VALIDATION MATRIX
+=================
+
+Fully test:
+
+Scenario A
+
+Provider:
+Europe/Budapest
+
+Patient:
+Asia/Kolkata
+
+---
+
+Scenario B
+
+Provider:
+Europe/Budapest
+
+Patient:
+America/New_York
+
+---
+
+Scenario C
+
+Provider:
+Australia/Sydney
+
+Patient:
+Europe/Budapest
+
+---
+
+Scenario D
+
+Provider:
+Asia/Kolkata
+
+Patient:
+Europe/Budapest
+
+---
+
+Validate:
+
+* Slot visibility
+* Booking
+* Countdowns
+* Rescheduling
+* Reminders
+* Notifications
+* Appointment display
+* Timeline entries
+* Dashboard views
+
+======================================================================
+BUILD VALIDATION
+================
+
+Run:
+
+npm run build
+
+npx tsc --noEmit --skipLibCheck
+
+Zero TypeScript errors.
+
+Zero build errors.
+
+======================================================================
+REPORT REQUIRED
+===============
+
+Create ONE implementation report.
+
+Include:
+
+* Architecture Changes
+* Timezone Source of Truth
+* Appointment Model Changes
+* Slot Engine Changes
+* Reminder Changes
+* Countdown Changes
+* Display Improvements
+* DST Validation
+* Cleanup Performed
+* Bugs Fixed
+* Validation Results
+* Remaining Risks
+
+======================================================================
+SUCCESS CRITERIA
+================
+
+Success is achieved only if:
+
+✓ Hungary ↔ India scheduling works correctly
+
+✓ Hungary ↔ USA scheduling works correctly
+
+✓ Australia ↔ Europe scheduling works correctly
+
+✓ Provider timezone is authoritative
+
+✓ UTC timestamps are authoritative
+
+✓ Countdowns are correct globally
+
+✓ Reminders are correct globally
+
+✓ Rescheduling is correct globally
+
+✓ Timezone labels are visible everywhere
+
+✓ DST transitions are handled correctly
+
+✓ No legacy logic remains
+
+✓ No fallback logic remains
+
+✓ No timezone ambiguity remains
+
+✓ Build passes
+
+✓ TypeScript passes
+
+✓ GoldenLife is safe for international healthcare scheduling and operations.

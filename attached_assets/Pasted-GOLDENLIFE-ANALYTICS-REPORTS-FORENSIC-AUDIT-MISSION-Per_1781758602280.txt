@@ -1,0 +1,437 @@
+GOLDENLIFE – ANALYTICS & REPORTS FORENSIC AUDIT
+
+MISSION
+
+Perform a complete forensic audit of every analytics, reporting, KPI, dashboard, export, chart, graph, trend, summary card, and metric in the platform.
+
+This is NOT a redesign sprint.
+
+This is NOT a feature sprint.
+
+This is a forensic investigation to determine:
+
+* What is real
+* What is partially correct
+* What is duplicated
+* What is stale
+* What is fake/mock
+* What is broken
+* What is inconsistent
+* What uses the wrong data source
+
+The objective is to create a single source of truth for reporting across the entire platform.
+
+====================================================
+READ FIRST
+==========
+
+Read:
+
+* ops/FINAL-ARCHITECTURE-CONSOLIDATION-REPORT.md
+* ops/REVENUE-ENGINE-FORENSIC-AUDIT.md
+* ops/FINAL-PRICING-CONSOLIDATION-REPORT.md
+* ops/CURRENCY-LEAK-ERADICATION-REPORT.md
+* ops/FINAL-CURRENCY-BOUNDARY-VERIFICATION-REPORT.md
+* ops/PROVIDER-COMMAND-CENTER-PRODUCTION-READINESS-AUDIT.md
+
+Review:
+
+* Admin dashboards
+* Provider dashboards
+* Patient dashboards
+* Financial dashboards
+* Revenue dashboards
+* Analytics tabs
+* Reports pages
+* Exports
+* Scheduled reports
+* KPI cards
+* Charts
+* Graphs
+* Trend calculations
+
+====================================================
+RULES
+=====
+
+DO NOT IMPLEMENT NEW FEATURES.
+
+DO NOT REDESIGN UI.
+
+DO NOT CREATE NEW ENDPOINTS.
+
+DO NOT CREATE NEW DATABASE TABLES.
+
+DO NOT CREATE FALLBACKS.
+
+DO NOT CREATE LEGACY SUPPORT.
+
+DO NOT CREATE MIGRATIONS.
+
+This sprint is AUDIT ONLY.
+
+====================================================
+PHASE 1 — INVENTORY
+===================
+
+Create a complete inventory.
+
+Find every:
+
+* Dashboard
+* Analytics page
+* Reporting page
+* KPI card
+* Graph
+* Chart
+* Export
+* CSV export
+* PDF export
+* Summary widget
+* Revenue widget
+* Operational metric
+
+For each item record:
+
+Location
+File
+API
+Query
+Source table(s)
+
+====================================================
+PHASE 2 — ADMIN ANALYTICS AUDIT
+===============================
+
+Audit every admin metric.
+
+Examples:
+
+Platform Revenue
+Total Bookings
+Completed Bookings
+Cancelled Bookings
+Providers
+Patients
+Growth
+Monthly Revenue
+Active Users
+Wallet Activity
+Refunds
+Payouts
+
+For every metric determine:
+
+A. Source tables
+
+B. Formula
+
+C. Time range
+
+D. Currency
+
+E. Accuracy
+
+Classify:
+
+REAL
+PARTIAL
+DUPLICATE
+BROKEN
+STALE
+MOCK
+
+====================================================
+PHASE 3 — PROVIDER ANALYTICS AUDIT
+==================================
+
+Audit:
+
+Overview
+Revenue
+Appointments
+Patients
+Services
+Growth
+Performance
+Ratings
+
+For every card:
+
+Trace:
+
+UI
+API
+Service
+Query
+Table
+
+Verify calculations.
+
+Examples:
+
+Revenue
+Completion %
+Cancellation %
+No-show %
+Retention %
+Repeat patients
+Average booking value
+
+====================================================
+PHASE 4 — PATIENT ANALYTICS AUDIT
+=================================
+
+Audit:
+
+Appointments
+Spending
+Memberships
+Packages
+Activity
+History
+Reports
+
+Verify:
+
+Counts
+Totals
+Percentages
+Progress indicators
+
+====================================================
+PHASE 5 — FINANCIAL REPORTING AUDIT
+===================================
+
+CRITICAL
+
+Audit:
+
+Admin Financials
+Provider Earnings
+Wallet Reports
+Payout Reports
+Revenue Reports
+Refund Reports
+Invoice Reports
+
+Verify:
+
+Revenue source
+Booking source
+Commission source
+Platform fee source
+Wallet source
+
+Confirm:
+
+Admin reporting = USD
+
+Provider operational reporting = native currency where applicable
+
+No currency leakage.
+
+====================================================
+PHASE 6 — EXPORT AUDIT
+======================
+
+Audit all:
+
+CSV exports
+PDF exports
+Excel exports
+
+Verify:
+
+Columns
+Values
+Filters
+Date ranges
+Currencies
+
+Check for:
+
+Missing fields
+Wrong totals
+Broken exports
+Incorrect formatting
+
+====================================================
+PHASE 7 — KPI DUPLICATION AUDIT
+===============================
+
+Identify duplicate metrics.
+
+Example:
+
+Revenue card A
+Revenue card B
+Revenue chart C
+
+May all calculate revenue differently.
+
+Find:
+
+Duplicate KPIs
+Conflicting totals
+Different formulas
+
+List all conflicts.
+
+====================================================
+PHASE 8 — TREND & CHART AUDIT
+=============================
+
+Audit every graph.
+
+Verify:
+
+Time windows
+Aggregation logic
+Grouping logic
+
+Examples:
+
+Daily
+Weekly
+Monthly
+Quarterly
+
+Check:
+
+Missing data
+Double counting
+Wrong joins
+Wrong filters
+
+====================================================
+PHASE 9 — PERMISSION AUDIT
+==========================
+
+Verify:
+
+Admin analytics visible only to admins.
+
+Provider analytics only to provider.
+
+Patient analytics only to patient.
+
+No permission leaks.
+
+====================================================
+PHASE 10 — PERFORMANCE AUDIT
+============================
+
+Identify:
+
+N+1 queries
+Duplicate API calls
+Expensive dashboard loads
+Redundant calculations
+
+Flag:
+
+LOW
+MEDIUM
+HIGH
+
+====================================================
+PHASE 11 — SINGLE SOURCE OF TRUTH AUDIT
+=======================================
+
+For every major metric identify:
+
+Official source table
+
+Official calculation
+
+Official currency
+
+Official owner
+
+Example:
+
+Platform Revenue
+
+Source:
+payments
+
+Formula:
+sum(successful payment amounts)
+
+Currency:
+USD
+
+Owner:
+Admin Finance
+
+Create this mapping for every KPI.
+
+====================================================
+PHASE 12 — FINAL REPORT
+=======================
+
+Create:
+
+ops/ANALYTICS-REPORTS-FORENSIC-AUDIT.md
+
+Include:
+
+SECTION 1
+Complete dashboard inventory
+
+SECTION 2
+Metrics inventory
+
+SECTION 3
+Real metrics
+
+SECTION 4
+Partial metrics
+
+SECTION 5
+Broken metrics
+
+SECTION 6
+Duplicate metrics
+
+SECTION 7
+Mock/stale metrics
+
+SECTION 8
+Currency findings
+
+SECTION 9
+Export findings
+
+SECTION 10
+Performance findings
+
+SECTION 11
+Recommended consolidation architecture
+
+SECTION 12
+Priority matrix
+
+P0 Critical
+P1 High
+P2 Medium
+P3 Low
+
+====================================================
+SUCCESS CRITERIA
+================
+
+At completion we must know:
+
+* Every dashboard
+* Every metric
+* Every KPI
+* Every chart
+* Every export
+* Every formula
+* Every source table
+* Every currency
+* Every duplication
+
+Only after this report is completed should implementation of a consolidated reporting architecture begin.

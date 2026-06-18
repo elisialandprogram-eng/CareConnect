@@ -1,0 +1,641 @@
+GOLDENLIFE REVENUE & PRICING ARCHITECTURE FINALIZATION SPRINT
+AUTHORITATIVE IMPLEMENTATION DIRECTIVE
+
+READ THIS ENTIRE PROMPT BEFORE MAKING ANY CHANGE.
+
+====================================================
+PRE-IMPLEMENTATION REQUIREMENTS
+===============================
+
+DO NOT START CODING IMMEDIATELY.
+
+FIRST:
+
+1. Read the following reports completely:
+
+* ops/REVENUE-ENGINE-FORENSIC-AUDIT.md
+* ops/TIMEZONE-FORENSIC-AUDIT.md
+* ops/GoldenLife-Launch-Baseline-v1-Report.md
+* Any revenue, earnings, wallet, payout, membership, package, or financial reports generated previously
+
+2. Read all related implementation files before changing anything.
+
+At minimum inspect:
+
+Backend:
+
+* server/routes.ts
+* server/routes/appointment.routes.ts
+* server/routes/payment.routes.ts
+* server/routes/provider.routes.ts
+* server/routes/admin*.ts
+* server/routes/wallet*.ts
+* server/routes/membership*.ts
+* server/routes/package*.ts
+* server/routes/catalog*.ts
+* server/storage/*
+* server/lib/*
+* server/services/*
+* server/db.ts
+
+Frontend:
+
+* booking canvas
+* booking wizard
+* checkout flow
+* payment flow
+* wallet flow
+* membership screens
+* package screens
+* provider earnings screens
+* admin financial screens
+* admin analytics screens
+
+Database:
+
+* shared/schema.ts
+* all pricing-related tables
+* all financial tables
+
+3. Build a complete map before modifying code.
+
+Document:
+
+Current Pricing Path
+Current Fee Path
+Current Commission Path
+Current Membership Path
+Current Package Path
+Current Wallet Path
+Current Refund Path
+Current Payout Path
+
+DO NOT IMPLEMENT UNTIL YOU FULLY UNDERSTAND THE CURRENT SYSTEM.
+
+====================================================
+IMPORTANT PROJECT CONTEXT
+=========================
+
+GoldenLife is PRE-LAUNCH.
+
+There is NO production user base.
+
+Historical data preservation is NOT required.
+
+Backward compatibility is NOT required.
+
+Legacy financial behavior is NOT required.
+
+Migration preservation is NOT required.
+
+Fallback pricing systems are NOT required.
+
+Old revenue paths are NOT required.
+
+If old logic conflicts with new architecture:
+
+REMOVE THE OLD LOGIC.
+
+Do NOT build adapters.
+
+Do NOT build compatibility layers.
+
+Do NOT build temporary bridges.
+
+Do NOT leave dead code.
+
+Do NOT leave legacy code.
+
+Do NOT leave fallback logic.
+
+====================================================
+OBJECTIVE
+=========
+
+Establish ONE permanent pricing architecture.
+
+ONE revenue engine.
+
+ONE calculation path.
+
+ONE source of truth.
+
+No alternate paths.
+
+No duplicated calculations.
+
+No currency ambiguity.
+
+No exchange-rate-driven customer pricing.
+
+====================================================
+FINAL GOLDENLIFE REVENUE RULES
+==============================
+
+RULE 1
+
+Provider service prices are defined in provider currency.
+
+Examples:
+
+Provider Currency = HUF
+
+Consultation = 5000 HUF
+
+Home Visit Add-on = 2000 HUF
+
+Video Add-on = 0 HUF
+
+These values become the source of truth.
+
+====================================================
+RULE 2
+
+ALL BOOKING CALCULATIONS MUST OCCUR IN BOOKING CURRENCY.
+
+Forbidden:
+
+Provider Currency
+→ USD
+→ Fee Calculation
+→ Convert Back
+
+Remove this everywhere.
+
+Allowed:
+
+Base Price
++
+Visit Type Charges
++
+Optional Add-ons
+================
+
+Subtotal
+
+Commission
+Platform Fees
+Taxes
+Discounts
+
+All calculated in booking currency.
+
+====================================================
+RULE 3
+
+REMOVE ALL FIXED USD FEES.
+
+Audit entire codebase.
+
+Find:
+
+Fixed Platform Fees
+Fixed Booking Fees
+Fixed Processing Fees
+Fixed Service Fees
+Fixed Revenue Fees
+
+Replace with:
+
+Percentage-based calculations
+
+Examples:
+
+Commission %
+Platform Fee %
+Service Fee %
+Processing Fee %
+
+No customer-facing fee may depend on exchange-rate changes.
+
+====================================================
+RULE 4
+
+HOME VISIT FEES
+
+Must belong to the service.
+
+Stored in provider currency.
+
+Calculated in booking currency.
+
+No USD conversion.
+
+====================================================
+RULE 5
+
+VIDEO VISIT FEES
+
+Must belong to the service.
+
+Stored in provider currency.
+
+Calculated in booking currency.
+
+No USD conversion.
+
+====================================================
+RULE 6
+
+BOOKING SNAPSHOT STANDARDIZATION
+
+Every booking must permanently store:
+
+base_price
+
+home_visit_fee
+
+video_fee
+
+service_addons_total
+
+subtotal
+
+commission_percent
+commission_amount
+
+platform_fee_percent
+platform_fee_amount
+
+processing_fee_percent
+processing_fee_amount
+
+tax_percent
+tax_amount
+
+discount_amount
+
+final_total
+
+currency
+
+booking_currency
+
+provider_currency
+
+patient_currency
+
+exchange_rate_used
+
+exchange_rate_timestamp
+
+final_total_usd
+
+pricing_breakdown
+
+This becomes the authoritative financial record.
+
+Once booking exists:
+
+NEVER RECALCULATE.
+
+NEVER MUTATE.
+
+NEVER UPDATE HISTORICAL VALUES.
+
+====================================================
+RULE 7
+
+USD BECOMES REPORTING CURRENCY ONLY.
+
+USD is forbidden from:
+
+Service Pricing
+
+Membership Pricing
+
+Package Pricing
+
+Commission Calculation
+
+Platform Fee Calculation
+
+Booking Calculation
+
+USD may only exist for:
+
+Reporting
+
+Analytics
+
+Accounting
+
+Financial Exports
+
+Provider Revenue Reports
+
+Executive Dashboards
+
+====================================================
+RULE 8
+
+MEMBERSHIPS
+
+Stop using live exchange-rate pricing.
+
+Implement fixed local pricing.
+
+Example:
+
+Gold Membership
+
+USD = 29
+EUR = 27
+GBP = 24
+HUF = 10990
+INR = 2490
+AED = 109
+
+Users always see configured local pricing.
+
+Exchange-rate changes must not affect membership pricing.
+
+====================================================
+RULE 9
+
+PACKAGES
+
+Stop using live exchange-rate pricing.
+
+Implement fixed local pricing.
+
+Example:
+
+Package A
+
+USD = 100
+EUR = 92
+GBP = 85
+HUF = 37990
+INR = 8490
+AED = 379
+
+Users always see configured local pricing.
+
+Exchange-rate changes must not affect package pricing.
+
+====================================================
+RULE 10
+
+EXCHANGE RATE USAGE
+
+Exchange rates may only be used for:
+
+Display conversion
+
+Analytics
+
+Financial reporting
+
+Accounting
+
+Snapshot creation
+
+Exchange rates must NEVER alter:
+
+Service pricing
+
+Booking pricing
+
+Commission calculations
+
+Package pricing
+
+Membership pricing
+
+Provider earnings already booked
+
+====================================================
+RULE 11
+
+PROVIDER EARNINGS
+
+Keep current snapshot architecture.
+
+Provider earnings must originate from booking snapshots.
+
+Never recompute earnings later using current exchange rates.
+
+Never recompute historical commission amounts.
+
+====================================================
+RULE 12
+
+REFUNDS
+
+Refunds must use the original booking snapshot.
+
+Not current exchange rates.
+
+Not current pricing.
+
+Not current commission structures.
+
+Refund calculations must remain deterministic.
+
+====================================================
+RULE 13
+
+PAYOUTS
+
+Payouts must originate from locked provider earnings records.
+
+Not dynamic recalculation.
+
+Not current exchange rates.
+
+Not current service pricing.
+
+====================================================
+RULE 14
+
+REMOVE DUPLICATE REVENUE ENGINES
+
+Search entire codebase.
+
+Identify:
+
+Duplicate calculators
+
+Legacy pricing helpers
+
+Unused financial utilities
+
+Alternative fee paths
+
+Fallback fee logic
+
+Fallback currency logic
+
+Temporary calculation helpers
+
+Dead revenue code
+
+Delete all of them.
+
+There must be one authoritative calculation engine.
+
+====================================================
+RULE 15
+
+REMOVE LEGACY RESIDUE
+
+Remove:
+
+Unused columns
+
+Unused helpers
+
+Unused interfaces
+
+Unused services
+
+Unused route handlers
+
+Unused calculations
+
+Unused pricing utilities
+
+Unused exchange-rate fallbacks
+
+Unused financial code
+
+Only if confirmed unused.
+
+====================================================
+VALIDATION REQUIREMENTS
+=======================
+
+After implementation:
+
+Run full audit.
+
+Run TypeScript validation.
+
+Run production build.
+
+Verify:
+
+Patient Registration
+
+Provider Registration
+
+Service Creation
+
+Service Editing
+
+Booking Creation
+
+Clinic Booking
+
+Home Visit Booking
+
+Video Booking
+
+Wallet Payments
+
+Direct Payments
+
+Membership Purchases
+
+Package Purchases
+
+Refund Flow
+
+Provider Earnings
+
+Provider Payouts
+
+Admin Financial Reports
+
+Admin Revenue Reports
+
+Admin Analytics
+
+CSV Exports
+
+PDF Exports
+
+Timezone-safe booking calculations
+
+Multi-currency booking calculations
+
+====================================================
+FINAL QUALITY CHECK
+===================
+
+Answer all questions:
+
+1. Can service prices change because USD changed?
+   Expected: NO
+
+2. Can home visit fees change because USD changed?
+   Expected: NO
+
+3. Can video visit fees change because USD changed?
+   Expected: NO
+
+4. Can membership prices change because USD changed?
+   Expected: NO
+
+5. Can package prices change because USD changed?
+   Expected: NO
+
+6. Can commission amounts change after booking?
+   Expected: NO
+
+7. Can provider earnings change after booking?
+   Expected: NO
+
+8. Is there only one pricing engine?
+   Expected: YES
+
+9. Is there only one revenue calculation path?
+   Expected: YES
+
+10. Is there any legacy pricing system left?
+    Expected: NO
+
+====================================================
+DELIVERABLE
+===========
+
+Create:
+
+ops/REVENUE-PRICING-FINALIZATION-REPORT.md
+
+Include:
+
+Executive Summary
+
+Files Reviewed
+
+Audits Reviewed
+
+Architecture Before
+
+Architecture After
+
+Removed Legacy Logic
+
+Removed Fallback Logic
+
+Removed Duplicate Calculators
+
+Database Changes
+
+Revenue Formula
+
+Commission Formula
+
+Membership Pricing Model
+
+Package Pricing Model
+
+Validation Results
+
+Remaining Risks
+
+Open Questions
+
+Do not stop until the entire pricing architecture is standardized and there is exactly one authoritative revenue model across the platform.

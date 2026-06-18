@@ -1,0 +1,433 @@
+GOLDENLIFE FINAL CURRENCY BOUNDARY VERIFICATION & CONSOLIDATION SPRINT
+
+OBJECTIVE
+
+This is NOT another pricing audit.
+
+Previous pricing audits have already fixed the major currency leaks.
+
+This sprint is focused on:
+
+1. Eliminating the final known currency leaks.
+2. Verifying formatter usage across the entire codebase.
+3. Establishing one permanent currency-display standard.
+4. Removing dead currency logic.
+5. Locking the platform into a stable post-audit state.
+
+====================================================
+MANDATORY READING
+=================
+
+Read before making any changes:
+
+ops/REVENUE-ENGINE-FORENSIC-AUDIT.md
+
+ops/PRICING-ENGINE-FORENSIC-AUDIT.md
+
+ops/FINAL-PRICING-CONSOLIDATION-REPORT.md
+
+ops/CURRENCY-LEAK-ERADICATION-REPORT.md
+
+Understand all prior decisions before changing anything.
+
+====================================================
+AUTHORITATIVE CURRENCY RULES
+============================
+
+RULE 1
+
+services.price
+
+stores native provider price.
+
+Example:
+
+5000 HUF
+
+must remain:
+
+5000 HUF
+
+forever.
+
+====================================================
+
+RULE 2
+
+User-facing values must NEVER be treated as USD.
+
+Examples:
+
+Services
+Bookings
+Invoices
+Refunds
+Travel Fees
+Platform Fees
+Packages
+Memberships
+Gift Cards
+
+must display using:
+
+formatInCurrency()
+
+====================================================
+
+RULE 3
+
+USD formatters are ONLY allowed for accounting.
+
+Examples:
+
+Marketplace Ledger
+
+Revenue Intelligence
+
+Provider Earnings Ledger
+
+Platform Revenue
+
+Payout Accounting
+
+Admin Financial Reports
+
+====================================================
+
+RULE 4
+
+Admin operational screens may show BOTH:
+
+Booking Amount:
+5000 HUF
+
+Accounting Snapshot:
+$13.70 USD
+
+====================================================
+PHASE 1 — FIX KNOWN REMAINING LEAKS
+===================================
+
+Investigate and fix:
+
+1.
+
+services.tsx
+
+Catalog starting prices.
+
+Verify:
+
+No USD formatter is used.
+
+Display native currency only.
+
+---
+
+2.
+
+provider-profile.tsx
+
+Service price display.
+
+Verify:
+
+Every service price uses service.currency.
+
+No conversion.
+
+---
+
+3.
+
+provider-earnings.tsx
+
+promoDiscount column.
+
+Verify:
+
+Displayed in correct booking currency.
+
+No USD assumption.
+
+====================================================
+PHASE 2 — FULL FORMATTER INVENTORY
+==================================
+
+Search entire codebase.
+
+Audit every occurrence of:
+
+fmtMoney(
+
+formatPrice(
+
+formatFromUSD(
+
+toUSD(
+
+fromUSD(
+
+amountUsd
+
+priceUsd
+
+grossRevenueUsd
+
+netRevenueUsd
+
+====================================================
+
+For each occurrence classify:
+
+SAFE
+
+NEEDS CURRENCY CONTEXT
+
+REMOVE
+
+====================================================
+
+Create table:
+
+File
+
+Line
+
+Formatter
+
+Classification
+
+Reason
+
+====================================================
+PHASE 3 — FORMATTER CONSOLIDATION
+=================================
+
+Verify only approved patterns remain.
+
+Approved:
+
+formatInCurrency()
+
+for:
+
+Services
+
+Bookings
+
+Invoices
+
+Refunds
+
+Memberships
+
+Packages
+
+Gift Cards
+
+Wallet Displays
+
+Provider Displays
+
+Patient Displays
+
+---
+
+fmtMoney()
+
+ONLY for:
+
+Accounting
+
+Revenue Ledger
+
+Marketplace Ledger
+
+Platform Revenue
+
+Payout Accounting
+
+Admin Financial Accounting
+
+====================================================
+PHASE 4 — DEAD CODE REMOVAL
+===========================
+
+Remove:
+
+Unused currency helpers
+
+Unused conversion helpers
+
+Commented-out currency code
+
+Legacy conversion utilities
+
+Duplicate formatters
+
+Abandoned pricing logic
+
+Anything no longer referenced
+
+====================================================
+PHASE 5 — REAL FLOW VALIDATION
+==============================
+
+Create test scenarios:
+
+Scenario A
+
+5000 HUF
+
+Scenario B
+
+100 EUR
+
+Scenario C
+
+25000 INR
+
+====================================================
+
+Verify end-to-end:
+
+Provider Service Creation
+
+Provider Service List
+
+Provider Profile
+
+Patient Search
+
+Patient Booking
+
+Available Slots
+
+Booking Wizard
+
+Booking Confirmation
+
+Appointment Detail
+
+Refund Dialog
+
+Patient Invoice
+
+Provider Invoice
+
+Provider Earnings
+
+Provider Analytics
+
+Admin Bookings
+
+Admin Reports
+
+Admin Financials
+
+Master Reports
+
+====================================================
+
+For every screen verify:
+
+Displayed Amount
+
+Currency Symbol
+
+Currency Code
+
+Accounting Snapshot
+
+All reconcile correctly.
+
+====================================================
+PHASE 6 — ADMIN ACCOUNTING VALIDATION
+=====================================
+
+Verify admin financial screens.
+
+Rule:
+
+Operational booking views
+
+show booking currency.
+
+Financial accounting views
+
+show USD.
+
+Never show:
+
+5000 HUF
+
+as
+
+5000 USD.
+
+====================================================
+PHASE 7 — FINAL CURRENCY BOUNDARY ENFORCEMENT
+=============================================
+
+Document final permanent rules.
+
+Create:
+
+Currency Display Standards
+
+Currency Storage Standards
+
+Currency Conversion Standards
+
+Formatter Usage Standards
+
+Future Development Rules
+
+====================================================
+PHASE 8 — CLEANUP
+=================
+
+Remove:
+
+Temporary audit code
+
+Debug logs
+
+Currency investigation code
+
+Unused test helpers
+
+Legacy pricing comments
+
+Old conversion references
+
+====================================================
+FINAL REPORT
+============
+
+Create:
+
+ops/FINAL-CURRENCY-BOUNDARY-VERIFICATION-REPORT.md
+
+Include:
+
+1. Remaining Leaks Found
+2. Fixes Applied
+3. Formatter Inventory
+4. Dead Code Removed
+5. Validation Results
+6. Accounting Verification
+7. Final Currency Rules
+
+Final conclusion must explicitly state:
+
+ALL KNOWN USER-FACING CURRENCY LEAKS ELIMINATED
+
+ALL FORMATTERS VERIFIED
+
+NATIVE PRICING CONSISTENT ACROSS PLATFORM
+
+USD ACCOUNTING BOUNDARIES VERIFIED
+
+NO LEGACY CURRENCY DISPLAY LOGIC REMAINS

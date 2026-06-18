@@ -1,0 +1,357 @@
+GOLDENLIFE CRITICAL PRICING ENGINE FORENSIC AUDIT
+
+CRITICAL BUG
+
+Example:
+
+Provider Currency:
+HUF
+
+Provider creates service:
+
+5000 HUF
+
+Expected:
+
+Booking system uses:
+
+5000 HUF
+
+Actual behavior observed:
+
+Some booking flows behave as if:
+
+5000 = USD
+
+and then convert:
+
+5000 USD → HUF
+
+creating massively inflated prices.
+
+This is a CRITICAL revenue-engine defect.
+
+We recently changed the architecture so that:
+
+services.price = native amount
+services.currency = native currency
+
+Any code still assuming:
+
+services.price = USD
+
+is now incorrect.
+
+====================================================
+OBJECTIVE
+=========
+
+Perform a complete forensic audit of every pricing path.
+
+Find every location where:
+
+service.price
+
+is assumed to be USD.
+
+Fix all occurrences.
+
+No partial fixes.
+
+No formatter-only fixes.
+
+Audit business logic, API logic, calculation logic, storage logic, and display logic.
+
+====================================================
+PHASE 1 — TRACE A REAL SERVICE
+==============================
+
+Create test service:
+
+Currency: HUF
+Price: 5000
+
+Trace this value through:
+
+Database
+API
+React Query
+Booking Wizard
+Booking Canvas
+Quote APIs
+Appointment Creation
+Wallet Deduction
+Invoice Creation
+Provider Earnings
+Financial Snapshots
+
+At every step document:
+
+Input Value
+Currency
+Output Value
+Currency
+
+Identify the exact point where:
+
+5000 HUF
+
+becomes
+
+5000 USD
+
+or is treated as USD.
+
+====================================================
+PHASE 2 — AUDIT ALL PRICE CALCULATIONS
+======================================
+
+Search entire codebase for:
+
+fromUSD
+toUSD
+formatFromUSD
+convertToUSD
+convertFromUSD
+priceUsd
+amountUsd
+totalUsd
+servicePriceUsd
+appointmentPriceUsd
+feeUsd
+grossRevenueUsd
+netRevenueUsd
+
+Document every usage.
+
+Classify:
+
+A. Accounting-only
+B. Admin-only
+C. Booking logic
+D. Provider UI
+E. Patient UI
+
+Any booking logic still assuming service.price is USD must be fixed.
+
+====================================================
+PHASE 3 — BOOKING ENGINE AUDIT
+==============================
+
+Audit:
+
+Book Wizard
+Booking Canvas
+Quote Generation
+Appointment Pricing
+Appointment Creation
+
+Verify:
+
+Base Service Price
+Travel Fee
+Visit Fee
+Platform Fee
+Payment Fee
+Promo Discounts
+Package Discounts
+Membership Benefits
+
+All calculations must begin with:
+
+service.price
+service.currency
+
+Never assume USD.
+
+====================================================
+PHASE 4 — SERVICE PRICE CONTRACT
+================================
+
+Define authoritative contract:
+
+# services.price
+
+native amount
+
+# services.currency
+
+native currency
+
+Verify every consumer respects this contract.
+
+Any code that assumes:
+
+services.price = USD
+
+must be rewritten.
+
+====================================================
+PHASE 5 — PACKAGE AUDIT
+=======================
+
+Audit:
+
+Package Creation
+Package Purchase
+Package Savings
+Package Redemption
+
+Verify:
+
+Native pricing only.
+
+No USD assumptions.
+
+====================================================
+PHASE 6 — MEMBERSHIP AUDIT
+==========================
+
+Audit:
+
+Membership Creation
+Membership Purchase
+Membership Discounts
+Membership Usage
+
+Verify:
+
+Native pricing only.
+
+====================================================
+PHASE 7 — GIFT CARD AUDIT
+=========================
+
+Audit:
+
+Gift Card Purchase
+Gift Card Redemption
+Wallet Credits
+
+Verify:
+
+Native pricing only.
+
+====================================================
+PHASE 8 — WALLET AUDIT
+======================
+
+Audit:
+
+Wallet Topups
+Wallet Charges
+Wallet Refunds
+
+Verify:
+
+Currency assumptions are correct.
+
+No hidden service-price conversions.
+
+====================================================
+PHASE 9 — INVOICE AUDIT
+=======================
+
+Audit:
+
+Invoice Creation
+Invoice Display
+Invoice Export
+
+Verify:
+
+Displayed values use booking currency snapshots.
+
+No recalculation.
+
+====================================================
+PHASE 10 — APPOINTMENT SNAPSHOT AUDIT
+=====================================
+
+Verify snapshots contain:
+
+booking_currency
+service_price
+travel_fee
+platform_fee
+discounts
+final_total
+
+in authoritative values.
+
+No derived recalculation later.
+
+====================================================
+PHASE 11 — REMOVE LEGACY USD ASSUMPTIONS
+========================================
+
+Find and remove:
+
+Legacy service-price-as-USD logic
+
+Old conversion helpers
+
+Obsolete booking calculations
+
+Duplicate pricing paths
+
+Unused currency assumptions
+
+====================================================
+PHASE 12 — VALIDATION MATRIX
+============================
+
+Test:
+
+5000 HUF
+100 EUR
+20000 INR
+100 AED
+
+Verify:
+
+Search
+Provider Profile
+Service List
+Booking Wizard
+Booking Confirmation
+Invoice
+Wallet
+Appointment Details
+
+Prices remain correct.
+
+No inflated conversions.
+
+No USD assumptions.
+
+====================================================
+FINAL VALIDATION
+================
+
+Run:
+
+npx tsc --noEmit --skipLibCheck
+
+npm run build
+
+Create:
+
+ops/PRICING-ENGINE-FORENSIC-AUDIT.md
+
+Include:
+
+1. Root Cause
+2. Every Incorrect USD Assumption
+3. Every File Changed
+4. Every Calculation Path Audited
+5. Validation Results
+6. Final Pricing Contract
+
+Conclude with:
+
+SERVICE PRICE IS NATIVE CURRENCY
+
+NO BUSINESS LOGIC ASSUMES USD
+
+PRICING ENGINE CONSOLIDATED

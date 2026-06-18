@@ -1,0 +1,526 @@
+# GOLDENLIFE APPOINTMENT EXPERIENCE ENHANCEMENT & BOOKING UX HARDENING SPRINT
+
+Before making any changes, read and follow:
+
+* GoldenLife Project Continuation Manual
+* GoldenLife-Forensic-Platform-Assessment-v1.md
+* Latest Launch Baseline Report
+* Latest Booking Audit Report
+
+GoldenLife booking, scheduling, wallet payments, rescheduling, appointment completion, provider onboarding, patient onboarding, provider verification, service catalogue, and category architecture have already been validated.
+
+This sprint is NOT a booking engine rebuild.
+
+This sprint is NOT a migration sprint.
+
+This sprint is NOT a schema redesign.
+
+This sprint is NOT a legacy compatibility sprint.
+
+The objective is to improve the real-world booking experience, appointment visibility, workflow clarity, and operational usability using the existing architecture.
+
+Use existing tables, existing APIs, existing booking records, existing appointment records, existing timeline data, and existing workflow states wherever possible.
+
+Do not introduce migration debt.
+
+Do not introduce legacy fallbacks.
+
+Do not create duplicate systems.
+
+Do not create parallel workflow authorities.
+
+---
+
+# PRIMARY OBJECTIVE
+
+Transform appointment management into a modern healthcare scheduling experience for:
+
+* Patients
+* Providers
+* Admins
+
+while preserving the existing booking engine.
+
+---
+
+# APPOINTMENT TIME CONTEXT SYSTEM
+
+Implement a reusable Appointment Time Context component.
+
+Use existing appointment data.
+
+Display:
+
+Current Local Time
+
+Appointment Date & Time
+
+Time Remaining
+
+Time Elapsed
+
+Relative Time Labels
+
+Examples:
+
+Starts in 3h 12m
+
+Starts Tomorrow
+
+Started 12m Ago
+
+Completed 2 Days Ago
+
+Cancelled Yesterday
+
+Update automatically in real time.
+
+Use a lightweight interval refresh.
+
+Do not create unnecessary polling.
+
+---
+
+# APPOINTMENT TIMELINE
+
+Implement a visual appointment lifecycle timeline.
+
+Use actual appointment events and statuses.
+
+Display milestones such as:
+
+Appointment Created
+
+Payment Completed
+
+Provider Confirmed
+
+Reminder Sent
+
+Reschedule Proposed
+
+Reschedule Accepted
+
+Session Started
+
+Session Completed
+
+Refund Issued
+
+Cancelled
+
+Only display events that actually occurred.
+
+Do not generate fake timeline entries.
+
+Timeline must work for:
+
+Patient
+
+Provider
+
+Admin
+
+---
+
+# ACTION DEADLINE VISIBILITY
+
+Display important deadlines clearly.
+
+Examples:
+
+Provider Response Due In
+
+Reschedule Response Due In
+
+Follow-Up Chat Closes In
+
+Cancellation Window Ends In
+
+Show countdowns where applicable.
+
+Prevent users from guessing workflow deadlines.
+
+---
+
+# HOME VISIT COVERAGE VISIBILITY
+
+Leverage existing radius functionality.
+
+When appointment type is Home Visit:
+
+Display:
+
+Provider Travel Radius
+
+Patient Distance
+
+Coverage Status
+
+Home Visit Location
+
+Coverage Validation Result
+
+Do not re-check distance unnecessarily if already validated.
+
+Reuse existing booking validation data.
+
+---
+
+# PRE-APPOINTMENT PREPARATION PANEL
+
+Implement a dynamic preparation panel.
+
+Examples:
+
+Upload Reports
+
+Upload Prescriptions
+
+Complete Intake Form
+
+Prepare Identification
+
+Check Internet Connection
+
+Join Video Session Early
+
+Only display relevant preparation guidance.
+
+Use existing appointment type and provider category information.
+
+Avoid hardcoded category-specific logic where possible.
+
+---
+
+# POST-APPOINTMENT SUMMARY
+
+After completion display:
+
+Appointment Reference
+
+Provider
+
+Patient
+
+Service
+
+Sub-Service
+
+Visit Type
+
+Appointment Date
+
+Completion Date
+
+Duration
+
+Invoice Availability
+
+Receipt Availability
+
+Prescription Availability
+
+Clinical Notes Availability
+
+Follow-Up Chat Availability
+
+Reuse existing records.
+
+Do not create duplicate summary data.
+
+---
+
+# PROVIDER APPOINTMENT INTELLIGENCE
+
+Improve provider visibility.
+
+Show:
+
+Starts In
+
+Running Late
+
+In Progress
+
+Completed
+
+Today's Appointment Count
+
+Upcoming Appointment Count
+
+Use existing appointment data.
+
+No duplicate calculations.
+
+No duplicate reporting systems.
+
+---
+
+# SMART STATUS PRESENTATION
+
+Improve appointment cards and detail pages.
+
+Replace raw status-only views with:
+
+Confirmed • Starts in 2h
+
+In Progress • Started 18m ago
+
+Completed • 2 days ago
+
+Cancelled • Yesterday
+
+Reschedule Proposed • Awaiting Patient Response
+
+Status should be understandable immediately.
+
+---
+
+# APPOINTMENT REFERENCE VISIBILITY
+
+Ensure appointment reference numbers are clearly visible throughout:
+
+Appointment Detail
+
+Provider View
+
+Patient View
+
+Invoices
+
+Receipts
+
+Admin View
+
+Support Workflows
+
+Use existing reference numbers.
+
+Do not create a second numbering system.
+
+---
+
+# SMART EMPTY STATES
+
+Improve user experience for empty workflows.
+
+Examples:
+
+No Upcoming Appointments
+
+Browse Providers
+
+No Bookings Yet
+
+Update Availability
+
+No Clinical Notes Yet
+
+No Attachments Yet
+
+No Upcoming Follow-Ups
+
+Must be contextual and useful.
+
+---
+
+# FORENSIC AUDIT REQUIREMENT
+
+While implementing this sprint:
+
+Audit all related appointment UI.
+
+Audit all related booking UI.
+
+Audit all related scheduling UI.
+
+Audit all related appointment detail screens.
+
+Audit provider appointment screens.
+
+Audit patient appointment screens.
+
+Audit admin appointment screens.
+
+Identify:
+
+Broken UX
+
+Dead UI
+
+Unused components
+
+Duplicate components
+
+Orphan logic
+
+Display bugs
+
+State bugs
+
+Permission bugs
+
+Data inconsistencies
+
+Fix them immediately.
+
+Do not merely report them.
+
+---
+
+# MANDATORY DEFECT REMEDIATION RULE
+
+If any issue is discovered:
+
+Fix it.
+
+Applies to:
+
+Pre-existing defects
+
+Runtime issues
+
+UI defects
+
+TypeScript issues
+
+Build issues
+
+Permission issues
+
+Workflow issues
+
+Booking issues
+
+Scheduling issues
+
+Appointment issues
+
+Display issues
+
+State management issues
+
+Dead code
+
+Orphan code
+
+Duplicate code
+
+Everything discovered should leave the platform better than it was found.
+
+---
+
+# VALIDATION REQUIREMENTS
+
+After implementation:
+
+npm run build
+
+npx tsc --noEmit --skipLibCheck
+
+Validate:
+
+Patient booking flow
+
+Provider appointment flow
+
+Appointment details
+
+Appointment timeline
+
+Countdown displays
+
+Home visit displays
+
+Post-appointment summary
+
+Provider dashboard appointment widgets
+
+Admin appointment views
+
+Smart status displays
+
+Empty states
+
+All appointment lifecycle states
+
+No regressions.
+
+No TypeScript errors.
+
+No build errors.
+
+---
+
+# REPORTING REQUIREMENTS
+
+Create ONE report only.
+
+Include:
+
+### Appointment Experience Improvements
+
+### Timeline Implementation
+
+### Time Context Implementation
+
+### Home Visit Visibility Improvements
+
+### Preparation Panel Implementation
+
+### Post-Appointment Summary Implementation
+
+### Provider Appointment Intelligence Improvements
+
+### Smart Status Improvements
+
+### Additional Defects Found & Fixed
+
+### Dead Code Removed
+
+### Build Validation
+
+### TypeScript Validation
+
+### Workflow Validation
+
+### Remaining Risks
+
+---
+
+# SUCCESS CRITERIA
+
+Success is achieved only if:
+
+✓ No migrations added
+
+✓ No new legacy logic introduced
+
+✓ No duplicate systems created
+
+✓ Existing booking architecture remains authoritative
+
+✓ Appointment experience is significantly improved
+
+✓ Time context is visible throughout workflows
+
+✓ Timeline is implemented correctly
+
+✓ Home visit visibility improved
+
+✓ Post-appointment summaries implemented
+
+✓ Provider visibility improved
+
+✓ UI consistency improved
+
+✓ Pre-existing defects fixed
+
+✓ Build passes
+
+✓ TypeScript passes
+
+✓ Platform remains stable
+
+✓ GoldenLife delivers a modern healthcare appointment experience using the existing architecture.

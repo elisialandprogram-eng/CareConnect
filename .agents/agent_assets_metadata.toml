@@ -1,0 +1,146 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "eolCfEwb_-DThPyNKgkSj"
+uri = "file://PRODUCTION_READINESS_REPORT.md"
+type = "text"
+title = "Production-Readiness Report"
+
+[[outputs]]
+id = "DO4ULjCvERrvd9H_IVGWv"
+uri = "file://docs/patient-booking-flow.md"
+type = "text"
+title = "Patient Booking Flow — Audit"
+
+[[outputs]]
+id = "e0frRXghA6T9uu861WECW"
+uri = "file://docs/platform-features.md"
+type = "text"
+title = "Golden Life — Platform Features by Role"
+
+[[outputs]]
+id = "45MqBoeRaGx5bVQfpca2q"
+uri = "file://docs/system-audit.md"
+type = "text"
+title = "Golden Life — Full System Audit"
+
+[[outputs]]
+id = "Ra7153JLDPyDfdbqhHUou"
+uri = "file://attached_assets/GoldenLife_Platform_Audit_Report.pdf"
+type = "pdf"
+title = "GoldenLife Platform — Full Feature Inventory & Gap Analysis"
+
+[[outputs]]
+id = "Hj_H3lqjAeEFGQZJ8nOF1"
+uri = "file://reports/platform_audit_summary.pdf"
+type = "pdf"
+title = "Executive Summary Report"
+
+[[outputs]]
+id = "ZjnrSRJ0ari0dYdHQMqVk"
+uri = "file://reports/platform_audit_detailed.pdf"
+type = "pdf"
+title = "Detailed Technical Audit Report"
+
+[[outputs]]
+id = "bQleFfnFBcREZjOFvLz3u"
+uri = "file://reports/audit_report.json"
+type = "unspecified"
+title = "audit_report.json"
+
+[[outputs]]
+id = "uKEXhQT_qvpwdJ3LEp3yn"
+uri = "file://reports/feature_inventory.csv"
+type = "table"
+title = "feature_inventory.csv"
+
+[[outputs]]
+id = "3AazcACCCknzHCcRJ6eg0"
+uri = "file://reports/route_inventory.csv"
+type = "table"
+title = "route_inventory.csv"
+
+[[outputs]]
+id = "5mDP1mI9cLGoZpX99aGZT"
+uri = "file://reports/database_inventory.csv"
+type = "table"
+title = "database_inventory.csv"
+
+[[outputs]]
+id = "UvsJXxeX7zHXyWhMaprFn"
+uri = "file://reports/executive_summary.pdf"
+type = "pdf"
+title = "Executive Summary PDF (14 pages)"
+
+[[outputs]]
+id = "ZwtROBPJs3Ac2ERosIbcS"
+uri = "file://reports/detailed_audit.pdf"
+type = "pdf"
+title = "Detailed Audit PDF (40+ pages)"
+
+[[outputs]]
+id = "yflQHCgdGsiCG6kG3vMuk"
+uri = "file://reports/full-feature-audit.json"
+type = "unspecified"
+title = "Full Feature Audit — GoldenLife Platform"
+
+[[outputs]]
+id = "aa4L5pONus9vy82CVbJHM"
+uri = "file://ops/full-platform-audit.md"
+type = "text"
+title = "Full Platform Audit Report"
+
+[[outputs]]
+id = "XCN5Oowx5goTLOBoRjtx0"
+uri = "file://ops/full-platform-audit.json"
+type = "unspecified"
+title = "Audit Report (Machine-Readable JSON)"
+
+[[outputs]]
+id = "9HMdbroOAUPSLsI4Q2HIN"
+uri = "file://Goldenlife-Audit.md"
+type = "text"
+title = "Goldenlife-Audit.md — Canonical Architectural Blueprint"
+
+[[outputs]]
+id = "gtGOntIohLYohx4iJHsd8"
+uri = "file://ops/feature-inventory-audit.md"
+type = "text"
+title = "GoldenLife Feature Inventory Audit"
+
+[[outputs]]
+id = "OyqP9gBuxlo0apuXzpHkE"
+uri = "file://ops/product-maturity-review.md"
+type = "text"
+title = "GoldenLife Product Maturity & Opportunity Review"
+
+[[outputs]]
+id = "8RfIRInF1CsljXhKZRhww"
+uri = "file://ops/Supabase-Egress-Audit.md"
+type = "text"
+title = "Supabase Egress Audit"
+
+[[outputs]]
+id = "VDNxpy48CpiaoFSZhg0hH"
+uri = "file://Chat-Centre-Audit.MD"
+type = "text"
+title = "GoldenLife — Feature Completion Audit"
+
+[[outputs]]
+id = "kJZIjMjemtgZlY0rITJR1"
+uri = "file://ops/REVENUE-ENGINE-FORENSIC-AUDIT.md"
+type = "text"
+title = "Revenue Engine Forensic Audit"
+
+[[outputs]]
+id = "jpdYogUlroLZaDIOfuU_G"
+uri = "file://ops/ORPHAN-PAGE-AUDIT.md"
+type = "text"
+title = "Orphan Page Audit"
+
+[[outputs]]
+id = "8Kla0v00pcpnMhw3Bb-D5"
+uri = "file://ops/ANALYTICS-REPORTS-FORENSIC-AUDIT.md"
+type = "text"
+title = "Analytics & Reports Forensic Audit"
