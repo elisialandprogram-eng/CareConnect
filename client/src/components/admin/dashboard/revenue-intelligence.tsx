@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { useAdminCurrency, formatInCurrency } from "@/lib/currency";
+import { formatCount } from "@/lib/format-utils";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -103,7 +104,7 @@ export function RevenueIntelligenceDashboard() {
         <StatTile label="Gross Revenue (12mo)" value={fmtMoney(totalGross)} icon={TrendingUp} color="text-green-500" />
         <StatTile label="Platform Fees (12mo)" value={fmtMoney(totalFees)} sub={`${totalGross > 0 ? Math.round(totalFees * 100 / totalGross) : 0}% take rate`} icon={ArrowUpRight} color="text-indigo-500" />
         <StatTile label="Total Refunds (12mo)" value={fmtMoney(totalRefunds)} icon={Package} color="text-amber-500" />
-        <StatTile label="Completed Sessions" value={totalCompleted.toLocaleString()} icon={Users} color="text-blue-500" />
+        <StatTile label="Completed Sessions" value={formatCount(totalCompleted)} icon={Users} color="text-blue-500" />
       </div>
 
       <Tabs defaultValue="trends">

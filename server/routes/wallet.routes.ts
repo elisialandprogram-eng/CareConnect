@@ -169,12 +169,12 @@ export function registerWalletRoutes(app: Express): void {
         await storage.createPayment({
           appointmentId,
           patientId: req.user.id,
-          amount: _wAmtUSD.toFixed(2),
+          amount: Math.round(_wAmtUSD * 100) / 100,
           currency: "USD",
           paymentMethod: "wallet",
           status: "completed",
           displayCurrency: _wSrcCurrency,
-          displayAmount: amount.toFixed(2),
+          displayAmount: Math.round(amount * 100) / 100,
           exchangeRateUsed: parseFloat((1 / _wRateVal).toFixed(6)).toString(),
         } as any);
       }

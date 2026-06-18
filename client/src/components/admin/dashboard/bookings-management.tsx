@@ -7,6 +7,7 @@
 import { useState, useCallback, useRef, type ElementType, type ReactNode } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAdminCurrency, formatInCurrency } from "@/lib/currency";
+import { formatCount } from "@/lib/format-utils";
 import { format } from "date-fns";
 import { useLocation } from "wouter";
 import {
@@ -807,7 +808,7 @@ export function BookingsManagementComponent() {
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
             <CardTitle className="text-sm font-medium">
-              {isLoading ? "Loading…" : `${total.toLocaleString()} booking${total !== 1 ? "s" : ""}`}
+              {isLoading ? "Loading…" : `${formatCount(total)} booking${total !== 1 ? "s" : ""}`}
             </CardTitle>
             <span className="text-xs text-muted-foreground no-print">Page {page} / {totalPages}</span>
           </div>
@@ -957,7 +958,7 @@ export function BookingsManagementComponent() {
           {totalPages > 1 && (
             <div className="flex items-center justify-between px-4 py-3 border-t no-print">
               <p className="text-sm text-muted-foreground">
-                {((page-1)*LIMIT)+1}–{Math.min(page*LIMIT,total)} of {total.toLocaleString()}
+                {((page-1)*LIMIT)+1}–{Math.min(page*LIMIT,total)} of {formatCount(total)}
               </p>
               <div className="flex items-center gap-2">
                 <Button variant="outline" size="sm" disabled={page===1} onClick={() => setPage(p => p-1)} data-testid="button-ops-prev">

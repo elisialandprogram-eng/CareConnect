@@ -1,4 +1,5 @@
 import { formatDate } from "@/lib/datetime";
+import { formatCount } from "@/lib/format-utils";
 import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -286,7 +287,7 @@ export function ProviderPayoutPanel() {
                 step="1"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
-                placeholder={`Max ${Math.floor(convert(available)).toLocaleString()}`}
+                placeholder={`Max ${formatCount(Math.floor(convert(available)))}`}
                 data-testid="input-payout-amount"
               />
               <p className="text-xs text-muted-foreground">Available: {fmt(available)}</p>

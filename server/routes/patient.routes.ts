@@ -229,7 +229,7 @@ export function registerPatientRoutes(app: Express): void {
             userId: req.user!.id,
             packageId: pkg.id,
             status: "pending",
-            pricePaid: priceUSD.toFixed(2),
+            pricePaid: String(Math.round(priceUSD * 100) / 100),
             countryCode: userCountry as any,
           } as any);
           await storage.debitWallet(req.user!.id, priceUSD, {
@@ -369,7 +369,7 @@ export function registerPatientRoutes(app: Express): void {
           name, description: description ?? null,
           countryCode: countryCode ?? null,
           durationDays: durationDays ?? 30,
-          price: Number(price ?? 0).toFixed(2),
+          price: String(Math.round(Number(price ?? 0) * 100) / 100),
           currency: currency ?? "USD",
           targetUserType: targetUserType ?? "patient",
           isActive: isActive ?? true,

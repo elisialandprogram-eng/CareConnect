@@ -6,6 +6,7 @@
  */
 
 import { useQuery } from "@tanstack/react-query";
+import { formatCount } from "@/lib/format-utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -58,7 +59,7 @@ function StatCard({
         <Icon className="h-5 w-5" />
       </div>
       <div>
-        <p className="text-2xl font-bold">{value.toLocaleString()}</p>
+        <p className="text-2xl font-bold">{formatCount(value)}</p>
         <p className="text-sm text-muted-foreground">{label}</p>
         {sub && <p className="text-xs text-muted-foreground">{sub}</p>}
       </div>
@@ -88,7 +89,7 @@ function CityBar({
               {tag}
             </Badge>
           )}
-          <span className="text-muted-foreground tabular-nums">{count.toLocaleString()}</span>
+          <span className="text-muted-foreground tabular-nums">{formatCount(count)}</span>
         </div>
       </div>
       <div className="h-2 rounded-full bg-muted overflow-hidden">

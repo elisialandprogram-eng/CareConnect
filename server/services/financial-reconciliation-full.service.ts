@@ -85,8 +85,8 @@ async function checkWalletLedgerDrift(): Promise<ReconciliationFinding> {
     details: rows,
     message: rows.length === 0
       ? "All provider wallet balances match their ledger sums."
-      : `${rows.length} provider(s) have wallet balance / ledger drift exceeding $0.05. Largest drift: $${rows[0] ? parseFloat(rows[0].drift).toFixed(2) : "0"}.`,
-    action: rows.length > 0 ? "Review affected providers and run wallet audit. Auto-freeze triggered for drift > $0.05." : "None",
+      : `${rows.length} provider(s) have wallet balance / ledger drift exceeding 0.05 USD. Largest drift: ${rows[0] ? parseFloat(rows[0].drift).toFixed(2) : "0"} USD.`,
+    action: rows.length > 0 ? "Review affected providers and run wallet audit. Auto-freeze triggered for drift > 0.05 USD." : "None",
   };
 }
 
@@ -201,7 +201,7 @@ async function checkMarketplaceLedgerBalance(): Promise<ReconciliationFinding> {
     totalAmountUsd: imbalance,
     details: rows,
     message: imbalance > 1
-      ? `Marketplace ledger imbalance of $${imbalance.toFixed(2)} detected in last 30 days.`
+      ? `Marketplace ledger imbalance of ${imbalance.toFixed(2)} USD detected in last 30 days.`
       : "Marketplace ledger double-entry is balanced (last 30 days).",
     action: imbalance > 1 ? "Review marketplace_ledger entries for missing PLATFORM_FEE or PROVIDER_WITHDRAWABLE postings." : "None",
   };

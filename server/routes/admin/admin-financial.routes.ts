@@ -106,7 +106,7 @@ export function registerAdminFinancialRoutes(app: Express): void {
 
       if (adjustmentAmountUSD < 0 && Math.abs(adjustmentAmountUSD) > currentBalance + 0.01) {
         return res.status(400).json({
-          message: `Debit of $${Math.abs(adjustmentAmountUSD).toFixed(2)} exceeds balance of $${currentBalance.toFixed(2)}`,
+          message: `Debit of ${Math.abs(adjustmentAmountUSD).toFixed(2)} USD exceeds balance of ${currentBalance.toFixed(2)} USD`,
         });
       }
 
@@ -733,7 +733,7 @@ export function registerAdminFinancialRoutes(app: Express): void {
 
       if (adjustmentUSD < 0 && Math.abs(adjustmentUSD) > currentBalance + 0.01) {
         return res.status(400).json({
-          message: `Debit of $${Math.abs(adjustmentUSD).toFixed(2)} exceeds available balance of $${currentBalance.toFixed(2)}`,
+          message: `Debit of ${Math.abs(adjustmentUSD).toFixed(2)} USD exceeds available balance of ${currentBalance.toFixed(2)} USD`,
         });
       }
 

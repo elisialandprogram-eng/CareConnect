@@ -1,4 +1,5 @@
 import { formatDateTime } from "@/lib/datetime";
+import { formatCount } from "@/lib/format-utils";
 import { useState } from "react";
 import { formatInCurrency } from "@/lib/currency";
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -385,7 +386,7 @@ function ResetProfilesTab() {
               <div className="rounded-lg border bg-amber-50/50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800 p-4 space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-semibold text-amber-800 dark:text-amber-300">
-                    {preview.totalRows.toLocaleString()} rows will be deleted
+                    {formatCount(preview.totalRows)} rows will be deleted
                   </span>
                   <Badge variant="outline" className="text-amber-700 border-amber-400">Dry Run</Badge>
                 </div>
@@ -393,7 +394,7 @@ function ResetProfilesTab() {
                   {Object.entries(preview.tableCounts).map(([table, count]) => (
                     <div key={table} className="flex items-center justify-between text-xs py-0.5">
                       <span className="font-mono text-muted-foreground">{table}</span>
-                      <Badge variant={count > 0 ? "destructive" : "secondary"} className="font-mono text-xs">{count.toLocaleString()}</Badge>
+                      <Badge variant={count > 0 ? "destructive" : "secondary"} className="font-mono text-xs">{formatCount(count)}</Badge>
                     </div>
                   ))}
                 </div>
@@ -423,7 +424,7 @@ function ResetProfilesTab() {
                 </div>
                 <Button variant="destructive" className="w-full" disabled={!canExecute} onClick={() => executeMutation.mutate()} data-testid="button-profile-execute">
                   <Trash2 className="h-4 w-4 mr-2" />
-                  {executeMutation.isPending ? "Resetting…" : `Execute — Delete ${preview.totalRows.toLocaleString()} rows`}
+                  {executeMutation.isPending ? "Resetting…" : `Execute — Delete ${formatCount(preview.totalRows)} rows`}
                 </Button>
               </div>
             )}
@@ -440,7 +441,7 @@ function ResetProfilesTab() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-muted-foreground">{lastResult.rowsDeleted.toLocaleString()} rows removed in {lastResult.durationMs}ms.</p>
+            <p className="text-sm text-muted-foreground">{formatCount(lastResult.rowsDeleted)} rows removed in {lastResult.durationMs}ms.</p>
             {lastResult.errors.length > 0 && (
               <div className="mt-2 space-y-1">
                 {lastResult.errors.map((e, i) => (
@@ -541,7 +542,7 @@ function FullResetTab() {
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
               <Eye className="h-4 w-4" />
-              Impact Summary — {totalToDelete.toLocaleString()} rows
+              Impact Summary — {formatCount(totalToDelete)} rows
             </CardTitle>
             <CardDescription>No data has been modified yet.</CardDescription>
           </CardHeader>
@@ -550,7 +551,7 @@ function FullResetTab() {
               <div key={key} className="flex items-center justify-between py-1.5 px-3 rounded-md bg-muted/40">
                 <span className="text-sm text-muted-foreground">{label}</span>
                 <Badge variant={previewCounts[key] === 0 ? "secondary" : danger ? "destructive" : "outline"} className="font-mono text-xs">
-                  {previewCounts[key].toLocaleString()}
+                  {formatCount(previewCounts[key])}
                 </Badge>
               </div>
             ))}
@@ -585,7 +586,7 @@ function FullResetTab() {
             </div>
             <Button variant="destructive" className="w-full" disabled={!canExecute} onClick={() => executeMutation.mutate()} data-testid="button-execute-reset">
               <Trash2 className="h-4 w-4 mr-2" />
-              {executeMutation.isPending ? "Resetting database…" : `Execute Full Reset — Delete ${totalToDelete.toLocaleString()} rows`}
+              {executeMutation.isPending ? "Resetting database…" : `Execute Full Reset — Delete ${formatCount(totalToDelete)} rows`}
             </Button>
           </CardContent>
         </Card>

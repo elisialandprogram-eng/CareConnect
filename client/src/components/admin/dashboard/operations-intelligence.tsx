@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
+import { formatCount } from "@/lib/format-utils";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -209,7 +210,7 @@ export function OperationsIntelligenceDashboard() {
             />
             <StatTile
               label="Total Patients w/ Appts"
-              value={(growth?.retention.totalWithAppointments ?? 0).toLocaleString()}
+              value={formatCount(growth?.retention.totalWithAppointments ?? 0)}
               icon={Users as any}
               color="text-blue-500"
             />

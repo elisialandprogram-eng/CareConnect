@@ -2768,12 +2768,12 @@ export class DatabaseStorage extends PackagesMixin implements IStorage {
       retentionRate: activePatientsNum > 0 ? Math.round((returningNum / activePatientsNum) * 100) : 0,
       avgAppointmentsPerPatient: activePatientsNum > 0 ? Math.round((totalAppts / activePatientsNum) * 10) / 10 : 0,
       refundCount: Number(refundRow?.cnt ?? 0),
-      refundTotal: Number(refundRow?.total ?? 0).toFixed(2),
+      refundTotal: Math.round(Number(refundRow?.total ?? 0) * 100) / 100,
       topProviders: topProvRows.map((r: any) => ({
         providerId: r.provider_id,
         providerName: r.name,
         appointmentCount: Number(r.apt_count),
-        revenue: Number(r.rev).toFixed(2),
+        revenue: Math.round(Number(r.rev) * 100) / 100,
       })),
       bookingsByType: typeRows.map((r: any) => ({ visitType: r.visit_type, count: Number(r.cnt) })),
       cancelRate: totalAppts > 0 ? Math.round((cancelledAppts / totalAppts) * 1000) / 10 : 0,
@@ -3160,10 +3160,10 @@ export class DatabaseStorage extends PackagesMixin implements IStorage {
       else pendingAmount += earn;
     }
     return {
-      totalEarnings: totalEarnings.toFixed(2),
-      pendingAmount: pendingAmount.toFixed(2),
-      paidAmount: paidAmount.toFixed(2),
-      platformRevenue: platformRevenue.toFixed(2),
+      totalEarnings: Math.round(totalEarnings * 100) / 100,
+      pendingAmount: Math.round(pendingAmount * 100) / 100,
+      paidAmount: Math.round(paidAmount * 100) / 100,
+      platformRevenue: Math.round(platformRevenue * 100) / 100,
       count: rows.length,
     };
   }

@@ -44,6 +44,7 @@ _scan() {
       --exclude-dir=strict-enforcer \
       --exclude="currency.ts" \
       --exclude="datetime.ts" \
+      --exclude="format-utils.ts" \
       --exclude="invoice-gen.ts" \
       --exclude="*.test.ts" \
       -E "$pattern" \

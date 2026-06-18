@@ -1355,7 +1355,7 @@ export function registerAppointmentRoutes(app: Express): void {
           await storage.debitWallet(userId, walletAppliedUSD, {
             description: remainderDueLocal === 0
               ? "Appointment payment"
-              : `Appointment payment (partial — ${walletAppliedUSD.toFixed(2)} USD of ${_bookingFeeUSD.toFixed(2)} USD)`,
+              : `Appointment payment (partial — wallet ${walletAppliedUSD.toFixed(2)} USD of ${_bookingFeeUSD.toFixed(2)} USD total)`,
             referenceType: "appointment",
             referenceId: appointment.id,
             idempotencyKey: `appointment:${appointment.id}:wallet`,
@@ -1438,7 +1438,7 @@ export function registerAppointmentRoutes(app: Express): void {
             amount: _amountUSD,
             currency: "usd",
             description: walletApplied > 0
-              ? `Appointment with ${providerName} on ${date} at ${startTime} (wallet credit ${walletApplied.toFixed(2)} applied)`
+              ? `Appointment with ${providerName} on ${date} at ${startTime} (wallet credit ${walletApplied.toFixed(2)} USD applied)`
               : `Appointment with ${providerName} on ${date} at ${startTime}`,
             customerEmail: user.email,
             successUrl: `${origin}/booking/confirmation/${appointment.id}?stripe=success`,

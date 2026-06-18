@@ -1,4 +1,5 @@
 import { Users, Award, Calendar, Heart } from "lucide-react";
+import { formatCount } from "@/lib/format-utils";
 import { motion, useMotionValue, useTransform, animate } from "framer-motion";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -28,7 +29,7 @@ function AnimatedCounter({ value, suffix, isDecimal = false }: { value: number; 
 
   const formattedValue = isDecimal 
     ? displayValue.toFixed(1) 
-    : displayValue.toLocaleString();
+    : formatCount(Math.round(displayValue));
 
   return <span>{formattedValue}{suffix}</span>;
 }

@@ -1,4 +1,5 @@
 import { formatDate, formatTime } from "@/lib/datetime";
+import { formatCount } from "@/lib/format-utils";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -259,7 +260,7 @@ export default function AdminAuditLogs() {
 
           {total > 0 && (
             <span className="text-xs text-muted-foreground self-center ml-auto">
-              {total.toLocaleString()} total records
+              {formatCount(total)} total records
             </span>
           )}
         </div>
@@ -288,7 +289,7 @@ export default function AdminAuditLogs() {
         {totalPages > 1 && (
           <div className="flex items-center justify-between px-4 py-3 border-t">
             <p className="text-xs text-muted-foreground">
-              Page {page + 1} of {totalPages} · {total.toLocaleString()} entries
+              Page {page + 1} of {totalPages} · {formatCount(total)} entries
             </p>
             <div className="flex gap-1">
               <Button

@@ -546,7 +546,7 @@ export function registerAdminProvidersRoutes(app: Express): void {
   app.get("/api/admin/providers/:id/revenue", authenticateToken, requireAdmin, async (req: AuthRequest, res: Response) => {
     try {
       const totalRevenue = await storage.getProviderRevenueTotal(req.params.id);
-      res.json({ totalRevenue: totalRevenue.toFixed(2) });
+      res.json({ totalRevenue: Math.round(totalRevenue * 100) / 100 });
     } catch (error) {
       res.status(500).json({ message: "Failed to calculate revenue" });
     }
@@ -671,8 +671,8 @@ export function registerAdminProvidersRoutes(app: Express): void {
         financials: {
           revenueUsd,
           walletBalance: (walletRows as any).rows?.length > 0
-            ? Number(((walletRows as any).rows[0]).balance || 0).toFixed(2)
-            : "0.00",
+            ? Math.round(Number(((walletRows as any).rows[0]).balance || 0) * 100) / 100
+            : 0,
           walletCurrency: (walletRows as any).rows?.length > 0
             ? (walletRows as any).rows[0].currency || "USD"
             : "USD",

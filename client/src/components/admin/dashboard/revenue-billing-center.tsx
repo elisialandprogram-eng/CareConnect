@@ -1,4 +1,5 @@
 import { formatDate } from "@/lib/datetime";
+import { formatCount } from "@/lib/format-utils";
 /**
  * Revenue & Billing Center
  * The single admin control panel for all pricing, fee, commission,
@@ -109,8 +110,8 @@ function OverviewPanel() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {[
           { label: "Total Revenue",  value: fmt(metrics?.totalRevenue) },
-          { label: "Total Payments", value: metrics?.totalPayments?.toLocaleString() ?? "—" },
-          { label: "Total Bookings", value: metrics?.totalBookings?.toLocaleString() ?? "—" },
+          { label: "Total Payments", value: metrics?.totalPayments != null ? formatCount(metrics.totalPayments) : "—" },
+          { label: "Total Bookings", value: metrics?.totalBookings != null ? formatCount(metrics.totalBookings) : "—" },
         ].map(c => (
           <Card key={c.label}>
             <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">{c.label}</CardTitle></CardHeader>

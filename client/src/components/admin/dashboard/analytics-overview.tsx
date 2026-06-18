@@ -1,4 +1,5 @@
 import { formatDate } from "@/lib/datetime";
+import { formatCount } from "@/lib/format-utils";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { useAdminCurrency } from "@/lib/currency";
@@ -126,7 +127,7 @@ export function AnalyticsOverview({ onNavigate }: { onNavigate?: (tab: string) =
           />
           <RevenueKpiCard
             label={t("admin.total_users", "Total users")}
-            value={(analytics?.totalUsers || 0).toLocaleString()}
+            value={formatCount(analytics?.totalUsers || 0)}
             hint={t("admin.registered_patients", "Registered clients — click to manage")}
             icon={Users}
             gradient="bg-gradient-to-br from-blue-500 via-blue-600 to-indigo-600"
@@ -135,7 +136,7 @@ export function AnalyticsOverview({ onNavigate }: { onNavigate?: (tab: string) =
           />
           <RevenueKpiCard
             label={t("admin.total_providers", "Total providers")}
-            value={(analytics?.totalProviders || 0).toLocaleString()}
+            value={formatCount(analytics?.totalProviders || 0)}
             hint={t("admin.active_services", "Active services — click to manage")}
             icon={Building}
             gradient="bg-gradient-to-br from-rose-500 via-pink-600 to-fuchsia-600"
@@ -144,7 +145,7 @@ export function AnalyticsOverview({ onNavigate }: { onNavigate?: (tab: string) =
           />
           <RevenueKpiCard
             label={t("admin.total_bookings", "Total bookings")}
-            value={(analytics?.totalBookings || 0).toLocaleString()}
+            value={formatCount(analytics?.totalBookings || 0)}
             hint={t("admin.all_statuses", "All statuses — click to manage")}
             icon={Calendar}
             gradient="bg-gradient-to-br from-amber-500 via-orange-500 to-red-500"
