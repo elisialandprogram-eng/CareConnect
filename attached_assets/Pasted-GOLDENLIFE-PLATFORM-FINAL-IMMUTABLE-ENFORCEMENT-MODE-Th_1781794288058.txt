@@ -1,0 +1,203 @@
+GOLDENLIFE PLATFORM — FINAL IMMUTABLE ENFORCEMENT MODE
+
+This system is now considered FINANCIAL + SCHEDULING CRITICAL INFRASTRUCTURE.
+
+Any violation of currency or timezone rules is a SYSTEM FAILURE.
+
+You are not allowed to “approximate”, “infer”, or “fallback format”.
+
+You MUST strictly enforce canonical rules below across the entire codebase.
+
+────────────────────────────────────
+1. ABSOLUTE SINGLE SOURCE OF TRUTH
+────────────────────────────────────
+
+CURRENCY:
+- @/lib/currency.ts is the ONLY frontend formatting authority
+- server/services/currency.ts is the ONLY backend formatting authority
+
+TIMEZONE:
+- @/lib/datetime.ts is the ONLY frontend timezone authority
+- server must store and return UTC only (TIMESTAMPTZ required)
+
+REPORTING:
+- final_total_usd is the ONLY cross-country aggregation field
+
+────────────────────────────────────
+2. HARD FORBIDDEN PATTERNS (ZERO TOLERANCE)
+────────────────────────────────────
+
+You MUST FAIL THE BUILD if ANY of the following exist anywhere:
+
+CURRENCY VIOLATIONS:
+- "$" string concatenation (e.g. "$" + value, `${value} USD`)
+- `.toFixed()` used in JSX or API response formatting
+- new Intl.NumberFormat() OUTSIDE currency.ts
+- formatCurrency / formatMoney local functions
+- inline conversion: amount * rate, amount / rate
+- hardcoded currency symbols (Ft, $, IRR, USD, £)
+
+TIMEZONE VIOLATIONS:
+- new Date().toLocaleString()
+- new Date().toLocaleDateString()
+- new Date().toLocaleTimeString()
+- date-fns format() without canonical wrapper
+- manual timezone offset calculations in components
+
+REPORTING VIOLATIONS:
+- SUM of mixed currencies without final_total_usd
+- revenue calculated from raw total_amount across countries
+- duplicate KPI definitions in UI or backend
+
+────────────────────────────────────
+3. REQUIRED FORMAT RULES
+────────────────────────────────────
+
+ALL MONEY MUST FOLLOW:
+
+Frontend (Patient / Provider):
+→ formatInCurrency(amount, currencyCode)
+
+Admin:
+→ useAdminCurrency().format(amount)  // ALWAYS USD
+
+Backend:
+→ formatLocal(amount, currency) ONLY for human output
+→ NEVER return formatted strings in APIs
+
+ALL DATES MUST FOLLOW:
+
+→ formatDate(value)
+→ formatTime(value)
+→ formatDateTime(value)
+
+NEVER USE:
+new Date().toLocaleString ANYWHERE IN UI CODE
+
+────────────────────────────────────
+4. DATA CONTRACT RULE (MANDATORY)
+────────────────────────────────────
+
+ALL API monetary responses MUST be:
+
+{
+  amount: number,
+  currency: "USD" | "HUF" | "IRR" | "GBP" | string
+}
+
+NEVER:
+
+{
+  amount: "5000 Ft"
+}
+
+NEVER:
+
+{
+  formattedAmount: "$5,000"
+}
+
+────────────────────────────────────
+5. BOOKING SYSTEM INVARIANT
+────────────────────────────────────
+
+A booking MUST satisfy:
+
+- ONE immutable UTC timestamp stored in DB
+- ONE bookingCurrency snapshot stored at creation
+- ONE final_total_usd snapshot for reporting
+- ALL UI views must derive display values ONLY from these
+
+Same appointment must show:
+- same instant everywhere (admin, provider, patient, calendar, notifications)
+
+────────────────────────────────────
+6. TIMEZONE RULE (NON-NEGOTIABLE)
+────────────────────────────────────
+
+- DATABASE: UTC ONLY
+- FRONTEND: user timezone via getUserTimezone()
+- DISPLAY: canonical datetime.ts ONLY
+
+NO browser timezone usage allowed for business logic.
+
+────────────────────────────────────
+7. ENFORCEMENT LAYER (MANDATORY IMPLEMENTATION)
+────────────────────────────────────
+
+You MUST implement or verify existence of:
+
+/lib/strict-enforcer/
+
+Contains:
+
+1. assertNoRawCurrencyStrings()
+   - blocks "$", "USD", "Ft", "IRR" in UI rendering paths
+
+2. assertNoRawDateFormatting()
+   - blocks toLocaleString/date-fns misuse
+
+3. assertApiMoneyShape()
+   - ensures { amount, currency } only
+
+4. ciCurrencyTimezoneGuard
+   - runs grep checks in CI pipeline
+
+BUILD MUST FAIL if violations detected.
+
+────────────────────────────────────
+8. FINAL AUDIT REQUIREMENT
+
+Before marking system as COMPLETE:
+
+You MUST run full repository scan for:
+
+Currency:
+- $
+- USD
+- HUF
+- IRR
+- toFixed(
+- Intl.NumberFormat (outside currency.ts)
+- formatCurrency
+- formatMoney
+
+Timezone:
+- toLocaleString
+- toLocaleDateString
+- toLocaleTimeString
+- date-fns format(new Date
+
+Reporting:
+- SUM(
+- GROUP BY revenue without final_total_usd
+- duplicate KPI definitions
+
+ANY MATCH = MUST FIX
+
+────────────────────────────────────
+9. SUCCESS CRITERIA
+
+System is ONLY considered correct if:
+
+✔ Zero currency formatting exists outside canonical modules
+✔ Zero timezone formatting exists outside canonical modules
+✔ Zero inline conversions anywhere
+✔ Zero mixed-currency aggregation
+✔ Same booking instant matches across ALL UI surfaces
+✔ Admin always USD only
+✔ Patient/provider always native logic only
+✔ Backend never returns formatted strings
+
+────────────────────────────────────
+FINAL RULE
+
+This system must behave like:
+
+→ a financial accounting system (strict)
+→ a scheduling system (deterministic)
+→ a zero-tolerance correctness engine
+
+NOT a UI formatting system.
+
+Any ambiguity = reject + fix, never guess.
