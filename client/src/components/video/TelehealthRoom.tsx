@@ -7,6 +7,7 @@ import {
   Maximize2, Minimize2, Shield, Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { formatTime } from "@/lib/datetime";
 
 interface TelehealthRoomProps {
   appointmentId: string;
@@ -92,7 +93,7 @@ export function TelehealthRoom({
             <p className="text-sm text-muted-foreground mt-1">
               {[providerName, patientName].filter(Boolean).join(" · ")}
               {scheduledAt && (
-                <> · {new Date(scheduledAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</>
+                <> · {formatTime(scheduledAt, { hour: "2-digit", minute: "2-digit" })}</>
               )}
             </p>
           )}

@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import { useAdminCurrency } from "@/lib/currency";
+import { useAdminCurrency, formatInCurrency } from "@/lib/currency";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -136,8 +136,8 @@ export function RevenueIntelligenceDashboard() {
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-border/40" />
                   <XAxis dataKey="month" tick={{ fontSize: 11 }} tickLine={false} />
-                  <YAxis tick={{ fontSize: 11 }} tickLine={false} tickFormatter={(v) => `$${v}`} />
-                  <Tooltip formatter={(v: any) => [`$${Number(v).toFixed(2)}`, ""]} />
+                  <YAxis tick={{ fontSize: 11 }} tickLine={false} tickFormatter={(v) => formatInCurrency(Number(v), "USD")} />
+                  <Tooltip formatter={(v: any) => [formatInCurrency(Number(v), "USD"), ""]} />
                   <Legend />
                   <Area type="monotone" dataKey="gross_usd" name="Gross" stroke="#6366f1" fill="url(#gradGross)" strokeWidth={2} />
                   <Area type="monotone" dataKey="fees_usd" name="Fees" stroke="#22c55e" fill="url(#gradFees)" strokeWidth={2} />

@@ -27,7 +27,7 @@ import {
   listingCountryFilter,
   type CountryCode,
 } from "../../middleware/country";
-import { getRates, formatSync } from "../../services/currency";
+import { getRates, formatSync, formatLocal } from "../../services/currency";
 import { countryCurrency } from "../../middleware/country";
 import { getStripe } from "../../stripe";
 import { createInvoiceForAppointment } from "../../utils/invoice-helper";
@@ -1064,7 +1064,7 @@ export function registerAdminFinancialRoutes(app: Express): void {
         userId: (inv as any).patientId,
         type: "payment_reminder",
         subject: `Payment reminder: Invoice ${(inv as any).invoiceNumber}`,
-        body: `Your invoice ${(inv as any).invoiceNumber} for $${Number((inv as any).amount).toFixed(2)} is overdue. Please settle it to avoid service disruption.`,
+        body: `Your invoice ${(inv as any).invoiceNumber} for ${formatLocal(Number((inv as any).amount), (inv as any).currency ?? "USD")} is overdue. Please settle it to avoid service disruption.`,
       });
       await pool.query(
         `UPDATE invoices SET last_reminder_at = NOW(), reminder_count = COALESCE(reminder_count, 0) + 1 WHERE id = $1`,

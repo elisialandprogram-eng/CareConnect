@@ -8,7 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { UserNotification } from "@shared/schema";
 import { Bell, Check, CheckCheck, Calendar, DollarSign, Settings, Info, ChevronRight, Trash2, CheckSquare, Square } from "lucide-react";
-import { format } from "date-fns";
+import { formatDateTime } from "@/lib/datetime";
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
 import { PageBreadcrumbs } from "@/components/page-breadcrumbs";
@@ -362,7 +362,7 @@ export default function Notifications() {
                             <div className="flex items-start justify-between mb-1 gap-2">
                               <h4 className="font-semibold leading-tight" data-testid={`text-notification-title-${notif.id}`}>{notif.title}</h4>
                               <span className="text-xs text-muted-foreground whitespace-nowrap shrink-0">
-                                {notif.createdAt && format(new Date(notif.createdAt), "MMM d, h:mm a")}
+                                {notif.createdAt && formatDateTime(notif.createdAt, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
                               </span>
                             </div>
                             <p className="text-sm text-muted-foreground leading-relaxed">{notif.message}</p>

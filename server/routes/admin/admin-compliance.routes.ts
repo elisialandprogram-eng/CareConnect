@@ -7,6 +7,7 @@
  */
 
 import type { Express, Response } from "express";
+import { formatLocal } from "../../services/currency";
 import { storage } from "../../storage";
 import { pool } from "../../db";
 import { z } from "zod";
@@ -418,7 +419,7 @@ export function registerAdminComplianceRoutes(app: Express): void {
       );
 
       const refundNote = financialRefundProcessed && refundAmount
-        ? ` A refund of $${refundAmount.toFixed(2)} has been issued.`
+        ? ` A refund of ${formatLocal(refundAmount, "USD")} has been issued.`
         : "";
       await storage.createNotification({
         userId: dispute.patient_id,

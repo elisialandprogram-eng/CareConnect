@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/lib/auth";
 import { useCurrency } from "@/lib/currency";
+import { formatDate, formatTime } from "@/lib/datetime";
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
 import { Button } from "@/components/ui/button";
@@ -91,7 +92,7 @@ function isThisWeek(dateStr: string) {
 }
 
 function fmtTime(dateStr: string) {
-  return new Date(dateStr).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  return formatTime(dateStr, { hour: "2-digit", minute: "2-digit" });
 }
 
 function relativeLabel(dateStr: string) {
@@ -452,7 +453,7 @@ export default function ProviderHome() {
               <div>
                 <h2 className="text-base font-bold text-foreground">Today's Clinic</h2>
                 <p className="text-xs text-muted-foreground">
-                  {new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" })}
+                  {formatDate(new Date(), { weekday: "long", day: "numeric", month: "long" })}
                 </p>
               </div>
             </div>
