@@ -198,7 +198,7 @@ export function ProviderAnalyticsTabContent() {
               </defs>
               <CartesianGrid strokeDasharray="3 3" opacity={0.25} />
               <XAxis dataKey="month" tick={{ fontSize: 11 }} />
-              <YAxis yAxisId="rev" tick={{ fontSize: 11 }} tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} />
+              <YAxis yAxisId="rev" tick={{ fontSize: 11 }} tickFormatter={(v) => { const n = Number(v); return n >= 1_000_000 ? `${(n/1_000_000).toFixed(1)}M` : n >= 1_000 ? `${(n/1_000).toFixed(0)}k` : String(Math.round(n)); }} />
               <YAxis yAxisId="bkg" orientation="right" tick={{ fontSize: 11 }} allowDecimals={false} />
               <Tooltip
                 formatter={(v: any, name: string) =>

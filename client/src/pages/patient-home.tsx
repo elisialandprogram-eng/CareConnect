@@ -230,7 +230,7 @@ function TodaysCare({ appointments, isLoading }: { appointments?: AppointmentWit
 
   const providerName = `${next.provider?.user?.firstName || ""} ${next.provider?.user?.lastName || ""}`.trim() || "Your Provider";
   const dateLabel = next.date
-    ? new Date(String(next.date).slice(0, 10) + "T00:00:00").toLocaleDateString(undefined, {
+    ? formatDateTz(String(next.date).slice(0, 10) + "T12:00:00", {
         weekday: "long",
         month: "long",
         day: "numeric",

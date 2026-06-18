@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { formatInCurrency } from "@/lib/currency";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -207,8 +208,8 @@ function OverviewTab() {
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-3">Financial</p>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               <StatCard label="Total Payments" value={stats.financial.totalPayments} icon={Wallet} />
-              <StatCard label="Wallet Balance (USD)" value={`$${parseFloat(stats.financial.totalWalletBalance).toFixed(2)}`} />
-              <StatCard label="Provider Earnings" value={`$${parseFloat(stats.financial.totalProviderEarnings).toFixed(2)}`} />
+              <StatCard label="Wallet Balance (USD)" value={formatInCurrency(parseFloat(stats.financial.totalWalletBalance), "USD")} />
+              <StatCard label="Provider Earnings" value={formatInCurrency(parseFloat(stats.financial.totalProviderEarnings), "USD")} />
             </div>
           </div>
         </>

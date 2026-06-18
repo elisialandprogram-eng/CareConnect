@@ -1,7 +1,8 @@
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import { useAdminCurrency } from "@/lib/currency";
+import { useAdminCurrency, formatInCurrency } from "@/lib/currency";
+import { formatDateTime } from "@/lib/datetime";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -62,6 +63,7 @@ function EventChip({ b, onClick }: { b: any; onClick: () => void }) {
 }
 
 function BookingDetailDialog({ booking, open, onClose }: { booking: any; open: boolean; onClose: () => void }) {
+  const { format: fmtMoney } = useAdminCurrency();
   if (!booking) return null;
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
@@ -77,9 +79,9 @@ function BookingDetailDialog({ booking, open, onClose }: { booking: any; open: b
           <p><span className="text-muted-foreground">Service:</span> {booking.serviceName || booking.service?.name || "—"}</p>
           <p><span className="text-muted-foreground">Client:</span> {booking.customerName || booking.customer?.name || "—"}</p>
           <p><span className="text-muted-foreground">Provider:</span> {booking.providerName || booking.provider?.name || "—"}</p>
-          <p><span className="text-muted-foreground">Date:</span> {new Date(booking.scheduledAt || booking.date || Date.now()).toLocaleString()}</p>
+          <p><span className="text-muted-foreground">Date:</span> {formatDateTime(booking.scheduledAt || booking.date)}</p>
           {booking.visitType && <p><span className="text-muted-foreground">Visit type:</span> {booking.visitType}</p>}
-          {booking.totalAmount && <p><span className="text-muted-foreground">Amount:</span> ${Number(booking.totalAmount).toFixed(2)}</p>}
+          {booking.totalAmount && <p><span className="text-muted-foreground">Amount:</span> {fmtMoney(Number(booking.totalAmount))}</p>}
           {booking.appointmentNumber && <p><span className="text-muted-foreground">Ref:</span> {booking.appointmentNumber}</p>}
         </div>
       </DialogContent>
@@ -89,7 +91,7 @@ function BookingDetailDialog({ booking, open, onClose }: { booking: any; open: b
 
 export function AdminCalendarView() {
   const { t } = useTranslation();
-  const { format: _fmtMoney } = useAdminCurrency();
+  const { format: fmtAdmin } = useAdminCurrency();
   const [view, setView] = useState<CalView>("week");
   const [offset, setOffset] = useState(0);
   const [providerFilter, setProviderFilter] = useState<string>("all");

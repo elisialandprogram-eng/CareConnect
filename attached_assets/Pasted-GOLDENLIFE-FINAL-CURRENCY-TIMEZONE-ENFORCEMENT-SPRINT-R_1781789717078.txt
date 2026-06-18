@@ -1,0 +1,259 @@
+GOLDENLIFE — FINAL CURRENCY & TIMEZONE ENFORCEMENT SPRINT
+
+READ FIRST
+
+This is the FINAL enforcement sprint.
+
+The purpose is NOT to patch known bugs.
+
+The purpose is to prove that every monetary value and every appointment time displayed anywhere in the platform follows the platform source-of-truth architecture.
+
+Read first:
+
+* ops/CURRENCY-SOURCE-OF-TRUTH.md
+* ops/TIMEZONE-SOURCE-OF-TRUTH.md
+* ops/CURRENCY-TIMEZONE-INVENTORY.md
+* ops/REPORTING-SOURCE-OF-TRUTH.md
+* ops/REPORTING-FINAL-CONSOLIDATION-REPORT.md
+
+Do not assume previous audits were complete.
+
+Audit the entire codebase again.
+
+GOAL
+
+Prove that:
+
+1. Every monetary value displayed anywhere follows the currency source of truth.
+2. Every appointment/session/schedule time displayed anywhere follows the timezone source of truth.
+3. No component bypasses canonical helpers.
+4. No UI surface leaks incorrect currencies.
+5. No UI surface leaks incorrect timezones.
+6. No duplicate formatting systems remain.
+
+PHASE 1 — FULL CURRENCY AUDIT
+
+Search entire repository for:
+
+$
+USD
+HUF
+IRR
+GBP
+
+toFixed(
+Intl.NumberFormat(
+currency:
+formatCurrency
+formatMoney
+moneyFormatter
+priceFormatter
+
+Audit every occurrence.
+
+For each occurrence determine:
+
+* Is it using useCurrency()?
+* Is it using useAdminCurrency()?
+* Is it using formatInCurrency()?
+* Is it using canonical backend currency helpers?
+
+Anything else is a bug.
+
+PHASE 2 — FULL TIMEZONE AUDIT
+
+Search entire repository for:
+
+toLocaleString(
+toLocaleDateString(
+toISOString(
+new Date(
+
+Audit every occurrence.
+
+Classify:
+
+A. Appointment times
+B. Session times
+C. Schedule times
+D. Booking times
+E. Reminder times
+F. Metadata timestamps
+
+Appointment, booking, session and schedule times MUST use canonical timezone helpers.
+
+PHASE 3 — UI SURFACE INVENTORY
+
+Audit every page.
+
+ADMIN
+
+* Dashboard
+* Operations
+* Bookings
+* Patients
+* Providers
+* Services
+* Revenue & Billing
+* Refunds
+* Wallets
+* Reports
+* CRM
+* Support
+* Monitoring
+
+PROVIDER
+
+* Dashboard
+* Services
+* Schedule
+* Earnings
+* Wallet
+* Payouts
+* Analytics
+* Patients
+* Reviews
+
+PATIENT
+
+* Dashboard
+* Search
+* Booking
+* Appointments
+* Packages
+* Memberships
+* Wallet
+* Referrals
+* Documents
+* Timeline
+
+Verify every monetary value.
+
+Verify every date/time value.
+
+PHASE 4 — BOOKING FLOW VALIDATION
+
+Audit complete flow:
+
+Search → Service Card → Service Detail → Booking Wizard → Availability → Confirmation → Appointment Detail → Dashboard → Calendar → Notifications.
+
+Verify:
+
+Displayed slot time
+Stored slot time
+Patient timezone
+Provider timezone
+UTC storage
+
+All represent the same appointment instant.
+
+PHASE 5 — REPORTING VALIDATION
+
+Audit:
+
+Admin Reports
+Provider Reports
+Patient Reports
+
+Verify:
+
+Admin:
+USD only
+
+Provider:
+Native currency only
+
+Patient:
+Preferred currency only
+
+Verify no mixed-currency aggregation.
+
+Verify all cross-country reports use final_total_usd.
+
+PHASE 6 — NOTIFICATIONS
+
+Audit:
+
+Email
+SMS
+Push
+In-app
+
+Verify every amount uses canonical formatter.
+
+Verify every date/time uses canonical timezone formatter.
+
+PHASE 7 — EXPORTS
+
+Audit:
+
+CSV
+PDF
+Invoices
+Statements
+Reports
+
+Verify:
+
+Correct currency labels
+Correct timezone labels
+Correct monetary calculations
+
+PHASE 8 — ENFORCEMENT
+
+Remove:
+
+* duplicate formatters
+* duplicate converters
+* duplicate timezone helpers
+* raw currency symbols
+* inline conversion logic
+* inline exchange rate logic
+* inline timezone calculations
+
+Everything must route through the canonical architecture.
+
+PHASE 9 — FINAL VERIFICATION
+
+Produce:
+
+ops/CURRENCY-TIMEZONE-FINAL-VERIFICATION.md
+
+Include:
+
+1. Every file audited
+2. Every violation found
+3. Every violation fixed
+4. Currency compliance verification
+5. Timezone compliance verification
+6. Booking flow verification
+7. Reporting verification
+8. Notification verification
+9. Export verification
+10. Remaining gaps
+
+SUCCESS CRITERIA
+
+A Hungarian provider entering 5,000 Ft sees 5,000 Ft everywhere.
+
+A Hungarian patient sees 5,000 Ft everywhere.
+
+An Iranian user sees IRR everywhere.
+
+An American user sees USD everywhere.
+
+Admin sees USD-normalized values everywhere.
+
+A slot displayed as "18:20" before booking represents the same appointment instant after booking, in dashboards, notifications, calendars, reports, exports and reminders.
+
+Zero currency leaks.
+
+Zero timezone leaks.
+
+Zero duplicate formatting systems.
+
+Zero duplicate conversion systems.
+
+Zero conflicting display rules.
+
+No exceptions.

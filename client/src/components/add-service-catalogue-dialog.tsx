@@ -576,7 +576,7 @@ export function AddServiceCatalogueDialog({ open, onOpenChange, providerId }: Pr
                                   {((s as any).minPrice || (s as any).maxPrice) && (
                                     <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
                                       <AlertTriangle className="h-2.5 w-2.5 text-amber-500" />
-                                      ${(s as any).minPrice ?? "0"}–{(s as any).maxPrice ? `$${(s as any).maxPrice}` : "∞"}
+                                      {formatInCurrency(Number((s as any).minPrice ?? 0), "USD")}–{(s as any).maxPrice ? formatInCurrency(Number((s as any).maxPrice), "USD") : "∞"}
                                     </span>
                                   )}
                                 </div>
@@ -687,16 +687,16 @@ export function AddServiceCatalogueDialog({ open, onOpenChange, providerId }: Pr
                         <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1.5">Price Guardrails</p>
                         <div className="flex flex-wrap gap-3 text-xs">
                           {(selected as any).minPrice && (
-                            <span className="text-muted-foreground">Hard min: <strong className="text-foreground">${Number((selected as any).minPrice).toFixed(2)}</strong></span>
+                            <span className="text-muted-foreground">Hard min: <strong className="text-foreground">{formatInCurrency(Number((selected as any).minPrice), "USD")}</strong></span>
                           )}
                           {(selected as any).maxPrice && (
-                            <span className="text-muted-foreground">Hard max: <strong className="text-foreground">${Number((selected as any).maxPrice).toFixed(2)}</strong></span>
+                            <span className="text-muted-foreground">Hard max: <strong className="text-foreground">{formatInCurrency(Number((selected as any).maxPrice), "USD")}</strong></span>
                           )}
                           {(selected as any).suggestedMinPrice && (
-                            <span className="text-muted-foreground">Suggested min: <strong className="text-foreground">${Number((selected as any).suggestedMinPrice).toFixed(2)}</strong></span>
+                            <span className="text-muted-foreground">Suggested min: <strong className="text-foreground">{formatInCurrency(Number((selected as any).suggestedMinPrice), "USD")}</strong></span>
                           )}
                           {(selected as any).suggestedMaxPrice && (
-                            <span className="text-muted-foreground">Suggested max: <strong className="text-foreground">${Number((selected as any).suggestedMaxPrice).toFixed(2)}</strong></span>
+                            <span className="text-muted-foreground">Suggested max: <strong className="text-foreground">{formatInCurrency(Number((selected as any).suggestedMaxPrice), "USD")}</strong></span>
                           )}
                         </div>
                       </div>

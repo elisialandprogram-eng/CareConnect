@@ -1153,7 +1153,7 @@ export function BookingCanvas({
     const fmt = (n: number) =>
       isNativePricing
         ? formatInCurrency(n, nativeCurrency)
-        : (formatPrice ? formatPrice(n) : `${currency} ${n.toFixed(2)}`);
+        : (formatPrice ? formatPrice(n) : formatInCurrency(n, nativeCurrency || currency));
     const hasBreakdown = breakdown && (
       (breakdown.platformFee ?? 0) > 0 ||
       (breakdown.visitTypeFee ?? 0) > 0 ||
@@ -1265,7 +1265,7 @@ export function BookingCanvas({
         {walletBalance > 0 && (
           <div className="text-xs text-muted-foreground">
             {/* walletBalance is always in USD — always convert from USD regardless of pricing mode */}
-            Wallet balance: {formatPrice ? formatPrice(walletBalance) : `${walletBalance.toFixed(2)}`}
+            Wallet balance: {formatPrice ? formatPrice(walletBalance) : formatInCurrency(walletBalance, "USD")}
           </div>
         )}
         {selectedFor !== "self" && (

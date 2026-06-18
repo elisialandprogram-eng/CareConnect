@@ -9,6 +9,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { apiRequest } from "@/lib/queryClient";
+import { formatInCurrency } from "@/lib/currency";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -64,7 +65,7 @@ function PanelLoader() {
 // ── Simple helpers ────────────────────────────────────────────────────────────
 const fmt = (v: string | number | undefined, fallback = "—") => {
   const n = Number(v);
-  return Number.isFinite(n) ? `$${n.toFixed(2)}` : fallback;
+  return Number.isFinite(n) ? formatInCurrency(n, "USD") : fallback;
 };
 const fmtPct = (v: string | number | undefined) => {
   const n = Number(v);
@@ -1548,7 +1549,7 @@ function RevenueSimulatorPanel() {
                 <div className="flex items-center gap-2">
                   <Badge variant="outline" className="font-mono text-xs">{result.bookingCurrency}</Badge>
                   {result.bookingCurrency !== "USD" && (
-                    <span className="text-xs text-muted-foreground">≈ ${result.finalTotalUsd.toFixed(2)} USD</span>
+                    <span className="text-xs text-muted-foreground">≈ {formatInCurrency(result.finalTotalUsd, "USD")}</span>
                   )}
                 </div>
 
@@ -1768,7 +1769,7 @@ function GiftCardsAdminPanel() {
           {(cards as any[]).map((c: any) => (
             <TableRow key={c.id}>
               <TableCell className="font-mono text-xs">{c.code}</TableCell>
-              <TableCell>{c.currency} {Number(c.balance).toFixed(2)}</TableCell>
+              <TableCell>{formatInCurrency(Number(c.balance), c.currency as string)}</TableCell>
               <TableCell className="text-xs text-muted-foreground">{c.recipient_email ?? c.purchaser_email ?? "—"}</TableCell>
               <TableCell className="text-xs">{c.expires_at ? new Date(c.expires_at).toLocaleDateString() : "No expiry"}</TableCell>
               <TableCell>{c.is_active ? <CheckCircle2 className="h-4 w-4 text-green-500" /> : <XCircle className="h-4 w-4 text-muted-foreground" />}</TableCell>
