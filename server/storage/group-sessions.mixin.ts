@@ -1533,8 +1533,10 @@ export abstract class GroupSessionsMixin {
         ? Math.round(((revenueThisMonth - revenueLastMonth) / revenueLastMonth) * 1000) / 10
         : (revenueThisMonth > 0 ? 100 : 0);
 
-      const monthLabelFn = (yr: number, mo: number) =>
-        new Date(yr, mo - 1, 1).toLocaleDateString("en-US", { month: "short", year: "2-digit" });
+      const monthLabelFn = (yr: number, mo: number) => {
+        const d = new Date(Date.UTC(yr, mo - 1, 1));
+        return new Intl.DateTimeFormat("en-US", { month: "short", year: "2-digit", timeZone: "UTC" }).format(d);
+      };
 
       const revenueSeries = seriesRes.rows.map(r => ({
         name: monthLabelFn(Number(r.yr), Number(r.mo)),
@@ -1546,19 +1548,19 @@ export abstract class GroupSessionsMixin {
         totalUsers:        Number(userRes.rows[0].cnt),
         totalProviders:    Number(pr.total),
         totalBookings:     Number(bk.total),
-        totalRevenue:      totalRevenue.toFixed(2),
+        totalRevenue:      Math.round(totalRevenue * 100) / 100,
         pendingBookings:   Number(bk.pending),
         completedBookings: Number(bk.completed),
         confirmedBookings: Number(bk.confirmed),
         cancelledBookings: Number(bk.cancelled),
         recentPayments:    paymentsRes.rows,
         revenueSeries,
-        platformFees:      platformFees.toFixed(2),
-        providerPayouts:   Number(payoutsRes.rows[0]?.total_paid ?? 0).toFixed(2),
-        avgBookingValue:   (paidCount > 0 ? totalRevenue / paidCount : 0).toFixed(2),
-        revenueToday:      Number(rev.revenue_today).toFixed(2),
-        revenueThisMonth:  revenueThisMonth.toFixed(2),
-        revenueLastMonth:  revenueLastMonth.toFixed(2),
+        platformFees:      Math.round(platformFees * 100) / 100,
+        providerPayouts:   Math.round(Number(payoutsRes.rows[0]?.total_paid ?? 0) * 100) / 100,
+        avgBookingValue:   Math.round((paidCount > 0 ? totalRevenue / paidCount : 0) * 100) / 100,
+        revenueToday:      Math.round(Number(rev.revenue_today) * 100) / 100,
+        revenueThisMonth:  Math.round(revenueThisMonth * 100) / 100,
+        revenueLastMonth:  Math.round(revenueLastMonth * 100) / 100,
         revenueGrowthPct,
         activeProviders:   Number(pr.active),
       };

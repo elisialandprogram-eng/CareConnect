@@ -239,7 +239,7 @@ export function AddServiceCatalogueDialog({ open, onOpenChange, providerId }: Pr
       if (!n || !val) return val;
       const c = convertBetweenCurrencies(n, prev, priceCurrency);
       const wn = priceCurrency === "HUF" || priceCurrency === "IRR";
-      return wn ? String(Math.round(c)) : String(Number(c.toFixed(2)));
+      return wn ? String(Math.round(c)) : String(Math.round(c * 100) / 100);
     };
     setPrice(v => v ? reconv(v) : v);
     setHomeVisitFee(v => v ? reconv(v) : v);
@@ -444,7 +444,7 @@ export function AddServiceCatalogueDialog({ open, onOpenChange, providerId }: Pr
         ? usdVal
         : convertBetweenCurrencies(usdVal, "USD", priceCurrency);
       const wn = priceCurrency === "HUF" || priceCurrency === "IRR";
-      setPrice(wn ? String(Math.round(converted)) : String(Number(converted.toFixed(2))));
+      setPrice(wn ? String(Math.round(converted)) : String(Math.round(converted * 100) / 100));
     } else {
       setPrice("");
     }

@@ -152,7 +152,7 @@ export default function AppointmentDetails() {
   const { t } = useTranslation();
   const { isAuthenticated, isLoading: authLoading, user } = useAuth();
   const { toast } = useToast();
-  const { format: formatMoney } = useCurrency();
+  const { format: fmtMoney } = useCurrency();
   const [actionTarget, setActionTarget] = useState<AppointmentAction | null>(null);
   const [copied, setCopied] = useState(false);
   const [disputeOpen, setDisputeOpen] = useState(false);
@@ -603,41 +603,41 @@ export default function AppointmentDetails() {
               <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
                 {t("appt_details.pricing", "Pricing")}
               </h3>
-              <PriceRow label={t("appt_details.base_amount", "Base price")} value={formatMoney(baseAmount)} />
+              <PriceRow label={t("appt_details.base_amount", "Base price")} value={fmtMoney(baseAmount)} />
               {visitFee > 0 && (
                 <PriceRow
                   label={t("appt_details.visit_fee", "Visit fee")}
-                  value={formatMoney(visitFee)}
+                  value={fmtMoney(visitFee)}
                 />
               )}
               {platformFee > 0 && (
                 <PriceRow
                   label={t("appt_details.platform_fee", "Platform fee")}
-                  value={formatMoney(platformFee)}
+                  value={fmtMoney(platformFee)}
                 />
               )}
               {promoDiscount > 0 && (
                 <PriceRow
                   label={appt?.promoCode ? `Promo (${appt.promoCode})` : t("appt_details.promo_discount", "Promo discount")}
-                  value={`− ${formatMoney(promoDiscount)}`}
+                  value={`− ${fmtMoney(promoDiscount)}`}
                   className="text-emerald-600 dark:text-emerald-400 font-medium"
                 />
               )}
               {packageDiscountAmount > 0 && (
                 <PriceRow
                   label={t("appt_details.member_discount", "Member discount")}
-                  value={`− ${formatMoney(packageDiscountAmount)}`}
+                  value={`− ${fmtMoney(packageDiscountAmount)}`}
                   className="text-emerald-600 dark:text-emerald-400 font-medium"
                 />
               )}
               <PriceRow
                 label={t("appt_details.tax", "Tax")}
-                value={formatMoney(taxAmount)}
+                value={fmtMoney(taxAmount)}
               />
               <Separator className="my-1" />
               <PriceRow
                 label={t("appt_details.total", "Total")}
-                value={formatMoney(total)}
+                value={fmtMoney(total)}
                 bold
                 testId="row-total"
               />
@@ -647,7 +647,7 @@ export default function AppointmentDetails() {
                     <span>🎉</span>
                     <span className="text-emerald-700 dark:text-emerald-400 font-semibold text-sm">You saved on this booking</span>
                   </div>
-                  <span className="text-emerald-700 dark:text-emerald-400 font-bold text-sm">{formatMoney(totalSavings)}</span>
+                  <span className="text-emerald-700 dark:text-emerald-400 font-bold text-sm">{fmtMoney(totalSavings)}</span>
                 </div>
               )}
             </div>
@@ -1244,7 +1244,7 @@ function EventsTimeline({
   events: AppointmentEventRow[] | undefined;
   loading: boolean;
 }) {
-  const { format: formatMoney } = useCurrency();
+  const { format: fmtMoney } = useCurrency();
   return (
     <Card className="mt-6" data-testid="card-appointment-timeline">
       <CardHeader>
@@ -1327,7 +1327,7 @@ function EventsTimeline({
                       className="text-xs mt-1 text-emerald-700 dark:text-emerald-400"
                       data-testid={`timeline-refund-${ev.id}`}
                     >
-                      Refund issued: {formatMoney(refund)}
+                      Refund issued: {fmtMoney(refund)}
                     </div>
                   )}
                 </li>

@@ -89,7 +89,7 @@ export async function runWalletAudit(): Promise<WalletAuditResult> {
 
     if (drift > DRIFT_THRESHOLD_USD) {
       const driftFormatted = drift.toFixed(4);
-      const autoReason = `System: Auto-locked due to ledger mismatch — drift $${driftFormatted} USD`;
+      const autoReason = `System: Auto-locked due to ledger mismatch — drift ${driftFormatted} USD`;
 
       if (!row.is_frozen || !isAuditHold) {
         await pool.query(

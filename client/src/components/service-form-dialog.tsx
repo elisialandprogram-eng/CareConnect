@@ -328,7 +328,7 @@ export function ServiceFormDialog({ open, onOpenChange, service, providerId, adm
         // Prices are now stored in native currency — load them directly (no fromUSD conversion).
         const toStr = (v: string | number | null | undefined) => {
           const n = Number(v ?? 0);
-          return n > 0 ? (isWholeNumber ? String(Math.round(n)) : String(Number(n.toFixed(2)))) : "";
+          return n > 0 ? (isWholeNumber ? String(Math.round(n)) : String(Math.round(n * 100) / 100)) : "";
         };
         setPrice(toStr(service.price));
         setEnableDeposit(!!service.enableDeposit);

@@ -1112,7 +1112,7 @@ export function registerAppointmentRoutes(app: Express): void {
             benefitsToLog.push({ key: "reduced_commission", value: String(membershipReducedCommission), description: `Commission reduced by ${membershipReducedCommission}%` });
           }
           if (pendingWalletBonus > 0) {
-            benefitsToLog.push({ key: "wallet_bonus", value: String(pendingWalletBonus), description: `$${pendingWalletBonus} wallet bonus credited` });
+            benefitsToLog.push({ key: "wallet_bonus", value: String(pendingWalletBonus), description: `${pendingWalletBonus} USD wallet bonus credited` });
           }
           for (const b of benefitsToLog) {
             storage.recordBenefitUsage({

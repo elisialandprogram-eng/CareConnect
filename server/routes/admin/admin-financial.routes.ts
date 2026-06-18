@@ -934,7 +934,7 @@ export function registerAdminFinancialRoutes(app: Express): void {
       const paymentInstructions = tpl.paymentInstructions || "";
       const termsText = tpl.termsText || "Payment is due within 7 days of invoice date.";
       const logoUrl = tpl.logoUrl || tpl.logo_url || "";
-      const today = new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "long", year: "numeric" });
+      const today = new Intl.DateTimeFormat("en-GB", { day: "2-digit", month: "long", year: "numeric", timeZone: "UTC" }).format(new Date());
 
       const html = `<!DOCTYPE html>
 <html lang="en">
@@ -986,7 +986,7 @@ export function registerAdminFinancialRoutes(app: Express): void {
       <div class="header-right">
         <div class="inv-num">INVOICE #GL-2024-0001</div>
         <div class="inv-date">Issued: ${today}</div>
-        <div class="inv-date">Due: ${new Date(Date.now() + 7*864e5).toLocaleDateString("en-GB",{day:"2-digit",month:"long",year:"numeric"})}</div>
+        <div class="inv-date">Due: ${new Intl.DateTimeFormat("en-GB",{day:"2-digit",month:"long",year:"numeric",timeZone:"UTC"}).format(new Date(Date.now() + 7*864e5))}</div>
         <div style="margin-top:10px"><span class="badge">SAMPLE</span></div>
       </div>
     </div>
@@ -1004,16 +1004,16 @@ export function registerAdminFinancialRoutes(app: Express): void {
       <table>
         <thead><tr><th>Description</th><th>Visit Type</th><th>Date</th><th class="amount">Amount</th></tr></thead>
         <tbody>
-          <tr><td>Physiotherapy session</td><td>In-clinic</td><td>${today}</td><td class="amount">$65.00</td></tr>
-          <tr><td>Home visit nursing</td><td>Home visit</td><td>${today}</td><td class="amount">$45.00</td></tr>
-          <tr><td>Platform service fee</td><td>—</td><td>—</td><td class="amount">$5.50</td></tr>
+          <tr><td>Physiotherapy session</td><td>In-clinic</td><td>${today}</td><td class="amount">USD 65.00</td></tr>
+          <tr><td>Home visit nursing</td><td>Home visit</td><td>${today}</td><td class="amount">USD 45.00</td></tr>
+          <tr><td>Platform service fee</td><td>—</td><td>—</td><td class="amount">USD 5.50</td></tr>
         </tbody>
       </table>
       <div class="totals">
-        <div class="total-row"><span>Subtotal</span><span>$110.00</span></div>
-        <div class="total-row"><span>Platform fee</span><span>$5.50</span></div>
-        <div class="total-row"><span>Tax (5%)</span><span>$5.50</span></div>
-        <div class="total-row grand"><span>Total</span><span>$121.00</span></div>
+        <div class="total-row"><span>Subtotal</span><span>USD 110.00</span></div>
+        <div class="total-row"><span>Platform fee</span><span>USD 5.50</span></div>
+        <div class="total-row"><span>Tax (5%)</span><span>USD 5.50</span></div>
+        <div class="total-row grand"><span>Total</span><span>USD 121.00</span></div>
       </div>
       ${paymentInstructions ? `<div class="section"><h4>Payment Instructions</h4><p>${paymentInstructions}</p></div>` : ""}
       ${termsText ? `<div class="section"><h4>Terms</h4><p>${termsText}</p></div>` : ""}

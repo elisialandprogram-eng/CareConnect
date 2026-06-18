@@ -134,12 +134,8 @@ app.use("/uploads", express.static(_uploadsDir));
 app.use("/api", globalApiLimiter);
 
 export function log(message: string, source = "express") {
-  const formattedTime = new Date().toLocaleTimeString("en-US", {
-    hour: "numeric",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: true,
-  });
+  const now = new Date();
+  const formattedTime = now.toISOString().replace("T", " ").slice(0, 19) + " UTC";
 
   const rid = requestIdStore.getStore();
   const ridTag = rid ? ` [rid=${rid}]` : "";

@@ -20,7 +20,7 @@ import { useTranslation } from "react-i18next";
 
 function WalletBadge() {
   const [, navigate] = useLocation();
-  const { format: formatCurrency } = useCurrency();
+  const { format: fmtWallet } = useCurrency();
   const { data, isLoading } = useQuery<{ balance: string; currency: string }>({
     queryKey: ["/api/wallet"],
     refetchInterval: 60000,
@@ -38,7 +38,7 @@ function WalletBadge() {
     >
       <Wallet className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
       <span className="text-xs font-bold tabular-nums text-emerald-700 dark:text-emerald-300">
-        {isLoading ? "…" : formatCurrency(balance)}
+        {isLoading ? "…" : fmtWallet(balance)}
       </span>
     </Button>
   );

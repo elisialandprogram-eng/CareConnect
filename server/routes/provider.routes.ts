@@ -1057,7 +1057,7 @@ export function registerProviderRoutes(app: Express): void {
         const mon = new Date(d);
         mon.setDate(d.getDate() - diff);
         const key = mon.toISOString().slice(0, 10);
-        const label = mon.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+        const label = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", timeZone: "UTC" }).format(mon);
         const found = revMap.get(key);
         weeklyRevenue.push({ week: label, revenue: found?.revenue ?? 0, count: found?.count ?? 0 });
       }

@@ -1167,7 +1167,7 @@ export function registerCareRoutes(app: Express): void {
       doc.moveDown(0.3);
       doc.fontSize(10).font("Helvetica");
       doc.text(`Name: ${rx.patient_name ?? "—"}`);
-      if (rx.patient_dob) doc.text(`Date of Birth: ${new Date(rx.patient_dob).toLocaleDateString()}`);
+      if (rx.patient_dob) doc.text(`Date of Birth: ${new Date(rx.patient_dob).toISOString().slice(0, 10)}`);
       if (rx.patient_phone) doc.text(`Phone: ${rx.patient_phone}`);
       doc.moveDown(1);
 
@@ -1188,8 +1188,8 @@ export function registerCareRoutes(app: Express): void {
       doc.moveDown(0.3);
       doc.fontSize(10).font("Helvetica");
       doc.text(`Prescription ID: ${rx.id}`);
-      doc.text(`Issue Date: ${rx.issued_at ? new Date(rx.issued_at).toLocaleDateString() : "—"}`);
-      if (rx.expires_at) doc.text(`Expiry Date: ${new Date(rx.expires_at).toLocaleDateString()}`);
+      doc.text(`Issue Date: ${rx.issued_at ? new Date(rx.issued_at).toISOString().slice(0, 10) : "—"}`);
+      if (rx.expires_at) doc.text(`Expiry Date: ${new Date(rx.expires_at).toISOString().slice(0, 10)}`);
       doc.text(`Status: ${(rx.status ?? "active").toUpperCase()}`);
       if ((rx.refill_count ?? 0) > 0) doc.text(`Refill Number: ${rx.refill_count}`);
       doc.moveDown(2);
@@ -1199,7 +1199,7 @@ export function registerCareRoutes(app: Express): void {
       doc.moveDown(0.3);
       doc.fontSize(9).fillColor("#666").text("Provider Signature / Stamp", { align: "right" });
       doc.moveDown(0.5);
-      doc.fontSize(8).text(`Generated: ${new Date().toLocaleString()}  |  GoldenLife Health`, { align: "center" });
+      doc.fontSize(8).text(`Generated: ${new Date().toISOString().replace("T", " ").slice(0, 19)} UTC  |  GoldenLife Health`, { align: "center" });
 
       doc.end();
     } catch (error: any) {

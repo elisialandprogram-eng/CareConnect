@@ -11,6 +11,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { formatInCurrency } from "@/lib/currency";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -564,10 +565,10 @@ function SurgePricingTab() {
   const homeFee = baseHomeVisit !== "" ? Number(baseHomeVisit) : Number(prefs?.homeVisitFee ?? 0);
   const teleFee = baseTelemedicine !== "" ? Number(baseTelemedicine) : Number(prefs?.telemedicineFee ?? 0);
 
-  const derived = (base: number, tier: PricingTier) => {
-    if (tier === "peak") return (base * 1.2).toFixed(2);
-    if (tier === "off_peak") return (base * 0.85).toFixed(2);
-    return base.toFixed(2);
+  const derived = (base: number, tier: PricingTier): number => {
+    if (tier === "peak") return Math.round(base * 1.2 * 100) / 100;
+    if (tier === "off_peak") return Math.round(base * 0.85 * 100) / 100;
+    return Math.round(base * 100) / 100;
   };
 
   const saveMut = useMutation({
@@ -603,14 +604,14 @@ function SurgePricingTab() {
         />
       </td>
       <td className="py-3 pr-4">
-        <span className="text-sm text-blue-600 font-mono" data-testid={`text-standard-${testPrefix}`}>${derived(base, "standard")}</span>
+        <span className="text-sm text-blue-600 font-mono" data-testid={`text-standard-${testPrefix}`}>{formatInCurrency(derived(base, "standard"), "USD")}</span>
       </td>
       <td className="py-3 pr-4">
-        <span className="text-sm text-amber-600 font-mono" data-testid={`text-peak-${testPrefix}`}>${derived(base, "peak")}</span>
+        <span className="text-sm text-amber-600 font-mono" data-testid={`text-peak-${testPrefix}`}>{formatInCurrency(derived(base, "peak"), "USD")}</span>
         <span className="text-xs text-muted-foreground ml-1">(+20%)</span>
       </td>
       <td className="py-3">
-        <span className="text-sm text-emerald-600 font-mono" data-testid={`text-offpeak-${testPrefix}`}>${derived(base, "off_peak")}</span>
+        <span className="text-sm text-emerald-600 font-mono" data-testid={`text-offpeak-${testPrefix}`}>{formatInCurrency(derived(base, "off_peak"), "USD")}</span>
         <span className="text-xs text-muted-foreground ml-1">(−15%)</span>
       </td>
     </tr>
