@@ -1,0 +1,705 @@
+GOLDENLIFE — PLATFORM-WIDE CURRENCY & TIMEZONE FORENSIC AUDIT + CONSOLIDATION SPRINT
+
+READ FIRST
+
+This is a P0 FOUNDATION ARCHITECTURE SPRINT.
+
+STOP ALL FEATURE DEVELOPMENT.
+
+Do NOT implement any new features until this sprint is complete.
+
+We have already discovered:
+
+* Currency leaks
+* Double conversions
+* USD assumptions
+* Native currency displayed as USD
+* USD displayed as native currency
+* Mixed-currency reporting
+* Booking timezone inconsistencies
+* Availability vs confirmation mismatches
+* Relative-time calculation inconsistencies
+
+These are not isolated bugs.
+
+Assume the entire platform may contain hidden currency and timezone defects.
+
+This sprint exists to eliminate ALL of them.
+
+NO EXCUSES.
+
+NO PARTIAL AUDITS.
+
+NO SAMPLING.
+
+AUDIT EVERY FILE.
+
+AUDIT EVERY SCREEN.
+
+AUDIT EVERY API.
+
+AUDIT EVERY REPORT.
+
+AUDIT EVERY NOTIFICATION.
+
+AUDIT EVERY EXPORT.
+
+AUDIT EVERYTHING.
+
+====================================================
+NON-NEGOTIABLE RULES
+====================
+
+No migrations
+
+No backfills
+
+No repair jobs
+
+No legacy compatibility
+
+No historical reconciliation
+
+No temporary fixes
+
+No patching symptoms
+
+No duplicate formatters
+
+No duplicate currency helpers
+
+No duplicate timezone helpers
+
+No hardcoded exchange rates
+
+No hardcoded timezone offsets
+
+No country-based timezone assumptions
+
+No browser-only timezone assumptions
+
+No raw "$" formatting
+
+No Intl.NumberFormat currency assumptions
+
+No hidden conversion logic
+
+No dead code after fixes
+
+No unused helpers after fixes
+
+====================================================
+PHASE 1 — COMPLETE PLATFORM INVENTORY
+=====================================
+
+Audit EVERY file.
+
+Frontend.
+
+Backend.
+
+Shared.
+
+Utilities.
+
+Hooks.
+
+Components.
+
+Pages.
+
+Services.
+
+Routes.
+
+Exports.
+
+Notifications.
+
+Jobs.
+
+Emails.
+
+PDF generators.
+
+CSV exports.
+
+Reports.
+
+Charts.
+
+Invoices.
+
+Wallets.
+
+Bookings.
+
+Packages.
+
+Memberships.
+
+Analytics.
+
+Refunds.
+
+Payouts.
+
+Provider tools.
+
+Patient tools.
+
+Admin tools.
+
+Create:
+
+ops/CURRENCY-TIMEZONE-INVENTORY.md
+
+For every file document:
+
+File
+Component
+Route
+Purpose
+
+Currency fields used
+
+Timezone fields used
+
+Formatter used
+
+Conversion used
+
+Classification
+
+SAFE
+RISK
+BROKEN
+
+====================================================
+PHASE 2 — CURRENCY SOURCE OF TRUTH
+==================================
+
+Create:
+
+ops/CURRENCY-SOURCE-OF-TRUTH.md
+
+There must be ONE currency architecture.
+
+PATIENT
+
+Source:
+
+users.preferred_currency
+
+PROVIDER
+
+Source:
+
+providers.native_currency
+
+ADMIN
+
+USD ONLY
+
+No exceptions.
+
+====================================================
+DISPLAY RULES
+=============
+
+PATIENT UI
+
+Always patient currency.
+
+PROVIDER UI
+
+Always provider currency.
+
+ADMIN UI
+
+Always USD.
+
+If native currency must be visible:
+
+Show:
+
+Native Currency
+≈ USD
+
+Never the opposite.
+
+====================================================
+PHASE 3 — TIMEZONE SOURCE OF TRUTH
+==================================
+
+Create:
+
+ops/TIMEZONE-SOURCE-OF-TRUTH.md
+
+PATIENT
+
+users.timezone
+
+PROVIDER
+
+providers.timezone
+
+STORAGE
+
+UTC ONLY
+
+====================================================
+TIME RULES
+==========
+
+Availability Generation
+
+Provider timezone
+
+Booking Storage
+
+UTC
+
+Patient Display
+
+Patient timezone
+
+Provider Display
+
+Provider timezone
+
+Notifications
+
+Recipient timezone
+
+Calendar Exports
+
+UTC standard
+
+Admin Display
+
+Viewer timezone + UTC reference
+
+NO COUNTRY TIMEZONES.
+
+COUNTRY ≠ TIMEZONE.
+
+====================================================
+PHASE 4 — CURRENCY FORENSIC AUDIT
+=================================
+
+Find EVERY:
+
+formatPrice
+
+formatMoney
+
+fmtMoney
+
+formatCurrency
+
+formatFromUSD
+
+toUSD
+
+fromUSD
+
+convertCurrency
+
+exchange rate helper
+
+currency helper
+
+manual formatter
+
+custom formatter
+
+currency hook
+
+currency utility
+
+EVERYTHING.
+
+Classify every monetary field.
+
+Booking Currency
+
+Provider Currency
+
+Patient Currency
+
+Admin USD
+
+Mixed Currency (BUG)
+
+Unknown Currency (BUG)
+
+====================================================
+PHASE 5 — TIMEZONE FORENSIC AUDIT
+=================================
+
+Find EVERY:
+
+Date
+
+new Date()
+
+Date.now()
+
+toLocaleString()
+
+toLocaleDateString()
+
+toLocaleTimeString()
+
+timezone helpers
+
+relative time helpers
+
+calendar generators
+
+notification schedulers
+
+availability generators
+
+Classify every timestamp.
+
+UTC
+
+Provider timezone
+
+Patient timezone
+
+Browser timezone
+
+Country timezone (BUG)
+
+Unknown timezone (BUG)
+
+====================================================
+PHASE 6 — BOOKING SYSTEM AUDIT
+==============================
+
+Audit entire flow.
+
+Availability
+
+Booking Wizard
+
+Slot Cards
+
+Confirmation
+
+Patient Dashboard
+
+Provider Dashboard
+
+Admin Dashboard
+
+Reminders
+
+Calendar Exports
+
+For same booking verify:
+
+UTC timestamp
+
+Displayed timestamp
+
+Relative time
+
+must match.
+
+A slot shown as:
+
+"Starts in 10 minutes"
+
+must remain that same instant everywhere.
+
+====================================================
+PHASE 7 — REPORTING AUDIT
+=========================
+
+Audit:
+
+Admin Reports
+
+Provider Reports
+
+Patient Reports
+
+Financial Reports
+
+Analytics
+
+Exports
+
+Verify:
+
+No mixed currencies.
+
+No native currency summed as USD.
+
+No USD summed as native.
+
+No fake exchange conversions.
+
+No duplicate KPI formulas.
+
+====================================================
+PHASE 8 — PAYMENT AUDIT
+=======================
+
+Audit:
+
+Bookings
+
+Invoices
+
+Wallets
+
+Refunds
+
+Gift Cards
+
+Packages
+
+Memberships
+
+Provider Earnings
+
+Provider Payouts
+
+Platform Fees
+
+Taxes
+
+Promotions
+
+Verify:
+
+Storage currency
+
+Display currency
+
+Conversion path
+
+Audit every calculation.
+
+====================================================
+PHASE 9 — NOTIFICATION AUDIT
+============================
+
+Audit:
+
+Emails
+
+SMS
+
+Push
+
+In-App
+
+PDFs
+
+Invoices
+
+Receipts
+
+Verify:
+
+Correct currency
+
+Correct timezone
+
+Correct formatting
+
+Correct symbols
+
+====================================================
+PHASE 10 — EXPORT AUDIT
+=======================
+
+Audit:
+
+CSV
+
+PDF
+
+Reports
+
+Financial exports
+
+Provider exports
+
+Patient exports
+
+Verify:
+
+Currency correctness
+
+Timezone correctness
+
+No hidden USD assumptions
+
+====================================================
+PHASE 11 — FIX EVERYTHING
+=========================
+
+After audit:
+
+Fix ALL findings.
+
+Not only reported bugs.
+
+Every finding.
+
+Every inconsistency.
+
+Every duplicate formatter.
+
+Every duplicate converter.
+
+Every duplicate timezone helper.
+
+Every duplicate calculation.
+
+====================================================
+PHASE 12 — REMOVE DEAD ARCHITECTURE
+===================================
+
+Remove:
+
+Dead formatters
+
+Dead converters
+
+Dead helpers
+
+Dead timezone utilities
+
+Dead hooks
+
+Dead APIs
+
+Dead exports
+
+Dead reports
+
+Dead calculations
+
+Dead imports
+
+Dead routes
+
+Dead components
+
+Dead code
+
+====================================================
+PHASE 13 — REGRESSION MATRIX
+============================
+
+Test:
+
+HU Provider + HU Patient + India Browser
+
+HU Provider + HU Patient + Hungary Browser
+
+HU Provider + India Patient
+
+India Provider + HU Patient
+
+US Provider + HU Patient
+
+UK Provider + India Patient
+
+Verify:
+
+Booking
+
+Payments
+
+Wallets
+
+Invoices
+
+Reports
+
+Analytics
+
+Exports
+
+Notifications
+
+Calendars
+
+Everything.
+
+====================================================
+FINAL DELIVERABLE
+=================
+
+Create:
+
+ops/PLATFORM-CURRENCY-TIMEZONE-CONSOLIDATION-REPORT.md
+
+Must include:
+
+1. Full inventory
+2. Currency source of truth
+3. Timezone source of truth
+4. Files audited
+5. Files fixed
+6. Currency defects found
+7. Timezone defects found
+8. Reporting defects found
+9. Payment defects found
+10. Notification defects found
+11. Export defects found
+12. Dead code removed
+13. Regression results
+14. Remaining gaps
+
+SUCCESS CRITERIA
+
+Provider enters:
+
+5,000 Ft
+
+Provider sees:
+
+5,000 Ft
+
+Patient sees:
+
+5,000 Ft
+
+Admin sees:
+
+5,000 Ft
+≈ $13.70 USD
+
+A slot shown as:
+
+"Starts in 10 minutes"
+
+must remain the same appointment instant everywhere:
+
+Booking Wizard
+Confirmation
+Patient Dashboard
+Provider Dashboard
+Admin Dashboard
+Notifications
+Calendar Exports
+
+No currency leaks.
+
+No timezone drift.
+
+No duplicate logic.
+
+No hidden conversions.
+
+No excuses.
