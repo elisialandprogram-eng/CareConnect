@@ -1,3 +1,4 @@
+import { formatDateTime } from "@/lib/datetime";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
@@ -751,9 +752,7 @@ export function SupportTickets() {
                           <span>·</span>
                           <span className="inline-flex items-center gap-1">
                             <CalendarDays className="h-3 w-3" />
-                            {new Date(
-                              selectedTicket.createdAt,
-                            ).toLocaleString()}
+                            {formatDateTime(selectedTicket.createdAt)}
                           </span>
                           <span
                             className={`inline-flex items-center gap-1 text-[10px] font-semibold rounded-full px-1.5 py-0.5 ${ageToneCls(age.tone)}`}
@@ -1011,9 +1010,7 @@ export function SupportTickets() {
                                     {senderName}
                                   </span>
                                   <span className="text-[10px] text-muted-foreground ml-auto">
-                                    {new Date(
-                                      msg.createdAt,
-                                    ).toLocaleString()}
+                                    {formatDateTime(msg.createdAt)}
                                   </span>
                                 </div>
                                 <p className="text-sm whitespace-pre-wrap leading-relaxed">
@@ -1051,9 +1048,7 @@ export function SupportTickets() {
                                 <span
                                   className={`text-[10px] ${isStaff ? "text-primary-foreground/70" : "text-muted-foreground"}`}
                                 >
-                                  {new Date(
-                                    msg.createdAt,
-                                  ).toLocaleString()}
+                                  {formatDateTime(msg.createdAt)}
                                 </span>
                               </div>
                               <p className="text-sm whitespace-pre-wrap leading-relaxed">

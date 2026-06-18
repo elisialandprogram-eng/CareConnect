@@ -2,7 +2,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { Link, useLocation } from "wouter";
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
-import { formatDate as formatDateTz } from "@/lib/datetime";
+import { formatDate as formatDateTz, formatDateTime as formatDateTimeTz } from "@/lib/datetime";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Header } from "@/components/header";
@@ -138,7 +138,7 @@ const HistoryList = ({ patientId }: { patientId?: string }) => {
             </div>
           </div>
           <div className="flex items-center gap-4 mt-2">
-            <p className="text-xs text-muted-foreground">{new Date(h.date).toLocaleDateString()}</p>
+            <p className="text-xs text-muted-foreground">{formatDateTz(h.date)}</p>
             {h.attachments && h.attachments.length > 0 && (
               <div className="flex gap-2">
                 {h.attachments.map((url, idx) => (
@@ -1515,8 +1515,8 @@ export default function PatientDashboard() {
                                 {inv.invoiceNumber}
                               </p>
                               <p className="text-sm text-muted-foreground">
-                                {inv.issueDate ? new Date(inv.issueDate).toLocaleDateString() : "—"}
-                                {inv.dueDate ? ` • ${t("patient_dashboard.due_label", "Due")} ${new Date(inv.dueDate).toLocaleDateString()}` : ""}
+                                {inv.issueDate ? formatDateTz(inv.issueDate) : "—"}
+                                {inv.dueDate ? ` • ${t("patient_dashboard.due_label", "Due")} ${formatDateTz(inv.dueDate)}` : ""}
                               </p>
                             </div>
                           </div>
@@ -1586,7 +1586,7 @@ export default function PatientDashboard() {
               <div>
                 <p className="font-medium">{t("dashboard.payment_id")} #{String(payment.id).slice(0, 8)}</p>
                 <p className="text-sm text-muted-foreground">
-                  {payment.createdAt ? new Date(payment.createdAt).toLocaleDateString() : 'N/A'} • {
+                  {payment.createdAt ? formatDateTz(payment.createdAt) : 'N/A'} • {
                     (payment as any).paymentMethod === 'crypto' ? t("dashboard.cryptocurrency") : 
                     (payment as any).paymentMethod === 'card' ? t("dashboard.credit_card") :
                     (payment as any).paymentMethod === 'bank_transfer' ? t("dashboard.bank_transfer") :
@@ -2001,7 +2001,7 @@ export default function PatientDashboard() {
                         <div key={entry.id} className="flex items-center justify-between rounded-lg border p-3" data-testid={`waitlist-entry-${entry.id}`}>
                           <div>
                             <p className="font-medium text-sm">{entry.providerName ?? entry.provider?.user?.firstName ?? "Provider"}</p>
-                            {entry.preferredDate && <p className="text-xs text-muted-foreground">{new Date(entry.preferredDate).toLocaleDateString()}</p>}
+                            {entry.preferredDate && <p className="text-xs text-muted-foreground">{formatDateTz(entry.preferredDate)}</p>}
                           </div>
                           {entry.position && (
                             <Badge variant="outline" className="text-xs" data-testid={`waitlist-position-${entry.id}`}>Position #{entry.position}</Badge>
@@ -2052,7 +2052,7 @@ export default function PatientDashboard() {
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium">{notif.title ?? notif.type}</p>
                         {notif.body && <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{notif.body}</p>}
-                        {notif.createdAt && <p className="text-xs text-muted-foreground/60 mt-1">{new Date(notif.createdAt).toLocaleString()}</p>}
+                        {notif.createdAt && <p className="text-xs text-muted-foreground/60 mt-1">{formatDateTimeTz(notif.createdAt)}</p>}
                       </div>
                     </div>
                   ))}
@@ -2360,7 +2360,7 @@ function PatientGalleryPanel() {
                     )}
                   </div>
                   <p className="absolute top-1.5 right-1.5 text-[9px] text-white/70 bg-black/40 rounded px-1">
-                    {new Date(img.created_at).toLocaleDateString()}
+                    {formatDateTz(img.created_at)}
                   </p>
                 </div>
               ))}

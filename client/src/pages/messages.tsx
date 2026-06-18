@@ -21,7 +21,8 @@ import {
 import { usePageTitle } from "@/hooks/use-page-title";
 import { QK } from "@/lib/query-keys";
 import { clsx } from "clsx";
-import { format, isToday, isYesterday } from "date-fns";
+import { isToday, isYesterday } from "date-fns";
+import { formatDate, formatTime } from "@/lib/datetime";
 
 interface AppointmentContext {
   id: string;
@@ -74,9 +75,9 @@ function initials(name: string) {
 function formatListTime(iso: string | null | undefined) {
   if (!iso) return "";
   const d = new Date(iso);
-  if (isToday(d)) return format(d, "HH:mm");
+  if (isToday(d)) return formatTime(d, { hour: "2-digit", minute: "2-digit", hour12: false });
   if (isYesterday(d)) return "Yesterday";
-  return format(d, "MMM d");
+  return formatDate(d, { month: "short", day: "numeric" });
 }
 
 function statusColor(s: string) {
@@ -344,7 +345,7 @@ export default function Messages() {
     const out: Array<{ day: string; items: ChatMessage[] }> = [];
     messages.forEach(m => {
       const d = m.createdAt ? new Date(m.createdAt) : new Date();
-      const day = isToday(d) ? "Today" : isYesterday(d) ? "Yesterday" : format(d, "EEEE, MMM d, yyyy");
+      const day = isToday(d) ? "Today" : isYesterday(d) ? "Yesterday" : formatDate(d, { weekday: "long", month: "short", day: "numeric", year: "numeric" });
       const last = out[out.length - 1];
       if (last?.day === day) last.items.push(m);
       else out.push({ day, items: [m] });
@@ -462,7 +463,7 @@ export default function Messages() {
                                 {conv.appointment.status.replace(/_/g, " ")}
                               </span>
                               <span className="text-[10px] text-muted-foreground">
-                                {format(new Date(conv.appointment.date), "MMM d")}
+                                {formatDate(conv.appointment.date + "T12:00:00", { month: "short", day: "numeric" })}
                               </span>
                               {conv.appointment.serviceName && (
                                 <span className="text-[10px] text-muted-foreground truncate max-w-[100px]">
@@ -545,7 +546,7 @@ export default function Messages() {
                             </span>
                             <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
                               <Calendar className="h-2.5 w-2.5" />
-                              {format(new Date(selected.appointment.date), "MMM d, yyyy")}
+                              {formatDate(selected.appointment.date + "T12:00:00", { month: "short", day: "numeric", year: "numeric" })}
                             </span>
                             <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
                               <Clock className="h-2.5 w-2.5" />
@@ -605,7 +606,7 @@ export default function Messages() {
                             Care Appointment
                           </p>
                           <p className="text-xs text-muted-foreground">
-                            {format(new Date(selected.appointment.date), "EEEE, MMMM d, yyyy")}
+                            {formatDate(selected.appointment.date + "T12:00:00", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
                           </p>
                           <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
                             <Clock className="h-2.5 w-2.5" />
@@ -729,7 +730,7 @@ export default function Messages() {
                                   </div>
                                 )}
                                 <span className="text-[9px] text-muted-foreground mt-0.5 px-1 flex items-center gap-1">
-                                  {msg.createdAt ? format(new Date(msg.createdAt), "HH:mm") : ""}
+                                  {msg.createdAt ? formatTime(msg.createdAt, { hour: "2-digit", minute: "2-digit", hour12: false }) : ""}
                                   {msg.isEdited && <><Pencil className="h-2.5 w-2.5" /><span>edited</span></>}
                                   {mine && (
                                     msg.readAt

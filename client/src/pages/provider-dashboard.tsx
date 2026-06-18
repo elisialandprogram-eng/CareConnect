@@ -1,3 +1,4 @@
+import { formatDate } from "@/lib/datetime";
 import React, { useState, useEffect, useMemo, Component } from "react";
 import { useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -1554,7 +1555,7 @@ export default function ProviderDashboard() {
                           <div>
                             <p className="font-medium">{r.patient?.firstName} {r.patient?.lastName}</p>
                             <p className="text-xs text-muted-foreground">
-                              {r.createdAt ? new Date(r.createdAt as any).toLocaleDateString() : ""}
+                              {r.createdAt ? formatDate(r.createdAt as any) : ""}
                             </p>
                           </div>
                         </div>
@@ -1571,7 +1572,7 @@ export default function ProviderDashboard() {
                             <Reply className="h-3 w-3" />{t("provider_dashboard.your_reply", "Your reply")}
                             {(r as any).providerReplyAt && (
                               <span className="text-muted-foreground font-normal ml-1">
-                                · {new Date((r as any).providerReplyAt).toLocaleDateString()}
+                                · {formatDate((r as any).providerReplyAt)}
                               </span>
                             )}
                           </p>

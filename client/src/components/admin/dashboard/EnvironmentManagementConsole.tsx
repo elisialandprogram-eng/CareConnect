@@ -1,3 +1,4 @@
+import { formatDateTime } from "@/lib/datetime";
 import { useState } from "react";
 import { formatInCurrency } from "@/lib/currency";
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -163,7 +164,7 @@ function OverviewTab() {
         <div>
           <h3 className="font-semibold text-base">Environment Snapshot</h3>
           <p className="text-sm text-muted-foreground">
-            {snap ? `Captured at ${new Date(snap.capturedAt).toLocaleString()}` : "Live platform statistics and configuration overview."}
+            {snap ? `Captured at ${formatDateTime(snap.capturedAt)}` : "Live platform statistics and configuration overview."}
           </p>
         </div>
         <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching} data-testid="button-refresh-snapshot">
@@ -596,7 +597,7 @@ function FullResetTab() {
             <CardTitle className="text-base flex items-center gap-2 text-emerald-700 dark:text-emerald-400">
               <CheckCircle2 className="h-4 w-4" /> Reset Complete
             </CardTitle>
-            <CardDescription>Completed in {lastResult.durationMs}ms at {new Date(lastResult.executedAt).toLocaleString()}.</CardDescription>
+            <CardDescription>Completed in {lastResult.durationMs}ms at {formatDateTime(lastResult.executedAt)}.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-1.5">
             {["patients", "providers", "appointments"].map((k) => {
@@ -683,7 +684,7 @@ function TestDataTab() {
                         <TableRow key={u.id} data-testid={`row-testuser-${u.id}`}>
                           <TableCell className="font-mono text-xs">{u.email}</TableCell>
                           <TableCell><Badge variant="outline" className="text-xs capitalize">{u.role}</Badge></TableCell>
-                          <TableCell className="text-xs text-muted-foreground">{new Date(u.createdAt).toLocaleDateString()}</TableCell>
+                          <TableCell className="text-xs text-muted-foreground">{formatDateTime(u.createdAt)}</TableCell>
                           <TableCell>
                             <Badge className={`text-xs ${isSafe ? "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400" : "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400"}`}>
                               {isSafe ? "Safe to delete" : "Review required"}
@@ -905,7 +906,7 @@ function AuditLogTab() {
                         {row.details?.durationMs && ` · ${row.details.durationMs}ms`}
                       </TableCell>
                       <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
-                        {new Date(row.created_at).toLocaleString()}
+                        {formatDateTime(row.created_at)}
                       </TableCell>
                     </TableRow>
                   );

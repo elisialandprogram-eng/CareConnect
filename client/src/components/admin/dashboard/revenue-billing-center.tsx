@@ -1,3 +1,4 @@
+import { formatDate } from "@/lib/datetime";
 /**
  * Revenue & Billing Center
  * The single admin control panel for all pricing, fee, commission,
@@ -1077,10 +1078,7 @@ const PAYMENT_METHODS = [
 ];
 
 function currFmt(amount: number, code: string): string {
-  const entry = SIM_CURRENCIES.find(c => c.code === code);
-  const sym = entry?.symbol ?? code;
-  const decimals = (code === "HUF" || code === "IRR") ? 0 : 2;
-  return `${sym}${amount.toLocaleString(undefined, { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}`;
+  return formatInCurrency(amount, code);
 }
 
 function SimSection({ label, icon: Icon, children }: { label: string; icon: any; children: React.ReactNode }) {
@@ -1445,7 +1443,7 @@ function RevenueSimulatorPanel() {
                   {activePlatformFee.map((r: any) => (
                     <RulePill key={r.id}
                       name={`${r.name} (${r.targetScope})`}
-                      value={r.feeType === "percent" ? `${r.percentValue}%` : `$${r.fixedAmount}`}
+                      value={r.feeType === "percent" ? `${r.percentValue}%` : formatInCurrency(Number(r.fixedAmount), "USD")}
                     />
                   ))}
                 </div>
@@ -1771,7 +1769,7 @@ function GiftCardsAdminPanel() {
               <TableCell className="font-mono text-xs">{c.code}</TableCell>
               <TableCell>{formatInCurrency(Number(c.balance), c.currency as string)}</TableCell>
               <TableCell className="text-xs text-muted-foreground">{c.recipient_email ?? c.purchaser_email ?? "—"}</TableCell>
-              <TableCell className="text-xs">{c.expires_at ? new Date(c.expires_at).toLocaleDateString() : "No expiry"}</TableCell>
+              <TableCell className="text-xs">{c.expires_at ? formatDate(c.expires_at) : "No expiry"}</TableCell>
               <TableCell>{c.is_active ? <CheckCircle2 className="h-4 w-4 text-green-500" /> : <XCircle className="h-4 w-4 text-muted-foreground" />}</TableCell>
               <TableCell>
                 {c.is_active && <Button size="sm" variant="outline" className="text-xs h-7" onClick={() => deactivateMut.mutate(c.id)} data-testid={`btn-deactivate-gc-${c.id}`}>Deactivate</Button>}

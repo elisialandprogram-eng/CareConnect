@@ -1,3 +1,4 @@
+import { formatDate, formatDateTime } from "@/lib/datetime";
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -178,7 +179,7 @@ export default function ConsentPage() {
     const text = `
     ${ct.title}
     Version: ${consent.consentTextVersion}
-    Date: ${new Date(consent.consentedAt).toLocaleString()}
+    Date: ${formatDateTime(consent.consentedAt)}
     IP: ${consent.ipAddress}
     
     1. Treatment: ${consent.treatmentConsent ? "CONSENTED" : "DECLINED"}
@@ -368,7 +369,7 @@ export default function ConsentPage() {
               {consents.map((c) => (
                 <div key={c.id} className="flex items-center justify-between p-2 border rounded-md">
                   <div className="text-sm">
-                    <p className="font-medium">{new Date(c.consentedAt).toLocaleDateString()}</p>
+                    <p className="font-medium">{formatDate(c.consentedAt)}</p>
                     <p className="text-muted-foreground text-xs">v{c.consentTextVersion} • {c.ipAddress}</p>
                   </div>
                   <Button variant="ghost" size="icon" onClick={() => downloadConsent(c)}>

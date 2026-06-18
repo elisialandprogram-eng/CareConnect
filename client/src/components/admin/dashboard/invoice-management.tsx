@@ -1,3 +1,4 @@
+import { formatDate } from "@/lib/datetime";
 import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
@@ -432,7 +433,7 @@ export function InvoiceManagement() {
                           {invoice.invoiceNumber}
                         </td>
                         <td className="p-4">
-                          {new Date(invoice.issueDate).toLocaleDateString()}
+                          {formatDate(invoice.issueDate)}
                         </td>
                         <td className="p-4">{formatInCurrency(Number(invoice.totalAmount || 0), invoice.countryCode === "IR" ? "IRR" : invoice.countryCode === "HU" ? "HUF" : "USD")}</td>
                         <td className="p-4">

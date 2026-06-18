@@ -1,3 +1,4 @@
+import { formatDate } from "@/lib/datetime";
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
@@ -326,7 +327,7 @@ export function RefundManagementPanel() {
                 <tbody className="divide-y">
                   {refunds.map(r => {
                     const patientName = [r.patient_first, r.patient_last].filter(Boolean).join(" ") || r.patient_email || "—";
-                    const cancelDate = r.cancelled_at ? new Date(r.cancelled_at).toLocaleDateString("en", { month: "short", day: "numeric" }) : "—";
+                    const cancelDate = r.cancelled_at ? formatDate(r.cancelled_at, { month: "short", day: "numeric" }) : "—";
                     return (
                       <tr key={r.id} className="hover:bg-muted/20" data-testid={`row-refund-${r.id}`}>
                         <td className="px-4 py-3 font-mono text-xs">{r.appointment_number ?? r.id.slice(0, 8)}</td>

@@ -1,3 +1,4 @@
+import { formatDate } from "@/lib/datetime";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
@@ -282,7 +283,7 @@ function PatientsTab({ insights, fmtMoney }: { insights?: InsightsData; fmtMoney
                 <div key={p.patientId} className="flex justify-between items-center text-sm py-1.5 border-b last:border-0">
                   <div className="min-w-0">
                     <p className="font-medium truncate max-w-[160px]">{p.name}</p>
-                    <p className="text-xs text-muted-foreground">Last visit: {new Date(p.lastVisit).toLocaleDateString()}</p>
+                    <p className="text-xs text-muted-foreground">Last visit: {formatDate(p.lastVisit)}</p>
                   </div>
                   <div className="text-right shrink-0 flex items-center gap-3">
                     <Badge variant="secondary">{p.visitCount} visits</Badge>
@@ -586,7 +587,7 @@ function FinancialsTab({ fmtMoney, enabled }: { fmtMoney: (v: number) => string;
                 <tbody>
                   {data.earnings.slice(0, 15).map((e: any, i: number) => (
                     <tr key={i} className="border-b last:border-0">
-                      <td className="py-2 text-muted-foreground text-xs">{e.date ? new Date(e.date).toLocaleDateString() : "—"}</td>
+                      <td className="py-2 text-muted-foreground text-xs">{e.date ? formatDate(e.date) : "—"}</td>
                       <td className="py-2 truncate max-w-[150px]">{e.serviceName ?? "—"}</td>
                       <td className="text-end py-2 font-medium text-emerald-600">{fmtMoney(Number(e.providerEarning ?? 0))}</td>
                       <td className="text-end py-2">

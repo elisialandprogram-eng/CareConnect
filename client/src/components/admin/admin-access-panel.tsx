@@ -1,3 +1,4 @@
+import { formatDate } from "@/lib/datetime";
 import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
@@ -56,7 +57,7 @@ interface AdminUser {
 
 function fmtDate(iso: string | null) {
   if (!iso) return "Never";
-  return new Date(iso).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+  return formatDate(iso, { year: "numeric", month: "short", day: "numeric" });
 }
 
 function initials(u: AdminUser) {

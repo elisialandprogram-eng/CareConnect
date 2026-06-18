@@ -1,3 +1,4 @@
+import { formatDate, formatDateTime } from "@/lib/datetime";
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
@@ -407,7 +408,7 @@ function DetailPanel({ entry, onClose }: DetailPanelProps) {
     { key: "professional_title", label: "Professional Title", value: entry.professional_title ?? undefined },
     { key: "license_number", label: "License Number", value: entry.license_number ?? undefined },
     { key: "licensing_authority", label: "Licensing Authority", value: entry.licensing_authority ?? undefined },
-    { key: "license_expiry", label: "License Expiry Date", value: entry.license_expiry_date ? new Date(entry.license_expiry_date).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : undefined },
+    { key: "license_expiry", label: "License Expiry Date", value: entry.license_expiry_date ? formatDate(entry.license_expiry_date, { day: "numeric", month: "short", year: "numeric" }) : undefined },
     { key: "national_id", label: "National Provider ID / Govt. Photo ID", value: entry.national_provider_id ?? (entry.documents?.find(d => d.documentType === "id_card") ? `✓ Govt. Photo ID uploaded` : undefined) },
     { key: "provider_agreement", label: "Provider Agreement", value: entry.provider_agreement_accepted ? "✓ Accepted" : "✗ Not accepted" },
     { key: "gdpr_agreement", label: "GDPR / Data Processing Agreement", value: entry.data_processing_agreement_accepted ? "✓ Accepted" : "✗ Not accepted" },
@@ -453,7 +454,7 @@ function DetailPanel({ entry, onClose }: DetailPanelProps) {
             <p className="text-xs text-amber-700 dark:text-amber-400 mt-0.5">
               The provider edited their profile after submission. The information below reflects their latest version.
               {entry.last_resubmitted_at && (
-                <> Last resubmitted: <strong>{new Date(entry.last_resubmitted_at).toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}</strong>.</>
+                <> Last resubmitted: <strong>{formatDateTime(entry.last_resubmitted_at)}</strong>.</>
               )}
             </p>
           </div>
@@ -466,13 +467,13 @@ function DetailPanel({ entry, onClose }: DetailPanelProps) {
           {entry.submitted_at && (
             <span className="flex items-center gap-1.5">
               <Clock className="h-3 w-3" />
-              Originally submitted: <strong className="ml-0.5">{new Date(entry.submitted_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}</strong>
+              Originally submitted: <strong className="ml-0.5">{formatDate(entry.submitted_at, { day: "numeric", month: "short", year: "numeric" })}</strong>
             </span>
           )}
           {entry.last_resubmitted_at && (
             <span className="flex items-center gap-1.5">
               <RefreshCw className="h-3 w-3" />
-              Last resubmitted: <strong className="ml-0.5">{new Date(entry.last_resubmitted_at).toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}</strong>
+              Last resubmitted: <strong className="ml-0.5">{formatDateTime(entry.last_resubmitted_at)}</strong>
             </span>
           )}
         </div>
@@ -499,7 +500,7 @@ function DetailPanel({ entry, onClose }: DetailPanelProps) {
                 { label: "Clinic / Practice", value: entry.clinic_name },
                 { label: "License Number", value: entry.license_number },
                 { label: "Licensing Authority", value: entry.licensing_authority },
-                { label: "License Expiry", value: entry.license_expiry_date ? new Date(entry.license_expiry_date).toLocaleDateString() : null },
+                { label: "License Expiry", value: entry.license_expiry_date ? formatDate(entry.license_expiry_date) : null },
                 { label: "National Provider ID / Govt. Photo ID", value: entry.national_provider_id ?? (entry.documents?.find(d => d.documentType === "id_card") ? `✓ Govt. Photo ID uploaded (${entry.documents!.find(d => d.documentType === "id_card")!.verificationStatus})` : null) },
                 { label: "Provider Agreement", value: entry.provider_agreement_accepted ? "✓ Accepted" : "✗ Not accepted" },
                 { label: "GDPR Agreement", value: entry.data_processing_agreement_accepted ? "✓ Accepted" : "✗ Not accepted" },
@@ -811,8 +812,8 @@ export function ProviderReviewQueue() {
             }).length;
             const approvedDocs = docs.filter((d) => d.verificationStatus === "approved").length;
             const ps = PROVIDER_STATUS_BADGE[entry.status] ?? "bg-gray-100 text-gray-600 border-gray-200";
-            const submittedAt = (entry.submitted_at ?? entry.updated_at) ? new Date((entry.submitted_at ?? entry.updated_at)!).toLocaleDateString("en-GB", { day: "numeric", month: "short" }) : null;
-            const resubmittedAt = entry.last_resubmitted_at ? new Date(entry.last_resubmitted_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : null;
+            const submittedAt = (entry.submitted_at ?? entry.updated_at) ? formatDate((entry.submitted_at ?? entry.updated_at)!, { day: "numeric", month: "short" }) : null;
+            const resubmittedAt = entry.last_resubmitted_at ? formatDateTime(entry.last_resubmitted_at) : null;
             const updatedAfterSubmit = entry.profile_updated_after_submission === true;
 
             return (

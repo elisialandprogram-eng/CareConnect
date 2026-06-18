@@ -300,7 +300,7 @@ export function ProviderWalletPanel() {
                   <BarChart data={chartData} margin={{ top: 4, right: 8, left: 8, bottom: 4 }}>
                     <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
                     <XAxis dataKey="month" tick={{ fontSize: 11 }} />
-                    <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
+                    <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => { const n = Number(v); return n >= 1_000 ? `${(n / 1_000).toFixed(0)}k` : String(Math.round(n)); }} />
                     <Tooltip formatter={(value: number) => fmt(value)} />
                     <Legend />
                     <Bar dataKey="Income" fill="hsl(var(--primary))" radius={[3, 3, 0, 0]} />

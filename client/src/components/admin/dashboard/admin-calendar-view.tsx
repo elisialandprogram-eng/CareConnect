@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { useAdminCurrency, formatInCurrency } from "@/lib/currency";
-import { formatDateTime } from "@/lib/datetime";
+import { formatDate, formatTime, formatDateTime } from "@/lib/datetime";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -39,10 +39,10 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 function fmt(d: Date, opts: Intl.DateTimeFormatOptions) {
-  return d.toLocaleDateString(undefined, opts);
+  return formatDate(d, opts);
 }
 function fmtTime(d: Date) {
-  return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  return formatTime(d, { hour: "2-digit", minute: "2-digit" });
 }
 function isSameDay(a: Date, b: Date) {
   return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
@@ -292,7 +292,7 @@ function DayView({ day, events, onEventClick }: { day: Date; events: any[]; onEv
   return (
     <div className={`border rounded-lg p-4 min-h-[360px] ${isToday ? "border-primary bg-primary/5" : ""}`}>
       <p className="text-sm font-medium mb-3 text-muted-foreground">
-        {day.toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" })}
+        {formatDate(day, { weekday: "long", day: "numeric", month: "long" })}
         {events.length > 0 && <Badge variant="secondary" className="ml-2">{events.length}</Badge>}
       </p>
       {events.length === 0 ? (
@@ -336,7 +336,7 @@ function WeekView({ days, byDay, onEventClick }: { days: Date[]; byDay: Map<stri
           >
             <div className="flex items-baseline justify-between mb-1.5">
               <span className="text-[10px] uppercase text-muted-foreground font-medium">
-                {d.toLocaleDateString(undefined, { weekday: "short" })}
+                {formatDate(d, { weekday: "short" })}
               </span>
               <span className={`text-base font-semibold ${todayDay ? "text-primary" : ""}`}>{d.getDate()}</span>
             </div>

@@ -1,3 +1,4 @@
+import { formatDate, formatTime } from "@/lib/datetime";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -107,8 +108,8 @@ function LogRow({ log }: { log: AuditLog }) {
 
         <div className="flex-shrink-0 text-right flex items-center gap-2">
           <div>
-            <p className="text-xs text-muted-foreground">{new Date(log.createdAt).toLocaleDateString()}</p>
-            <p className="text-xs text-muted-foreground/60">{new Date(log.createdAt).toLocaleTimeString()}</p>
+            <p className="text-xs text-muted-foreground">{formatDate(log.createdAt)}</p>
+            <p className="text-xs text-muted-foreground/60">{formatTime(log.createdAt)}</p>
           </div>
           {hasDetail && (
             expanded

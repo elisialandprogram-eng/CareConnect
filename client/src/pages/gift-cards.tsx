@@ -1,3 +1,4 @@
+import { formatDate } from "@/lib/datetime";
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { QK } from "@/lib/query-keys";
@@ -201,7 +202,7 @@ export default function GiftCardsPage() {
                 </div>
                 <p className="text-sm">Balance: <strong>{fmtMoney(Number(checkedCard.balance))}</strong></p>
                 {checkedCard.expires_at && (
-                  <p className="text-xs text-muted-foreground">Expires: {new Date(checkedCard.expires_at).toLocaleDateString()}</p>
+                  <p className="text-xs text-muted-foreground">Expires: {formatDate(checkedCard.expires_at)}</p>
                 )}
               </div>
             )}

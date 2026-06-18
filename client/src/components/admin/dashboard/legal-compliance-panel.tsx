@@ -1,3 +1,4 @@
+import { formatDate, formatDateTime } from "@/lib/datetime";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
@@ -113,7 +114,7 @@ type NewVersionForm = z.infer<typeof newVersionSchema>;
 // ── Helpers ────────────────────────────────────────────────────────────────────
 function fmt(dt?: string | null) {
   if (!dt) return "—";
-  return new Date(dt).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+  return formatDate(dt, { day: "2-digit", month: "short", year: "numeric" });
 }
 
 // ── Sub-components ──────────────────────────────────────────────────────────────
@@ -681,7 +682,7 @@ function AcceptanceAudit() {
                   <TableCell><Badge variant="outline" className="text-xs">{a.role_snapshot}</Badge></TableCell>
                   <TableCell className="text-xs">{a.source}</TableCell>
                   <TableCell className="text-xs font-mono">{a.ip_address ?? "—"}</TableCell>
-                  <TableCell className="text-xs">{new Date(a.accepted_at).toLocaleString("en-GB")}</TableCell>
+                  <TableCell className="text-xs">{formatDateTime(a.accepted_at)}</TableCell>
                 </TableRow>
               ))}
             </TableBody>

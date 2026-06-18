@@ -1,3 +1,4 @@
+import { formatDateTime } from "@/lib/datetime";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { usePageTitle } from "@/hooks/use-page-title";
@@ -287,9 +288,7 @@ export default function WalletPage() {
                               t("wallet.no_description", "No description")}
                           </p>
                           <p className="text-[11px] text-muted-foreground">
-                            {tx.createdAt
-                              ? new Date(tx.createdAt).toLocaleString()
-                              : ""}
+                            {tx.createdAt ? formatDateTime(tx.createdAt) : ""}
                           </p>
                         </div>
                         <div className="text-right">

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useParams, Link } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { QK } from "@/lib/query-keys";
-import { format } from "date-fns";
+import { formatDate, formatDateTime } from "@/lib/datetime";
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
 import {
@@ -21,12 +21,12 @@ import { apiRequest } from "@/lib/queryClient";
 
 function fmtDate(d: string | Date | null | undefined) {
   if (!d) return "—";
-  return format(new Date(d), "d MMM yyyy");
+  return formatDate(new Date(d), { day: "numeric", month: "short", year: "numeric" });
 }
 
 function fmtDateTime(d: string | Date | null | undefined) {
   if (!d) return "—";
-  return format(new Date(d), "d MMM yyyy, HH:mm");
+  return formatDateTime(new Date(d));
 }
 
 const CONSENT_LABELS: Record<string, string> = {

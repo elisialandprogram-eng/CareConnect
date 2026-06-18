@@ -1,3 +1,4 @@
+import { formatDateTime } from "@/lib/datetime";
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
@@ -71,7 +72,7 @@ export function AdminCategoryRequests() {
 
   const formatDate = (dateStr?: string | null) => {
     if (!dateStr) return "—";
-    return new Date(dateStr).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
+    return formatDateTime(dateStr);
   };
 
   if (isLoading) {

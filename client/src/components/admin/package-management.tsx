@@ -1,3 +1,4 @@
+import { formatDate } from "@/lib/datetime";
 import { useState, useMemo, useEffect } from "react";
 import { useAdminCurrency } from "@/lib/currency";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -75,7 +76,7 @@ const BENEFIT_KEYS = [
 
 function fmtDate(iso: string | null) {
   if (!iso) return "—";
-  return new Date(iso).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+  return formatDate(iso, { year: "numeric", month: "short", day: "numeric" });
 }
 
 function statusBadge(status: string) {

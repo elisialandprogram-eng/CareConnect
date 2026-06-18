@@ -1,3 +1,4 @@
+import { formatDate } from "@/lib/datetime";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
@@ -201,7 +202,7 @@ function HealthActivityTab({ data, formatPrice }: { data: PatientAnalytics; form
                   </div>
                   <div className="text-right shrink-0">
                     <p className="text-xs font-semibold">{p.visitCount} visits</p>
-                    <p className="text-xs text-muted-foreground">Last: {new Date(p.lastVisit).toLocaleDateString()}</p>
+                    <p className="text-xs text-muted-foreground">Last: {formatDate(p.lastVisit)}</p>
                   </div>
                 </div>
               ))}
@@ -322,8 +323,8 @@ function MembershipsTab({ data, formatPrice }: { data: PatientAnalytics; formatP
                 <div className="min-w-0">
                   <p className="font-medium text-sm">{m.name}</p>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    Purchased {new Date(m.purchasedAt).toLocaleDateString()}
-                    {m.expiresAt && ` · Expires ${new Date(m.expiresAt).toLocaleDateString()}`}
+                    Purchased {formatDate(m.purchasedAt)}
+                    {m.expiresAt && ` · Expires ${formatDate(m.expiresAt)}`}
                   </p>
                 </div>
                 <Badge className={`text-xs capitalize shrink-0 ${PACKAGE_STATUS_COLOR[m.status] ?? "bg-muted text-muted-foreground"}`}>
@@ -389,8 +390,8 @@ function PackagesTab({ data, formatPrice }: { data: PatientAnalytics; formatPric
                     </>
                   )}
                   <p className="text-xs text-muted-foreground">
-                    Purchased {new Date(pkg.purchasedAt).toLocaleDateString()}
-                    {pkg.expiresAt && ` · Expires ${new Date(pkg.expiresAt).toLocaleDateString()}`}
+                    Purchased {formatDate(pkg.purchasedAt)}
+                    {pkg.expiresAt && ` · Expires ${formatDate(pkg.expiresAt)}`}
                   </p>
                 </CardContent>
               </Card>
@@ -432,7 +433,7 @@ function DocumentsTab() {
                   <div key={i} className="flex items-center justify-between gap-2 py-1.5 border-b last:border-0">
                     <div className="min-w-0">
                       <p className="text-sm font-medium">{p.medication ?? "Prescription"}</p>
-                      <p className="text-xs text-muted-foreground">{p.createdAt ? new Date(p.createdAt).toLocaleDateString() : ""}</p>
+                      <p className="text-xs text-muted-foreground">{p.createdAt ? formatDate(p.createdAt) : ""}</p>
                     </div>
                     <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
                   </div>

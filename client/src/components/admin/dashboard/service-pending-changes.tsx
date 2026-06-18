@@ -1,3 +1,4 @@
+import { formatInCurrency } from "@/lib/currency";
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
@@ -313,7 +314,7 @@ export function ServicePendingChangesPanel() {
           {[
             { field: "category",      label: "Category",         val: item.category },
             { field: "subServiceName",label: "Sub-service",      val: item.subServiceName },
-            { field: "suggestedPrice",label: "Suggested price",  val: item.suggestedPrice ? `$${item.suggestedPrice}` : undefined },
+            { field: "suggestedPrice",label: "Suggested price",  val: item.suggestedPrice ? formatInCurrency(Number(item.suggestedPrice), "USD") : undefined },
             { field: "duration",      label: "Duration (min)",   val: item.durationMinutes },
             { field: "location_mode", label: "Delivery Mode",    val: item.locationMode },
           ].filter(f => f.val != null && f.val !== "").map(f => (

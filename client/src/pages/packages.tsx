@@ -1,3 +1,4 @@
+import { formatDate } from "@/lib/datetime";
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
@@ -117,7 +118,7 @@ function StatusBadge({ status }: { status: string }) {
 
 function fmtDate(iso: string | null) {
   if (!iso) return "—";
-  return new Date(iso).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+  return formatDate(iso, { year: "numeric", month: "short", day: "numeric" });
 }
 
 function daysLeft(expiresAt: string | null) {

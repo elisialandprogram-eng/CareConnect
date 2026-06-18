@@ -1,3 +1,4 @@
+import { formatDateTime } from "@/lib/datetime";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Bug, Search, RefreshCw, UserCheck, CheckCircle, XCircle, Archive } from "lucide-react";
@@ -118,7 +119,7 @@ function BugDetailPanel({ reportId, onClose }: { reportId: string; onClose: () =
         </CardHeader>
         <CardContent className="pt-0 space-y-3">
           <p className="text-xs text-muted-foreground">
-            Created {new Date(report.created_at).toLocaleString()} · Last activity {new Date(report.last_activity_at).toLocaleString()}
+            Created {formatDateTime(report.created_at)} · Last activity {formatDateTime(report.last_activity_at)}
           </p>
 
           {/* Quick actions */}
@@ -198,7 +199,7 @@ function BugDetailPanel({ reportId, onClose }: { reportId: string; onClose: () =
                   <div className={`p-3 rounded-lg text-sm ${isMe ? "bg-primary text-primary-foreground" : "bg-muted"}`}>
                     {c.message}
                   </div>
-                  <span className="text-xs text-muted-foreground mt-1">{new Date(c.created_at).toLocaleString()}</span>
+                  <span className="text-xs text-muted-foreground mt-1">{formatDateTime(c.created_at)}</span>
                 </div>
               </div>
             );
@@ -397,7 +398,7 @@ export default function AdminBugReports() {
                     <TableCell><StatusBadge status={r.status} domain="bug" /></TableCell>
                     <TableCell className="text-xs text-muted-foreground">{r.assignee_name ?? "—"}</TableCell>
                     <TableCell className="text-xs text-muted-foreground">
-                      {new Date(r.last_activity_at).toLocaleDateString()}
+                      {formatDateTime(r.last_activity_at)}
                     </TableCell>
                     <TableCell onClick={(e) => e.stopPropagation()}>
                       <div className="flex gap-1">

@@ -1,3 +1,4 @@
+import { formatDateTime } from "@/lib/datetime";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { QK } from "@/lib/query-keys";
@@ -49,13 +50,9 @@ const STATUS_TONE: Record<string, string> = {
   rejected: "bg-rose-100 text-rose-800 dark:bg-rose-900/40 dark:text-rose-200",
 };
 
-function formatDateTime(iso: string | null): string {
+function fmtDt(iso: string | null): string {
   if (!iso) return "—";
-  try {
-    return new Date(iso).toLocaleString();
-  } catch {
-    return iso;
-  }
+  return formatDateTime(iso);
 }
 
 export default function AdminStaleBookings() {

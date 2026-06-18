@@ -1,3 +1,4 @@
+import { formatDate } from "@/lib/datetime";
 import { useState, useMemo, useCallback } from "react";
 import { formatCurrencyForCountry, useAdminCurrency } from "@/lib/currency";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -115,12 +116,12 @@ function fmtCurr(v: string | number | null | undefined, cc?: string | null): str
 
 function fmtDate(iso: string | null) {
   if (!iso) return "—";
-  return new Date(iso).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+  return formatDate(iso, { year: "numeric", month: "short", day: "numeric" });
 }
 
 function fmtMonthLabel(ym: string) {
   const [y, m] = ym.split("-");
-  return new Date(Number(y), Number(m) - 1, 1).toLocaleDateString(undefined, { month: "short", year: "2-digit" });
+  return formatDate(new Date(Number(y), Number(m) - 1, 1), { month: "short", year: "2-digit" });
 }
 
 function visitTypeLabel(vt: string) {

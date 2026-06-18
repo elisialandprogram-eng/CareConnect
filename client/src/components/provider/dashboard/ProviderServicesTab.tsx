@@ -1,3 +1,4 @@
+import { formatDate } from "@/lib/datetime";
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
@@ -653,7 +654,7 @@ export function ProviderServicesTab({ providerData, providerWithServices, setAct
                       under_review: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
                     };
                     const colorClass = statusColors[proposal.status] ?? "bg-muted text-muted-foreground";
-                    const dateStr = proposal.createdAt ? new Date(proposal.createdAt).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" }) : "";
+                    const dateStr = proposal.createdAt ? formatDate(proposal.createdAt, { day: "numeric", month: "short", year: "numeric" }) : "";
                     return (
                       <div key={proposal.id} className="flex items-center justify-between p-3 rounded-lg border bg-muted/30 gap-3" data-testid={`row-proposal-${proposal.id}`}>
                         <div className="flex-1 min-w-0">

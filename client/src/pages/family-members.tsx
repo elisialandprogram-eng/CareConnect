@@ -1,3 +1,4 @@
+import { formatDate } from "@/lib/datetime";
 import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
@@ -312,7 +313,7 @@ export default function FamilyMembersPage() {
                     {m.dateOfBirth && (
                       <span className="flex items-center gap-1.5">
                         <Calendar className="h-3.5 w-3.5" />
-                        {new Date(m.dateOfBirth).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })}
+                        {formatDate(m.dateOfBirth, { year: "numeric", month: "short", day: "numeric" })}
                       </span>
                     )}
                     {m.bloodType && (
