@@ -127,13 +127,15 @@ function visitBadge(type: string | null) {
 /**
  * Resolve all display values for a single earning row using a consistent currency.
  *
- * When the appointment has a non-USD display currency (e.g. HUF/IRR) AND both
- * `displayAmount` and `appointmentTotalAmount` are populated, we use booking-currency
- * values throughout so arithmetic is self-consistent:
- *   patientPaid − platformComm = netEarning  (all in HUF/IRR)
+ * SOURCE PRIORITY for providerEarnings / platformComm:
+ *  1. pricingBreakdown JSONB (RevenueEngineResult stored at booking time) — most accurate:
+ *       providerEarnings = service price − commission  (in booking currency)
+ *       platformRevenue  = platform fee + commission   (in booking currency)
+ *  2. Legacy fallback: platform fee from appointments.platform_fee_amount
+ *  3. Last resort: provider_earnings table amounts (USD)
  *
- * Falls back to USD-converted amounts (via fmtUsd) for USD bookings or legacy rows
- * that pre-date the booking-currency snapshot columns.
+ * The old pattern of computing platformComm = patientPaid − netEarning was WRONG because
+ * it bundled tax and surcharge into "platform commission", inflating it by 1000s of HUF.
  */
 function resolveEarningDisplay(
   e: RichEarning,
@@ -146,23 +148,57 @@ function resolveEarningDisplay(
   fmtPay: (n: number) => string;
   inLocalCurrency: boolean;
 } {
+  const pb = e.pricingBreakdown as any;
+  // pricingBreakdown is the full RevenueEngineResult stored at booking time.
+  // It holds providerEarnings (service − commission) and platformRevenue (fee + commission)
+  // both in booking currency (HUF/IRR/USD).
+  const hasPB = pb != null && typeof pb === "object" &&
+    pb.providerEarnings != null && Number(pb.providerEarnings) > 0;
+
   const hasLocal = !!(
     e.displayCurrency && e.displayCurrency !== "USD" &&
-    e.displayAmount != null && Number(e.displayAmount) > 0 &&
     e.appointmentTotalAmount != null && Number(e.appointmentTotalAmount) > 0
   );
+
   if (hasLocal) {
     const fmtPay = (n: number) => formatInCurrency(n, e.displayCurrency!);
     const patientPaid = Number(e.appointmentTotalAmount);
-    const netEarning  = Number(e.displayAmount);
-    // Commission = what patient paid minus what provider keeps — computed in booking currency.
-    const platformComm = Math.max(0, patientPaid - netEarning);
-    // Refund amount from provider_earnings is in USD; convert back via exchange rate if set.
     const rate = Number(e.exchangeRateUsed ?? 0);
     const refundUsd = Number(e.refundAmount ?? 0);
     const refundAmt = rate > 0 ? refundUsd * rate : refundUsd;
+
+    if (hasPB) {
+      // Best path: engine snapshot — providerEarnings and platformRevenue in booking currency
+      const netEarning   = Number(pb.providerEarnings);
+      const platformComm = Number(pb.platformRevenue ?? 0);
+      return { patientPaid, platformComm, netEarning, refundAmt, fmtPay, inLocalCurrency: true };
+    }
+
+    // Legacy: use stored display_amount; for platform comm prefer the appointment platform fee
+    // (fee charged to patient) over the misleading patientPaid − displayAmount residual.
+    const netEarning      = Number(e.displayAmount ?? 0);
+    const appointmentFee  = Number(e.appointmentPlatformFee ?? 0);
+    const platformComm    = appointmentFee > 0
+      ? appointmentFee
+      : Math.max(0, patientPaid - netEarning);
     return { patientPaid, platformComm, netEarning, refundAmt, fmtPay, inLocalCurrency: true };
   }
+
+  // USD path
+  if (hasPB) {
+    // exchangeRateUsed = 1/rateVal (e.g. 1/365 ≈ 0.00274) — multiply to convert local→USD
+    const xr = Number(e.exchangeRateUsed ?? 0);
+    const toUSD = (n: number) => xr > 0 ? n * xr : n;
+    return {
+      patientPaid:   Number(e.totalAmount ?? 0),
+      platformComm:  toUSD(Number(pb.platformRevenue ?? 0)),
+      netEarning:    toUSD(Number(pb.providerEarnings ?? 0)),
+      refundAmt:     Number(e.refundAmount ?? 0),
+      fmtPay:        fmtUsd,
+      inLocalCurrency: false,
+    };
+  }
+
   return {
     patientPaid:   Number(e.totalAmount ?? 0),
     platformComm:  Number(e.platformFee ?? 0),
@@ -177,44 +213,59 @@ function EarningBreakdownRow({ e, fmt }: { e: RichEarning; fmt: (n: number) => s
   const displayCur = e.displayCurrency ?? "USD";
   const fmtLocal = (n: number) => formatInCurrency(n, displayCur);
 
-  // Informational booking-currency amounts (always from appointments table — booking currency)
-  const base  = Number(e.servicePriceSnapshot ?? 0);   // booking currency
-  const promo = Number(e.promoDiscount ?? 0);           // booking currency
-  const tax   = Number(e.taxAmount ?? 0);               // booking currency
+  const pb = e.pricingBreakdown as any;
+  const hasPB = pb != null && typeof pb === "object" && Number(pb.providerEarnings ?? 0) > 0;
 
-  // Resolved payment totals — uses booking-currency when available; falls back to USD
-  const { patientPaid, platformComm, netEarning, refundAmt, fmtPay, inLocalCurrency } =
-    resolveEarningDisplay(e, fmt);
+  // Booking-currency amounts from appointments snapshot columns
+  const base  = Number(e.servicePriceSnapshot ?? 0);
+  const promo = Number(e.promoDiscount ?? 0);
+  const tax   = Number(e.taxAmount ?? 0);
 
-  // appointmentPlatformFee: fee charged TO the patient in booking currency.
-  // Patches the pricingBreakdown JSONB when it stored 0 due to a historic snapshot bug.
+  // Commission deducted from provider's share (from revenue engine, in booking currency)
+  const commissionAmt  = hasPB ? Number(pb.commissionAmount ?? 0) : 0;
+  const commissionRate = hasPB && pb.commissionRate != null
+    ? Math.round(Number(pb.commissionRate) * 100)
+    : null;
+
+  // Platform fee charged TO the patient (not the commission) — in booking currency
   const apptPlatformFee = Number(e.appointmentPlatformFee ?? 0);
 
-  const rawPricingLines = (e.pricingBreakdown as any)?.lines as Array<{ label: string; amount: number }> | undefined;
-  const pricingLines = rawPricingLines?.map(l =>
+  // Resolved totals — uses pricingBreakdown snapshot when available (see resolveEarningDisplay)
+  const { patientPaid, platformComm, netEarning, refundAmt, fmtPay } =
+    resolveEarningDisplay(e, fmt);
+
+  // Pricing detail lines (patient-facing breakdown from booking snapshot)
+  const rawPricingLines = pb?.lines as Array<{ label: string; amount: number }> | undefined;
+  const pricingLines = rawPricingLines?.map((l) =>
     /platform\s*fee/i.test(l.label) && l.amount === 0 && apptPlatformFee > 0
       ? { ...l, amount: apptPlatformFee }
-      : l
+      : l,
   );
+
+  // What to show for the commission deduction line:
+  // If we have the exact commission from the engine, use it; otherwise fall back to platformComm
+  const showCommissionAmt = commissionAmt > 0 ? commissionAmt : 0;
 
   return (
     <TableRow className="bg-muted/20 hover:bg-muted/30">
       <TableCell colSpan={8} className="pt-0 pb-3 px-4">
         <div className="ml-2 border-l-2 border-primary/20 pl-4 mt-1">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {/* Earnings waterfall */}
+
+            {/* LEFT: Provider earnings waterfall */}
             <div>
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
                 Earnings Breakdown
               </p>
               <div className="space-y-1 text-sm">
-                {/* Informational lines — what makes up the booking price */}
+                {/* Service price */}
                 {base > 0 && (
                   <div className="flex justify-between gap-4">
                     <span className="text-muted-foreground">Service price</span>
                     <span className="tabular-nums font-medium">{fmtLocal(base)}</span>
                   </div>
                 )}
+                {/* Promo discount off service price */}
                 {promo > 0 && (
                   <div className="flex justify-between gap-4 pl-3">
                     <span className="text-muted-foreground">
@@ -223,43 +274,60 @@ function EarningBreakdownRow({ e, fmt }: { e: RichEarning; fmt: (n: number) => s
                     <span className="tabular-nums font-medium text-amber-600">−{fmtLocal(promo)}</span>
                   </div>
                 )}
-                {tax > 0 && (
-                  <div className="flex justify-between gap-4 pl-3">
-                    <span className="text-muted-foreground">Tax</span>
-                    <span className="tabular-nums font-medium text-muted-foreground">{fmtLocal(tax)}</span>
-                  </div>
-                )}
-                {/* Separator before totals */}
-                <div className="flex justify-between gap-4 border-t pt-1 mt-1 font-semibold">
-                  <span>Patient paid</span>
-                  <span className="tabular-nums">{fmtPay(patientPaid)}</span>
-                </div>
-                {/* Platform commission deducted from provider share */}
-                {platformComm > 0 && (
+                {/* Platform commission deducted from provider's service revenue */}
+                {showCommissionAmt > 0 && (
                   <div className="flex justify-between gap-4 pl-3">
                     <span className="text-muted-foreground">
-                      Platform commission (deducted)
-                      {inLocalCurrency && (
-                        <span className="ml-1 text-[10px] text-muted-foreground/60">= patient paid − your earning</span>
-                      )}
+                      Platform commission{commissionRate != null ? ` (${commissionRate}%)` : ""}
                     </span>
-                    <span className="tabular-nums font-medium text-orange-600">−{fmtPay(platformComm)}</span>
+                    <span className="tabular-nums font-medium text-orange-600">−{fmtPay(showCommissionAmt)}</span>
                   </div>
                 )}
-                {refundAmt > 0 && (
-                  <div className="flex justify-between gap-4">
-                    <span className="text-muted-foreground">Refund issued</span>
-                    <span className="tabular-nums font-medium text-red-600">−{fmtPay(refundAmt)}</span>
-                  </div>
-                )}
-                <div className="flex justify-between gap-4 font-bold text-emerald-700 dark:text-emerald-400">
+                {/* Net earning */}
+                <div className="flex justify-between gap-4 border-t pt-1 mt-1 font-bold text-emerald-700 dark:text-emerald-400">
                   <span>Your net earning</span>
                   <span className="tabular-nums">{fmtPay(netEarning)}</span>
+                </div>
+                {/* Refund (if any) */}
+                {refundAmt > 0 && (
+                  <div className="flex justify-between gap-4 text-red-600">
+                    <span>Refund issued</span>
+                    <span className="tabular-nums font-medium">−{fmtPay(refundAmt)}</span>
+                  </div>
+                )}
+
+                {/* Patient payment context */}
+                <div className="border-t pt-2 mt-2 space-y-1">
+                  <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">
+                    Patient payment
+                  </p>
+                  {apptPlatformFee > 0 && (
+                    <div className="flex justify-between gap-4">
+                      <span className="text-muted-foreground">Platform fee (billed to patient)</span>
+                      <span className="tabular-nums text-muted-foreground">{fmtPay(apptPlatformFee)}</span>
+                    </div>
+                  )}
+                  {tax > 0 && (
+                    <div className="flex justify-between gap-4">
+                      <span className="text-muted-foreground">Tax</span>
+                      <span className="tabular-nums text-muted-foreground">{fmtLocal(tax)}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between gap-4 font-semibold">
+                    <span>Patient paid total</span>
+                    <span className="tabular-nums">{fmtPay(patientPaid)}</span>
+                  </div>
+                  {platformComm > 0 && (
+                    <div className="flex justify-between gap-4 text-[11px] text-muted-foreground">
+                      <span>Platform total take (fee + commission)</span>
+                      <span className="tabular-nums">−{fmtPay(platformComm)}</span>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
 
-            {/* Pricing detail lines from booking snapshot — amounts are in booking currency */}
+            {/* RIGHT: Patient-facing booking price detail */}
             {pricingLines && pricingLines.length > 0 && (
               <div>
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
@@ -286,12 +354,6 @@ function EarningBreakdownRow({ e, fmt }: { e: RichEarning; fmt: (n: number) => s
               )}
               {e.appointmentStatus && (
                 <div><span className="font-medium text-foreground">Appt status:</span> {e.appointmentStatus}</div>
-              )}
-              {e.displayCurrency && e.displayCurrency !== "USD" && (
-                <div>
-                  <span className="font-medium text-foreground">Local amount:</span>{" "}
-                  {e.displayAmount} {e.displayCurrency}
-                </div>
               )}
               {e.cancelledBy && (
                 <div className="text-red-600">
@@ -561,8 +623,9 @@ export default function ProviderEarnings() {
                   <TooltipContent side="left" className="max-w-xs text-xs">
                     <p className="font-semibold mb-1">How your earnings are calculated:</p>
                     <p>Service Price − Promo Discount = Subtotal</p>
-                    <p>Subtotal + Tax = Patient Paid</p>
-                    <p>Patient Paid − Platform Fee = Your Net Earning</p>
+                    <p>Subtotal − Platform Commission = <span className="font-semibold">Your Net Earning</span></p>
+                    <p className="mt-1 text-muted-foreground">The patient additionally pays a platform fee and applicable tax — these do not affect your net earning.</p>
+                    <p className="mt-1 text-muted-foreground">Platform take = Platform fee + Commission</p>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
@@ -591,7 +654,7 @@ export default function ProviderEarnings() {
                       <TableHead className="hidden md:table-cell">Patient</TableHead>
                       <TableHead className="hidden sm:table-cell">Type</TableHead>
                       <TableHead className="text-right">Patient paid</TableHead>
-                      <TableHead className="text-right hidden sm:table-cell">Platform fee</TableHead>
+                      <TableHead className="text-right hidden sm:table-cell">Platform take</TableHead>
                       <TableHead className="text-right">Your earning</TableHead>
                       <TableHead className="w-[100px]">Status</TableHead>
                     </TableRow>
@@ -704,8 +767,8 @@ export default function ProviderEarnings() {
                 <ReceiptText className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
                 <div className="text-xs text-muted-foreground space-y-0.5">
                   <p className="font-medium text-foreground">How your earnings are calculated</p>
-                  <p>Service Price − Promo Discount = Subtotal &nbsp;·&nbsp; Subtotal + Tax = Patient Paid &nbsp;·&nbsp; Patient Paid − Platform Fee = <span className="text-emerald-700 dark:text-emerald-400 font-semibold">Your Net Earning</span></p>
-                  <p>All values are stored in USD and displayed in your preferred local currency.</p>
+                  <p>Service Price − Promo Discount = Subtotal &nbsp;·&nbsp; Subtotal − Platform Commission = <span className="text-emerald-700 dark:text-emerald-400 font-semibold">Your Net Earning</span></p>
+                  <p>The patient separately pays a platform fee and applicable tax. Platform take = platform fee + commission. All values stored in USD and displayed in your local currency.</p>
                 </div>
               </div>
             </CardContent>

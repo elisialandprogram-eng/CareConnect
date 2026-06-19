@@ -2954,11 +2954,27 @@ export class DatabaseStorage extends PackagesMixin implements IStorage {
       }
     } catch { /* non-fatal — fall back to legacy platformFee */ }
 
-    // Sprint RX-01: Use RevenueEngine snapshot columns when available.
-    // provider_earnings_snapshot and commission_amount are set at booking time by runRevenueEngine().
-    // For legacy appointments (pre RX-01) fall back to the fee_split_ratio / platformFeeAmount logic.
-    const reProviderEarnings = parseFloat((appt as any).provider_earnings_snapshot ?? "0");
-    const reCommissionAmount  = parseFloat((appt as any).commission_amount ?? "0");
+    // Sprint RX-01: Use RevenueEngine snapshot for accurate provider earnings.
+    // PRIMARY: pricingBreakdown JSONB is in the Drizzle schema so db.select() always returns it.
+    //          It contains providerEarnings and commissionAmount in booking currency (HUF/IRR/USD).
+    // SUPPLEMENT: Direct pool.query for provider_earnings_snapshot / commission_amount columns
+    //             (added via startup migration, NOT in Drizzle schema — db.select() never returns them).
+    // FALLBACK: fee_split_ratio / platformFeeAmount legacy path.
+    const _pb = (appt as any).pricingBreakdown as any;
+    let reProviderEarnings = _pb?.providerEarnings != null ? Number(_pb.providerEarnings) : 0;
+    let reCommissionAmount  = _pb?.commissionAmount != null ? Number(_pb.commissionAmount) : 0;
+    try {
+      const _sn = await pool.query(
+        `SELECT
+           COALESCE(provider_earnings_snapshot::numeric, 0) AS pe,
+           COALESCE(commission_amount::numeric, 0)          AS ca
+         FROM appointments WHERE id = $1`,
+        [appointmentId],
+      );
+      const _pe = Number(_sn.rows[0]?.pe ?? 0);
+      const _ca = Number(_sn.rows[0]?.ca ?? 0);
+      if (_pe > 0) { reProviderEarnings = _pe; reCommissionAmount = _ca; }
+    } catch (_snErr: any) { /* non-fatal — proceed with pricingBreakdown values */ }
 
     let platformFee: number;
     let providerEarning: number;
