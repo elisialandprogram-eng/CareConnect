@@ -170,6 +170,8 @@ interface Props {
   breakdown?: PricingBreakdownSnapshot | null;
   /** Called when the user changes visit type inside the canvas, so the parent can re-fetch the quote */
   onVisitTypeChange?: (vt: "clinic" | "home" | "online") => void;
+  /** locationMode of the selected service — used to hide unsupported visit types */
+  serviceLocationMode?: string | null;
 }
 
 const BLANK_NEW_MEMBER: NewMemberForm = {
@@ -244,6 +246,7 @@ export function BookingCanvas({
   subServiceId,
   breakdown,
   onVisitTypeChange,
+  serviceLocationMode,
 }: Props) {
   const { t } = useTranslation();
   const { format: formatPrice, convert: convertToLocal } = useCurrency();
@@ -727,7 +730,14 @@ export function BookingCanvas({
       <div>
         <Label className="text-sm font-medium mb-1.5 block">Visit type</Label>
         <div className="grid grid-cols-3 gap-2">
-          {(["clinic", "home", "online"] as const).map(vt => (
+          {(["clinic", "home", "online"] as const).filter(vt => {
+            if (!serviceLocationMode) return true;
+            const m = serviceLocationMode;
+            if (vt === "clinic") return m === "both" || m === "all" || m.includes("clinic");
+            if (vt === "home")   return m === "both" || m === "all" || m.includes("home");
+            if (vt === "online") return m === "all"  || m.includes("online");
+            return true;
+          }).map(vt => (
             <button
               key={vt}
               onClick={() => { setValues(v => ({ ...v, visitType: vt })); onVisitTypeChange?.(vt); }}

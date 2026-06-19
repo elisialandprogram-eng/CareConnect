@@ -1077,6 +1077,7 @@ export default function BookWizard() {
           subServiceId={selectedService?.subServiceId ?? null}
           breakdown={quote ?? null}
           onVisitTypeChange={setVisitType}
+          serviceLocationMode={(selectedService as any)?.locationMode ?? null}
           onHoldExpired={() => {
             setCanvasOpen(false);
             setSelectedSlot(null);
