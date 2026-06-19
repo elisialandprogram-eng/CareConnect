@@ -133,36 +133,39 @@ function EarningBreakdownRow({ e, fmt }: { e: RichEarning; fmt: (n: number) => s
   const base = Number(e.servicePriceSnapshot ?? 0);          // booking currency (HUF/IRR)
   const promo = Number(e.promoDiscount ?? 0);                 // booking currency (HUF/IRR)
   const tax = Number(e.taxAmount ?? 0);                       // booking currency (HUF/IRR)
-  // appointmentPlatformFee comes from appointments.platform_fee_amount (booking currency),
-  // keeping the waterfall consistent with base / promo / tax which are also booking currency.
-  const apptPlatformFee = Number(e.appointmentPlatformFee ?? 0); // booking currency (HUF/IRR)
+  // Platform commission taken by the platform FROM the provider's share — stored in USD.
+  // This is what appears in the table header and must be used here to make arithmetic close:
+  //   patientPaid (USD→local) − platformCommission (USD→local) = netEarning (USD→local)
+  const platformCommission = Number(e.platformFee ?? 0);      // USD (provider_earnings)
   const netEarning = Number(e.providerEarning ?? 0);          // USD (provider_earnings)
+  const patientPaid = Number(e.totalAmount ?? 0);             // USD (provider_earnings)
   const refundAmt = Number(e.refundAmount ?? 0);              // USD (provider_earnings)
-
-  // Compute patient paid and net earning directly in booking currency so the
-  // waterfall arithmetic closes: base − promo + tax + platformFee = patientPaid
-  //                              patientPaid − platformFee = netEarning
-  // Fall back to the USD→local converted value when snapshot columns are absent.
-  const patientPaidLocal = (base > 0)
-    ? base - promo + tax + apptPlatformFee
-    : Number(e.totalAmount ?? 0);                             // USD fallback
-  const netEarningLocal = (base > 0)
-    ? patientPaidLocal - apptPlatformFee
-    : netEarning;                                             // USD fallback
-  const useFmtForTotals = base === 0;                         // true only when no snapshot
 
   type BLine = { label: string; value: number; color: string; indent?: boolean; fmtFn: (n: number) => string };
   const lines: BLine[] = [];
 
+  // Booking-currency context lines (informational — show what the patient paid for)
   if (base > 0) lines.push({ label: "Service price", value: base, color: "text-foreground", fmtFn: fmtLocal });
   if (promo > 0) lines.push({ label: `Promo discount${e.promoCode ? ` (${e.promoCode})` : ""}`, value: -promo, color: "text-amber-600", indent: true, fmtFn: fmtLocal });
-  // Tax is POSITIVE: patient pays it on top of the service price; provider receives it.
-  // Formula: (Service Price − Promo) + Tax = Patient Paid → Tax − Platform Fee = Net Earning
+  // Tax is POSITIVE — patient pays it on top of the service price; provider receives it.
   if (tax > 0) lines.push({ label: "Tax", value: tax, color: "text-muted-foreground", indent: true, fmtFn: fmtLocal });
-  if (apptPlatformFee > 0) lines.push({ label: "Platform fee (deducted)", value: -apptPlatformFee, color: "text-orange-600", indent: true, fmtFn: fmtLocal });
+  // Platform commission is in USD (same source as table header column) — arithmetic closes:
+  //   patientPaid − platformCommission = netEarning
+  if (platformCommission > 0) lines.push({ label: "Platform commission (deducted)", value: -platformCommission, color: "text-orange-600", indent: true, fmtFn: fmt });
   if (refundAmt > 0) lines.push({ label: "Refund issued", value: -refundAmt, color: "text-red-600", fmtFn: fmt });
 
-  const pricingLines = (e.pricingBreakdown as any)?.lines as Array<{ label: string; amount: number }> | undefined;
+  // appointmentPlatformFee: fee charged TO the patient (booking currency).
+  // Used only to patch the pricingBreakdown JSONB when it stored 0 due to a historic snapshot bug.
+  const apptPlatformFee = Number(e.appointmentPlatformFee ?? 0);
+
+  const rawPricingLines = (e.pricingBreakdown as any)?.lines as Array<{ label: string; amount: number }> | undefined;
+  // Re-inject platform fee into the booking snapshot when the stored value is 0
+  // (old appointments had a bug where platform_fee wasn't written into the JSONB).
+  const pricingLines = rawPricingLines?.map(l =>
+    /platform\s*fee/i.test(l.label) && l.amount === 0 && apptPlatformFee > 0
+      ? { ...l, amount: apptPlatformFee }
+      : l
+  );
 
   return (
     <TableRow className="bg-muted/20 hover:bg-muted/30">
@@ -185,15 +188,11 @@ function EarningBreakdownRow({ e, fmt }: { e: RichEarning; fmt: (n: number) => s
                 ))}
                 <div className="flex justify-between gap-4 border-t pt-1 mt-1 font-semibold">
                   <span>Patient paid</span>
-                  <span className="tabular-nums">
-                    {useFmtForTotals ? fmt(patientPaidLocal) : fmtLocal(patientPaidLocal)}
-                  </span>
+                  <span className="tabular-nums">{fmt(patientPaid)}</span>
                 </div>
                 <div className="flex justify-between gap-4 font-bold text-emerald-700 dark:text-emerald-400">
                   <span>Your net earning</span>
-                  <span className="tabular-nums">
-                    {useFmtForTotals ? fmt(netEarningLocal) : fmtLocal(netEarningLocal)}
-                  </span>
+                  <span className="tabular-nums">{fmt(netEarning)}</span>
                 </div>
               </div>
             </div>

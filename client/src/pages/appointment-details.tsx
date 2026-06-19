@@ -641,7 +641,11 @@ export default function AppointmentDetails() {
               <Separator className="my-1" />
               <PriceRow
                 label={t("appt_details.total", "Total")}
-                value={fmtAmt(total)}
+                value={fmtAmt(
+                  appt?.servicePriceSnapshot != null
+                    ? baseAmount + visitFee + platformFee + taxAmount - promoDiscount - packageDiscountAmount
+                    : total
+                )}
                 bold
                 testId="row-total"
               />
@@ -792,7 +796,10 @@ export default function AppointmentDetails() {
           hasReview={!!(appt as any).hasReview}
           invoiceGenerated={!!(appt as any).invoiceGenerated}
           prescriptionsCount={(appt as any).prescriptionsCount ?? 0}
-          totalAmount={(appt as any).totalAmount}
+          totalAmount={appt?.servicePriceSnapshot != null
+            ? baseAmount + visitFee + platformFee + taxAmount - promoDiscount - packageDiscountAmount
+            : Number(appt?.totalAmount ?? 0)}
+          currency={bookingCurrency}
         />
       )}
 
