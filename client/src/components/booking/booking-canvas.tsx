@@ -56,12 +56,16 @@ import {
   Tag,
   X,
   Crown,
+  PlusCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCurrency, formatInCurrency } from "@/lib/currency";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { PlacesAutocomplete, type StructuredAddress } from "@/components/location/PlacesAutocomplete";
 import { SavedAddressesPicker, type SavedAddress } from "@/components/location/SavedAddressesPicker";
+import { WalletTopUpModal } from "@/components/patient/WalletTopUpModal";
+import { useToast } from "@/hooks/use-toast";
+import { QK } from "@/lib/query-keys";
 
 /* ── Types ───────────────────────────────────────────────────────── */
 export interface BookingCanvasSlot {
@@ -411,6 +415,51 @@ export function BookingCanvas({
       setValues(v => ({ ...v, promoCode: undefined }));
     },
   });
+
+  /* ── Wallet top-up (from payment step) ───────────────────────── */
+  const { toast } = useToast();
+  const [topUpOpen, setTopUpOpen] = useState(false);
+  const topUpMut = useMutation({
+    mutationFn: async (amountUSD: number) => {
+      const returnPath = window.location.pathname + window.location.search;
+      const res = await apiRequest("POST", "/api/wallet/topup", { amount: amountUSD, returnPath });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error((body as any).message || "Failed to start top-up");
+      }
+      return res.json() as Promise<{ url: string }>;
+    },
+    onSuccess: (data) => {
+      if (data.url) window.location.href = data.url;
+    },
+    onError: (e: any) => {
+      toast({ title: "Top-up unavailable", description: e?.message ?? "Please try again later.", variant: "destructive" });
+    },
+  });
+
+  // When Stripe redirects back with ?topup=success, refresh the wallet balance
+  // and show a toast. Works whether returning to the booking page or wallet page.
+  useEffect(() => {
+    if (!open) return;
+    const params = new URLSearchParams(window.location.search);
+    const status = params.get("topup");
+    if (status === "success") {
+      toast({ title: "Wallet topped up!", description: "Your balance has been updated. You can now pay with your wallet." });
+      const tries = [800, 2500, 5000];
+      tries.forEach(ms => setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: QK.wallet() });
+        queryClient.invalidateQueries({ queryKey: QK.walletTransactions() });
+      }, ms));
+      // Remove the query param without reloading
+      const clean = window.location.pathname + window.location.search.replace(/[?&]topup=[^&]*/g, "").replace(/\?$/, "");
+      window.history.replaceState({}, "", clean);
+    } else if (status === "cancelled") {
+      toast({ title: "Top-up cancelled", description: "No charge was made.", variant: "destructive" });
+      const clean = window.location.pathname + window.location.search.replace(/[?&]topup=[^&]*/g, "").replace(/\?$/, "");
+      window.history.replaceState({}, "", clean);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
 
   /* ── Reset on open ────────────────────────────────────────────── */
   useEffect(() => {
@@ -1272,10 +1321,39 @@ export function BookingCanvas({
           </div>
         </div>
 
-        {walletBalance > 0 && (
-          <div className="text-xs text-muted-foreground">
+        <div className="flex items-center justify-between text-xs text-muted-foreground">
+          <span>
+            Wallet balance:{" "}
             {/* walletBalance is always in USD — always convert from USD regardless of pricing mode */}
-            Wallet balance: {formatPrice ? formatPrice(walletBalance) : formatInCurrency(walletBalance, "USD")}
+            {formatPrice ? formatPrice(walletBalance) : formatInCurrency(walletBalance, "USD")}
+          </span>
+          <button
+            type="button"
+            onClick={() => setTopUpOpen(true)}
+            className="flex items-center gap-1 text-primary hover:underline font-medium"
+            data-testid="button-topup-wallet"
+          >
+            <PlusCircle className="h-3.5 w-3.5" />
+            Top up
+          </button>
+        </div>
+        {walletInUnits < discountedTotal && discountedTotal > 0 && (
+          <div className="rounded-lg border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/30 px-3 py-2.5 flex items-center justify-between gap-3">
+            <div className="text-xs text-amber-800 dark:text-amber-300">
+              <p className="font-medium">Not enough balance to cover this booking</p>
+              <p className="mt-0.5 text-amber-700 dark:text-amber-400">
+                You need {fmt(discountedTotal - walletInUnits)} more to pay fully with wallet.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setTopUpOpen(true)}
+              className="shrink-0 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold px-3 py-1.5 transition-colors flex items-center gap-1"
+              data-testid="button-topup-wallet-nudge"
+            >
+              <PlusCircle className="h-3.5 w-3.5" />
+              Top up
+            </button>
           </div>
         )}
         {selectedFor !== "self" && (
@@ -1499,6 +1577,7 @@ export function BookingCanvas({
   const stepContent = [renderStep0(), renderStep1(), renderStep2()];
 
   return (
+    <>
     <Sheet open={open} onOpenChange={v => !v && onClose()}>
       <SheetContent
         side="right"
@@ -1568,5 +1647,13 @@ export function BookingCanvas({
         </div>
       </SheetContent>
     </Sheet>
+
+    <WalletTopUpModal
+      open={topUpOpen}
+      onOpenChange={setTopUpOpen}
+      onTopUp={(amountUSD) => topUpMut.mutate(amountUSD)}
+      isPending={topUpMut.isPending}
+    />
+    </>
   );
 }

@@ -68,14 +68,22 @@ export function registerWalletRoutes(app: Express): void {
 
       const wallet = await storage.getOrCreateWallet(req.user.id);
       const origin = (req.headers.origin as string) || `${req.protocol}://${req.get("host")}`;
+      // Allow callers (e.g. booking canvas) to provide a custom return path so
+      // Stripe redirects back to the originating page instead of /wallet.
+      const rawReturnPath: string = typeof req.body?.returnPath === "string" ? req.body.returnPath : "/wallet";
+      // Strip any existing topup query param before appending ours
+      const cleanReturnPath = rawReturnPath.replace(/[?&]topup=[^&]*/g, "").replace(/\?$/, "");
+      const sep = cleanReturnPath.includes("?") ? "&" : "?";
+      const successUrl = `${origin}${cleanReturnPath}${sep}topup=success`;
+      const cancelUrl  = `${origin}${cleanReturnPath}${sep}topup=cancelled`;
       const session = await createCheckoutSession({
         appointmentId: `wallet:${wallet.id}`,
         amount: round2(amount),
         currency: "usd",
         description: `Wallet top-up (${round2(amount)} USD)`,
         customerEmail: user.email,
-        successUrl: `${origin}/wallet?topup=success`,
-        cancelUrl: `${origin}/wallet?topup=cancelled`,
+        successUrl,
+        cancelUrl,
         metadata: {
           type: "wallet_topup",
           walletUserId: req.user.id,
