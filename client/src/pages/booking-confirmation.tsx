@@ -274,12 +274,26 @@ export default function BookingConfirmation() {
       | null
       | undefined;
     if (stored?.lines && stored.lines.length > 0) {
-      // Drop zero-amount lines (clinic fee / platform fee "included" in base
-      // price) — showing "Included" for a 0-value line is confusing noise.
+      // Drop zero-amount lines (clinic fee "included" in base price) — showing
+      // "Included" for a 0-value line is confusing noise.
       // Tax lines are kept even at 0% to always show the tax position.
-      return stored.lines.filter(
+      // Platform fee is kept when the column value is > 0 even if the snapshot
+      // stored it as 0 (revenue-engine snapshot race condition on older bookings).
+      let lines = stored.lines.filter(
         l => l.amount !== 0 || l.label.toLowerCase().startsWith("tax"),
       );
+      // Re-inject platform fee from the column if it was stripped from snapshot
+      const hasPlatformFeeLine = lines.some(l => l.label.toLowerCase().includes("platform"));
+      if (!hasPlatformFeeLine && platformFee > 0) {
+        const taxIdx = lines.findIndex(l => l.label.toLowerCase().startsWith("tax"));
+        const insertAt = taxIdx >= 0 ? taxIdx : lines.length;
+        lines = [
+          ...lines.slice(0, insertAt),
+          { label: "Platform fee", amount: platformFee },
+          ...lines.slice(insertAt),
+        ];
+      }
+      return lines;
     }
 
     // ── Fallback reconstruction for legacy appointments ──────────────

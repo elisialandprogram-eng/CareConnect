@@ -60,7 +60,7 @@ import {
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
-import { useCurrency } from "@/lib/currency";
+import { useCurrency, formatInCurrency } from "@/lib/currency";
 import { formatDate, formatDateTime } from "@/lib/datetime";
 import { QK } from "@/lib/query-keys";
 import {
@@ -249,6 +249,10 @@ export default function AppointmentDetails() {
   const packageDiscountAmount = Number(appt?.packageDiscountAmount ?? 0) || 0;
   const totalSavings = promoDiscount + packageDiscountAmount;
   const taxAmount = Number(appt?.taxAmount ?? 0) || 0;
+  // All amounts on appointments are in booking currency (HUF/IRR/USD), NOT USD.
+  // Use formatInCurrency so we never double-multiply by the exchange rate.
+  const bookingCurrency = appt?.displayCurrency ?? (appt as any)?.payment?.displayCurrency ?? "USD";
+  const fmtAmt = (n: number) => formatInCurrency(n, bookingCurrency);
   const visitFee = (() => {
     const s = appt?.service;
     if (!s) return 0;
@@ -603,41 +607,41 @@ export default function AppointmentDetails() {
               <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
                 {t("appt_details.pricing", "Pricing")}
               </h3>
-              <PriceRow label={t("appt_details.base_amount", "Base price")} value={fmtMoney(baseAmount)} />
+              <PriceRow label={t("appt_details.base_amount", "Base price")} value={fmtAmt(baseAmount)} />
               {visitFee > 0 && (
                 <PriceRow
                   label={t("appt_details.visit_fee", "Visit fee")}
-                  value={fmtMoney(visitFee)}
+                  value={fmtAmt(visitFee)}
                 />
               )}
               {platformFee > 0 && (
                 <PriceRow
                   label={t("appt_details.platform_fee", "Platform fee")}
-                  value={fmtMoney(platformFee)}
+                  value={fmtAmt(platformFee)}
                 />
               )}
               {promoDiscount > 0 && (
                 <PriceRow
                   label={appt?.promoCode ? `Promo (${appt.promoCode})` : t("appt_details.promo_discount", "Promo discount")}
-                  value={`− ${fmtMoney(promoDiscount)}`}
+                  value={`− ${fmtAmt(promoDiscount)}`}
                   className="text-emerald-600 dark:text-emerald-400 font-medium"
                 />
               )}
               {packageDiscountAmount > 0 && (
                 <PriceRow
                   label={t("appt_details.member_discount", "Member discount")}
-                  value={`− ${fmtMoney(packageDiscountAmount)}`}
+                  value={`− ${fmtAmt(packageDiscountAmount)}`}
                   className="text-emerald-600 dark:text-emerald-400 font-medium"
                 />
               )}
               <PriceRow
                 label={t("appt_details.tax", "Tax")}
-                value={fmtMoney(taxAmount)}
+                value={fmtAmt(taxAmount)}
               />
               <Separator className="my-1" />
               <PriceRow
                 label={t("appt_details.total", "Total")}
-                value={fmtMoney(total)}
+                value={fmtAmt(total)}
                 bold
                 testId="row-total"
               />
@@ -647,7 +651,7 @@ export default function AppointmentDetails() {
                     <span>🎉</span>
                     <span className="text-emerald-700 dark:text-emerald-400 font-semibold text-sm">You saved on this booking</span>
                   </div>
-                  <span className="text-emerald-700 dark:text-emerald-400 font-bold text-sm">{fmtMoney(totalSavings)}</span>
+                  <span className="text-emerald-700 dark:text-emerald-400 font-bold text-sm">{fmtAmt(totalSavings)}</span>
                 </div>
               )}
             </div>
