@@ -27,6 +27,7 @@ export function PostAppointmentSummary({
   invoiceGenerated,
   prescriptionsCount = 0,
   totalAmount,
+  currency,
   className = "",
 }: Props) {
   const total = Number(totalAmount ?? 0);

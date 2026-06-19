@@ -271,6 +271,12 @@ export function registerPaymentRoutes(app: Express): void {
           }];
       const enrichedInvoice = {
         ...invoice,
+        // Ensure currency is always set — DB rows created before the currency
+        // column was added have NULL here, causing invoice-gen to fall back to USD.
+        currency: invoice.currency
+          || (appointment as any).displayCurrency
+          || (appointment as any).display_currency
+          || "USD",
         platformFee: (appointment as any).platformFeeAmount ?? "0.00",
         promoDiscount: (appointment as any).promoDiscount ?? "0.00",
         promoCode: (appointment as any).promoCode ?? null,
