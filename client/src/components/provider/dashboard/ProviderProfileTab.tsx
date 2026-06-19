@@ -601,7 +601,7 @@ export function ProviderProfileTab({
   // Note: personal fields are NEVER locked (even under review)
   // ═══════════════════════════════════════════════════════════════════════════
   const [personalDraft, setPersonalDraft] = useState<{
-    firstName: string; lastName: string; phone: string; city: string;
+    firstName: string; lastName: string; phone: string; city: string; timezone: string;
   } | null>(null);
 
   const personalData = personalDraft ?? {
@@ -609,6 +609,7 @@ export function ProviderProfileTab({
     lastName: user?.lastName ?? "",
     phone: (user as any)?.phone ?? "",
     city: (user as any)?.city ?? "",
+    timezone: (user as any)?.timezone ?? "",
   };
 
   const savePersonalMutation = useMutation({
@@ -1061,6 +1062,46 @@ export function ProviderProfileTab({
             <Input id="city" value={personalData.city}
               onChange={(e) => setPersonalDraft((d) => ({ ...(d ?? personalData), city: e.target.value }))}
               placeholder="Budapest" data-testid="input-city" />
+          </div>
+          <div className="space-y-1.5 sm:col-span-2">
+            <Label htmlFor="timezone">Timezone</Label>
+            <p className="text-xs text-muted-foreground">
+              Used for accurate slot scheduling and appointment times. Select the timezone where you practice.
+            </p>
+            <Select
+              value={personalData.timezone || "_none"}
+              onValueChange={(v) =>
+                setPersonalDraft((d) => ({ ...(d ?? personalData), timezone: v === "_none" ? "" : v }))
+              }
+            >
+              <SelectTrigger id="timezone" data-testid="select-timezone">
+                <SelectValue placeholder="Select your timezone…" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="_none">— Not set (platform will infer from country) —</SelectItem>
+                <SelectItem value="Europe/Budapest">Europe/Budapest — Hungary (CEST/CET)</SelectItem>
+                <SelectItem value="Asia/Tehran">Asia/Tehran — Iran (IRST/IRDT)</SelectItem>
+                <SelectItem value="UTC">UTC — Coordinated Universal Time</SelectItem>
+                <SelectItem value="Europe/London">Europe/London — UK (GMT/BST)</SelectItem>
+                <SelectItem value="Europe/Berlin">Europe/Berlin — Germany/Central Europe (CET/CEST)</SelectItem>
+                <SelectItem value="Europe/Paris">Europe/Paris — France/Belgium (CET/CEST)</SelectItem>
+                <SelectItem value="Europe/Rome">Europe/Rome — Italy (CET/CEST)</SelectItem>
+                <SelectItem value="Europe/Athens">Europe/Athens — Greece/Eastern Europe (EET/EEST)</SelectItem>
+                <SelectItem value="Europe/Istanbul">Europe/Istanbul — Turkey (TRT)</SelectItem>
+                <SelectItem value="Asia/Dubai">Asia/Dubai — UAE/Gulf (GST)</SelectItem>
+                <SelectItem value="Asia/Riyadh">Asia/Riyadh — Saudi Arabia (AST)</SelectItem>
+                <SelectItem value="Asia/Kolkata">Asia/Kolkata — India (IST)</SelectItem>
+                <SelectItem value="Asia/Singapore">Asia/Singapore — Singapore/Malaysia (SGT)</SelectItem>
+                <SelectItem value="Asia/Tokyo">Asia/Tokyo — Japan (JST)</SelectItem>
+                <SelectItem value="Australia/Sydney">Australia/Sydney — Sydney (AEDT/AEST)</SelectItem>
+                <SelectItem value="America/New_York">America/New_York — US Eastern (ET)</SelectItem>
+                <SelectItem value="America/Chicago">America/Chicago — US Central (CT)</SelectItem>
+                <SelectItem value="America/Denver">America/Denver — US Mountain (MT)</SelectItem>
+                <SelectItem value="America/Los_Angeles">America/Los_Angeles — US Pacific (PT)</SelectItem>
+                <SelectItem value="America/Toronto">America/Toronto — Canada Eastern (ET)</SelectItem>
+                <SelectItem value="America/Sao_Paulo">America/Sao_Paulo — Brazil (BRT)</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
 

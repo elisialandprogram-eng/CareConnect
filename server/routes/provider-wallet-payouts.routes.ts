@@ -122,6 +122,7 @@ export function registerProviderWalletPayoutsRoutes(app: Express): void {
             a.pricing_breakdown                                   AS "pricingBreakdown",
             a.country_code                                        AS "countryCode",
             a.platform_fee_amount                                 AS "appointmentPlatformFee",
+            a.total_amount                                        AS "appointmentTotalAmount",
             -- service info
             s.name                                                AS "serviceName",
             -- patient info (first name only for privacy)
