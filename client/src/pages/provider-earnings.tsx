@@ -130,21 +130,36 @@ function EarningBreakdownRow({ e, fmt }: { e: RichEarning; fmt: (n: number) => s
   const displayCur = e.displayCurrency ?? "USD";
   const fmtLocal = (n: number) => formatInCurrency(n, displayCur);
 
-  const base = Number(e.servicePriceSnapshot ?? 0);        // booking currency
-  const promo = Number(e.promoDiscount ?? 0);               // booking currency
-  const tax = Number(e.taxAmount ?? 0);                     // booking currency
-  const platformFee = Number(e.platformFee ?? 0);           // USD (provider_earnings)
-  const netEarning = Number(e.providerEarning ?? 0);        // USD (provider_earnings)
-  const patientPaid = Number(e.totalAmount ?? 0);           // USD (provider_earnings)
-  const refundAmt = Number(e.refundAmount ?? 0);            // USD (provider_earnings)
+  const base = Number(e.servicePriceSnapshot ?? 0);          // booking currency (HUF/IRR)
+  const promo = Number(e.promoDiscount ?? 0);                 // booking currency (HUF/IRR)
+  const tax = Number(e.taxAmount ?? 0);                       // booking currency (HUF/IRR)
+  // appointmentPlatformFee comes from appointments.platform_fee_amount (booking currency),
+  // keeping the waterfall consistent with base / promo / tax which are also booking currency.
+  const apptPlatformFee = Number(e.appointmentPlatformFee ?? 0); // booking currency (HUF/IRR)
+  const netEarning = Number(e.providerEarning ?? 0);          // USD (provider_earnings)
+  const refundAmt = Number(e.refundAmount ?? 0);              // USD (provider_earnings)
+
+  // Compute patient paid and net earning directly in booking currency so the
+  // waterfall arithmetic closes: base − promo + tax + platformFee = patientPaid
+  //                              patientPaid − platformFee = netEarning
+  // Fall back to the USD→local converted value when snapshot columns are absent.
+  const patientPaidLocal = (base > 0)
+    ? base - promo + tax + apptPlatformFee
+    : Number(e.totalAmount ?? 0);                             // USD fallback
+  const netEarningLocal = (base > 0)
+    ? patientPaidLocal - apptPlatformFee
+    : netEarning;                                             // USD fallback
+  const useFmtForTotals = base === 0;                         // true only when no snapshot
 
   type BLine = { label: string; value: number; color: string; indent?: boolean; fmtFn: (n: number) => string };
   const lines: BLine[] = [];
 
   if (base > 0) lines.push({ label: "Service price", value: base, color: "text-foreground", fmtFn: fmtLocal });
   if (promo > 0) lines.push({ label: `Promo discount${e.promoCode ? ` (${e.promoCode})` : ""}`, value: -promo, color: "text-amber-600", indent: true, fmtFn: fmtLocal });
-  if (tax > 0) lines.push({ label: "Tax", value: -tax, color: "text-muted-foreground", indent: true, fmtFn: fmtLocal });
-  if (platformFee > 0) lines.push({ label: "Platform fee (deducted)", value: -platformFee, color: "text-orange-600", indent: true, fmtFn: fmt });
+  // Tax is POSITIVE: patient pays it on top of the service price; provider receives it.
+  // Formula: (Service Price − Promo) + Tax = Patient Paid → Tax − Platform Fee = Net Earning
+  if (tax > 0) lines.push({ label: "Tax", value: tax, color: "text-muted-foreground", indent: true, fmtFn: fmtLocal });
+  if (apptPlatformFee > 0) lines.push({ label: "Platform fee (deducted)", value: -apptPlatformFee, color: "text-orange-600", indent: true, fmtFn: fmtLocal });
   if (refundAmt > 0) lines.push({ label: "Refund issued", value: -refundAmt, color: "text-red-600", fmtFn: fmt });
 
   const pricingLines = (e.pricingBreakdown as any)?.lines as Array<{ label: string; amount: number }> | undefined;
@@ -170,11 +185,15 @@ function EarningBreakdownRow({ e, fmt }: { e: RichEarning; fmt: (n: number) => s
                 ))}
                 <div className="flex justify-between gap-4 border-t pt-1 mt-1 font-semibold">
                   <span>Patient paid</span>
-                  <span className="tabular-nums">{fmt(patientPaid)}</span>
+                  <span className="tabular-nums">
+                    {useFmtForTotals ? fmt(patientPaidLocal) : fmtLocal(patientPaidLocal)}
+                  </span>
                 </div>
                 <div className="flex justify-between gap-4 font-bold text-emerald-700 dark:text-emerald-400">
                   <span>Your net earning</span>
-                  <span className="tabular-nums">{fmt(netEarning)}</span>
+                  <span className="tabular-nums">
+                    {useFmtForTotals ? fmt(netEarningLocal) : fmtLocal(netEarningLocal)}
+                  </span>
                 </div>
               </div>
             </div>
