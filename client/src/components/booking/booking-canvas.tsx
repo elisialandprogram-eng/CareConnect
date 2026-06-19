@@ -1371,9 +1371,9 @@ export function BookingCanvas({
             ? "Bank Transfer"
             : provider.label;
           const subtitle = isWallet
-            ? walletBalance >= discountedTotal
+            ? walletInUnits >= discountedTotal
               ? `Use ${fmt(discountedTotal)} from your balance — instant confirmation`
-              : `Apply ${fmt(walletBalance)} wallet credit — remainder via card`
+              : `Apply ${fmt(walletInUnits)} wallet credit — remainder via card`
             : provider.description;
 
           return (
@@ -1427,9 +1427,9 @@ export function BookingCanvas({
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium">Pay with Wallet</p>
               <p className="text-xs text-muted-foreground truncate">
-                {walletBalance >= discountedTotal
+                {walletInUnits >= discountedTotal
                   ? `Use ${fmt(discountedTotal)} from your balance — instant confirmation`
-                  : `Apply ${fmt(walletBalance)} wallet credit — remainder via card`}
+                  : `Apply ${fmt(walletInUnits)} wallet credit — remainder via card`}
               </p>
             </div>
             {values.payMethod === "wallet" && (
@@ -1485,9 +1485,9 @@ export function BookingCanvas({
         </div>
       )}
 
-      {values.payMethod === "wallet" && walletBalance < discountedTotal && (
+      {values.payMethod === "wallet" && walletInUnits < discountedTotal && (
         <div className="text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 rounded-lg p-3">
-          Your wallet covers {fmt(walletBalance)} of the total.
+          Your wallet covers {fmt(walletInUnits)} of the total.
           The remaining {fmt(remainder)} will be charged by card.
         </div>
       )}
