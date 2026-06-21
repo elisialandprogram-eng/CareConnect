@@ -173,12 +173,14 @@ export function registerAdminFinancialRoutes(app: Express): void {
           u.email AS provider_email,
           p.country_code AS country_code,
           p.provider_type AS provider_type,
-          COALESCE(SUM(CASE WHEN a.payment_status = 'completed' THEN a.total_amount::numeric ELSE 0 END), 0) AS gross_revenue,
-          COALESCE(SUM(CASE WHEN a.payment_status = 'completed' THEN COALESCE(a.platform_fee_amount::numeric, 0) ELSE 0 END), 0) AS total_platform_fees,
-          COALESCE(SUM(CASE WHEN a.payment_status = 'completed' THEN COALESCE(a.refund_amount::numeric, 0) ELSE 0 END), 0) AS total_refunds,
+          COALESCE(SUM(CASE WHEN a.payment_status = 'completed' THEN COALESCE(a.final_total_usd, a.total_amount)::numeric ELSE 0 END), 0) AS gross_revenue,
+          COALESCE(SUM(CASE WHEN a.payment_status = 'completed' AND a.total_amount::numeric > 0 THEN ROUND(COALESCE(a.platform_fee_amount::numeric, 0) / a.total_amount::numeric * COALESCE(a.final_total_usd, a.total_amount)::numeric, 4) ELSE 0 END), 0) AS total_platform_fees,
+          COALESCE(SUM(CASE WHEN a.payment_status = 'completed' AND a.total_amount::numeric > 0 THEN ROUND(COALESCE(a.refund_amount::numeric, 0) / a.total_amount::numeric * COALESCE(a.final_total_usd, a.total_amount)::numeric, 4) ELSE 0 END), 0) AS total_refunds,
           0 AS total_promo_discount,
-          COALESCE(SUM(CASE WHEN a.payment_status = 'completed'
-            THEN a.total_amount::numeric - COALESCE(a.platform_fee_amount::numeric, 0) - COALESCE(a.refund_amount::numeric, 0)
+          COALESCE(SUM(CASE WHEN a.payment_status = 'completed' THEN
+            COALESCE(a.final_total_usd, a.total_amount)::numeric
+            - CASE WHEN a.total_amount::numeric > 0 THEN ROUND(COALESCE(a.platform_fee_amount::numeric, 0) / a.total_amount::numeric * COALESCE(a.final_total_usd, a.total_amount)::numeric, 4) ELSE 0 END
+            - CASE WHEN a.total_amount::numeric > 0 THEN ROUND(COALESCE(a.refund_amount::numeric, 0) / a.total_amount::numeric * COALESCE(a.final_total_usd, a.total_amount)::numeric, 4) ELSE 0 END
             ELSE 0 END), 0) AS net_earnings,
           COUNT(CASE WHEN a.payment_status = 'completed' THEN 1 END) AS completed_appointments,
           COUNT(CASE WHEN a.status IN ('cancelled', 'no_show') THEN 1 END) AS cancelled_appointments,
@@ -234,13 +236,14 @@ export function registerAdminFinancialRoutes(app: Express): void {
             COUNT(CASE WHEN a.status = 'completed' THEN 1 END)::text AS completed_count,
             COUNT(CASE WHEN a.status IN ('cancelled','no_show') THEN 1 END)::text AS cancelled_count,
             COUNT(CASE WHEN a.status IN ('confirmed','pending','in_progress') THEN 1 END)::text AS active_count,
-            COALESCE(SUM(CASE WHEN a.payment_status = 'completed' THEN a.total_amount::numeric ELSE 0 END), 0)::text AS gross_revenue,
-            COALESCE(SUM(CASE WHEN a.payment_status = 'completed' THEN COALESCE(a.platform_fee_amount::numeric,0) ELSE 0 END), 0)::text AS platform_fees,
-            COALESCE(SUM(CASE WHEN a.payment_status = 'completed' THEN COALESCE(a.promo_discount::numeric,0) ELSE 0 END), 0)::text AS promo_discounts,
-            COALESCE(SUM(CASE WHEN a.payment_status = 'completed' THEN COALESCE(a.tax_amount::numeric,0) ELSE 0 END), 0)::text AS tax_collected,
-            COALESCE(SUM(CASE WHEN a.payment_status = 'refunded' THEN COALESCE(a.refund_amount::numeric,0) ELSE 0 END), 0)::text AS refunds_issued,
-            COALESCE(SUM(CASE WHEN a.payment_status = 'completed'
-              THEN a.total_amount::numeric - COALESCE(a.platform_fee_amount::numeric,0)
+            COALESCE(SUM(CASE WHEN a.payment_status = 'completed' THEN COALESCE(a.final_total_usd, a.total_amount)::numeric ELSE 0 END), 0)::text AS gross_revenue,
+            COALESCE(SUM(CASE WHEN a.payment_status = 'completed' AND a.total_amount::numeric > 0 THEN ROUND(COALESCE(a.platform_fee_amount::numeric,0) / a.total_amount::numeric * COALESCE(a.final_total_usd, a.total_amount)::numeric, 4) ELSE 0 END), 0)::text AS platform_fees,
+            COALESCE(SUM(CASE WHEN a.payment_status = 'completed' AND a.total_amount::numeric > 0 THEN ROUND(COALESCE(a.promo_discount::numeric,0) / a.total_amount::numeric * COALESCE(a.final_total_usd, a.total_amount)::numeric, 4) ELSE 0 END), 0)::text AS promo_discounts,
+            COALESCE(SUM(CASE WHEN a.payment_status = 'completed' AND a.total_amount::numeric > 0 THEN ROUND(COALESCE(a.tax_amount::numeric,0) / a.total_amount::numeric * COALESCE(a.final_total_usd, a.total_amount)::numeric, 4) ELSE 0 END), 0)::text AS tax_collected,
+            COALESCE(SUM(CASE WHEN a.payment_status = 'refunded' AND a.total_amount::numeric > 0 THEN ROUND(COALESCE(a.refund_amount::numeric,0) / a.total_amount::numeric * COALESCE(a.final_total_usd, a.total_amount)::numeric, 4) ELSE 0 END), 0)::text AS refunds_issued,
+            COALESCE(SUM(CASE WHEN a.payment_status = 'completed' THEN
+              COALESCE(a.final_total_usd, a.total_amount)::numeric
+              - CASE WHEN a.total_amount::numeric > 0 THEN ROUND(COALESCE(a.platform_fee_amount::numeric,0) / a.total_amount::numeric * COALESCE(a.final_total_usd, a.total_amount)::numeric, 4) ELSE 0 END
               ELSE 0 END), 0)::text AS net_earnings,
             COUNT(CASE WHEN a.payment_status = 'completed' THEN 1 END)::text AS pending_records
           FROM appointments a
@@ -253,10 +256,11 @@ export function registerAdminFinancialRoutes(app: Express): void {
             TO_CHAR(a.date::date, 'YYYY-MM') AS month,
             COUNT(CASE WHEN a.status = 'completed' THEN 1 END)::text AS completed,
             COUNT(CASE WHEN a.status IN ('cancelled','no_show') THEN 1 END)::text AS cancelled,
-            COALESCE(SUM(CASE WHEN a.payment_status = 'completed' THEN a.total_amount::numeric ELSE 0 END), 0)::text AS gross_revenue,
-            COALESCE(SUM(CASE WHEN a.payment_status = 'completed' THEN COALESCE(a.platform_fee_amount::numeric,0) ELSE 0 END), 0)::text AS platform_fees,
-            COALESCE(SUM(CASE WHEN a.payment_status = 'completed'
-              THEN a.total_amount::numeric - COALESCE(a.platform_fee_amount::numeric,0)
+            COALESCE(SUM(CASE WHEN a.payment_status = 'completed' THEN COALESCE(a.final_total_usd, a.total_amount)::numeric ELSE 0 END), 0)::text AS gross_revenue,
+            COALESCE(SUM(CASE WHEN a.payment_status = 'completed' AND a.total_amount::numeric > 0 THEN ROUND(COALESCE(a.platform_fee_amount::numeric,0) / a.total_amount::numeric * COALESCE(a.final_total_usd, a.total_amount)::numeric, 4) ELSE 0 END), 0)::text AS platform_fees,
+            COALESCE(SUM(CASE WHEN a.payment_status = 'completed' THEN
+              COALESCE(a.final_total_usd, a.total_amount)::numeric
+              - CASE WHEN a.total_amount::numeric > 0 THEN ROUND(COALESCE(a.platform_fee_amount::numeric,0) / a.total_amount::numeric * COALESCE(a.final_total_usd, a.total_amount)::numeric, 4) ELSE 0 END
               ELSE 0 END), 0)::text AS net_earnings
           FROM appointments a
           WHERE a.provider_id = $1
@@ -270,7 +274,7 @@ export function registerAdminFinancialRoutes(app: Express): void {
           SELECT
             a.visit_type,
             COUNT(CASE WHEN a.status = 'completed' THEN 1 END)::text AS completed,
-            COALESCE(SUM(CASE WHEN a.payment_status = 'completed' THEN a.total_amount::numeric ELSE 0 END), 0)::text AS revenue
+            COALESCE(SUM(CASE WHEN a.payment_status = 'completed' THEN COALESCE(a.final_total_usd, a.total_amount)::numeric ELSE 0 END), 0)::text AS revenue
           FROM appointments a
           WHERE a.provider_id = $1
           GROUP BY a.visit_type
@@ -282,9 +286,9 @@ export function registerAdminFinancialRoutes(app: Express): void {
           SELECT
             a.id,
             'pending' AS status,
-            (a.total_amount::numeric - COALESCE(a.platform_fee_amount::numeric,0))::text AS provider_earning,
-            COALESCE(a.platform_fee_amount, '0')::text AS platform_fee,
-            COALESCE(a.total_amount, '0')::text AS total_amount,
+            CASE WHEN a.total_amount::numeric > 0 THEN ROUND((1 - COALESCE(a.platform_fee_amount::numeric,0) / a.total_amount::numeric) * COALESCE(a.final_total_usd, a.total_amount)::numeric, 4) ELSE 0 END::text AS provider_earning,
+            CASE WHEN a.total_amount::numeric > 0 THEN ROUND(COALESCE(a.platform_fee_amount::numeric,0) / a.total_amount::numeric * COALESCE(a.final_total_usd, a.total_amount)::numeric, 4) ELSE 0 END::text AS platform_fee,
+            COALESCE(a.final_total_usd, a.total_amount)::text AS total_amount,
             a.created_at,
             NULL::timestamptz AS paid_at,
             NULL::text AS payout_reference,
@@ -434,9 +438,9 @@ export function registerAdminFinancialRoutes(app: Express): void {
       const countryFilter = listingCountryFilter(req.user!, req.query as any);
       const cc = countryFilter ?? null;
       const [revRow, feeRow, refundRow, payoutRow, pendPayoutRow, walletRow] = await Promise.all([
-        pool.query(`SELECT COALESCE(SUM(total_amount::numeric), 0) AS v FROM appointments WHERE (payment_status='completed' OR status='completed') AND payment_status NOT IN ('refunded','failed') AND ($1::text IS NULL OR country_code::text=$1)`, [cc]),
-        pool.query(`SELECT COALESCE(SUM(platform_fee_amount::numeric), 0) AS v FROM appointments WHERE (payment_status='completed' OR status='completed') AND payment_status NOT IN ('refunded','failed') AND ($1::text IS NULL OR country_code::text=$1)`, [cc]),
-        pool.query(`SELECT COALESCE(SUM(refund_amount::numeric), 0) AS v FROM appointments WHERE payment_status='refunded' AND ($1::text IS NULL OR country_code::text=$1)`, [cc]),
+        pool.query(`SELECT COALESCE(SUM(COALESCE(final_total_usd, total_amount)::numeric), 0) AS v FROM appointments WHERE (payment_status='completed' OR status='completed') AND payment_status NOT IN ('refunded','failed') AND ($1::text IS NULL OR country_code::text=$1)`, [cc]),
+        pool.query(`SELECT COALESCE(SUM(CASE WHEN total_amount::numeric > 0 THEN ROUND(COALESCE(platform_fee_amount::numeric,0) / total_amount::numeric * COALESCE(final_total_usd, total_amount)::numeric, 4) ELSE 0 END), 0) AS v FROM appointments WHERE (payment_status='completed' OR status='completed') AND payment_status NOT IN ('refunded','failed') AND ($1::text IS NULL OR country_code::text=$1)`, [cc]),
+        pool.query(`SELECT COALESCE(SUM(CASE WHEN total_amount::numeric > 0 THEN ROUND(COALESCE(refund_amount::numeric,0) / total_amount::numeric * COALESCE(final_total_usd, total_amount)::numeric, 4) ELSE 0 END), 0) AS v FROM appointments WHERE payment_status='refunded' AND ($1::text IS NULL OR country_code::text=$1)`, [cc]),
         pool.query(`SELECT COALESCE(SUM(pr.amount::numeric), 0) AS v FROM payout_requests pr JOIN providers p ON p.id=pr.provider_id WHERE pr.status='paid' AND ($1::text IS NULL OR p.country_code::text=$1)`, [cc]),
         pool.query(`SELECT COALESCE(SUM(pr.amount::numeric), 0) AS v FROM payout_requests pr JOIN providers p ON p.id=pr.provider_id WHERE pr.status IN ('pending','approved') AND ($1::text IS NULL OR p.country_code::text=$1)`, [cc]),
         pool.query(`SELECT COALESCE(SUM(w.balance::numeric), 0) AS v FROM wallets w JOIN users u ON u.id=w.user_id WHERE u.role='patient' AND ($1::text IS NULL OR u.country_code::text=$1)`, [cc]),
@@ -1538,7 +1542,7 @@ export function registerAdminFinancialRoutes(app: Express): void {
           COALESCE(NULLIF(TRIM(COALESCE(pu.first_name,'') || ' ' || COALESCE(pu.last_name,'')), ''), pu.email) AS patient_name,
           COALESCE(NULLIF(TRIM(COALESCE(vu.first_name,'') || ' ' || COALESCE(vu.last_name,'')), ''), p.clinic_name, 'Unknown') AS provider_name,
           a.date,
-          a.total_amount::text,
+          COALESCE(a.final_total_usd, a.total_amount)::text AS total_amount,
           a.payment_status,
           a.visit_type,
           a.country_code::text,
@@ -1926,9 +1930,9 @@ export function registerAdminFinancialRoutes(app: Express): void {
              COUNT(*)                                               AS total_appointments,
              COUNT(CASE WHEN a.payment_status = 'completed' THEN 1 END)  AS completed_count,
              COUNT(CASE WHEN a.status IN ('cancelled','no_show') THEN 1 END) AS cancelled_count,
-             COALESCE(SUM(CASE WHEN a.payment_status = 'completed' THEN a.total_amount::numeric ELSE 0 END), 0)                        AS gross_usd,
-             COALESCE(SUM(CASE WHEN a.payment_status = 'completed' THEN COALESCE(a.platform_fee_amount::numeric, 0) ELSE 0 END), 0)    AS fees_usd,
-             COALESCE(SUM(CASE WHEN a.payment_status = 'completed' THEN COALESCE(a.refund_amount::numeric, 0) ELSE 0 END), 0)          AS refunds_usd
+             COALESCE(SUM(CASE WHEN a.payment_status = 'completed' THEN COALESCE(a.final_total_usd, a.total_amount)::numeric ELSE 0 END), 0) AS gross_usd,
+             COALESCE(SUM(CASE WHEN a.payment_status = 'completed' AND a.total_amount::numeric > 0 THEN ROUND(COALESCE(a.platform_fee_amount::numeric, 0) / a.total_amount::numeric * COALESCE(a.final_total_usd, a.total_amount)::numeric, 4) ELSE 0 END), 0) AS fees_usd,
+             COALESCE(SUM(CASE WHEN a.payment_status = 'completed' AND a.total_amount::numeric > 0 THEN ROUND(COALESCE(a.refund_amount::numeric, 0) / a.total_amount::numeric * COALESCE(a.final_total_usd, a.total_amount)::numeric, 4) ELSE 0 END), 0) AS refunds_usd
            FROM appointments a
            WHERE a.created_at >= DATE_TRUNC('month', NOW() - ($1::int || ' months')::interval)
              ${countryFilter}
@@ -1993,8 +1997,8 @@ export function registerAdminFinancialRoutes(app: Express): void {
                  pc.discount_type,
                  pc.discount_value,
                  COUNT(a.id)                                                         AS usage_count,
-                 COALESCE(SUM(a.total_amount::numeric), 0)                           AS gross_revenue_usd,
-                 COALESCE(SUM(COALESCE(a.promo_discount::numeric, 0)), 0)            AS total_discount_usd
+                 COALESCE(SUM(COALESCE(a.final_total_usd, a.total_amount)::numeric), 0) AS gross_revenue_usd,
+                 COALESCE(SUM(CASE WHEN a.total_amount::numeric > 0 THEN ROUND(COALESCE(a.promo_discount::numeric,0) / a.total_amount::numeric * COALESCE(a.final_total_usd, a.total_amount)::numeric, 4) ELSE 0 END), 0) AS total_discount_usd
                FROM promo_codes pc
                LEFT JOIN appointments a ON a.promo_code = pc.code
                  AND a.payment_status = 'completed'
@@ -2309,11 +2313,11 @@ export function registerAdminFinancialRoutes(app: Express): void {
             COUNT(*) FILTER (WHERE a.status IN ('cancelled','no_show','cancelled_by_patient','cancelled_by_provider'))   AS cancelled_count,
             COUNT(*) FILTER (WHERE a.refund_status = 'processed')        AS refunded_count,
             COALESCE(SUM(CASE WHEN a.payment_status='completed' THEN COALESCE(a.final_total_usd, a.total_amount)::numeric ELSE 0 END), 0)        AS gross_revenue,
-            COALESCE(SUM(CASE WHEN a.payment_status='completed' THEN a.platform_fee_amount::numeric ELSE 0 END), 0)                              AS platform_revenue,
+            COALESCE(SUM(CASE WHEN a.payment_status='completed' AND a.total_amount::numeric > 0 THEN ROUND(COALESCE(a.platform_fee_amount::numeric,0) / a.total_amount::numeric * COALESCE(a.final_total_usd, a.total_amount)::numeric, 4) ELSE 0 END), 0) AS platform_revenue,
             COALESCE(SUM(CASE WHEN a.payment_status='completed' THEN pe.provider_earning::numeric ELSE 0 END), 0)                                AS provider_earnings,
-            COALESCE(SUM(CASE WHEN a.refund_status='processed' THEN a.refund_amount::numeric ELSE 0 END), 0)                                     AS total_refunds,
-            COALESCE(SUM(CASE WHEN a.payment_status='completed' THEN a.tax_amount::numeric ELSE 0 END), 0)                                       AS taxes_collected,
-            COALESCE(SUM(CASE WHEN a.payment_status='completed' THEN a.promo_discount::numeric ELSE 0 END), 0)                                   AS promo_discounts,
+            COALESCE(SUM(CASE WHEN a.refund_status='processed' AND a.total_amount::numeric > 0 THEN ROUND(COALESCE(a.refund_amount::numeric,0) / a.total_amount::numeric * COALESCE(a.final_total_usd, a.total_amount)::numeric, 4) ELSE 0 END), 0) AS total_refunds,
+            COALESCE(SUM(CASE WHEN a.payment_status='completed' AND a.total_amount::numeric > 0 THEN ROUND(COALESCE(a.tax_amount::numeric,0) / a.total_amount::numeric * COALESCE(a.final_total_usd, a.total_amount)::numeric, 4) ELSE 0 END), 0) AS taxes_collected,
+            COALESCE(SUM(CASE WHEN a.payment_status='completed' AND a.total_amount::numeric > 0 THEN ROUND(COALESCE(a.promo_discount::numeric,0) / a.total_amount::numeric * COALESCE(a.final_total_usd, a.total_amount)::numeric, 4) ELSE 0 END), 0) AS promo_discounts,
             COALESCE(SUM(CASE WHEN pe.status='pending' THEN pe.provider_earning::numeric ELSE 0 END), 0)                                         AS pending_payouts
           ${MASTER_JOIN}
           WHERE ${where}
