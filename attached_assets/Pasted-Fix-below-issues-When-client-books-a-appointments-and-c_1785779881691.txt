@@ -1,0 +1,17 @@
+Fix below issues.
+
+When client books a appointments and completes with payment method as Cash and it adds to payout also. How it will be added to payout when client is paid through cash? fix his properly everywhere with staus also.
+The prices for an appointment for client dashboard and provider dashbaors are varied. they show it differently and with different numbers. It should be shown exactly what is there for both. its same in emails too i thin there is some round off issue or something.
+for client wallet transaction and appointment amount seems to be shown different and here may rounding issue too.
+While booking an appointment by client while in confirm screen when booking for my self if a phone/mobile number is available in profile means it should auto fill the mobile/phone number fieild in booking.
+In search options for providers in client dashboard or site is not working.
+In groups session page some texts are not properly adjusting to site they are shifted towards left.
+pacakges and membership redirects to same pages
+In chat UI once an appointment is completed the chat between client and Provider should be Locked.
+In client while serching for providers rating filter is not available properly and it should be available to filiter by all types of rating.
+Invoices are not downlaodable in all dashboards.
+all reviews written by clients are directly going to live and they should be only go live when admin approves them, If a approval page or this setup is not exists please implement it too.
+In customer dashboard make sure only one currency type setting options and if they select any available currency the everything should be displayed in same currency. but currently in settings page it shows slected currency $ but everything showing as ft and this is an example.
+Gift cards can be purchased even without wallet balance and this is huge bug.
+if client applies a promcode while booking it shows one amount ad after booking it shows another amount.
+while booking if the 9:00 slot is booked for home which has 10 min buff time the next slot shows at 9:35 instead of showing 9:45, and 9:35 can not be booked

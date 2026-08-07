@@ -1,0 +1,345 @@
+# PHASE 3.1 — Canonical Tax Engine & Country-Specific Tax Rules
+
+Phase 3 established the canonical Pricing Engine and immutable Booking Pricing Snapshot.
+
+This phase establishes the **canonical Tax Engine**.
+
+The objective is to ensure there is **one authoritative tax calculation architecture** across the platform and eliminate every remaining tax inconsistency.
+
+---
+
+# Primary Objectives
+
+Implement a single canonical Tax Engine.
+
+There must be exactly one place where taxes are calculated.
+
+All bookings, packages, memberships, invoices, refunds, notifications, provider earnings, reports, and financial records must derive their tax information from the canonical Tax Engine.
+
+No route, controller, email, invoice, report, or service may calculate tax independently.
+
+---
+
+# 1. Country-Specific Sub-Service Tax Rules
+
+Replace the legacy single `sub_services.tax_percentage` approach with country-specific tax rules.
+
+Implement a new canonical data model.
+
+Example:
+
+sub_service_tax_rules
+
+* id
+* sub_service_id
+* country_code
+* tax_rate
+* effective_from
+* effective_to
+* is_active
+* created_at
+* updated_at
+
+Every sub-service may have different tax rates for different countries.
+
+Example:
+
+Physiotherapy
+
+Hungary → 27%
+
+Iran → 9%
+
+UAE → 5%
+
+UK → 0%
+
+The legacy `sub_services.tax_percentage` should become a compatibility field only during migration.
+
+The new table becomes the single authoritative source for service tax.
+
+---
+
+# 2. Separate Service Tax from Platform Tax
+
+The platform currently mixes service taxation with platform taxation.
+
+Implement two independent tax domains.
+
+## Service Tax
+
+Applies to provider-delivered services.
+
+Taxable components include:
+
+* base service price
+* home visit fee
+* distance/travel fee
+* emergency fee
+* provider service add-ons
+* other provider-related service charges
+
+Does NOT include:
+
+* platform fee
+* payment gateway fee
+* admin fee
+* convenience fee
+
+Service tax must always come from the country-specific sub-service tax rule.
+
+---
+
+## Platform Tax
+
+Applies only to platform-generated charges.
+
+Taxable components include:
+
+* platform fee
+* payment gateway fee
+* admin fee
+* convenience fee
+
+Platform tax comes from the global country tax configuration.
+
+Platform tax must never tax provider service charges.
+
+---
+
+# 3. Canonical Tax Engine
+
+The Tax Engine becomes responsible for:
+
+* resolving country-specific service tax
+* resolving platform tax
+* calculating taxable subtotals
+* calculating service tax
+* calculating platform tax
+* calculating total tax
+* returning a complete immutable tax result
+
+No other service may calculate tax.
+
+---
+
+# 4. Pricing Engine Integration
+
+The Pricing Engine must delegate all tax calculations to the Tax Engine.
+
+The Pricing Engine must never perform tax calculations directly.
+
+The Tax Engine returns a complete tax result that is included in the Booking Pricing Snapshot.
+
+---
+
+# 5. Booking Pricing Snapshot
+
+Extend the immutable pricing snapshot.
+
+Store:
+
+* service subtotal
+* service tax rate
+* service tax amount
+* platform fee
+* payment gateway fee
+* admin fee
+* platform tax rate
+* platform tax amount
+* total tax
+* total amount
+* pricing version
+* tax version
+* calculation timestamp
+
+Historical bookings must remain immutable.
+
+Future tax changes must never alter historical bookings.
+
+---
+
+# 6. Tax Rule Resolution
+
+Implement deterministic tax resolution.
+
+Service tax:
+
+1. Find an active country-specific tax rule for the selected sub-service.
+2. Apply that rule to service-related charges.
+3. If no rule exists, service tax is 0%.
+4. Log a warning for missing configuration.
+
+Platform tax:
+
+1. Resolve the active country platform tax.
+2. Apply only to platform-related charges.
+3. If no rule exists, apply 0%.
+4. Log a warning.
+
+Never substitute one country's tax rule for another.
+
+---
+
+# 7. Remove Legacy Tax Logic
+
+Find and remove every direct tax calculation.
+
+Examples include:
+
+price × taxRate
+
+subtotal × taxRate
+
+priceWithTax
+
+Any inline tax formulas.
+
+Every tax calculation must call the Tax Engine.
+
+Remove duplicate tax calculations from:
+
+* appointment booking
+* package purchases
+* memberships
+* invoices
+* receipts
+* refunds
+* cancellations
+* reports
+* exports
+* dashboards
+* notifications
+* emails
+* provider earnings
+* reconciliation
+
+The package purchase flow must use the canonical Tax Engine instead of calculating tax directly.
+
+---
+
+# 8. Admin Management
+
+Provide a complete administrative interface.
+
+Administrators should be able to:
+
+* manage country-specific service tax rules
+* activate/deactivate rules
+* define effective dates
+* view historical versions
+* manage global platform tax rules
+* preview tax calculations
+
+Tax rules must be configuration-driven.
+
+Adding a new country must not require code changes.
+
+---
+
+# 9. Migration
+
+Safely migrate the existing system.
+
+Migration requirements:
+
+* preserve existing bookings
+* preserve historical invoices
+* preserve historical tax amounts
+* migrate legacy tax percentages into the new tax rule table
+* do not modify historical pricing snapshots
+
+Legacy bookings should continue using their stored tax values.
+
+Only new bookings should use the canonical tax rules after migration.
+
+---
+
+# 10. Testing
+
+Add comprehensive regression tests.
+
+Cover:
+
+* country-specific service tax
+* multiple countries
+* zero-tax services
+* platform-only tax
+* home visit
+* distance fee
+* emergency fee
+* package purchases
+* memberships
+* refunds
+* cancellations
+* historical booking integrity
+* tax rule version changes
+* missing tax rules
+* inactive tax rules
+* future effective dates
+* pricing snapshot immutability
+
+Regression tests must verify identical tax values across:
+
+* booking page
+* confirmation page
+* payment page
+* client dashboard
+* provider dashboard
+* admin dashboard
+* invoices
+* receipts
+* emails
+* notifications
+* wallet
+* ledger
+* reports
+* reconciliation
+
+---
+
+# Verification
+
+Before completion:
+
+* npm run check
+* npm run build
+* pricing tests
+* tax engine tests
+* booking tests
+* package purchase tests
+* membership tests
+* invoice tests
+* refund tests
+* reconciliation tests
+* verify no duplicate tax calculations remain
+
+Confirm:
+
+* one Tax Engine
+* one Service Tax authority
+* one Platform Tax authority
+* one immutable tax snapshot
+* zero direct tax calculations outside the Tax Engine
+
+---
+
+# Deliverables
+
+By the end of this phase:
+
+* One canonical Tax Engine.
+* Country-specific service tax rules.
+* Separate service tax and platform tax domains.
+* Package purchases migrated to the canonical Tax Engine.
+* Legacy tax logic removed.
+* Immutable tax information stored in every booking.
+* Comprehensive regression test coverage.
+* Updated architecture documentation.
+
+When complete, provide:
+
+1. A list of every legacy tax calculation removed.
+2. A list of every module now using the canonical Tax Engine.
+3. Confirmation that all booking, package, membership, invoice, refund, notification, wallet, ledger, and reporting tax values originate from the same Tax Engine.
+4. Any remaining tax-related risks or edge cases that should be addressed before production.

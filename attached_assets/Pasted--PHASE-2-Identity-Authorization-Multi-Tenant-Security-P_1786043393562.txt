@@ -1,0 +1,273 @@
+# PHASE 2 — Identity, Authorization & Multi-Tenant Security
+
+Phase 1 established the canonical financial architecture.
+
+Do not modify or redesign the financial pipeline during this phase except to integrate with the new authorization model where necessary.
+
+The objective of Phase 2 is to establish a single, secure, maintainable identity and authorization architecture across the entire application.
+
+---
+
+# Primary Objectives
+
+Implement a single authoritative security model.
+
+Every authenticated request must follow one consistent flow.
+
+Every authorization decision must come from one permission system.
+
+Every data access operation must respect tenant and country isolation.
+
+No legacy authorization paths should remain after this phase.
+
+---
+
+# 1. Authentication Consolidation
+
+Review every authentication path.
+
+Standardize:
+
+* JWT validation
+* Session handling
+* Refresh token lifecycle
+* MFA
+* Authentication middleware
+* Token parsing
+* User context creation
+
+Ensure every authenticated request passes through the same authentication pipeline.
+
+Remove duplicate authentication logic.
+
+Remove compatibility layers that are no longer needed.
+
+---
+
+# 2. Authorization Consolidation
+
+Implement a single authorization architecture.
+
+Requirements:
+
+* One RBAC implementation
+* One permission service
+* One permission evaluation method
+* One middleware chain
+* One role definition source
+* One policy enforcement pattern
+
+Permission checks must never be duplicated inside controllers when middleware or centralized services can enforce them consistently.
+
+---
+
+# 3. Role Standardization
+
+Identify every role definition across the project.
+
+Unify:
+
+* Backend enums
+* Database enums
+* Frontend role constants
+* Permission mappings
+* Admin role hierarchy
+
+There must be exactly one canonical role definition.
+
+All applications should consume that definition.
+
+---
+
+# 4. Permission System
+
+Standardize permission handling.
+
+Requirements:
+
+* Central permission evaluation
+* Consistent permission inheritance
+* Explicit permission overrides
+* Predictable caching strategy
+* No hidden default permissions
+
+Permission evaluation should be deterministic and easy to audit.
+
+---
+
+# 5. Country Isolation
+
+Implement centralized tenant and country isolation.
+
+Country restrictions must not depend on individual route implementations.
+
+Instead:
+
+* enforce country isolation at the service or data-access layer
+* ensure providers only access permitted data
+* ensure patients only access permitted data
+* ensure administrative access is explicitly defined
+
+Remove duplicated country filtering logic.
+
+---
+
+# 6. Route Protection
+
+Review every protected endpoint.
+
+Ensure every route:
+
+* authenticates correctly
+* authorizes correctly
+* validates ownership where required
+* validates organization/country boundaries
+* returns consistent error responses
+
+Remove inconsistent protection patterns.
+
+---
+
+# 7. Frontend Authorization
+
+Standardize frontend authorization.
+
+Unify:
+
+* Protected routes
+* Permission guards
+* Role checks
+* Navigation visibility
+* Feature visibility
+
+Frontend authorization should mirror backend authorization without duplicating business rules.
+
+---
+
+# 8. Security Hardening
+
+Review and improve:
+
+* session expiration
+* refresh token rotation
+* logout behavior
+* token invalidation
+* MFA enforcement
+* sensitive endpoint protection
+* audit logging
+
+Remove any development-only authentication shortcuts.
+
+---
+
+# 9. Audit Logging
+
+Ensure all sensitive operations are logged consistently.
+
+Include events such as:
+
+* login
+* logout
+* failed authentication
+* role changes
+* permission changes
+* provider approval
+* financial administration
+* payout approval
+* administrative actions
+
+Audit logs should be structured and searchable.
+
+---
+
+# 10. Cleanup
+
+Remove only confirmed unused:
+
+* legacy auth middleware
+* duplicate permission helpers
+* obsolete role constants
+* deprecated authorization utilities
+* dead security code
+
+Do not remove code that is still referenced.
+
+---
+
+# Testing
+
+Add comprehensive tests for:
+
+Authentication
+
+Authorization
+
+RBAC
+
+Permission inheritance
+
+Country isolation
+
+Provider ownership
+
+Patient ownership
+
+Admin permissions
+
+Forbidden access
+
+Expired tokens
+
+Invalid tokens
+
+Refresh token lifecycle
+
+MFA
+
+Route protection
+
+Regression tests must verify that unauthorized users cannot access protected resources.
+
+---
+
+# Verification
+
+Before completion:
+
+* npm run check
+* npm run build
+* full authentication tests
+* authorization tests
+* country-isolation tests
+* protected endpoint verification
+* frontend permission verification
+* workflow restart
+* /health remains ready
+* no TypeScript errors
+* no new runtime warnings
+
+---
+
+# Deliverables
+
+By the end of Phase 2:
+
+* One authentication architecture.
+* One authorization architecture.
+* One RBAC implementation.
+* One canonical role definition.
+* Centralized permission evaluation.
+* Centralized country isolation.
+* Consistent route protection.
+* Comprehensive authorization test coverage.
+* Simplified security architecture.
+* All existing functionality preserved.
+
+When complete, provide:
+
+1. Summary of architectural changes.
+2. List of removed legacy security components.
+3. Remaining security risks.
+4. Recommendations for Phase 3.
+
+Do not begin Phase 3 until Phase 2 has been fully verified and approved.

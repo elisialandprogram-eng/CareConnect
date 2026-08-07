@@ -1,0 +1,435 @@
+# PHASE 3.2 — Canonical Booking Engine Audit, Consolidation & Immediate Remediation
+
+Phases 1, 2, 3, and 3.1 established the canonical Financial Engine, Pricing Engine, Tax Engine, Settlement Engine, Authentication, Authorization, and immutable Financial Snapshot.
+
+The Booking Engine is now the orchestration layer that connects all canonical services.
+
+The objective of this phase is to audit the complete booking lifecycle, immediately fix any inconsistencies found, and ensure there is exactly **one booking workflow** for every appointment type.
+
+---
+
+# Primary Objectives
+
+Implement one canonical Booking Engine.
+
+Every appointment must follow the same lifecycle.
+
+The Booking Engine must orchestrate the process but must never duplicate business logic owned by other canonical engines.
+
+---
+
+# 1. Trace Every Booking Entry Point
+
+Identify every way a booking can be created.
+
+Examples include:
+
+* Standard appointment booking
+* Home visit booking
+* Online consultation
+* Clinic consultation
+* Group sessions
+* Follow-up appointments
+* Membership bookings
+* Package bookings
+* Gift voucher bookings
+* Admin-created bookings
+* Provider-created bookings
+* Rescheduled appointments
+* Waitlist conversions
+* Emergency bookings
+* Manual booking APIs
+* Internal booking utilities
+
+Every booking path must be mapped.
+
+If multiple implementations perform the same responsibility, consolidate them into the canonical Booking Engine.
+
+---
+
+# 2. Audit the Complete Booking Lifecycle
+
+Trace the booking lifecycle from start to finish.
+
+Service Selection
+
+↓
+
+Availability Validation
+
+↓
+
+Quote Generation
+
+↓
+
+Canonical Pricing Engine
+
+↓
+
+Canonical Tax Engine
+
+↓
+
+Booking Validation
+
+↓
+
+Booking Creation
+
+↓
+
+Immutable Financial Snapshot
+
+↓
+
+Payment
+
+↓
+
+Confirmation
+
+↓
+
+Notification Dispatch
+
+↓
+
+Provider Earnings
+
+↓
+
+Wallet
+
+↓
+
+Ledger
+
+↓
+
+Completion
+
+↓
+
+Refund / Cancellation
+
+↓
+
+Settlement
+
+Every step must use the existing canonical engine responsible for that domain.
+
+The Booking Engine must orchestrate—not duplicate—business logic.
+
+---
+
+# 3. Remove Duplicate Booking Logic
+
+Audit for duplicate implementations.
+
+Examples:
+
+* pricing calculations
+* tax calculations
+* availability validation
+* provider eligibility
+* booking validation
+* payment creation
+* booking confirmation
+* status transitions
+* cancellation logic
+* refund calculations
+* completion logic
+* reschedule logic
+
+Immediately migrate all callers to the canonical implementation.
+
+Remove duplicate logic only after all references have been updated.
+
+---
+
+# 4. Booking State Machine
+
+Implement one explicit booking lifecycle.
+
+Allowed states should be clearly defined.
+
+Example:
+
+Draft
+
+↓
+
+Quoted
+
+↓
+
+Pending Payment
+
+↓
+
+Confirmed
+
+↓
+
+In Progress
+
+↓
+
+Completed
+
+↓
+
+Cancelled
+
+↓
+
+Refunded
+
+↓
+
+Settled
+
+Prevent invalid transitions.
+
+Every transition must be validated centrally.
+
+No controller or route may change booking status directly.
+
+All transitions must go through the Booking Engine.
+
+---
+
+# 5. Availability Validation
+
+Audit provider availability.
+
+Ensure there is one authoritative implementation for:
+
+* provider schedule
+* blocked times
+* vacations
+* overlapping appointments
+* group session capacity
+* timezone handling
+* daylight saving adjustments
+* home visit travel windows
+* booking cut-off rules
+
+Immediately remove duplicate availability checks.
+
+---
+
+# 6. Financial Consistency
+
+Verify every booking uses:
+
+* Canonical Pricing Engine
+* Canonical Tax Engine
+* Immutable Financial Snapshot
+* Canonical Revenue Engine
+* Canonical Settlement Engine
+
+No booking workflow may calculate prices or taxes independently.
+
+No booking may modify the immutable pricing snapshot after confirmation.
+
+---
+
+# 7. Notification Integration
+
+The Booking Engine must not send notifications directly.
+
+Instead it must publish booking events to the canonical Notification Engine.
+
+Verify:
+
+* booking confirmation
+* payment confirmation
+* provider notification
+* reminders
+* cancellations
+* refunds
+* reschedules
+* waitlist promotions
+
+All notifications must originate from one notification pipeline.
+
+---
+
+# 8. Authorization Validation
+
+Verify every booking action enforces:
+
+* authentication
+* authorization
+* ownership
+* provider permissions
+* patient permissions
+* admin permissions
+* country isolation
+
+Remove duplicate authorization checks where centralized middleware already enforces them.
+
+---
+
+# 9. Booking Snapshot Integrity
+
+Verify the booking stores:
+
+* immutable financial snapshot
+* immutable tax snapshot
+* pricing version
+* tax version
+* currency
+* timestamps
+* provider earnings
+* booking metadata
+
+Historical bookings must never change after confirmation.
+
+---
+
+# 10. Error Handling
+
+Standardize booking failures.
+
+Every booking error should return:
+
+* consistent error format
+* deterministic rollback
+* transaction safety
+* meaningful logging
+
+No partial bookings should remain after failure.
+
+---
+
+# 11. Database Transactions
+
+Ensure every critical booking workflow is atomic.
+
+Examples:
+
+Booking creation
+
+Pricing snapshot
+
+Payment initialization
+
+Provider earnings
+
+Wallet updates
+
+Ledger entries
+
+Status transitions
+
+Rollback automatically if any critical step fails.
+
+---
+
+# 12. Performance Review
+
+Review booking performance.
+
+Remove:
+
+* duplicate queries
+* unnecessary joins
+* repeated pricing lookups
+* repeated tax lookups
+* repeated provider lookups
+
+Cache only immutable reference data.
+
+Never cache booking state or financial snapshots.
+
+---
+
+# 13. Immediate Remediation Policy
+
+This is not a documentation-only audit.
+
+For every issue discovered:
+
+* determine root cause
+* implement the canonical fix immediately
+* migrate all callers
+* remove obsolete logic
+* preserve existing functionality
+* maintain backward compatibility only where required for historical records
+
+Do not leave duplicate implementations behind.
+
+---
+
+# 14. Testing
+
+Add comprehensive regression tests covering:
+
+* every booking entry point
+* every appointment type
+* provider scheduling
+* timezone handling
+* overlapping bookings
+* booking state transitions
+* pricing integrity
+* tax integrity
+* payment lifecycle
+* refunds
+* cancellations
+* reschedules
+* waitlists
+* provider earnings
+* ledger updates
+* notification dispatch
+* authorization
+* concurrency
+* duplicate booking prevention
+
+---
+
+# Verification
+
+Before completion:
+
+* npm run check
+* npm run build
+* booking unit tests
+* booking integration tests
+* pricing regression tests
+* tax regression tests
+* settlement regression tests
+* authorization regression tests
+* concurrency tests
+* application restart
+* /health ready
+* scheduler operational
+
+Confirm:
+
+* one Booking Engine
+* one booking lifecycle
+* one availability validator
+* one booking state machine
+* one booking orchestration flow
+* zero duplicate booking implementations
+* zero duplicate pricing or tax calculations
+* zero invalid booking state transitions
+
+---
+
+# Deliverables
+
+By the end of this phase provide:
+
+1. Summary of all booking issues discovered.
+2. Root cause of each issue.
+3. Immediate fixes implemented.
+4. List of removed duplicate booking logic.
+5. Booking lifecycle diagram after consolidation.
+6. Confirmation that every booking type now uses the same canonical Booking Engine.
+7. Any remaining risks or edge cases requiring future work.
+
+Do not proceed to another architectural phase until the Booking Engine is fully consolidated, verified, and all regression tests pass.

@@ -1,0 +1,329 @@
+# PHASE 3 — Canonical Pricing Engine & Booking Financial Integrity
+
+Phases 1 and 2 established the canonical financial architecture and security model.
+
+This phase establishes a **single canonical Pricing Engine** and an **immutable Booking Pricing Snapshot**.
+
+The objective is to guarantee that every price displayed anywhere in the system is identical and originates from one calculation.
+
+---
+
+# Primary Objective
+
+There must be exactly **ONE Pricing Engine**.
+
+Every consumer of booking pricing must use the same immutable pricing snapshot.
+
+No component, service, email, notification, invoice, report, or dashboard may independently calculate booking prices, taxes, fees, discounts, or provider earnings.
+
+---
+
+# 1. Implement a Canonical Pricing Engine
+
+Create one authoritative Pricing Engine responsible for all booking financial calculations.
+
+The Pricing Engine must calculate:
+
+* Base service price
+* Service duration adjustments
+* Provider pricing
+* Country pricing
+* Currency
+* Membership discounts
+* Coupons
+* Promotional discounts
+* Travel fees
+* Emergency fees
+* Platform fees
+* Taxes
+* Provider earnings
+* Platform earnings
+* Final payable amount
+
+No other service may calculate these values independently.
+
+---
+
+# 2. Create an Immutable Booking Pricing Snapshot
+
+When the user confirms a booking, calculate the pricing once and persist a complete pricing snapshot with the booking.
+
+The snapshot becomes the financial contract for that booking.
+
+It must contain every monetary value required by downstream systems.
+
+After the booking is created:
+
+* do not recalculate pricing
+* do not recalculate taxes
+* do not recalculate discounts
+* do not recalculate provider earnings
+
+Every downstream system must read the stored snapshot.
+
+---
+
+# 3. Eliminate Duplicate Price Calculations
+
+Review the complete booking flow.
+
+Remove duplicate pricing logic from:
+
+* booking preview
+* booking confirmation
+* payment creation
+* appointment details
+* client dashboard
+* provider dashboard
+* admin dashboard
+* invoices
+* receipts
+* email templates
+* SMS
+* WhatsApp
+* push notifications
+* booking history
+* financial reports
+* exports
+* provider earnings
+* wallet
+* ledger
+* refunds
+* cancellations
+
+All consumers must use the canonical pricing snapshot.
+
+---
+
+# 4. Canonical Tax Engine
+
+Implement one centralized Tax Engine.
+
+Taxes must be calculated exactly once during pricing.
+
+Persist the calculated tax in the pricing snapshot.
+
+Invoices, emails, dashboards, exports, reports, refunds, and settlements must use the stored tax value.
+
+No downstream tax recalculation is permitted.
+
+---
+
+# 5. Booking Workflow
+
+The booking lifecycle must follow this sequence:
+
+Service Selection
+
+↓
+
+Pricing Engine
+
+↓
+
+Price Preview
+
+↓
+
+Booking Confirmation
+
+↓
+
+Pricing Snapshot Created
+
+↓
+
+Booking Created
+
+↓
+
+Payment
+
+↓
+
+Provider Earnings
+
+↓
+
+Wallet
+
+↓
+
+Ledger
+
+↓
+
+Notifications
+
+↓
+
+Invoices
+
+↓
+
+Reports
+
+Only the Pricing Engine performs calculations.
+
+Every subsequent step reads the stored snapshot.
+
+---
+
+# 6. Currency Consistency
+
+Ensure every monetary value within a booking uses the same currency context.
+
+Validate:
+
+* booking price
+* taxes
+* discounts
+* provider earnings
+* wallet
+* ledger
+* invoices
+* emails
+* notifications
+
+No mixed-currency calculations.
+
+No hidden conversions after booking confirmation.
+
+---
+
+# 7. Financial Consistency Validation
+
+Verify that all of the following display identical values:
+
+Client:
+
+* service page
+* booking page
+* confirmation page
+* payment page
+* appointment page
+* booking history
+* invoice
+* receipt
+* email
+* SMS
+* notifications
+
+Provider:
+
+* appointment details
+* earnings
+* wallet
+* ledger
+* payout calculations
+
+Admin:
+
+* booking details
+* finance dashboard
+* reports
+* reconciliation
+
+All must display values from the immutable pricing snapshot.
+
+---
+
+# 8. Refund & Cancellation Integrity
+
+Refunds and cancellations must reference the original pricing snapshot.
+
+Do not recalculate prices during refunds.
+
+Refund calculations must always use the stored booking values.
+
+---
+
+# 9. Versioning
+
+Support pricing versioning.
+
+Each booking should record:
+
+* pricing engine version
+* tax engine version
+* pricing calculation timestamp
+
+Future pricing rule changes must not alter historical bookings.
+
+---
+
+# 10. Testing
+
+Add comprehensive automated tests covering:
+
+* standard booking
+* membership pricing
+* coupon pricing
+* tax calculation
+* travel fee
+* emergency fee
+* provider earnings
+* platform earnings
+* multiple currencies
+* refunds
+* cancellations
+* booking edits (where applicable)
+* duplicate booking attempts
+* edge-case rounding
+* pricing snapshot immutability
+
+Regression tests must confirm that every consumer displays identical values.
+
+---
+
+# Verification Checklist
+
+Before completing this phase:
+
+* npm run check
+* npm run build
+* pricing unit tests
+* booking integration tests
+* payment integration tests
+* invoice verification
+* provider earnings verification
+* wallet verification
+* ledger verification
+* email template verification
+* notification verification
+* refund verification
+* cancellation verification
+* reconciliation verification
+
+Confirm:
+
+* one Pricing Engine
+* one Tax Engine
+* one Booking Pricing Snapshot
+* zero duplicate pricing calculations
+* zero downstream price recalculation
+* identical prices across all user interfaces and communications
+
+---
+
+# Deliverables
+
+By the end of Phase 3:
+
+* One canonical Pricing Engine.
+* One canonical Tax Engine.
+* One immutable Booking Pricing Snapshot.
+* One authoritative financial contract per booking.
+* Complete removal of duplicate pricing logic.
+* Consistent financial values across the entire platform.
+* Comprehensive regression test coverage.
+* Updated architecture documentation describing the pricing lifecycle.
+
+Do not begin infrastructure optimization or launch-readiness work during this phase.
+
+When complete, provide:
+
+1. Summary of pricing architecture changes.
+2. List of removed duplicate pricing and tax calculations.
+3. Confirmation that all booking, payment, provider, admin, invoice, email, notification, wallet, and ledger values originate from the same immutable pricing snapshot.
+4. Any remaining risks to be addressed in the next phase.

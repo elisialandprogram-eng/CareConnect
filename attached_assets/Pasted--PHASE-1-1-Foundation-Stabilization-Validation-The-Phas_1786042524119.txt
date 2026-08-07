@@ -1,0 +1,181 @@
+# PHASE 1.1 — Foundation Stabilization & Validation
+
+The Phase 1 architectural consolidation has been completed successfully.
+
+Do NOT redesign or refactor the architecture again.
+
+The canonical financial pipeline, scheduler ownership, graceful shutdown, readiness reporting, and settlement flow are now the foundation of the application.
+
+The objective of this phase is to stabilize, validate, document, and harden that foundation before beginning Security & Authorization Consolidation (Phase 2).
+
+---
+
+# Objectives
+
+Complete the remaining Phase 1 work by validating the new architecture and eliminating any remaining inconsistencies introduced or exposed by the consolidation.
+
+---
+
+# 1. Investigate Existing Reconciliation Findings
+
+The canonical reconciliation intentionally surfaced existing settlement inconsistencies.
+
+Investigate each finding individually.
+
+For every finding:
+
+* determine the exact cause
+* determine whether it is historical data or application logic
+* determine whether it represents corruption or an expected edge case
+* recommend the safest permanent resolution
+
+Do not suppress or ignore reconciliation failures.
+
+The reconciliation system must always report the true system state.
+
+---
+
+# 2. Financial Integrity Validation
+
+Trace every financial workflow end-to-end.
+
+Validate:
+
+Booking
+
+↓
+
+Payment
+
+↓
+
+Provider Earnings
+
+↓
+
+Provider Wallet
+
+↓
+
+Provider Ledger
+
+↓
+
+Payout
+
+Confirm:
+
+* no duplicate credits
+* no skipped transitions
+* no inconsistent balances
+* no currency mismatches
+* no orphaned ledger entries
+* no missing provider earnings
+* no missing wallet updates
+
+If inconsistencies are found, fix the implementation rather than adding workarounds.
+
+---
+
+# 3. Regression Test Coverage
+
+Add automated regression tests covering the canonical implementation.
+
+Minimum coverage:
+
+* booking → payment → earnings
+* payment → wallet update
+* wallet → provider ledger
+* refunds
+* cancellations
+* duplicate webhook protection
+* duplicate settlement protection
+* idempotency
+* reconciliation validation
+
+Tests should verify correctness, not just successful execution.
+
+---
+
+# 4. Canonical Architecture Documentation
+
+Create concise internal documentation describing:
+
+* canonical financial architecture
+* settlement flow
+* provider earnings lifecycle
+* wallet lifecycle
+* ledger lifecycle
+* scheduler ownership
+* readiness lifecycle
+* retired endpoints
+* deprecated architecture
+* architectural decisions introduced in Phase 1
+
+This documentation should help future developers understand which services are authoritative.
+
+---
+
+# 5. Remove Remaining Foundation Debt
+
+Review the codebase for any remaining artifacts directly related to the retired architecture.
+
+Remove only if confirmed unused:
+
+* obsolete helpers
+* unused settlement utilities
+* retired constants
+* unreachable code
+* commented legacy logic
+* stale TODOs related to the retired settlement system
+
+Do not remove anything that is still referenced.
+
+---
+
+# 6. Verify Operational Readiness
+
+Confirm:
+
+* graceful shutdown works correctly
+* scheduler ownership remains singleton
+* readiness accurately reflects application state
+* migrations remain safe
+* startup sequence remains deterministic
+
+Ensure no regressions have been introduced.
+
+---
+
+# 7. Final Verification
+
+Before completing this phase:
+
+* npm run check
+* production build
+* verify application startup
+* verify /health
+* verify scheduler startup
+* verify financial workflows
+* verify regression tests
+* verify no new TypeScript errors
+* verify no new runtime warnings introduced by this phase
+
+---
+
+# Deliverables
+
+By the end of this phase:
+
+* reconciliation findings fully understood or resolved
+* canonical financial architecture validated
+* regression tests added
+* architecture documentation completed
+* remaining foundation technical debt removed
+* project builds successfully
+* project starts successfully
+* foundation ready for Phase 2
+
+Do not begin Security & Authorization Consolidation during this phase.
+
+When all tasks are complete, stop and provide a summary of the completed work along with any remaining risks that should be addressed in Phase 2.

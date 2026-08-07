@@ -1,0 +1,304 @@
+client/src/components/add-service-catalogue-dialog.tsx:    queryKey: ["/api/sub-services"],
+client/src/components/add-service-catalogue-dialog.tsx:    queryKey: ["/api/provider/my-categories"],
+client/src/components/add-service-catalogue-dialog.tsx:      queryClient.invalidateQueries({ queryKey: ["/api/providers", providerId] });
+client/src/components/add-service-catalogue-dialog.tsx:      queryClient.invalidateQueries({ queryKey: ["/api/provider/me"] });
+client/src/components/admin/admin-access-panel.tsx:    queryKey: ["/api/admin/admin-users"],
+client/src/components/admin/admin-access-panel.tsx:    queryKey: ["/api/rbac/roles"],
+client/src/components/admin/admin-access-panel.tsx:      qc.invalidateQueries({ queryKey: ["/api/admin/admin-users"] });
+client/src/components/admin/admin-access-panel.tsx:        onSaved={() => { setShowAdd(false); qc.invalidateQueries({ queryKey: ["/api/admin/admin-users"] }); }}
+client/src/components/admin/admin-access-panel.tsx:        onSaved={() => { setEditUser(null); qc.invalidateQueries({ queryKey: ["/api/admin/admin-users"] }); }}
+client/src/components/admin/admin-notification-center.tsx:    queryKey: ["/api/admin/notifications"],
+client/src/components/admin/admin-notification-center.tsx:    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/admin/notifications"] }),
+client/src/components/admin/admin-notification-center.tsx:      queryClient.invalidateQueries({ queryKey: ["/api/admin/notifications"] });
+client/src/components/admin/audit-log-panel.tsx:    queryKey: ["/api/admin/audit-logs", { limit: PAGE_SIZE, offset: page * PAGE_SIZE, action: actionFilter === "all" ? undefined : actionFilter, entityType: entityFilter || undefined }],
+client/src/components/admin/client-operations-console.tsx:    queryKey: ["/api/wallet", client.id],
+client/src/components/admin/client-operations-console.tsx:    queryKey: ["/api/admin/wallets", client.id, "transactions"],
+client/src/components/admin/client-operations-console.tsx:    queryKey: ["/api/admin/bookings", client.id],
+client/src/components/admin/client-operations-console.tsx:    qc.invalidateQueries({ queryKey: ["/api/admin/users"] });
+client/src/components/admin/client-operations-console.tsx:      qc.invalidateQueries({ queryKey: ["/api/wallet", client.id] });
+client/src/components/admin/client-operations-console.tsx:      qc.invalidateQueries({ queryKey: ["/api/admin/wallets", client.id, "transactions"] });
+client/src/components/admin/client-operations-console.tsx:    queryKey: ["/api/admin/users"],
+client/src/components/admin/client-operations-console.tsx:    qc.invalidateQueries({ queryKey: ["/api/admin/users"] });
+client/src/components/admin/client-operations-console.tsx:      qc.invalidateQueries({ queryKey: ["/api/wallet", selectedClientId] });
+client/src/components/admin/client-operations-console.tsx:      qc.invalidateQueries({ queryKey: ["/api/admin/wallets", selectedClientId, "transactions"] });
+client/src/components/admin/client-operations-console.tsx:      qc.invalidateQueries({ queryKey: ["/api/admin/bookings", selectedClientId] });
+client/src/components/admin/communication-center.tsx:    queryKey: ["/api/admin/broadcasts"],
+client/src/components/admin/communication-center.tsx:      queryClient.invalidateQueries({ queryKey: ["/api/admin/broadcasts"] });
+client/src/components/admin/communication-center.tsx:      queryClient.invalidateQueries({ queryKey: ["/api/admin/broadcasts"] });
+client/src/components/admin/communication-center.tsx:      queryClient.invalidateQueries({ queryKey: ["/api/admin/broadcasts"] });
+client/src/components/admin/dashboard/admin-calendar-view.tsx:    queryKey: ["/api/admin/bookings"],
+client/src/components/admin/dashboard/admin-calendar-view.tsx:    queryKey: ["/api/admin/providers"],
+client/src/components/admin/dashboard/admin-disputes.tsx:    queryKey: ["/api/admin/disputes", statusFilter],
+client/src/components/admin/dashboard/admin-disputes.tsx:      queryClient.invalidateQueries({ queryKey: ["/api/admin/disputes"] });
+client/src/components/admin/dashboard/admin-payouts.tsx:    queryKey: ["/api/admin/payout-requests", statusFilter],
+client/src/components/admin/dashboard/admin-payouts.tsx:      queryClient.invalidateQueries({ queryKey: ["/api/admin/payout-requests"] });
+client/src/components/admin/dashboard/admin-provider-docs.tsx:    queryKey: ["/api/admin/provider-documents", docStatusFilter],
+client/src/components/admin/dashboard/admin-provider-docs.tsx:    queryKey: ["/api/admin/provider-credentials"],
+client/src/components/admin/dashboard/admin-provider-docs.tsx:      qc.invalidateQueries({ queryKey: ["/api/admin/provider-documents"] });
+client/src/components/admin/dashboard/admin-provider-docs.tsx:      qc.invalidateQueries({ queryKey: ["/api/admin/document-queue"] });
+client/src/components/admin/dashboard/admin-provider-docs.tsx:      qc.invalidateQueries({ queryKey: ["/api/admin/providers"] });
+client/src/components/admin/dashboard/admin-provider-docs.tsx:      qc.invalidateQueries({ queryKey: ["/api/admin/analytics"] });
+client/src/components/admin/dashboard/admin-provider-docs.tsx:      qc.invalidateQueries({ queryKey: ["/api/admin/provider-credentials"] });
+client/src/components/admin/dashboard/admin-provider-docs.tsx:      qc.invalidateQueries({ queryKey: ["/api/admin/providers"] });
+client/src/components/admin/dashboard/admin-provider-wallets.tsx:    queryKey: ["/api/admin/provider-wallets", search],
+client/src/components/admin/dashboard/admin-service-requests.tsx:    queryKey: ["/api/admin/service-requests"],
+client/src/components/admin/dashboard/admin-service-requests.tsx:    queryClient.invalidateQueries({ queryKey: ["/api/admin/service-requests"] });
+client/src/components/admin/dashboard/admin-service-requests.tsx:    queryClient.invalidateQueries({ queryKey: ["/api/admin/service-requests"] });
+client/src/components/admin/dashboard/admin-service-requests.tsx:    queryClient.invalidateQueries({ queryKey: ["/api/admin/providers"] });
+client/src/components/admin/dashboard/admin-service-requests.tsx:    queryClient.invalidateQueries({ queryKey: ["/api/admin/analytics"] });
+client/src/components/admin/dashboard/admin-service-requests.tsx:      queryClient.invalidateQueries({ queryKey: ["/api/admin/providers", providerId, "services"] });
+client/src/components/admin/dashboard/admin-staff-overview.tsx:    queryKey: ["/api/admin/practitioners"],
+client/src/components/admin/dashboard/admin-staff-overview.tsx:    queryKey: ["/api/admin/providers"],
+client/src/components/admin/dashboard/admin-title-requests.tsx:    queryKey: ["/api/admin/title-requests"],
+client/src/components/admin/dashboard/admin-title-requests.tsx:      queryClient.invalidateQueries({ queryKey: ["/api/admin/title-requests"] });
+client/src/components/admin/dashboard/admin-wallets.tsx:    queryKey: ["/api/admin/wallets"],
+client/src/components/admin/dashboard/admin-wallets.tsx:    queryKey: ["/api/admin/wallets", selectedUserId, "transactions"],
+client/src/components/admin/dashboard/admin-wallets.tsx:      queryClient.invalidateQueries({ queryKey: ["/api/admin/wallets"] });
+client/src/components/admin/dashboard/admin-wallets.tsx:        queryKey: ["/api/admin/wallets", selectedUserId, "transactions"],
+client/src/components/admin/dashboard/admin-wallets.tsx:    queryKey: ["/api/admin/broadcasts"],
+client/src/components/admin/dashboard/admin-wallets.tsx:      queryClient.invalidateQueries({ queryKey: ["/api/admin/broadcasts"] });
+client/src/components/admin/dashboard/admin-wallets.tsx:    queryKey: ["/api/admin/notification-logs"],
+client/src/components/admin/dashboard/analytics-overview.tsx:    queryKey: ["/api/admin/analytics"],
+client/src/components/admin/dashboard/analytics-overview.tsx:    queryKey: ["/api/admin/analytics/monthly"],
+client/src/components/admin/dashboard/bookings-management.tsx:    queryKey: ["/api/admin/bookings"],
+client/src/components/admin/dashboard/bookings-management.tsx:    queryKey: ["/api/admin/providers"],
+client/src/components/admin/dashboard/bookings-management.tsx:      queryClient.invalidateQueries({ queryKey: ["/api/admin/bookings"] });
+client/src/components/admin/dashboard/financial-reports.tsx:    queryKey: ["/api/admin/analytics"],
+client/src/components/admin/dashboard/invoice-management.tsx:    queryKey: ["/api/admin/invoice-template"],
+client/src/components/admin/dashboard/invoice-management.tsx:    queryKey: ["/api/admin/invoices"],
+client/src/components/admin/dashboard/migration-history.tsx:    queryKey: ["/api/admin/country-migrations"],
+client/src/components/admin/dashboard/platform-settings.tsx:    queryKey: ["/api/admin/settings"],
+client/src/components/admin/dashboard/platform-settings.tsx:    queryKey: ["/api/admin/stripe/status"],
+client/src/components/admin/dashboard/promo-code-management.tsx:    queryKey: ["/api/admin/promo-codes"],
+client/src/components/admin/dashboard/promo-code-management.tsx:      queryClient.invalidateQueries({ queryKey: ["/api/admin/promo-codes"] });
+client/src/components/admin/dashboard/promo-code-management.tsx:      queryClient.invalidateQueries({ queryKey: ["/api/admin/promo-codes"] });
+client/src/components/admin/dashboard/service-pending-changes.tsx:    queryKey: ["/api/admin/services/pending-changes"],
+client/src/components/admin/dashboard/service-pending-changes.tsx:      queryClient.invalidateQueries({ queryKey: ["/api/admin/services/pending-changes"] });
+client/src/components/admin/dashboard/service-pending-changes.tsx:      queryClient.invalidateQueries({ queryKey: ["/api/admin/services-overview"] });
+client/src/components/admin/dashboard/service-pending-changes.tsx:      queryClient.invalidateQueries({ queryKey: ["/api/admin/services/pending-changes"] });
+client/src/components/admin/dashboard/support-tickets.tsx:    queryKey: ["/api/admin/support-tickets"],
+client/src/components/admin/dashboard/support-tickets.tsx:    queryKey: ["/api/admin/users"],
+client/src/components/admin/dashboard/support-tickets.tsx:        queryKey: ["/api/admin/support-tickets"],
+client/src/components/admin/dashboard/tax-management.tsx:    queryKey: ["/api/admin/tax-settings"],
+client/src/components/admin/dashboard/tax-management.tsx:      queryClient.invalidateQueries({ queryKey: ["/api/admin/tax-settings"] });
+client/src/components/admin/dashboard/tax-management.tsx:      queryClient.invalidateQueries({ queryKey: ["/api/admin/tax-settings"] });
+client/src/components/admin/dashboard/tax-management.tsx:      queryClient.invalidateQueries({ queryKey: ["/api/admin/tax-settings"] });
+client/src/components/admin/document-queue.tsx:    queryKey: ["/api/admin/document-queue"],
+client/src/components/admin/document-queue.tsx:      queryClient.invalidateQueries({ queryKey: ["/api/admin/document-queue"] });
+client/src/components/admin/document-queue.tsx:      queryClient.invalidateQueries({ queryKey: ["/api/admin/providers"] });
+client/src/components/admin/document-queue.tsx:      queryClient.invalidateQueries({ queryKey: ["/api/admin/provider-documents"] });
+client/src/components/admin/document-queue.tsx:      queryClient.invalidateQueries({ queryKey: ["/api/admin/analytics"] });
+client/src/components/admin/enhanced-analytics.tsx:    queryKey: ["/api/admin/analytics/enhanced"],
+client/src/components/admin/monitoring-panel.tsx:    queryKey: ["/api/admin/monitoring/stats"],
+client/src/components/admin/monitoring-panel.tsx:    queryKey: ["/api/admin/monitoring/events", { page, typeFilter, severityFilter, unresolvedOnly }],
+client/src/components/admin/monitoring-panel.tsx:      queryClient.invalidateQueries({ queryKey: ["/api/admin/monitoring/stats"] });
+client/src/components/admin/monitoring-panel.tsx:      queryClient.invalidateQueries({ queryKey: ["/api/admin/monitoring/events"] });
+client/src/components/admin/package-management.tsx:      qc.invalidateQueries({ queryKey: ["/api/admin/packages"] });
+client/src/components/admin/package-management.tsx:    queryKey: ["/api/admin/packages"],
+client/src/components/admin/package-management.tsx:    queryKey: ["/api/admin/user-packages"],
+client/src/components/admin/package-management.tsx:    onSuccess: () => { toast({ title: "Package deleted" }); qc.invalidateQueries({ queryKey: ["/api/admin/packages"] }); setDeleteTarget(null); },
+client/src/components/admin/package-management.tsx:    onSuccess: () => { toast({ title: "Package cloned" }); qc.invalidateQueries({ queryKey: ["/api/admin/packages"] }); setCloneTarget(null); },
+client/src/components/admin/package-management.tsx:    onSuccess: () => qc.invalidateQueries({ queryKey: ["/api/admin/packages"] }),
+client/src/components/admin/provider-financial-reports.tsx:    queryKey: ["/api/admin/financial/providers", providerId],
+client/src/components/admin/provider-financial-reports.tsx:          qc.invalidateQueries({ queryKey: ["/api/admin/financial/providers", providerId] });
+client/src/components/admin/provider-financial-reports.tsx:    queryKey: ["/api/admin/financial/providers-overview", filterCountry],
+client/src/components/admin/provider-operations-console.tsx:    queryKey: ["/api/admin/providers"],
+client/src/components/admin/provider-operations-console.tsx:    queryKey: ["/api/admin/providers", selectedId, "console"],
+client/src/components/admin/rbac-permissions-matrix.tsx:    queryKey: ["/api/admin/permissions-matrix"],
+client/src/components/admin/referral-leaderboard.tsx:    queryKey: ["/api/admin/referrals/leaderboard"],
+client/src/components/admin/refund-management.tsx:      queryClient.invalidateQueries({ queryKey: ["/api/admin/refunds"] });
+client/src/components/admin/refund-management.tsx:    queryKey: ["/api/admin/refunds", statusFilter, countryFilter, search, page],
+client/src/components/admin/refund-management.tsx:    queryKey: ["/api/admin/refund-rules"],
+client/src/components/admin/refund-management.tsx:      queryClient.invalidateQueries({ queryKey: ["/api/admin/refund-rules"] });
+client/src/components/appointment/AppointmentActionDialog.tsx:    queryKey: ["/api/appointments", appointmentId, "action-quote", action],
+client/src/components/appointment/AppointmentActionDialog.tsx:      queryClient.invalidateQueries({ queryKey: ["/api/appointments", appointmentId, "events"] });
+client/src/components/assign-services-dialog.tsx:    queryKey: ["/api/categories"],
+client/src/components/assign-services-dialog.tsx:    queryKey: ["/api/catalog-services"],
+client/src/components/assign-services-dialog.tsx:    queryKey: ["/api/sub-services"],
+client/src/components/chat/ChatBox.tsx:    queryKey: ["/api/chat/conversations-rich"],
+client/src/components/chat/ChatBox.tsx:    queryKey: ["/api/chat/messages", activeConversation?.id],
+client/src/components/chat/ChatBox.tsx:    queryKey: ["/api/chat/unread-counts"],
+client/src/components/chat/ChatBox.tsx:    queryKey: ["/api/chat/online-status", otherIds],
+client/src/components/chat/ChatBox.tsx:            queryClient.invalidateQueries({ queryKey: ["/api/chat/messages", data.data.conversationId] });
+client/src/components/chat/ChatBox.tsx:            queryClient.invalidateQueries({ queryKey: ["/api/chat/conversations-rich"] });
+client/src/components/chat/ChatBox.tsx:            queryClient.invalidateQueries({ queryKey: ["/api/chat/unread-counts"] });
+client/src/components/chat/ChatBox.tsx:            queryClient.invalidateQueries({ queryKey: ["/api/chat/messages", data.conversationId] });
+client/src/components/chat/ChatBox.tsx:            queryClient.invalidateQueries({ queryKey: ["/api/chat/messages", data.conversationId] });
+client/src/components/chat/ChatBox.tsx:    queryClient.invalidateQueries({ queryKey: ["/api/chat/unread-counts"] });
+client/src/components/chat/ChatBox.tsx:    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/chat/conversations-rich"] }),
+client/src/components/chat/ChatBox.tsx:    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/chat/conversations-rich"] }),
+client/src/components/chat/ChatBox.tsx:                            queryClient.invalidateQueries({ queryKey: ["/api/chat/conversations-rich"] });
+client/src/components/family-members-tab.tsx:    queryKey: ["/api/family-members"],
+client/src/components/family-members-tab.tsx:      queryClient.invalidateQueries({ queryKey: ["/api/family-members"] });
+client/src/components/family-members-tab.tsx:      queryClient.invalidateQueries({ queryKey: ["/api/family-members"] });
+client/src/components/group-sessions-panel.tsx:  const list = useQuery<GroupSession[]>({ queryKey: ["/api/provider/group-sessions"] });
+client/src/components/group-sessions-panel.tsx:      queryClient.invalidateQueries({ queryKey: ["/api/provider/group-sessions"] });
+client/src/components/group-sessions-panel.tsx:      queryClient.invalidateQueries({ queryKey: ["/api/provider/group-sessions"] });
+client/src/components/group-sessions-panel.tsx:      if (detailId) queryClient.invalidateQueries({ queryKey: ["/api/provider/group-sessions", detailId] });
+client/src/components/group-sessions-panel.tsx:    queryKey: ["/api/provider/group-sessions", sessionId],
+client/src/components/group-sessions-panel.tsx:      queryClient.invalidateQueries({ queryKey: ["/api/provider/group-sessions", sessionId] });
+client/src/components/header.tsx:    queryKey: ["/api/wallet"],
+client/src/components/header.tsx:    queryKey: ["/api/notifications/unread-count"],
+client/src/components/health-metrics-tab.tsx:    queryKey: ["/api/health-metrics"],
+client/src/components/health-metrics-tab.tsx:      queryClient.invalidateQueries({ queryKey: ["/api/health-metrics"] });
+client/src/components/health-metrics-tab.tsx:      queryClient.invalidateQueries({ queryKey: ["/api/health-metrics"] });
+client/src/components/medications-tab.tsx:    queryKey: ["/api/medications"],
+client/src/components/medications-tab.tsx:    queryKey: ["/api/family-members"],
+client/src/components/medications-tab.tsx:    queryKey: ["/api/medication-logs", { from: today, to: today }],
+client/src/components/medications-tab.tsx:      queryClient.invalidateQueries({ queryKey: ["/api/medications"] });
+client/src/components/medications-tab.tsx:      queryClient.invalidateQueries({ queryKey: ["/api/medications"] });
+client/src/components/medications-tab.tsx:      queryClient.invalidateQueries({ queryKey: ["/api/medication-logs"] });
+client/src/components/medications-tab.tsx:      queryClient.invalidateQueries({ queryKey: ["/api/medication-logs"] });
+client/src/components/medications-tab.tsx:      queryClient.invalidateQueries({ queryKey: ["/api/medication-logs"] });
+client/src/components/new-ticket-dialog.tsx:      queryClient.invalidateQueries({ queryKey: ["/api/support/tickets"] });
+client/src/components/practitioner-management.tsx:      queryClient.invalidateQueries({ queryKey: ["/api/provider/practitioners"] });
+client/src/components/provider-card.tsx:    queryKey: ["/api/saved-providers", provider.id, "status"],
+client/src/components/provider-card.tsx:      queryClient.invalidateQueries({ queryKey: ["/api/saved-providers", provider.id, "status"] });
+client/src/components/provider-card.tsx:      queryClient.invalidateQueries({ queryKey: ["/api/saved-providers"] });
+client/src/components/provider-documents-panel.tsx:    queryKey: ["/api/provider/credentials"],
+client/src/components/provider-documents-panel.tsx:      queryClient.invalidateQueries({ queryKey: ["/api/provider/credentials"] });
+client/src/components/provider-documents-panel.tsx:      queryClient.invalidateQueries({ queryKey: ["/api/provider/credentials"] });
+client/src/components/provider-documents-panel.tsx:    queryKey: ["/api/provider/credentials"],
+client/src/components/provider-documents-panel.tsx:      queryClient.invalidateQueries({ queryKey: ["/api/provider/credentials"] });
+client/src/components/provider-documents-panel.tsx:      queryClient.invalidateQueries({ queryKey: ["/api/provider/credentials"] });
+client/src/components/provider-documents-panel.tsx:    queryKey: ["/api/provider/documents"],
+client/src/components/provider-documents-panel.tsx:      queryClient.invalidateQueries({ queryKey: ["/api/provider/documents"] });
+client/src/components/provider-documents-panel.tsx:      queryClient.invalidateQueries({ queryKey: ["/api/provider/documents"] });
+client/src/components/provider-gallery-manager.tsx:    queryKey: ["/api/provider/gallery"],
+client/src/components/provider-gallery-manager.tsx:      queryClient.invalidateQueries({ queryKey: ["/api/provider/gallery"] });
+client/src/components/provider-gallery-manager.tsx:      queryClient.invalidateQueries({ queryKey: ["/api/provider/gallery"] });
+client/src/components/provider-gallery-manager.tsx:    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/provider/gallery"] }),
+client/src/components/provider-gallery-manager.tsx:      queryClient.invalidateQueries({ queryKey: ["/api/provider/gallery"] });
+client/src/components/provider-payout-panel.tsx:    queryKey: ["/api/provider/payout-summary"],
+client/src/components/provider-payout-panel.tsx:    queryKey: ["/api/provider/payout-requests"],
+client/src/components/provider-payout-panel.tsx:      queryClient.invalidateQueries({ queryKey: ["/api/provider/payout-summary"] });
+client/src/components/provider-payout-panel.tsx:      queryClient.invalidateQueries({ queryKey: ["/api/provider/payout-requests"] });
+client/src/components/provider-payout-panel.tsx:      queryClient.invalidateQueries({ queryKey: ["/api/provider/wallet"] });
+client/src/components/provider-payout-panel.tsx:      queryClient.invalidateQueries({ queryKey: ["/api/provider/wallet/ledger"] });
+client/src/components/provider-payout-panel.tsx:      queryClient.invalidateQueries({ queryKey: ["/api/provider/payout-summary"] });
+client/src/components/provider-payout-panel.tsx:      queryClient.invalidateQueries({ queryKey: ["/api/provider/payout-requests"] });
+client/src/components/provider-payout-panel.tsx:      queryClient.invalidateQueries({ queryKey: ["/api/provider/wallet"] });
+client/src/components/provider-payout-panel.tsx:      queryClient.invalidateQueries({ queryKey: ["/api/provider/wallet/ledger"] });
+client/src/components/provider-verification-tracker.tsx:    queryKey: ["/api/provider/credentials"],
+client/src/components/provider-verification-tracker.tsx:    queryKey: ["/api/provider/documents"],
+client/src/components/provider-wallet-panel.tsx:    queryKey: ["/api/provider/wallet"],
+client/src/components/provider-wallet-panel.tsx:    queryKey: ["/api/provider/wallet/ledger"],
+client/src/components/provider-wallet-panel.tsx:    queryKey: ["/api/provider/wallet/monthly"],
+client/src/components/provider-wallet-panel.tsx:    queryKey: ["/api/provider/wallet/breakdown"],
+client/src/components/provider-wallet-panel.tsx:        queryClient.invalidateQueries({ queryKey: ["/api/provider/wallet"] }),
+client/src/components/provider-wallet-panel.tsx:        queryClient.invalidateQueries({ queryKey: ["/api/provider/wallet/ledger"] }),
+client/src/components/provider-wallet-panel.tsx:        queryClient.invalidateQueries({ queryKey: ["/api/provider/wallet/monthly"] }),
+client/src/components/provider-wallet-panel.tsx:        queryClient.invalidateQueries({ queryKey: ["/api/provider/wallet/breakdown"] }),
+client/src/components/provider-wallet-panel.tsx:        queryClient.invalidateQueries({ queryKey: ["/api/provider/payout-requests"] }),
+client/src/components/provider/dashboard/ProviderAnalyticsTab.tsx:    queryKey: ["/api/appointments/provider"],
+client/src/components/provider/dashboard/ProviderAppointmentsTabs.tsx:    queryKey: ["/api/appointments/provider"],
+client/src/components/provider/dashboard/ProviderAppointmentsTabs.tsx:    queryKey: ["/api/appointments", selectedAppt?.id ?? "", "events"],
+client/src/components/provider/dashboard/ProviderAppointmentsTabs.tsx:      queryClient.invalidateQueries({ queryKey: ["/api/appointments/provider"] });
+client/src/components/provider/dashboard/ProviderAppointmentsTabs.tsx:      queryClient.invalidateQueries({ queryKey: ["/api/appointments/provider"] });
+client/src/components/provider/dashboard/ProviderAppointmentsTabs.tsx:      queryClient.invalidateQueries({ queryKey: ["/api/appointments/provider"] });
+client/src/components/provider/dashboard/ProviderAppointmentsTabs.tsx:      queryClient.invalidateQueries({ queryKey: ["/api/appointments/provider"] });
+client/src/components/provider/dashboard/ProviderAppointmentsTabs.tsx:      queryClient.invalidateQueries({ queryKey: ["/api/appointments/provider"] });
+client/src/components/provider/dashboard/ProviderAvailabilityComponents.tsx:  const { data, isLoading } = useQuery<any>({ queryKey: ["/api/provider/office-hours"] });
+client/src/components/provider/dashboard/ProviderAvailabilityComponents.tsx:      queryClient.invalidateQueries({ queryKey: ["/api/provider/office-hours"] });
+client/src/components/provider/dashboard/ProviderAvailabilityComponents.tsx:      queryClient.invalidateQueries({ queryKey: ["/api/provider/office-hours"] });
+client/src/components/provider/dashboard/ProviderAvailabilityComponents.tsx:    queryKey: ["/api/provider/availability-exceptions"],
+client/src/components/provider/dashboard/ProviderAvailabilityComponents.tsx:      queryClient.invalidateQueries({ queryKey: ["/api/provider/availability-exceptions"] });
+client/src/components/provider/dashboard/ProviderAvailabilityComponents.tsx:      queryClient.invalidateQueries({ queryKey: ["/api/provider/availability-exceptions"] });
+client/src/components/provider/dashboard/ProviderAvailabilityComponents.tsx:  const { data: provider } = useQuery<any>({ queryKey: ["/api/providers/me"] });
+client/src/components/provider/dashboard/ProviderAvailabilityComponents.tsx:      queryClient.invalidateQueries({ queryKey: ["/api/providers/me"] });
+client/src/components/provider/dashboard/ProviderAvailabilityComponents.tsx:      queryClient.invalidateQueries({ queryKey: ["/api/provider/me"] });
+client/src/components/provider/dashboard/ProviderAvailabilityComponents.tsx:    queryKey: ["/api/provider/time-off"],
+client/src/components/provider/dashboard/ProviderAvailabilityComponents.tsx:      queryClient.invalidateQueries({ queryKey: ["/api/provider/time-off"] });
+client/src/components/provider/dashboard/ProviderAvailabilityComponents.tsx:      queryClient.invalidateQueries({ queryKey: ["/api/provider/time-off"] });
+client/src/components/provider/dashboard/ProviderPreferencesTab.tsx:      queryClient.invalidateQueries({ queryKey: ["/api/provider/me"] });
+client/src/components/provider/dashboard/ProviderPreferencesTab.tsx:      queryClient.invalidateQueries({ queryKey: ["/api/provider/me"] });
+client/src/components/provider/dashboard/ProviderPreferencesTab.tsx:      queryClient.invalidateQueries({ queryKey: ["/api/provider/me"] });
+client/src/components/provider/dashboard/ProviderPreferencesTab.tsx:      queryClient.invalidateQueries({ queryKey: ["/api/provider/me"] });
+client/src/components/provider/dashboard/ProviderServicesTab.tsx:      queryClient.invalidateQueries({ queryKey: ["/api/providers/me"] });
+client/src/components/provider/dashboard/ProviderServicesTab.tsx:      queryClient.invalidateQueries({ queryKey: ["/api/provider/services"] });
+client/src/components/provider/dashboard/ProviderServicesTab.tsx:    queryKey: ["/api/sub-services", providerData?.providerType],
+client/src/components/provider/dashboard/ProviderServicesTab.tsx:    queryKey: ["/api/provider/packages"],
+client/src/components/provider/dashboard/ProviderServicesTab.tsx:    queryKey: ["/api/service-requests"],
+client/src/components/provider/dashboard/ProviderServicesTab.tsx:      queryClient.invalidateQueries({ queryKey: ["/api/providers", providerData?.id] });
+client/src/components/provider/dashboard/ProviderServicesTab.tsx:      queryClient.invalidateQueries({ queryKey: ["/api/providers", providerData?.id] });
+client/src/components/provider/dashboard/ProviderServicesTab.tsx:      queryClient.invalidateQueries({ queryKey: ["/api/providers/me"] });
+client/src/components/provider/dashboard/ProviderServicesTab.tsx:      queryClient.invalidateQueries({ queryKey: ["/api/providers", providerData?.id] });
+client/src/components/provider/dashboard/ProviderServicesTab.tsx:      queryClient.invalidateQueries({ queryKey: ["/api/providers/me"] });
+client/src/components/provider/dashboard/ProviderServicesTab.tsx:      queryClient.invalidateQueries({ queryKey: ["/api/provider/packages"] });
+client/src/components/provider/dashboard/ProviderServicesTab.tsx:    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/provider/packages"] }),
+client/src/components/provider/dashboard/ProviderServicesTab.tsx:      queryClient.invalidateQueries({ queryKey: ["/api/provider/packages"] });
+client/src/components/provider/dashboard/ProviderServicesTab.tsx:                  queryClient.invalidateQueries({ queryKey: ["/api/providers", providerData?.id] });
+client/src/components/provider/dashboard/ProviderServicesTab.tsx:                  queryClient.invalidateQueries({ queryKey: ["/api/providers/me"] });
+client/src/components/recently-viewed-providers.tsx:      queryKey: ["/api/providers", id] as const,
+client/src/components/search-bar.tsx:    queryKey: ["/api/categories"],
+client/src/components/service-catalog-hierarchy.tsx:  const { data: categories = [], refetch: refetchCats } = useQuery<Category[]>({ queryKey: ["/api/admin/categories"] });
+client/src/components/service-catalog-hierarchy.tsx:  const { data: csAll = [],      refetch: refetchCs   } = useQuery<CatalogService[]>({ queryKey: ["/api/admin/catalog-services"] });
+client/src/components/service-catalog-hierarchy.tsx:  const { data: subs = [],       refetch: refetchSubs } = useQuery<SubService[]>({ queryKey: ["/api/admin/sub-services"] });
+client/src/components/service-catalog-hierarchy.tsx:    queryClient.invalidateQueries({ queryKey: ["/api/admin/categories"] });
+client/src/components/service-catalog-hierarchy.tsx:    queryClient.invalidateQueries({ queryKey: ["/api/admin/catalog-services"] });
+client/src/components/service-catalog-hierarchy.tsx:    queryClient.invalidateQueries({ queryKey: ["/api/admin/sub-services"] });
+client/src/components/service-catalog-hierarchy.tsx:    queryClient.invalidateQueries({ queryKey: ["/api/categories"] });
+client/src/components/service-catalog-hierarchy.tsx:    queryClient.invalidateQueries({ queryKey: ["/api/catalog-services"] });
+client/src/components/service-catalog-hierarchy.tsx:    queryClient.invalidateQueries({ queryKey: ["/api/sub-services"] });
+client/src/components/service-form-dialog.tsx:    queryKey: ["/api/services", service?.id, "price-history"],
+client/src/components/service-form-dialog.tsx:      queryClient.invalidateQueries({ queryKey: ["/api/sub-services"] });
+client/src/components/service-form-dialog.tsx:      queryClient.invalidateQueries({ queryKey: ["/api/admin/sub-services"] });
+client/src/components/service-form-dialog.tsx:      queryClient.invalidateQueries({ queryKey: ["/api/sub-services"] });
+client/src/components/service-form-dialog.tsx:      queryClient.invalidateQueries({ queryKey: ["/api/admin/sub-services"] });
+client/src/components/service-form-dialog.tsx:      queryClient.invalidateQueries({ queryKey: ["/api/sub-services"] });
+client/src/components/service-form-dialog.tsx:      queryClient.invalidateQueries({ queryKey: ["/api/admin/sub-services"] });
+client/src/components/service-form-dialog.tsx:      queryClient.invalidateQueries({ queryKey: ["/api/providers", providerId] });
+client/src/components/waitlist-join-button.tsx:      queryClient.invalidateQueries({ queryKey: ["/api/waitlist/me"] });
+client/src/hooks/use-recommended-providers.ts:    queryKey: ["/api/providers/recommended", opts.desiredCategory, opts.desiredSubServiceId, opts.budgetHint, user?.id],
+client/src/lib/permissions.ts:    queryKey: ["/api/admin/my-permissions"],
+client/src/pages/admin-dashboard.tsx:    queryKey: ["/api/providers"],
+client/src/pages/admin-earnings.tsx:    queryKey: ["/api/admin/earnings"],
+client/src/pages/admin-earnings.tsx:      queryClient.invalidateQueries({ queryKey: ["/api/admin/earnings"] });
+client/src/pages/admin-earnings.tsx:      queryClient.invalidateQueries({ queryKey: ["/api/admin/earnings"] });
+client/src/pages/admin-stale-bookings.tsx:    queryKey: ["/api/admin/stale-bookings", { days }],
+client/src/pages/book-wizard.tsx:    queryKey: ["/api/providers", providerId, "slots", value.date],
+client/src/pages/book-wizard.tsx:    queryKey: ["/api/family-members"],
+client/src/pages/book-wizard.tsx:    queryKey: ["/api/services", selectedService?.id, "practitioners"],
+client/src/pages/book-wizard.tsx:    queryKey: ["/api/providers", { q: providerSearch.trim() }],
+client/src/pages/book-wizard.tsx:    queryKey: ["/api/providers", selectedProvider?.id],
+client/src/pages/book-wizard.tsx:    queryKey: ["/api/providers", selectedProvider?.id, "slots", selectedDate, effectivePractitionerId ?? "any"],
+client/src/pages/book-wizard.tsx:    queryKey: ["/api/wallet"],
+client/src/pages/book-wizard.tsx:    queryKey: ["/api/pricing/quote", selectedService?.id, visitType, sessions, promoCode, effectivePractitionerId ?? "none"],
+client/src/pages/book-wizard.tsx:      queryClient.invalidateQueries({ queryKey: ["/api/wallet"] });
+client/src/pages/book-wizard.tsx:      queryClient.invalidateQueries({ queryKey: ["/api/appointments/patient"] });
+client/src/pages/book-wizard.tsx:      queryClient.invalidateQueries({ queryKey: ["/api/appointments/provider"] });
+client/src/pages/book-wizard.tsx:      queryClient.invalidateQueries({ queryKey: ["/api/wallet"] });
+client/src/pages/booking-confirmation.tsx:    queryKey: ["/api/appointments", appointmentId],
+client/src/pages/consent.tsx:    queryKey: ["/api/consents"],
+client/src/pages/consent.tsx:      queryClient.invalidateQueries({ queryKey: ["/api/consents"] });
+client/src/pages/family-member-dashboard.tsx:  const { data: members = [] } = useQuery<any[]>({ queryKey: ["/api/family-members"] });
+client/src/pages/gift-cards.tsx:    queryKey: ["/api/gift-cards/mine"],
+client/src/pages/gift-cards.tsx:      queryClient.invalidateQueries({ queryKey: ["/api/gift-cards/mine"] });
+client/src/pages/gift-cards.tsx:      queryClient.invalidateQueries({ queryKey: ["/api/wallet"] });
+client/src/pages/membership-dashboard.tsx:    queryKey: ["/api/packages/my"],
+client/src/pages/membership-dashboard.tsx:    qc.invalidateQueries({ queryKey: ["/api/packages/my"] });
+client/src/pages/my-bug-reports.tsx:    queryKey: ["/api/bug-reports", reportId],
+client/src/pages/my-bug-reports.tsx:    queryKey: ["/api/bug-reports/my", page],
+client/src/pages/provider-dashboard.tsx:    queryKey: ["/api/provider/me"],
+client/src/pages/provider-dashboard.tsx:    queryKey: ["/api/appointments/provider"],
+client/src/pages/provider-dashboard.tsx:    queryKey: ["/api/providers", providerData?.id],
+client/src/pages/provider-dashboard.tsx:    queryKey: ["/api/providers", providerData?.id, "reviews"],
+client/src/pages/provider-dashboard.tsx:    queryKey: ["/api/provider/insights"],
+client/src/pages/provider-dashboard.tsx:      queryClient.invalidateQueries({ queryKey: ["/api/providers", providerData?.id, "reviews"] });
+client/src/pages/provider-dashboard.tsx:      queryClient.invalidateQueries({ queryKey: ["/api/provider/availability"] });
+client/src/pages/provider-earnings.tsx:    queryKey: ["/api/provider/earnings"],
+client/src/pages/provider-profile.tsx:    queryKey: ["/api/providers", providerId, "credentials"],
+client/src/pages/provider-profile.tsx:    queryKey: ["/api/providers", id],
+client/src/pages/provider-setup.tsx:    queryKey: ["/api/provider/me"],
+client/src/pages/provider-setup.tsx:      queryClient.invalidateQueries({ queryKey: ["/api/provider/me"] });
+client/src/pages/provider-setup.tsx:      queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+client/src/pages/providers.tsx:    queryKey: ["/api/providers", debouncedQuery.type, debouncedQuery.q, debouncedQuery.location, debouncedQuery.verifiedOnly, page],
+client/src/pages/providers.tsx:    queryKey: ["/api/categories"],
+client/src/pages/referrals.tsx:    queryKey: ["/api/referrals/me"],
+client/src/pages/review.tsx:    queryKey: ["/api/appointments/patient"],
+client/src/pages/review.tsx:      queryClient.invalidateQueries({ queryKey: ["/api/appointments/patient"] });
+client/src/pages/review.tsx:      queryClient.invalidateQueries({ queryKey: ["/api/reviews"] });
+client/src/pages/services.tsx:    queryKey: ["/api/browse/services"],
+client/src/pages/waitlist.tsx:    queryKey: ["/api/waitlist/me"],
+client/src/pages/waitlist.tsx:      qc.invalidateQueries({ queryKey: ["/api/waitlist/me"] });
+client/src/pages/waitlist.tsx:      queryClient.invalidateQueries({ queryKey: ["/api/waitlist/me"] });

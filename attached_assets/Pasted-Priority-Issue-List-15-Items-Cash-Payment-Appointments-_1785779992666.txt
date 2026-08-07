@@ -1,0 +1,51 @@
+Priority Issue List (15 Items)
+Cash Payment Appointments Incorrectly Added to Provider Payouts
+Appointments paid using Cash are being included in provider payout calculations.
+Cash payments should not be added to platform payout balances since the provider already collected the payment directly.
+Fix payout calculations, payout status, financial reports, dashboards, wallet entries, and all related payment statuses throughout the system.
+Appointment Price Mismatch Between Client and Provider Dashboards
+The appointment amount displayed on the client dashboard differs from the amount shown on the provider dashboard.
+Both dashboards must display the exact same appointment amount.
+Verify all pricing calculations, taxes, discounts, fees, and rounding logic.
+Price Inconsistencies in Emails
+Appointment confirmation and related emails display amounts that differ from dashboard values.
+Ensure emails always use the same pricing source as the application.
+Remove any rounding or calculation inconsistencies.
+Wallet Transaction Amounts Do Not Match Appointment Amounts
+Wallet transaction records sometimes display amounts different from the associated appointment.
+Investigate rounding or calculation issues and ensure wallet transactions exactly match the final appointment amount.
+Booking Form Should Auto-Fill Client Phone Number
+When a client books an appointment for Myself, if a phone/mobile number already exists in the client's profile, it should automatically populate the phone number field on the confirmation page.
+Provider Search Functionality Not Working
+Provider search in the client dashboard/public website is not functioning correctly.
+Fix keyword search, filtering, sorting, and ensure search results return accurate providers.
+Group Sessions Page Layout Issues
+Some text elements on the Group Sessions page are misaligned and shifted toward the left.
+Fix responsive layout and text alignment across all screen sizes.
+Packages and Membership Navigation
+The Packages and Memberships menu items currently redirect to the same page.
+Each option should navigate to its correct and separate page.
+Chat Should Lock After Appointment Completion
+Once an appointment reaches the Completed status, the chat between the client and provider should become read-only.
+Existing messages should remain visible, but no new messages should be allowed.
+Rating Filter Missing in Provider Search
+The provider search page lacks a proper rating filter.
+Implement filtering for all rating ranges (e.g., 5★, 4★ & above, 3★ & above, etc.).
+Invoice Downloads Not Working
+Invoices cannot be downloaded from all applicable dashboards.
+Enable invoice download functionality consistently for Client, Provider, and Admin dashboards wherever invoices are available.
+Review Moderation Workflow Missing
+Client reviews are published immediately after submission.
+Reviews should instead enter a Pending Approval state.
+Implement an Admin Review Moderation page (if it does not already exist) where administrators can approve or reject reviews before they become publicly visible.
+Currency Selection Not Applied Consistently
+The client settings page should contain only one currency selection option.
+When a user selects a currency, all monetary values throughout the platform must display in that selected currency.
+Currently, the selected currency (e.g., USD "$") does not match the displayed values (e.g., "Ft"), indicating inconsistent currency handling.
+Gift Cards Can Be Purchased Without Sufficient Wallet Balance
+Users are currently able to purchase gift cards even when their wallet balance is insufficient.
+This is a critical financial bug.
+Validate wallet balance before purchase and block transactions that exceed available funds.
+Booking Price and Time Slot Issues
+Promo Code Pricing: When a client applies a promo code during booking, the confirmation screen shows one amount, but after booking a different amount is recorded. Ensure the final charged amount matches the booking summary.
+Time Slot Buffer Calculation: For home visits with a 10-minute buffer, if the 9:00 AM slot is booked, the next available slot incorrectly appears as 9:35 AM (which cannot be booked). The next valid slot should be 9:45 AM according to the appointment duration and configured buffer time. Fix the slot generation logic to correctly calculate and display only bookable time slots.

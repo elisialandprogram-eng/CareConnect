@@ -1,0 +1,236 @@
+# PHASE 1 — Architecture Consolidation & Core Foundation Implementation
+
+You are the Lead Software Architect for the GoldenLife Healthcare Marketplace.
+
+The project has **not launched**.
+
+There are **no production users**.
+
+You have full freedom to improve the architecture **without maintaining backward compatibility**, unless it would break a completed core business feature.
+
+## Objective
+
+This phase is about **implementing architectural improvements**, not adding new features.
+
+The goal is to establish a clean, maintainable, production-ready foundation.
+
+---
+
+# Primary Goals
+
+Implement the following in order:
+
+## 1. Eliminate Duplicate Authorities
+
+For every business domain, ensure there is **exactly one source of truth**.
+
+Consolidate duplicate implementations for:
+
+* Pricing
+* Revenue calculation
+* Provider earnings
+* Settlement
+* Wallet accounting
+* Currency conversion
+* Tax calculation
+* Booking workflow
+* Authentication
+* Authorization
+* Messaging
+* Notifications
+* Scheduling
+* Database access
+* File storage
+* Payment processing
+
+Remove duplicate logic only after migrating all callers to the canonical implementation.
+
+---
+
+## 2. Standardize the Architecture
+
+Implement a consistent architecture across the project.
+
+Requirements:
+
+* One service per business domain
+* One storage pattern
+* One transaction strategy
+* One validation strategy
+* One error handling strategy
+* One logging strategy
+* One authorization strategy
+* One response format
+* One configuration source
+
+No new duplicate services may be introduced.
+
+---
+
+## 3. Financial Foundation
+
+Refactor the financial domain so every operation flows through one canonical pipeline.
+
+Booking
+
+↓
+
+Pricing
+
+↓
+
+Payment
+
+↓
+
+Revenue Calculation
+
+↓
+
+Provider Earnings
+
+↓
+
+Wallet
+
+↓
+
+Settlement
+
+↓
+
+Payout
+
+Every financial transition must use transactions where appropriate.
+
+No duplicated calculations.
+
+No duplicated settlement logic.
+
+No duplicated currency conversion.
+
+---
+
+## 4. Database Layer
+
+Standardize database access.
+
+Choose one repository/storage approach and migrate all business logic to it.
+
+Remove unnecessary direct database access where possible.
+
+Keep migrations organized under a single strategy.
+
+---
+
+## 5. Authentication & Authorization
+
+Unify:
+
+* Authentication flow
+* RBAC
+* Role definitions
+* Permission checks
+* Country authorization
+* Middleware
+
+Every protected endpoint must use the same authorization approach.
+
+---
+
+## 6. Scheduling
+
+Implement one scheduling architecture.
+
+Remove competing scheduling patterns.
+
+Ensure background jobs share common infrastructure.
+
+---
+
+## 7. Messaging & Notifications
+
+Consolidate:
+
+* Chat
+* Notifications
+* Email
+* SMS
+* WhatsApp
+* Push
+
+Each should have one clear service responsibility.
+
+---
+
+## 8. Frontend Cleanup
+
+Remove:
+
+* Duplicate pages
+* Duplicate components
+* Legacy redirects (where safe)
+* Dead code
+* Unused hooks
+* Unused utilities
+* Unused contexts
+
+Standardize routing and API integration patterns.
+
+---
+
+## 9. Project Cleanup
+
+Remove:
+
+* Dead code
+* Deprecated services
+* Legacy utilities
+* Unused dependencies
+* Obsolete helper functions
+* Duplicate models
+* Duplicate interfaces
+* Duplicate constants
+
+Only remove code that is confirmed to be unused.
+
+---
+
+# Implementation Rules
+
+* Do not add new features.
+* Do not redesign the product.
+* Preserve existing business functionality.
+* Keep the application working after every change.
+* Refactor incrementally rather than performing one massive rewrite.
+* Update all references when consolidating modules.
+* Prefer improving existing code over creating new abstractions unless clearly justified.
+* Use transactions for critical financial workflows.
+* Keep code readable, modular, and well documented.
+
+---
+
+# Quality Requirements
+
+After every significant implementation step:
+
+* Fix all TypeScript errors.
+* Fix all build errors.
+* Remove unused imports.
+* Remove obsolete code introduced by the refactor.
+* Ensure the project builds successfully.
+* Ensure existing functionality continues to work.
+
+---
+
+# Deliverables
+
+By the end of Phase 1:
+
+* A single authoritative implementation for each core business domain.
+* A simplified and consistent architecture.
+* Reduced technical debt.
+* Elimination of confirmed duplicate logic and dead code.
+* Improved maintainability without changing user-facing functionality.
+
+Work sequentially, complete one domain before moving to the next, and ensure the project remains in a working state throughout the implementation.
