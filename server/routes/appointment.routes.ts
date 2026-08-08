@@ -880,20 +880,10 @@ export function registerAppointmentRoutes(app: Express): void {
       let _feeUSD = 0; // patientPayable expressed in USD — computed from engine.finalTotalUsd
 
       if (effectiveSvc || subRecord) {
-        // Platform VAT always wins: fetch the admin-set country rate first.
-        // Service-level taxPercentage is only a fallback when no platform rate exists.
-        let bookingTaxRate = 0;
-        if (providerCountry) {
-          const taxSetting = await storage.getTaxSettingByCountry(providerCountry as string).catch(() => null);
-          if (taxSetting) bookingTaxRate = Number(taxSetting.taxRate);
-        }
-        if (bookingTaxRate === 0) bookingTaxRate = Number(subRecord?.taxPercentage ?? 0);
-
         const reResult = await runRevenueEngine({
           subService: subRecord ? {
             basePrice: subRecord.basePrice,
             platformFee: subRecord.platformFee,
-            taxPercentage: subRecord.taxPercentage,
             pricingType: subRecord.pricingType,
             durationMinutes: subRecord.durationMinutes,
           } : null,
@@ -910,7 +900,9 @@ export function registerAppointmentRoutes(app: Express): void {
           sessions: 1,
           discount: promoDiscountInput,
           membershipDiscount: membershipDiscountInput,
-           taxRatePercent: bookingTaxRate > 0 ? bookingTaxRate : undefined,
+           // Tax is resolved exclusively by the canonical tax engine from
+           // sub_service_tax_rules and tax_settings. Do not pass the legacy
+           // sub_services.tax_percentage field.
            subServiceId: subRecord?.id ?? null,
           paymentMethod: selectedPaymentMethod,
           countryCode: providerCountry ?? null,

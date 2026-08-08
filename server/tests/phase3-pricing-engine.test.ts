@@ -115,7 +115,14 @@ assert.equal(coupon.patientPayable, 100, "coupon changes the canonical payable b
 const taxed = runRevenueEngineSync({
   ...baseInput,
   visitType: "clinic",
-  taxRatePercent: 15,
+  _taxRules: {
+    platformRule: {
+      id: "platform-hu",
+      countryCode: "HU",
+      taxRate: 15,
+      isActive: true,
+    },
+  },
 });
 assert.equal(taxed.tax, 1.5, "global tax applies only to the platform charge");
 assert.equal(taxed.patientPayable, 111.5, "platform tax is included in the final payable");

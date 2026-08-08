@@ -228,11 +228,10 @@ export function calculateResolvedTax(
     // A missing service rule is explicitly 0%; never fall back to another
     // country's setting or the legacy sub_services.tax_percentage field.
     serviceTaxRatePercent: rules.serviceRule ? rules.serviceRule.taxRate : 0,
-    // The input fallback is used by the simulator and legacy platform setting
-    // callers when a rule row has not yet been created.
-    platformTaxRatePercent: rules.platformRule?.taxRate
-      ?? input.platformTaxRatePercent
-      ?? 0,
+    // Platform tax is canonical too: only the active country rule is valid.
+    // Missing configuration intentionally means 0%; never use a caller-
+    // supplied legacy or ad-hoc rate as a fallback.
+    platformTaxRatePercent: rules.platformRule?.taxRate ?? 0,
     serviceRuleId: rules.serviceRule?.id ?? null,
     platformRuleId: rules.platformRule?.id ?? null,
   });

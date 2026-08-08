@@ -180,7 +180,10 @@ export function registerCatalogRoutes(app: Express): void {
 
   app.post("/api/sub-services", authenticateToken, requireAdmin, async (req: AuthRequest, res: Response) => {
     try {
-      const data = insertSubServiceSchema.parse(req.body);
+      // taxPercentage is a legacy field. Tax is configured through the
+      // canonical country-specific tax-rule endpoints instead.
+      const { taxPercentage: _legacyTaxPercentage, ...canonicalBody } = req.body ?? {};
+      const data = insertSubServiceSchema.parse(canonicalBody);
       const existing = await storage.getAllSubServices();
       const collision = existing.find(
         (s) => s.name.trim().toLowerCase() === String(data.name).trim().toLowerCase() && s.category === data.category,
@@ -226,7 +229,6 @@ export function registerCatalogRoutes(app: Express): void {
       if (req.body?.basePrice !== undefined) allowed.basePrice = String(req.body.basePrice);
       if (req.body?.platformFee !== undefined) allowed.platformFee = String(req.body.platformFee);
       if (req.body?.durationMinutes !== undefined) allowed.durationMinutes = Number(req.body.durationMinutes) || 0;
-      if (req.body?.taxPercentage !== undefined) allowed.taxPercentage = String(req.body.taxPercentage);
       if (typeof req.body?.pricingType === "string") allowed.pricingType = req.body.pricingType;
 
       if (allowed.name !== undefined && !allowed.name) {
@@ -491,13 +493,6 @@ export function registerCatalogRoutes(app: Express): void {
       const quoteRates = await getRates();
       let discount: { type: "percent" | "fixed"; value: number; code?: string } | null = null;
 
-      let quoteTaxRate = 0;
-      if (svcRaw?.countryCode) {
-        const taxSetting = await storage.getTaxSettingByCountry(svcRaw.countryCode as string).catch(() => null);
-        if (taxSetting) quoteTaxRate = Number(taxSetting.taxRate);
-      }
-      if (quoteTaxRate === 0) quoteTaxRate = Number(sub?.taxPercentage ?? 0);
-
       let membershipDiscountInput: import("../lib/pricing").MembershipDiscountInput | null = null;
       if (req.user?.id) {
         try {
@@ -607,8 +602,10 @@ export function registerCatalogRoutes(app: Express): void {
         discount,
         paymentMethod: resolvePaymentMethod(paymentMethod),
         membershipDiscount: membershipDiscountInput,
-         taxRatePercent: quoteTaxRate > 0 ? quoteTaxRate : undefined,
-         subServiceId: sub?.id ?? null,
+          // Tax is resolved exclusively by the canonical tax engine from
+          // sub_service_tax_rules and tax_settings. Do not pass the legacy
+          // sub_services.tax_percentage field.
+          subServiceId: sub?.id ?? null,
         countryCode: quoteCountryCode,
         providerId: quoteProviderId,
         providerType: quoteProviderType,

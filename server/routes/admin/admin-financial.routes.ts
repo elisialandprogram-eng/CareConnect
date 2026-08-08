@@ -1481,69 +1481,6 @@ export function registerAdminFinancialRoutes(app: Express): void {
     } catch (e) { res.status(500).json({ message: "Failed" }); }
   });
 
-  // ── Tax Settings ──────────────────────────────────────────────────────────
-  app.get("/api/admin/tax-settings", authenticateToken, requireAdmin, async (_req: AuthRequest, res: Response) => {
-    try {
-      const settings = await storage.getAllTaxSettings();
-      res.json(settings || []);
-    } catch (error) {
-      console.error("Failed to fetch tax settings:", error);
-      res.status(500).json({ message: "Failed to get tax settings" });
-    }
-  });
-
-  app.post("/api/admin/tax-settings", authenticateToken, requireAdmin, requirePermission(PERMISSIONS.SETTINGS_EDIT), async (req: AuthRequest, res: Response) => {
-    try {
-      const { insertTaxSettingSchema } = await import("@shared/schema");
-      const data = {
-        ...req.body,
-        isActive: req.body.isActive ?? true,
-        taxName: req.body.taxName || "Sales Tax",
-        taxRate: req.body.taxRate !== undefined ? String(req.body.taxRate) : req.body.taxRate,
-        year: req.body.year !== undefined ? Number(req.body.year) : req.body.year,
-      };
-      const validated = insertTaxSettingSchema.parse(data);
-      const setting = await storage.createTaxSetting(validated);
-      pool.query(
-        `INSERT INTO audit_logs (user_id, action, entity_type, entity_id, details, ip_address, country_code)
-         VALUES ($1, 'create', 'tax_setting', $2, $3, $4, $5)`,
-        [req.user!.id, setting.id, JSON.stringify({ country: setting.country, taxName: setting.taxName, taxRate: setting.taxRate, year: setting.year }), req.ip ?? null, req.user!.countryCode ?? null]
-      ).catch(() => {});
-      res.json(setting);
-    } catch (error) {
-      console.error("Tax creation error:", error);
-      res.status(400).json({ message: "Invalid tax setting data" });
-    }
-  });
-
-  app.patch("/api/admin/tax-settings/:id", authenticateToken, requireAdmin, requirePermission(PERMISSIONS.SETTINGS_EDIT), async (req: AuthRequest, res: Response) => {
-    try {
-      const setting = await storage.updateTaxSetting(req.params.id, req.body);
-      pool.query(
-        `INSERT INTO audit_logs (user_id, action, entity_type, entity_id, details, ip_address, country_code)
-         VALUES ($1, 'update', 'tax_setting', $2, $3, $4, $5)`,
-        [req.user!.id, req.params.id, JSON.stringify(req.body), req.ip ?? null, req.user!.countryCode ?? null]
-      ).catch(() => {});
-      res.json(setting);
-    } catch (error) {
-      res.status(500).json({ message: "Failed to update tax setting" });
-    }
-  });
-
-  app.delete("/api/admin/tax-settings/:id", authenticateToken, requireAdmin, requirePermission(PERMISSIONS.SETTINGS_EDIT), async (req: AuthRequest, res: Response) => {
-    try {
-      await storage.deleteTaxSetting(req.params.id);
-      pool.query(
-        `INSERT INTO audit_logs (user_id, action, entity_type, entity_id, details, ip_address, country_code)
-         VALUES ($1, 'delete', 'tax_setting', $2, $3, $4, $5)`,
-        [req.user!.id, req.params.id, JSON.stringify({}), req.ip ?? null, req.user!.countryCode ?? null]
-      ).catch(() => {});
-      res.status(204).end();
-    } catch (error) {
-      res.status(500).json({ message: "Failed to delete tax setting" });
-    }
-  });
-
   // ── Stripe config status ──────────────────────────────────────────────────
   app.get("/api/admin/stripe/status", authenticateToken, requireAdmin, async (req: AuthRequest, res: Response) => {
     try {

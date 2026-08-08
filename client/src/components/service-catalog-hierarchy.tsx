@@ -93,7 +93,7 @@ interface SubService {
   id: string; category: string; catalogServiceId?: string | null; name: string;
   description?: string | null; basePrice?: string; platformFee?: string;
   durationMinutes?: number; bufferBefore?: number; bufferAfter?: number;
-  taxPercentage?: string; pricingType?: string;
+  pricingType?: string;
   isActive?: boolean; deletedAt?: string | null;
   status?: string;
   nameEn?: string; nameHu?: string; nameFa?: string;
@@ -130,7 +130,7 @@ const PROVIDER_CATEGORIES = [
 const EMPTY_SUB = {
   name: "", basePrice: "0.00", platformFee: "0.00", durationMinutes: 30,
   bufferBefore: 0, bufferAfter: 0,
-  taxPercentage: "0.00", pricingType: "fixed" as string,
+  pricingType: "fixed" as string,
   status: "active",
   providerCategoryName: "",
   nameEn: "", nameHu: "", nameFa: "",
@@ -229,11 +229,7 @@ function SubServiceForm({ initial, onSave, onCancel, isSaving, testPrefix }: {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-        <div>
-          <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide block mb-1">Tax %</label>
-          <Input type="number" step="0.01" min="0" max="100" value={d.taxPercentage} onChange={e => setD({ ...d, taxPercentage: e.target.value })} data-testid={`${testPrefix}-tax`} />
-        </div>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
         <div>
           <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide block mb-1">Pricing type</label>
           <Select value={d.pricingType} onValueChange={v => setD({ ...d, pricingType: v })}>
@@ -575,7 +571,6 @@ export function ServiceCatalogHierarchy() {
         durationMinutes: s.durationMinutes || 30,
         bufferBefore: s.bufferBefore ?? 0,
         bufferAfter: s.bufferAfter ?? 0,
-        taxPercentage: s.taxPercentage || "0.00",
         pricingType: (s.pricingType || "fixed") as any,
         status: s.status || "active",
         providerCategoryName: s.providerCategoryName || "",
@@ -640,9 +635,6 @@ export function ServiceCatalogHierarchy() {
             </span>
             <span className="text-xs text-muted-foreground flex items-center gap-0.5">
               <Clock className="h-3 w-3" /><span className="font-medium text-foreground">{s.durationMinutes}m</span>
-            </span>
-            <span className="text-xs text-muted-foreground flex items-center gap-0.5">
-              <Percent className="h-3 w-3" />Tax: <span className="font-medium text-foreground ml-0.5">{Number(s.taxPercentage)}%</span>
             </span>
             {(s.nameEn || s.nameHu || s.nameFa) && (
               <span className="text-xs text-muted-foreground flex items-center gap-0.5">

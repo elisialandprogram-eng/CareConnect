@@ -1150,9 +1150,6 @@ function RevenueSimulatorPanel() {
   const [membershipPlatformPct,  setMembershipPlatformPct]  = useState("0");
   const [membershipCommRedPct,   setMembershipCommRedPct]   = useState("0");
 
-  // ── Tax ──────────────────────────────────────────────────────────────────
-  const [taxRate, setTaxRate] = useState("0");
-
   // ── Results ──────────────────────────────────────────────────────────────
   const [result, setResult] = useState<SimResult | null>(null);
 
@@ -1186,7 +1183,6 @@ function RevenueSimulatorPanel() {
         countryCode:                 countryCode !== "any" ? countryCode : undefined,
         providerType:                providerType !== "none" ? providerType : undefined,
         serviceCategory:             serviceCategory || undefined,
-        taxRatePercent:              Number(taxRate),
         isEmergency,
         surgeMultiplier:             Number(surgeMultiplier),
         travelDistanceKm:            visitType === "home" ? (Number(travelKm) || undefined) : undefined,
@@ -1369,14 +1365,9 @@ function RevenueSimulatorPanel() {
             </SimSection>
           </CardContent></Card>
 
-          {/* Tax */}
-          <Card><CardContent className="pt-4 space-y-4">
-            <SimSection label="Tax" icon={Layers}>
-              <SimField label="Country / VAT Rate (%)">
-                <Input type="number" step="0.1" min="0" max="100" value={taxRate} onChange={e => setTaxRate(e.target.value)} className="text-sm" data-testid="input-sim-tax-rate" />
-              </SimField>
-            </SimSection>
-          </CardContent></Card>
+          <div className="rounded-md border border-blue-200 bg-blue-50/50 p-3 text-xs text-blue-900 dark:border-blue-900 dark:bg-blue-950/20 dark:text-blue-200">
+            Tax is resolved from the active canonical service and platform rules for the selected country.
+          </div>
 
           <Button className="w-full" size="lg" onClick={() => simMutation.mutate()} disabled={simMutation.isPending} data-testid="button-run-simulation">
             {simMutation.isPending
@@ -1667,59 +1658,164 @@ function RevenueSimulatorPanel() {
   );
 }
 
-// ── W8: Tax Settings Panel ────────────────────────────────────────────────────
+// ── Canonical tax rule management ─────────────────────────────────────────────
 function TaxSettingsPanel() {
   const { toast } = useToast();
   const qc = useQueryClient();
-  const { data: settings = [], isLoading } = useQuery<any[]>({ queryKey: ["/api/admin/tax-settings"] });
-  const [editing, setEditing] = useState<any | null>(null);
-  const form = useForm<any>({ defaultValues: { countryCode: "", taxRate: 0, taxName: "VAT", isActive: true, vatNumber: "", isVatExempt: false } });
-  const saveMut = useMutation({
-    mutationFn: (vals: any) => apiRequest(editing?.id ? "PATCH" : "POST", editing?.id ? `/api/admin/tax-settings/${editing.id}` : "/api/admin/tax-settings", vals),
-    onSuccess: () => { toast({ title: "Tax setting saved" }); qc.invalidateQueries({ queryKey: ["/api/admin/tax-settings"] }); setEditing(null); },
+  const { data, isLoading } = useQuery<{ serviceRules: any[]; platformRules: any[] }>({
+    queryKey: ["/api/admin/tax-rules"],
+  });
+  const { data: subServices = [] } = useQuery<any[]>({
+    queryKey: ["/api/admin/sub-services"],
+  });
+  const [editingPlatform, setEditingPlatform] = useState<any | null>(null);
+  const [editingService, setEditingService] = useState<any | null>(null);
+  const platformForm = useForm<any>({
+    defaultValues: {
+      countryCode: "", taxName: "VAT", taxRate: 0, year: new Date().getFullYear(),
+      effectiveFrom: "", effectiveTo: "", isActive: true,
+    },
+  });
+  const serviceForm = useForm<any>({
+    defaultValues: {
+      subServiceId: "", countryCode: "", taxRate: 0,
+      effectiveFrom: "", effectiveTo: "", isActive: true,
+    },
+  });
+  const invalidate = () => qc.invalidateQueries({ queryKey: ["/api/admin/tax-rules"] });
+  const savePlatform = useMutation({
+    mutationFn: (vals: any) => apiRequest(
+      editingPlatform?.id ? "PATCH" : "POST",
+      editingPlatform?.id ? `/api/admin/tax-rules/platform/${editingPlatform.id}` : "/api/admin/tax-rules/platform",
+      vals,
+    ),
+    onSuccess: () => { toast({ title: "Platform tax rule saved" }); invalidate(); setEditingPlatform(null); },
     onError: () => toast({ title: "Save failed", variant: "destructive" }),
   });
-  if (isLoading) return <p className="text-sm text-muted-foreground p-4">Loading…</p>;
+  const saveService = useMutation({
+    mutationFn: (vals: any) => apiRequest(
+      editingService?.id ? "PATCH" : "POST",
+      editingService?.id ? `/api/admin/tax-rules/service/${editingService.id}` : "/api/admin/tax-rules/service",
+      vals,
+    ),
+    onSuccess: () => { toast({ title: "Sub-service tax rule saved" }); invalidate(); setEditingService(null); },
+    onError: () => toast({ title: "Save failed", variant: "destructive" }),
+  });
+  const deleteRule = useMutation({
+    mutationFn: ({ kind, id }: { kind: "platform" | "service"; id: string }) =>
+      apiRequest("DELETE", `/api/admin/tax-rules/${kind}/${id}`),
+    onSuccess: () => { toast({ title: "Tax rule deleted" }); invalidate(); },
+    onError: () => toast({ title: "Delete failed", variant: "destructive" }),
+  });
+  if (isLoading) return <p className="text-sm text-muted-foreground p-4">Loading canonical tax rules…</p>;
+  const platformRules = data?.platformRules ?? [];
+  const serviceRules = data?.serviceRules ?? [];
+  const beginPlatform = (rule?: any) => {
+    platformForm.reset(rule ? {
+      countryCode: rule.countryCode, taxName: rule.taxName || "VAT",
+      taxRate: Number(rule.taxRate || 0), year: rule.year || new Date().getFullYear(),
+      effectiveFrom: rule.effectiveFrom ? String(rule.effectiveFrom).slice(0, 16) : "",
+      effectiveTo: rule.effectiveTo ? String(rule.effectiveTo).slice(0, 16) : "",
+      isActive: rule.isActive !== false,
+    } : undefined);
+    setEditingPlatform(rule || {});
+  };
+  const beginService = (rule?: any) => {
+    serviceForm.reset(rule ? {
+      subServiceId: rule.subServiceId, countryCode: rule.countryCode,
+      taxRate: Number(rule.taxRate || 0),
+      effectiveFrom: rule.effectiveFrom ? String(rule.effectiveFrom).slice(0, 16) : "",
+      effectiveTo: rule.effectiveTo ? String(rule.effectiveTo).slice(0, 16) : "",
+      isActive: rule.isActive !== false,
+    } : undefined);
+    setEditingService(rule || {});
+  };
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h3 className="font-semibold flex items-center gap-2"><Receipt className="h-4 w-4" /> Tax Settings</h3>
-        <Button size="sm" onClick={() => { form.reset(); setEditing({}); }} data-testid="btn-add-tax-setting"><Plus className="h-4 w-4 mr-1" />Add</Button>
+    <div className="space-y-6">
+      <div className="rounded-md border border-blue-200 bg-blue-50/50 p-3 text-xs text-blue-900 dark:border-blue-900 dark:bg-blue-950/20 dark:text-blue-200">
+        Tax is resolved only from these country-specific canonical rules. The legacy sub-service tax percentage is not used.
       </div>
-      <Table>
-        <TableHeader><TableRow><TableHead>Country</TableHead><TableHead>Tax Name</TableHead><TableHead>Rate</TableHead><TableHead>VAT Exempt</TableHead><TableHead>Active</TableHead><TableHead /></TableRow></TableHeader>
-        <TableBody>
-          {(settings as any[]).map((s: any) => (
-            <TableRow key={s.id}>
-              <TableCell className="font-mono text-xs">{s.country_code}</TableCell>
-              <TableCell>{s.tax_name ?? s.taxName ?? "VAT"}</TableCell>
-              <TableCell>{s.tax_rate ?? s.taxRate ?? 0}%</TableCell>
-              <TableCell>{s.is_vat_exempt ? <CheckCircle2 className="h-4 w-4 text-green-500" /> : "—"}</TableCell>
-              <TableCell>{s.is_active ? <CheckCircle2 className="h-4 w-4 text-green-500" /> : <XCircle className="h-4 w-4 text-muted-foreground" />}</TableCell>
-              <TableCell>
-                <Button size="icon" variant="ghost" onClick={() => { form.reset({ countryCode: s.country_code, taxRate: s.tax_rate, taxName: s.tax_name, isActive: s.is_active, vatNumber: s.vat_number, isVatExempt: s.is_vat_exempt }); setEditing(s); }} data-testid={`btn-edit-tax-${s.id}`}><Pencil className="h-3.5 w-3.5" /></Button>
-              </TableCell>
-            </TableRow>
-          ))}
-          {settings.length === 0 && <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground text-sm">No tax settings configured</TableCell></TableRow>}
-        </TableBody>
-      </Table>
-      {editing !== null && (
-        <Card><CardContent className="pt-4 space-y-3">
-          <div className="grid grid-cols-2 gap-3">
-            <div><Label>Country Code</Label><Input {...form.register("countryCode")} placeholder="HU / IR" data-testid="input-tax-country" /></div>
-            <div><Label>Tax Name</Label><Input {...form.register("taxName")} placeholder="VAT / GST" data-testid="input-tax-name" /></div>
-            <div><Label>Rate (%)</Label><Input type="number" step="0.01" {...form.register("taxRate", { valueAsNumber: true })} data-testid="input-tax-rate" /></div>
-            <div><Label>VAT Number</Label><Input {...form.register("vatNumber")} placeholder="Optional" data-testid="input-vat-number" /></div>
-            <div className="flex items-center gap-2 pt-5"><Switch checked={form.watch("isVatExempt")} onCheckedChange={v => form.setValue("isVatExempt", v)} data-testid="switch-vat-exempt" /><Label>VAT Exempt</Label></div>
-            <div className="flex items-center gap-2 pt-5"><Switch checked={form.watch("isActive")} onCheckedChange={v => form.setValue("isActive", v)} data-testid="switch-tax-active" /><Label>Active</Label></div>
-          </div>
-          <div className="flex gap-2">
-            <Button size="sm" onClick={form.handleSubmit(vals => saveMut.mutate(vals))} disabled={saveMut.isPending} data-testid="btn-save-tax-setting">Save</Button>
-            <Button size="sm" variant="ghost" onClick={() => setEditing(null)}>Cancel</Button>
-          </div>
-        </CardContent></Card>
-      )}
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0">
+          <CardTitle className="text-base flex items-center gap-2"><Receipt className="h-4 w-4" /> Platform tax / VAT rules</CardTitle>
+          <Button size="sm" onClick={() => beginPlatform()} data-testid="btn-add-platform-tax-rule"><Plus className="h-4 w-4 mr-1" />Add rule</Button>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Table>
+            <TableHeader><TableRow><TableHead>Country</TableHead><TableHead>Name</TableHead><TableHead>Rate</TableHead><TableHead>Effective</TableHead><TableHead>Active</TableHead><TableHead /></TableRow></TableHeader>
+            <TableBody>
+              {platformRules.map((r: any) => (
+                <TableRow key={r.id}>
+                  <TableCell className="font-mono text-xs">{r.country}</TableCell>
+                  <TableCell>{r.taxName || "VAT"}</TableCell>
+                  <TableCell>{Number(r.taxRate || 0)}%</TableCell>
+                  <TableCell className="text-xs">{r.effectiveFrom ? new Date(r.effectiveFrom).toLocaleDateString() : "Now"}{r.effectiveTo ? ` – ${new Date(r.effectiveTo).toLocaleDateString()}` : ""}</TableCell>
+                  <TableCell>{r.isActive ? <CheckCircle2 className="h-4 w-4 text-green-500" /> : <XCircle className="h-4 w-4 text-muted-foreground" />}</TableCell>
+                  <TableCell className="text-right whitespace-nowrap">
+                    <Button size="icon" variant="ghost" onClick={() => beginPlatform(r)}><Pencil className="h-3.5 w-3.5" /></Button>
+                    <Button size="icon" variant="ghost" onClick={() => deleteRule.mutate({ kind: "platform", id: r.id })}><Trash2 className="h-3.5 w-3.5 text-destructive" /></Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+              {!platformRules.length && <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground text-sm">No platform tax rules configured</TableCell></TableRow>}
+            </TableBody>
+          </Table>
+          {editingPlatform !== null && (
+            <Card className="bg-muted/20"><CardContent className="pt-4 space-y-3">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div><Label>Country code</Label><Input {...platformForm.register("countryCode")} placeholder="HU / IR" /></div>
+                <div><Label>Tax name</Label><Input {...platformForm.register("taxName")} placeholder="VAT" /></div>
+                <div><Label>Rate (%)</Label><Input type="number" min="0" max="100" step="0.01" {...platformForm.register("taxRate", { valueAsNumber: true })} /></div>
+                <div><Label>Year</Label><Input type="number" {...platformForm.register("year", { valueAsNumber: true })} /></div>
+                <div><Label>Effective from</Label><Input type="datetime-local" {...platformForm.register("effectiveFrom")} /></div>
+                <div><Label>Effective to</Label><Input type="datetime-local" {...platformForm.register("effectiveTo")} /></div>
+                <label className="flex items-center gap-2 pt-6 text-sm"><Switch checked={platformForm.watch("isActive")} onCheckedChange={v => platformForm.setValue("isActive", v)} />Active</label>
+              </div>
+              <div className="flex gap-2"><Button size="sm" onClick={platformForm.handleSubmit(v => savePlatform.mutate(v))} disabled={savePlatform.isPending}>Save</Button><Button size="sm" variant="ghost" onClick={() => setEditingPlatform(null)}>Cancel</Button></div>
+            </CardContent></Card>
+          )}
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0">
+          <CardTitle className="text-base flex items-center gap-2"><Percent className="h-4 w-4" /> Sub-service tax rules</CardTitle>
+          <Button size="sm" onClick={() => beginService()} data-testid="btn-add-service-tax-rule"><Plus className="h-4 w-4 mr-1" />Add rule</Button>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Table>
+            <TableHeader><TableRow><TableHead>Sub-service</TableHead><TableHead>Country</TableHead><TableHead>Rate</TableHead><TableHead>Effective</TableHead><TableHead>Active</TableHead><TableHead /></TableRow></TableHeader>
+            <TableBody>
+              {serviceRules.map((r: any) => (
+                <TableRow key={r.id}>
+                  <TableCell>{r.subServiceName || r.subServiceId}</TableCell>
+                  <TableCell className="font-mono text-xs">{r.countryCode}</TableCell>
+                  <TableCell>{Number(r.taxRate || 0)}%</TableCell>
+                  <TableCell className="text-xs">{r.effectiveFrom ? new Date(r.effectiveFrom).toLocaleDateString() : "Now"}{r.effectiveTo ? ` – ${new Date(r.effectiveTo).toLocaleDateString()}` : ""}</TableCell>
+                  <TableCell>{r.isActive ? <CheckCircle2 className="h-4 w-4 text-green-500" /> : <XCircle className="h-4 w-4 text-muted-foreground" />}</TableCell>
+                  <TableCell className="text-right whitespace-nowrap">
+                    <Button size="icon" variant="ghost" onClick={() => beginService(r)}><Pencil className="h-3.5 w-3.5" /></Button>
+                    <Button size="icon" variant="ghost" onClick={() => deleteRule.mutate({ kind: "service", id: r.id })}><Trash2 className="h-3.5 w-3.5 text-destructive" /></Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+              {!serviceRules.length && <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground text-sm">No sub-service tax rules configured</TableCell></TableRow>}
+            </TableBody>
+          </Table>
+          {editingService !== null && (
+            <Card className="bg-muted/20"><CardContent className="pt-4 space-y-3">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div className="col-span-2"><Label>Sub-service</Label><Select value={serviceForm.watch("subServiceId") || ""} onValueChange={v => serviceForm.setValue("subServiceId", v)} disabled={!!editingService?.id}><SelectTrigger><SelectValue placeholder="Select sub-service" /></SelectTrigger><SelectContent>{subServices.map((s: any) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent></Select></div>
+                <div><Label>Country code</Label><Input {...serviceForm.register("countryCode")} placeholder="HU / IR" /></div>
+                <div><Label>Rate (%)</Label><Input type="number" min="0" max="100" step="0.01" {...serviceForm.register("taxRate", { valueAsNumber: true })} /></div>
+                <div><Label>Effective from</Label><Input type="datetime-local" {...serviceForm.register("effectiveFrom")} /></div>
+                <div><Label>Effective to</Label><Input type="datetime-local" {...serviceForm.register("effectiveTo")} /></div>
+                <label className="flex items-center gap-2 pt-6 text-sm"><Switch checked={serviceForm.watch("isActive")} onCheckedChange={v => serviceForm.setValue("isActive", v)} />Active</label>
+              </div>
+              <div className="flex gap-2"><Button size="sm" onClick={serviceForm.handleSubmit(v => saveService.mutate(v))} disabled={saveService.isPending}>Save</Button><Button size="sm" variant="ghost" onClick={() => setEditingService(null)}>Cancel</Button></div>
+            </CardContent></Card>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

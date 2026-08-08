@@ -603,12 +603,6 @@ export function AddServiceCatalogueDialog({ open, onOpenChange, providerId }: Pr
                                       {s.durationMinutes}min
                                     </span>
                                   )}
-                                  {s.taxPercentage && Number(s.taxPercentage) > 0 && (
-                                    <span className="flex items-center gap-1">
-                                      <Percent className="h-3 w-3" />
-                                      Tax: {Number(s.taxPercentage)}%
-                                    </span>
-                                  )}
                                 </div>
                               </div>
                               <Check className="h-4 w-4 text-primary opacity-0 group-hover:opacity-100 shrink-0 mt-0.5 transition-opacity" />
@@ -682,9 +676,9 @@ export function AddServiceCatalogueDialog({ open, onOpenChange, providerId }: Pr
                         </p>
                       </div>
                       <div>
-                        <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Tax (admin)</p>
+                        <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Tax rules</p>
                         <p className="text-sm font-semibold">
-                          {Number(selected.taxPercentage || 0) > 0 ? `${Number(selected.taxPercentage)}%` : "None"}
+                          Configured in Revenue & Billing
                         </p>
                       </div>
                     </div>
@@ -1020,11 +1014,6 @@ export function AddServiceCatalogueDialog({ open, onOpenChange, providerId }: Pr
                         <div className="flex justify-between text-sm">
                           <span className="text-muted-foreground flex items-center gap-1"><Video className="h-3 w-3" />Online fee</span>
                           <span className="font-medium">+{fmtInput(telemedicineFee)}</span>
-                        </div>
-                      )}
-                      {selected.taxPercentage && Number(selected.taxPercentage) > 0 && (
-                        <div className="flex justify-between text-sm text-muted-foreground">
-                          <span>+ Tax ({Number(selected.taxPercentage)}%)</span>
                         </div>
                       )}
                       <p className="text-[10px] text-muted-foreground pt-1 border-t border-border/40">

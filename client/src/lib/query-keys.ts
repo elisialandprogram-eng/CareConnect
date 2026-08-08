@@ -120,7 +120,6 @@ export const QK = {
   adminStaleBookings: (days?: number) =>
     days ? ["/api/admin/stale-bookings", { days }] : ["/api/admin/stale-bookings"],
   adminProviderCredentials: () => ["/api/admin/provider-credentials"] as const,
-  adminTaxSettings: () => ["/api/admin/tax-settings"] as const,
   adminInvoices: () => ["/api/admin/invoices"] as const,
   adminAuditLogs: (filters?: Record<string, unknown>) =>
     filters ? ["/api/admin/audit-logs", filters] : ["/api/admin/audit-logs"],

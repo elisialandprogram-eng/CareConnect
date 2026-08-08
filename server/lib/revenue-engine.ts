@@ -448,8 +448,9 @@ export async function runRevenueEngine(input: RevenueEngineInput): Promise<Reven
     ),
     platformSubtotal: Math.max(0, enginePlatformFee + paymentSurcharge),
     discount: base.discount,
-    serviceTaxRatePercent: input.subServiceId ? 0 : input.taxRatePercent,
-    platformTaxRatePercent: input.taxRatePercent,
+    // Rates are supplied only by calculateResolvedTax() from canonical rules.
+    serviceTaxRatePercent: 0,
+    platformTaxRatePercent: 0,
   }, taxRules);
   const taxableSubtotal = round2(base.taxableSubtotal + platformFeeDelta + paymentSurcharge + engineTravelFee);
   const total = round2(taxableSubtotal + taxBreakdown.totalTax);
@@ -594,8 +595,9 @@ export function runRevenueEngineSync(
     ),
     platformSubtotal: Math.max(0, enginePlatformFee + paymentSurcharge),
     discount: base.discount,
-    serviceTaxRatePercent: input.subServiceId ? 0 : input.taxRatePercent,
-    platformTaxRatePercent: input.taxRatePercent,
+    // Rates are supplied only by calculateResolvedTax() from canonical rules.
+    serviceTaxRatePercent: 0,
+    platformTaxRatePercent: 0,
   }, input._taxRules ?? {});
   const taxableSubtotal = round2(base.taxableSubtotal + platformFeeDelta + paymentSurcharge + engineTravelFee);
   const total = round2(taxableSubtotal + taxBreakdown.totalTax);

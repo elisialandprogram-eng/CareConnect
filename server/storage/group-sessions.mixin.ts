@@ -260,7 +260,6 @@ function normalizeSubServiceRow(row: Record<string, any>): Record<string, any> {
     basePrice: row.basePrice ?? row.base_price,
     platformFee: row.platformFee ?? row.platform_fee,
     durationMinutes: row.durationMinutes ?? row.duration_minutes,
-    taxPercentage: row.taxPercentage ?? row.tax_percentage,
     pricingType: row.pricingType ?? row.pricing_type,
     subGroup: row.subGroup ?? row.sub_group,
     nameEn: row.nameEn ?? row.name_en,

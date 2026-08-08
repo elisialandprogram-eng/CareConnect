@@ -12,6 +12,7 @@ import { loadRevenueRules, runRevenueEngineSync, invalidateRevenueRulesCache, ty
 import {
   calculateTaxBreakdown,
   calculateResolvedTax,
+  loadTaxRules,
   type TaxRuleSet,
 } from "../../lib/tax-engine";
 
@@ -807,7 +808,6 @@ export function registerRevenueBillingRoutes(app: Express): void {
         membershipServiceDiscountPct = 0,
         membershipPlatformFeeDiscountPct = 0,
         membershipReducedCommissionPct = 0,
-        taxRatePercent = 0,
         isEmergency = false,
         surgeMultiplier = 1,
         bookingCurrency = "USD",
@@ -830,7 +830,6 @@ export function registerRevenueBillingRoutes(app: Express): void {
         providerType: providerType ?? null,
         serviceCategory: serviceCategory ?? null,
         travelDistanceKm: travelDistanceKm ?? null,
-        taxRatePercent: taxRatePercent ?? 0,
         isEmergency,
         surgeMultiplier: surgeMultiplier ?? 1,
         bookingCurrency: bookingCurrency ?? "USD",
@@ -858,6 +857,7 @@ export function registerRevenueBillingRoutes(app: Express): void {
                 userPackageId: "sim",
               }
             : null,
+        _taxRules: await loadTaxRules(null, countryCode ?? null),
         _preloaded: rules,
       };
 

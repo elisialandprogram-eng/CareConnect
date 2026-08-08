@@ -21,7 +21,7 @@ export interface MembershipDiscountInput {
 export interface PricingInput {
   subService?: Pick<
     SubService,
-    "basePrice" | "platformFee" | "taxPercentage" | "pricingType" | "durationMinutes"
+    "basePrice" | "platformFee" | "pricingType" | "durationMinutes"
   > | null;
   service?: Pick<
     Service,
@@ -41,11 +41,6 @@ export interface PricingInput {
   isEmergency?: boolean;
   packagePrice?: number | null;
   currency?: string;
-  /** Country-level tax rate (%) from tax_settings — used as fallback when
-   *  subService.taxPercentage is 0 or absent. */
-  taxRatePercent?: number;
-  /** Platform tax is separate from provider service tax. */
-  platformTaxRatePercent?: number;
   /** Revenue Engine supplies final platform fees before applying tax. */
   deferTax?: boolean;
 }
@@ -155,8 +150,10 @@ export function computeFinalPrice(input: PricingInput): PricingBreakdown {
     serviceSubtotal: Math.max(0, effectiveBase + visitTypeFeeTotal + surgeTotal + emergencyTotal),
     platformSubtotal: platformFeeTotal,
     discount: discountAmount,
-    serviceTaxRatePercent: input.deferTax ? 0 : (input.taxRatePercent ?? num(sub?.taxPercentage, 0)),
-    platformTaxRatePercent: input.deferTax ? 0 : (input.platformTaxRatePercent ?? 0),
+    // Tax is resolved after pricing by the canonical tax engine. This legacy
+    // pricing kernel never reads service or platform tax rates.
+    serviceTaxRatePercent: 0,
+    platformTaxRatePercent: 0,
   });
   const effectiveTaxPct = taxCalculation.serviceTaxRate + taxCalculation.platformTaxRate;
   const taxAmount = input.deferTax ? 0 : taxCalculation.totalTax;
