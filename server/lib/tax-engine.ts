@@ -33,6 +33,26 @@ export interface PlatformTaxRule {
 export interface TaxRuleSet {
   serviceRule?: ServiceTaxRule | null;
   platformRule?: PlatformTaxRule | null;
+  countryCode?: string | null;
+}
+
+export class TaxConfigurationError extends Error {
+  readonly code = "TAX_CONFIGURATION_MISSING";
+  readonly countryCode: string;
+  readonly subServiceId: string | null;
+  readonly missingDomains: Array<"service" | "platform">;
+
+  constructor(opts: {
+    countryCode: string;
+    subServiceId?: string | null;
+    missingDomains: Array<"service" | "platform">;
+  }) {
+    super(`Required ${opts.missingDomains.join(" and ")} tax configuration is missing for country ${opts.countryCode}`);
+    this.name = "TaxConfigurationError";
+    this.countryCode = opts.countryCode;
+    this.subServiceId = opts.subServiceId ?? null;
+    this.missingDomains = opts.missingDomains;
+  }
 }
 
 export interface TaxCalculation {
@@ -42,6 +62,7 @@ export interface TaxCalculation {
 }
 
 export interface TaxBreakdown {
+  countryCode: string | null;
   serviceTaxRate: number;
   serviceTaxableSubtotal: number;
   serviceTax: number;
@@ -62,6 +83,8 @@ export interface TaxCalculationInput {
   platformSubtotal: number;
   /** A promotion reduces both buckets proportionally. */
   discount?: number | null;
+  /** Payment-method discounts reduce the taxable base by policy. */
+  paymentDiscount?: number | null;
   serviceTaxRatePercent?: number | null;
   platformTaxRatePercent?: number | null;
   serviceRuleId?: string | null;
@@ -83,7 +106,10 @@ export function calculateTaxBreakdown(input: TaxCalculationInput): TaxBreakdown 
   const serviceGross = Math.max(0, finite(input.serviceSubtotal));
   const platformGross = Math.max(0, finite(input.platformSubtotal));
   const gross = serviceGross + platformGross;
-  const discount = Math.min(gross, Math.max(0, finite(input.discount)));
+  const discount = Math.min(
+    gross,
+    Math.max(0, finite(input.discount)) + Math.max(0, finite(input.paymentDiscount)),
+  );
   const discountRatio = gross > 0 ? discount / gross : 0;
 
   const serviceTaxableSubtotal = round2(serviceGross * (1 - discountRatio));
@@ -94,6 +120,7 @@ export function calculateTaxBreakdown(input: TaxCalculationInput): TaxBreakdown 
   const platformTax = round2(platformTaxableSubtotal * (platformTaxRate / 100));
 
   return {
+    countryCode: null,
     serviceTaxRate,
     serviceTaxableSubtotal,
     serviceTax,
@@ -142,8 +169,9 @@ function activeAt(
 
 /**
  * Resolve exactly one country-specific service rule and one platform rule.
- * Missing rules intentionally resolve to 0% and emit a warning. We never
- * substitute another country's configuration.
+ * Missing rules are returned as missing and emit a warning. The booking
+ * engine rejects them for real quotes/bookings; an explicit 0% row remains
+ * valid and distinguishable from missing configuration.
  */
 export async function loadTaxRules(
   subServiceId: string | null | undefined,
@@ -152,8 +180,8 @@ export async function loadTaxRules(
 ): Promise<TaxRuleSet> {
   const country = String(countryCode ?? "").trim().toUpperCase();
   if (!country) {
-    console.warn("[tax-engine] missing country configuration; using 0% tax");
-    return {};
+    console.warn("[tax-engine] missing country configuration");
+    return { countryCode: null, serviceRule: null, platformRule: null };
   }
 
   const { pool } = await import("../db") as any;
@@ -194,6 +222,7 @@ export async function loadTaxRules(
   }
 
   return {
+    countryCode: country,
     serviceRule: service
       ? {
           id: String(service.id),
@@ -223,7 +252,7 @@ export function calculateResolvedTax(
   input: TaxCalculationInput,
   rules: TaxRuleSet,
 ): TaxBreakdown {
-  return calculateTaxBreakdown({
+  const result = calculateTaxBreakdown({
     ...input,
     // A missing service rule is explicitly 0%; never fall back to another
     // country's setting or the legacy sub_services.tax_percentage field.
@@ -235,4 +264,26 @@ export function calculateResolvedTax(
     serviceRuleId: rules.serviceRule?.id ?? null,
     platformRuleId: rules.platformRule?.id ?? null,
   });
+  return { ...result, countryCode: rules.countryCode ?? null };
+}
+
+/**
+ * A configured 0% row is valid. An absent row is a financial configuration
+ * error for real quotes/bookings and must not be silently treated as 0%.
+ */
+export function assertTaxConfiguration(
+  rules: TaxRuleSet,
+  opts: { countryCode?: string | null; subServiceId?: string | null; requireServiceRule: boolean },
+): void {
+  const country = String(opts.countryCode ?? rules.countryCode ?? "").trim().toUpperCase();
+  const missingDomains: Array<"service" | "platform"> = [];
+  if (opts.requireServiceRule && !rules.serviceRule) missingDomains.push("service");
+  if (!rules.platformRule) missingDomains.push("platform");
+  if (missingDomains.length > 0) {
+    throw new TaxConfigurationError({
+      countryCode: country || "UNKNOWN",
+      subServiceId: opts.subServiceId,
+      missingDomains,
+    });
+  }
 }

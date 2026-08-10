@@ -1,0 +1,1184 @@
+# Booking Pricing & Tax Canonicalization — Complete Implementation
+
+You are working on the existing booking/appointment marketplace project.
+
+This is an **implementation task, not an audit-only task**.
+
+Your job is to inspect the existing implementation, identify every issue related to booking price derivation, tax calculation, tax configuration, pricing snapshots, and price display, and **fix the issues immediately when found**.
+
+Do not merely report issues. Implement the fixes, remove obsolete/legacy code where it is no longer required, update tests, and verify the complete flow.
+
+The project is not launched yet, so prioritize correctness and clean architecture over backward compatibility with obsolete internal code.
+
+---
+
+# PRIMARY OBJECTIVE
+
+Establish one canonical pricing and tax system for the entire booking lifecycle.
+
+The invariant must be:
+
+```text
+Service / Booking Inputs
+        ↓
+Canonical Revenue / Pricing Engine
+        ↓
+Canonical Tax Engine
+        ↓
+Immutable Booking Pricing Snapshot
+        ↓
+┌──────────────┬──────────────┬──────────────┬──────────────┐
+│ Patient UI   │ Provider UI  │ Email        │ Notification │
+└──────────────┴──────────────┴──────────────┴──────────────┘
+                         ↓
+                  Same exact numbers
+```
+
+There must be:
+
+* One canonical price derivation.
+* One canonical tax derivation.
+* One canonical source of truth.
+* No frontend tax calculations.
+* No email-specific tax calculations.
+* No notification-specific tax calculations.
+* No provider-side recalculation that can produce a different result.
+* No booking confirmation recalculation.
+* No duplicated tax formulas in other routes.
+* No conflicting legacy tax paths.
+
+The quote calculation and final booking calculation may execute the canonical engine separately, but **they must receive the same authoritative inputs and produce the same result when nothing legitimately changed between quote and booking**.
+
+Once a booking is created, its saved pricing snapshot is authoritative forever.
+
+---
+
+# 1. CANONICAL TAX MODEL
+
+The tax system must have two clearly separated tax domains.
+
+## A. SERVICE TAX
+
+Service tax applies to the complete service-related taxable booking amount.
+
+Service-related components include, where applicable:
+
+* Base service price
+* Home visit fee
+* Clinic fee
+* Telemedicine fee
+* Emergency fee
+* Surge fee
+* Distance/travel fee
+* Other service-related charges
+
+These must be grouped into the service taxable bucket.
+
+The service tax rate comes from:
+
+```text
+sub_service_tax_rules
+```
+
+using:
+
+```text
+sub-service + country + effective date + active status
+```
+
+The country-specific sub-service tax rule is the canonical source.
+
+Do not use a single global:
+
+```text
+sub_services.tax_percentage
+```
+
+for new calculations.
+
+---
+
+# 2. PLATFORM TAX MODEL
+
+Platform tax applies only to platform-related taxable components.
+
+These can include:
+
+* Platform fee
+* Payment/admin charges
+* Payment-method surcharge
+* Other platform charges
+
+Platform tax comes from the canonical platform tax configuration:
+
+```text
+tax_settings
+```
+
+using the authoritative booking/provider country and effective-date rules.
+
+Do not mix service tax and platform tax into one rate.
+
+---
+
+# 3. IMPORTANT TAX BUSINESS RULE
+
+Implement this exact business behavior:
+
+### If the sub-service has a non-zero country-specific service tax:
+
+That service tax applies to the entire service-related taxable booking amount.
+
+Example:
+
+```text
+Base service          100
+Home visit             20
+Distance fee           10
+Emergency fee           5
+Surge                   5
+-------------------------
+Service taxable       140
+
+Service tax = 27%
+
+Service tax = 140 × 27%
+            = 37.80
+```
+
+Platform charges are handled separately using platform tax.
+
+### If the sub-service service-tax rate is 0%:
+
+Service-related charges remain untaxed by the global/platform tax.
+
+For example:
+
+```text
+Base service
+Home visit
+Distance fee
+Emergency fee
+Surge
+```
+
+must NOT suddenly receive the platform/global tax merely because service tax is zero.
+
+Only platform-related charges such as:
+
+```text
+Platform fee
+Payment/admin charges
+```
+
+are subject to platform tax.
+
+This distinction must be enforced in the canonical tax engine.
+
+---
+
+# 4. COUNTRY-SPECIFIC SERVICE TAX
+
+`sub_service_tax_rules` must remain the canonical service-tax configuration.
+
+A sub-service can have different tax rates for different countries.
+
+Example:
+
+```text
+Physiotherapy
+    HU → 27%
+    IR → 9%
+    IN → configured rate
+```
+
+The engine must resolve:
+
+```text
+sub-service
++
+authoritative country
++
+effective date
++
+active status
+```
+
+to exactly one applicable service-tax rule.
+
+Handle:
+
+* Effective dates
+* Active/inactive rules
+* Versioning
+* Country
+* Rate
+* Missing configuration
+
+deterministically.
+
+Do not silently select an unrelated country's rule.
+
+---
+
+# 5. REMOVE LEGACY TAX IMPLEMENTATION
+
+The project previously had:
+
+```text
+sub_services.tax_percentage
+```
+
+This is now legacy.
+
+Because the project has not launched, remove obsolete legacy tax architecture wherever it is no longer required.
+
+Specifically:
+
+* Remove direct reads of `sub_services.tax_percentage`.
+* Remove fallback logic that treats it as the canonical tax source.
+* Remove obsolete compatibility tax calculations.
+* Remove duplicated tax formulas from routes/services.
+* Remove unused legacy migration/compatibility code if it is no longer necessary.
+* Remove dead types/interfaces/constants related only to the old tax system.
+* Update schema/types where appropriate.
+* Update tests that still assert obsolete behavior.
+
+Do not leave two competing tax systems in the codebase.
+
+After implementation there must be one canonical tax engine.
+
+Before deleting a legacy field/table/path, search the entire repository and ensure it is not required by an active feature. If it is genuinely obsolete, remove it cleanly.
+
+---
+
+# 6. CANONICAL TAX ENGINE
+
+The canonical tax implementation must remain centralized in:
+
+```text
+server/lib/tax-engine.ts
+```
+
+Do not recreate tax calculations elsewhere.
+
+The engine should return a complete deterministic result containing at minimum:
+
+```text
+serviceTaxRate
+serviceTaxAmount
+platformTaxRate
+platformTaxAmount
+totalTax
+```
+
+and enough metadata for the pricing snapshot, including:
+
+```text
+taxEngineVersion
+calculatedAt
+country
+serviceTaxRule/version
+platformTaxRule/version
+```
+
+The result must clearly distinguish:
+
+```text
+service tax
+platform tax
+total tax
+```
+
+Never create a fake combined rate such as:
+
+```text
+27% + 5% = 32%
+```
+
+because those percentages apply to different taxable bases.
+
+---
+
+# 7. TAX DISPLAY
+
+Do NOT display:
+
+```text
+Tax (32%)
+```
+
+when service tax is 27% and platform tax is 5%.
+
+Instead display separate lines:
+
+```text
+Service tax (27%)    $33.75
+Platform tax (5%)     $0.50
+----------------------------
+Total tax             $34.25
+```
+
+The UI must use the exact tax amounts returned by the canonical pricing result/snapshot.
+
+Do not reconstruct tax percentages or amounts in the frontend.
+
+Where appropriate, the UI can show:
+
+```text
+Service tax (27%)
+Platform tax (5%)
+Total tax
+```
+
+The combined percentage must not be invented.
+
+Apply this consistently to:
+
+* Booking wizard
+* Checkout/payment panel
+* Booking confirmation
+* Patient booking/order
+* Provider booking/order
+* Admin booking details
+* Email
+* Notifications
+* Invoice/receipt
+* Any other place displaying booking financial information
+
+---
+
+# 8. CANONICAL PRICING ENGINE
+
+The canonical revenue/pricing flow should remain centered around:
+
+```text
+server/lib/revenue-engine.ts
+server/lib/pricing.ts
+server/lib/tax-engine.ts
+```
+
+Do not create another pricing engine.
+
+Every booking price must ultimately derive from the same canonical calculation.
+
+The canonical calculation must account for all applicable components:
+
+```text
+Base service price
++ Home visit / visit fee
++ Clinic / telemedicine fee
++ Emergency fee
++ Surge
++ Distance/travel fee
++ Platform fee
++ Payment/admin charge
++ Other configured charges
+- Promotions
+- Membership discounts
+- Payment-method discounts, according to explicit tax policy
++ Tax
+```
+
+Do not accidentally omit a component from the canonical calculation.
+
+---
+
+# 9. PAYMENT DISCOUNT / SURCHARGE TAX POLICY
+
+Inspect the current payment-method adjustment implementation.
+
+There may be:
+
+```text
+Payment surcharge
+Payment discount
+```
+
+Make the tax treatment explicit and deterministic.
+
+The implementation must answer:
+
+```text
+Does a payment-method discount reduce the taxable base?
+```
+
+Use the project's intended financial semantics consistently.
+
+Do not allow a situation where:
+
+```text
+Final price decreases
+```
+
+but:
+
+```text
+tax is calculated using the old higher taxable base
+```
+
+unless that behavior is explicitly required by the configured tax policy.
+
+Document the chosen behavior in the tax/pricing implementation and add regression tests.
+
+Payment surcharges and discounts must not create inconsistencies between quote and final booking.
+
+---
+
+# 10. DISTANCE / TRAVEL FEE
+
+The revenue engine supports distance-based travel pricing.
+
+Ensure the complete booking flow supplies the required travel/distance input.
+
+Currently investigate and fix the situation where:
+
+```text
+travelDistanceKm
+```
+
+is supported by the engine but is not passed through the quote/final booking flow.
+
+The same authoritative distance value must be used by:
+
+```text
+pricing quote
+final booking
+```
+
+when applicable.
+
+The travel fee must then correctly enter the appropriate service taxable bucket.
+
+Example:
+
+```text
+Base service       100
+Home visit          20
+Distance fee        15
+-----------------------
+Service taxable    135
+
+Service tax = 27%
+```
+
+Add tests proving distance-based pricing works.
+
+---
+
+# 11. QUOTE AND FINAL BOOKING MUST USE THE SAME COUNTRY
+
+Fix the inconsistency where:
+
+```text
+POST /api/pricing/quote
+```
+
+and:
+
+```text
+POST /api/appointments
+```
+
+derive country from different sources.
+
+The quote currently uses service country while final booking uses provider country.
+
+Choose one authoritative country derivation consistent with the booking business rules.
+
+The same country must be used for:
+
+* Service tax lookup
+* Platform tax lookup
+* Currency determination
+* Tax configuration
+* Pricing calculation
+
+The quote and final booking must not legitimately calculate different taxes because they derived country differently.
+
+If the service/provider/country relationship is invalid, fail clearly rather than silently calculating with a different country.
+
+---
+
+# 12. MISSING TAX CONFIGURATION
+
+Do not silently treat missing required tax configuration as a normal 0% tax without distinguishing:
+
+```text
+configured 0%
+```
+
+from:
+
+```text
+missing configuration
+```
+
+These are not the same thing.
+
+A legitimate rule can be:
+
+```text
+rate = 0%
+```
+
+But:
+
+```text
+no applicable rule exists
+```
+
+is a configuration problem.
+
+Implement deterministic handling.
+
+For required tax configuration during final booking, prefer failing safely with a clear server error rather than silently under-collecting tax.
+
+The admin/preview tools should also clearly identify missing rules.
+
+Do not hide configuration problems with an automatic zero.
+
+---
+
+# 13. LEGACY TAX MIGRATION
+
+Review the existing migration that copied:
+
+```text
+sub_services.tax_percentage
+```
+
+into country-specific rules.
+
+Because the old field had no country, do not assume the migrated percentage is legally correct for every country.
+
+Clean up the migration/seed behavior as appropriate for an unpublished system.
+
+Ensure the final database configuration is explicit per country.
+
+Do not leave misleading duplicated legacy tax values simply because the old field existed.
+
+---
+
+# 14. BOOKING QUOTE
+
+Audit and fix:
+
+```text
+POST /api/pricing/quote
+```
+
+The quote must run the canonical revenue engine with the exact same pricing/tax inputs that final booking will use.
+
+The quote response should contain the canonical result, including:
+
+```text
+patientPayable
+tax
+serviceTaxRate
+serviceTaxAmount
+platformTaxRate
+platformTaxAmount
+taxBreakdown
+bookingCurrency
+finalTotalUsd
+pricing lines
+```
+
+Do not calculate a second version in the frontend.
+
+---
+
+# 15. FINAL BOOKING
+
+Audit:
+
+```text
+POST /api/appointments
+```
+
+The final server calculation is authoritative.
+
+Do not trust:
+
+```text
+client totalAmount
+client taxAmount
+client platform fee
+client service tax
+```
+
+as financial truth.
+
+Recalculate server-side using canonical pricing/tax logic.
+
+Then save the immutable pricing snapshot.
+
+---
+
+# 16. IMMUTABLE BOOKING SNAPSHOT
+
+When the appointment is created, persist enough information to reproduce exactly what the patient and provider were charged.
+
+At minimum:
+
+```text
+pricing_breakdown
+tax_amount
+service_tax_rate
+service_tax_amount
+service_subtotal
+platform_taxable_subtotal
+platform_tax_rate
+platform_tax_amount
+tax_engine_version
+pricing_engine_version
+pricing_calculated_at
+display_currency
+```
+
+Review the naming/semantics of fields.
+
+For example, determine whether:
+
+```text
+service_subtotal
+```
+
+actually means gross service subtotal or post-discount taxable service subtotal.
+
+If necessary:
+
+* Rename it.
+* Add a correctly named field.
+* Update all consumers.
+* Migrate the schema cleanly.
+
+Do not leave ambiguous financial field semantics.
+
+---
+
+# 17. SNAPSHOT IMMUTABILITY
+
+After booking creation:
+
+Tax rules may change.
+
+Service prices may change.
+
+Platform fees may change.
+
+Payment fees may change.
+
+Discount configuration may change.
+
+None of those changes may alter the historical booking price.
+
+Historical booking financial display must read from the saved snapshot.
+
+Do not recalculate historical tax for display.
+
+---
+
+# 18. ALL DISPLAY SURFACES
+
+Search the entire repository for every place that displays:
+
+* Price
+* Tax
+* Total
+* Platform fee
+* Payment fee
+* Discount
+* Service fee
+* Travel fee
+
+Audit all of them.
+
+This includes:
+
+```text
+Booking wizard
+Checkout
+Booking confirmation
+Patient appointments
+Provider appointments
+Admin appointment views
+Invoices
+Receipts
+Emails
+Notifications
+Push notifications
+SMS/WhatsApp templates if applicable
+Payment pages
+Wallet/payment records where relevant
+```
+
+Every historical appointment/order must use the same stored pricing snapshot.
+
+No surface may independently reconstruct tax.
+
+---
+
+# 19. OLD BOOKING FALLBACK
+
+Review the fallback logic for old appointments that don't have a complete pricing snapshot.
+
+Because the project is not launched, determine whether this fallback is actually necessary.
+
+If it only exists for obsolete pre-launch data:
+
+* Remove it if safe.
+* Otherwise make it clearly isolated as historical compatibility behavior.
+
+Do not allow legacy reconstruction logic to become another active pricing engine.
+
+---
+
+# 20. CURRENCY
+
+Audit all currency handling.
+
+The canonical calculation must calculate the booking in the correct booking currency.
+
+Ensure:
+
+```text
+HUF
+IRR
+USD
+etc.
+```
+
+do not experience:
+
+* Double conversion
+* Tax conversion
+* Rounding discrepancies
+* USD/native-currency mismatch
+* Different totals between quote and final booking
+
+Tax must be calculated on the correct currency amount according to the existing pricing architecture.
+
+Do not independently convert tax in the frontend.
+
+---
+
+# 21. ROUNDING
+
+Audit rounding across the entire pricing pipeline.
+
+Use one deterministic rounding policy.
+
+The following must agree:
+
+```text
+quote
+final booking
+snapshot
+payment charge
+confirmation
+provider display
+email
+notification
+```
+
+Do not allow:
+
+```text
+Quote = 137.50
+Payment = 137.51
+Confirmation = 137.49
+```
+
+because of different rounding locations.
+
+Add explicit regression tests around:
+
+* Decimal prices
+* Tax percentages
+* Discounts
+* Multiple components
+* Non-USD currencies
+* Small amounts
+* Large amounts
+
+---
+
+# 22. TAX RATE DISPLAY
+
+Never calculate a display rate by doing:
+
+```text
+serviceTaxRate + platformTaxRate
+```
+
+Rates apply to different bases.
+
+The canonical response should provide:
+
+```text
+serviceTaxRate
+platformTaxRate
+```
+
+and the UI should display those individually.
+
+Example:
+
+```text
+Service tax (27%)     $33.75
+Platform tax (5%)      $0.50
+Total tax             $34.25
+```
+
+---
+
+# 23. TESTING REQUIREMENTS
+
+Do not stop after TypeScript compilation.
+
+Create/update regression tests covering the complete pricing/tax behavior.
+
+At minimum test:
+
+### Service tax
+
+```text
+Service tax 27%
+Base price
+Home visit
+Distance fee
+Emergency fee
+Surge
+```
+
+All applicable service components must be taxed correctly.
+
+### Zero service tax
+
+```text
+Service tax = 0%
+```
+
+Verify:
+
+```text
+Base price → no platform/global tax
+Home visit → no platform/global tax
+Distance fee → no platform/global tax
+Service-related charges → no platform/global tax
+
+Platform fee → platform tax
+Payment/admin charge → platform tax
+```
+
+### Platform tax
+
+Verify service and platform taxes are calculated independently.
+
+### Country-specific tax
+
+Example:
+
+```text
+HU → service tax 27%
+IR → service tax 9%
+```
+
+Ensure the correct rule is selected.
+
+### Different country rules for same sub-service
+
+Ensure one country's rule never leaks into another country's booking.
+
+### Missing tax configuration
+
+Ensure missing configuration is distinguishable from legitimate 0%.
+
+### Payment discount
+
+Verify the selected tax policy is correctly applied.
+
+### Payment surcharge
+
+Verify it enters the correct taxable bucket.
+
+### Distance fee
+
+Verify distance reaches the engine and affects price/tax.
+
+### Promotions
+
+Verify discount allocation and tax are consistent.
+
+### Membership discounts
+
+Verify they affect pricing/tax consistently.
+
+### Currency
+
+Test:
+
+```text
+USD
+HUF
+IRR
+```
+
+or the project's supported currencies.
+
+### Quote vs booking
+
+For identical inputs:
+
+```text
+quote result === final booking result
+```
+
+for every financial field.
+
+### Snapshot
+
+After booking:
+
+Change the active tax rule.
+
+Verify the old booking does not change.
+
+### Display
+
+Verify:
+
+```text
+Service tax (27%)
+Platform tax (5%)
+```
+
+are displayed separately.
+
+Verify there is no:
+
+```text
+Tax (32%)
+```
+
+anywhere.
+
+---
+
+# 24. REPOSITORY-WIDE SEARCH
+
+Do a complete repository search for legacy/duplicate tax logic.
+
+Search for terms such as:
+
+```text
+tax_percentage
+taxRate
+tax_rate
+taxAmount
+tax_amount
+calculateTax
+taxSettings
+tax_settings
+serviceTax
+platformTax
+VAT
+pricing
+patientPayable
+totalAmount
+travelDistanceKm
+travelFee
+```
+
+For every result determine whether it is:
+
+1. Canonical and required.
+2. A consumer of the canonical engine.
+3. Duplicate/legacy logic that must be removed.
+4. Historical compatibility logic that can be isolated or removed.
+
+Do not leave hidden duplicate calculations.
+
+---
+
+# 25. DO NOT JUST PATCH THE FIRST ERROR
+
+While implementing, if you find related pricing/tax inconsistencies, fix them immediately if they belong to this canonicalization task.
+
+Do not stop after fixing only:
+
+```text
+Tax (32%)
+```
+
+The goal is a complete and production-ready booking pricing system.
+
+---
+
+# 26. DATABASE CLEANUP
+
+Review the schema for obsolete tax fields/tables.
+
+Because this system has not launched, remove obsolete schema elements where safe instead of preserving unnecessary compatibility forever.
+
+Before removing anything:
+
+1. Search the entire repository.
+2. Confirm no active code depends on it.
+3. Update migrations/schema/types.
+4. Update tests.
+5. Run the migration against the development database.
+6. Verify application startup.
+
+Do not leave dead financial columns simply because they were part of the old architecture.
+
+---
+
+# 27. ADMIN TAX MANAGEMENT
+
+Ensure admin tax configuration reflects the new canonical model.
+
+Admin must be able to manage:
+
+```text
+Sub-service
+Country
+Service tax rate
+Effective date
+Active status
+Version
+```
+
+and platform tax independently.
+
+Admin preview/simulation must use the same canonical tax engine as real bookings.
+
+There must not be one tax calculation for the admin simulator and another for actual appointments.
+
+---
+
+# 28. ERROR HANDLING
+
+Financial configuration errors must be explicit.
+
+Do not silently fall back to:
+
+```text
+0%
+```
+
+when a required rule is missing.
+
+Errors should identify the relevant:
+
+```text
+country
+sub-service
+tax domain
+```
+
+without exposing sensitive internal details to end users.
+
+Log enough information for administrators/developers to diagnose the issue.
+
+---
+
+# 29. VERIFICATION
+
+After implementation run:
+
+```bash
+npm run check
+npm run build
+```
+
+Run all relevant pricing/tax tests.
+
+Also run:
+
+```bash
+git diff --check
+```
+
+Restart the application.
+
+Verify:
+
+```text
+/health
+```
+
+returns ready.
+
+Perform end-to-end verification of at least:
+
+```text
+Service selection
+→ Quote
+→ Booking
+→ Confirmation
+→ Patient display
+→ Provider display
+→ Email/notification data
+→ Payment amount
+```
+
+The financial values must match exactly.
+
+---
+
+# 30. FINAL ACCEPTANCE CRITERIA
+
+Do not consider this task complete unless all of the following are true:
+
+* There is one canonical pricing engine.
+* There is one canonical tax engine.
+* Service tax and platform tax are separate.
+* Country-specific sub-service tax is authoritative.
+* Legacy `sub_services.tax_percentage` is no longer an active tax source.
+* Obsolete tax paths are removed where safe.
+* Service tax applies to all applicable service-related taxable components.
+* Zero service tax does not cause service charges to receive platform tax.
+* Platform tax applies only to platform-related taxable components.
+* Payment discount behavior is explicit and tested.
+* Payment surcharge behavior is correct and tested.
+* Distance/travel fee reaches the pricing engine.
+* Quote and final booking use the same authoritative country.
+* Quote and final booking produce identical financial results for identical inputs.
+* Missing tax configuration is not silently treated as valid 0%.
+* Currency handling is consistent.
+* Rounding is deterministic.
+* Historical pricing snapshots are immutable.
+* Confirmation does not recalculate historical pricing.
+* Provider and patient see the same financial values.
+* Email and notifications use the same canonical values.
+* Tax is displayed as separate lines:
+
+```text
+Service tax (27%)    $33.75
+Platform tax (5%)     $0.50
+Total tax             $34.25
+```
+
+* No UI displays a fake combined rate such as `Tax (32%)`.
+* No duplicate tax formula remains in active code.
+* Relevant regression tests pass.
+* `npm run check` passes.
+* `npm run build` passes.
+* `git diff --check` passes.
+* Application restarts successfully.
+* `/health` reports ready.
+
+At the end, provide a concise implementation report containing:
+
+1. What was changed.
+2. What legacy code/schema was removed.
+3. What canonical pricing/tax flow now exists.
+4. Any business-rule decisions made.
+5. Tests added/updated.
+6. Full verification results.
+7. Any remaining issue that genuinely cannot be fixed without a product/business decision.
+
+Do not claim completion if any acceptance criterion above is not satisfied.

@@ -31,6 +31,7 @@ import {
 import { eq, and, gte, lte, inArray } from "drizzle-orm";
 import { isProviderApproved } from "../lib/provider-visibility";
 import { resolvePaymentMethod } from "../lib/payment-method";
+import { haversineDistance, isValidCoordinates } from "../services/location.service";
 
 export function registerCatalogRoutes(app: Express): void {
 
@@ -452,6 +453,8 @@ export function registerCatalogRoutes(app: Express): void {
         surgeMultiplier,
         packagePrice,
         paymentMethod,
+        patientLatitude,
+        patientLongitude,
       } = req.body as {
         serviceId?: string;
         subServiceId?: string;
@@ -463,6 +466,8 @@ export function registerCatalogRoutes(app: Express): void {
         surgeMultiplier?: number;
         packagePrice?: number;
         paymentMethod?: "card" | "wallet" | "cash" | "bank_transfer";
+        patientLatitude?: number;
+        patientLongitude?: number;
       };
 
       if (!visitType || !["online", "home", "clinic"].includes(visitType)) {
@@ -486,7 +491,15 @@ export function registerCatalogRoutes(app: Express): void {
         }
       }
 
-      const quoteCountryCode = (svcRaw as any)?.countryCode ?? null;
+      const quoteProviderId = (svcRaw as any)?.providerId ?? null;
+      const quoteProvider = quoteProviderId
+        ? await storage.getProvider(quoteProviderId).catch(() => null)
+        : null;
+      // Provider tenancy is authoritative for booking pricing. The service
+      // country is retained only as a legacy fallback for provider-less quotes.
+      const quoteCountryCode = (quoteProvider as any)?.countryCode
+        ?? (svcRaw as any)?.countryCode
+        ?? null;
       const quoteCurrency = quoteCountryCode
         ? countryCurrency(quoteCountryCode as CountryCode)
         : "USD";
@@ -581,15 +594,17 @@ export function registerCatalogRoutes(app: Express): void {
 
       // Resolve provider context so the revenue engine can apply admin-configured
       // platform fee rules (country-scoped, provider-type-scoped, etc.).
-      const quoteProviderId = (svcRaw as any)?.providerId ?? null;
-      let quoteProviderType: string | null = null;
-      if (quoteProviderId) {
-        try {
-          const quoteProvider = await storage.getProvider(quoteProviderId);
-          quoteProviderType = (quoteProvider as any)?.providerType ?? null;
-        } catch { /* non-fatal — engine falls back to service-level fee */ }
-      }
+      const quoteProviderType = (quoteProvider as any)?.providerType ?? null;
       const quoteServiceCategory = (sub as any)?.category ?? quoteProviderType ?? null;
+      const quoteTravelDistanceKm =
+        visitType === "home" &&
+        isValidCoordinates(Number(patientLatitude), Number(patientLongitude)) &&
+        isValidCoordinates(Number((quoteProvider as any)?.latitude), Number((quoteProvider as any)?.longitude))
+          ? haversineDistance(
+              { latitude: Number(patientLatitude), longitude: Number(patientLongitude) },
+              { latitude: Number((quoteProvider as any).latitude), longitude: Number((quoteProvider as any).longitude) },
+            )
+          : null;
 
       const breakdown = await runRevenueEngine({
         subService: sub ?? null,
@@ -613,11 +628,15 @@ export function registerCatalogRoutes(app: Express): void {
         bookingCurrency: quoteCurrency,
         providerCurrency: quoteCurrency,
         rates: quoteRates,
+        travelDistanceKm: quoteTravelDistanceKm,
       });
 
       res.json({ ...breakdown, membershipApplied: membershipDiscountInput !== null });
-    } catch (e) {
+    } catch (e: any) {
       console.error("Pricing quote error:", e);
+      if (e?.code === "TAX_CONFIGURATION_MISSING") {
+        return res.status(422).json({ code: e.code, message: e.message, missingDomains: e.missingDomains });
+      }
       res.status(500).json({ message: "Failed to compute pricing quote" });
     }
   });

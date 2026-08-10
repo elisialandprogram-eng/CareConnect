@@ -155,7 +155,6 @@ export function computeFinalPrice(input: PricingInput): PricingBreakdown {
     serviceTaxRatePercent: 0,
     platformTaxRatePercent: 0,
   });
-  const effectiveTaxPct = taxCalculation.serviceTaxRate + taxCalculation.platformTaxRate;
   const taxAmount = input.deferTax ? 0 : taxCalculation.totalTax;
   const total = taxableSubtotal + taxAmount;
 
@@ -193,7 +192,7 @@ export function computeFinalPrice(input: PricingInput): PricingBreakdown {
     lines.push({ label, amount: -round2(discountAmount) });
   }
 
-  lines.push({ label: `Tax (${effectiveTaxPct}%)`, amount: round2(taxAmount) });
+  lines.push({ label: "Tax", amount: round2(taxAmount) });
 
   return {
     base: round2(baseTotal),

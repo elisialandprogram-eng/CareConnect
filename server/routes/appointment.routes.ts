@@ -87,7 +87,7 @@ import { createInvoiceForAppointment } from "../utils/invoice-helper";
 import { sanitizeUser } from "../utils/sanitize";
 import { getRates, fromUSDSync, toUSDSync, formatSync, formatLocal } from "../services/currency";
 import { round2 } from "../lib/math";
-import { checkHomeVisitCoverage, isValidCoordinates } from "../services/location.service";
+import { checkHomeVisitCoverage, haversineDistance, isValidCoordinates } from "../services/location.service";
 import { getOrCreateVideoSession } from "../services/video";
 import { slog } from "../lib/logger";
 import { pushToUser, isUserOnline } from "../chat/ws";
@@ -720,6 +720,14 @@ export function registerAppointmentRoutes(app: Express): void {
         const provLng = parseFloat((provider as any).longitude ?? "0");
         const pLat = typeof patientLatitude === "number" ? patientLatitude : parseFloat(String(patientLatitude ?? "0"));
         const pLng = typeof patientLongitude === "number" ? patientLongitude : parseFloat(String(patientLongitude ?? "0"));
+        const hasTravelCoordinates =
+          isValidCoordinates(provLat, provLng) && isValidCoordinates(pLat, pLng);
+        const travelDistanceKm = hasTravelCoordinates
+          ? haversineDistance(
+              { latitude: pLat, longitude: pLng },
+              { latitude: provLat, longitude: provLng },
+            )
+          : null;
 
         if (
           provRadiusKm > 0 &&
@@ -740,6 +748,7 @@ export function registerAppointmentRoutes(app: Express): void {
             });
           }
         }
+        (req as any)._travelDistanceKm = travelDistanceKm;
       }
 
       let promoDiscountInput: { type: "percent" | "fixed"; value: number; code: string } | null = null;
@@ -914,6 +923,7 @@ export function registerAppointmentRoutes(app: Express): void {
           bookingCurrency: _bookingCurrency,
           providerCurrency: (svcRecord as any)?.currency || _bookingCurrency,
           rates: _reRates,
+           travelDistanceKm: (req as any)._travelDistanceKm ?? null,
         });
         fee = reResult.patientPayable;
         _feeUSD = reResult.finalTotalUsd;
@@ -940,6 +950,7 @@ export function registerAppointmentRoutes(app: Express): void {
           bookingCurrency: _bookingCurrency,
           providerCurrency: _bookingCurrency,
           rates: _reRates,
+           travelDistanceKm: (req as any)._travelDistanceKm ?? null,
         });
         fee = reResult.patientPayable;
         _feeUSD = reResult.finalTotalUsd;
@@ -999,7 +1010,7 @@ export function registerAppointmentRoutes(app: Express): void {
           promoCode: appliedPromoCode,
           promoDiscount: promoDiscount.toFixed(2),
           taxAmount: taxAmountNum.toFixed(2),
-           serviceSubtotal: revenueEngineResult?.taxBreakdown.serviceTaxableSubtotal?.toFixed(2) ?? "0.00",
+           serviceSubtotal: revenueEngineResult?.serviceGrossSubtotal?.toFixed(2) ?? "0.00",
            serviceTaxRate: revenueEngineResult?.taxBreakdown.serviceTaxRate?.toFixed(2) ?? "0.00",
            serviceTaxAmount: revenueEngineResult?.taxBreakdown.serviceTax?.toFixed(2) ?? "0.00",
            platformTaxableSubtotal: revenueEngineResult?.taxBreakdown.platformTaxableSubtotal?.toFixed(2) ?? "0.00",

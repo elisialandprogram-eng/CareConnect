@@ -21,6 +21,7 @@ import {
   TAX_ENGINE_VERSION,
   calculateResolvedTax,
   loadTaxRules,
+  assertTaxConfiguration,
   type TaxBreakdown,
   type TaxRuleSet,
 } from "./tax-engine";
@@ -88,6 +89,8 @@ export interface AppliedRule {
 
 export interface RevenueEngineResult extends PricingBreakdown {
   taxBreakdown: TaxBreakdown;
+  /** Gross service-related subtotal before promo/payment discounts. */
+  serviceGrossSubtotal: number;
   /** Additional charges applied by payment method rule */
   paymentSurcharge: number;
   /** Platform-level travel fee applied (home visits) */
@@ -309,16 +312,32 @@ function selectCommissionRule(
   return active[0] ?? null;
 }
 
-function applyPaymentRule(rule: PaymentMethodRule | undefined, subtotal: number): number {
-  if (!rule) return 0;
+function paymentAdjustmentParts(
+  rule: PaymentMethodRule | undefined,
+  subtotal: number,
+): { surcharge: number; discount: number } {
+  if (!rule) return { surcharge: 0, discount: 0 };
   const val = n(rule.surchargeValue, 0);
   const disc = n(rule.discountValue, 0);
   let surcharge = 0;
-  if (rule.surchargeType === "percent") surcharge += subtotal * (val  / 100);
-  if (rule.surchargeType === "fixed")   surcharge += val;
-  if (rule.discountType  === "percent") surcharge -= subtotal * (disc / 100);
-  if (rule.discountType  === "fixed")   surcharge -= disc;
-  return round2(surcharge);
+  let discount = 0;
+  if (rule.surchargeType === "percent") surcharge += subtotal * (val / 100);
+  if (rule.surchargeType === "fixed") surcharge += val;
+  if (rule.discountType === "percent") discount += subtotal * (disc / 100);
+  if (rule.discountType === "fixed") discount += disc;
+  return { surcharge: round2(surcharge), discount: round2(discount) };
+}
+
+function replaceTaxLines(
+  lines: PricingBreakdown["lines"],
+  tax: TaxBreakdown,
+): PricingBreakdown["lines"] {
+  return [
+    ...lines.filter(line => !/^tax\b/i.test(line.label)),
+    { label: `Service tax (${tax.serviceTaxRate}%)`, amount: tax.serviceTax },
+    { label: `Platform tax (${tax.platformTaxRate}%)`, amount: tax.platformTax },
+    { label: "Total tax", amount: tax.totalTax },
+  ];
 }
 
 function computeTravelFee(
@@ -349,6 +368,13 @@ function computeTravelFee(
 export async function runRevenueEngine(input: RevenueEngineInput): Promise<RevenueEngineResult> {
   const rules = input._preloaded ?? await loadRevenueRules();
   const taxRules = input._taxRules ?? await loadTaxRules(input.subServiceId, input.countryCode);
+  if (!input._taxRules) {
+    assertTaxConfiguration(taxRules, {
+      countryCode: input.countryCode,
+      subServiceId: input.subServiceId,
+      requireServiceRule: Boolean(input.subServiceId),
+    });
+  }
 
   // P-FINAL: Resolve booking and provider currencies (Rules 1 & 2).
   // All amounts calculated below are in bookingCurrency.
@@ -411,7 +437,8 @@ export async function runRevenueEngine(input: RevenueEngineInput): Promise<Reven
     r.paymentMethod === (input.paymentMethod ?? "cash") &&
     (!r.allowedCountries?.length || r.allowedCountries.includes(input.countryCode ?? ""))
   );
-  const paymentSurcharge = applyPaymentRule(pmRule, base.total);
+  const paymentParts = paymentAdjustmentParts(pmRule, base.total);
+  const paymentSurcharge = round2(paymentParts.surcharge - paymentParts.discount);
   if (pmRule && paymentSurcharge !== 0) {
     appliedRules.push({
       ruleType: "payment_method",
@@ -441,13 +468,15 @@ export async function runRevenueEngine(input: RevenueEngineInput): Promise<Reven
   // When the engine overrides with a rule-based fee, add the delta so the
   // patient is actually charged the rule amount, not the sub-service default.
   const platformFeeDelta = round2(enginePlatformFee - base.platformFee);
+  const serviceGrossSubtotal = round2(Math.max(
+    0,
+    base.base - base.membershipDiscount + base.visitTypeFee + base.surge + base.emergencyFee + engineTravelFee,
+  ));
   const taxBreakdown = calculateResolvedTax({
-    serviceSubtotal: Math.max(
-      0,
-      base.base - base.membershipDiscount + base.visitTypeFee + base.surge + base.emergencyFee + engineTravelFee,
-    ),
+    serviceSubtotal: serviceGrossSubtotal,
     platformSubtotal: Math.max(0, enginePlatformFee + paymentSurcharge),
     discount: base.discount,
+    paymentDiscount: paymentParts.discount,
     // Rates are supplied only by calculateResolvedTax() from canonical rules.
     serviceTaxRatePercent: 0,
     platformTaxRatePercent: 0,
@@ -493,18 +522,15 @@ export async function runRevenueEngine(input: RevenueEngineInput): Promise<Reven
   // computeFinalPrice() uses base.platformFee in its lines; the engine may have
   // overridden this via a rule. We must update the line so the stored
   // pricingBreakdown.lines accurately matches the actual amounts charged to the patient.
-  const updatedLines = base.lines.map(l =>
+  let updatedLines = base.lines.map(l =>
     /platform\s*fee/i.test(l.label)
       ? { ...l, amount: round2(enginePlatformFee) }
       : l,
   );
-  const taxLine = { label: `Tax (${taxBreakdown.serviceTaxRate + taxBreakdown.platformTaxRate}%)`, amount: taxBreakdown.totalTax };
-  const taxLineIndex = updatedLines.findIndex(l => /^tax/i.test(l.label));
-  if (taxLineIndex >= 0) updatedLines.splice(taxLineIndex, 1, taxLine);
-  else updatedLines.push(taxLine);
+  updatedLines = replaceTaxLines(updatedLines, taxBreakdown);
   // Inject payment surcharge / method discount line before Tax when non-zero.
   if (paymentSurcharge !== 0) {
-    const taxIdx = updatedLines.findIndex(l => /^tax/i.test(l.label));
+    const taxIdx = updatedLines.findIndex(l => /^service tax|^platform tax|^total tax/i.test(l.label));
     const pmLabel = paymentSurcharge > 0 ? "Payment surcharge" : "Payment discount";
     const pmLine = { label: pmLabel, amount: paymentSurcharge };
     if (taxIdx >= 0) {
@@ -516,6 +542,7 @@ export async function runRevenueEngine(input: RevenueEngineInput): Promise<Reven
 
   return {
     ...base,
+    serviceGrossSubtotal,
     lines: updatedLines,
     taxableSubtotal,
     tax: taxBreakdown.totalTax,
@@ -584,17 +611,20 @@ export function runRevenueEngineSync(
     r.paymentMethod === (input.paymentMethod ?? "cash") &&
     (!r.allowedCountries?.length || r.allowedCountries.includes(input.countryCode ?? ""))
   );
-  const paymentSurcharge = applyPaymentRule(pmRule, base.total);
+  const paymentParts = paymentAdjustmentParts(pmRule, base.total);
+  const paymentSurcharge = round2(paymentParts.surcharge - paymentParts.discount);
  
   const engineTravelFee = computeTravelFee(rules.travelFeeRules, input.visitType, input.travelDistanceKm, ctx);
   const platformFeeDelta = round2(enginePlatformFee - base.platformFee);
+  const serviceGrossSubtotal = round2(Math.max(
+    0,
+    base.base - base.membershipDiscount + base.visitTypeFee + base.surge + base.emergencyFee + engineTravelFee,
+  ));
   const taxBreakdown = calculateResolvedTax({
-    serviceSubtotal: Math.max(
-      0,
-      base.base - base.membershipDiscount + base.visitTypeFee + base.surge + base.emergencyFee + engineTravelFee,
-    ),
+    serviceSubtotal: serviceGrossSubtotal,
     platformSubtotal: Math.max(0, enginePlatformFee + paymentSurcharge),
     discount: base.discount,
+    paymentDiscount: paymentParts.discount,
     // Rates are supplied only by calculateResolvedTax() from canonical rules.
     serviceTaxRatePercent: 0,
     platformTaxRatePercent: 0,
@@ -622,17 +652,14 @@ export function runRevenueEngineSync(
   }
 
   // Update lines to reflect engine overrides (same as async version above).
-  const updatedLinesSy = base.lines.map(l =>
+  let updatedLinesSy = base.lines.map(l =>
     /platform\s*fee/i.test(l.label)
       ? { ...l, amount: round2(enginePlatformFee) }
       : l,
   );
-  const taxLineSy = { label: `Tax (${taxBreakdown.serviceTaxRate + taxBreakdown.platformTaxRate}%)`, amount: taxBreakdown.totalTax };
-  const taxLineIndexSy = updatedLinesSy.findIndex(l => /^tax/i.test(l.label));
-  if (taxLineIndexSy >= 0) updatedLinesSy.splice(taxLineIndexSy, 1, taxLineSy);
-  else updatedLinesSy.push(taxLineSy);
+  updatedLinesSy = replaceTaxLines(updatedLinesSy, taxBreakdown);
   if (paymentSurcharge !== 0) {
-    const taxIdx = updatedLinesSy.findIndex(l => /^tax/i.test(l.label));
+    const taxIdx = updatedLinesSy.findIndex(l => /^service tax|^platform tax|^total tax/i.test(l.label));
     const pmLabel = paymentSurcharge > 0 ? "Payment surcharge" : "Payment discount";
     const pmLine = { label: pmLabel, amount: paymentSurcharge };
     if (taxIdx >= 0) {
@@ -644,6 +671,7 @@ export function runRevenueEngineSync(
 
   return {
     ...base,
+    serviceGrossSubtotal,
     lines: updatedLinesSy,
     taxableSubtotal,
     tax: taxBreakdown.totalTax,
