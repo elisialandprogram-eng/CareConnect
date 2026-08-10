@@ -390,6 +390,10 @@ export async function generateInvoicePDF(
 
   const subtotal = Number(invoice.subtotal || 0);
   const tax = Number(invoice.taxAmount || 0);
+  const serviceTaxRate = Number(invoice.serviceTaxRate ?? 0);
+  const serviceTax = Number(invoice.serviceTaxAmount ?? 0);
+  const platformTaxRate = Number(invoice.platformTaxRate ?? 0);
+  const platformTax = Number(invoice.platformTaxAmount ?? 0);
   const platformFee = Number(invoice.platformFee || 0);
   // Support both legacy single `discount` field and the enriched separate fields.
   const promoDiscount = Number(invoice.promoDiscount ?? invoice.discount ?? 0);
@@ -462,7 +466,19 @@ export async function generateInvoicePDF(
   }
 
   doc.setTextColor(...MUTED);
-  doc.text("Tax", totalsX + 4, rowY);
+  doc.text(`Service tax (${serviceTaxRate}%)`, totalsX + 4, rowY);
+  doc.setTextColor(...TEXT);
+  doc.text(fmt(serviceTax), totalsX + totalsW - 4, rowY, { align: "right" });
+  rowY += rowStep;
+
+  doc.setTextColor(...MUTED);
+  doc.text(`Platform tax (${platformTaxRate}%)`, totalsX + 4, rowY);
+  doc.setTextColor(...TEXT);
+  doc.text(fmt(platformTax), totalsX + totalsW - 4, rowY, { align: "right" });
+  rowY += rowStep;
+
+  doc.setTextColor(...MUTED);
+  doc.text("Total tax", totalsX + 4, rowY);
   doc.setTextColor(...TEXT);
   doc.text(fmt(tax), totalsX + totalsW - 4, rowY, { align: "right" });
   rowY += rowStep + 1;

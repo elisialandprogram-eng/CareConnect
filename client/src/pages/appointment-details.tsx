@@ -249,6 +249,10 @@ export default function AppointmentDetails() {
   const packageDiscountAmount = Number(appt?.packageDiscountAmount ?? 0) || 0;
   const totalSavings = promoDiscount + packageDiscountAmount;
   const taxAmount = Number(appt?.taxAmount ?? 0) || 0;
+  const serviceTaxAmount = Number(appt?.serviceTaxAmount ?? 0) || 0;
+  const platformTaxAmount = Number(appt?.platformTaxAmount ?? 0) || 0;
+  const serviceTaxRate = Number(appt?.serviceTaxRate ?? 0) || 0;
+  const platformTaxRate = Number(appt?.platformTaxRate ?? 0) || 0;
   // All amounts on appointments are in booking currency (HUF/IRR/USD), NOT USD.
   // Use formatInCurrency so we never double-multiply by the exchange rate.
   const bookingCurrency = appt?.displayCurrency ?? (appt as any)?.payment?.displayCurrency ?? "USD";
@@ -634,10 +638,9 @@ export default function AppointmentDetails() {
                   className="text-emerald-600 dark:text-emerald-400 font-medium"
                 />
               )}
-              <PriceRow
-                label={t("appt_details.tax", "Tax")}
-                value={fmtAmt(taxAmount)}
-              />
+              <PriceRow label={`Service tax (${serviceTaxRate}%)`} value={fmtAmt(serviceTaxAmount)} />
+              <PriceRow label={`Platform tax (${platformTaxRate}%)`} value={fmtAmt(platformTaxAmount)} />
+              <PriceRow label="Total tax" value={fmtAmt(taxAmount)} />
               <Separator className="my-1" />
               <PriceRow
                 label={t("appt_details.total", "Total")}

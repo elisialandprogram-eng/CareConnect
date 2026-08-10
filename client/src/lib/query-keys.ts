@@ -156,8 +156,10 @@ export const QK = {
     promo?: string,
     practId?: string,
     paymentMethod?: string,
+    latitude?: number,
+    longitude?: number,
   ) =>
-    ["/api/pricing/quote", serviceId, visitType, sessions, promo, practId, paymentMethod] as const,
+    ["/api/pricing/quote", serviceId, visitType, sessions, promo, practId, paymentMethod, latitude, longitude] as const,
   consents: () => ["/api/consents"] as const,
   giftCards: () => ["/api/gift-cards/mine"] as const,
   waitlist: () => ["/api/waitlist/me"] as const,

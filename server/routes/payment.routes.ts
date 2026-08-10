@@ -367,6 +367,10 @@ export function registerPaymentRoutes(app: Express): void {
           || (appointment as any).display_currency
           || "USD",
         platformFee: (appointment as any).platformFeeAmount ?? "0.00",
+        serviceTaxRate: (appointment as any).serviceTaxRate ?? "0.00",
+        serviceTaxAmount: (appointment as any).serviceTaxAmount ?? "0.00",
+        platformTaxRate: (appointment as any).platformTaxRate ?? "0.00",
+        platformTaxAmount: (appointment as any).platformTaxAmount ?? "0.00",
         promoDiscount: (appointment as any).promoDiscount ?? "0.00",
         promoCode: (appointment as any).promoCode ?? null,
         packageDiscountAmount: (appointment as any).packageDiscountAmount ?? "0.00",

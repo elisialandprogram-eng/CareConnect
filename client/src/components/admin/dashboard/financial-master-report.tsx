@@ -50,6 +50,10 @@ interface MasterRow {
   promo_code: string | null;
   promo_discount: string;
   tax_amount: string;
+  service_tax_rate: string | null;
+  service_tax_amount: string | null;
+  platform_tax_rate: string | null;
+  platform_tax_amount: string | null;
   refund_amount: string;
   refund_status: string | null;
   // Financial — USD
@@ -416,7 +420,9 @@ function InvestigationDrawer({
               </span>
             } />
             <Row label="Platform Fee"    value={fmtLocal(n(row.platform_fee_amount))} />
-            <Row label="Tax"             value={fmtLocal(n(row.tax_amount))} />
+            <Row label={`Service tax (${n(row.service_tax_rate)}%)`} value={fmtLocal(n(row.service_tax_amount))} />
+            <Row label={`Platform tax (${n(row.platform_tax_rate)}%)`} value={fmtLocal(n(row.platform_tax_amount))} />
+            <Row label="Total tax"       value={fmtLocal(n(row.tax_amount))} />
             <Row label="Promo Discount"  value={n(row.promo_discount) > 0 ? fmtLocal(n(row.promo_discount)) : "—"} />
             <Row label="Promo Code"      value={row.promo_code} />
             <Row label="Refund Amount"   value={n(row.refund_amount) > 0 ? fmtLocal(n(row.refund_amount)) : "—"} />

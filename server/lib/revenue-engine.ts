@@ -432,22 +432,9 @@ export async function runRevenueEngine(input: RevenueEngineInput): Promise<Reven
     });
   }
 
-  // 4. Payment surcharge
-  const pmRule = rules.paymentMethodRules.find(r =>
-    r.paymentMethod === (input.paymentMethod ?? "cash") &&
-    (!r.allowedCountries?.length || r.allowedCountries.includes(input.countryCode ?? ""))
-  );
-  const paymentParts = paymentAdjustmentParts(pmRule, base.total);
-  const paymentSurcharge = round2(paymentParts.surcharge - paymentParts.discount);
-  if (pmRule && paymentSurcharge !== 0) {
-    appliedRules.push({
-      ruleType: "payment_method",
-      ruleName: pmRule.label,
-      impact: `Surcharge/discount ${paymentSurcharge} ${bookingCurrency}`,
-    });
-  }
-
-  // 5. Travel fee
+  // 4. Travel fee
+  // Travel is a service-related charge, so it must be known before payment
+  // adjustments and tax bases are calculated.
   const engineTravelFee = computeTravelFee(
     rules.travelFeeRules,
     input.visitType,
@@ -463,11 +450,30 @@ export async function runRevenueEngine(input: RevenueEngineInput): Promise<Reven
     });
   }
 
+  // 5. Payment surcharge/discount
+  // Policy: payment discounts reduce the taxable base; surcharges increase the
+  // platform taxable bucket. Calculate against the final pre-payment subtotal
+  // so quote and booking cannot diverge when travel/platform fees are present.
+  const pmRule = rules.paymentMethodRules.find(r =>
+    r.paymentMethod === (input.paymentMethod ?? "cash") &&
+    (!r.allowedCountries?.length || r.allowedCountries.includes(input.countryCode ?? ""))
+  );
+  const platformFeeDelta = round2(enginePlatformFee - base.platformFee);
+  const paymentBase = round2(Math.max(0, base.total + platformFeeDelta + engineTravelFee));
+  const paymentParts = paymentAdjustmentParts(pmRule, paymentBase);
+  const paymentSurcharge = round2(paymentParts.surcharge - paymentParts.discount);
+  if (pmRule && paymentSurcharge !== 0) {
+    appliedRules.push({
+      ruleType: "payment_method",
+      ruleName: pmRule.label,
+      impact: `Surcharge/discount ${paymentSurcharge} ${bookingCurrency}`,
+    });
+  }
+
   // 6. Final patient payable (in bookingCurrency)
   // base.total already contains base.platformFee from computeFinalPrice.
   // When the engine overrides with a rule-based fee, add the delta so the
   // patient is actually charged the rule amount, not the sub-service default.
-  const platformFeeDelta = round2(enginePlatformFee - base.platformFee);
   const serviceGrossSubtotal = round2(Math.max(
     0,
     base.base - base.membershipDiscount + base.visitTypeFee + base.surge + base.emergencyFee + engineTravelFee,
@@ -527,6 +533,12 @@ export async function runRevenueEngine(input: RevenueEngineInput): Promise<Reven
       ? { ...l, amount: round2(enginePlatformFee) }
       : l,
   );
+  if (engineTravelFee > 0) {
+    const taxIdx = updatedLines.findIndex(l => /^tax\b/i.test(l.label));
+    const travelLine = { label: "Travel fee", amount: engineTravelFee };
+    if (taxIdx >= 0) updatedLines.splice(taxIdx, 0, travelLine);
+    else updatedLines.push(travelLine);
+  }
   updatedLines = replaceTaxLines(updatedLines, taxBreakdown);
   // Inject payment surcharge / method discount line before Tax when non-zero.
   if (paymentSurcharge !== 0) {
@@ -607,15 +619,25 @@ export function runRevenueEngineSync(
   const commissionAmount = round2(base.base * (commissionRate / 100));
   if (commRule) appliedRules.push({ ruleType: "commission", ruleName: commRule.name, impact: `${commissionRate}%` });
 
+  const engineTravelFee = computeTravelFee(rules.travelFeeRules, input.visitType, input.travelDistanceKm, ctx);
+  if (engineTravelFee > 0) {
+    const tfRule = rules.travelFeeRules[0];
+    appliedRules.push({
+      ruleType: "travel_fee",
+      ruleName: tfRule?.name ?? "Travel fee",
+      impact: `Travel fee ${engineTravelFee} ${bookingCurrency}`,
+    });
+  }
+
   const pmRule = rules.paymentMethodRules.find(r =>
     r.paymentMethod === (input.paymentMethod ?? "cash") &&
     (!r.allowedCountries?.length || r.allowedCountries.includes(input.countryCode ?? ""))
   );
-  const paymentParts = paymentAdjustmentParts(pmRule, base.total);
+  const platformFeeDelta = round2(enginePlatformFee - base.platformFee);
+  const paymentBase = round2(Math.max(0, base.total + platformFeeDelta + engineTravelFee));
+  const paymentParts = paymentAdjustmentParts(pmRule, paymentBase);
   const paymentSurcharge = round2(paymentParts.surcharge - paymentParts.discount);
  
-  const engineTravelFee = computeTravelFee(rules.travelFeeRules, input.visitType, input.travelDistanceKm, ctx);
-  const platformFeeDelta = round2(enginePlatformFee - base.platformFee);
   const serviceGrossSubtotal = round2(Math.max(
     0,
     base.base - base.membershipDiscount + base.visitTypeFee + base.surge + base.emergencyFee + engineTravelFee,
@@ -657,6 +679,12 @@ export function runRevenueEngineSync(
       ? { ...l, amount: round2(enginePlatformFee) }
       : l,
   );
+  if (engineTravelFee > 0) {
+    const taxIdx = updatedLinesSy.findIndex(l => /^tax\b/i.test(l.label));
+    const travelLine = { label: "Travel fee", amount: engineTravelFee };
+    if (taxIdx >= 0) updatedLinesSy.splice(taxIdx, 0, travelLine);
+    else updatedLinesSy.push(travelLine);
+  }
   updatedLinesSy = replaceTaxLines(updatedLinesSy, taxBreakdown);
   if (paymentSurcharge !== 0) {
     const taxIdx = updatedLinesSy.findIndex(l => /^service tax|^platform tax|^total tax/i.test(l.label));

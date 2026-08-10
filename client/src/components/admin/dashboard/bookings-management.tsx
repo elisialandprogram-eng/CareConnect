@@ -63,6 +63,10 @@ interface BookingRow {
   promo_code: string | null;
   promo_discount: string;
   tax_amount: string;
+  service_tax_rate: string | null;
+  service_tax_amount: string | null;
+  platform_tax_rate: string | null;
+  platform_tax_amount: string | null;
   refund_amount: string;
   refund_status: string | null;
   service_price_snapshot: string | null;
@@ -375,7 +379,9 @@ function InvestigationDrawer({
             <Row label="Booking Amount"    value={<strong>{fmtLocal(n(row.total_amount))}</strong>} />
             {cur !== "USD" && usdNorm != null && <Row label="≈ USD" value={<span className="text-muted-foreground">{fmt(usdNorm)}</span>} />}
             <Row label="Platform Fee"      value={fmtLocal(n(row.platform_fee_amount))} />
-            <Row label="Tax"               value={fmtLocal(n(row.tax_amount))} />
+            <Row label={`Service tax (${n(row.service_tax_rate)}%)`} value={fmtLocal(n(row.service_tax_amount))} />
+            <Row label={`Platform tax (${n(row.platform_tax_rate)}%)`} value={fmtLocal(n(row.platform_tax_amount))} />
+            <Row label="Total tax"          value={fmtLocal(n(row.tax_amount))} />
             {n(row.promo_discount) > 0 && <Row label="Promo Discount" value={`−${fmtLocal(n(row.promo_discount))}`} />}
             {row.promo_code && <Row label="Promo Code" value={row.promo_code} />}
             {n(row.refund_amount) > 0 && <Row label="Refund Amount" value={fmtLocal(n(row.refund_amount))} />}

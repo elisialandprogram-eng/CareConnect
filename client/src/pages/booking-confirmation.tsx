@@ -256,6 +256,8 @@ export default function BookingConfirmation() {
   const packageDiscountAmount = Number(appt?.packageDiscountAmount ?? 0) || 0;
   const totalSavings = promoDiscount + packageDiscountAmount;
   const taxAmount = Number(appt?.taxAmount ?? 0) || 0;
+  const serviceTaxAmount = Number(appt?.serviceTaxAmount ?? 0) || 0;
+  const platformTaxAmount = Number(appt?.platformTaxAmount ?? 0) || 0;
 
   // All appointment amounts (total, priceLines) are in booking currency (HUF/IRR/USD),
   // NOT in USD. Use formatInCurrency so we never double-multiply by the exchange rate.
@@ -333,10 +335,12 @@ export default function BookingConfirmation() {
     if (packageDiscountAmount > 0) {
       lines.push({ label: "Member discount", amount: -packageDiscountAmount });
     }
-    // Tax — always shown, even when 0
-    lines.push({ label: "Tax", amount: taxAmount });
+    // Tax domains are stored independently on the booking snapshot.
+    lines.push({ label: `Service tax (${Number(appt?.serviceTaxRate ?? 0)}%)`, amount: serviceTaxAmount });
+    lines.push({ label: `Platform tax (${Number(appt?.platformTaxRate ?? 0)}%)`, amount: platformTaxAmount });
+    lines.push({ label: "Total tax", amount: taxAmount });
     return lines;
-  }, [appt, total, platformFee, promoDiscount, packageDiscountAmount, taxAmount]);
+  }, [appt, total, platformFee, promoDiscount, packageDiscountAmount, taxAmount, serviceTaxAmount, platformTaxAmount]);
 
   /* ── Calendar links ────────────────────────────────────────────── */
   const calendarTitle = `GoldenLife — ${serviceName} with ${providerName}`;

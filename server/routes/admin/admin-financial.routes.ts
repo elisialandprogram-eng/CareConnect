@@ -1424,8 +1424,10 @@ export function registerAdminFinancialRoutes(app: Express): void {
       let where = "WHERE a.payment_status = 'completed'";
       if (countryFilter) { params.push(countryFilter); where += ` AND a.country_code = $${params.length}`; }
       const result = await pool.query(
-        `SELECT a.date, a.appointment_number, a.total_amount, a.platform_fee_amount,
-                a.tax_amount, a.promo_discount, a.refund_amount, a.refund_status,
+         `SELECT a.date, a.appointment_number, a.total_amount, a.platform_fee_amount,
+                 a.tax_amount, a.service_tax_rate, a.service_tax_amount,
+                 a.platform_tax_rate, a.platform_tax_amount,
+                 a.promo_discount, a.refund_amount, a.refund_status,
                 a.country_code, a.visit_type,
                 s.name AS service, u.email AS patient_email,
                 pu.email AS provider_email,
@@ -1444,7 +1446,9 @@ export function registerAdminFinancialRoutes(app: Express): void {
       const currencyMeta = [["currency_note","All monetary amounts are in USD (canonical storage currency)."]];
       const dataRows = toCsv(result.rows, [
         "date","appointment_number","visit_type","service","total_amount","platform_fee_amount",
-        "tax_amount","tax_rate_percent","tax_name","promo_discount",
+         "tax_amount","service_tax_rate","service_tax_amount",
+         "platform_tax_rate","platform_tax_amount",
+         "tax_rate_percent","tax_name","promo_discount",
         "refund_amount","refund_status","patient_email","provider_email","country_code",
       ]);
       res.setHeader("Content-Type", "text/csv");
@@ -2344,6 +2348,10 @@ export function registerAdminFinancialRoutes(app: Express): void {
             a.promo_code,
             a.promo_discount,
             a.tax_amount,
+             a.service_tax_rate,
+             a.service_tax_amount,
+             a.platform_tax_rate,
+             a.platform_tax_amount,
             a.refund_amount,
             a.refund_status,
             a.service_price_snapshot,
@@ -2549,7 +2557,11 @@ export function registerAdminFinancialRoutes(app: Express): void {
             (pe.provider_earning::numeric - COALESCE(pe.platform_fee::numeric,0)) AS "Provider Net (USD)",
             a.promo_discount                            AS "Promo Discount",
             a.promo_code                                AS "Promo Code",
-            a.tax_amount                                AS "Tax",
+             a.service_tax_rate                          AS "Service Tax Rate",
+             a.service_tax_amount                        AS "Service Tax",
+             a.platform_tax_rate                         AS "Platform Tax Rate",
+             a.platform_tax_amount                       AS "Platform Tax",
+             a.tax_amount                                AS "Total Tax",
             a.refund_amount                             AS "Refund Amount",
             a.refund_status                             AS "Refund Status",
             -- Section F: Payment

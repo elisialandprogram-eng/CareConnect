@@ -109,6 +109,10 @@ export async function createInvoiceForAppointment(appointmentId: string): Promis
       const enrichedInvoiceRef = {
         ...invoiceWithRef,
         platformFee: (booking as any).platformFeeAmount ?? "0.00",
+        serviceTaxRate: (booking as any).serviceTaxRate ?? "0.00",
+        serviceTaxAmount: (booking as any).serviceTaxAmount ?? "0.00",
+        platformTaxRate: (booking as any).platformTaxRate ?? "0.00",
+        platformTaxAmount: (booking as any).platformTaxAmount ?? "0.00",
         promoDiscount: (booking as any).promoDiscount ?? "0.00",
         promoCode: (booking as any).promoCode ?? null,
         packageDiscountAmount: (booking as any).packageDiscountAmount ?? "0.00",
