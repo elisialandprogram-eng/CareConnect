@@ -1,0 +1,197 @@
+Implementing file instructions
+
+I need to implement the uploaded file instructions, so the first step is to read the file and verify the path. After that, I should inspect the likely details within it. It seems like I won’t need any subagents for this task, which makes it simpler. Perhaps I can use ReadFile to achieve this. I'll stay focused on making sure everything is done correctly!
+
+I’ll read the uploaded implementation brief from the local repl, map it against the current code, then make only the requested changes and verify the app. No sub-agents and no external integrations.
+
+2 actions
+
+The brief requires a broader canonicalization than the earlier audit: separate tax display lines, explicit missing-rule errors, one country source, and travel distance flowing through quote and booking. I’m making these changes in the shared engine and both server entry points first, then I’ll update every active financial display that currently consumes the combined tax line.
+
+Show less
+
+Searched for "Tax \(|taxBreakdown|ser…"
+
+Searched for "distance|calculateDista…"
+
+Searched for "onVisitTypeChange|onPay…"
+
+Searched for "service_subtotal|servic…"
+
+Read package.json
+
+Updating for sync tests
+
+Updating for sync tests
+
+Searched for "runRevenueEngineSync|ru…"
+
+Opened catalog.routes.ts
+
+Opened appointment.routes.ts
+
+Opened location.service.ts
+
+Opened revenue-billing.routes.ts
+
+Opened book-wizard.tsx
+
+Opened book-wizard.tsx
+
+Refining tax discount calculations
+
+Refining tax discount calculations
+
+Reviewing tax line display
+
+Reviewing tax line display
+
+Searched for "patientLatitude|patient…"
+
+Analyzing package purchase logic
+
+Analyzing package purchase logic
+
+Updating tax breakdown
+
+Updating tax breakdown
+
+I’ve isolated the implementation points. The main code changes will be: (1) make missing tax rules an explicit booking error, (2) apply payment discounts to the taxable base by policy, (3) calculate travel distance from the same patient/provider coordinates in quote and final booking, (4) force quote and booking to use provider country, (5) store an explicit gross service subtotal, and (6) replace every combined tax line with service-tax/platform-tax/total-tax snapshot lines.
+
+20 actions
+
+I’m proceeding with the implementation now. One product rule I’m fixing explicitly is: payment-method discounts reduce the taxable base, while surcharges increase the platform taxable base. I’ll also make missing canonical rules fail closed for real quotes/bookings, while preserving the admin simulator’s ability to preview zero-tax scenarios explicitly.
+
+Show less
+
+Opened schema.ts
+
+Evaluating payment method discounts
+
+Evaluating payment method discounts
+
+Opened provider-earnings.tsx
+
+Reviewing payment discount calculations
+
+Reviewing payment discount calculations
+
+Addressing tax percentage updates
+
+Addressing tax percentage updates
+
+Applying software patch
+
+Applying software patch
+
+Opened tax-engine.ts
+
+Clarifying payment adjustments
+
+Clarifying payment adjustments
+
+Assessing patch application
+
+Assessing patch application
+
+The first patch did not apply because the file context shifted between the batched reads and edit; no code was changed. I’m applying smaller, exact hunks now to avoid broad or unsafe edits.
+
+Show less
+
+Edited tax-engine.ts
+
+Opened tax-engine.ts
+
+Opened revenue-engine.ts
+
+Opened revenue-engine.ts
+
+Opened revenue-engine.ts
+
+Continuing the process
+
+Continuing the process
+
+Edited tax-engine.ts
+
+Reviewing code adjustments
+
+Reviewing code adjustments
+
+Evaluating UI Requirements
+
+Evaluating UI Requirements
+
+Considering invoice adjustments
+
+Considering invoice adjustments
+
+Edited tax-engine.ts
+
+Edited revenue-engine.ts
+
+Inspecting potential errors
+
+Inspecting potential errors
+
+The shared engine now has explicit tax-domain lines and a real missing-configuration error path. Next I’m wiring the authoritative provider country and coordinates through both quote and booking, then I’ll update the snapshot schema/display consumers and run checks before touching anything else.
+
+12 actions
+
+A mixed patch partially applied: the pricing kernel and tax comments changed, but the engine’s gross-subtotal addition did not. I’m checking the exact current state before continuing so I don’t overwrite or duplicate changes.
+
+25 actions
+
+The current state is internally consistent except for a few wiring gaps: quote still chooses service country, home-visit distance is not yet passed into either engine call, and the appointment snapshot still writes the post-discount service subtotal under the gross-looking column. I’m closing those gaps and updating notifications to consume the stored tax lines instead of rebuilding a combined “Tax” row.
+
+4 actions
+
+The quote and booking now share provider country and the same Haversine distance input, and the appointment snapshot records the gross service subtotal. I’m running the type checker now; any errors should reveal remaining contract consumers that need the new tax metadata or snapshot fields.
+
+Show less
+
+Ran the check script
+
+$ npm run check
+
+Viewed code changes
+
+Opened tax-engine.ts
+
+Opened appointment.routes.ts
+
+Opened catalog.routes.ts
+
+Updating error handling
+
+Updating error handling
+
+Opened book-wizard.tsx
+
+Opened book-wizard.tsx
+
+Searched for "catch \(error|catch \(e…"
+
+Opened appointment.routes.ts
+
+Opened appointment-details.tsx
+
+Opened phase31-tax-engine.test.ts
+
+Opened book-wizard.tsx
+
+Opened book-wizard.tsx
+
+Opened booking-canvas.tsx
+
+Opened booking-canvas.tsx
+
+Opened booking-confirmation.tsx
+
+Opened appointment-details.tsx
+
+Reassessing platform calculations
+
+Reassessing platform calculations
+
+Opened booking-canvas.tsx

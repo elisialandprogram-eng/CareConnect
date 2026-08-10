@@ -55,22 +55,19 @@ export class TaxConfigurationError extends Error {
   }
 }
 
-export interface TaxCalculation {
-  ratePercent: number;
-  taxableSubtotal: number;
-  amount: number;
-}
-
 export interface TaxBreakdown {
   countryCode: string | null;
   serviceTaxRate: number;
   serviceTaxableSubtotal: number;
   serviceTax: number;
+  serviceTaxAmount: number;
   platformTaxRate: number;
   platformTaxableSubtotal: number;
   platformTax: number;
+  platformTaxAmount: number;
   totalTax: number;
   taxVersion: string;
+  taxEngineVersion: string;
   calculatedAt: string;
   serviceRuleId: string | null;
   platformRuleId: string | null;
@@ -124,36 +121,17 @@ export function calculateTaxBreakdown(input: TaxCalculationInput): TaxBreakdown 
     serviceTaxRate,
     serviceTaxableSubtotal,
     serviceTax,
+    serviceTaxAmount: serviceTax,
     platformTaxRate,
     platformTaxableSubtotal,
     platformTax,
+    platformTaxAmount: platformTax,
     totalTax: round2(serviceTax + platformTax),
     taxVersion: TAX_ENGINE_VERSION,
+    taxEngineVersion: TAX_ENGINE_VERSION,
     calculatedAt: new Date().toISOString(),
     serviceRuleId: input.serviceRuleId ?? null,
     platformRuleId: input.platformRuleId ?? null,
-  };
-}
-
-/**
- * Backwards-compatible scalar result for old callers. The calculation still
- * goes through the canonical engine; new code should use calculateTaxBreakdown.
- */
-export function calculateTax(
-  taxableSubtotal: number,
-  serviceRatePercent?: number | null,
-  platformRatePercent?: number | null,
-): TaxCalculation {
-  const result = calculateTaxBreakdown({
-    serviceSubtotal: taxableSubtotal,
-    platformSubtotal: 0,
-    serviceTaxRatePercent: serviceRatePercent,
-    platformTaxRatePercent: platformRatePercent,
-  });
-  return {
-    ratePercent: result.serviceTaxRate,
-    taxableSubtotal: result.serviceTaxableSubtotal,
-    amount: result.totalTax,
   };
 }
 
@@ -213,13 +191,6 @@ export async function loadTaxRules(
   const platform = platformRows.rows.find((row: any) =>
     activeAt(row.effective_from, row.effective_to, at),
   );
-
-  if (subServiceId && !service) {
-    console.warn(`[tax-engine] no active service tax rule for sub_service=${subServiceId}, country=${country}; using 0%`);
-  }
-  if (!platform) {
-    console.warn(`[tax-engine] no active platform tax rule for country=${country}; using 0%`);
-  }
 
   return {
     countryCode: country,

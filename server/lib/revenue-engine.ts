@@ -474,7 +474,7 @@ export async function runRevenueEngine(input: RevenueEngineInput): Promise<Reven
   ));
   const taxBreakdown = calculateResolvedTax({
     serviceSubtotal: serviceGrossSubtotal,
-    platformSubtotal: Math.max(0, enginePlatformFee + paymentSurcharge),
+    platformSubtotal: Math.max(0, enginePlatformFee + paymentParts.surcharge),
     discount: base.discount,
     paymentDiscount: paymentParts.discount,
     // Rates are supplied only by calculateResolvedTax() from canonical rules.

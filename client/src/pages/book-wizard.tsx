@@ -166,6 +166,7 @@ export default function BookWizard() {
   const [visitType, setVisitType]               = useState<"clinic" | "home" | "online">(initialVisitType);
   const [quotePaymentMethod, setQuotePaymentMethod] = useState<"card" | "wallet" | "cash" | "bank_transfer">("card");
   const [quotePromoCode, setQuotePromoCode]     = useState("");
+  const [quoteLocation, setQuoteLocation]       = useState<{ latitude?: number; longitude?: number }>({});
   const [selectedDate, setSelectedDate]         = useState("");
   const [selectedSlot, setSelectedSlot]         = useState<TimeSlot | null>(null);
   const [autoPractitioner, setAutoPractitioner] = useState<Practitioner | null>(null);
@@ -392,15 +393,20 @@ export default function BookWizard() {
       quotePromoCode,
       effectivePractitionerId ?? "none",
       quotePaymentMethod,
+      quoteLocation.latitude,
+      quoteLocation.longitude,
     ),
     queryFn: async () => {
       const res = await apiRequest("POST", "/api/pricing/quote", {
         serviceId: selectedService?.id,
+        providerId: selectedProvider?.id,
         practitionerId: effectivePractitionerId,
         visitType,
         sessions: 1,
         promoCode: quotePromoCode || undefined,
         paymentMethod: quotePaymentMethod,
+        patientLatitude: quoteLocation.latitude,
+        patientLongitude: quoteLocation.longitude,
       });
       return res.json();
     },
@@ -551,6 +557,8 @@ export default function BookWizard() {
       contactMobile: cv.contactMobile,
       totalAmount: ((quote as any)?.patientPayable ?? quote?.total)?.toString(),
       patientAddress: cv.visitType === "online" ? null : (cv.patientAddress.trim() || null),
+      patientLatitude: cv.visitType === "home" ? cv.patientLatitude : undefined,
+      patientLongitude: cv.visitType === "home" ? cv.patientLongitude : undefined,
       idempotencyKey: idemKey,
       familyMemberId: cv.familyMemberId ?? undefined,
       intakeResponses: Object.keys(cv.intakeResponses).length > 0 ? cv.intakeResponses : undefined,
@@ -1120,6 +1128,7 @@ export default function BookWizard() {
           breakdown={quote ?? null}
            quoteLoading={quoteFetching || !quote}
           onVisitTypeChange={setVisitType}
+          onLocationChange={setQuoteLocation}
           onPaymentMethodChange={setQuotePaymentMethod}
           onPromoCodeChange={(code) => setQuotePromoCode(code ?? "")}
           serviceLocationMode={(selectedService as any)?.locationMode ?? null}

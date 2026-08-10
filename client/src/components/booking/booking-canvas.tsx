@@ -180,6 +180,7 @@ interface Props {
   quoteLoading?: boolean;
   /** Called when the user changes visit type inside the canvas, so the parent can re-fetch the quote */
   onVisitTypeChange?: (vt: "clinic" | "home" | "online") => void;
+  onLocationChange?: (location: { latitude?: number; longitude?: number }) => void;
   /** Keep the parent pricing quote aligned with checkout selections. */
   onPaymentMethodChange?: (method: BookingCanvasValues["payMethod"]) => void;
   onPromoCodeChange?: (code: string | undefined) => void;
@@ -260,6 +261,7 @@ export function BookingCanvas({
   breakdown,
   quoteLoading = false,
   onVisitTypeChange,
+  onLocationChange,
   onPaymentMethodChange,
   onPromoCodeChange,
   serviceLocationMode,
@@ -877,8 +879,10 @@ export function BookingCanvas({
                   patientLatitude: addr.latitude ?? undefined,
                   patientLongitude: addr.longitude ?? undefined,
                 }));
+                onLocationChange?.({ latitude: addr.latitude ?? undefined, longitude: addr.longitude ?? undefined });
               } else {
                 setValues(v => ({ ...v, patientAddress: "", patientLatitude: undefined, patientLongitude: undefined }));
+                onLocationChange?.({});
               }
             }}
             className="mb-1"
@@ -894,6 +898,7 @@ export function BookingCanvas({
                 patientLatitude: structured?.latitude,
                 patientLongitude: structured?.longitude,
               }));
+              onLocationChange?.({ latitude: structured?.latitude, longitude: structured?.longitude });
             }}
             placeholder={selectedSavedAddressId ? "Or type a different address…" : "Full address for home visit"}
             data-testid="input-patient-address"

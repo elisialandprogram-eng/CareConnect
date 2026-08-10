@@ -446,6 +446,7 @@ export function registerCatalogRoutes(app: Express): void {
         serviceId,
         subServiceId,
         practitionerId,
+        providerId,
         visitType,
         sessions,
         promoCode,
@@ -459,6 +460,7 @@ export function registerCatalogRoutes(app: Express): void {
         serviceId?: string;
         subServiceId?: string;
         practitionerId?: string;
+        providerId?: string;
         visitType?: "online" | "home" | "clinic";
         sessions?: number;
         promoCode?: string;
@@ -491,15 +493,17 @@ export function registerCatalogRoutes(app: Express): void {
         }
       }
 
-      const quoteProviderId = (svcRaw as any)?.providerId ?? null;
+      const quoteProviderId = (svcRaw as any)?.providerId ?? providerId ?? null;
       const quoteProvider = quoteProviderId
         ? await storage.getProvider(quoteProviderId).catch(() => null)
         : null;
-      // Provider tenancy is authoritative for booking pricing. The service
-      // country is retained only as a legacy fallback for provider-less quotes.
-      const quoteCountryCode = (quoteProvider as any)?.countryCode
-        ?? (svcRaw as any)?.countryCode
-        ?? null;
+      // Provider tenancy is the only authoritative booking country. A quote
+      // without a provider cannot be finalized consistently and is rejected
+      // instead of silently falling back to a service row's country.
+      const quoteCountryCode = (quoteProvider as any)?.countryCode ?? null;
+      if (!quoteProviderId || !quoteCountryCode) {
+        return res.status(400).json({ message: "A provider is required to calculate booking pricing." });
+      }
       const quoteCurrency = quoteCountryCode
         ? countryCurrency(quoteCountryCode as CountryCode)
         : "USD";
@@ -509,8 +513,7 @@ export function registerCatalogRoutes(app: Express): void {
       let membershipDiscountInput: import("../lib/pricing").MembershipDiscountInput | null = null;
       if (req.user?.id) {
         try {
-          const quoteCountry = (svcRaw as any)?.countryCode as string | undefined;
-          const activePackage = await storage.getActiveUserPackage(req.user.id, quoteCountry);
+          const activePackage = await storage.getActiveUserPackage(req.user.id, quoteCountryCode);
           if (activePackage) {
             const svcDiscBenefit = activePackage.benefits.find(b => b.benefitKey === "service_discount_percent");
             const pfDiscBenefit  = activePackage.benefits.find(b => b.benefitKey === "platform_fee_discount");

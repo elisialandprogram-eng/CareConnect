@@ -1648,7 +1648,12 @@ export function registerAppointmentRoutes(app: Express): void {
                   : [{ label: "Address", value: "Online (link will be shared)" }]),
                 ...(platformFee > 0 ? [{ label: "Platform Fee", value: _fmtProv(platformFee) }] : []),
                 ...(promoDiscount > 0 ? [{ label: `Promo${appliedPromoCode ? ' (' + appliedPromoCode + ')' : ''}`, value: `-${_fmtProv(promoDiscount)}` }] : []),
-                ...(taxAmountNum > 0 ? [{ label: "Tax", value: _fmtProv(taxAmountNum) }] : []),
+                 ...(revenueEngineResult?.taxBreakdown?.serviceTax
+                   ? [{ label: "Service tax", value: _fmtProv(revenueEngineResult.taxBreakdown.serviceTax) }]
+                   : []),
+                 ...(revenueEngineResult?.taxBreakdown?.platformTax
+                   ? [{ label: "Platform tax", value: _fmtProv(revenueEngineResult.taxBreakdown.platformTax) }]
+                   : []),
                 { label: "Total", value: _fmtProv(_bookingDisplayTotal) },
               ],
             },
@@ -1692,7 +1697,12 @@ export function registerAppointmentRoutes(app: Express): void {
             : [
                 ...(platformFee > 0 ? [{ label: "Platform fee", amount: platformFee }] : []),
                 ...(promoDiscount > 0 ? [{ label: "Promo discount", amount: -promoDiscount }] : []),
-                ...(taxAmountNum > 0 ? [{ label: "Tax", amount: taxAmountNum }] : []),
+                 ...(revenueEngineResult?.taxBreakdown?.serviceTax
+                   ? [{ label: "Service tax", amount: revenueEngineResult.taxBreakdown.serviceTax }]
+                   : []),
+                 ...(revenueEngineResult?.taxBreakdown?.platformTax
+                   ? [{ label: "Platform tax", amount: revenueEngineResult.taxBreakdown.platformTax }]
+                   : []),
               ];
           const _renderEmailPricingLines = _emailPricingLines
             .map((line: any) => {
@@ -1769,8 +1779,15 @@ export function registerAppointmentRoutes(app: Express): void {
           .catch((e) => console.warn("[idem] failed to persist idempotency key:", e?.message));
       }
       res.status(201).json(responseBody);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Create appointment error:", error);
+      if (error?.code === "TAX_CONFIGURATION_MISSING") {
+        return res.status(422).json({
+          code: error.code,
+          message: error.message,
+          missingDomains: error.missingDomains,
+        });
+      }
       res.status(500).json({ message: "Failed to create appointment" });
     }
   });

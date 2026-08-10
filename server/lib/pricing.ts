@@ -1,6 +1,5 @@
 import type { Service, SubService } from "@shared/schema";
 import { round2 } from "./math";
-import { calculateTaxBreakdown } from "./tax-engine";
 
 export type VisitType = "online" | "home" | "clinic";
 
@@ -146,16 +145,10 @@ export function computeFinalPrice(input: PricingInput): PricingBreakdown {
   }
 
   const taxableSubtotal = Math.max(0, preDiscount - discountAmount);
-  const taxCalculation = calculateTaxBreakdown({
-    serviceSubtotal: Math.max(0, effectiveBase + visitTypeFeeTotal + surgeTotal + emergencyTotal),
-    platformSubtotal: platformFeeTotal,
-    discount: discountAmount,
-    // Tax is resolved after pricing by the canonical tax engine. This legacy
-    // pricing kernel never reads service or platform tax rates.
-    serviceTaxRatePercent: 0,
-    platformTaxRatePercent: 0,
-  });
-  const taxAmount = input.deferTax ? 0 : taxCalculation.totalTax;
+  // Tax is owned exclusively by server/lib/tax-engine.ts. This pricing kernel
+  // only derives pre-tax components; the revenue engine adds the resolved tax
+  // snapshot after all platform/payment/travel adjustments are known.
+  const taxAmount = 0;
   const total = taxableSubtotal + taxAmount;
 
   const lines: PricingLine[] = [];
@@ -191,8 +184,6 @@ export function computeFinalPrice(input: PricingInput): PricingBreakdown {
       : "Discount";
     lines.push({ label, amount: -round2(discountAmount) });
   }
-
-  lines.push({ label: "Tax", amount: round2(taxAmount) });
 
   return {
     base: round2(baseTotal),
