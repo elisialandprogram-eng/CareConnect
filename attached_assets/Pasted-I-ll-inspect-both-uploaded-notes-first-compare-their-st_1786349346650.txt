@@ -1,0 +1,277 @@
+I’ll inspect both uploaded notes first, compare their stop point with the current code, then finish only the remaining implementation and verify the app.
+
+5 actions
+
+The attached stop note shows the prior agent reached the implementation phase after wiring travel distance and provider IDs, but stopped before the final verification and cleanup. I’m checking the actual diff and the exact current code now so I can finish without redoing completed work.
+
+15 actions
+
+The current implementation has one concrete compile blocker: BookWizard passes coordinates to a callback whose BookingCanvas type still accepts only the visit type. I’m aligning that callback contract, then I’ll run the canonical pricing tests and inspect the remaining display/snapshot paths for unfinished combined-tax behavior.
+
+22 actions
+
+The compiler error is in the quote query key, not the canvas callback: the new latitude/longitude arguments were added at the call site but QK.pricingQuote still has the old arity. I’ll update that key definition, then fix the remaining active tax displays and the sync engine’s missing-rule semantics before rerunning tests.
+
+32 actions
+
+The display consumers are now split into service tax, platform tax, and total tax. I’m adding the corresponding snapshot fields to the admin query, updating the invoice to consume those stored lines, and then I’ll run the checks/tests to catch any remaining contract mismatch.
+
+Show less
+
+Ran the check script
+
+Ran a Node.js script
+
+Ran a Node.js script
+
+Searched for "<Row label="Tax"|label=…"
+
+Viewed code changes
+
+Viewed code changes
+
+Reviewing invoice processing instructions
+
+Reviewing invoice processing instructions
+
+Examining appointment details
+
+Examining appointment details
+
+Opened payment.routes.ts
+
+Reviewing tax schema updates
+
+Reviewing tax schema updates
+
+Restructuring payment calculations
+
+Restructuring payment calculations
+
+Syncing and validating pricing
+
+Syncing and validating pricing
+
+The canonical tests pass, but two implementation gaps remain before I can call this complete: admin financial queries do not yet return the new tax snapshot columns, and invoices still collapse the snapshot into one generic Tax row. I’m fixing those now, along with the payment-adjustment ordering so quote/booking tax bases stay deterministic when travel or platform-rule overrides apply.
+
+Show less
+
+Edited revenue-engine.ts
+
+Inspecting details for accuracy
+
+Inspecting details for accuracy
+
+The shared engine patch applied; the admin SQL patch missed because the three queries use different column layouts. I’m applying narrower edits against their exact SELECT blocks, then I’ll update invoice generation from the stored breakdown and rerun all verification.
+
+Show less
+
+Opened admin-financial.routes.ts
+
+Opened admin-financial.routes.ts
+
+Opened admin-financial.routes.ts
+
+Opened revenue-engine.ts
+
+Opened revenue-engine.ts
+
+Considering appointment details
+
+Considering appointment details
+
+Edited revenue-engine.ts
+
+Edited admin-financial.routes.ts
+
+Edited invoice-helper.ts
+
+Edited payment.routes.ts
+
+Edited invoice-gen.ts
+
+The remaining patches are in place. I’m doing the final verification pass now: typecheck, both canonical regression scripts, production build, diff hygiene, and a clean workflow restart/health check.
+
+5 actions
+
+The typecheck, canonical tax tests, pricing tests, and diff hygiene all pass. I’m finishing with the required production build and a clean workflow restart, then I’ll verify /health and inspect fresh runtime logs for startup or SQL issues.
+
+2 actions
+
+The build is clean. I’m restarting the application workflow once so the server-side pricing and invoice changes are loaded, then I’ll check readiness and fresh logs.
+
+Show less
+
+Loaded skill workflows
+
+Restarted workflow Start application
+
+Ran the check script
+
+Continuing task with logs
+
+Continuing task with logs
+
+Refreshed logs
+
+Fetched a URL
+
+Viewed code changes
+
+Inspecting health status
+
+Inspecting health status
+
+The workflow is running, but /health returned 503 immediately after restart. The startup log shows migrations completed their initial phases, so I’m checking the health handler/readiness condition and waiting for any deferred startup work before deciding whether this is a real regression.
+
+Show less
+
+Searched for "app.(get|use).*health|/…"
+
+Fetched a URL
+
+Refreshed logs
+
+Inspecting migration readiness
+
+Inspecting migration readiness
+
+Processed text
+
+Diagnosing migration issues
+
+Diagnosing migration issues
+
+The app is still serving, but readiness is stuck in migrating after the pricing and settlement migration logs. I’m locating the exact migration boundary and checking whether the remaining startup migration is blocked or simply long-running; I’ll fix only the startup issue if it’s caused by this change.
+
+Show less
+
+Searched for "async function runStart…"
+
+Processed text
+
+Fetched a URL
+
+Refreshed logs
+
+Diagnosing migration issues
+
+Diagnosing migration issues
+
+Readiness is genuinely stuck, not just delayed: it remains migrating after 60 seconds with no migration completion log. I’m isolating the blocking startup migration now so the app can return to a healthy state without weakening the migration contract.
+
+Show less
+
+Opened db.ts
+
+Opened db.ts
+
+Searched for "await pool.query|pool.q…"
+
+Inspected processes
+
+Diagnosing migration issues
+
+Diagnosing migration issues
+
+Opened db.ts
+
+Troubleshooting migration issues
+
+Troubleshooting migration issues
+
+Searched for "BEGIN|COMMIT|client.que…"
+
+Opened db.ts
+
+Opened db.ts
+
+Searched for "console.log|console.warn"
+
+Checking database queries
+
+Checking database queries
+
+Opened db.ts
+
+Fetched a URL
+
+Refreshed logs
+
+Read files
+
+Processed text
+
+Evaluating implementation needs
+
+Evaluating implementation needs
+
+Opened tax-engine.ts
+
+Opened catalog.routes.ts
+
+Opened appointment.routes.ts
+
+Searched for "taxPercentage|tax_perce…"
+
+Viewed code changes
+
+The workflow is healthy now (/health is 200/ready). I’m doing the last acceptance review on legacy tax references and report/export consumers so I can either safely remove obsolete write paths or document why compatibility storage remains.
+
+Show less
+
+Searched for "tax_percentage|taxPerce…"
+
+Opened reset-and-seed.ts
+
+Opened bootstrap-supabase.ts
+
+Searched for "taxPercentage|tax_perce…"
+
+Opened admin-financial.routes.ts
+
+Addressing financial report issues
+
+Addressing financial report issues
+
+One remaining active UI fallback still shows a single “Tax” row in the financial master report, and legacy seed/bootstrap paths still write tax_percentage. I’m cleaning the UI/export compatibility first, then I’ll remove only legacy tax writes where they are not needed for schema compatibility and re-run the full verification.
+
+Show less
+
+Opened financial-master-report.tsx
+
+Opened admin-financial.routes.ts
+
+Opened provider-wallet-payouts.routes.ts
+
+Opened invoice-helper.ts
+
+Opened invoice-gen.ts
+
+Evaluating UI changes
+
+Evaluating UI changes
+
+Searched for "taxAmount|tax_amount|Tax"
+
+Searched for "interface.*Invoice|serv…"
+
+Opened provider-wallet-panel.tsx
+
+Searched for "tax_amount|taxAmount|ta…"
+
+Opened provider-earnings.tsx
+
+Opened provider-financial-reports.tsx
+
+Opened provider-financial-reports.tsx
+
+Opened admin-financial.routes.ts
+
+Opened reset-and-seed.ts
+
+Locating provider earnings
+
+Locating provider earnings
+
+Searched for "tax_amount|Tax|taxAmoun…"

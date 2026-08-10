@@ -1180,7 +1180,9 @@ export function registerAdminFinancialRoutes(app: Express): void {
       <div class="totals">
         <div class="total-row"><span>Subtotal</span><span>USD 110.00</span></div>
         <div class="total-row"><span>Platform fee</span><span>USD 5.50</span></div>
-        <div class="total-row"><span>Tax (5%)</span><span>USD 5.50</span></div>
+          <div class="total-row"><span>Service tax (0%)</span><span>USD 0.00</span></div>
+          <div class="total-row"><span>Platform tax (5%)</span><span>USD 5.50</span></div>
+          <div class="total-row"><span>Total tax</span><span>USD 5.50</span></div>
         <div class="total-row grand"><span>Total</span><span>USD 121.00</span></div>
       </div>
       ${paymentInstructions ? `<div class="section"><h4>Payment Instructions</h4><p>${paymentInstructions}</p></div>` : ""}

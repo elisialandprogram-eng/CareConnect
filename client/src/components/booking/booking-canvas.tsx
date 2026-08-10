@@ -108,6 +108,10 @@ export interface PricingBreakdownSnapshot {
   platformFee?: number;
   visitTypeFee?: number;
   tax?: number;
+  serviceTaxRate?: number;
+  serviceTaxAmount?: number;
+  platformTaxRate?: number;
+  platformTaxAmount?: number;
   discount?: number;
   membershipDiscount?: number;
   total?: number;
@@ -1337,12 +1341,26 @@ export function BookingCanvas({
                   <span>{fmt(breakdown!.platformFee!)}</span>
                 </div>
               )}
-              {(breakdown?.tax ?? 0) > 0 && (
+              {(breakdown?.serviceTaxAmount ?? 0) > 0 && (
                 <div className="flex items-center justify-between text-xs text-muted-foreground">
-                  <span>Tax</span>
-                  <span>{fmt(breakdown!.tax!)}</span>
+                  <span>Service tax ({Number(breakdown?.serviceTaxRate ?? 0)}%)</span>
+                  <span>{fmt(breakdown!.serviceTaxAmount!)}</span>
                 </div>
               )}
+              {(breakdown?.platformTaxAmount ?? 0) > 0 && (
+                <div className="flex items-center justify-between text-xs text-muted-foreground">
+                  <span>Platform tax ({Number(breakdown?.platformTaxRate ?? 0)}%)</span>
+                  <span>{fmt(breakdown!.platformTaxAmount!)}</span>
+                </div>
+              )}
+              {(breakdown?.tax ?? 0) > 0 &&
+                (breakdown?.serviceTaxAmount ?? 0) === 0 &&
+                (breakdown?.platformTaxAmount ?? 0) === 0 && (
+                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    <span>Total tax</span>
+                    <span>{fmt(breakdown!.tax!)}</span>
+                  </div>
+                )}
             </>
           )}
           {/* Divider before total */}

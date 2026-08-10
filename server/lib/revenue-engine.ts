@@ -588,6 +588,18 @@ export function runRevenueEngineSync(
   input: RevenueEngineInput & { _preloaded: RevenueRuleSet }
 ): RevenueEngineResult {
   const rules = input._preloaded;
+  // The synchronous path is used by admin simulation and tests. When callers
+  // explicitly provide resolved tax rules, enforce the same distinction as the
+  // async quote/booking path: an absent rule is not a valid 0% configuration.
+  // Callers that intentionally exercise only the pre-tax pricing kernel omit
+  // _taxRules and therefore remain usable without database tax configuration.
+  if (input._taxRules) {
+    assertTaxConfiguration(input._taxRules, {
+      countryCode: input.countryCode,
+      subServiceId: input.subServiceId,
+      requireServiceRule: Boolean(input.subServiceId),
+    });
+  }
 
   // P-FINAL: Resolve currencies (Rules 1 & 2)
   const bookingCurrency  = input.bookingCurrency  || input.currency || "USD";

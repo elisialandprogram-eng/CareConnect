@@ -6,7 +6,7 @@
  */
 
 import assert from "node:assert/strict";
-import { calculateTaxBreakdown } from "../lib/tax-engine";
+import { calculateTaxBreakdown, TaxConfigurationError } from "../lib/tax-engine";
 import { runRevenueEngineSync, type RevenueRuleSet } from "../lib/revenue-engine";
 
 const noRevenueRules: RevenueRuleSet = {
@@ -89,17 +89,50 @@ assert.equal(ir.taxBreakdown.serviceTax, 11.25, "Iran service rate is selected b
 assert.equal(ir.taxBreakdown.platformTax, 0.5, "Iran platform rate is selected by country");
 assert.notEqual(ir.tax, hu.tax, "one country's tax rule never leaks into another");
 
-const missing = runRevenueEngineSync({
+assert.throws(
+  () => runRevenueEngineSync({
+    service,
+    subServiceId: "sub-missing",
+    visitType: "clinic",
+    bookingCurrency: "USD",
+    providerCurrency: "USD",
+    countryCode: "HU",
+    _preloaded: noRevenueRules,
+    _taxRules: {},
+  }),
+  (error: unknown) =>
+    error instanceof TaxConfigurationError &&
+    error.code === "TAX_CONFIGURATION_MISSING" &&
+    error.missingDomains.includes("service") &&
+    error.missingDomains.includes("platform"),
+  "missing rules are rejected instead of being treated as configured zero tax",
+);
+
+const explicitZero = runRevenueEngineSync({
   service,
-  subServiceId: "sub-missing",
+  subServiceId: "sub-zero",
   visitType: "clinic",
   bookingCurrency: "USD",
   providerCurrency: "USD",
   countryCode: "HU",
   _preloaded: noRevenueRules,
-  _taxRules: {},
+  _taxRules: {
+    serviceRule: {
+      id: "svc-zero",
+      subServiceId: "sub-zero",
+      countryCode: "HU",
+      taxRate: 0,
+      isActive: true,
+    },
+    platformRule: {
+      id: "platform-zero",
+      countryCode: "HU",
+      taxRate: 0,
+      isActive: true,
+    },
+  },
 });
-assert.equal(missing.tax, 0, "missing rules resolve deterministically to zero tax");
+assert.equal(explicitZero.tax, 0, "an explicit 0% rule remains valid");
 
 const platformOnly = calculateTaxBreakdown({
   serviceSubtotal: 100,

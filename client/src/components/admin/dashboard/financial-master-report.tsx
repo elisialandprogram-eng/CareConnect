@@ -491,7 +491,9 @@ function ExpandedRow({ row, fmt }: { row: MasterRow; fmt: (n: number) => string 
             </p>
             <div className="flex justify-between"><span className="text-muted-foreground">Base Price</span><span>{fmtLocal(n(row.service_price_snapshot))}</span></div>
             <div className="flex justify-between"><span className="text-muted-foreground">Platform Fee</span><span>{fmtLocal(n(row.platform_fee_amount))}</span></div>
-            <div className="flex justify-between"><span className="text-muted-foreground">Tax</span><span>{fmtLocal(n(row.tax_amount))}</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">Service tax ({n(row.service_tax_rate)}%)</span><span>{fmtLocal(n(row.service_tax_amount))}</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">Platform tax ({n(row.platform_tax_rate)}%)</span><span>{fmtLocal(n(row.platform_tax_amount))}</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">Total tax</span><span>{fmtLocal(n(row.tax_amount))}</span></div>
             {n(row.promo_discount) > 0 && (
               <div className="flex justify-between text-green-600"><span>Promo ({row.promo_code})</span><span>−{fmtLocal(n(row.promo_discount))}</span></div>
             )}
