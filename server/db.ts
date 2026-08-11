@@ -3462,6 +3462,35 @@ export async function runBookingPricingSnapshotMigration(): Promise<void> {
       ADD COLUMN IF NOT EXISTS payment_gateway_fee_amount NUMERIC(10,2) DEFAULT 0,
       ADD COLUMN IF NOT EXISTS admin_fee_amount NUMERIC(10,2) DEFAULT 0
   `);
+  // Required booking-time financial snapshot columns. These belong in the
+  // independent booking migration because the HTTP server accepts requests
+  // before the long legacy startup migration chain completes.
+  await pool.query(`
+    ALTER TABLE appointments
+      ADD COLUMN IF NOT EXISTS commission_rate NUMERIC(8,4) DEFAULT 0,
+      ADD COLUMN IF NOT EXISTS commission_amount NUMERIC(10,2) DEFAULT 0,
+      ADD COLUMN IF NOT EXISTS provider_gross_earnings_snapshot NUMERIC(10,2) DEFAULT 0,
+      ADD COLUMN IF NOT EXISTS provider_net_earnings_snapshot NUMERIC(10,2) DEFAULT 0,
+      ADD COLUMN IF NOT EXISTS provider_earnings_snapshot NUMERIC(10,2) DEFAULT 0,
+      ADD COLUMN IF NOT EXISTS payment_surcharge_amount NUMERIC(10,2) DEFAULT 0,
+      ADD COLUMN IF NOT EXISTS travel_fee_snapshot NUMERIC(10,2) DEFAULT 0,
+      ADD COLUMN IF NOT EXISTS platform_revenue_snapshot NUMERIC(10,2) DEFAULT 0,
+      ADD COLUMN IF NOT EXISTS re_applied_rules JSONB,
+      ADD COLUMN IF NOT EXISTS booking_currency TEXT,
+      ADD COLUMN IF NOT EXISTS provider_currency TEXT,
+      ADD COLUMN IF NOT EXISTS patient_currency TEXT,
+      ADD COLUMN IF NOT EXISTS final_total_usd NUMERIC(10,2),
+      ADD COLUMN IF NOT EXISTS pricing_engine_version TEXT,
+      ADD COLUMN IF NOT EXISTS tax_engine_version TEXT,
+      ADD COLUMN IF NOT EXISTS pricing_calculated_at TIMESTAMPTZ
+  `);
+  await pool.query(`
+    UPDATE appointments
+    SET provider_net_earnings_snapshot = provider_earnings_snapshot
+    WHERE provider_net_earnings_snapshot = 0
+      AND provider_earnings_snapshot IS NOT NULL
+      AND provider_earnings_snapshot <> 0
+  `);
   await pool.query(`
     ALTER TABLE user_packages
       ADD COLUMN IF NOT EXISTS tax_amount NUMERIC(10,2) DEFAULT 0,

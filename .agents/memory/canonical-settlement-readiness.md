@@ -19,4 +19,4 @@ The canonical appointment provider-net snapshot is `provider_net_earnings_snapsh
 
 **Why:** Settlement migration executes before the long legacy startup chain, so referencing a later-created snapshot column caused reconciliation requests to fail during cold start.
 
-**How to apply:** Add required appointment snapshot DDL and compatibility backfills to the independent booking-pricing migration, not only to the deferred legacy migration chain.
+**How to apply:** Add all required appointment snapshot DDL—including gross and net provider earnings fields—and compatibility backfills to the independent booking-pricing migration, not only to the deferred legacy migration chain.
