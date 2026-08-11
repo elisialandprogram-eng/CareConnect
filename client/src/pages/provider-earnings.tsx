@@ -33,6 +33,7 @@ interface RichEarning {
   appointmentId: string;
   totalAmount: string;
   platformFee: string;
+  /** Legacy database column; never use as a financial source of truth. */
   providerEarning: string;
   status: string;
   paidAt: string | null;
@@ -63,6 +64,8 @@ interface RichEarning {
   paymentMethod: string | null;
   grossProviderPayoutUsd: string | null;
   settlementAmountUsd: string | null;
+  providerNetEarningsUsd: string | null;
+  providerNetEarningsLocal: string | null;
   serviceEarningsAmountUsd: string | null;
   taxPassThroughAmountUsd: string | null;
   cashPlatformFeeDeductionUsd: string | null;
@@ -163,11 +166,10 @@ function resolveEarningDisplay(
   const fromBooking = (local: number) => hasLocal
     ? local
     : local * Number(e.exchangeRateUsed || 1);
+  const providerNetUsd = Number(e.providerNetEarningsUsd ?? 0);
   const serviceNetUsd = Number(e.serviceEarningsAmountUsd ?? 0) > 0
     ? Number(e.serviceEarningsAmountUsd)
-    : Number(pb?.providerEarnings ?? 0) > 0
-      ? fromBooking(Number(pb.providerEarnings))
-      : Math.max(0, Number(e.providerEarning ?? 0) - Number(e.taxPassThroughAmountUsd ?? 0));
+    : Math.max(0, providerNetUsd - Number(e.taxPassThroughAmountUsd ?? 0));
   const taxUsd = Number(e.taxPassThroughAmountUsd ?? 0) > 0
     ? Number(e.taxPassThroughAmountUsd)
     : fromBooking(Number(e.taxAmount ?? 0));
@@ -183,16 +185,16 @@ function resolveEarningDisplay(
     : ["cash", "bank_transfer"].includes(e.paymentMethod ?? "")
       ? fromBooking(patientFee)
       : 0;
-  const netUsd = Number(e.settlementAmountUsd ?? 0) > 0
+  // A persisted zero is meaningful for pending cash/bank-transfer rows:
+  // provider earnings exist, but no platform settlement has occurred.
+  const netUsd = e.settlementAmountUsd != null
     ? Number(e.settlementAmountUsd)
     : Math.max(0, grossUsd - offlineFeeUsd);
   // Service net and tax are both present in the original booking-currency
   // snapshot. Prefer those values for the provider-facing waterfall:
   // converting rounded USD settlement snapshots back into HUF/IRR can turn
   // exact booking values such as 960 Ft and 270 Ft into 959 Ft and 271 Ft.
-  const localServiceNet = hasLocal && Number(pb?.providerEarnings ?? 0) > 0
-    ? Number(pb.providerEarnings)
-    : toDisplay(serviceNetUsd);
+  const localServiceNet = toDisplay(serviceNetUsd);
   const localTax = hasLocal ? Number(e.taxAmount ?? 0) : toDisplay(taxUsd);
 
   return {
@@ -452,9 +454,9 @@ export default function ProviderEarnings() {
     return list;
   }, [allEarnings, statusFilter, currencyFilter, dateFrom, dateTo]);
 
-  // All summary cards use the settlement snapshot in USD, matching the wallet
-  // and payout APIs. `providerEarning` is a legacy gross-payout field.
-  const netPayoutUsd = (e: RichEarning) => Number(e.settlementAmountUsd ?? e.providerEarning ?? 0);
+  // Earnings are canonical net economics; settlement amount is the separate
+  // amount actually paid/withdrawable from the provider wallet.
+  const netPayoutUsd = (e: RichEarning) => Number(e.providerNetEarningsUsd ?? 0);
   const filteredTotal = filteredEarnings.reduce((s, e) => s + netPayoutUsd(e), 0);
   const filteredPending = filteredEarnings.filter((e) => e.status !== "paid").reduce((s, e) => s + netPayoutUsd(e), 0);
   const filteredPaid = filteredEarnings.filter((e) => e.status === "paid").reduce((s, e) => s + netPayoutUsd(e), 0);

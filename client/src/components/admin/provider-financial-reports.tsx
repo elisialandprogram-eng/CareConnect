@@ -47,7 +47,7 @@ interface ProviderOverviewRow {
 interface EarningRecord {
   id: string;
   status: "pending" | "paid";
-  provider_earning: string;
+  provider_net_earnings_usd: string;
   platform_fee: string;
   total_amount: string;
   created_at: string;
@@ -249,7 +249,7 @@ function ProviderDetail({ providerId, onBack }: { providerId: string; onBack: ()
   }, [data, filterStatus]);
 
   const pendingEarnings = data?.earnings?.filter(e => e.status === "pending") ?? [];
-  const pendingTotal    = pendingEarnings.reduce((acc, e) => acc + n(e.provider_earning), 0);
+  const pendingTotal    = pendingEarnings.reduce((acc, e) => acc + n(e.provider_net_earnings_usd), 0);
 
   function toggleAll() {
     if (selectedIds.size === pendingEarnings.length) {
@@ -486,7 +486,7 @@ function ProviderDetail({ providerId, onBack }: { providerId: string; onBack: ()
                         </TableCell>
                         <TableCell className="text-right text-sm font-medium tabular-nums">{fmtCurr(e.total_amount, cc)}</TableCell>
                         <TableCell className="text-right text-sm text-muted-foreground tabular-nums">{fmtCurr(e.platform_fee, cc)}</TableCell>
-                        <TableCell className="text-right text-sm font-semibold tabular-nums text-green-700 dark:text-green-400">{fmtCurr(e.provider_earning, cc)}</TableCell>
+                        <TableCell className="text-right text-sm font-semibold tabular-nums text-green-700 dark:text-green-400">{fmtCurr(e.provider_net_earnings_usd, cc)}</TableCell>
                         <TableCell>
                           {e.status === "paid"
                             ? <span className="flex items-center gap-1 text-xs text-emerald-600"><CheckCircle className="h-3.5 w-3.5" />Paid</span>
@@ -511,7 +511,7 @@ function ProviderDetail({ providerId, onBack }: { providerId: string; onBack: ()
                 <div className="flex items-center justify-end gap-6 px-4 py-3 border-t text-sm font-medium">
                   <span>Gross: <strong className="tabular-nums">{fmtCurr(visibleEarnings.reduce((a, e) => a + n(e.total_amount), 0), cc)}</strong></span>
                   <span>Platform: <strong className="tabular-nums text-blue-600">{fmtCurr(visibleEarnings.reduce((a, e) => a + n(e.platform_fee), 0), cc)}</strong></span>
-                  <span>Net: <strong className="tabular-nums text-green-700 dark:text-green-400">{fmtCurr(visibleEarnings.reduce((a, e) => a + n(e.provider_earning), 0), cc)}</strong></span>
+                  <span>Net: <strong className="tabular-nums text-green-700 dark:text-green-400">{fmtCurr(visibleEarnings.reduce((a, e) => a + n(e.provider_net_earnings_usd), 0), cc)}</strong></span>
                 </div>
               )}
             </CardContent>

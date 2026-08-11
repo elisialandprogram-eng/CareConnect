@@ -91,7 +91,7 @@ interface MasterRow {
   payment_refunded_amount: string | null;
   // Earnings (USD)
   earning_id: string | null;
-  provider_earning: string | null;
+  provider_net_earnings_usd: string | null;
   earning_platform_fee: string | null;
   earning_total_amount: string | null;
   earning_status: string | null;
@@ -451,7 +451,7 @@ function InvestigationDrawer({
           {/* Section G — Payout */}
           <Section title="G · Payout" icon={Wallet}>
             <Row label="Earning ID"      value={row.earning_id} />
-            <Row label="Provider Earn. (USD)" value={row.provider_earning ? fmt(n(row.provider_earning)) : null} />
+            <Row label="Provider Net Earnings (USD)" value={row.provider_net_earnings_usd ? fmt(n(row.provider_net_earnings_usd)) : null} />
             <Row label="Platform Fee (USD)"   value={row.earning_platform_fee ? fmt(n(row.earning_platform_fee)) : null} />
             <Row label="Earnings Status" value={<StatusBadge value={row.earning_status} />} />
             <Row label="Payout Reference" value={row.payout_reference} />
@@ -1032,8 +1032,7 @@ export function FinancialMasterReport() {
                   const isExpanded = expandedId === row.id;
                   const cur = row.display_currency ?? "USD";
                   const usdNorm = n(row.final_total_usd ?? row.total_amount);
-                  // Provider net: provider_earning (USD) minus platform_fee
-                  const netEarning = n(row.provider_earning ?? 0);
+                  const netEarning = n(row.provider_net_earnings_usd ?? 0);
                   const payMethod = row.payment_method ?? row.appt_payment_method;
 
                   return (
@@ -1123,7 +1122,7 @@ export function FinancialMasterReport() {
                         )}
                         {visibleCols.has("earning") && (
                           <td className="px-3 py-2.5 text-right tabular-nums text-green-700 dark:text-green-400 whitespace-nowrap">
-                            {/* Provider earning is USD (from provider_earnings table) */}
+                            {/* Canonical provider net earnings in USD */}
                             {netEarning > 0 ? fmt(netEarning) : <span className="text-muted-foreground">—</span>}
                             {row.earning_status && (
                               <div className="mt-0.5"><StatusBadge value={row.earning_status} /></div>

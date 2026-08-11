@@ -132,7 +132,7 @@ async function getEligibleProviders(batchScheduleType?: string): Promise<Eligibl
       COALESCE(psa.stripe_account_id, NULL) AS stripe_account_id,
       COALESCE(psa.payouts_enabled, false) AS payouts_enabled,
       COALESCE(
-        (SELECT SUM(pe.provider_earning)
+        (SELECT SUM(pe.provider_net_earnings_amount_usd)
          FROM provider_earnings pe
          WHERE pe.provider_id = ps.provider_id
            AND pe.status = 'pending'

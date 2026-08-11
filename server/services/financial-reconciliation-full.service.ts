@@ -15,6 +15,7 @@
  */
 
 import { pool } from "../db";
+import { providerLedgerTypePlaceholders, PROVIDER_LEDGER_BALANCE_AFFECTING_TYPES } from "../lib/provider-ledger";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -52,27 +53,34 @@ export interface FullReconciliationReport {
 // ── Individual Checks ─────────────────────────────────────────────────────────
 
 async function checkWalletLedgerDrift(): Promise<ReconciliationFinding> {
+  const ledgerTypes = providerLedgerTypePlaceholders();
   const { rows } = await pool.query(`
     SELECT
       pw.provider_id,
       pw.available_balance::numeric AS wallet_balance,
       COALESCE(
-        (SELECT SUM(pl.amount) FROM provider_ledger pl WHERE pl.provider_id = pw.provider_id),
+        (SELECT SUM(pl.amount) FROM provider_ledger pl
+          WHERE pl.provider_id = pw.provider_id
+            AND pl.entry_type IN (${ledgerTypes})),
         0
       )::numeric AS ledger_sum,
       ABS(pw.available_balance::numeric - COALESCE(
-        (SELECT SUM(pl.amount) FROM provider_ledger pl WHERE pl.provider_id = pw.provider_id), 0
+        (SELECT SUM(pl.amount) FROM provider_ledger pl
+          WHERE pl.provider_id = pw.provider_id
+            AND pl.entry_type IN (${ledgerTypes})), 0
       )) AS drift,
       COALESCE(p.clinic_name, u.first_name || ' ' || u.last_name) AS provider_name
     FROM provider_wallets pw
     LEFT JOIN providers p ON p.id = pw.provider_id
     LEFT JOIN users u ON u.id = p.user_id
     WHERE ABS(pw.available_balance::numeric - COALESCE(
-        (SELECT SUM(pl.amount) FROM provider_ledger pl WHERE pl.provider_id = pw.provider_id), 0
+        (SELECT SUM(pl.amount) FROM provider_ledger pl
+          WHERE pl.provider_id = pw.provider_id
+            AND pl.entry_type IN (${ledgerTypes})), 0
       )) > 0.05
     ORDER BY drift DESC
     LIMIT 20
-  `);
+  `, [...PROVIDER_LEDGER_BALANCE_AFFECTING_TYPES]);
 
   const severity: ReconciliationSeverity = rows.length === 0 ? "ok" : rows.some((r) => parseFloat(r.drift) > 10) ? "critical" : "high";
   const totalDrift = rows.reduce((acc, r) => acc + parseFloat(r.drift), 0);
@@ -179,34 +187,6 @@ async function checkOrphanedPayments(): Promise<ReconciliationFinding> {
   };
 }
 
-async function checkMarketplaceLedgerBalance(): Promise<ReconciliationFinding> {
-  const { rows } = await pool.query(`
-    SELECT
-      entry_type,
-      COUNT(*) AS count,
-      SUM(amount)::numeric AS total
-    FROM marketplace_ledger
-    WHERE created_at > NOW() - INTERVAL '30 days'
-    GROUP BY entry_type
-    ORDER BY entry_type
-  `).catch(() => ({ rows: [] as Array<{ entry_type: string; count: string; total: string }> }));
-
-  const platformIn = rows.filter((r) => ["PLATFORM_FEE", "COMMISSION"].includes(r.entry_type)).reduce((a, r) => a + parseFloat(r.total ?? "0"), 0);
-  const platformOut = rows.filter((r) => ["PROVIDER_WITHDRAWABLE", "REFUND", "EXTERNAL_BANK"].includes(r.entry_type)).reduce((a, r) => a + Math.abs(parseFloat(r.total ?? "0")), 0);
-  const imbalance = Math.abs(platformIn - platformOut);
-  return {
-    check: "marketplace_ledger_balance",
-    severity: imbalance > 100 ? "high" : imbalance > 10 ? "medium" : "ok",
-    count: rows.length,
-    totalAmountUsd: imbalance,
-    details: rows,
-    message: imbalance > 1
-      ? `Marketplace ledger imbalance of ${imbalance.toFixed(2)} USD detected in last 30 days.`
-      : "Marketplace ledger double-entry is balanced (last 30 days).",
-    action: imbalance > 1 ? "Review marketplace_ledger entries for missing PLATFORM_FEE or PROVIDER_WITHDRAWABLE postings." : "None",
-  };
-}
-
 async function checkRevenueSnapshotConsistency(): Promise<ReconciliationFinding> {
   const { rows } = await pool.query(`
     SELECT
@@ -278,7 +258,7 @@ async function getReconciliationSummary() {
   try {
     const [walletBal, ledgerBal, pendingPayouts, recentPaid, frozen] = await Promise.all([
       client.query(`SELECT COALESCE(SUM(available_balance),0)::numeric AS total FROM provider_wallets`),
-      client.query(`SELECT COALESCE(SUM(amount),0)::numeric AS total FROM provider_ledger`),
+      client.query(`SELECT COALESCE(SUM(amount),0)::numeric AS total FROM provider_ledger WHERE entry_type IN (${providerLedgerTypePlaceholders()})`, [...PROVIDER_LEDGER_BALANCE_AFFECTING_TYPES]),
       client.query(`SELECT COUNT(*) AS count, COALESCE(SUM(amount),0)::numeric AS total FROM payout_requests WHERE status='pending'`),
       client.query(`SELECT COUNT(*) AS count, COALESCE(SUM(amount),0)::numeric AS total FROM payout_requests WHERE status='paid' AND paid_at > NOW()-INTERVAL '30 days'`),
       client.query(`SELECT COUNT(*) AS count FROM provider_wallets WHERE is_frozen=true`),
@@ -303,19 +283,18 @@ export async function runFullReconciliation(): Promise<FullReconciliationReport>
   const startAt = Date.now();
 
   const [
-    driftCheck, negCheck, dupCheck, orphanCheck, marketCheck, revCheck, walletCheck, summary,
+    driftCheck, negCheck, dupCheck, orphanCheck, revCheck, walletCheck, summary,
   ] = await Promise.all([
     checkWalletLedgerDrift(),
     checkNegativeBalances(),
     checkDuplicatePayouts(),
     checkOrphanedPayments(),
-    checkMarketplaceLedgerBalance(),
     checkRevenueSnapshotConsistency(),
     checkWalletCreditImbalance(),
     getReconciliationSummary(),
   ]);
 
-  const checks = [driftCheck, negCheck, dupCheck, orphanCheck, marketCheck, revCheck, walletCheck];
+  const checks = [driftCheck, negCheck, dupCheck, orphanCheck, revCheck, walletCheck];
   const criticalCount = checks.filter((c) => c.severity === "critical").length;
   const highCount = checks.filter((c) => c.severity === "high").length;
   const mediumCount = checks.filter((c) => c.severity === "medium").length;

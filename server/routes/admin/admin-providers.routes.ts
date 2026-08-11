@@ -623,9 +623,9 @@ export function registerAdminProvidersRoutes(app: Express): void {
            WHERE p.id = $1 LIMIT 1`, [id]
         ),
         db.select().from(auditLogs).where(eq(auditLogs.entityId, id)).orderBy(desc(auditLogs.createdAt)).limit(50),
-        // P4 FIX: provider_earnings.provider_earning is stored in USD (canonical)
+         // Canonical provider net earnings are stored in USD.
         pool.query<{ total: string }>(
-          `SELECT COALESCE(SUM(pe.provider_earning::numeric), 0)::text AS total
+           `SELECT COALESCE(SUM(pe.provider_net_earnings_amount_usd::numeric), 0)::text AS total
              FROM provider_earnings pe
              LEFT JOIN appointments a ON a.id = pe.appointment_id
             WHERE pe.provider_id = $1

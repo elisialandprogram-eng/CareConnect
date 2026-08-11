@@ -1993,7 +1993,7 @@ function ProviderCommandCenter({
                 <div className="grid grid-cols-2 gap-4">
                   <div className="bg-slate-50 dark:bg-slate-900 rounded-xl p-5 text-center space-y-1">
                     <DollarSign className="h-6 w-6 text-green-500 mx-auto" />
-                    {/* P4: revenueUsd is already USD (from provider_earnings.provider_earning) */}
+                    {/* Canonical provider net earnings are already USD. */}
                     <div className="text-2xl font-bold text-slate-900 dark:text-slate-100">{fmtUSD(financials.revenueUsd)}</div>
                     <div className="text-xs text-slate-400">Lifetime Earnings (USD)</div>
                   </div>

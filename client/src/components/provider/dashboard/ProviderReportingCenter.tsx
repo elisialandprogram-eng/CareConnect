@@ -591,7 +591,7 @@ function FinancialsTab({ fmtMoney, enabled }: { fmtMoney: (v: number) => string;
                     <tr key={i} className="border-b last:border-0">
                       <td className="py-2 text-muted-foreground text-xs">{e.date ? formatDate(e.date) : "—"}</td>
                       <td className="py-2 truncate max-w-[150px]">{e.serviceName ?? "—"}</td>
-                      <td className="text-end py-2 font-medium text-emerald-600">{fmtMoney(Number(e.providerEarning ?? 0))}</td>
+                      <td className="text-end py-2 font-medium text-emerald-600">{fmtMoney(Number(e.providerNetEarningsUsd ?? 0))}</td>
                       <td className="text-end py-2">
                         <Badge variant={e.paymentStatus === "completed" ? "default" : "secondary"} className="text-xs capitalize">
                           {e.paymentStatus ?? "—"}

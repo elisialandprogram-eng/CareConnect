@@ -342,7 +342,7 @@ export async function getPlatformStats(): Promise<PlatformStats> {
     `SELECT COALESCE(SUM(balance_usd), 0)::text AS total FROM wallets`
   );
   const earningRows = await safeQuery<{ total: string }>(
-    `SELECT COALESCE(SUM(net_amount), 0)::text AS total FROM provider_earnings`
+    `SELECT COALESCE(SUM(provider_net_earnings_amount_usd), 0)::text AS total FROM provider_earnings`
   );
 
   return {

@@ -3172,6 +3172,7 @@ export class DatabaseStorage extends PackagesMixin implements IStorage {
       // Tax ownership is part of the immutable appointment snapshot.
       // Never use tax_amount here: it includes platform tax.
       const serviceTaxAmountLocal = Number(appt.service_tax_amount || 0);
+      const providerGrossEarningsLocal = Number(appt.provider_gross_earnings_snapshot ?? 0);
       const countryCode = appt.country_code || "HU";
       const currency = countryCurrency(countryCode as CountryCode);
       const pb = appt.pricing_breakdown as any;
@@ -3198,6 +3199,9 @@ export class DatabaseStorage extends PackagesMixin implements IStorage {
           Number(snapshot.rows[0].commission_amount ?? 0),
         );
       }
+      const resolvedProviderGrossEarningsLocal = providerGrossEarningsLocal > 0
+        ? providerGrossEarningsLocal
+        : Math.max(0, providerNetEarningsLocal + Number(appt.commission_amount ?? 0));
       const platformFeeLocal = Math.max(0, Number(appt.platform_fee_amount || 0));
 
       const settlement = calculateProviderSettlement({
@@ -3222,10 +3226,13 @@ export class DatabaseStorage extends PackagesMixin implements IStorage {
             provider_id, appointment_id, total_amount, platform_fee, provider_earning,
             status, display_currency, display_amount, exchange_rate_used,
             service_earnings_amount_usd, tax_pass_through_amount_usd,
+            provider_gross_earnings_amount_usd, provider_gross_earnings_amount_local,
+            provider_net_earnings_amount_usd, provider_net_earnings_amount_local,
+            service_tax_amount_usd,
             cash_platform_fee_deduction_usd, gross_provider_payout_usd,
             settlement_amount_usd, payment_method
           )
-          VALUES ($1,$2,$3,$4,$5,'pending',$6,$7,$8,$9,$10,$11,$12,$13,$14)
+          VALUES ($1,$2,$3,$4,$5,'pending',$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)
           ON CONFLICT (appointment_id) DO NOTHING
           RETURNING *
         `, [
@@ -3233,14 +3240,18 @@ export class DatabaseStorage extends PackagesMixin implements IStorage {
           appt.id,
           totalAmountUsd.toFixed(2),
           platformFeeUsd.toFixed(2),
-             // provider_earning is retained only as a non-authoritative legacy
-             // column because the database requires it. Actual settlement is
-             // represented by settlement_amount_usd.
-             settlement.grossProviderPayoutUsd.toFixed(2),
+             // provider_earning is a required legacy compatibility column.
+             // All active reads use provider_net_earnings_amount_usd instead.
+             settlement.providerNetEarningsUsd.toFixed(2),
           currency,
           settlement.providerPayoutLocal.toFixed(2),
           exchangeRate.toFixed(6),
+           Math.max(0, settlement.providerNetEarningsUsd - settlement.serviceTaxPassThroughUsd).toFixed(2),
+           settlement.serviceTaxPassThroughUsd.toFixed(2),
+           (resolvedProviderGrossEarningsLocal / rateVal).toFixed(2),
+           resolvedProviderGrossEarningsLocal.toFixed(2),
            settlement.providerNetEarningsUsd.toFixed(2),
+           settlement.providerNetEarningsLocal.toFixed(2),
            settlement.serviceTaxPassThroughUsd.toFixed(2),
           settlement.cashPlatformFeeDeductionUsd.toFixed(2),
           settlement.grossProviderPayoutUsd.toFixed(2),
@@ -3342,10 +3353,11 @@ export class DatabaseStorage extends PackagesMixin implements IStorage {
       .returning();
 
     if (updated) {
-      const providerEarningAmt = parseFloat(updated.providerEarning || "0");
       try {
-        const paymentMethod = await pool.query<{ payment_method: string | null }>(`
-          SELECT COALESCE(pe.payment_method, a.payment_method, p.payment_method, 'card') AS payment_method
+        const earningResult = await pool.query<{ payment_method: string | null; provider_net_earnings_amount_usd: string | null }>(`
+          SELECT
+            COALESCE(pe.payment_method, a.payment_method, p.payment_method, 'card') AS payment_method,
+            pe.provider_net_earnings_amount_usd
           FROM provider_earnings pe
           JOIN appointments a ON a.id = pe.appointment_id
           LEFT JOIN LATERAL (
@@ -3357,9 +3369,11 @@ export class DatabaseStorage extends PackagesMixin implements IStorage {
           ) p ON true
           WHERE pe.id = $1
         `, [id]);
-        if (OFFLINE_PAYMENT_METHODS.has(String(paymentMethod.rows[0]?.payment_method || "").toLowerCase())) {
+        if (OFFLINE_PAYMENT_METHODS.has(String(earningResult.rows[0]?.payment_method || "").toLowerCase())) {
           return updated;
         }
+        const providerEarningAmt = Number(earningResult.rows[0]?.provider_net_earnings_amount_usd ?? 0);
+        if (providerEarningAmt <= 0) return updated;
         await pool.query(`
           UPDATE provider_wallets SET
             available_balance = GREATEST(0, available_balance - $2),
@@ -3404,19 +3418,12 @@ export class DatabaseStorage extends PackagesMixin implements IStorage {
     const params = providerId ? [providerId] : [];
     const result = await pool.query(`
       SELECT
-        COALESCE(SUM(
-          GREATEST(0, COALESCE(pe.gross_provider_payout_usd, pe.provider_earning::numeric, 0)
-            - COALESCE(pe.cash_platform_fee_deduction_usd, 0))
-        ), 0) AS total_net,
-        COALESCE(SUM(
-          GREATEST(0, COALESCE(pe.gross_provider_payout_usd, pe.provider_earning::numeric, 0)
-            - COALESCE(pe.cash_platform_fee_deduction_usd, 0))
-        ) FILTER (WHERE pe.status <> 'paid'), 0) AS pending_net,
-        COALESCE(SUM(
-          GREATEST(0, COALESCE(pe.gross_provider_payout_usd, pe.provider_earning::numeric, 0)
-            - COALESCE(pe.cash_platform_fee_deduction_usd, 0))
-        ) FILTER (WHERE pe.status = 'paid'), 0) AS paid_net,
-        COALESCE(SUM(COALESCE(pe.gross_provider_payout_usd, pe.provider_earning::numeric, 0)), 0)
+        COALESCE(SUM(COALESCE(pe.provider_net_earnings_amount_usd, 0)), 0) AS total_net,
+        COALESCE(SUM(COALESCE(pe.provider_net_earnings_amount_usd, 0))
+          FILTER (WHERE pe.status <> 'paid'), 0) AS pending_net,
+        COALESCE(SUM(COALESCE(pe.provider_net_earnings_amount_usd, 0))
+          FILTER (WHERE pe.status = 'paid'), 0) AS paid_net,
+        COALESCE(SUM(COALESCE(pe.provider_net_earnings_amount_usd, 0)), 0)
           AS gross_provider_payout,
         COALESCE(SUM(COALESCE(pe.platform_fee::numeric, 0)), 0) AS provider_commission,
         COALESCE(SUM(

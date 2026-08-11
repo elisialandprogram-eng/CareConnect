@@ -279,10 +279,10 @@ export function registerProviderWalletPayoutsRoutes(app: Express): void {
         r.patient_paid ?? "0",
          r.platform_fee ?? "0",
          r.platform_fee ?? "0",
-           r.provider_net_earnings_usd ?? r.gross_provider_payout_usd ?? "0",
+            r.provider_net_earnings_usd ?? "0",
            r.service_tax_amount_usd ?? r.tax_pass_through_amount_usd ?? "0",
           r.cash_platform_fee_deduction_usd ?? "0",
-           r.gross_provider_payout_usd ?? r.provider_net_earnings_usd ?? "0",
+            r.gross_provider_payout_usd ?? "0",
            r.settlement_amount_usd ?? "0",
          r.payment_method ?? "",
         r.currency ?? "USD",
@@ -329,7 +329,7 @@ export function registerProviderWalletPayoutsRoutes(app: Express): void {
           ), 0) AS lifetime_paid_out,
            COALESCE((
              SELECT SUM(GREATEST(0,
-                COALESCE(pe.gross_provider_payout_usd, pe.provider_net_earnings_amount_usd, 0)
+                COALESCE(pe.provider_net_earnings_amount_usd, 0)
                - COALESCE(pe.cash_platform_fee_deduction_usd, 0)))
              FROM provider_earnings pe
              LEFT JOIN appointments ea ON ea.id = pe.appointment_id

@@ -365,17 +365,17 @@ await it("C3 — HTTP: POST without token → 401 (auth guard fires before refun
 
 console.log("\n━━━ Scenario D: Financial Reconciliation Engine ━━━");
 
-// Helper: find a provider_earnings row and corrupt its provider_earning field.
+// Helper: find a provider_earnings row and corrupt its canonical net snapshot.
 // Returns { id, originalAmount } or skips if no rows exist.
 async function getEarningToCorrupt(): Promise<{ id: string; originalAmount: string } | null> {
-  const { rows } = await pool.query<{ id: string; provider_earning: string }>(
-    `SELECT id, provider_earning
+  const { rows } = await pool.query<{ id: string; provider_net_earnings_amount_usd: string }>(
+    `SELECT id, provider_net_earnings_amount_usd
      FROM provider_earnings
-     WHERE total_amount > 0.01
+     WHERE provider_net_earnings_amount_usd > 0.01
      ORDER BY created_at DESC
      LIMIT 1`,
   );
-  return rows[0] ? { id: rows[0].id, originalAmount: rows[0].provider_earning } : null;
+  return rows[0] ? { id: rows[0].id, originalAmount: rows[0].provider_net_earnings_amount_usd } : null;
 }
 
 await it("D1 — Reconciler detects a corrupted earning row in dry-run mode", async () => {
@@ -386,7 +386,7 @@ await it("D1 — Reconciler detects a corrupted earning row in dry-run mode", as
   if (!target) skip("No provider_earnings records in DB");
 
   const corruptedAmount = (parseFloat(target.originalAmount) * 0.01).toFixed(2);
-  await pool.query(`UPDATE provider_earnings SET provider_earning = $1 WHERE id = $2`, [
+  await pool.query(`UPDATE provider_earnings SET provider_net_earnings_amount_usd = $1 WHERE id = $2`, [
     corruptedAmount,
     target.id,
   ]);
@@ -410,7 +410,7 @@ await it("D1 — Reconciler detects a corrupted earning row in dry-run mode", as
       `Expected a non-trivial delta, got ${found.delta}`,
     );
   } finally {
-    await pool.query(`UPDATE provider_earnings SET provider_earning = $1 WHERE id = $2`, [
+    await pool.query(`UPDATE provider_earnings SET provider_net_earnings_amount_usd = $1 WHERE id = $2`, [
       target.originalAmount,
       target.id,
     ]);
@@ -425,7 +425,7 @@ await it("D2 — Reconciler applies correction atomically and writes an audit_lo
   if (!target) skip("No provider_earnings records in DB");
 
   const corruptedAmount = (parseFloat(target.originalAmount) * 0.01).toFixed(2);
-  await pool.query(`UPDATE provider_earnings SET provider_earning = $1 WHERE id = $2`, [
+  await pool.query(`UPDATE provider_earnings SET provider_net_earnings_amount_usd = $1 WHERE id = $2`, [
     corruptedAmount,
     target.id,
   ]);
@@ -447,14 +447,14 @@ await it("D2 — Reconciler applies correction atomically and writes an audit_lo
     );
 
     // DB value must no longer be the corrupted amount
-    const { rows: after } = await pool.query<{ provider_earning: string }>(
-      `SELECT provider_earning FROM provider_earnings WHERE id = $1`,
+    const { rows: after } = await pool.query<{ provider_net_earnings_amount_usd: string }>(
+      `SELECT provider_net_earnings_amount_usd FROM provider_earnings WHERE id = $1`,
       [target.id],
     );
     assert.notStrictEqual(
-      parseFloat(after[0].provider_earning).toFixed(2),
+      parseFloat(after[0].provider_net_earnings_amount_usd).toFixed(2),
       corruptedAmount,
-      "provider_earning must have been corrected away from the corrupted value",
+      "canonical provider net earnings must have been corrected away from the corrupted value",
     );
 
     // An audit_log row must exist for this reconciliation
@@ -469,7 +469,7 @@ await it("D2 — Reconciler applies correction atomically and writes an audit_lo
     assert.ok(auditRows.length > 0, "Expected an audit_log entry for the reconciliation");
   } finally {
     // Restore pre-test state and clean up test audit entries
-    await pool.query(`UPDATE provider_earnings SET provider_earning = $1 WHERE id = $2`, [
+    await pool.query(`UPDATE provider_earnings SET provider_net_earnings_amount_usd = $1 WHERE id = $2`, [
       target.originalAmount,
       target.id,
     ]);

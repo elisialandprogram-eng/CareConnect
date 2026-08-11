@@ -28,11 +28,23 @@ const card = settlement("card");
 assert.equal(card.grossProviderPayoutUsd, 100, "card gross includes tax");
 assert.equal(card.providerPayoutUsd, 100, "card payout does not deduct platform fee");
 assert.equal(card.cashPlatformFeeDeductionUsd, 0, "card has no deferred cash fee");
+assert.equal(card.serviceTaxPassThroughUsd, 20, "service tax is passed through to provider");
 
 const cash = settlement("cash");
 assert.equal(cash.grossProviderPayoutUsd, 100, "cash gross includes tax");
 assert.equal(cash.providerPayoutUsd, 0, "cash has no withdrawable payout");
 assert.equal(cash.cashPlatformFeeDeductionUsd, 15, "cash fee is tracked separately");
+
+const platformTaxOnly = calculateProviderSettlement({
+  providerNetEarningsLocal: 100,
+  serviceTaxLocal: 0,
+  platformFeeLocal: 15,
+  paymentMethod: "card",
+  bookingCurrency: "USD",
+  rates,
+});
+assert.equal(platformTaxOnly.providerNetEarningsUsd, 100, "platform tax does not reduce provider net");
+assert.equal(platformTaxOnly.serviceTaxPassThroughUsd, 0, "no service tax remains zero");
 
 const bankTransfer = settlement("bank_transfer");
 assert.equal(bankTransfer.providerPayoutUsd, 0, "bank transfer has no withdrawable payout");

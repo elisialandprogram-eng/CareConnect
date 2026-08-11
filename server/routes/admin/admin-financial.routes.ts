@@ -183,7 +183,7 @@ export function registerAdminFinancialRoutes(app: Express): void {
             - CASE WHEN a.total_amount::numeric > 0 THEN ROUND(COALESCE(a.platform_fee_amount::numeric, 0) / a.total_amount::numeric * COALESCE(a.final_total_usd, a.total_amount)::numeric, 4) ELSE 0 END
             - CASE WHEN a.total_amount::numeric > 0 THEN ROUND(COALESCE(a.refund_amount::numeric, 0) / a.total_amount::numeric * COALESCE(a.final_total_usd, a.total_amount)::numeric, 4) ELSE 0 END
             ELSE 0 END), 0) AS net_earnings,
-          COALESCE((SELECT SUM(COALESCE(pe.gross_provider_payout_usd, pe.provider_earning, 0))
+          COALESCE((SELECT SUM(COALESCE(pe.gross_provider_payout_usd, 0))
                     FROM provider_earnings pe
                     LEFT JOIN appointments ea ON ea.id = pe.appointment_id
                     WHERE pe.provider_id = p.id
@@ -196,7 +196,7 @@ export function registerAdminFinancialRoutes(app: Express): void {
                       AND COALESCE(pe.payment_method, ea.payment_method, 'card')
                             NOT IN ('cash', 'bank_transfer')), 0) AS settlement_tax_pass_through,
           0 AS settlement_cash_platform_fee,
-          COALESCE((SELECT SUM(COALESCE(pe.settlement_amount_usd, pe.provider_earning, 0))
+          COALESCE((SELECT SUM(COALESCE(pe.settlement_amount_usd, 0))
                     FROM provider_earnings pe
                     LEFT JOIN appointments ea ON ea.id = pe.appointment_id
                     WHERE pe.provider_id = p.id
@@ -308,9 +308,7 @@ export function registerAdminFinancialRoutes(app: Express): void {
           SELECT
             a.id,
             COALESCE(pe.status, 'pending') AS status,
-            COALESCE(pe.provider_earning::text,
-              CASE WHEN a.total_amount::numeric > 0 THEN ROUND((1 - COALESCE(a.platform_fee_amount::numeric,0) / a.total_amount::numeric) * COALESCE(a.final_total_usd, a.total_amount)::numeric, 4) ELSE 0 END::text
-            ) AS provider_earning,
+            pe.provider_net_earnings_amount_usd::text AS provider_net_earnings_usd,
             COALESCE(pe.platform_fee::text,
               CASE WHEN a.total_amount::numeric > 0 THEN ROUND(COALESCE(a.platform_fee_amount::numeric,0) / a.total_amount::numeric * COALESCE(a.final_total_usd, a.total_amount)::numeric, 4) ELSE 0 END::text
             ) AS platform_fee,
@@ -521,9 +519,10 @@ export function registerAdminFinancialRoutes(app: Express): void {
       const params: any[] = countryFilter ? [countryFilter] : [];
       const { rows } = await pool.query(`
         SELECT pe.*,
+               pe.provider_net_earnings_amount_usd AS provider_net_earnings_usd,
                u.first_name, u.last_name, u.email,
                p.provider_type, p.country_code
-               ,COALESCE((SELECT SUM(COALESCE(pe.gross_provider_payout_usd, pe.provider_earning, 0))
+               ,COALESCE((SELECT SUM(COALESCE(pe.gross_provider_payout_usd, 0))
                           FROM provider_earnings pe
                           LEFT JOIN appointments ea ON ea.id = pe.appointment_id
                           WHERE pe.provider_id = p.id
@@ -536,7 +535,7 @@ export function registerAdminFinancialRoutes(app: Express): void {
                             AND COALESCE(pe.payment_method, ea.payment_method, 'card')
                                   NOT IN ('cash', 'bank_transfer')), 0) AS tax_pass_through_usd
                ,0 AS cash_platform_fee_deductions_usd
-               ,COALESCE((SELECT SUM(COALESCE(pe.settlement_amount_usd, pe.provider_earning, 0))
+               ,COALESCE((SELECT SUM(COALESCE(pe.settlement_amount_usd, 0))
                           FROM provider_earnings pe
                           LEFT JOIN appointments ea ON ea.id = pe.appointment_id
                           WHERE pe.provider_id = p.id
@@ -621,12 +620,12 @@ export function registerAdminFinancialRoutes(app: Express): void {
                p.country_code::text AS country_code,
                a.appointment_number, a.date AS appointment_date, a.start_time,
                pe.payment_method,
-               COALESCE(pe.service_earnings_amount_usd, pe.provider_earning, 0)::numeric AS service_earnings_usd,
+               COALESCE(pe.service_earnings_amount_usd, 0)::numeric AS service_earnings_usd,
                COALESCE(pe.tax_pass_through_amount_usd, 0)::numeric AS tax_pass_through_usd,
-               COALESCE(pe.gross_provider_payout_usd, pe.provider_earning, 0)::numeric AS gross_provider_payout_usd,
+               COALESCE(pe.gross_provider_payout_usd, 0)::numeric AS gross_provider_payout_usd,
                COALESCE(pe.cash_platform_fee_deduction_usd, 0)::numeric AS cash_platform_fee_deduction_usd,
                COALESCE(pe.cash_platform_fee_applied_usd, 0)::numeric AS cash_platform_fee_applied_usd,
-               COALESCE(pe.settlement_amount_usd, pe.provider_earning, 0)::numeric AS final_settlement_usd,
+               COALESCE(pe.settlement_amount_usd, 0)::numeric AS final_settlement_usd,
                CASE WHEN COALESCE(pe.cash_platform_fee_applied_usd, 0) >= COALESCE(pe.cash_platform_fee_deduction_usd, 0)
                     THEN 'applied' ELSE 'pending' END AS deduction_status,
                pe.cash_platform_fee_payout_request_id AS payout_request_id,
@@ -663,12 +662,12 @@ export function registerAdminFinancialRoutes(app: Express): void {
       const { rows } = await pool.query(`
         SELECT pe.provider_id, COALESCE(NULLIF(TRIM(COALESCE(u.first_name,'') || ' ' || COALESCE(u.last_name,'')), ''), p.clinic_name, 'Unknown') AS provider_name,
                p.country_code::text AS country_code, pe.appointment_id, a.appointment_number, a.date AS appointment_date,
-               pe.payment_method, COALESCE(pe.service_earnings_amount_usd, pe.provider_earning, 0) AS service_earnings_usd,
+               pe.payment_method, COALESCE(pe.service_earnings_amount_usd, 0) AS service_earnings_usd,
                COALESCE(pe.tax_pass_through_amount_usd, 0) AS tax_pass_through_usd,
-               COALESCE(pe.gross_provider_payout_usd, pe.provider_earning, 0) AS gross_provider_payout_usd,
+               COALESCE(pe.gross_provider_payout_usd, 0) AS gross_provider_payout_usd,
                COALESCE(pe.cash_platform_fee_deduction_usd, 0) AS cash_platform_fee_deduction_usd,
                COALESCE(pe.cash_platform_fee_applied_usd, 0) AS cash_platform_fee_applied_usd,
-               COALESCE(pe.settlement_amount_usd, pe.provider_earning, 0) AS final_settlement_usd,
+               COALESCE(pe.settlement_amount_usd, 0) AS final_settlement_usd,
                CASE WHEN COALESCE(pe.cash_platform_fee_applied_usd, 0) >= COALESCE(pe.cash_platform_fee_deduction_usd, 0) THEN 'applied' ELSE 'pending' END AS deduction_status,
                pe.created_at
         FROM provider_earnings pe
@@ -1507,13 +1506,9 @@ export function registerAdminFinancialRoutes(app: Express): void {
   });
 
   // ── Earnings data-repair endpoint ─────────────────────────────────────────
-  // The original recordProviderEarning() contained a double-conversion bug:
-  // it called toUSDSync(total_amount, "HUF", rates) even though total_amount
-  // is already stored in USD. For a $13.70 booking this wrote 0.04 to
-  // provider_earnings and provider_wallets (13.70 ÷ 365 HUF rate).
-  //
-  // GET  ?preview=true  — shows affected rows and correction amounts (safe)
-  // POST               — applies the correction (global_admin only)
+  // Repairs derived provider-earnings fields from the immutable appointment
+  // provider-net snapshot. It never reconstructs provider economics from
+  // patient totals or platform fees.
   // ──────────────────────────────────────────────────────────────────────────
   app.get("/api/admin/financial/repair-earnings/preview", authenticateToken, requireAdmin, async (req: AuthRequest, res: Response) => {
     try {
@@ -1525,33 +1520,24 @@ export function registerAdminFinancialRoutes(app: Express): void {
           pe.id,
           pe.provider_id,
           pe.appointment_id,
-          pe.provider_earning::numeric             AS stored_earning,
-          pe.total_amount::numeric                 AS stored_total,
-          a.total_amount::numeric                  AS correct_total,
-          a.platform_fee_amount::numeric           AS correct_fee,
-          GREATEST(0,
-            a.total_amount::numeric -
-            COALESCE(a.platform_fee_amount::numeric, 0)
-          )                                        AS correct_earning,
+           pe.provider_net_earnings_amount_usd::numeric AS stored_earning,
+           a.provider_net_earnings_snapshot::numeric
+             * COALESCE(NULLIF(pe.exchange_rate_used::numeric, 0), 1) AS correct_earning,
           ABS(
-            pe.provider_earning::numeric -
-            GREATEST(0,
-              a.total_amount::numeric -
-              COALESCE(a.platform_fee_amount::numeric, 0)
-            )
+             pe.provider_net_earnings_amount_usd::numeric -
+             a.provider_net_earnings_snapshot::numeric
+               * COALESCE(NULLIF(pe.exchange_rate_used::numeric, 0), 1)
           )                                        AS delta,
           p.country_code::text                     AS country_code
         FROM provider_earnings pe
         JOIN appointments a  ON a.id  = pe.appointment_id
         JOIN providers p     ON p.id  = pe.provider_id
         WHERE a.payment_status = 'completed'
-          AND ABS(
-                pe.provider_earning::numeric -
-                GREATEST(0,
-                  a.total_amount::numeric -
-                  COALESCE(a.platform_fee_amount::numeric, 0)
-                )
-              ) > 0.001
+           AND ABS(
+                 pe.provider_net_earnings_amount_usd::numeric -
+                 a.provider_net_earnings_snapshot::numeric
+                   * COALESCE(NULLIF(pe.exchange_rate_used::numeric, 0), 1)
+               ) > 0.001
         ORDER BY delta DESC
         LIMIT 500
       `);
@@ -1820,79 +1806,92 @@ export function registerAdminFinancialRoutes(app: Express): void {
       try {
         await client.query("BEGIN");
 
-        // Step 1: Correct provider_earnings rows where stored value differs from source
+         // Step 1: Correct derived provider-earnings fields from the immutable
+         // appointment provider-net snapshot.
         const earningsResult = await client.query(`
           UPDATE provider_earnings pe
           SET
-            total_amount     = a.total_amount,
-            platform_fee     = COALESCE(a.platform_fee_amount, '0'),
-            provider_earning = GREATEST(0,
-                                 a.total_amount::numeric -
-                                 COALESCE(a.platform_fee_amount::numeric, 0)
-                               )::text,
+             provider_net_earnings_amount_usd = ROUND(
+               a.provider_net_earnings_snapshot::numeric
+               * COALESCE(NULLIF(pe.exchange_rate_used::numeric, 0), 1), 2
+             ),
+             provider_net_earnings_amount_local = a.provider_net_earnings_snapshot,
+             service_tax_amount_usd = ROUND(
+               COALESCE(a.service_tax_amount::numeric, 0)
+               * COALESCE(NULLIF(pe.exchange_rate_used::numeric, 0), 1), 2
+             ),
+             tax_pass_through_amount_usd = ROUND(
+               COALESCE(a.service_tax_amount::numeric, 0)
+               * COALESCE(NULLIF(pe.exchange_rate_used::numeric, 0), 1), 2
+             ),
+             service_earnings_amount_usd = GREATEST(0, ROUND(
+               (a.provider_net_earnings_snapshot::numeric
+                - COALESCE(a.service_tax_amount::numeric, 0))
+               * COALESCE(NULLIF(pe.exchange_rate_used::numeric, 0), 1), 2
+             )),
+             gross_provider_payout_usd = ROUND(
+               a.provider_net_earnings_snapshot::numeric
+               * COALESCE(NULLIF(pe.exchange_rate_used::numeric, 0), 1), 2
+             ),
+             settlement_amount_usd = CASE
+               WHEN COALESCE(pe.payment_method, a.payment_method, 'card')
+                    IN ('cash', 'bank_transfer') THEN 0
+               ELSE ROUND(
+                 a.provider_net_earnings_snapshot::numeric
+                 * COALESCE(NULLIF(pe.exchange_rate_used::numeric, 0), 1), 2
+               )
+             END,
             updated_at       = NOW()
           FROM appointments a
           WHERE a.id = pe.appointment_id
             AND a.payment_status = 'completed'
             AND ABS(
-                  pe.provider_earning::numeric -
-                  GREATEST(0,
-                    a.total_amount::numeric -
-                    COALESCE(a.platform_fee_amount::numeric, 0)
-                  )
+                   pe.provider_net_earnings_amount_usd::numeric -
+                   a.provider_net_earnings_snapshot::numeric
+                     * COALESCE(NULLIF(pe.exchange_rate_used::numeric, 0), 1)
                 ) > 0.001
           RETURNING pe.id
         `);
         const offlineReset = await client.query(`
           UPDATE provider_earnings pe
-          SET provider_earning = '0',
-              settlement_amount_usd = 0,
+           SET settlement_amount_usd = 0,
               updated_at = NOW()
           FROM appointments a
           WHERE a.id = pe.appointment_id
             AND COALESCE(pe.payment_method, a.payment_method, 'card')
                   IN ('cash', 'bank_transfer')
-            AND (COALESCE(pe.provider_earning::numeric, 0) <> 0
-              OR COALESCE(pe.settlement_amount_usd::numeric, 0) <> 0)
+             AND COALESCE(pe.settlement_amount_usd::numeric, 0) <> 0
           RETURNING pe.id
         `);
         earningsFixed = (earningsResult.rowCount ?? 0) + (offlineReset.rowCount ?? 0);
 
-        // Step 2: Recalculate provider_wallets from corrected provider_earnings.
-        // available_balance = sum of unpaid earnings (status != 'paid')
-        // lifetime_earnings = sum of all earnings regardless of status
+         // Step 2: Rebuild wallet snapshots from the canonical provider ledger,
+         // not by summing appointment earnings and subtracting payouts again.
         const walletsResult = await client.query(`
           UPDATE provider_wallets pw
           SET
             lifetime_earnings = COALESCE((
-              SELECT SUM(pe.provider_earning::numeric)
-              FROM provider_earnings pe
-              LEFT JOIN appointments ea ON ea.id = pe.appointment_id
-              WHERE pe.provider_id = pw.provider_id
-                AND COALESCE(pe.payment_method, ea.payment_method, 'card')
-                      NOT IN ('cash', 'bank_transfer')
+               SELECT SUM(pl.amount::numeric)
+               FROM provider_ledger pl
+               WHERE pl.provider_id = pw.provider_id
+                 AND pl.entry_type = 'booking_income'
             ), 0),
             available_balance = COALESCE((
-              SELECT SUM(pe.provider_earning::numeric)
-              FROM provider_earnings pe
-              LEFT JOIN appointments ea ON ea.id = pe.appointment_id
-              WHERE pe.provider_id = pw.provider_id
-                AND pe.status != 'paid'
-                AND COALESCE(pe.payment_method, ea.payment_method, 'card')
-                      NOT IN ('cash', 'bank_transfer')
-            ), 0) - COALESCE((
-              SELECT SUM(pr.amount::numeric)
-              FROM payout_requests pr
-              WHERE pr.provider_id = pw.provider_id
-                AND pr.status = 'paid'
+               SELECT SUM(pl.amount::numeric)
+               FROM provider_ledger pl
+               WHERE pl.provider_id = pw.provider_id
+                 AND pl.entry_type IN (
+                   'booking_income', 'refund_deduction', 'payout_held',
+                   'payout_deduction', 'payout_returned', 'manual_correction',
+                   'wallet_adjustment', 'commission_deduction',
+                   'cash_platform_fee_deduction', 'membership_charge',
+                   'package_charge'
+                 )
             ), 0),
             updated_at = NOW()
           WHERE EXISTS (
-            SELECT 1 FROM provider_earnings pe
-            LEFT JOIN appointments ea ON ea.id = pe.appointment_id
-            WHERE pe.provider_id = pw.provider_id
-              AND COALESCE(pe.payment_method, ea.payment_method, 'card')
-                    NOT IN ('cash', 'bank_transfer')
+             SELECT 1 FROM provider_ledger pl
+             WHERE pl.provider_id = pw.provider_id
           )
           RETURNING pw.provider_id
         `);
@@ -2389,7 +2388,7 @@ export function registerAdminFinancialRoutes(app: Express): void {
             pay.refunded_amount       AS payment_refunded_amount,
             -- Provider earnings
             pe.id               AS earning_id,
-            pe.provider_earning AS provider_earning,
+            pe.provider_net_earnings_amount_usd AS provider_net_earnings_usd,
             pe.platform_fee     AS earning_platform_fee,
             pe.total_amount     AS earning_total_amount,
             pe.status           AS earning_status,
@@ -2450,7 +2449,7 @@ export function registerAdminFinancialRoutes(app: Express): void {
               WHEN a.payment_status = 'completed'
                AND COALESCE(pay.payment_method, pe.payment_method, a.payment_method, 'card')
                      NOT IN ('cash', 'bank_transfer')
-              THEN pe.provider_earning::numeric ELSE 0 END), 0)                       AS provider_earnings,
+              THEN pe.provider_net_earnings_amount_usd::numeric ELSE 0 END), 0)       AS provider_earnings,
             COALESCE(SUM(CASE WHEN a.refund_status='processed' AND a.total_amount::numeric > 0 THEN ROUND(COALESCE(a.refund_amount::numeric,0) / a.total_amount::numeric * COALESCE(a.final_total_usd, a.total_amount)::numeric, 4) ELSE 0 END), 0) AS total_refunds,
             COALESCE(SUM(CASE WHEN a.payment_status='completed' AND a.total_amount::numeric > 0 THEN ROUND(COALESCE(a.tax_amount::numeric,0) / a.total_amount::numeric * COALESCE(a.final_total_usd, a.total_amount)::numeric, 4) ELSE 0 END), 0) AS taxes_collected,
             COALESCE(SUM(CASE WHEN a.payment_status='completed' AND a.total_amount::numeric > 0 THEN ROUND(COALESCE(a.promo_discount::numeric,0) / a.total_amount::numeric * COALESCE(a.final_total_usd, a.total_amount)::numeric, 4) ELSE 0 END), 0) AS promo_discounts,
@@ -2458,7 +2457,7 @@ export function registerAdminFinancialRoutes(app: Express): void {
               WHEN pe.status = 'pending'
                AND COALESCE(pay.payment_method, pe.payment_method, a.payment_method, 'card')
                      NOT IN ('cash', 'bank_transfer')
-              THEN pe.provider_earning::numeric ELSE 0 END), 0)                       AS pending_payouts
+              THEN pe.provider_net_earnings_amount_usd::numeric ELSE 0 END), 0)       AS pending_payouts
           ${MASTER_JOIN}
           WHERE ${where}
         `;
@@ -2555,8 +2554,7 @@ export function registerAdminFinancialRoutes(app: Express): void {
             a.total_amount                              AS "Booking Amount",
             COALESCE(a.final_total_usd, a.total_amount) AS "Normalized USD Amount",
             a.platform_fee_amount                       AS "Platform Fee (USD)",
-            pe.provider_earning                         AS "Provider Gross (USD)",
-            (pe.provider_earning::numeric - COALESCE(pe.platform_fee::numeric,0)) AS "Provider Net (USD)",
+            pe.provider_net_earnings_amount_usd        AS "Provider Net Earnings (USD)",
             a.promo_discount                            AS "Promo Discount",
             a.promo_code                                AS "Promo Code",
              a.service_tax_rate                          AS "Service Tax Rate",

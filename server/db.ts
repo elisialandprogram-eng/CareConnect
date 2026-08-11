@@ -3283,22 +3283,24 @@ async function seedRbacRoles(): Promise<void> {
           pe.provider_id,
           pe.appointment_id,
           pe.provider_earning::numeric AS old_provider_earning,
-          COALESCE(pe.provider_earning::numeric, 0) AS service_earnings_amount_usd,
-          ROUND(COALESCE(a.tax_amount::numeric, 0) * fx.usd_per_local, 2) AS tax_pass_through_amount_usd,
+          GREATEST(0, COALESCE(a.provider_net_earnings_snapshot::numeric, 0)
+            - COALESCE(a.service_tax_amount::numeric, 0)) * fx.usd_per_local
+            AS service_earnings_amount_usd,
+          ROUND(COALESCE(a.service_tax_amount::numeric, 0) * fx.usd_per_local, 2)
+            AS tax_pass_through_amount_usd,
           CASE
             WHEN LOWER(COALESCE(pay.payment_method, a.payment_method, 'card')) IN ('cash', 'bank_transfer')
             THEN ROUND(COALESCE(a.platform_fee_amount::numeric, 0) * fx.usd_per_local, 2)
             ELSE 0
           END AS cash_platform_fee_deduction_usd,
-          ROUND(COALESCE(pe.provider_earning::numeric, 0) + COALESCE(a.tax_amount::numeric, 0) * fx.usd_per_local, 2)
+          ROUND(COALESCE(a.provider_net_earnings_snapshot::numeric, 0) * fx.usd_per_local, 2)
             AS gross_provider_payout_usd,
           CASE
             WHEN LOWER(COALESCE(pay.payment_method, a.payment_method, 'card')) IN ('cash', 'bank_transfer')
             THEN 0
             ELSE GREATEST(0, ROUND(
-            COALESCE(pe.provider_earning::numeric, 0)
-            + COALESCE(a.tax_amount::numeric, 0) * fx.usd_per_local
-            , 2
+              COALESCE(a.provider_net_earnings_snapshot::numeric, 0) * fx.usd_per_local,
+              2
             ))
           END AS settlement_amount_usd,
           LOWER(COALESCE(pay.payment_method, a.payment_method, 'card')) AS payment_method,
@@ -3345,10 +3347,6 @@ async function seedRbacRoles(): Promise<void> {
           cash_platform_fee_deduction_usd = b.cash_platform_fee_deduction_usd,
           gross_provider_payout_usd = b.gross_provider_payout_usd,
           settlement_amount_usd = b.settlement_amount_usd,
-          provider_earning = CASE
-            WHEN b.payment_method IN ('cash', 'bank_transfer') THEN 0
-            ELSE b.gross_provider_payout_usd
-          END,
           payment_method = b.payment_method
         FROM provider_settlement_backfill b
         WHERE pe.id = b.id

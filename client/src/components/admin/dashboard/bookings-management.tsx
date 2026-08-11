@@ -101,7 +101,7 @@ interface BookingRow {
   payment_refund_status: string | null;
   payment_refunded_amount: string | null;
   // Earnings
-  provider_earning: string | null;
+  provider_net_earnings_usd: string | null;
   earning_platform_fee: string | null;
   earning_status: string | null;
   payout_reference: string | null;
@@ -386,7 +386,7 @@ function InvestigationDrawer({
             {row.promo_code && <Row label="Promo Code" value={row.promo_code} />}
             {n(row.refund_amount) > 0 && <Row label="Refund Amount" value={fmtLocal(n(row.refund_amount))} />}
             {row.exchange_rate_used && cur !== "USD" && <Row label="Exchange Rate" value={`1 USD = ${row.exchange_rate_used} ${cur}`} />}
-            <Row label="Provider Net (USD)" value={row.provider_earning ? fmt(n(row.provider_earning)) : null} />
+            <Row label="Provider Net Earnings (USD)" value={row.provider_net_earnings_usd ? fmt(n(row.provider_net_earnings_usd)) : null} />
           </Section>
 
           {/* G: Payment */}

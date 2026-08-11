@@ -3,14 +3,15 @@
  *
  * POST /api/admin/financial/reconcile
  *   — Dry-run (default): scan provider_earnings for rows where the stored
- *     provider_earning diverges from the canonical formula, and return a
- *     JSON matrix of discrepancies.
+ *     canonical USD net snapshot diverges from the immutable appointment
+ *     provider-net snapshot, and return a JSON matrix of discrepancies.
  *   — Apply (?apply=true): wrap all corrections in a single Drizzle
  *     db.transaction; insert an audit_logs row for every mutated record
  *     before committing.  Any individual failure rolls back the entire batch.
  *
  * Canonical formula:
- *   canonical = (total_amount - platform_fee) * (fee_split_ratio ?? 1.0)
+ *   canonical USD net = appointment.provider_net_earnings_snapshot
+ *                       × provider_earnings.exchange_rate_used
  *
  * Auth: admin role + PAYMENTS_VIEW permission required.
  */
@@ -79,7 +80,7 @@ export function registerFinancialReconcileRoutes(app: Express): void {
           total_amount: string;
           platform_fee: string;
           stored_earning: string;
-          fee_split_ratio: string | null;
+  canonical_net_usd: string;
           provider_name: string;
           status: string;
           created_at: Date;
@@ -90,14 +91,19 @@ export function registerFinancialReconcileRoutes(app: Express): void {
              pe.appointment_id,
              pe.total_amount::text         AS total_amount,
              pe.platform_fee::text         AS platform_fee,
-             pe.provider_earning::text     AS stored_earning,
+             pe.provider_net_earnings_amount_usd::text AS stored_earning,
+             ROUND(
+               COALESCE(a.provider_net_earnings_snapshot::numeric, 0)
+               * COALESCE(NULLIF(pe.exchange_rate_used::numeric, 0), 1),
+               2
+             )::text AS canonical_net_usd,
              pe.status,
              pe.created_at,
-             p.fee_split_ratio::text       AS fee_split_ratio,
              u.first_name || ' ' || u.last_name AS provider_name
            FROM provider_earnings pe
            JOIN providers p ON p.id = pe.provider_id
            JOIN users    u ON u.id = p.user_id
+           JOIN appointments a ON a.id = pe.appointment_id
            WHERE pe.created_at >= $1
              AND pe.created_at <= $2
            ORDER BY pe.created_at DESC`,
@@ -107,16 +113,8 @@ export function registerFinancialReconcileRoutes(app: Express): void {
         const discrepancies: EarningDiscrepancy[] = [];
 
         for (const row of rows) {
-          const totalAmount   = parseFloat(row.total_amount);
-          const platformFee   = parseFloat(row.platform_fee);
           const storedEarning = parseFloat(row.stored_earning);
-          const feeSplitRatio =
-            row.fee_split_ratio !== null ? parseFloat(row.fee_split_ratio) : null;
-
-          const netAmount      = totalAmount - platformFee;
-          const canonicalAmount = round2(
-            feeSplitRatio !== null ? netAmount * feeSplitRatio : netAmount,
-          );
+          const canonicalAmount = round2(parseFloat(row.canonical_net_usd));
           const delta = round2(canonicalAmount - round2(storedEarning));
 
           if (Math.abs(delta) > 0.005) {
@@ -161,7 +159,11 @@ export function registerFinancialReconcileRoutes(app: Express): void {
 
               await tx.execute(
                 sql`UPDATE provider_earnings
-                    SET provider_earning = ${newAmountStr}::numeric
+                    SET provider_net_earnings_amount_usd = ${newAmountStr}::numeric,
+                        gross_provider_payout_usd = GREATEST(
+                          provider_gross_earnings_amount_usd,
+                          ${newAmountStr}::numeric
+                        )
                     WHERE id = ${row.id}`,
               );
 
