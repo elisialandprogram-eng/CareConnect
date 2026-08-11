@@ -15,8 +15,8 @@ const rates = { HUF: 10, IRR: 500_000, USD: 1 };
 
 function settlement(paymentMethod: string) {
   return calculateProviderSettlement({
-    serviceEarningsLocal: 80,
-    taxLocal: 20,
+    providerNetEarningsLocal: 100,
+    serviceTaxLocal: 20,
     platformFeeLocal: 15,
     paymentMethod,
     bookingCurrency: "USD",

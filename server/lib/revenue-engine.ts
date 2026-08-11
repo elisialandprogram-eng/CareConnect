@@ -99,7 +99,9 @@ export interface RevenueEngineResult extends PricingBreakdown {
   patientPayable: number;
   /** Gross platform revenue (fees + commission, in bookingCurrency) */
   platformRevenue: number;
-  /** Net provider earnings after commission (in bookingCurrency) */
+  /** Provider gross earnings before provider-borne deductions (in bookingCurrency). */
+  providerGrossEarnings: number;
+  /** Canonical provider net earnings after provider-borne deductions (in bookingCurrency). */
   providerEarnings: number;
   /** Effective commission rate % applied */
   commissionRate: number;
@@ -491,8 +493,14 @@ export async function runRevenueEngine(input: RevenueEngineInput): Promise<Reven
   const total = round2(taxableSubtotal + taxBreakdown.totalTax);
   const patientPayable = total;
 
-  // 7. Provider earnings = base - commission (in bookingCurrency)
-  const providerEarnings = round2(base.base - commissionAmount);
+  // 7. Provider economics are independent from the patient total. Service
+  // charges and service tax belong to the provider; platform tax does not.
+  // The tax engine has already allocated discounts across the two domains, so
+  // serviceTaxableSubtotal is the authoritative provider service base.
+  const providerGrossEarnings = round2(
+    taxBreakdown.serviceTaxableSubtotal + taxBreakdown.serviceTax,
+  );
+  const providerEarnings = round2(Math.max(0, providerGrossEarnings - commissionAmount));
 
   // 8. Platform revenue = fees + commission + surcharge (in bookingCurrency)
   const platformRevenue = round2(enginePlatformFee + commissionAmount + Math.max(0, paymentSurcharge));
@@ -566,6 +574,7 @@ export async function runRevenueEngine(input: RevenueEngineInput): Promise<Reven
     engineTravelFee,
     patientPayable,
     platformRevenue,
+    providerGrossEarnings,
     providerEarnings,
     commissionRate,
     commissionAmount,
@@ -666,7 +675,10 @@ export function runRevenueEngineSync(
   const taxableSubtotal = round2(base.taxableSubtotal + platformFeeDelta + paymentSurcharge + engineTravelFee);
   const total = round2(taxableSubtotal + taxBreakdown.totalTax);
   const patientPayable  = total;
-  const providerEarnings= round2(base.base - commissionAmount);
+  const providerGrossEarnings = round2(
+    taxBreakdown.serviceTaxableSubtotal + taxBreakdown.serviceTax,
+  );
+  const providerEarnings = round2(Math.max(0, providerGrossEarnings - commissionAmount));
   const platformRevenue = round2(enginePlatformFee + commissionAmount + Math.max(0, paymentSurcharge));
 
   const revenueShares: RevenueShare[] = rules.revenueShareRules
@@ -723,6 +735,7 @@ export function runRevenueEngineSync(
     engineTravelFee,
     patientPayable,
     platformRevenue,
+    providerGrossEarnings,
     providerEarnings,
     commissionRate,
     commissionAmount,

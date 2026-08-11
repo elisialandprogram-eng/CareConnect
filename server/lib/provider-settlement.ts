@@ -4,10 +4,10 @@ import type { PoolClient } from "pg";
 export const OFFLINE_PAYMENT_METHODS = new Set(["cash", "bank_transfer"]);
 
 export interface ProviderSettlementInput {
-  /** Provider's service share before tax and cash-fee settlement, in booking currency. */
-  serviceEarningsLocal: number;
-  /** Tax paid by the patient, in booking currency. */
-  taxLocal: number;
+  /** Canonical provider net earnings from the immutable booking snapshot. */
+  providerNetEarningsLocal: number;
+  /** Service tax passed through to the provider, kept separate from platform tax. */
+  serviceTaxLocal: number;
   /** Platform fee billed to the patient, in booking currency. */
   platformFeeLocal: number;
   paymentMethod: string | null | undefined;
@@ -19,13 +19,13 @@ export interface ProviderSettlementInput {
 export interface ProviderSettlement {
   paymentMethod: string;
   isOffline: boolean;
-  serviceEarningsLocal: number;
-  taxLocal: number;
+  providerNetEarningsLocal: number;
+  serviceTaxLocal: number;
   cashPlatformFeeLocal: number;
   grossProviderPayoutLocal: number;
   providerPayoutLocal: number;
-  serviceEarningsUsd: number;
-  taxPassThroughUsd: number;
+  providerNetEarningsUsd: number;
+  serviceTaxPassThroughUsd: number;
   cashPlatformFeeDeductionUsd: number;
   grossProviderPayoutUsd: number;
   providerPayoutUsd: number;
@@ -34,7 +34,7 @@ export interface ProviderSettlement {
 
 /**
  * Canonical provider settlement:
- *   gross provider payout = service share + patient-paid tax
+ *   provider payout base = canonical provider net earnings
  *   online final provider payout = gross provider payout
  *   offline final provider payout = 0 (offline payments never enter the
  *   platform/provider payout wallet)
@@ -49,21 +49,21 @@ export function calculateProviderSettlement(input: ProviderSettlementInput): Pro
     ? Number(input.rates[input.bookingCurrency] ?? 1)
     : 1;
 
-  const serviceEarningsLocal = round2(Math.max(0, Number(input.serviceEarningsLocal) || 0));
-  const taxLocal = round2(Math.max(0, Number(input.taxLocal) || 0));
+  const providerNetEarningsLocal = round2(Math.max(0, Number(input.providerNetEarningsLocal) || 0));
+  const serviceTaxLocal = round2(Math.max(0, Number(input.serviceTaxLocal) || 0));
   const cashPlatformFeeLocal = isOffline
     ? round2(Math.max(0, Number(input.platformFeeLocal) || 0))
     : 0;
-  const grossProviderPayoutLocal = round2(serviceEarningsLocal + taxLocal);
+  const grossProviderPayoutLocal = providerNetEarningsLocal;
   const providerPayoutLocal = isOffline
     ? 0
     : grossProviderPayoutLocal;
 
   const toUsd = (value: number) => round2(value / exchangeRateUsed);
-  const serviceEarningsUsd = toUsd(serviceEarningsLocal);
-  const taxPassThroughUsd = toUsd(taxLocal);
+  const providerNetEarningsUsd = toUsd(providerNetEarningsLocal);
+  const serviceTaxPassThroughUsd = toUsd(serviceTaxLocal);
   const cashPlatformFeeDeductionUsd = toUsd(cashPlatformFeeLocal);
-  const grossProviderPayoutUsd = round2(serviceEarningsUsd + taxPassThroughUsd);
+  const grossProviderPayoutUsd = providerNetEarningsUsd;
   const providerPayoutUsd = isOffline
     ? 0
     : grossProviderPayoutUsd;
@@ -71,13 +71,13 @@ export function calculateProviderSettlement(input: ProviderSettlementInput): Pro
   return {
     paymentMethod,
     isOffline,
-    serviceEarningsLocal,
-    taxLocal,
+    providerNetEarningsLocal,
+    serviceTaxLocal,
     cashPlatformFeeLocal,
     grossProviderPayoutLocal,
     providerPayoutLocal,
-    serviceEarningsUsd,
-    taxPassThroughUsd,
+    providerNetEarningsUsd,
+    serviceTaxPassThroughUsd,
     cashPlatformFeeDeductionUsd,
     grossProviderPayoutUsd,
     providerPayoutUsd,
@@ -107,7 +107,7 @@ export async function linkCashFeeDeductionsToPayout(
         cash_platform_fee_applied_at = COALESCE(cash_platform_fee_applied_at, NOW()),
         settlement_amount_usd = GREATEST(
           0,
-          COALESCE(gross_provider_payout_usd, provider_earning, 0)
+          COALESCE(gross_provider_payout_usd, 0)
           - COALESCE(cash_platform_fee_applied_usd, 0)
         )
     WHERE id = ANY($2::varchar[])

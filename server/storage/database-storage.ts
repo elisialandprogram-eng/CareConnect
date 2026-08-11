@@ -3169,36 +3169,41 @@ export class DatabaseStorage extends PackagesMixin implements IStorage {
       }
 
       const totalAmountLocal = Number(appt.total_amount || 0);
-      const taxAmountLocal = Number(appt.tax_amount || 0);
+      // Tax ownership is part of the immutable appointment snapshot.
+      // Never use tax_amount here: it includes platform tax.
+      const serviceTaxAmountLocal = Number(appt.service_tax_amount || 0);
       const countryCode = appt.country_code || "HU";
       const currency = countryCurrency(countryCode as CountryCode);
       const pb = appt.pricing_breakdown as any;
-      let serviceEarningsLocal = Number(pb?.providerEarnings ?? 0);
-      let commissionLocal = Number(pb?.commissionAmount ?? 0);
+      let providerNetEarningsLocal = Number(pb?.providerEarnings ?? 0);
       const snapshot = await client.query(`
         SELECT
           COALESCE(provider_earnings_snapshot::numeric, 0) AS provider_earnings,
+          COALESCE(service_subtotal::numeric, 0) AS service_subtotal,
+          COALESCE(service_tax_amount::numeric, 0) AS service_tax_amount,
           COALESCE(commission_amount::numeric, 0) AS commission_amount
         FROM appointments WHERE id = $1
       `, [appointmentId]);
       if (Number(snapshot.rows[0]?.provider_earnings ?? 0) > 0) {
-        serviceEarningsLocal = Number(snapshot.rows[0].provider_earnings);
-        commissionLocal = Number(snapshot.rows[0].commission_amount ?? 0);
+        providerNetEarningsLocal = Number(snapshot.rows[0].provider_earnings);
       }
-      const split = Number(appt.fee_split_ratio);
-      if (!(serviceEarningsLocal > 0)) {
-        serviceEarningsLocal = Number.isFinite(split) && split >= 0 && split <= 1
-          ? Math.max(0, totalAmountLocal * split)
-          : Math.max(0, totalAmountLocal - Number(appt.platform_fee_amount || 0));
+      // Legacy appointments may contain the old base-minus-commission snapshot.
+      // Reconcile them from their stored booking snapshot, never from current
+      // tax or commission configuration.
+      if (!(providerNetEarningsLocal > 0) && Number(snapshot.rows[0]?.service_subtotal ?? 0) > 0) {
+        providerNetEarningsLocal = Math.max(
+          0,
+          Number(snapshot.rows[0].service_subtotal) +
+          Number(snapshot.rows[0].service_tax_amount ?? serviceTaxAmountLocal) -
+          Number(snapshot.rows[0].commission_amount ?? 0),
+        );
       }
-      const platformFeeLocal = commissionLocal > 0
-        ? commissionLocal
-        : Math.max(0, totalAmountLocal - serviceEarningsLocal);
+      const platformFeeLocal = Math.max(0, Number(appt.platform_fee_amount || 0));
 
       const settlement = calculateProviderSettlement({
-        serviceEarningsLocal,
-        taxLocal: taxAmountLocal,
-        platformFeeLocal: Number(appt.platform_fee_amount || 0),
+        providerNetEarningsLocal,
+        serviceTaxLocal: serviceTaxAmountLocal,
+        platformFeeLocal,
         paymentMethod: appt.settlement_payment_method,
         bookingCurrency: currency,
         rates: _rates,
@@ -3228,14 +3233,15 @@ export class DatabaseStorage extends PackagesMixin implements IStorage {
           appt.id,
           totalAmountUsd.toFixed(2),
           platformFeeUsd.toFixed(2),
-          // Offline rows are audit snapshots only. Their provider_earning and
-          // settlement amount must remain zero so they can never be paid out.
-          settlement.isOffline ? "0.00" : settlement.grossProviderPayoutUsd.toFixed(2),
+             // provider_earning is retained only as a non-authoritative legacy
+             // column because the database requires it. Actual settlement is
+             // represented by settlement_amount_usd.
+             settlement.grossProviderPayoutUsd.toFixed(2),
           currency,
           settlement.providerPayoutLocal.toFixed(2),
           exchangeRate.toFixed(6),
-          settlement.serviceEarningsUsd.toFixed(2),
-          settlement.taxPassThroughUsd.toFixed(2),
+           settlement.providerNetEarningsUsd.toFixed(2),
+           settlement.serviceTaxPassThroughUsd.toFixed(2),
           settlement.cashPlatformFeeDeductionUsd.toFixed(2),
           settlement.grossProviderPayoutUsd.toFixed(2),
           settlement.isOffline ? "0.00" : settlement.providerPayoutUsd.toFixed(2),

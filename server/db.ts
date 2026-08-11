@@ -3548,6 +3548,11 @@ export async function runProviderSettlementMigration(): Promise<void> {
   const columns = [
     ["provider_earnings", "service_earnings_amount_usd", "NUMERIC(14,2)"],
     ["provider_earnings", "tax_pass_through_amount_usd", "NUMERIC(14,2)"],
+    ["provider_earnings", "provider_gross_earnings_amount_usd", "NUMERIC(14,2)"],
+    ["provider_earnings", "provider_gross_earnings_amount_local", "NUMERIC(14,2)"],
+    ["provider_earnings", "provider_net_earnings_amount_usd", "NUMERIC(14,2)"],
+    ["provider_earnings", "provider_net_earnings_amount_local", "NUMERIC(14,2)"],
+    ["provider_earnings", "service_tax_amount_usd", "NUMERIC(14,2)"],
     ["provider_earnings", "cash_platform_fee_deduction_usd", "NUMERIC(14,2)"],
     ["provider_earnings", "cash_platform_fee_applied_usd", "NUMERIC(14,2) NOT NULL DEFAULT 0"],
     ["provider_earnings", "cash_platform_fee_applied_at", "TIMESTAMPTZ"],
@@ -3566,6 +3571,81 @@ export async function runProviderSettlementMigration(): Promise<void> {
     } catch (err: any) {
       console.warn(`[db] provider settlement column ${table}.${column}:`, err.message);
     }
+  }
+  // Backfill the canonical provider economics from the immutable appointment
+  // snapshot. The nested tax breakdown is preferred because it separates
+  // service tax from platform tax; current tax/commission rules are never read.
+  try {
+    await pool.query(`
+      UPDATE provider_earnings pe
+      SET
+        provider_gross_earnings_amount_local = COALESCE(
+          NULLIF((a.pricing_breakdown->>'providerGrossEarnings')::numeric, 0),
+          NULLIF((a.pricing_breakdown->'taxBreakdown'->>'serviceTaxableSubtotal')::numeric, 0)
+            + COALESCE(a.service_tax_amount::numeric, 0),
+          COALESCE(a.service_subtotal::numeric, 0) + COALESCE(a.service_tax_amount::numeric, 0),
+          COALESCE(a.provider_earnings_snapshot::numeric, 0) + COALESCE(a.commission_amount::numeric, 0)
+        ),
+        provider_net_earnings_amount_local = GREATEST(0, COALESCE(
+          NULLIF((a.pricing_breakdown->>'providerGrossEarnings')::numeric, 0),
+          NULLIF((a.pricing_breakdown->'taxBreakdown'->>'serviceTaxableSubtotal')::numeric, 0)
+            + COALESCE(a.service_tax_amount::numeric, 0),
+          COALESCE(a.service_subtotal::numeric, 0) + COALESCE(a.service_tax_amount::numeric, 0),
+          COALESCE(a.provider_earnings_snapshot::numeric, 0) + COALESCE(a.commission_amount::numeric, 0)
+        ) - COALESCE(a.commission_amount::numeric, 0)),
+        service_tax_amount_usd = ROUND(
+          COALESCE(a.service_tax_amount::numeric, 0) *
+          COALESCE(NULLIF(pe.exchange_rate_used::numeric, 0), 1), 2
+        ),
+        provider_gross_earnings_amount_usd = ROUND(
+          COALESCE(
+            NULLIF((a.pricing_breakdown->>'providerGrossEarnings')::numeric, 0),
+            NULLIF((a.pricing_breakdown->'taxBreakdown'->>'serviceTaxableSubtotal')::numeric, 0)
+              + COALESCE(a.service_tax_amount::numeric, 0),
+            COALESCE(a.service_subtotal::numeric, 0) + COALESCE(a.service_tax_amount::numeric, 0),
+            COALESCE(a.provider_earnings_snapshot::numeric, 0) + COALESCE(a.commission_amount::numeric, 0)
+          ) * COALESCE(NULLIF(pe.exchange_rate_used::numeric, 0), 1), 2
+        ),
+        provider_net_earnings_amount_usd = ROUND(
+          GREATEST(0, COALESCE(
+            NULLIF((a.pricing_breakdown->>'providerGrossEarnings')::numeric, 0),
+            NULLIF((a.pricing_breakdown->'taxBreakdown'->>'serviceTaxableSubtotal')::numeric, 0)
+              + COALESCE(a.service_tax_amount::numeric, 0),
+            COALESCE(a.service_subtotal::numeric, 0) + COALESCE(a.service_tax_amount::numeric, 0),
+            COALESCE(a.provider_earnings_snapshot::numeric, 0) + COALESCE(a.commission_amount::numeric, 0)
+          ) - COALESCE(a.commission_amount::numeric, 0))
+          * COALESCE(NULLIF(pe.exchange_rate_used::numeric, 0), 1), 2
+        ),
+        gross_provider_payout_usd = ROUND(
+          GREATEST(0, COALESCE(
+            NULLIF((a.pricing_breakdown->>'providerGrossEarnings')::numeric, 0),
+            NULLIF((a.pricing_breakdown->'taxBreakdown'->>'serviceTaxableSubtotal')::numeric, 0)
+              + COALESCE(a.service_tax_amount::numeric, 0),
+            COALESCE(a.service_subtotal::numeric, 0) + COALESCE(a.service_tax_amount::numeric, 0),
+            COALESCE(a.provider_earnings_snapshot::numeric, 0) + COALESCE(a.commission_amount::numeric, 0)
+          ) - COALESCE(a.commission_amount::numeric, 0))
+          * COALESCE(NULLIF(pe.exchange_rate_used::numeric, 0), 1), 2
+        ),
+        provider_earning = ROUND(
+          GREATEST(0, COALESCE(
+            NULLIF((a.pricing_breakdown->>'providerGrossEarnings')::numeric, 0),
+            NULLIF((a.pricing_breakdown->'taxBreakdown'->>'serviceTaxableSubtotal')::numeric, 0)
+              + COALESCE(a.service_tax_amount::numeric, 0),
+            COALESCE(a.service_subtotal::numeric, 0) + COALESCE(a.service_tax_amount::numeric, 0),
+            COALESCE(a.provider_earnings_snapshot::numeric, 0) + COALESCE(a.commission_amount::numeric, 0)
+          ) - COALESCE(a.commission_amount::numeric, 0))
+          * COALESCE(NULLIF(pe.exchange_rate_used::numeric, 0), 1), 2
+        )
+      FROM appointments a
+      WHERE a.id = pe.appointment_id
+        AND (
+          pe.provider_net_earnings_amount_usd IS NULL
+          OR pe.provider_net_earnings_amount_local IS NULL
+          OR pe.service_tax_amount_usd IS NULL
+        )
+    `);
+  } catch (err: any) {
+    console.warn("[db] provider canonical economics backfill:", err.message);
   }
   try {
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_provider_earnings_cash_settlement ON provider_earnings(provider_id, payment_method, created_at)`);
