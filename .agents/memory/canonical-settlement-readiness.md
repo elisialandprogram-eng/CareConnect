@@ -14,3 +14,9 @@ Provider-ledger reconciliation must sum only signed balance-affecting movements.
 **Why:** Historical rows included native-currency tax values mislabeled as USD and caused apparent wallet drift when informational rows were included in the net.
 
 **How to apply:** Reuse the shared provider-ledger movement definitions for wallet audits, reconciliation SQL, and regression tests. Do not repair historical rows without an explicit data-repair decision.
+
+The canonical appointment provider-net snapshot is `provider_net_earnings_snapshot`; the older `provider_earnings_snapshot` remains only as a historical compatibility field and must be backfilled into the canonical field before settlement/reconciliation code runs.
+
+**Why:** Settlement migration executes before the long legacy startup chain, so referencing a later-created snapshot column caused reconciliation requests to fail during cold start.
+
+**How to apply:** Add required appointment snapshot DDL and compatibility backfills to the independent booking-pricing migration, not only to the deferred legacy migration chain.

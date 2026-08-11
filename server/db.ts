@@ -3166,6 +3166,16 @@ async function seedRbacRoles(): Promise<void> {
     await pool.query(`ALTER TABLE appointments ADD COLUMN IF NOT EXISTS provider_currency TEXT`);
     await pool.query(`ALTER TABLE appointments ADD COLUMN IF NOT EXISTS patient_currency  TEXT`);
     await pool.query(`ALTER TABLE appointments ADD COLUMN IF NOT EXISTS final_total_usd   NUMERIC(10,2)`);
+    // Canonical provider net earnings snapshot. Keep the older
+    // provider_earnings_snapshot column for historical compatibility, but use
+    // this explicitly named field for reconciliation and settlement.
+    await pool.query(`ALTER TABLE appointments ADD COLUMN IF NOT EXISTS provider_net_earnings_snapshot NUMERIC(10,2)`);
+    await pool.query(`
+      UPDATE appointments
+      SET provider_net_earnings_snapshot = provider_earnings_snapshot
+      WHERE provider_net_earnings_snapshot IS NULL
+        AND provider_earnings_snapshot IS NOT NULL
+    `);
     console.log('[db] appointments currency snapshot columns ready');
   } catch (err: any) { console.warn('[db] P-FINAL appointments currency cols:', err.message); }
 

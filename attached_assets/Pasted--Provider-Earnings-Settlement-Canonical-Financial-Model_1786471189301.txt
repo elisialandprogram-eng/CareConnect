@@ -1,0 +1,842 @@
+# Provider Earnings & Settlement — Canonical Financial Model Cleanup
+
+Implement this completely across the project. **Do not perform an audit-only exercise. Inspect the existing implementation, identify every affected path, and immediately fix every issue found.**
+
+The project is not launched yet, so prioritize correctness and architectural consistency over backward compatibility with obsolete internal implementations.
+
+## PRIMARY OBJECTIVE
+
+Create **one canonical provider earnings and settlement model** used everywhere.
+
+There must be:
+
+* One canonical source of truth for provider earnings.
+* One canonical calculation for provider net earnings.
+* One canonical settlement flow.
+* No legacy provider-earning calculation.
+* No duplicated provider earnings formulas.
+* No UI calculating provider earnings independently.
+* No platform tax being treated as provider earnings.
+* No stale `providerEarning`-style fields being used as an alternative source of truth.
+* No contradictory earnings values between dashboard, earnings history, appointment details, notifications, emails, reports, exports, payout screens, or APIs.
+
+Do not simply rename legacy fields or wrap old calculations. **Remove obsolete financial paths when they are no longer required.**
+
+---
+
+# 1. ESTABLISH THE CANONICAL FINANCIAL OWNERSHIP MODEL
+
+The financial model must clearly separate the:
+
+### Service domain
+
+Owned economically by the provider:
+
+* Service/base price
+* Home-visit/service-related fees
+* Clinic/service-related fees
+* Online/service-related fees
+* Emergency/service-related fees
+* Surge/service-related fees
+* Applicable service/travel charges
+* Service tax
+
+### Platform domain
+
+Owned economically by the platform:
+
+* Platform fee
+* Platform tax
+* Payment-method/platform charges
+* Platform-side administrative charges
+* Other explicitly platform-owned charges
+
+### Provider deductions
+
+Only charges explicitly defined as provider-borne may reduce provider earnings, such as:
+
+* Platform commission
+* Explicit provider-side payment/settlement charges
+* Other explicitly configured provider deductions
+
+Do not infer ownership from the name of a field. Trace the actual business meaning.
+
+---
+
+# 2. CANONICAL PROVIDER EARNINGS FORMULA
+
+Provider earnings must follow one canonical formula.
+
+For a normal service booking:
+
+```text
+Provider Net Earnings =
+Service Price
++ Service-Related Fees
++ Service Tax
+- Provider-Borne Discounts/Adjustments
+- Platform Commission
+- Other Explicit Provider-Borne Charges
+```
+
+### CRITICAL TAX RULE
+
+If tax is applied to the service:
+
+```text
+Service tax → provider
+```
+
+If tax is applied to the platform fee:
+
+```text
+Platform tax → platform
+```
+
+**Platform tax must NEVER be included in provider earnings.**
+
+For example:
+
+```text
+Service price       1,000
+Service tax 27%       270
+
+Platform fee           50
+Platform tax 27%       13.50
+
+Commission 4%          40
+```
+
+Provider earnings:
+
+```text
+1,000
++ 270
+- 40
+----
+1,230 HUF
+```
+
+NOT:
+
+```text
+1,000 + 270 + 13.50 - 40
+```
+
+The `13.50` platform tax belongs entirely to the platform domain.
+
+---
+
+# 3. PATIENT TOTAL MUST REMAIN SEPARATE
+
+Patient total is a different financial concept.
+
+Example:
+
+```text
+Service price          1,000
+Service tax              270
+Platform fee              50
+Platform tax               13.50
+--------------------------------
+Patient paid            1,333.50
+```
+
+The system must never assume:
+
+```text
+Patient paid = Provider earnings
+```
+
+These are separate concepts.
+
+Canonical relationship:
+
+```text
+Patient Payment
+        │
+        ├── Provider service economics
+        │      ├── Service price
+        │      ├── Service fees
+        │      └── Service tax
+        │
+        └── Platform economics
+               ├── Platform fee
+               └── Platform tax
+```
+
+---
+
+# 4. ONLINE PAYMENT PROVIDER UI
+
+For Stripe, wallet, and other non-cash payment methods, the provider does NOT need the full internal financial calculation.
+
+Provider-facing display should primarily show:
+
+```text
+Patient paid        1,333.50 HUF
+
+Your net earnings   1,230.00 HUF
+```
+
+The provider should not be forced to understand:
+
+* Platform tax
+* Platform taxable subtotal
+* Internal settlement movements
+* Tax-engine version
+* Pricing-engine version
+* Internal USD conversion
+* Payment gateway accounting
+* Internal ledger movements
+* Reconciliation values
+* Platform revenue calculations
+
+Those remain internal/admin/accounting data.
+
+The provider can optionally see the service-level earnings breakdown if useful, but do not expose unnecessary internal settlement complexity.
+
+---
+
+# 5. CASH BOOKING PROVIDER UI
+
+Cash bookings are different because the provider physically collects money from the patient.
+
+For cash bookings, provider-facing information must clearly distinguish:
+
+### Patient payment
+
+```text
+Patient paid
+```
+
+### Provider earnings
+
+```text
+Service price
++ Service tax
+- Platform commission
+= Your net earnings
+```
+
+### Cash settlement
+
+If applicable:
+
+```text
+Cash collected
+Platform fee
+Platform tax
+Other cash/remittance amount
+Amount to remit/settle
+```
+
+The exact cash settlement formula must follow the existing canonical settlement business rules.
+
+Do NOT put platform tax into provider earnings merely because the provider collected that tax in cash.
+
+The provider is collecting certain platform-owned amounts on behalf of the platform; collection does not make those amounts provider earnings.
+
+---
+
+# 6. FIX THE CURRENT PROVIDER EARNINGS IMPLEMENTATION
+
+Search the entire repository for all existing provider earnings calculations and fields.
+
+Look for things such as:
+
+* `providerEarning`
+* `provider_earning`
+* `providerEarnings`
+* `provider_earnings`
+* `grossProviderPayout`
+* `netProviderPayout`
+* `providerServiceNet`
+* duplicated earnings formulas
+* UI-side earnings calculations
+* legacy settlement calculations
+* obsolete escrow calculations
+* old marketplace-ledger-based calculations
+
+Do not assume the names are identical. Trace the actual implementation.
+
+For every occurrence determine whether it is:
+
+1. Canonical and required.
+2. A duplicate.
+3. Legacy.
+4. A compatibility artifact.
+5. A UI reconstruction.
+6. An obsolete database field.
+7. A migration-only field.
+
+Remove obsolete active paths.
+
+Do not leave two competing sources of truth.
+
+---
+
+# 7. FIX THE DASHBOARD INCONSISTENCY
+
+Currently the main Earnings & Payouts page uses newer canonical settlement information while:
+
+```text
+Provider Dashboard
+→ Reporting
+→ Financials
+→ Recent Earnings
+```
+
+may still use the legacy `providerEarning` value.
+
+Fix this completely.
+
+The dashboard must use the **same canonical provider earnings source** as:
+
+* Earnings & Payouts
+* Appointment details
+* Provider reports
+* Provider APIs
+* Exports
+* Notifications
+* Emails
+* Payout information
+
+There must be one answer for the same booking.
+
+If an appointment has:
+
+```text
+Provider net earnings = 1,230 HUF
+```
+
+every provider-facing surface that displays provider earnings must derive from that canonical value.
+
+Do not patch the dashboard with a fallback.
+
+Remove the legacy dependency.
+
+---
+
+# 8. DO NOT CONFUSE GROSS PAYOUT WITH PROVIDER EARNINGS
+
+Maintain explicit semantic separation internally.
+
+At minimum distinguish:
+
+```text
+Patient Paid Total
+Provider Gross Earnings
+Provider Net Earnings
+Platform Revenue
+Platform Tax
+Service Tax
+Actual Settled Payout
+Pending Settlement
+```
+
+Do not use one generic field for multiple meanings.
+
+For example:
+
+```text
+Patient paid:
+1,333.50
+
+Provider net earnings:
+1,230.00
+
+Actual settled payout:
+0.00
+
+Settlement status:
+Pending
+```
+
+A pending settlement does NOT mean provider earnings are zero.
+
+---
+
+# 9. TAX OWNERSHIP MUST FLOW FROM THE TAX ENGINE
+
+The canonical tax engine already separates:
+
+```text
+Service tax
+Platform tax
+```
+
+Preserve that separation all the way through:
+
+```text
+Tax Engine
+    ↓
+Pricing / Revenue Engine
+    ↓
+Appointment Snapshot
+    ↓
+Settlement Engine
+    ↓
+Provider Earnings
+    ↓
+Platform Economics
+```
+
+Do not recombine the two taxes into one provider payout number.
+
+The provider earnings calculation must consume:
+
+```text
+serviceTaxAmount
+```
+
+when applicable.
+
+It must NOT consume:
+
+```text
+totalTax
+```
+
+if `totalTax` includes platform tax.
+
+---
+
+# 10. TAX DISPLAY
+
+Do not display combined rates such as:
+
+```text
+Tax (32%)
+```
+
+when service tax is 27% and platform tax is 5%.
+
+Use:
+
+```text
+Service tax (27%)       33.75
+Platform tax (5%)        0.50
+```
+
+or simply:
+
+```text
+Service tax              33.75
+Platform tax               0.50
+```
+
+The rate must correspond to the taxable base it actually applies to.
+
+Never calculate a fake combined percentage by:
+
+```text
+serviceRate + platformRate
+```
+
+---
+
+# 11. IMMUTABLE BOOKING SNAPSHOT
+
+The appointment must retain the authoritative pricing/tax snapshot used when the booking was created.
+
+Do not recalculate historical provider earnings from current tax configuration.
+
+Historical bookings must remain stable if:
+
+* Tax rates change.
+* Platform fees change.
+* Commission changes.
+* Service prices change.
+* Provider configuration changes.
+
+Use the stored booking snapshot and canonical settlement records.
+
+---
+
+# 12. REMOVE LEGACY FINANCIAL PATHS
+
+This is an explicit requirement.
+
+Do not leave obsolete systems "for compatibility" unless there is a concrete active dependency that genuinely requires them.
+
+Search for and remove/migrate active usage of:
+
+* Legacy provider earning fields.
+* Legacy escrow settlement.
+* Old marketplace-ledger authority.
+* Duplicate provider payout calculations.
+* Duplicate tax calculations.
+* UI-side earnings reconstruction.
+* Old provider earnings APIs.
+* Obsolete settlement endpoints.
+* Legacy financial helpers.
+* Legacy database columns that are no longer required.
+
+If a database column/table is genuinely obsolete and safe to remove:
+
+1. Create the proper migration.
+2. Remove active code references.
+3. Update tests.
+4. Update schemas/types.
+5. Update documentation.
+6. Verify no remaining dependency exists.
+
+Do not merely mark obsolete code as deprecated while continuing to use it.
+
+---
+
+# 13. API CONSISTENCY
+
+Review every API that exposes financial information.
+
+Provider-facing APIs must return canonical values.
+
+Admin APIs may expose more detailed accounting information, but they must still derive from the same canonical source.
+
+Do not allow:
+
+```text
+GET /earnings
+```
+
+and:
+
+```text
+GET /dashboard/financials
+```
+
+to independently calculate different provider earnings.
+
+They may return different levels of detail, but the underlying financial values must come from the same canonical model.
+
+---
+
+# 14. EMAILS AND NOTIFICATIONS
+
+Search all provider:
+
+* Emails
+* Notifications
+* Push notifications
+* Appointment summaries
+* Completion notifications
+* Payment notifications
+* Payout notifications
+
+Ensure provider earnings shown there use the canonical provider earnings value.
+
+Do not calculate earnings inside email/notification templates.
+
+Templates should receive canonical financial values from the server.
+
+---
+
+# 15. REPORTING AND EXPORTS
+
+Review:
+
+* CSV exports
+* Financial reports
+* Provider reports
+* Dashboard charts
+* Earnings summaries
+* Monthly totals
+* Appointment-level earnings
+
+All provider earnings must derive from the canonical provider earnings source.
+
+The sum of appointment-level provider net earnings must reconcile with provider-level summaries, subject only to explicitly documented exclusions such as refunds or adjustments.
+
+---
+
+# 16. REFUNDS AND CANCELLATIONS
+
+Verify how provider earnings behave when:
+
+* Appointment is cancelled.
+* Patient receives a refund.
+* Partial refund occurs.
+* Payment fails.
+* Cash booking is cancelled.
+* Completed booking is refunded.
+* Provider payout is reversed.
+* Settlement is adjusted.
+
+Do not create a second earnings calculation for refunds.
+
+Use canonical ledger/settlement movements.
+
+Provider earnings should correctly reflect the financial lifecycle.
+
+---
+
+# 17. MULTI-CURRENCY
+
+Keep currency semantics explicit.
+
+The provider-facing value must be displayed in the appointment/settlement currency.
+
+Do not:
+
+* Convert USD to HUF twice.
+* Calculate tax in USD and display it as native currency without conversion.
+* Mix booking currency with settlement currency.
+* Recalculate historical values using today's exchange rate.
+
+If internal settlement is stored in USD, keep that as an internal settlement representation while preserving the original booking-currency snapshot.
+
+---
+
+# 18. DATABASE MODEL
+
+Review the current schema and determine which fields are actually authoritative.
+
+There must be no ambiguity between:
+
+```text
+provider_earnings
+provider_wallet
+provider_ledger
+appointment pricing snapshot
+settlement records
+```
+
+Define clearly:
+
+### Appointment snapshot
+
+What the patient was charged.
+
+### Provider earnings
+
+What the provider economically earned from the booking.
+
+### Provider settlement
+
+What has actually been paid/settled to the provider.
+
+### Provider ledger
+
+Canonical financial movements affecting provider balance.
+
+These concepts must not be collapsed into one field.
+
+---
+
+# 19. REQUIRED REGRESSION TESTS
+
+Create or update tests covering at minimum:
+
+### Case A — Service tax
+
+```text
+Service = 1,000
+Service tax = 27%
+Platform fee = 50
+Platform tax = 27%
+Commission = 4%
+```
+
+Expected:
+
+```text
+Service tax = 270
+Platform tax = 13.50
+Patient total = 1,333.50
+
+Provider earnings =
+1,000 + 270 - 40
+= 1,230
+```
+
+Platform tax must NOT increase provider earnings.
+
+---
+
+### Case B — No service tax
+
+If service tax is 0% but platform tax applies:
+
+```text
+Service tax = 0
+Platform tax applies only to platform taxable amount
+```
+
+Provider earnings must not receive the platform tax.
+
+---
+
+### Case C — Online payment
+
+Provider sees:
+
+```text
+Patient paid
+Your net earnings
+```
+
+and canonical earnings must equal the backend calculation.
+
+---
+
+### Case D — Cash payment
+
+Verify:
+
+* Patient paid total.
+* Provider earnings.
+* Platform fee.
+* Platform tax.
+* Cash/remittance amount.
+* Settlement status.
+
+No platform tax enters provider earnings.
+
+---
+
+### Case E — Dashboard consistency
+
+The same appointment must return identical provider net earnings through:
+
+* Earnings history.
+* Dashboard financials.
+* Appointment detail.
+* Provider API.
+* Export.
+
+---
+
+### Case F — Pending cash settlement
+
+A cash booking with pending settlement must NOT show:
+
+```text
+Provider earnings = 0
+```
+
+merely because:
+
+```text
+Actual settled payout = 0
+```
+
+These are separate concepts.
+
+---
+
+### Case G — Refund
+
+Verify canonical earnings/ledger adjustments after refund.
+
+---
+
+### Case H — Historical booking
+
+Change current tax/commission configuration after booking creation.
+
+Verify the historical booking remains unchanged.
+
+---
+
+# 20. SEARCH FOR DUPLICATE CALCULATIONS
+
+Perform a repository-wide search for:
+
+* `providerEarning`
+* provider payout calculations
+* `totalTax`
+* `serviceTaxAmount`
+* `platformTaxAmount`
+* commission calculations
+* payout calculations
+* earnings calculations
+* settlement calculations
+
+Do not stop after fixing the first occurrence.
+
+The objective is to eliminate competing calculations.
+
+---
+
+# 21. IMPLEMENTATION RULE
+
+Do not create another parallel engine to solve this.
+
+Use the existing canonical architecture:
+
+```text
+Tax Engine
+      ↓
+Pricing Engine
+      ↓
+Revenue Engine
+      ↓
+Appointment Pricing Snapshot
+      ↓
+Canonical Settlement / Provider Earnings
+      ↓
+Provider Wallet / Ledger
+```
+
+If the current architecture requires correction, refactor it rather than adding another competing path.
+
+---
+
+# 22. FINAL ACCEPTANCE CRITERIA
+
+The implementation is complete only when all of the following are true:
+
+* There is one canonical provider earnings calculation.
+* Provider earnings include applicable service tax.
+* Provider earnings never include platform tax.
+* Platform fee and platform tax remain platform-owned.
+* Patient total is independent from provider earnings.
+* Online-payment provider UI is simple and shows net earnings.
+* Cash-payment provider UI includes only the additional cash settlement information actually needed.
+* Dashboard and Earnings & Payouts show the same canonical earnings.
+* No active legacy `providerEarning` dependency remains.
+* No obsolete escrow-based earnings path remains.
+* No duplicate provider earnings formulas remain.
+* No UI independently reconstructs provider earnings.
+* Emails and notifications use canonical values.
+* Reports and exports use canonical values.
+* Refunds and cancellations use canonical settlement/ledger movements.
+* Multi-currency behavior remains correct.
+* Historical bookings remain immutable.
+* Platform tax is never accidentally credited to providers.
+* Pending settlement is not confused with zero provider earnings.
+* All relevant tests pass.
+* `npm run check` passes.
+* `npm run build` passes.
+* `git diff --check` passes.
+* Application restarts successfully.
+* `/health` reports ready.
+* No new application errors are introduced.
+
+## IMPORTANT
+
+Do not stop after identifying issues.
+
+**For every issue found: fix it immediately, update the affected code/tests, and continue searching for the next issue.**
+
+Do not preserve legacy code simply because it already exists.
+
+Do not introduce compatibility aliases unless there is a demonstrated active dependency.
+
+Do not change financial data merely to make tests pass.
+
+If historical data contains legacy values, preserve the historical accounting meaning while migrating the application away from the obsolete calculation path.
+
+At the end, provide:
+
+1. Exact files changed.
+2. Legacy financial paths removed.
+3. Canonical provider earnings formula.
+4. Provider-facing behavior for online payments.
+5. Provider-facing behavior for cash payments.
+6. Tax ownership behavior.
+7. Database/schema changes.
+8. Tests added/updated.
+9. Verification results.
+10. Any remaining issue that genuinely cannot be fixed safely.
