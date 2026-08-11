@@ -3501,8 +3501,8 @@ export async function runBookingPricingSnapshotMigration(): Promise<void> {
       ADD COLUMN IF NOT EXISTS tax_calculated_at TIMESTAMPTZ
   `);
   // Migrate the old global sub-service percentage into explicit country rows.
-  // This is a compatibility backfill only; administrators can edit/deactivate
-  // each country independently afterwards.
+  // A legacy 0% value is still a configured rule, not missing configuration;
+  // administrators can edit/deactivate each country independently afterwards.
   await pool.query(`
     INSERT INTO sub_service_tax_rules
       (sub_service_id, country_code, tax_rate, effective_from, is_active)
@@ -3510,13 +3510,12 @@ export async function runBookingPricingSnapshotMigration(): Promise<void> {
            COALESCE(ss.created_at, NOW()), true
     FROM sub_services ss
     CROSS JOIN (VALUES ('HU'), ('IR')) AS countries(code)
-    WHERE COALESCE(ss.tax_percentage::numeric, 0) <> 0
-      AND NOT EXISTS (
-        SELECT 1 FROM sub_service_tax_rules r
-        WHERE r.sub_service_id = ss.id
-          AND r.country_code = countries.code
-          AND r.effective_from = COALESCE(ss.created_at, NOW())
-      )
+    WHERE NOT EXISTS (
+      SELECT 1 FROM sub_service_tax_rules r
+      WHERE r.sub_service_id = ss.id
+        AND r.country_code = countries.code
+        AND r.effective_from = COALESCE(ss.created_at, NOW())
+    )
   `);
   await pool.query(`ALTER TABLE appointments ADD COLUMN IF NOT EXISTS pricing_engine_version TEXT`);
   await pool.query(`ALTER TABLE appointments ADD COLUMN IF NOT EXISTS tax_engine_version TEXT`);
