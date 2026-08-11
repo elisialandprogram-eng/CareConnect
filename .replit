@@ -1,4 +1,4 @@
-modules = ["nodejs-20", "web", "bash", "postgresql-16"]
+modules = ["bash", "nodejs-20", "postgresql-16", "python-3.11", "web"]
 
 [workflows]
 runButton = "Project"
@@ -28,8 +28,13 @@ waitForPort = 5000
 localPort = 5000
 externalPort = 80
 
+[[ports]]
+localPort = 8501
+externalPort = 3000
+
 [nix]
 channel = "stable-25_05"
+packages = ["aider-chat-full", "nano"]
 
 [agent]
 expertMode = true
