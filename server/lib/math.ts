@@ -28,3 +28,19 @@ export function roundToCents(value: number | string): number {
 export function round2(n: number): number {
   return Math.round(n * 100) / 100;
 }
+
+/**
+ * Round an amount in its booking currency.
+ *
+ * HUF/IRR are zero-decimal currencies. Truncating their fractional units
+ * prevents display and charge amounts such as 960.5 from becoming 961 Ft.
+ * USD/EUR/GBP retain normal two-decimal pricing precision.
+ */
+const ZERO_DECIMAL_CURRENCIES = new Set(["HUF", "IRR", "JPY", "KRW"]);
+
+export function roundBookingAmount(value: number, currency?: string | null): number {
+  const amount = Number.isFinite(value) ? value : 0;
+  return ZERO_DECIMAL_CURRENCIES.has(String(currency ?? "USD").toUpperCase())
+    ? Math.trunc(amount)
+    : round2(amount);
+}

@@ -16,7 +16,7 @@
  */
 
 import { computeFinalPrice, type PricingInput, type PricingBreakdown } from "./pricing";
-import { round2 } from "./math";
+import { round2, roundBookingAmount } from "./math";
 import {
   TAX_ENGINE_VERSION,
   calculateResolvedTax,
@@ -286,7 +286,7 @@ function applyFeeRule(rule: PlatformFeeRule, base: number, bookingCurrency?: str
   const maxFeeParsed = n(rule.maxFee, 0);
   if (minFeeParsed > 0) fee = Math.max(fee, minFeeParsed);
   if (maxFeeParsed > 0) fee = Math.min(fee, maxFeeParsed);
-  return round2(fee);
+  return roundBookingAmount(fee, bookingCurrency);
 }
 
 function selectCommissionRule(
@@ -317,6 +317,7 @@ function selectCommissionRule(
 function paymentAdjustmentParts(
   rule: PaymentMethodRule | undefined,
   subtotal: number,
+  bookingCurrency?: string,
 ): { surcharge: number; discount: number } {
   if (!rule) return { surcharge: 0, discount: 0 };
   const val = n(rule.surchargeValue, 0);
@@ -327,7 +328,10 @@ function paymentAdjustmentParts(
   if (rule.surchargeType === "fixed") surcharge += val;
   if (rule.discountType === "percent") discount += subtotal * (disc / 100);
   if (rule.discountType === "fixed") discount += disc;
-  return { surcharge: round2(surcharge), discount: round2(discount) };
+  return {
+    surcharge: roundBookingAmount(surcharge, bookingCurrency),
+    discount: roundBookingAmount(discount, bookingCurrency),
+  };
 }
 
 function replaceTaxLines(
@@ -346,7 +350,8 @@ function computeTravelFee(
   rules: TravelFeeRule[],
   visitType: string,
   distanceKm: number | null | undefined,
-  ctx: { countryCode?: string | null; providerType?: string | null }
+  ctx: { countryCode?: string | null; providerType?: string | null },
+  bookingCurrency?: string,
 ): number {
   if (visitType !== "home") return 0;
   const applicable = rules.filter(r =>
@@ -356,13 +361,13 @@ function computeTravelFee(
   if (!applicable.length) return 0;
   const rule = applicable[0];
   const dist = distanceKm ?? 0;
-  if (rule.feeType === "flat")     return round2(n(rule.flatAmount, 0));
-  if (rule.feeType === "distance") return round2(dist * n(rule.perKmRate, 0));
+  if (rule.feeType === "flat")     return roundBookingAmount(n(rule.flatAmount, 0), bookingCurrency);
+  if (rule.feeType === "distance") return roundBookingAmount(dist * n(rule.perKmRate, 0), bookingCurrency);
   if (rule.feeType === "radius") {
     const radius = n(rule.radiusKm, 0);
-    return dist <= radius ? 0 : round2((dist - radius) * n(rule.perKmRate, 0));
+    return dist <= radius ? 0 : roundBookingAmount((dist - radius) * n(rule.perKmRate, 0), bookingCurrency);
   }
-  return round2(n(rule.flatAmount, 0));
+  return roundBookingAmount(n(rule.flatAmount, 0), bookingCurrency);
 }
 
 // ── Main engine ──────────────────────────────────────────────────────────────
@@ -382,6 +387,7 @@ export async function runRevenueEngine(input: RevenueEngineInput): Promise<Reven
   // All amounts calculated below are in bookingCurrency.
   const bookingCurrency  = input.bookingCurrency  || input.currency || "USD";
   const providerCurrency = input.providerCurrency || bookingCurrency;
+  const roundAmount = (value: number) => roundBookingAmount(value, bookingCurrency);
 
   // 1. Base pricing via legacy kernel (handles membership, promo, surge, tax)
   const base: PricingBreakdown = computeFinalPrice({ ...input, currency: bookingCurrency, deferTax: true });
@@ -423,7 +429,7 @@ export async function runRevenueEngine(input: RevenueEngineInput): Promise<Reven
   // RX-02: apply membership reduced_commission benefit (subtracts percentage points)
   const membershipReduction = Math.max(0, input.membershipReducedCommissionPercent ?? 0);
   const commissionRate   = Math.max(0, baseCommissionRate - membershipReduction);
-  const commissionAmount = round2(base.base * (commissionRate / 100));
+  const commissionAmount = roundAmount(base.base * (commissionRate / 100));
   if (commRule) {
     appliedRules.push({
       ruleType: "commission",
@@ -441,7 +447,8 @@ export async function runRevenueEngine(input: RevenueEngineInput): Promise<Reven
     rules.travelFeeRules,
     input.visitType,
     input.travelDistanceKm,
-    ctx
+    ctx,
+    bookingCurrency,
   );
   if (engineTravelFee > 0) {
     const tfRule = rules.travelFeeRules[0];
@@ -460,10 +467,10 @@ export async function runRevenueEngine(input: RevenueEngineInput): Promise<Reven
     r.paymentMethod === (input.paymentMethod ?? "cash") &&
     (!r.allowedCountries?.length || r.allowedCountries.includes(input.countryCode ?? ""))
   );
-  const platformFeeDelta = round2(enginePlatformFee - base.platformFee);
-  const paymentBase = round2(Math.max(0, base.total + platformFeeDelta + engineTravelFee));
-  const paymentParts = paymentAdjustmentParts(pmRule, paymentBase);
-  const paymentSurcharge = round2(paymentParts.surcharge - paymentParts.discount);
+  const platformFeeDelta = roundAmount(enginePlatformFee - base.platformFee);
+  const paymentBase = roundAmount(Math.max(0, base.total + platformFeeDelta + engineTravelFee));
+  const paymentParts = paymentAdjustmentParts(pmRule, paymentBase, bookingCurrency);
+  const paymentSurcharge = roundAmount(paymentParts.surcharge - paymentParts.discount);
   if (pmRule && paymentSurcharge !== 0) {
     appliedRules.push({
       ruleType: "payment_method",
@@ -476,7 +483,7 @@ export async function runRevenueEngine(input: RevenueEngineInput): Promise<Reven
   // base.total already contains base.platformFee from computeFinalPrice.
   // When the engine overrides with a rule-based fee, add the delta so the
   // patient is actually charged the rule amount, not the sub-service default.
-  const serviceGrossSubtotal = round2(Math.max(
+  const serviceGrossSubtotal = roundAmount(Math.max(
     0,
     base.base - base.membershipDiscount + base.visitTypeFee + base.surge + base.emergencyFee + engineTravelFee,
   ));
@@ -490,21 +497,21 @@ export async function runRevenueEngine(input: RevenueEngineInput): Promise<Reven
     serviceTaxRatePercent: 0,
     platformTaxRatePercent: 0,
   }, taxRules);
-  const taxableSubtotal = round2(base.taxableSubtotal + platformFeeDelta + paymentSurcharge + engineTravelFee);
-  const total = round2(taxableSubtotal + taxBreakdown.totalTax);
+  const taxableSubtotal = roundAmount(base.taxableSubtotal + platformFeeDelta + paymentSurcharge + engineTravelFee);
+  const total = roundAmount(taxableSubtotal + taxBreakdown.totalTax);
   const patientPayable = total;
 
   // 7. Provider economics are independent from the patient total. Service
   // charges and service tax belong to the provider; platform tax does not.
   // The tax engine has already allocated discounts across the two domains, so
   // serviceTaxableSubtotal is the authoritative provider service base.
-  const providerGrossEarnings = round2(
+  const providerGrossEarnings = roundAmount(
     taxBreakdown.serviceTaxableSubtotal + taxBreakdown.serviceTax,
   );
-  const providerEarnings = round2(Math.max(0, providerGrossEarnings - commissionAmount));
+  const providerEarnings = roundAmount(Math.max(0, providerGrossEarnings - commissionAmount));
 
   // 8. Platform revenue = fees + commission + surcharge (in bookingCurrency)
-  const platformRevenue = round2(enginePlatformFee + commissionAmount + Math.max(0, paymentSurcharge));
+  const platformRevenue = roundAmount(enginePlatformFee + commissionAmount + Math.max(0, paymentSurcharge));
 
   // 9. Revenue shares
   const revenueShares: RevenueShare[] = rules.revenueShareRules
@@ -516,7 +523,7 @@ export async function runRevenueEngine(input: RevenueEngineInput): Promise<Reven
     .map(r => {
       const pct = n(r.sharePercent, 0);
       const fixed = n(r.fixedAmount, 0);
-      const amount = round2(platformRevenue * (pct / 100) + fixed);
+      const amount = roundAmount(platformRevenue * (pct / 100) + fixed);
       return {
         participantType: r.participantType,
         label: r.name,
@@ -539,7 +546,7 @@ export async function runRevenueEngine(input: RevenueEngineInput): Promise<Reven
   // pricingBreakdown.lines accurately matches the actual amounts charged to the patient.
   let updatedLines = base.lines.map(l =>
     /platform\s*fee/i.test(l.label)
-      ? { ...l, amount: round2(enginePlatformFee) }
+       ? { ...l, amount: roundAmount(enginePlatformFee) }
       : l,
   );
   if (engineTravelFee > 0) {
@@ -568,7 +575,7 @@ export async function runRevenueEngine(input: RevenueEngineInput): Promise<Reven
     taxableSubtotal,
     tax: taxBreakdown.totalTax,
     total,
-    perSession: round2(total / base.sessions),
+     perSession: roundAmount(total / base.sessions),
     taxBreakdown,
     platformFee: round2(enginePlatformFee),
     paymentSurcharge,
@@ -614,6 +621,7 @@ export function runRevenueEngineSync(
   // P-FINAL: Resolve currencies (Rules 1 & 2)
   const bookingCurrency  = input.bookingCurrency  || input.currency || "USD";
   const providerCurrency = input.providerCurrency || bookingCurrency;
+  const roundAmount = (value: number) => roundBookingAmount(value, bookingCurrency);
 
   const base = computeFinalPrice({ ...input, currency: bookingCurrency, deferTax: true });
   const appliedRules: AppliedRule[] = [];
@@ -638,10 +646,10 @@ export function runRevenueEngineSync(
   });
   // No commission rule configured → 0% (never silently apply a hardcoded rate).
   const commissionRate   = commRule ? n(commRule.commissionPercent, 0) : 0;
-  const commissionAmount = round2(base.base * (commissionRate / 100));
+   const commissionAmount = roundAmount(base.base * (commissionRate / 100));
   if (commRule) appliedRules.push({ ruleType: "commission", ruleName: commRule.name, impact: `${commissionRate}%` });
 
-  const engineTravelFee = computeTravelFee(rules.travelFeeRules, input.visitType, input.travelDistanceKm, ctx);
+   const engineTravelFee = computeTravelFee(rules.travelFeeRules, input.visitType, input.travelDistanceKm, ctx, bookingCurrency);
   if (engineTravelFee > 0) {
     const tfRule = rules.travelFeeRules[0];
     appliedRules.push({
@@ -655,12 +663,12 @@ export function runRevenueEngineSync(
     r.paymentMethod === (input.paymentMethod ?? "cash") &&
     (!r.allowedCountries?.length || r.allowedCountries.includes(input.countryCode ?? ""))
   );
-  const platformFeeDelta = round2(enginePlatformFee - base.platformFee);
-  const paymentBase = round2(Math.max(0, base.total + platformFeeDelta + engineTravelFee));
-  const paymentParts = paymentAdjustmentParts(pmRule, paymentBase);
-  const paymentSurcharge = round2(paymentParts.surcharge - paymentParts.discount);
+   const platformFeeDelta = roundAmount(enginePlatformFee - base.platformFee);
+   const paymentBase = roundAmount(Math.max(0, base.total + platformFeeDelta + engineTravelFee));
+   const paymentParts = paymentAdjustmentParts(pmRule, paymentBase, bookingCurrency);
+   const paymentSurcharge = roundAmount(paymentParts.surcharge - paymentParts.discount);
  
-  const serviceGrossSubtotal = round2(Math.max(
+   const serviceGrossSubtotal = roundAmount(Math.max(
     0,
     base.base - base.membershipDiscount + base.visitTypeFee + base.surge + base.emergencyFee + engineTravelFee,
   ));
@@ -674,21 +682,21 @@ export function runRevenueEngineSync(
     serviceTaxRatePercent: 0,
     platformTaxRatePercent: 0,
   }, input._taxRules ?? {});
-  const taxableSubtotal = round2(base.taxableSubtotal + platformFeeDelta + paymentSurcharge + engineTravelFee);
-  const total = round2(taxableSubtotal + taxBreakdown.totalTax);
+   const taxableSubtotal = roundAmount(base.taxableSubtotal + platformFeeDelta + paymentSurcharge + engineTravelFee);
+   const total = roundAmount(taxableSubtotal + taxBreakdown.totalTax);
   const patientPayable  = total;
-  const providerGrossEarnings = round2(
+   const providerGrossEarnings = roundAmount(
     taxBreakdown.serviceTaxableSubtotal + taxBreakdown.serviceTax,
   );
-  const providerEarnings = round2(Math.max(0, providerGrossEarnings - commissionAmount));
-  const platformRevenue = round2(enginePlatformFee + commissionAmount + Math.max(0, paymentSurcharge));
+   const providerEarnings = roundAmount(Math.max(0, providerGrossEarnings - commissionAmount));
+   const platformRevenue = roundAmount(enginePlatformFee + commissionAmount + Math.max(0, paymentSurcharge));
 
   const revenueShares: RevenueShare[] = rules.revenueShareRules
     .filter(r => (!r.countryCode || r.countryCode === input.countryCode))
     .map(r => ({
       participantType: r.participantType,
       label: r.name,
-      amount: round2(platformRevenue * (n(r.sharePercent, 0) / 100) + n(r.fixedAmount, 0)),
+       amount: roundAmount(platformRevenue * (n(r.sharePercent, 0) / 100) + n(r.fixedAmount, 0)),
       percent: n(r.sharePercent, 0),
     }));
 
@@ -702,7 +710,7 @@ export function runRevenueEngineSync(
   // Update lines to reflect engine overrides (same as async version above).
   let updatedLinesSy = base.lines.map(l =>
     /platform\s*fee/i.test(l.label)
-      ? { ...l, amount: round2(enginePlatformFee) }
+       ? { ...l, amount: roundAmount(enginePlatformFee) }
       : l,
   );
   if (engineTravelFee > 0) {
@@ -730,7 +738,7 @@ export function runRevenueEngineSync(
     taxableSubtotal,
     tax: taxBreakdown.totalTax,
     total,
-    perSession: round2(total / base.sessions),
+     perSession: roundAmount(total / base.sessions),
     taxBreakdown,
     platformFee: round2(enginePlatformFee),
     paymentSurcharge,

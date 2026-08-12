@@ -2188,6 +2188,15 @@ export function registerAppointmentRoutes(app: Express): void {
       const payment = await storage.getPaymentByAppointment(req.params.id);
       if (!payment) return res.status(404).json({ message: "Payment record not found" });
 
+       // Stripe/card and wallet payments are completed by their payment flow
+       // (Stripe webhook or wallet debit). Only offline collections may be
+       // manually marked as received by a provider or admin.
+       if (!["cash", "bank_transfer"].includes(payment.paymentMethod || "")) {
+         return res.status(409).json({
+           message: "Stripe and wallet payments are marked paid automatically; manual updates are only for cash or bank transfer.",
+         });
+       }
+
        const wasAlreadyCompleted = payment.status === "completed";
        // Keep both status columns in one transaction. A partial update here
        // makes completion guards and earnings reconciliation disagree.

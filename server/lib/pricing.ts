@@ -1,5 +1,5 @@
 import type { Service, SubService } from "@shared/schema";
-import { round2 } from "./math";
+import { round2, roundBookingAmount } from "./math";
 
 export type VisitType = "online" | "home" | "clinic";
 
@@ -77,6 +77,7 @@ const num = (v: unknown, fallback = 0): number => {
 export function computeFinalPrice(input: PricingInput): PricingBreakdown {
   const sessions = Math.max(1, Math.floor(input.sessions ?? 1));
   const currency = input.currency || "USD";
+  const roundAmount = (value: number) => roundBookingAmount(value, currency);
   const visitType = input.visitType;
 
   const sub = input.subService || null;
@@ -157,24 +158,24 @@ export function computeFinalPrice(input: PricingInput): PricingBreakdown {
     label: usePackage
       ? "Package price"
       : sessions > 1
-      ? `Base (${sessions} × ${round2(basePerSession)})`
+       ? `Base (${sessions} × ${roundAmount(basePerSession)})`
       : "Base price",
-    amount: round2(baseTotal),
+    amount: roundAmount(baseTotal),
   });
 
   // Membership discount line
   if (membershipBaseDiscount > 0 && mem) {
-    lines.push({ label: `${mem.label} (membership)`, amount: -round2(membershipBaseDiscount) });
+    lines.push({ label: `${mem.label} (membership)`, amount: -roundAmount(membershipBaseDiscount) });
   }
 
   const visitFeeLabel =
     visitType === "home" ? "Home visit fee" : visitType === "clinic" ? "Clinic fee" : "Telemedicine fee";
-  lines.push({ label: visitFeeLabel, amount: round2(visitTypeFeeTotal) });
+  lines.push({ label: visitFeeLabel, amount: roundAmount(visitTypeFeeTotal) });
 
-  lines.push({ label: "Platform fee", amount: round2(platformFeeTotal) });
+  lines.push({ label: "Platform fee", amount: roundAmount(platformFeeTotal) });
 
-  if (surgeTotal > 0) lines.push({ label: `Surge (×${surgeMultiplier})`, amount: round2(surgeTotal) });
-  if (emergencyTotal > 0) lines.push({ label: "Emergency fee", amount: round2(emergencyTotal) });
+  if (surgeTotal > 0) lines.push({ label: `Surge (×${surgeMultiplier})`, amount: roundAmount(surgeTotal) });
+  if (emergencyTotal > 0) lines.push({ label: "Emergency fee", amount: roundAmount(emergencyTotal) });
 
   if (discountAmount > 0) {
     const label = input.discount?.code
@@ -182,21 +183,21 @@ export function computeFinalPrice(input: PricingInput): PricingBreakdown {
       : input.discount?.type === "percent"
       ? `Discount (${input.discount.value}%)`
       : "Discount";
-    lines.push({ label, amount: -round2(discountAmount) });
+    lines.push({ label, amount: -roundAmount(discountAmount) });
   }
 
   return {
-    base: round2(baseTotal),
-    platformFee: round2(platformFeeTotal),
-    visitTypeFee: round2(visitTypeFeeTotal),
-    surge: round2(surgeTotal),
-    emergencyFee: round2(emergencyTotal),
-    taxableSubtotal: round2(taxableSubtotal),
+    base: roundAmount(baseTotal),
+    platformFee: roundAmount(platformFeeTotal),
+    visitTypeFee: roundAmount(visitTypeFeeTotal),
+    surge: roundAmount(surgeTotal),
+    emergencyFee: roundAmount(emergencyTotal),
+    taxableSubtotal: roundAmount(taxableSubtotal),
     tax: round2(taxAmount),
-    discount: round2(discountAmount),
-    membershipDiscount: round2(membershipBaseDiscount),
-    total: round2(total),
-    perSession: round2(total / sessions),
+    discount: roundAmount(discountAmount),
+    membershipDiscount: roundAmount(membershipBaseDiscount),
+    total: roundAmount(total),
+    perSession: roundAmount(total / sessions),
     sessions,
     currency,
     lines,
