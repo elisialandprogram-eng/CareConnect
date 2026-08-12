@@ -2682,6 +2682,86 @@ async function seedRbacRoles(): Promise<void> {
     console.warn('[db] wallet_rules:', err.message);
   }
 
+  // ── Revenue & Billing seed deduplication ───────────────────────────────────
+  // Older boots seeded defaults without a stable conflict key. Repair only
+  // exact named defaults, preserve the oldest row, and add guards so a restart
+  // cannot create another copy. Service-tax versions are retained as history,
+  // but only one open-ended active rule may apply to a sub-service/country.
+  try {
+    await pool.query(`
+      WITH ranked AS (
+        SELECT id,
+               ROW_NUMBER() OVER (PARTITION BY name ORDER BY created_at ASC, id ASC) AS rn
+        FROM platform_fee_rules
+        WHERE name = 'Default Global Platform Fee'
+      )
+      DELETE FROM platform_fee_rules p
+      USING ranked r
+      WHERE p.id = r.id AND r.rn > 1
+    `);
+    await pool.query(`
+      WITH ranked AS (
+        SELECT id,
+               ROW_NUMBER() OVER (PARTITION BY name ORDER BY created_at ASC, id ASC) AS rn
+        FROM commission_rules
+        WHERE name = 'Default Global Commission'
+      )
+      DELETE FROM commission_rules c
+      USING ranked r
+      WHERE c.id = r.id AND r.rn > 1
+    `);
+    await pool.query(`
+      WITH ranked AS (
+        SELECT id,
+               ROW_NUMBER() OVER (PARTITION BY name ORDER BY created_at ASC, id ASC) AS rn
+        FROM payout_config
+        WHERE name = 'Default Payout Policy'
+      )
+      DELETE FROM payout_config p
+      USING ranked r
+      WHERE p.id = r.id AND r.rn > 1
+    `);
+    await pool.query(`
+      WITH ranked AS (
+        SELECT id,
+               ROW_NUMBER() OVER (
+                 PARTITION BY sub_service_id, country_code
+                 ORDER BY effective_from DESC NULLS LAST, updated_at DESC NULLS LAST,
+                          created_at DESC NULLS LAST, id DESC
+               ) AS rn
+        FROM sub_service_tax_rules
+        WHERE is_active = true AND effective_to IS NULL
+      )
+      UPDATE sub_service_tax_rules r
+      SET is_active = false, updated_at = NOW()
+      FROM ranked d
+      WHERE r.id = d.id AND d.rn > 1
+    `);
+    await pool.query(`
+      CREATE UNIQUE INDEX IF NOT EXISTS uq_platform_fee_default_global
+      ON platform_fee_rules (name)
+      WHERE name = 'Default Global Platform Fee'
+    `);
+    await pool.query(`
+      CREATE UNIQUE INDEX IF NOT EXISTS uq_commission_default_global
+      ON commission_rules (name)
+      WHERE name = 'Default Global Commission'
+    `);
+    await pool.query(`
+      CREATE UNIQUE INDEX IF NOT EXISTS uq_payout_default_policy
+      ON payout_config (name)
+      WHERE name = 'Default Payout Policy'
+    `);
+    await pool.query(`
+      CREATE UNIQUE INDEX IF NOT EXISTS uq_active_sub_service_tax_open_ended
+      ON sub_service_tax_rules (sub_service_id, country_code)
+      WHERE is_active = true AND effective_to IS NULL
+    `);
+    console.log('[db] Revenue & Billing seed duplicates repaired and guarded');
+  } catch (err: any) {
+    console.warn('[db] Revenue & Billing seed deduplication:', err.message);
+  }
+
   // ── Seed default payment method rules (idempotent) ─────────────────────────
   try {
     const defaultPaymentMethods = [

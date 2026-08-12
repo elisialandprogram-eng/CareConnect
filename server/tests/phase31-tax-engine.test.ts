@@ -154,4 +154,14 @@ assert.equal(discounted.serviceTaxableSubtotal, 90, "discount is allocated propo
 assert.equal(discounted.platformTaxableSubtotal, 18, "discount allocation is deterministic");
 assert.equal(discounted.totalTax, 9.9, "discounted service and platform taxes are both rounded once");
 
+const hufWholeUnit = calculateTaxBreakdown({
+  serviceSubtotal: 950,
+  platformSubtotal: 0,
+  currency: "HUF",
+  serviceTaxRatePercent: 27,
+  platformTaxRatePercent: 0,
+});
+assert.equal(hufWholeUnit.serviceTax, 256, "HUF tax truncates fractional forint units instead of displaying 257 Ft");
+assert.equal(hufWholeUnit.totalTax, 256, "HUF total tax remains consistent with the displayed tax line");
+
 console.log("Phase 3.1 canonical tax engine tests passed");

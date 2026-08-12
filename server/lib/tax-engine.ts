@@ -78,6 +78,8 @@ export interface TaxCalculationInput {
   serviceSubtotal: number;
   /** Platform-generated charges: platform/gateway/admin/convenience fees. */
   platformSubtotal: number;
+  /** Booking currency. Zero-decimal currencies must not retain fractional tax units. */
+  currency?: string | null;
   /** A promotion reduces both buckets proportionally. */
   discount?: number | null;
   /** Payment-method discounts reduce the taxable base by policy. */
@@ -92,6 +94,21 @@ const finite = (value: unknown): number => {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : 0;
 };
+
+const ZERO_DECIMAL_CURRENCIES = new Set(["HUF", "IRR", "JPY", "KRW"]);
+
+/**
+ * Tax amounts are returned in booking currency. HUF/IRR have no fractional
+ * unit, so truncating here prevents the display formatter from turning a
+ * fractional amount such as 256.5 into 257 Ft. USD/EUR/GBP retain cent
+ * precision and use normal two-decimal rounding.
+ */
+function roundTaxAmount(amount: number, currency?: string | null): number {
+  const normalized = String(currency ?? "USD").trim().toUpperCase();
+  return ZERO_DECIMAL_CURRENCIES.has(normalized)
+    ? Math.trunc(Math.max(0, amount))
+    : round2(amount);
+}
 
 /**
  * Calculate service and platform tax independently.
@@ -113,8 +130,14 @@ export function calculateTaxBreakdown(input: TaxCalculationInput): TaxBreakdown 
   const platformTaxableSubtotal = round2(platformGross * (1 - discountRatio));
   const serviceTaxRate = Math.max(0, finite(input.serviceTaxRatePercent));
   const platformTaxRate = Math.max(0, finite(input.platformTaxRatePercent));
-  const serviceTax = round2(serviceTaxableSubtotal * (serviceTaxRate / 100));
-  const platformTax = round2(platformTaxableSubtotal * (platformTaxRate / 100));
+  const serviceTax = roundTaxAmount(
+    serviceTaxableSubtotal * (serviceTaxRate / 100),
+    input.currency,
+  );
+  const platformTax = roundTaxAmount(
+    platformTaxableSubtotal * (platformTaxRate / 100),
+    input.currency,
+  );
 
   return {
     countryCode: null,
@@ -126,7 +149,7 @@ export function calculateTaxBreakdown(input: TaxCalculationInput): TaxBreakdown 
     platformTaxableSubtotal,
     platformTax,
     platformTaxAmount: platformTax,
-    totalTax: round2(serviceTax + platformTax),
+    totalTax: roundTaxAmount(serviceTax + platformTax, input.currency),
     taxVersion: TAX_ENGINE_VERSION,
     taxEngineVersion: TAX_ENGINE_VERSION,
     calculatedAt: new Date().toISOString(),
