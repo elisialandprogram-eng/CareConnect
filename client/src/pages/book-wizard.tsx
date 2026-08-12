@@ -164,7 +164,7 @@ export default function BookWizard() {
   const [selectedProvider, setSelectedProvider] = useState<Provider | null>(null);
   const [selectedService, setSelectedService]   = useState<ProviderService | null>(null);
   const [visitType, setVisitType]               = useState<"clinic" | "home" | "online">(initialVisitType);
-  const [quotePaymentMethod, setQuotePaymentMethod] = useState<"card" | "wallet" | "cash" | "bank_transfer">("card");
+  const [quotePaymentMethod, setQuotePaymentMethod] = useState<"card" | "wallet" | "cash" | "bank_transfer">("wallet");
   const [quotePromoCode, setQuotePromoCode]     = useState("");
   const [quoteLocation, setQuoteLocation]       = useState<{ latitude?: number; longitude?: number }>({});
   const [selectedDate, setSelectedDate]         = useState("");

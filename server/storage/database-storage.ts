@@ -2137,7 +2137,16 @@ export class DatabaseStorage extends PackagesMixin implements IStorage {
       },
       service: r.services || undefined,
       practitioner: (r.practitioners as any) || undefined,
-      payment: r.payments || undefined,
+      payment: r.payments
+        ? {
+            ...r.payments,
+            // Stripe/wallet completion updates the appointment snapshot as
+            // well. Prefer that completed state if the payment join is stale.
+            status: r.payments.status === "pending" && r.appointments.paymentStatus === "completed"
+              ? "completed"
+              : r.payments.status,
+          }
+        : undefined,
     }));
   }
 

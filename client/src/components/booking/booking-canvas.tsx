@@ -290,7 +290,7 @@ export function BookingCanvas({
     patientLongitude: undefined,
     consentTerms: false,
     consentData: false,
-    payMethod: "card",
+    payMethod: "wallet",
     walletAmount: 0,
     contactName: defaultContactName,
     contactMobile: defaultContactMobile,

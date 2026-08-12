@@ -311,8 +311,14 @@ export function ProviderAppointmentsTabs({ providerData, highlightApptId, active
       : null;
     const isHomeVisit = appointment.visitType === "home";
     const payment = (appointment as any).payment;
-    const paymentMethod = payment?.paymentMethod as string | undefined;
-    const paymentStatus = payment?.status as string | undefined;
+    const paymentMethod = (payment?.paymentMethod || (appointment as any).paymentMethod) as string | undefined;
+    // The appointment snapshot is the fallback source when a Stripe webhook
+    // completed the appointment but the joined payment row is still pending.
+    const paymentStatus = (
+      payment?.status === "completed" || (appointment as any).paymentStatus === "completed"
+        ? "completed"
+        : payment?.status || (appointment as any).paymentStatus
+    ) as string | undefined;
     const PaymentIcon = paymentMethod === "card" ? CreditCard : paymentMethod === "bank_transfer" ? Building2 : paymentMethod === "crypto" ? Bitcoin : Banknote;
     const isFinal = ["completed", "cancelled", "cancelled_by_patient", "cancelled_by_provider", "rejected", "no_show", "expired"].includes(appointment.status);
     const isPending = appointment.status === "pending";
@@ -336,7 +342,10 @@ export function ProviderAppointmentsTabs({ providerData, highlightApptId, active
                 return "border-l-[3px] border-l-emerald-400 dark:border-l-emerald-500";
               } catch { return "border-l-[3px] border-l-emerald-400"; }
             })();
-    const canMarkPaid = paymentStatus === "pending" && !["cancelled", "cancelled_by_patient", "cancelled_by_provider", "rejected", "no_show", "expired"].includes(appointment.status);
+    const canMarkPaid =
+      paymentStatus === "pending" &&
+      (paymentMethod === "cash" || paymentMethod === "bank_transfer") &&
+      !["cancelled", "cancelled_by_patient", "cancelled_by_provider", "rejected", "no_show", "expired"].includes(appointment.status);
     const isUpdating = updateStatusMutation.isPending && updateStatusMutation.variables?.id === appointment.id;
     const isMarkingPaid = markPaymentMutation.isPending && markPaymentMutation.variables?.id === appointment.id;
 
