@@ -189,6 +189,15 @@ export default function BookingConfirmation() {
   } = useQuery<any>({
     queryKey: QK.appointment(appointmentId!),
     enabled: !!appointmentId && isAuthenticated,
+    // Stripe redirects can arrive before the webhook request finishes. Poll
+    // only that redirect, and stop as soon as the appointment is paid.
+    refetchInterval: () => {
+      const stripeSuccess =
+        typeof window !== "undefined" &&
+        new URLSearchParams(window.location.search).get("stripe") === "success";
+      const paymentStatus = appt?.paymentStatus || appt?.payment?.status;
+      return stripeSuccess && paymentStatus !== "completed" ? 2000 : false;
+    },
   });
 
   // Unified appointment action dialog state
@@ -263,6 +272,13 @@ export default function BookingConfirmation() {
   // NOT in USD. Use formatInCurrency so we never double-multiply by the exchange rate.
   const bookingCurrency = appt?.displayCurrency ?? (appt as any)?.payment?.displayCurrency ?? "USD";
   const fmtAmt = (n: number) => formatInCurrency(n, bookingCurrency);
+  const displayPaymentStatus =
+    appt?.paymentStatus === "completed" || appt?.payment?.status === "completed"
+      ? "completed"
+      : appt?.paymentStatus || appt?.payment?.status;
+  const displayPaymentMethod = String(
+    appt?.paymentMethod || appt?.payment?.paymentMethod || "",
+  ).toLowerCase();
 
   // Prefer the full JSONB breakdown stored at booking time; it contains
   // correct snapshots for every component (including zero-value lines).
@@ -534,8 +550,8 @@ export default function BookingConfirmation() {
 
         {/* Cash / bank-transfer payment instructions */}
         {(() => {
-          const pm = (appt as any).payment?.paymentMethod as string | undefined;
-          const ps = (appt as any).payment?.status as string | undefined;
+          const pm = displayPaymentMethod;
+          const ps = displayPaymentStatus;
           const isCashLike = pm === "cash" || pm === "bank_transfer";
           if (!isCashLike || ps === "completed") return null;
           const refNum = appt.appointmentNumber || appt.id.slice(0, 8).toUpperCase();
@@ -737,14 +753,14 @@ export default function BookingConfirmation() {
                 <span>Total</span>
                 <span data-testid="price-total" className="text-primary">{fmtAmt(total)}</span>
               </div>
-              {appt.paymentStatus && (
+              {displayPaymentStatus && (
                 <div className="pt-3">
                   <Badge
-                    variant={appt.paymentStatus === "completed" ? "default" : "secondary"}
+                    variant={displayPaymentStatus === "completed" ? "default" : "secondary"}
                     className="capitalize"
                     data-testid="badge-payment-status"
                   >
-                    Payment: {appt.paymentStatus}
+                    Payment: {displayPaymentStatus}
                   </Badge>
                 </div>
               )}

@@ -311,7 +311,12 @@ export function ProviderAppointmentsTabs({ providerData, highlightApptId, active
       : null;
     const isHomeVisit = appointment.visitType === "home";
     const payment = (appointment as any).payment;
-    const paymentMethod = (payment?.paymentMethod || (appointment as any).paymentMethod) as string | undefined;
+    // The appointment snapshot is canonical. Older payment rows can retain
+    // an incorrect/default method and must not re-enable manual collection
+    // for a card/Stripe booking.
+    const paymentMethod = String(
+      (appointment as any).paymentMethod || payment?.paymentMethod || "",
+    ).toLowerCase() as string | undefined;
     // The appointment snapshot is the fallback source when a Stripe webhook
     // completed the appointment but the joined payment row is still pending.
     const paymentStatus = (

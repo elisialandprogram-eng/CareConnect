@@ -1542,6 +1542,7 @@ export function registerAppointmentRoutes(app: Express): void {
             successUrl: `${origin}/booking/confirmation/${appointment.id}?stripe=success`,
             cancelUrl: `${origin}/booking?stripe=cancelled&appointment=${appointment.id}`,
             metadata: {
+              appointmentId: appointment.id,
               patientId: userId,
               providerId,
               walletApplied: walletApplied.toFixed(2),
@@ -2191,7 +2192,10 @@ export function registerAppointmentRoutes(app: Express): void {
        // Stripe/card and wallet payments are completed by their payment flow
        // (Stripe webhook or wallet debit). Only offline collections may be
        // manually marked as received by a provider or admin.
-       if (!["cash", "bank_transfer"].includes(payment.paymentMethod || "")) {
+       const effectivePaymentMethod = String(
+         (appointment as any).paymentMethod || payment.paymentMethod || "",
+       ).toLowerCase();
+       if (!["cash", "bank_transfer"].includes(effectivePaymentMethod)) {
          return res.status(409).json({
            message: "Stripe and wallet payments are marked paid automatically; manual updates are only for cash or bank transfer.",
          });
@@ -2211,7 +2215,7 @@ export function registerAppointmentRoutes(app: Express): void {
            `UPDATE appointments
                SET payment_status = $1, payment_method = COALESCE($2, payment_method)
              WHERE id = $3`,
-           [status, payment.paymentMethod || "card", appointment.id],
+            [status, effectivePaymentMethod || "card", appointment.id],
          );
          await client.query("COMMIT");
        } catch (txErr) {

@@ -124,3 +124,4 @@
 - [Canonical settlement and readiness](canonical-settlement-readiness.md) — provider earnings and USD provider wallets are authoritative; marketplace ledger is historical; health waits for migrations and scheduler owns recurring jobs
 - [Phase 2 security architecture](phase2-security-architecture.md) — shared role catalogue, centralized admin boundary, explicit RBAC denies, hashed public refresh tokens, and session invalidation on credential changes
 - [Canonical appointment lifecycle](canonical-appointment-lifecycle.md) — all appointment status writes must use the locked transition service; direct status updates are intentionally rejected
+- [Stripe appointment webhook linkage](stripe-appointment-webhook.md) — checkout metadata must include appointmentId or the webhook cannot complete the booking

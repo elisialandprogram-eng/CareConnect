@@ -10,5 +10,8 @@ export function resolvePaymentMethod(value: unknown): string {
   const normalized = typeof value === "string" ? value.trim().toLowerCase() : "";
   // Preserve configured third-party rails so the availability registry can
   // validate them. Only an omitted/invalid value gets the canonical default.
+  // Stripe is the UI/provider name for the card rail; persist one canonical
+  // value so payment guards and settlement cannot disagree about the method.
+  if (normalized === "stripe" || normalized === "credit_card") return "card";
   return normalized || "card";
 }

@@ -2054,6 +2054,12 @@ export class DatabaseStorage extends PackagesMixin implements IStorage {
     if (result.length === 0) return undefined;
 
     const r = result[0];
+    const paymentStatus =
+      r.payments?.status === "completed" || r.appointments.paymentStatus === "completed"
+        ? "completed"
+        : r.payments?.status || r.appointments.paymentStatus;
+    const paymentMethod =
+      r.appointments.paymentMethod || r.payments?.paymentMethod;
     return {
       ...r.appointments,
       patient: r.patientUser,
@@ -2063,7 +2069,13 @@ export class DatabaseStorage extends PackagesMixin implements IStorage {
       },
       service: r.services || undefined,
       practitioner: (r.practitioners as any) || undefined,
-      payment: r.payments || undefined,
+      payment: r.payments
+        ? {
+            ...r.payments,
+            status: paymentStatus,
+            paymentMethod,
+          }
+        : undefined,
     };
   }
 
@@ -2128,26 +2140,34 @@ export class DatabaseStorage extends PackagesMixin implements IStorage {
       .orderBy(desc(appointments.createdAt))
       .limit(500);
 
-    return result.map(r => ({
-      ...r.appointments,
-      patient: r.users,
-      provider: {
-        ...r.providers,
-        user: r.users_2,
-      },
-      service: r.services || undefined,
-      practitioner: (r.practitioners as any) || undefined,
-      payment: r.payments
-        ? {
-            ...r.payments,
-            // Stripe/wallet completion updates the appointment snapshot as
-            // well. Prefer that completed state if the payment join is stale.
-            status: r.payments.status === "pending" && r.appointments.paymentStatus === "completed"
-              ? "completed"
-              : r.payments.status,
-          }
-        : undefined,
-    }));
+    return result.map(r => {
+      const paymentStatus =
+        r.payments?.status === "completed" || r.appointments.paymentStatus === "completed"
+          ? "completed"
+          : r.payments?.status || r.appointments.paymentStatus;
+      const paymentMethod =
+        r.appointments.paymentMethod || r.payments?.paymentMethod;
+      return {
+        ...r.appointments,
+        patient: r.users,
+        provider: {
+          ...r.providers,
+          user: r.users_2,
+        },
+        service: r.services || undefined,
+        practitioner: (r.practitioners as any) || undefined,
+        payment: r.payments
+          ? {
+              ...r.payments,
+              // The appointment snapshot is the canonical fallback when a
+              // Stripe webhook completed the booking but the joined payment
+              // row is stale.
+              status: paymentStatus,
+              paymentMethod,
+            }
+          : undefined,
+      };
+    });
   }
 
   /**
