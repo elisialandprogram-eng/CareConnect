@@ -32,6 +32,7 @@ import { countryCurrency } from "../../middleware/country";
 import { getStripe } from "../../stripe";
 import { createInvoiceForAppointment } from "../../utils/invoice-helper";
 import { transitionProviderPayout } from "../../lib/provider-payout-lifecycle";
+import { refundAppointmentPayment } from "../../services/payment.service";
 
 import { round2, roundToCents } from "../../lib/math";
 
@@ -1303,29 +1304,36 @@ export function registerAdminFinancialRoutes(app: Express): void {
       const { rows } = await pool.query("SELECT * FROM appointments WHERE id = $1", [req.params.id]);
       if (!rows[0]) return res.status(404).json({ message: "Appointment not found" });
       const appt = rows[0];
-      if (appt.refund_status === "processed") return res.status(409).json({ message: "Refund already processed" });
+      const paymentResult = await pool.query(
+        `SELECT * FROM payments WHERE appointment_id = $1`,
+        [appt.id],
+      );
+      const payment = paymentResult.rows[0];
+      if (!payment) return res.status(409).json({ message: "Appointment has no canonical payment aggregate" });
+      if (payment.status === "refunded") return res.status(409).json({ message: "Refund already processed" });
 
-      const totalPaid = Number(appt.total_amount || 0);
+      const totalPaid = Math.max(
+        0,
+        Number(payment.paid_amount_usd ?? payment.amount ?? 0) -
+        Number(payment.refunded_amount ?? 0),
+      );
       let refundAmt = 0;
       if (action === "approve") refundAmt = Math.max(0, Number(appt.refund_amount || totalPaid));
       else if (action === "partial" || action === "manual") refundAmt = Math.min(Number(amount ?? 0), totalPaid);
+      refundAmt = Math.min(refundAmt, totalPaid);
 
       const newStatus = action === "reject" ? "none" : (refundAmt > 0 ? "processed" : "none");
 
       if (refundAmt > 0) {
         try {
-          await storage.refundWallet(appt.patient_id, refundAmt, {
-            description: `Admin ${action} refund — appt ${appt.appointment_number || appt.id}`,
-            referenceType: "appointment",
-            referenceId: appt.id,
+          await refundAppointmentPayment({
+            paymentId: payment.id,
+            amountUsd: refundAmt,
+            reason: `Admin ${action} refund${note ? `: ${note}` : ""}`,
             idempotencyKey: `admin-refund:${appt.id}:${action}:${req.user!.id}`,
           });
-          pool.query(
-            "UPDATE payments SET refunded_amount = COALESCE(refunded_amount, 0) + $1 WHERE appointment_id = $2",
-            [refundAmt, appt.id]
-          ).catch(() => {});
         } catch (err: any) {
-          return res.status(500).json({ message: `Wallet refund failed: ${err.message}` });
+          return res.status(500).json({ message: `Canonical refund failed: ${err.message}` });
         }
       }
 

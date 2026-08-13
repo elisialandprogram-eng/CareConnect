@@ -1,0 +1,890 @@
+You are working on the payment system of this application.
+
+IMPORTANT:
+- Do NOT preserve backward compatibility.
+- Historical bookings/payment records do NOT need to be supported.
+- Do NOT keep legacy fields, routes, calculations, fallback logic, or duplicate payment paths merely for compatibility.
+- We want a clean canonical payment architecture.
+- You have authority to modify database schema, migrations, backend, frontend, services, APIs, tests, and related code.
+- Do not use sub-agents.
+- Do not stop after identifying issues. Audit and FIX every issue you find.
+- Do not make superficial synchronization fixes. Replace the underlying architecture where necessary.
+
+==================================================
+PRIMARY OBJECTIVE
+==================================================
+
+Create ONE canonical payment lifecycle for an appointment.
+
+The same booking must have exactly one authoritative payment state regardless of whether it is viewed by:
+
+- Patient/client
+- Provider
+- Admin
+- Backend services
+- Notifications
+- Emails
+- Reports
+- Earnings
+- Settlement
+- Refund logic
+
+No screen or backend route may independently derive payment truth from multiple competing fields.
+
+The architecture must distinguish:
+
+Payment state
+Appointment lifecycle state
+Provider earnings state
+Provider settlement state
+Provider payout state
+
+These are related but are NOT the same state.
+
+==================================================
+CURRENT PROBLEMS TO ELIMINATE
+==================================================
+
+The existing system contains overlapping authorities such as:
+
+- payments.status
+- appointments.payment_status
+- appointments.payment_method
+- payments.payment_method
+- appointments.refund_status
+- appointments.refund_amount
+- payments.refund_status
+- payments.refunded_amount
+- provider_earnings.status
+- legacy provider earning fields
+- wallet transaction state
+- provider wallet state
+- provider ledger state
+- payout request state
+
+There are also duplicated implementations for:
+
+- Wallet appointment payment
+- Stripe payment
+- Refunds
+- Automatic cancellation refunds
+- Offline payment confirmation
+- Provider earning creation
+- Payment completion fallback
+- Payment state resolution in frontend screens
+
+Eliminate these competing authorities.
+
+==================================================
+STEP 1 — FULL CODEBASE AUDIT
+==================================================
+
+Before modifying code:
+
+1. Search the entire repository for every payment-related field, route, service, query, UI component, webhook, cron job, reconciliation process, and database migration.
+
+2. Build an internal map of:
+
+- Payment creation
+- Payment initiation
+- Payment processing
+- Payment completion
+- Payment failure
+- Payment retry
+- Payment cancellation
+- Refund
+- Partial refund
+- Dispute
+- Wallet payment
+- Stripe payment
+- Cash
+- Bank transfer
+- Mixed wallet + Stripe payment
+- Provider earnings
+- Provider settlement
+- Provider payout
+- Notifications
+- Patient UI
+- Provider UI
+- Admin UI
+
+3. Identify every legacy/duplicate implementation.
+
+4. Then replace the architecture rather than adding another synchronization layer.
+
+Do not leave known duplicate authorities behind.
+
+==================================================
+STEP 2 — CANONICAL PAYMENT MODEL
+==================================================
+
+Create one canonical appointment payment aggregate.
+
+A booking should have ONE canonical payment record/aggregate.
+
+The canonical payment must contain the information required to determine:
+
+- Payment method(s)
+- Payment state
+- Total payable amount
+- Amount paid
+- Amount remaining
+- Amount refunded
+- Amount refundable
+- Currency
+- USD settlement amount where required
+- Provider transaction/reference IDs
+- Failure information
+- Dispute information
+- Refund information
+- Timestamps
+- Idempotency information
+
+Use clear names.
+
+Do not keep duplicate fields merely because the old schema had them.
+
+==================================================
+STEP 3 — PAYMENT ALLOCATIONS
+==================================================
+
+The system MUST support multiple payment sources for one booking.
+
+Do NOT model mixed payments using a single payment_method field.
+
+Create/use a canonical payment allocation structure.
+
+Example:
+
+Booking total:
+
+100 USD
+
+Payment allocations:
+
+Wallet = 30 USD
+Stripe = 70 USD
+
+Payment state:
+
+PAID
+
+Another example:
+
+Wallet = 30
+Stripe = 70
+
+Refund = 50
+
+Refund allocation:
+
+Wallet = 30
+Stripe = 20
+
+Final payment state:
+
+PARTIALLY_REFUNDED
+
+The system must never choose the refund source simply because a wallet transaction exists.
+
+Refunds must be allocated against the actual payment allocations.
+
+==================================================
+STEP 4 — CANONICAL PAYMENT STATE MACHINE
+==================================================
+
+Create ONE payment state machine.
+
+Recommended states:
+
+pending
+processing
+partially_paid
+paid
+failed
+refund_pending
+partially_refunded
+refunded
+disputed
+cancelled
+
+Every payment state transition must go through one canonical service.
+
+For example:
+
+transitionPayment()
+
+or an equivalent clearly named canonical service.
+
+No route, webhook, cron, wallet service, appointment service, or admin endpoint may directly mutate the canonical payment state.
+
+All transitions must be:
+
+- Validated
+- Transaction-safe
+- Idempotent where appropriate
+- Auditable
+- Deterministic
+
+Invalid transitions must fail clearly.
+
+==================================================
+STEP 5 — PAYMENT METHODS
+==================================================
+
+All supported payment methods must use the same lifecycle.
+
+Supported methods currently include:
+
+- Stripe/card
+- Wallet
+- Cash
+- Bank transfer
+
+Only actually implemented methods should remain active.
+
+Do not keep fake/unused payment methods merely because they exist in the registry.
+
+If crypto, Apple Pay, Google Pay, etc. are not actually implemented, remove them from active payment flows or clearly mark them as unavailable rather than pretending they are supported.
+
+==================================================
+STEP 6 — STRIPE PAYMENT FLOW
+==================================================
+
+Implement one canonical Stripe appointment-payment flow.
+
+It must support:
+
+- Checkout creation
+- Processing state
+- Successful payment
+- Failed payment
+- Expired checkout
+- Retry
+- Refund
+- Partial refund
+- Dispute
+- Webhook idempotency
+
+Stripe webhooks must go through the canonical payment service.
+
+A Stripe webhook must not directly manipulate unrelated payment state fields.
+
+On successful Stripe payment:
+
+canonical payment state becomes appropriate paid/partially_paid state.
+
+The appointment lifecycle must then be updated through the appropriate appointment lifecycle mechanism.
+
+Do NOT let appointment completion itself magically mark an unpaid Stripe payment as paid.
+
+Payment confirmation must come from the payment system.
+
+==================================================
+STEP 7 — WALLET PAYMENT FLOW
+==================================================
+
+There must be ONE canonical wallet appointment-payment implementation.
+
+Remove duplicate wallet payment routes/logic.
+
+Wallet payment must:
+
+1. Validate balance.
+2. Lock the wallet appropriately.
+3. Create the wallet transaction.
+4. Create/update the payment allocation.
+5. Transition the canonical payment state.
+6. Be idempotent.
+7. Roll back atomically if any step fails.
+
+For mixed wallet + Stripe:
+
+Wallet amount must be recorded as one allocation.
+
+Stripe remainder must be recorded as another allocation.
+
+If Stripe fails, the wallet allocation must be handled correctly according to the payment transaction policy.
+
+Do not leave money permanently deducted because a later payment step failed.
+
+==================================================
+STEP 8 — CASH AND BANK TRANSFER
+==================================================
+
+Offline payment must have an explicit lifecycle.
+
+For example:
+
+pending
+→ receipt confirmation
+→ paid
+
+Only authorized provider/admin users may confirm receipt.
+
+The confirmation must go through the same canonical payment transition service.
+
+Do not allow appointment status changes to silently mark an offline payment as paid.
+
+Clearly distinguish:
+
+Appointment can be confirmed
+
+from:
+
+Payment is paid
+
+from:
+
+Appointment is completed
+
+==================================================
+STEP 9 — REFUNDS
+==================================================
+
+Create ONE canonical refund service.
+
+All refunds must use it.
+
+This includes:
+
+- Patient cancellation
+- Provider cancellation
+- Admin refund
+- Automatic stale appointment cancellation
+- Stripe refund webhook
+- Reschedule rejection refunds
+- Wallet refunds
+- Mixed wallet + Stripe refunds
+
+The refund service must:
+
+1. Validate refundable amount.
+2. Determine payment allocations.
+3. Refund each payment source correctly.
+4. Update canonical payment state.
+5. Record refunded amount.
+6. Be idempotent.
+7. Prevent double refunds.
+8. Update appointment payment projection if one exists.
+9. Emit the appropriate event.
+
+For mixed payments:
+
+Wallet refund must refund wallet.
+
+Stripe refund must refund Stripe.
+
+Never refund only the first payment source found.
+
+==================================================
+STEP 10 — DISPUTES
+==================================================
+
+Implement dispute state properly.
+
+Do not attempt to write a state such as "disputed" into an enum that does not support it.
+
+Stripe dispute events must transition the canonical payment through the payment state machine.
+
+Store the relevant dispute information.
+
+==================================================
+STEP 11 — APPOINTMENT PAYMENT PROJECTION
+==================================================
+
+Remove independent payment truth from:
+
+appointments.payment_status
+
+if it is no longer required by the new architecture.
+
+If the application needs appointment-level payment information for performance/UI, it must be a projection of the canonical payment aggregate.
+
+It must NEVER become a second authority.
+
+Do not allow:
+
+payments.status = X
+appointments.payment_status = Y
+
+for the same booking.
+
+There must be one canonical answer.
+
+==================================================
+STEP 12 — REMOVE DUPLICATE PAYMENT FIELDS
+==================================================
+
+Because backward compatibility is NOT required, remove obsolete duplicates after migrating references.
+
+Examples include, where no longer needed:
+
+- appointments.payment_status
+- appointments.payment_method
+- duplicate appointment refund fields
+- duplicate payment state fields
+- legacy provider earning fields
+- legacy provider earning calculations
+- obsolete payment bridge fields
+
+Do not leave columns "just in case."
+
+Before dropping anything:
+
+- Find every reference.
+- Migrate the reference.
+- Verify no runtime dependency remains.
+- Remove the obsolete field/schema.
+
+==================================================
+STEP 13 — PAYMENTS TABLE RESPONSIBILITY
+==================================================
+
+Do not mix unrelated financial concepts in the appointment payment aggregate.
+
+If wallet top-ups currently create records in the same payment table, determine whether they should have their own canonical transaction model.
+
+Do not use:
+
+payment_method = stripe_wallet_topup
+
+as a substitute for a proper wallet-topup model if the new architecture can cleanly separate it.
+
+Appointment payments and wallet top-ups are different financial operations.
+
+Keep them separate.
+
+==================================================
+STEP 14 — PROVIDER EARNINGS
+==================================================
+
+Provider earnings must NOT determine whether the patient payment is paid.
+
+Payment comes first.
+
+Then provider earnings are derived from the completed/eligible booking.
+
+Canonical relationship:
+
+Payment
+→ Appointment
+→ Earnings eligibility
+→ Provider settlement
+→ Provider payout
+
+Provider earnings must have one canonical creation path.
+
+Remove duplicate recovery paths where they are no longer required.
+
+Make earnings creation idempotent.
+
+==================================================
+STEP 15 — PROVIDER SETTLEMENT
+==================================================
+
+Separate:
+
+Payment paid
+
+from:
+
+Provider earned
+
+from:
+
+Provider settlement
+
+from:
+
+Provider payout
+
+For example:
+
+Payment:
+PAID
+
+Appointment:
+COMPLETED
+
+Provider earnings:
+ELIGIBLE
+
+Settlement:
+POSTED
+
+Payout:
+PENDING
+
+This is valid.
+
+Do not collapse these states.
+
+Use the booking's canonical pricing/revenue snapshot when calculating provider earnings.
+
+==================================================
+STEP 16 — PROVIDER UI
+==================================================
+
+Provider does NOT need to see the internal payment architecture.
+
+Provider-facing payment information should be simple.
+
+For an appointment, provider should primarily see:
+
+- Total amount paid by patient
+- Provider net earnings
+
+For example:
+
+Patient paid:
+1,333.50 HUF
+
+Provider net earnings:
+960 HUF
+
+For cash/offline bookings, show the relevant platform fee deduction only when it affects provider earnings.
+
+Do not expose unnecessary:
+
+- Tax internals
+- Payment allocations
+- Stripe IDs
+- Wallet transaction IDs
+- Platform tax breakdown
+- Internal settlement mechanics
+
+unless explicitly required by an admin financial screen.
+
+==================================================
+STEP 17 — PATIENT UI
+==================================================
+
+Patient should see the canonical payment state and appropriate payment details.
+
+Examples:
+
+Payment pending
+Payment processing
+Payment paid
+Payment failed
+Payment partially refunded
+Payment refunded
+
+The displayed amount must come from the canonical booking/payment snapshot.
+
+Do not calculate payment state in React using:
+
+"payment A OR payment B OR appointment field"
+
+Remove these fallback expressions.
+
+==================================================
+STEP 18 — ADMIN UI
+==================================================
+
+Admin can see detailed payment information.
+
+Admin should be able to understand:
+
+- Total booking amount
+- Payment state
+- Payment allocations
+- Payment attempts
+- Amount paid
+- Amount remaining
+- Refunds
+- Refund allocation
+- Failure reason
+- Dispute information
+- Payment provider reference
+- Provider earnings
+- Settlement
+- Payout
+
+But these details must all come from canonical backend APIs.
+
+Do not have the admin UI reconstruct financial truth.
+
+==================================================
+STEP 19 — API STANDARDIZATION
+==================================================
+
+Create a canonical payment response shape.
+
+All patient/provider/admin booking APIs that expose payment information should use the same canonical payment projection.
+
+Different roles may receive different fields for authorization/privacy, but the underlying state must be identical.
+
+Do not allow one API to return:
+
+payment.status = completed
+
+while another returns:
+
+appointment.payment_status = pending
+
+for the same booking.
+
+==================================================
+STEP 20 — EVENTS AND NOTIFICATIONS
+==================================================
+
+Payment events should be emitted from the canonical payment transition service.
+
+Examples:
+
+payment.pending
+payment.processing
+payment.paid
+payment.failed
+payment.refund_pending
+payment.partially_refunded
+payment.refunded
+payment.disputed
+
+Notifications, email, SMS, push, and UI refresh logic should consume these canonical events.
+
+Do not trigger payment notifications from random route-specific status mutations.
+
+==================================================
+STEP 21 — RECONCILIATION
+==================================================
+
+After the new architecture is implemented, create reconciliation checks for:
+
+- Payment allocation total mismatch
+- Payment paid amount mismatch
+- Refund amount mismatch
+- Stripe payment missing locally
+- Stripe payment locally marked incorrectly
+- Wallet debit without payment allocation
+- Payment marked paid without corresponding transaction
+- Paid completed appointment without provider earnings
+- Provider earnings without valid paid booking
+- Settlement mismatch
+- Provider wallet mismatch
+- Duplicate appointment payments
+- Duplicate refunds
+- Invalid payment state transitions
+
+Because historical compatibility is not required, do not build complicated legacy reconciliation logic.
+
+Reconcile the current/new data model.
+
+==================================================
+STEP 22 — DATABASE CLEANUP
+==================================================
+
+Create a proper schema migration.
+
+Do NOT keep obsolete columns for compatibility.
+
+Remove obsolete:
+
+- payment status columns
+- duplicate payment method columns
+- duplicate refund columns
+- legacy earning columns
+- obsolete payment bridge fields
+- unused enums
+- unused indexes
+- unused tables where appropriate
+
+Add proper:
+
+- payment aggregate
+- payment allocations
+- payment attempts if needed
+- refund records if needed
+- dispute records if needed
+- indexes
+- unique constraints
+- foreign keys
+
+A booking must not be able to accidentally have multiple canonical payment aggregates.
+
+Use database constraints where possible.
+
+==================================================
+STEP 23 — DELETE LEGACY CODE
+==================================================
+
+After migration, search the entire repository again.
+
+There must be no active references to old payment authority fields.
+
+Remove:
+
+- Old payment-state fallback logic
+- Old payment-status synchronization
+- Duplicate wallet payment route
+- Duplicate refund implementation
+- Completion-time payment auto-confirmation
+- Legacy earning calculations
+- Legacy provider earning fields
+- Old payment reconciliation logic
+- Dead enums
+- Dead interfaces/types
+- Dead frontend helpers
+- Dead API responses
+
+Do not leave dead code commented out.
+
+Delete it.
+
+==================================================
+STEP 24 — TEST EVERY PAYMENT SCENARIO
+==================================================
+
+Create/update automated tests for at least:
+
+1. Stripe full payment
+2. Stripe failed payment
+3. Stripe expired checkout
+4. Stripe retry
+5. Wallet full payment
+6. Wallet insufficient balance
+7. Cash payment
+8. Bank transfer payment
+9. Wallet + Stripe payment
+10. Wallet + Stripe Stripe failure
+11. Full refund
+12. Partial refund
+13. Wallet refund
+14. Stripe refund
+15. Mixed payment refund
+16. Duplicate webhook
+17. Duplicate payment request
+18. Duplicate refund request
+19. Stripe dispute
+20. Appointment cancellation
+21. Automatic stale cancellation
+22. Appointment completion
+23. Provider earnings creation
+24. Provider settlement
+25. Provider payout
+26. Patient UI payment state
+27. Provider UI payment state
+28. Admin UI payment state
+
+For every scenario verify that Patient, Provider, and Admin see the same canonical payment state.
+
+==================================================
+STEP 25 — FINAL SYSTEM INVARIANTS
+==================================================
+
+The following must ALWAYS be true:
+
+1. One appointment has one canonical payment aggregate.
+
+2. One canonical payment state exists.
+
+3. Payment state is never independently calculated by frontend code.
+
+4. No route directly mutates payment state outside the canonical payment service.
+
+5. No appointment operation can falsely mark an unpaid payment as paid.
+
+6. Mixed payments are represented by allocations.
+
+7. Refunds reverse the correct payment allocations.
+
+8. Duplicate payment requests are idempotent.
+
+9. Duplicate webhooks are idempotent.
+
+10. Duplicate refunds are idempotent.
+
+11. Provider earnings do not determine payment state.
+
+12. Provider settlement does not determine payment state.
+
+13. Provider payout does not determine payment state.
+
+14. Patient/provider/admin see the same underlying payment state.
+
+15. No legacy fallback logic remains.
+
+16. No backward compatibility layer is required.
+
+17. No historical booking behavior needs to be preserved.
+
+18. Database constraints prevent duplicate canonical payment aggregates.
+
+19. All monetary calculations use the canonical booking/revenue snapshot.
+
+20. Every financial state transition is auditable.
+
+==================================================
+IMPLEMENTATION RULE
+==================================================
+
+Do not merely report problems.
+
+For every issue you find:
+
+AUDIT
+→ DESIGN THE CORRECT CANONICAL BEHAVIOR
+→ IMPLEMENT IT
+→ REMOVE THE OLD IMPLEMENTATION
+→ UPDATE ALL REFERENCES
+→ UPDATE DATABASE
+→ UPDATE UI
+→ ADD TESTS
+→ RUN TESTS
+→ FIX FAILURES
+→ RE-SCAN THE REPOSITORY
+
+Do not stop at the first successful build.
+
+==================================================
+VERIFICATION
+==================================================
+
+At the end run at minimum:
+
+npm run check
+npm run build
+
+Run all relevant payment tests.
+
+Also perform a repository-wide search for the old payment fields/routes and confirm they are no longer active.
+
+Verify:
+
+- Patient booking
+- Provider booking/earnings
+- Admin booking
+- Stripe
+- Wallet
+- Cash
+- Bank transfer
+- Refund
+- Partial refund
+- Mixed wallet + Stripe
+- Payment failure
+- Retry
+- Appointment completion
+- Provider earnings
+- Provider settlement
+- Provider payout
+
+Then provide a concise final report containing:
+
+1. What was removed
+2. What became canonical
+3. Database changes
+4. Payment lifecycle
+5. Refund lifecycle
+6. Mixed-payment behavior
+7. Provider earnings behavior
+8. UI/API changes
+9. Tests executed
+10. Any remaining issue
+
+IMPORTANT:
+If you discover an architectural problem while implementing this, FIX IT immediately rather than simply documenting it.
+
+There is no requirement to preserve the existing payment architecture.
+The goal is a clean, canonical, production-ready payment system with NO legacy payment behavior.

@@ -10,6 +10,7 @@ import { formatLocal } from "./services/currency";
 import {
   completeStripeAttempt,
   failPaymentAttempt,
+  expirePaymentAttempt,
   recordStripeDispute,
   recordStripeRefund,
 } from "./services/payment.service";
@@ -242,7 +243,20 @@ export async function handleStripeWebhook(req: Request, res: Response) {
         }
         break;
       }
-      case "checkout.session.expired":
+      case "checkout.session.expired": {
+        const session = event.data.object as Stripe.Checkout.Session;
+        const appointmentId = session.metadata?.appointmentId;
+        if (appointmentId) {
+          await expirePaymentAttempt({
+            providerSessionId: session.id,
+            idempotencyKey: `stripe:${event.id}`,
+          });
+          console.log(
+            `[stripe webhook] payment checkout expired for appointment ${appointmentId}`,
+          );
+        }
+        break;
+      }
       case "checkout.session.async_payment_failed": {
         const session = event.data.object as Stripe.Checkout.Session;
         const appointmentId = session.metadata?.appointmentId;
@@ -251,11 +265,9 @@ export async function handleStripeWebhook(req: Request, res: Response) {
             providerSessionId: session.id,
             idempotencyKey: `stripe:${event.id}`,
             failureCode: event.type,
-            failureMessage: "Stripe checkout session expired or failed",
+            failureMessage: "Stripe checkout payment failed",
           });
-          console.log(
-            `[stripe webhook] payment failed/expired for appointment ${appointmentId}`,
-          );
+          console.log(`[stripe webhook] payment failed for appointment ${appointmentId}`);
         }
         break;
       }

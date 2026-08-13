@@ -119,6 +119,7 @@ import {
   applyWalletAllocation,
   transitionPayment,
   recordOfflineReceipt,
+  refundAppointmentPayment,
 } from "../services/payment.service";
 const APPT_IDEMPOTENCY_TTL_MS = 10 * 60 * 1000;
 
@@ -2323,73 +2324,23 @@ export function registerAppointmentRoutes(app: Express): void {
           );
           cancelledCount++;
 
-          // Issue a refund for any paid stale appointment — mirrors cancelStaleConfirmed cron logic.
-          // Runs best-effort so a refund failure never blocks the cleanup response.
+          // Refund through the canonical payment aggregate. The operation is
+          // idempotent and allocates wallet/Stripe/mixed funding correctly.
           (async () => {
             try {
-              const alreadyProcessed = (apt as any).refundStatus === 'processed';
-              if (alreadyProcessed) return;
-
-              // 1. Wallet debit refund
-              const debits = await db
-                .select()
-                .from(walletTransactions)
-                .where(and(
-                  eq(walletTransactions.referenceType, 'appointment'),
-                  eq(walletTransactions.referenceId, apt.id),
-                  eq(walletTransactions.type, 'debit'),
-                ));
-              const totalDebited = debits.reduce((sum, d) => sum + Math.abs(Number(d.amount || 0)), 0);
-              if (totalDebited > 0) {
-                await storage.refundWallet(apt.patientId, totalDebited, {
-                  description: `Refund for auto-cancelled appointment ${(apt as any).appointmentNumber || apt.id}`,
-                  referenceType: 'appointment',
-                  referenceId: apt.id,
-                  idempotencyKey: `appointment:${apt.id}:cleanup-refund`,
-                });
-                await pool.query(
-                  `UPDATE appointments SET refund_status = 'processed' WHERE id = $1`,
-                  [apt.id],
-                ).catch(() => {});
-                await pool.query(
-                  `UPDATE payments SET refunded_amount = COALESCE(refunded_amount,0) + $1 WHERE appointment_id = $2`,
-                  [totalDebited, apt.id],
-                ).catch(() => {});
-                return;
-              }
-
-              // 2. Stripe card refund fallback
               const payment = await storage.getPaymentByAppointment(apt.id);
-              const stripe = getStripe();
-              if (
-                stripe && payment &&
-                payment.paymentMethod === 'card' &&
-                payment.stripePaymentId &&
-                payment.status === 'completed' &&
-                !(payment as any).stripeRefundId
-              ) {
-                const refundAmt = Math.max(
-                  0,
-                  Number(payment.amount || 0) - Number((payment as any).refundedAmount || 0),
-                );
-                if (refundAmt > 0) {
-                  const stripeRefund = await stripe.refunds.create(
-                    { payment_intent: payment.stripePaymentId, amount: Math.round(refundAmt * 100) },
-                    { idempotencyKey: `appointment:${apt.id}:cleanup-card-refund` },
-                  );
-                  await pool.query(
-                    `UPDATE payments SET refunded_amount = COALESCE(refunded_amount,0) + $1, stripe_refund_id = $2 WHERE id = $3`,
-                    [refundAmt, stripeRefund.id, payment.id],
-                  ).catch(() => {});
-                  await pool.query(
-                    `UPDATE appointments SET refund_status = 'processed' WHERE id = $1`,
-                    [apt.id],
-                  ).catch(() => {});
-                  console.log(`[cleanup] Stripe refund ${stripeRefund.id} ($${refundAmt}) for appt ${apt.id}`);
-                }
-              }
+              if (!payment) return;
+              await refundAppointmentPayment({
+                paymentId: payment.id,
+                reason: "Automatic stale appointment cancellation",
+                idempotencyKey: `appointment:${apt.id}:cleanup-refund`,
+              });
+              await pool.query(
+                `UPDATE appointments SET refund_status = 'processed' WHERE id = $1`,
+                [apt.id],
+              ).catch(() => {});
             } catch (refundErr) {
-              console.error(`[cleanup] refund failed for appt ${apt.id}:`, refundErr);
+              console.error(`[cleanup] canonical refund failed for appt ${apt.id}:`, refundErr);
             }
           })();
         }
@@ -2722,127 +2673,61 @@ export function registerAppointmentRoutes(app: Express): void {
         }).catch((e) => console.error("[action] waitlist notify failed:", e));
       }
 
-      // Process wallet refund for cancellations (post-tx; the wallet ledger
-      // is the source of truth for what actually moved).
-      // Safety: skip if already processed to prevent double-refunds.
+      // Process cancellation refunds through the canonical payment aggregate.
+      // The refund policy is applied to the amount actually paid, never to
+      // appointment snapshots or to whichever wallet transaction is found first.
       let refundedAmount = 0;
       const alreadyProcessed = (updated as any).refundStatus === "processed";
       if (action === "cancel" && quote.amount > 0 && !alreadyProcessed) {
         try {
-          const debits = await db
-            .select()
-            .from(walletTransactions)
-            .where(and(
-              eq(walletTransactions.referenceType, "appointment"),
-              eq(walletTransactions.referenceId, updated.id),
-              eq(walletTransactions.type, "debit"),
-            ));
-          const totalDebited = debits.reduce(
-            (sum, d) => sum + Math.abs(Number(d.amount || 0)),
+          const payment = await storage.getPaymentByAppointment(updated.id);
+          const paidAmountUsd = Number(
+            (payment as any)?.paidAmountUsd ??
+            (payment as any)?.paid_amount_usd ??
+            (payment as any)?.amount ??
             0,
           );
-          // quote.amount is in LOCAL currency (HUF/EUR) while totalDebited is in
-          // USD (wallet ledger is always USD). Use the policy percentage directly
-          // on totalDebited so we never mix currencies in the Math.min comparison.
-          let toRefund = 0;
+          const alreadyRefundedUsd = Number(
+            (payment as any)?.refundedAmount ??
+            (payment as any)?.refunded_amount ??
+            0,
+          );
+          const refundableUsd = Math.max(0, paidAmountUsd - alreadyRefundedUsd);
+          let toRefund = refundableUsd;
           if (quote.policy === "full" || quote.policy === "provider_full") {
-            toRefund = totalDebited;
           } else if (quote.policy === "partial") {
             const pct = activeRefundRule?.partial_refund_percent != null
               ? Number(activeRefundRule.partial_refund_percent) / 100
               : PARTIAL_REFUND_PERCENT;
-            toRefund = Math.round(totalDebited * pct * 100) / 100;
+            toRefund = Math.round(refundableUsd * pct * 100) / 100;
+          } else {
+            toRefund = 0;
           }
-          // policy "none" → toRefund stays 0
-          if (toRefund > 0) {
-            await storage.refundWallet(updated.patientId, toRefund, {
-              description: `Refund for cancelled appointment ${updated.appointmentNumber || updated.id}`,
-              referenceType: "appointment",
-              referenceId: updated.id,
+          if (payment && toRefund > 0) {
+            await refundAppointmentPayment({
+              paymentId: payment.id,
+              amountUsd: toRefund,
+              reason: `Appointment cancellation (${quote.policy})`,
               idempotencyKey: `appointment:${updated.id}:cancel-refund`,
             });
             refundedAmount = toRefund;
-
-            // Mark refund as processed and tally on payment row
             await db
               .update(appointments)
               .set({ refundStatus: "processed" } as any)
               .where(eq(appointments.id, updated.id));
-
-            // Update payments.refunded_amount for audit trail (best-effort)
-            try {
-              await pool.query(
-                `UPDATE payments SET refunded_amount = COALESCE(refunded_amount,0) + $1 WHERE appointment_id = $2`,
-                [toRefund, updated.id],
-              );
-            } catch (payErr) {
-              console.error("[action] payments.refunded_amount update failed:", payErr);
-            }
-          } else {
-            // No wallet debit found — check for a Stripe card payment and
-            // issue a refund directly through the API. This covers bookings
-            // paid by card that never touched the internal wallet.
-            try {
-              const payment = await storage.getPaymentByAppointment(updated.id);
-              const stripe = getStripe();
-              if (
-                stripe &&
-                payment &&
-                payment.paymentMethod === "card" &&
-                payment.stripePaymentId &&
-                payment.status === "completed" &&
-                !payment.stripeRefundId  // guard: skip if a Stripe refund is already recorded (prevents duplicate refund on replay)
-              ) {
-                const refundAmt = Math.min(
-                  quote.amount,
-                  Number(payment.amount || 0) - Number(payment.refundedAmount || 0),
-                );
-                if (refundAmt > 0) {
-                  const stripeRefund = await stripe.refunds.create(
-                    {
-                      payment_intent: payment.stripePaymentId,
-                      amount: Math.round(refundAmt * 100),
-                    },
-                    { idempotencyKey: `appointment:${updated.id}:card-refund` },
-                  );
-                  refundedAmount = refundAmt;
-                  // Persist refund ID + running total on the payment row
-                  await pool.query(
-                    `UPDATE payments
-                     SET refunded_amount = COALESCE(refunded_amount, 0) + $1,
-                         stripe_refund_id = $2
-                     WHERE id = $3`,
-                    [refundAmt, stripeRefund.id, payment.id],
-                  );
-                  await db
-                    .update(appointments)
-                    .set({ refundStatus: "processed" } as any)
-                    .where(eq(appointments.id, updated.id));
-                  console.log(
-                    `[action] Stripe card refund issued: ${stripeRefund.id} ($${refundAmt}) for appointment ${updated.id}`,
-                  );
-                } else {
-                  await db
-                    .update(appointments)
-                    .set({ refundStatus: "none" } as any)
-                    .where(eq(appointments.id, updated.id));
-                }
-              } else {
-                await db
-                  .update(appointments)
-                  .set({ refundStatus: "none" } as any)
-                  .where(eq(appointments.id, updated.id));
-              }
-            } catch (cardRefundErr) {
-              console.error("[action] Stripe card refund failed:", cardRefundErr);
-              await db
-                .update(appointments)
-                .set({ refundStatus: "failed" } as any)
-                .where(eq(appointments.id, updated.id));
-            }
+          } else if (payment) {
+            await db
+              .update(appointments)
+              .set({ refundStatus: "none" } as any)
+              .where(eq(appointments.id, updated.id));
           }
         } catch (refundErr) {
-          console.error("[action] wallet refund failed:", refundErr);
+          console.error("[action] canonical refund failed:", refundErr);
+          await db
+            .update(appointments)
+            .set({ refundStatus: "failed" } as any)
+            .where(eq(appointments.id, updated.id))
+            .catch(() => {});
         }
       }
 
@@ -3219,56 +3104,34 @@ export function registerAppointmentRoutes(app: Express): void {
 
       const providerWithUser = await storage.getProviderWithUser(existing.providerId).catch(() => null);
 
-      // When rejected: issue full refund to patient wallet (same logic as provider cancel)
+      // When rejected: issue a full allocation-aware refund. The canonical
+      // payment service decides whether each portion returns to wallet or
+      // Stripe; this route never chooses the first transaction it finds.
       let refundedAmount = 0;
       if (!accept) {
         try {
-          const debits = await db
-            .select()
-            .from(walletTransactions)
-            .where(and(
-              eq(walletTransactions.referenceType, "appointment"),
-              eq(walletTransactions.referenceId, existing.id),
-              eq(walletTransactions.type, "debit"),
-            ));
-          const totalDebited = debits.reduce(
-            (sum, d) => sum + Math.abs(Number(d.amount ?? 0)),
-            0,
-          );
-          if (totalDebited > 0) {
-            await storage.refundWallet(existing.patientId, totalDebited, {
-              description: `Full refund — reschedule rejected, appointment ${(existing as any).appointmentNumber || existing.id} cancelled`,
-              referenceType: "appointment",
-              referenceId: existing.id,
-              idempotencyKey: `appointment:${existing.id}:reject-reschedule-refund`,
-            });
-            refundedAmount = totalDebited;
-            await db
-              .update(appointments)
-              .set({ refundStatus: "processed" } as any)
-              .where(eq(appointments.id, existing.id));
-          } else {
-            // No wallet debit → check for Stripe card payment and refund directly
-            try {
-              const payment = await storage.getPaymentByAppointment(existing.id);
-              const stripe = getStripe();
-              if (stripe && payment?.paymentMethod === "card" && payment?.stripePaymentId && payment?.status === "completed") {
-                const refundAmt = Number(payment.amount ?? 0);
-                if (refundAmt > 0) {
-                  const stripeRefund = await stripe.refunds.create(
-                    { payment_intent: payment.stripePaymentId, amount: Math.round(refundAmt * 100) },
-                    { idempotencyKey: `appointment:${existing.id}:reject-card-refund` },
-                  );
-                  refundedAmount = refundAmt;
-                  await pool.query(
-                    `UPDATE payments SET refunded_amount = COALESCE(refunded_amount,0) + $1, stripe_refund_id = $2 WHERE id = $3`,
-                    [refundAmt, stripeRefund.id, payment.id],
-                  );
-                  await db.update(appointments).set({ refundStatus: "processed" } as any).where(eq(appointments.id, existing.id));
-                }
-              }
-            } catch (cardRefundErr) {
-              console.error("[reschedule-response] Stripe card refund failed:", cardRefundErr);
+          const payment = await storage.getPaymentByAppointment(existing.id);
+          if (payment) {
+            const paidAmountUsd = Number(
+              (payment as any).paidAmountUsd ??
+              (payment as any).paid_amount_usd ??
+              (payment as any).amount ??
+              0,
+            );
+            const refundedUsd = Number(
+              (payment as any).refundedAmount ??
+              (payment as any).refunded_amount ??
+              0,
+            );
+            refundedAmount = Math.max(0, paidAmountUsd - refundedUsd);
+            if (refundedAmount > 0) {
+              await refundAppointmentPayment({
+                paymentId: payment.id,
+                amountUsd: refundedAmount,
+                reason: "Reschedule proposal rejected",
+                idempotencyKey: `appointment:${existing.id}:reject-reschedule-refund`,
+              });
+              await db.update(appointments).set({ refundStatus: "processed" } as any).where(eq(appointments.id, existing.id));
             }
           }
           // Free the time slot — try by ID first, fall back to coordinates.

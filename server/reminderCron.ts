@@ -13,6 +13,7 @@ import { fireAdminNotification } from "./routes/shared/helpers";
 import { trackEvent } from "./services/analyticsTracker";
 import { formatLocal, getRates, formatSync } from "./services/currency";
 import { countryCurrency } from "./middleware/country";
+import { refundAppointmentPayment } from "./services/payment.service";
 
 // Cooldown between successive overdue-invoice reminders for the same invoice.
 // Override with INVOICE_REMINDER_COOLDOWN_DAYS. Default 7 days keeps it polite.
@@ -319,88 +320,30 @@ async function cancelStaleConfirmed() {
       } catch (notifyErr) {
         log(`reminderCron[stale]: notify failed for appt ${appt.id}: ${(notifyErr as Error).message}`);
       }
-      // P0 — Issue refund for any paid appointment that was auto-cancelled.
-      // Provider earnings are only recorded on 'completed' so no double-payment occurs.
-      // The auto-cancel represents provider inaction; the patient deserves a full refund.
+      // P0 — refund any paid stale appointment through the canonical payment
+      // aggregate. The idempotency key makes each hourly retry safe.
       try {
-        const alreadyProcessed = (appt as any).refundStatus === "processed";
-        if (!alreadyProcessed) {
-          // Check for wallet debit first
-          const debits = await db
-            .select()
-            .from(walletTransactions)
-            .where(and(
-              eq(walletTransactions.referenceType, "appointment"),
-              eq(walletTransactions.referenceId, appt.id),
-              eq(walletTransactions.type, "debit"),
-            ));
-          const totalDebited = debits.reduce((sum, d) => sum + Math.abs(Number(d.amount || 0)), 0);
-          if (totalDebited > 0) {
-            await storage.refundWallet(appt.patientId, totalDebited, {
-              description: `Refund for auto-cancelled appointment ${appt.appointmentNumber || appt.id}`,
-              referenceType: "appointment",
-              referenceId: appt.id,
-              idempotencyKey: `appointment:${appt.id}:stale-cancel-refund`,
-            });
-            await db.update(appointments)
-              .set({ refundStatus: "processed" } as any)
-              .where(eq(appointments.id, appt.id));
-            await pool.query(
-              `UPDATE payments SET refunded_amount = COALESCE(refunded_amount,0) + $1 WHERE appointment_id = $2`,
-              [totalDebited, appt.id],
-            ).catch(() => {});
-            log(`reminderCron[stale]: wallet refund $${totalDebited} issued for appt ${appt.id}`);
-            notify.paymentRefunded(appt.patientId, {
-              formattedAmount: formatLocal(totalDebited, "USD"),
-              appointmentId: appt.id,
-              method: "wallet",
-            }).catch(() => {});
-          } else {
-            // No wallet debit — check for Stripe card payment
-            try {
-              const payment = await storage.getPaymentByAppointment(appt.id);
-              const stripe = getStripe();
-              if (
-                stripe && payment &&
-                payment.paymentMethod === "card" &&
-                payment.stripePaymentId &&
-                payment.status === "completed" &&
-                !(payment as any).stripeRefundId
-              ) {
-                const refundAmt = Math.max(
-                  0,
-                  Number(payment.amount || 0) - Number((payment as any).refundedAmount || 0),
-                );
-                if (refundAmt > 0) {
-                  const stripeRefund = await stripe.refunds.create(
-                    { payment_intent: payment.stripePaymentId, amount: Math.round(refundAmt * 100) },
-                    { idempotencyKey: `appointment:${appt.id}:stale-card-refund` },
-                  );
-                  await pool.query(
-                    `UPDATE payments SET refunded_amount = COALESCE(refunded_amount,0) + $1, stripe_refund_id = $2 WHERE id = $3`,
-                    [refundAmt, stripeRefund.id, payment.id],
-                  ).catch(() => {});
-                  await db.update(appointments)
-                    .set({ refundStatus: "processed" } as any)
-                    .where(eq(appointments.id, appt.id));
-                  log(`reminderCron[stale]: Stripe refund ${stripeRefund.id} ($${refundAmt}) issued for appt ${appt.id}`);
-                  notify.paymentRefunded(appt.patientId, {
-                    formattedAmount: formatLocal(refundAmt, "USD"),
-                    appointmentId: appt.id,
-                    method: "card",
-                  }).catch(() => {});
-                }
-              }
-            } catch (cardErr) {
-              log(`reminderCron[stale]: Stripe refund failed for appt ${appt.id}: ${(cardErr as Error).message}`);
-              await db.update(appointments)
-                .set({ refundStatus: "failed" } as any)
-                .where(eq(appointments.id, appt.id)).catch(() => {});
-            }
-          }
+        const payment = await storage.getPaymentByAppointment(appt.id);
+        if (payment) {
+          await refundAppointmentPayment({
+            paymentId: payment.id,
+            reason: "Automatic stale appointment cancellation",
+            idempotencyKey: `appointment:${appt.id}:stale-cancel-refund`,
+          });
+          await db.update(appointments)
+            .set({ refundStatus: "processed" } as any)
+            .where(eq(appointments.id, appt.id));
+          notify.paymentRefunded(appt.patientId, {
+            formattedAmount: formatLocal(Number(payment.amount ?? 0), "USD"),
+            appointmentId: appt.id,
+            method: "payment",
+          }).catch(() => {});
         }
       } catch (refundErr) {
-        log(`reminderCron[stale]: refund failed for appt ${appt.id}: ${(refundErr as Error).message}`);
+        log(`reminderCron[stale]: canonical refund failed for appt ${appt.id}: ${(refundErr as Error).message}`);
+        await db.update(appointments)
+          .set({ refundStatus: "failed" } as any)
+          .where(eq(appointments.id, appt.id)).catch(() => {});
       }
       cancelled++;
     } catch (err) {
