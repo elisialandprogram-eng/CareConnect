@@ -1589,6 +1589,36 @@ export function registerAppointmentRoutes(app: Express): void {
           console.log("Stripe checkout session created:", session.sessionId);
         } catch (stripeErr) {
           console.error("Stripe checkout creation failed:", stripeErr);
+          await pool.query(
+            `UPDATE payment_attempts
+                SET status = 'failed',
+                    failure_code = 'checkout_creation_failed',
+                    failure_message = $1,
+                    updated_at = NOW()
+              WHERE payment_id = $2 AND status = 'processing'`,
+            [stripeErr instanceof Error ? stripeErr.message : "Stripe checkout creation failed", payment.id],
+          ).catch((attemptErr: any) =>
+            console.warn("[stripe-fail] payment attempt cleanup failed:", attemptErr?.message),
+          );
+
+          const currentPayment = await storage.getPayment(payment.id).catch(() => undefined);
+          if (currentPayment?.status === "partially_paid") {
+            await refundAppointmentPayment({
+              paymentId: payment.id,
+              reason: "Stripe checkout session creation failed",
+              idempotencyKey: `appointment:${appointment.id}:stripe-checkout-failed:wallet-refund`,
+            }).catch((refundErr: any) =>
+              console.error("[stripe-fail] wallet allocation refund failed:", refundErr?.message),
+            );
+          } else if (currentPayment && ["pending", "processing"].includes(currentPayment.status)) {
+            await transitionPayment(payment.id, "failed", {
+              idempotencyKey: `appointment:${appointment.id}:stripe-checkout-failed`,
+              metadata: { source: "stripe", error: stripeErr instanceof Error ? stripeErr.message : String(stripeErr) },
+            }).catch((paymentErr: any) =>
+              console.warn("[stripe-fail] payment aggregate cleanup failed:", paymentErr?.message),
+            );
+          }
+
           // Free the reserved slot immediately so other patients aren't blocked
           // waiting for the hourly cron to clean up.
           if (reservedSlotId) {

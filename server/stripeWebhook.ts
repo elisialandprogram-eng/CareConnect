@@ -11,6 +11,7 @@ import {
   completeStripeAttempt,
   failPaymentAttempt,
   expirePaymentAttempt,
+  refundAppointmentPayment,
   recordStripeDispute,
   recordStripeRefund,
 } from "./services/payment.service";
@@ -93,6 +94,56 @@ const _metrics: WebhookMetrics = {
 /** Read-only snapshot of Stripe webhook metrics for the diagnostics endpoint. */
 export function getWebhookMetrics(): Readonly<WebhookMetrics> {
   return { ..._metrics, eventTypeCounts: { ..._metrics.eventTypeCounts } };
+}
+
+async function cancelUnpaidStripeAppointment(
+  appointmentId: string,
+  reasonCode: string,
+  reason: string,
+): Promise<void> {
+  const appointment = await storage.getAppointment(appointmentId);
+  if (!appointment) return;
+
+  // Never cancel a confirmed/completed appointment because a late failure
+  // event can arrive after a successful payment event.
+  if (appointment.status === "pending") {
+    const transition = await storage.transitionAppointment(
+      appointment.id,
+      { status: "cancelled" } as any,
+      {
+        action: "cancel" as any,
+        actorUserId: null,
+        actorRole: null,
+        fromStatus: appointment.status as any,
+        toStatus: "cancelled" as any,
+        reason,
+        reasonCode,
+      },
+      { allowNoop: true },
+    );
+    if (!transition.ok) {
+      console.warn(`[stripe webhook] appointment cancellation skipped: ${transition.message}`);
+    }
+  }
+
+  if (appointment.timeSlotId) {
+    await storage.updateTimeSlot(appointment.timeSlotId, { isBooked: false }).catch((slotErr: any) =>
+      console.warn("[stripe webhook] failed to release slot:", slotErr?.message),
+    );
+  }
+
+  // A wallet + Stripe booking may already have a paid wallet allocation.
+  // Return that allocation when Stripe never completes.
+  const payment = await storage.getPaymentByAppointment(appointment.id);
+  if (payment?.status === "partially_paid") {
+    await refundAppointmentPayment({
+      paymentId: payment.id,
+      reason,
+      idempotencyKey: `stripe:${appointment.id}:${reasonCode}:wallet-refund`,
+    }).catch((refundErr: any) =>
+      console.error("[stripe webhook] wallet allocation refund failed:", refundErr?.message),
+    );
+  }
 }
 
 export async function handleStripeWebhook(req: Request, res: Response) {
@@ -251,6 +302,11 @@ export async function handleStripeWebhook(req: Request, res: Response) {
             providerSessionId: session.id,
             idempotencyKey: `stripe:${event.id}`,
           });
+          await cancelUnpaidStripeAppointment(
+            appointmentId,
+            "stripe_checkout_expired",
+            "Stripe checkout session expired before payment completed",
+          );
           console.log(
             `[stripe webhook] payment checkout expired for appointment ${appointmentId}`,
           );
@@ -267,6 +323,11 @@ export async function handleStripeWebhook(req: Request, res: Response) {
             failureCode: event.type,
             failureMessage: "Stripe checkout payment failed",
           });
+          await cancelUnpaidStripeAppointment(
+            appointmentId,
+            "stripe_payment_failed",
+            "Stripe checkout payment failed",
+          );
           console.log(`[stripe webhook] payment failed for appointment ${appointmentId}`);
         }
         break;
