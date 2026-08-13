@@ -9,7 +9,7 @@
  * Preserves:
  *  - All schema (tables, enums, indexes, sequences definitions).
  *  - Admin users (role IN admin / global_admin / country_admin).
- *  - Service catalog: services, service_categories, service_translations (kept by default, set CLEAR_CATALOG=1 to wipe).
+ *  - Service catalog: services and service translations (kept by default, set CLEAR_CATALOG=1 to wipe).
  *
  * Wipes:
  *  - All transactional data tables that exist in the schema.
@@ -120,7 +120,6 @@ const TRANSACTIONAL_TABLES = [
 
 const PROVIDER_TABLES = [
   "practitioners",
-  "medical_practitioners",
   "service_practitioners",
   "provider_earnings",
   "provider_office_hours",
@@ -136,7 +135,6 @@ const PROVIDER_TABLES = [
 const CATALOG_TABLES = [
   "services",
   "sub_services",
-  "service_categories",
   "service_translations",
   "service_packages",
   "package_services",

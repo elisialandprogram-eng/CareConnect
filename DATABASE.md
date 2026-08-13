@@ -22,15 +22,8 @@ do **not** switch to Neon, Replit's built-in Postgres, or any other provider.
 
 - `server/db.ts` — runtime database connection (throws if `SUPABASE_DATABASE_URL`
   is missing and there is no legacy `DATABASE_URL`).
-- `drizzle.config.ts` — schema migrations / `npm run db:push`.
+- `server/db.ts` — current schema initialization and readiness-gated configuration setup.
 - `replit.md` — project documentation surfaced to every future agent session.
-
-## Commands
-
-```bash
-npm run db:push        # sync Drizzle schema to Supabase
-npm run db:push -- --force  # force-push if a non-destructive sync is rejected
-```
 
 ## Do not
 

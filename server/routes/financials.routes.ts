@@ -1,10 +1,8 @@
 /**
- * Financial compatibility routes.
+ * Canonical provider wallet routes.
  *
- * RevenueEngine + provider_earnings + provider_wallets/provider_ledger are
- * the canonical settlement path. marketplace_ledger remains readable for
- * historical reconciliation, but no request may create or settle new
- * appointment money through it.
+ * RevenueEngine + provider_earnings + provider_wallets/provider_ledger are the
+ * only settlement path.
  */
 
 import type { Express, Response } from "express";

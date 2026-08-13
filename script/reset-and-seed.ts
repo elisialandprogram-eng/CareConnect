@@ -303,7 +303,6 @@ async function main() {
     await safeDelete(client, "DELETE FROM sub_services");
     await safeDelete(client, "DELETE FROM catalog_services");
     await safeDelete(client, "DELETE FROM categories");
-    await safeDelete(client, "DELETE FROM service_categories");
 
     console.log("\n2. Seeding new 7-category catalogue...");
 
@@ -337,10 +336,10 @@ async function main() {
           await client.query(
             `INSERT INTO sub_services
                (id, category, catalog_service_id, name, description, duration_minutes,
-                base_price, platform_fee, tax_percentage, pricing_type,
+                base_price, platform_fee, pricing_type,
                 is_active, created_at)
              VALUES (gen_random_uuid(), $1, $2, $3, $4, $5,
-                     '0.00', '0.00', '0.00', 'fixed',
+                      '0.00', '0.00', 'fixed',
                      true, NOW())`,
             [sub.providerType, catalogServiceId, svc.name, svc.description, svc.durationMinutes]
           );

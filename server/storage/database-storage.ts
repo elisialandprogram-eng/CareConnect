@@ -3203,7 +3203,7 @@ export class DatabaseStorage extends PackagesMixin implements IStorage {
       let providerNetEarningsLocal = Number(pb?.providerEarnings ?? 0);
       const snapshot = await client.query(`
         SELECT
-          COALESCE(provider_earnings_snapshot::numeric, 0) AS provider_earnings,
+          COALESCE(provider_net_earnings_snapshot::numeric, 0) AS provider_earnings,
           COALESCE(service_subtotal::numeric, 0) AS service_subtotal,
           COALESCE(service_tax_amount::numeric, 0) AS service_tax_amount,
           COALESCE(commission_amount::numeric, 0) AS commission_amount
@@ -3212,9 +3212,8 @@ export class DatabaseStorage extends PackagesMixin implements IStorage {
       if (Number(snapshot.rows[0]?.provider_earnings ?? 0) > 0) {
         providerNetEarningsLocal = Number(snapshot.rows[0].provider_earnings);
       }
-      // Legacy appointments may contain the old base-minus-commission snapshot.
-      // Reconcile them from their stored booking snapshot, never from current
-      // tax or commission configuration.
+      // If the canonical provider snapshot is unavailable, use the remaining
+      // immutable booking economics rather than current configuration.
       if (!(providerNetEarningsLocal > 0) && Number(snapshot.rows[0]?.service_subtotal ?? 0) > 0) {
         providerNetEarningsLocal = Math.max(
           0,
@@ -3264,8 +3263,8 @@ export class DatabaseStorage extends PackagesMixin implements IStorage {
           appt.id,
           totalAmountUsd.toFixed(2),
           platformFeeUsd.toFixed(2),
-             // provider_earning is a required legacy compatibility column.
-             // All active reads use provider_net_earnings_amount_usd instead.
+             // provider_earning remains the provider_earnings aggregate's
+             // required settlement amount column.
              settlement.providerNetEarningsUsd.toFixed(2),
           currency,
           settlement.providerPayoutLocal.toFixed(2),

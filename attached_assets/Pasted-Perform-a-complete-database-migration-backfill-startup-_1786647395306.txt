@@ -1,0 +1,296 @@
+Perform a complete database migration/backfill/startup cleanup of the current project.
+
+IMPORTANT CONTEXT:
+- We do NOT need historical booking compatibility.
+- We do NOT need backward compatibility for the old database architecture.
+- We are intentionally moving forward with the current canonical architecture.
+- Do NOT preserve old fields/tables/code merely to support historical records.
+- Do NOT modify or repair historical booking/payment records.
+- This is a codebase/schema cleanup, not a historical data migration project.
+
+GOAL:
+
+Clean the project so that old migrations, historical backfills, compatibility logic, duplicated migration systems, and obsolete startup database work are removed.
+
+Do the audit and cleanup together. Do not stop after producing a report.
+
+BEFORE CHANGING ANYTHING:
+
+Inspect the entire repository and understand:
+
+1. Current database schema in shared/schema.ts
+2. Current database initialization in server/db.ts
+3. Drizzle configuration and migrations
+4. Bootstrap scripts
+5. Standalone migration scripts
+6. Seed scripts
+7. Reset scripts
+8. Reconciliation/repair scripts
+9. All references to legacy database fields/tables
+10. Current payment architecture
+11. Current provider settlement architecture
+12. Current pricing/tax architecture
+
+Then determine which database structures are CURRENT and which exist only because of the OLD architecture.
+
+CLEANUP TARGETS:
+
+Remove obsolete/historical startup work such as:
+
+- historical provider settlement reconstruction
+- provider wallet/ledger historical backfills
+- old provider earnings backfills
+- payment duplicate cleanup migration
+- old payment status normalization
+- old payment amount normalization
+- pricing snapshot backfills that were only needed during migration
+- old tax_percentage → sub_service_tax_rules conversion
+- old currency normalization backfills
+- catalog foreign-key backfills
+- provider-category synchronization if it is only compatibility behavior
+- any other UPDATE/DELETE/INSERT operation that exists solely to migrate old records
+
+Do NOT remove current runtime business logic just because it contains database writes.
+
+DISTINGUISH CAREFULLY BETWEEN:
+
+A. One-time historical migration
+B. Current runtime business logic
+C. Required current schema creation
+D. Required configuration seed
+E. Operational reconciliation/repair
+F. Test/development tooling
+
+Only remove A and obsolete compatibility portions.
+
+PAYMENT ARCHITECTURE:
+
+The new canonical payment architecture is the authority.
+
+Remove migration/compatibility code whose only purpose was converting the old payment architecture into the new one.
+
+Do NOT reintroduce:
+
+- old payment status fallbacks
+- duplicate payment assumptions
+- old appointment/payment synchronization logic
+- old payment compatibility fields
+- historical payment repair
+
+Verify that current payment code uses the canonical payment architecture consistently.
+
+PROVIDER SETTLEMENT:
+
+The current provider settlement architecture is authoritative.
+
+Remove historical settlement reconstruction/backfill code that was only needed to migrate old earnings/wallet/ledger records.
+
+Do not remove the current settlement engine, provider wallet, provider ledger, earnings creation, or payout functionality.
+
+PRICING/TAX:
+
+The current revenue/pricing/tax engine is authoritative.
+
+Remove migration-only code such as historical snapshot copying and legacy tax conversion once current code no longer depends on it.
+
+Do not remove current pricing/tax calculation logic.
+
+LEGACY SCHEMA:
+
+Identify obsolete tables and columns.
+
+Candidates from the previous audit include:
+
+- marketplace_ledger
+- medical_practitioners
+- service_categories
+- appointments.provider_earnings_snapshot
+- sub_services.tax_percentage
+- providers.provider_category
+- legacy payment status/fields
+- legacy settlement fields
+- obsolete messaging structures
+- legacy admin role structures
+- any other clearly obsolete database object
+
+For each candidate:
+
+1. Search the entire repository.
+2. Identify every current reference.
+3. Determine whether the reference is current functionality or compatibility/legacy functionality.
+4. Migrate current code to the canonical replacement if necessary.
+5. Remove the obsolete reference.
+6. Only then remove the obsolete schema object.
+
+Do NOT delete a table/column simply because it looks old.
+
+MIGRATION SYSTEM:
+
+Clean up the competing migration systems.
+
+Current project appears to have:
+
+- server/db.ts startup migrations
+- Drizzle migrations
+- script/bootstrap-supabase.ts
+- scripts/sync-schema.mjs
+- standalone migration scripts
+
+Determine the intended canonical migration mechanism for the current project.
+
+The final architecture should NOT require massive historical migration/backfill work on every application startup.
+
+Startup should be limited to:
+
+- database connection
+- required schema/readiness verification
+- genuinely required current runtime initialization
+- normal configuration initialization where appropriate
+- application startup
+- scheduled jobs after readiness
+
+Historical data migration must NOT run during every startup.
+
+If proper versioned migrations are already available, use them.
+
+If the project intentionally uses another current migration authority, preserve that authority and remove competing obsolete systems.
+
+STARTUP READINESS:
+
+Ensure the application cannot report database readiness while required current schema initialization has failed.
+
+Do not allow normal reconciliation/scheduler/financial jobs to start against an incompletely initialized database.
+
+Do not leave fire-and-forget historical backfills running after startup.
+
+SEEDS:
+
+Separate seeds from migrations.
+
+Classify existing seeds as:
+
+1. Required production configuration
+2. Current application catalog/configuration
+3. Development/demo data
+4. Test data
+5. Historical migration data
+
+Remove development/demo/test/historical seeds from production startup.
+
+Keep only genuinely required current configuration initialization.
+
+Do not seed fake/demo users in production startup.
+
+STANDALONE SCRIPTS:
+
+Review:
+
+- bootstrap scripts
+- migration scripts
+- seed scripts
+- reset scripts
+- reconciliation scripts
+- repair scripts
+
+Remove or archive obsolete migration scripts that are no longer part of the current architecture.
+
+Do not remove useful operational tools merely because they are not startup migrations.
+
+DATABASE SCHEMA:
+
+After code cleanup, make shared/schema.ts and the canonical database migration/schema definition consistent.
+
+Remove obsolete columns/tables/enums/indexes only when no current code requires them.
+
+Do not preserve old enum values solely for backward compatibility.
+
+IMPORTANT:
+
+We do not need historical records to continue working with the old architecture.
+
+Therefore, if a field/table/enum exists only for historical compatibility and is no longer required by current code, remove it.
+
+DATA:
+
+Do NOT perform broad historical data transformations.
+
+Do NOT run settlement reconstruction.
+
+Do NOT run payment deduplication against existing production data.
+
+Do NOT run historical backfills.
+
+The purpose of this cleanup is to REMOVE those operations from the application/migration architecture, not execute them again.
+
+If an obsolete schema object must be removed, use the appropriate schema migration/drop operation rather than writing a historical data conversion.
+
+CODE QUALITY:
+
+After cleanup:
+
+- remove dead imports
+- remove dead helper functions
+- remove dead types
+- remove comments describing deleted migration behavior
+- remove obsolete migration flags
+- remove unused database queries
+- remove obsolete compatibility branches
+- remove dead admin repair paths if they exist only for the removed architecture
+- remove duplicated migration utilities
+- update documentation/replit.md if it describes the old migration architecture
+
+DO NOT:
+
+- redesign unrelated features
+- change current business behavior unnecessarily
+- change pricing rules
+- change tax rules
+- change payment behavior unless required to remove legacy compatibility
+- change provider payout behavior
+- modify UI unnecessarily
+- perform historical data repair
+- preserve obsolete architecture just because it existed previously
+
+VALIDATION:
+
+After implementation run the project's normal checks, including where applicable:
+
+- npm run check
+- npm run build
+- tests relevant to database/payment/settlement behavior
+- migration/schema validation
+
+Also search the final repository for removed legacy objects and migration behavior.
+
+Specifically verify that no application startup path still contains historical:
+
+- UPDATE backfills
+- INSERT migration conversions
+- DELETE migration cleanup
+- payment normalization
+- settlement reconstruction
+- tax migration
+- currency migration
+- catalog backfill
+- provider-category synchronization
+
+unless there is a clearly documented current runtime reason.
+
+FINAL REPORT:
+
+Provide:
+
+1. What was removed
+2. What was retained and why
+3. Which tables/columns/enums were removed
+4. Which migration systems were consolidated
+5. Which startup operations were removed
+6. Which seeds were removed/moved
+7. Which legacy references were migrated to canonical replacements
+8. Any items intentionally left because they are still current functionality
+9. Validation results
+10. Any remaining legacy/cleanup candidates
+
+Do not claim something was removed unless it was actually removed and verified.
+
+The final codebase should represent the CURRENT architecture, not a mixture of the current architecture plus historical migration machinery.

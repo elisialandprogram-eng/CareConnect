@@ -929,9 +929,7 @@ export function registerAppointmentRoutes(app: Express): void {
           sessions: 1,
           discount: promoDiscountInput,
           membershipDiscount: membershipDiscountInput,
-           // Tax is resolved exclusively by the canonical tax engine from
-           // sub_service_tax_rules and tax_settings. Do not pass the legacy
-           // sub_services.tax_percentage field.
+           // Tax is resolved exclusively by the canonical tax engine.
            subServiceId: subRecord?.id ?? null,
           paymentMethod: selectedPaymentMethod,
           countryCode: providerCountry ?? null,
@@ -1120,7 +1118,6 @@ export function registerAppointmentRoutes(app: Express): void {
                commission_amount           = $2,
                provider_gross_earnings_snapshot = $3,
                provider_net_earnings_snapshot   = $4,
-               provider_earnings_snapshot  = $4,
                payment_surcharge_amount    = $5,
                travel_fee_snapshot         = $6,
                platform_revenue_snapshot   = $7,

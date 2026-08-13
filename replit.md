@@ -7,7 +7,6 @@ A healthcare booking platform connecting patients with verified physiotherapists
 - **Dev server:** `npm run dev` (runs on port 5000)
 - **Build:** `npm run build`
 - **Start (prod):** `npm run start`
-- **DB push:** `npm run db:push`
 - **Seed admin:** `npm run seed`
 - **Required secrets:** `SESSION_SECRET`, `SUPABASE_DATABASE_URL`
 - **Optional secrets:**
@@ -34,7 +33,6 @@ A healthcare booking platform connecting patients with verified physiotherapists
 - `server/` — Express API, `routes.ts` is the main API file (7k+ lines)
 - `shared/schema.ts` — Drizzle ORM schema + Zod validators (source of truth)
 - `server/replit_integrations/` — AI chat, image, batch integrations
-- `migrations/` — Drizzle migration files
 - `script/` — Build, seed, and audit scripts
 
 ## Architecture decisions
@@ -43,7 +41,7 @@ A healthcare booking platform connecting patients with verified physiotherapists
 - **JWT auth:** Token stored in `Authorization` header; `SESSION_SECRET` env var is the signing key (falls back to hardcoded dev value).
 - **Stripe is optional at startup:** `getStripe()` returns `null` if `STRIPE_SECRET_KEY` is missing — payment routes fail gracefully.
 - **Resend email is optional:** `resend` is `null` if `RESEND_API_KEY` missing; email features silently skip sending.
-- **Startup migrations:** `runStartupMigrations()` in `server/db.ts` applies idempotent schema changes on every boot.
+- **Schema authority:** `server/db.ts` applies current idempotent DDL and required configuration seeds on boot. Historical data repair is never part of startup.
 
 ## Product
 
@@ -63,7 +61,7 @@ A healthcare booking platform connecting patients with verified physiotherapists
 - Radix UI `<SelectItem value="">` causes silent crashes; use a non-empty sentinel.
 - `tsx` is in devDependencies; the workflow runs `npm run dev` which uses `node_modules/.bin/tsx` automatically.
 - Vite HMR is bound to the HTTP server in `server/vite.ts` — do not set `hmr.clientPort` in `vite.config.ts`.
-- **New tables/enums must be added to `runStartupMigrations()` in `server/db.ts`** — `db:push` only targets the local Replit DB, not Supabase. The `appointment_events` table, `location_mode`, `home_visit_fee`, `clinic_fee`, `telemedicine_fee` columns were all added this way.
+- **New tables/enums must be added to `runStartupMigrations()` in `server/db.ts`** — the application uses Supabase as its single database authority.
 - `appointment_events` table is the audit log for every status transition. Missing this table causes 500 on `PATCH /api/appointments/:id/status`.
 - Provider status dropdown only shows valid next-state transitions (defined in `PROVIDER_STATUS_TRANSITIONS` inside the component). Cancel/reschedule use the action endpoint instead.
 

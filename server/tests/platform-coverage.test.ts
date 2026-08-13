@@ -195,14 +195,7 @@ await it("B2 — refund duplicate prevention: stripe_refund_id unique constraint
   assert.ok(rows.length > 0, "payments.stripe_refund_id column must exist");
 });
 
-await it("B3 — marketplace_ledger is append-only: no UPDATE/DELETE since process start", async () => {
-  const { rows } = await pool.query(
-    `SELECT COUNT(*) AS cnt FROM marketplace_ledger`,
-  );
-  assert.ok(parseInt((rows[0] as any).cnt, 10) >= 0, "marketplace_ledger should be queryable");
-});
-
-await it("B4 — wallet transactions have idempotency key (prevents double-credit)", async () => {
+await it("B3 — wallet transactions have idempotency key (prevents double-credit)", async () => {
   const { rows } = await pool.query(
     `SELECT column_name FROM information_schema.columns
      WHERE table_name = 'wallet_transactions' AND column_name = 'idempotency_key'`,

@@ -227,15 +227,12 @@ app.use((req, res, next) => {
   const port = parseInt(process.env.PORT || "5000", 10);
 
   // Start listening immediately so Replit's health check passes within the 60s window.
-  // Migrations run in the background BEFORE crons are started — this prevents cron
-  // queries from failing on columns that haven't been added yet (race condition).
+  // Readiness and schedulers remain gated on successful current schema setup.
   httpServer.listen(port, "0.0.0.0", () => {
     log(`serving on port ${port}`);
     markListening();
 
-    // Install the booking financial contract before slower settlement and
-    // historical migrations. This prevents a booking from being created
-    // before the immutable pricing guard exists.
+    // Install current schema contracts before reporting readiness.
     const pricingSnapshotMigration = runBookingPricingSnapshotMigration();
     pricingSnapshotMigration
       .then(() => runProviderSettlementMigration())
@@ -244,20 +241,11 @@ app.use((req, res, next) => {
       .then(() => {
         markReady();
         log("[startup] database migrations ready");
-      })
-      .catch((e: Error) => {
-        markReadinessFailed(e);
-        console.warn("[db] startup migration error:", e.message);
-      })
-      .finally(() => {
-        // Catalog seed runs fire-and-forget — idempotent upserts, never delays server.
-        setTimeout(() => {
-          runCatalogSeed().catch((e: Error) =>
-            console.warn("[db:catalog] seed error:", e.message),
-          );
-        }, 5_000);
+        runCatalogSeed().catch((e: Error) =>
+          console.warn("[db:catalog] seed error:", e.message),
+        );
 
-        // All crons start only after migrations have finished (or gracefully failed).
+        // All crons start only after migrations have completed successfully.
         Promise.all([
           import("./reminderCron"),
           import("./crons/ledger-reconcile"),
@@ -270,6 +258,10 @@ app.use((req, res, next) => {
         }).catch((e: Error) => {
           console.warn("[scheduler] registration failed:", e.message);
         });
+      })
+      .catch((e: Error) => {
+        markReadinessFailed(e);
+        console.warn("[db] startup migration error:", e.message);
       });
   });
 })();

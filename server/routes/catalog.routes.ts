@@ -620,9 +620,7 @@ export function registerCatalogRoutes(app: Express): void {
         discount,
         paymentMethod: resolvePaymentMethod(paymentMethod),
         membershipDiscount: membershipDiscountInput,
-          // Tax is resolved exclusively by the canonical tax engine from
-          // sub_service_tax_rules and tax_settings. Do not pass the legacy
-          // sub_services.tax_percentage field.
+          // Tax is resolved exclusively by the canonical tax engine.
           subServiceId: sub?.id ?? null,
         countryCode: quoteCountryCode,
         providerId: quoteProviderId,

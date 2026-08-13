@@ -28,7 +28,7 @@ async function main() {
   // Missing tables check
   const missing = await q(`
     SELECT t FROM (VALUES
-      ('reconciliation_results'),('marketplace_ledger'),('provider_wallets'),('provider_ledger'),
+      ('reconciliation_results'),('provider_wallets'),('provider_ledger'),
       ('platform_events'),('monitoring_daily_summary'),('financial_alerts'),
       ('login_attempts'),('password_history'),('clinic_rooms'),('room_reservations'),
       ('appointment_consents'),('patient_notes'),('intake_responses'),
@@ -60,20 +60,12 @@ async function main() {
   const payCols = await q(`SELECT column_name FROM information_schema.columns WHERE table_schema='public' AND table_name='payments' ORDER BY ordinal_position`, "pay_cols");
   console.log("\n=PAY_COLS=", payCols.map((r:any)=>r.column_name).join(', '));
 
-  // Marketplace ledger columns
-  const mlCols = await q(`SELECT column_name FROM information_schema.columns WHERE table_schema='public' AND table_name='marketplace_ledger' ORDER BY ordinal_position`, "ml_cols");
-  console.log("\n=ML_COLS=", mlCols.map((r:any)=>r.column_name).join(', '));
-
   // Count reconcile data
   const counts = await q(`
     SELECT
       (SELECT COUNT(*) FROM appointments WHERE status='completed' AND total_amount::numeric>0) as completed_with_amount,
-      (SELECT COUNT(*) FROM marketplace_ledger) as ledger_rows,
       (SELECT COUNT(*) FROM payments WHERE status='completed') as completed_payments,
-      (SELECT COUNT(*) FROM appointments WHERE status='completed' AND total_amount::numeric>0
-        AND NOT EXISTS (SELECT 1 FROM marketplace_ledger ml WHERE ml.appointment_id = appointments.id)) as missing_ledger,
-      (SELECT COUNT(*) FROM payments WHERE status='completed' AND appointment_id IS NOT NULL
-        AND NOT EXISTS (SELECT 1 FROM marketplace_ledger ml WHERE ml.appointment_id = payments.appointment_id)) as orphaned_pay
+      (SELECT COUNT(*) FROM provider_earnings) as provider_earnings_rows
   `, "counts");
   console.log("\n=COUNTS=", JSON.stringify(counts[0]));
 

@@ -72,7 +72,6 @@ async function main() {
     for (const t of [
       "room_reservations",
       "membership_benefit_usage",
-      "marketplace_ledger",
       "video_sessions",
       "appointment_events",
       "appointment_consents",
@@ -189,8 +188,8 @@ async function main() {
     // ═══════════════════════════════════════════════════════════════════════════
     // PHASE 10 — Practitioners
     // ═══════════════════════════════════════════════════════════════════════════
-    console.log("\n  [Phase 10] Practitioners and medical practitioners");
-    for (const t of ["practitioners", "medical_practitioners"]) {
+    console.log("\n  [Phase 10] Practitioners");
+    for (const t of ["practitioners"]) {
       await run(`  TRUNCATE ${t}`, `TRUNCATE TABLE "${t}" RESTART IDENTITY CASCADE`, [], client);
     }
 

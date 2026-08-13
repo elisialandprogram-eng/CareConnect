@@ -326,7 +326,6 @@ export const subServices = pgTable("sub_services", {
   durationMinutes: integer("duration_minutes").default(30),
   bufferBefore: integer("buffer_before").default(0),
   bufferAfter: integer("buffer_after").default(0),
-  taxPercentage: decimal("tax_percentage", { precision: 5, scale: 2 }).default("0.00"),
   pricingType: pricingTypeEnum("pricing_type").default("fixed"),
   isActive: boolean("is_active").default(true),
   deletedAt: timestamp("deleted_at"),
@@ -413,8 +412,7 @@ export const servicePriceHistory = pgTable("service_price_history", {
   changedAt: timestamp("changed_at").defaultNow(),
 });
 
-// Country-specific service tax authority. `sub_services.tax_percentage` is
-// retained only as a legacy compatibility field during migration.
+// Country-specific service tax authority.
 export const subServiceTaxRules = pgTable("sub_service_tax_rules", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   subServiceId: varchar("sub_service_id").notNull().references(() => subServices.id, { onDelete: "cascade" }),
@@ -695,8 +693,7 @@ export const reviews = pgTable("reviews", {
   providerId: varchar("provider_id").notNull().references(() => providers.id),
   rating: integer("rating").notNull(),
   comment: text("comment"),
-  // New submissions are moderated before publication. Legacy rows are
-  // backfilled as approved by the startup migration.
+  // New submissions are moderated before publication.
   status: text("status").notNull().default("pending"),
   providerReply: text("provider_reply"),
   providerReplyAt: timestamp("provider_reply_at"),
@@ -2501,32 +2498,6 @@ export const insertProviderScheduleTemplateSchema = createInsertSchema(providerS
 });
 export type ProviderScheduleTemplate = typeof providerScheduleTemplates.$inferSelect;
 export type InsertProviderScheduleTemplate = z.infer<typeof insertProviderScheduleTemplateSchema>;
-
-// ── Marketplace Ledger (Double-Entry Financial Engine) ───────────────────────
-//
-// Immutable append-only ledger recording every fund movement across the
-// marketplace. Amounts stored as integer cents to prevent rounding drift.
-// Accounts: CLIENT_FUNDING → PLATFORM_ESCROW → PROVIDER_WITHDRAWABLE | PLATFORM_REVENUE
-export const marketplaceLedger = pgTable("marketplace_ledger", {
-  id: serial("id").primaryKey(),
-  appointmentId: varchar("appointment_id"),
-  sourceAccount: varchar("source_account", { length: 64 }).notNull(),
-  destinationAccount: varchar("destination_account", { length: 64 }).notNull(),
-  amountCents: integer("amount_cents").notNull(),
-  transactionType: varchar("transaction_type", { length: 64 }).notNull(),
-  status: varchar("status", { length: 32 }).notNull().default("PENDING"),
-  currencyIso: varchar("currency_iso", { length: 3 }).notNull().default("USD"),
-  countryCode: varchar("country_code", { length: 2 }).notNull().default("HU"),
-  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-}, (t) => [
-  index("idx_mkt_ledger_appointment").on(t.appointmentId),
-  index("idx_mkt_ledger_status").on(t.status),
-  index("idx_mkt_ledger_dest").on(t.destinationAccount),
-  index("idx_mkt_ledger_created").on(t.createdAt),
-]);
-
-export const insertMarketplaceLedgerSchema = createInsertSchema(marketplaceLedger).omit({ id: true, createdAt: true });
-export type MarketplaceLedger = typeof marketplaceLedger.$inferSelect;
 
 // ════════════════════════════════════════════════════════════════════════════
 // REVENUE & BILLING CENTER — Unified Rule Engine Tables

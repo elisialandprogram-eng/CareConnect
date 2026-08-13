@@ -249,7 +249,7 @@ export function calculateResolvedTax(
   const result = calculateTaxBreakdown({
     ...input,
     // A missing service rule is explicitly 0%; never fall back to another
-    // country's setting or the legacy sub_services.tax_percentage field.
+    // country's setting or an ad-hoc rate.
     serviceTaxRatePercent: rules.serviceRule ? rules.serviceRule.taxRate : 0,
     // Platform tax is canonical too: only the active country rule is valid.
     // Missing configuration intentionally means 0%; never use a caller-

@@ -157,7 +157,6 @@ async function main() {
     await del("DELETE FROM provider_stripe_accounts",      "provider_stripe_accounts");
     await del("DELETE FROM admin_notifications",           "admin_notifications");
     await del("DELETE FROM admin_assignments",             "admin_assignments");
-    await del("DELETE FROM medical_practitioners",         "medical_practitioners");
     await del("DELETE FROM practitioners",                 "practitioners");
     await del("DELETE FROM services",                      "services");
     await del("DELETE FROM providers",                     "providers");

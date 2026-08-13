@@ -10,9 +10,6 @@
  * 1. provider_wallet_drift       — provider_wallets.available_balance vs provider_ledger SUM.
  * 2. missing_provider_earning    — completed paid appointments without provider_earnings.
  *
- * marketplace_ledger is historical compatibility data only and is deliberately
- * not used as a current settlement or reconciliation authority.
- *
  * Admin surface: GET /api/admin/financial/reconciliation-results
  */
 
@@ -21,7 +18,6 @@ import { logScheduler } from "../lib/logger";
 import { scheduler } from "../lib/scheduler";
 import {
   PROVIDER_LEDGER_BALANCE_AFFECTING_TYPES,
-  PROVIDER_LEDGER_INFORMATIONAL_TYPES,
   providerLedgerTypePlaceholders,
 } from "../lib/provider-ledger";
 
@@ -120,65 +116,6 @@ async function checkProviderWalletDrift(): Promise<void> {
   }
 }
 
-// Historical compatibility rows can outlive their appointment. They do not
-// change the canonical wallet balance, but they must remain visible so an
-// operator can classify them instead of mistaking them for a live settlement.
-async function checkOrphanedBookingLedgerReferences(): Promise<void> {
-  const orphanedReferenceTypes = [
-    ...PROVIDER_LEDGER_INFORMATIONAL_TYPES,
-    "booking_income",
-  ];
-  const typePlaceholders = orphanedReferenceTypes
-    .map((_, index) => `$${index + 1}`)
-    .join(", ");
-  const { rows } = await pool.query<{
-    provider_id: string;
-    reference_id: string;
-    entry_types: string[];
-    entry_count: string;
-  }>(`
-    SELECT
-      pl.provider_id,
-      pl.reference_id,
-      ARRAY_AGG(DISTINCT pl.entry_type ORDER BY pl.entry_type) AS entry_types,
-      COUNT(*)::text AS entry_count
-    FROM provider_ledger pl
-    WHERE pl.reference_id IS NOT NULL
-      AND pl.entry_type IN (${typePlaceholders})
-      AND NOT EXISTS (
-        SELECT 1 FROM appointments a WHERE a.id = pl.reference_id
-      )
-    GROUP BY pl.provider_id, pl.reference_id
-    LIMIT 100
-  `, [
-    ...orphanedReferenceTypes,
-  ]);
-
-  for (const row of rows) {
-    await writeResult({
-      checkType: "orphaned_booking_ledger_reference",
-      severity: "warning",
-      entityType: "provider_ledger",
-      entityId: row.reference_id,
-      message: `Historical provider ledger rows reference missing appointment ${row.reference_id}; excluded from current settlement authority`,
-      details: {
-        providerId: row.provider_id,
-        referenceId: row.reference_id,
-        entryTypes: row.entry_types,
-        entryCount: Number(row.entry_count),
-        classification: "historical_orphaned_compatibility_data",
-      },
-    });
-  }
-  if (rows.length === 0) {
-    await writeResult({
-      checkType: "orphaned_booking_ledger_reference",
-      severity: "ok",
-      message: "No provider booking ledger rows reference missing appointments",
-    });
-  }
-}
-
 // ── Check 2: Completed paid appointments missing provider earnings ────────────
 
 async function checkMissingProviderEarnings(): Promise<void> {
@@ -239,12 +176,6 @@ export async function reconcileLedger(): Promise<number> {
     await checkProviderWalletDrift();
   } catch (e: any) {
     console.error("[ledger-reconcile] checkProviderWalletDrift failed:", e.message);
-  }
-
-  try {
-    await checkOrphanedBookingLedgerReferences();
-  } catch (e: any) {
-    console.error("[ledger-reconcile] checkOrphanedBookingLedgerReferences failed:", e.message);
   }
 
   try {

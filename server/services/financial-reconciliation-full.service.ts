@@ -193,7 +193,7 @@ async function checkRevenueSnapshotConsistency(): Promise<ReconciliationFinding>
       a.id AS appointment_id,
       a.total_amount::numeric,
       a.platform_fee::numeric,
-      a.provider_earnings_snapshot::numeric,
+      a.provider_net_earnings_snapshot::numeric,
       pay.amount::numeric AS payment_amount,
       ABS(a.total_amount::numeric - pay.amount::numeric) AS amount_delta
     FROM appointments a

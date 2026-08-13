@@ -109,7 +109,6 @@ async function main() {
     ["waitlist_entries", `${cte} DELETE FROM waitlist_entries WHERE provider_id IN (SELECT id FROM ap)`],
     ["medical_history", `${cte} DELETE FROM medical_history WHERE provider_id IN (SELECT id FROM ap) OR patient_id IN (SELECT id FROM au)`],
     ["prescriptions", `${cte} DELETE FROM prescriptions WHERE provider_id IN (SELECT id FROM ap)`],
-    ["medical_practitioners", `${cte} DELETE FROM medical_practitioners WHERE provider_id IN (SELECT id FROM ap)`],
     ["practitioners", `${cte} DELETE FROM practitioners WHERE provider_id IN (SELECT id FROM ap)`],
     ["providers", `DELETE FROM providers WHERE user_id IN (SELECT id FROM users WHERE email LIKE 'audit-%@example.com')`],
     // Now user-only references.

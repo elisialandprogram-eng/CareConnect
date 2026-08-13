@@ -117,21 +117,19 @@ export const db = drizzle(pool, { schema });
  *                     ALTER TABLE ADD COLUMN IF NOT EXISTS.
  *                     Fully idempotent.  Safe to keep at startup indefinitely.
  *
- *   [BUSINESS-LOGIC]  Data backfills or mutations (UPDATE … WHERE …).
- *                     Currently idempotent, but carries data-risk on schema
- *                     changes.  Should migrate to versioned up/down migrations
- *                     once the platform reaches stable multi-instance deployment.
- *                     See ops/tech-debt.md TD-03.
- *
- *   [ONE-TIME]        Operations intended to run exactly once (legacy token
- *                     purge, tsvector backfill).  WHERE guards make them no-ops
- *                     after the first run, but they should be removed once all
- *                     target rows are confirmed covered in production.
- *
- * Sprint sections are numbered for audit continuity.  Do not renumber or merge.
+ * Startup owns current schema/readiness setup only. Historical data repair and
+ * compatibility backfills must not run from this function.
  */
 export async function runStartupMigrations() {
   try {
+    // These objects belonged to retired database architectures. Remove only
+    // the schema objects; no historical rows are transformed or repaired.
+    await pool.query(`
+      DROP TABLE IF EXISTS marketplace_ledger CASCADE;
+      DROP TABLE IF EXISTS medical_practitioners CASCADE;
+      DROP TABLE IF EXISTS service_categories CASCADE;
+    `);
+
     // ── provider_type enum — ensure all 7 canonical categories exist ──
     for (const val of [
       "physician", "mental_health", "nutrition", "rehabilitation",
@@ -154,12 +152,9 @@ export async function runStartupMigrations() {
     await pool.query(`CREATE SEQUENCE IF NOT EXISTS appointment_number_seq START 1`);
     // Create unique index
     await pool.query(`CREATE UNIQUE INDEX IF NOT EXISTS idx_appt_number ON appointments(appointment_number) WHERE appointment_number IS NOT NULL`);
-    // Review moderation: preserve all existing public reviews, while new
-    // patient submissions wait for an admin decision.
+    // Review moderation: new patient submissions wait for an admin decision.
     await pool.query(`ALTER TABLE reviews ADD COLUMN IF NOT EXISTS status TEXT`);
-    await pool.query(`UPDATE reviews SET status = 'approved' WHERE status IS NULL`);
     await pool.query(`ALTER TABLE reviews ALTER COLUMN status SET DEFAULT 'pending'`);
-    await pool.query(`ALTER TABLE reviews ALTER COLUMN status SET NOT NULL`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_reviews_status_provider ON reviews(status, provider_id)`);
     // Multi-country tenancy hardening: indexes on country_code for the
     // tables that drive the most filtered listings. Idempotent.
@@ -228,7 +223,7 @@ export async function runStartupMigrations() {
     await pool.query(`ALTER TABLE services ADD COLUMN IF NOT EXISTS pending_change_reviewed_at TIMESTAMP`);
     await pool.query(`ALTER TABLE services ADD COLUMN IF NOT EXISTS pending_change_reason TEXT`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_services_pending_change_status ON services(pending_change_status)`);
-    // Tax amount snapshot on appointments (derived from sub_services.tax_percentage at booking time)
+    // Tax amount snapshot on appointments (resolved by the canonical tax engine)
     await pool.query(`ALTER TABLE appointments ADD COLUMN IF NOT EXISTS tax_amount DECIMAL(10,2) DEFAULT '0.00'`);
     // Provider-controlled display title for their card badge
     await pool.query(`ALTER TABLE providers ADD COLUMN IF NOT EXISTS display_title TEXT`);
@@ -1042,15 +1037,13 @@ export async function runStartupMigrations() {
     console.warn("[db] provider wallet migration warning (non-fatal):", (wErr as Error).message);
   }
 
-  // Compatibility columns are each isolated so one old-schema mismatch cannot
-  // prevent the remaining canonical USD columns from being added.
+  // Canonical USD columns are isolated so one schema mismatch cannot prevent
+  // the remaining current columns from being added.
   const providerWalletLedgerMigrations: Array<[string, string]> = [
     ["provider_wallets currency default", `ALTER TABLE provider_wallets ALTER COLUMN currency SET DEFAULT 'USD'`],
-    ["provider_wallets currency normalization", `UPDATE provider_wallets SET currency = 'USD' WHERE currency IS NULL OR currency <> 'USD'`],
     ["provider_ledger currency", `ALTER TABLE provider_ledger ADD COLUMN IF NOT EXISTS currency TEXT DEFAULT 'USD'`],
     ["provider_ledger amount_usd", `ALTER TABLE provider_ledger ADD COLUMN IF NOT EXISTS amount_usd DECIMAL(14,4)`],
     ["provider_ledger exchange rate", `ALTER TABLE provider_ledger ADD COLUMN IF NOT EXISTS exchange_rate_used DECIMAL(16,6)`],
-    ["provider_ledger currency backfill", `UPDATE provider_ledger SET currency = COALESCE(currency, 'USD'), amount_usd = COALESCE(amount_usd, amount) WHERE currency IS NULL OR amount_usd IS NULL`],
   ];
   for (const [label, statement] of providerWalletLedgerMigrations) {
     try {
@@ -1558,8 +1551,9 @@ export async function runStartupMigrations() {
     console.warn("[db] migration (non-fatal):", p16Err.message);
   }
 
-  // RBAC seeding runs in the background — does not block port open
-  setTimeout(() => seedRbacRoles().catch((e) => console.warn("[db] rbac seed warning:", e.message)), 0);
+  // This contains the remaining current schema setup and configuration seeds.
+  // Await it so readiness cannot be reported before required tables exist.
+  await seedRbacRoles();
 }
 
 async function seedRbacRoles(): Promise<void> {
@@ -1865,33 +1859,6 @@ async function seedRbacRoles(): Promise<void> {
     console.log("[db] platform_events table ready");
   } catch (err: any) {
     console.warn("[db] platform_events migration error:", err.message);
-  }
-
-  // ── marketplace_ledger — immutable double-entry financial ledger ─────────────
-  try {
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS marketplace_ledger (
-        id                  SERIAL        PRIMARY KEY,
-        appointment_id      VARCHAR       REFERENCES appointments(id) ON DELETE CASCADE,
-        source_account      VARCHAR(64)   NOT NULL,
-        destination_account VARCHAR(64)   NOT NULL,
-        amount_cents        INT           NOT NULL CHECK (amount_cents > 0),
-        transaction_type    VARCHAR(64)   NOT NULL,
-        status              VARCHAR(32)   NOT NULL DEFAULT 'PENDING',
-        created_at          TIMESTAMPTZ   NOT NULL DEFAULT NOW()
-      )
-    `);
-    await pool.query(`CREATE INDEX IF NOT EXISTS idx_mkt_ledger_appointment ON marketplace_ledger(appointment_id)`);
-    await pool.query(`CREATE INDEX IF NOT EXISTS idx_mkt_ledger_status      ON marketplace_ledger(status)`);
-    await pool.query(`CREATE INDEX IF NOT EXISTS idx_mkt_ledger_dest        ON marketplace_ledger(destination_account)`);
-    await pool.query(`CREATE INDEX IF NOT EXISTS idx_mkt_ledger_created     ON marketplace_ledger(created_at)`);
-    // Multi-country tracking columns (idempotent)
-    await pool.query(`ALTER TABLE marketplace_ledger ADD COLUMN IF NOT EXISTS currency_iso VARCHAR(3) NOT NULL DEFAULT 'USD'`);
-    await pool.query(`ALTER TABLE marketplace_ledger ADD COLUMN IF NOT EXISTS country_code VARCHAR(2) NOT NULL DEFAULT 'HU'`);
-    await pool.query(`CREATE INDEX IF NOT EXISTS idx_mkt_ledger_country     ON marketplace_ledger(country_code)`);
-    console.log("[db] marketplace_ledger table ready");
-  } catch (err: any) {
-    console.warn("[db] marketplace_ledger migration error:", err.message);
   }
 
   // ── provider_schedule_templates — weekly base templates for rolling cron ──────
@@ -2399,7 +2366,6 @@ async function seedRbacRoles(): Promise<void> {
     // Missing indexes identified in forensic audit (June 2026)
     ["idx_appointments_date",               `CREATE INDEX IF NOT EXISTS idx_appointments_date ON appointments(date)`],
     ["idx_appointments_provider_date",      `CREATE INDEX IF NOT EXISTS idx_appointments_provider_date ON appointments(provider_id, date)`],
-    ["idx_mkt_ledger_appt_type_status",     `CREATE INDEX IF NOT EXISTS idx_mkt_ledger_appt_type_status ON marketplace_ledger(appointment_id, transaction_type, status)`],
     ["idx_payments_appointment_id",         `CREATE INDEX IF NOT EXISTS idx_payments_appointment_id ON payments(appointment_id) WHERE appointment_id IS NOT NULL`],
     ["idx_waitlist_provider_date_status",   `CREATE INDEX IF NOT EXISTS idx_waitlist_provider_date_status ON waitlist_entries(provider_id, preferred_date, status)`],
   ];
@@ -2626,7 +2592,6 @@ async function seedRbacRoles(): Promise<void> {
   try {
     await pool.query(`ALTER TABLE appointments ADD COLUMN IF NOT EXISTS commission_rate              NUMERIC(8,4)  DEFAULT 0`);
     await pool.query(`ALTER TABLE appointments ADD COLUMN IF NOT EXISTS commission_amount            NUMERIC(10,2) DEFAULT 0`);
-    await pool.query(`ALTER TABLE appointments ADD COLUMN IF NOT EXISTS provider_earnings_snapshot  NUMERIC(10,2) DEFAULT 0`);
     await pool.query(`ALTER TABLE appointments ADD COLUMN IF NOT EXISTS payment_surcharge_amount    NUMERIC(10,2) DEFAULT 0`);
     await pool.query(`ALTER TABLE appointments ADD COLUMN IF NOT EXISTS travel_fee_snapshot         NUMERIC(10,2) DEFAULT 0`);
     await pool.query(`ALTER TABLE appointments ADD COLUMN IF NOT EXISTS platform_revenue_snapshot   NUMERIC(10,2) DEFAULT 0`);
@@ -2682,61 +2647,10 @@ async function seedRbacRoles(): Promise<void> {
     console.warn('[db] wallet_rules:', err.message);
   }
 
-  // ── Revenue & Billing seed deduplication ───────────────────────────────────
-  // Older boots seeded defaults without a stable conflict key. Repair only
-  // exact named defaults, preserve the oldest row, and add guards so a restart
-  // cannot create another copy. Service-tax versions are retained as history,
-  // but only one open-ended active rule may apply to a sub-service/country.
+  // ── Revenue & Billing uniqueness guards ────────────────────────────────────
+  // These are schema constraints for current configuration. They do not repair
+  // or rewrite existing rows.
   try {
-    await pool.query(`
-      WITH ranked AS (
-        SELECT id,
-               ROW_NUMBER() OVER (PARTITION BY name ORDER BY created_at ASC, id ASC) AS rn
-        FROM platform_fee_rules
-        WHERE name = 'Default Global Platform Fee'
-      )
-      DELETE FROM platform_fee_rules p
-      USING ranked r
-      WHERE p.id = r.id AND r.rn > 1
-    `);
-    await pool.query(`
-      WITH ranked AS (
-        SELECT id,
-               ROW_NUMBER() OVER (PARTITION BY name ORDER BY created_at ASC, id ASC) AS rn
-        FROM commission_rules
-        WHERE name = 'Default Global Commission'
-      )
-      DELETE FROM commission_rules c
-      USING ranked r
-      WHERE c.id = r.id AND r.rn > 1
-    `);
-    await pool.query(`
-      WITH ranked AS (
-        SELECT id,
-               ROW_NUMBER() OVER (PARTITION BY name ORDER BY created_at ASC, id ASC) AS rn
-        FROM payout_config
-        WHERE name = 'Default Payout Policy'
-      )
-      DELETE FROM payout_config p
-      USING ranked r
-      WHERE p.id = r.id AND r.rn > 1
-    `);
-    await pool.query(`
-      WITH ranked AS (
-        SELECT id,
-               ROW_NUMBER() OVER (
-                 PARTITION BY sub_service_id, country_code
-                 ORDER BY effective_from DESC NULLS LAST, updated_at DESC NULLS LAST,
-                          created_at DESC NULLS LAST, id DESC
-               ) AS rn
-        FROM sub_service_tax_rules
-        WHERE is_active = true AND effective_to IS NULL
-      )
-      UPDATE sub_service_tax_rules r
-      SET is_active = false, updated_at = NOW()
-      FROM ranked d
-      WHERE r.id = d.id AND d.rn > 1
-    `);
     await pool.query(`
       CREATE UNIQUE INDEX IF NOT EXISTS uq_platform_fee_default_global
       ON platform_fee_rules (name)
@@ -2757,9 +2671,9 @@ async function seedRbacRoles(): Promise<void> {
       ON sub_service_tax_rules (sub_service_id, country_code)
       WHERE is_active = true AND effective_to IS NULL
     `);
-    console.log('[db] Revenue & Billing seed duplicates repaired and guarded');
+    console.log('[db] Revenue & Billing uniqueness guards ready');
   } catch (err: any) {
-    console.warn('[db] Revenue & Billing seed deduplication:', err.message);
+    console.warn('[db] Revenue & Billing uniqueness guards:', err.message);
   }
 
   // ── Seed default payment method rules (idempotent) ─────────────────────────
@@ -3190,7 +3104,7 @@ async function seedRbacRoles(): Promise<void> {
   } catch (err: any) { console.warn('[db] Lifecycle Sprint pcp columns:', err.message); }
 
   // ── appointments.payment_method — tracks which payment rail was used ─────
-  // Present in Drizzle schema; backfilled here so Supabase stays in sync.
+  // Present in Drizzle schema; ensure Supabase has the current column.
   // Needed by the ledger-reconcile cron to skip cash/bank_transfer/wallet rows.
   try {
     await pool.query(`ALTER TABLE appointments ADD COLUMN IF NOT EXISTS payment_method TEXT DEFAULT 'card'`);
@@ -3232,9 +3146,7 @@ async function seedRbacRoles(): Promise<void> {
   } catch (err: any) { console.warn('[db] sub_services sub_group column:', err.message); }
 
   // ── P-FINAL: services.currency schema guard ───────────────────────────────
-  // Rule 1: Service prices are stored in provider native currency (services.currency).
-  // The USD→native price backfill has been removed — production data was already
-  // migrated. New services must be created with the correct native currency from day one.
+  // Service prices are stored in provider native currency (services.currency).
   try {
     await pool.query(`ALTER TABLE services ADD COLUMN IF NOT EXISTS currency TEXT DEFAULT 'USD'`);
     console.log('[db] services.currency column ready');
@@ -3246,16 +3158,7 @@ async function seedRbacRoles(): Promise<void> {
     await pool.query(`ALTER TABLE appointments ADD COLUMN IF NOT EXISTS provider_currency TEXT`);
     await pool.query(`ALTER TABLE appointments ADD COLUMN IF NOT EXISTS patient_currency  TEXT`);
     await pool.query(`ALTER TABLE appointments ADD COLUMN IF NOT EXISTS final_total_usd   NUMERIC(10,2)`);
-    // Canonical provider net earnings snapshot. Keep the older
-    // provider_earnings_snapshot column for historical compatibility, but use
-    // this explicitly named field for reconciliation and settlement.
     await pool.query(`ALTER TABLE appointments ADD COLUMN IF NOT EXISTS provider_net_earnings_snapshot NUMERIC(10,2)`);
-    await pool.query(`
-      UPDATE appointments
-      SET provider_net_earnings_snapshot = provider_earnings_snapshot
-      WHERE provider_net_earnings_snapshot IS NULL
-        AND provider_earnings_snapshot IS NOT NULL
-    `);
     console.log('[db] appointments currency snapshot columns ready');
   } catch (err: any) { console.warn('[db] P-FINAL appointments currency cols:', err.message); }
 
@@ -3285,7 +3188,6 @@ async function seedRbacRoles(): Promise<void> {
           OLD.pricing_breakdown IS DISTINCT FROM NEW.pricing_breakdown OR
           OLD.commission_rate IS DISTINCT FROM NEW.commission_rate OR
           OLD.commission_amount IS DISTINCT FROM NEW.commission_amount OR
-          OLD.provider_earnings_snapshot IS DISTINCT FROM NEW.provider_earnings_snapshot OR
           OLD.payment_surcharge_amount IS DISTINCT FROM NEW.payment_surcharge_amount OR
           OLD.travel_fee_snapshot IS DISTINCT FROM NEW.travel_fee_snapshot OR
           OLD.platform_revenue_snapshot IS DISTINCT FROM NEW.platform_revenue_snapshot OR
@@ -3314,6 +3216,7 @@ async function seedRbacRoles(): Promise<void> {
       BEFORE UPDATE ON appointments
       FOR EACH ROW EXECUTE FUNCTION prevent_booking_pricing_snapshot_mutation();
     `);
+    await pool.query(`ALTER TABLE appointments DROP COLUMN IF EXISTS provider_earnings_snapshot`);
     console.log('[db] immutable booking pricing snapshot guard ready');
   } catch (err: any) {
     console.warn('[db] immutable booking pricing snapshot guard:', err.message);
@@ -3325,188 +3228,14 @@ async function seedRbacRoles(): Promise<void> {
     console.log('[db] packages.local_prices ready');
   } catch (err: any) { console.warn('[db] P-FINAL packages.local_prices:', err.message); }
 
-  // ── Provider payout settlement snapshots ────────────────────────────────────
-  // The independent settlement migration creates these columns before this
-  // legacy startup chain reaches the backfill below. Keeping the backfill here
-  // preserves the one-time data repair without duplicating schema ownership.
-  try {
-    // Backfill legacy rows once. All row, wallet, and ledger changes share the
-    // same transaction; if a later statement fails, the next boot retries it.
-    const client = await pool.connect();
-    try {
-      await client.query("BEGIN");
-      // Remove legacy offline booking-income credits created before offline
-      // payments were made audit-only. Keep the appointment/payment and
-      // provider_earnings rows; only withdrawable wallet/ledger income is
-      // removed. This is idempotent because the ledger rows are deleted.
-      await client.query(`
-        WITH removed AS (
-          DELETE FROM provider_ledger pl
-          USING appointments a
-          WHERE pl.entry_type = 'booking_income'
-            AND pl.reference_id = a.id
-            AND LOWER(COALESCE((
-              SELECT p.payment_method
-              FROM payments p
-              WHERE p.appointment_id = a.id
-              ORDER BY p.created_at DESC
-              LIMIT 1
-            ), a.payment_method, 'card')) IN ('cash', 'bank_transfer')
-          RETURNING pl.provider_id, pl.amount::numeric AS amount
-        ),
-        deltas AS (
-          SELECT provider_id, COALESCE(SUM(amount), 0) AS amount
-          FROM removed
-          GROUP BY provider_id
-        )
-        UPDATE provider_wallets pw
-        SET available_balance = GREATEST(0, pw.available_balance - d.amount),
-            lifetime_earnings = GREATEST(0, pw.lifetime_earnings - d.amount),
-            updated_at = NOW()
-        FROM deltas d
-        WHERE pw.provider_id = d.provider_id
-      `);
-      await client.query(`
-        CREATE TEMP TABLE provider_settlement_backfill ON COMMIT DROP AS
-        SELECT
-          pe.id,
-          pe.provider_id,
-          pe.appointment_id,
-          pe.provider_earning::numeric AS old_provider_earning,
-          GREATEST(0, COALESCE(a.provider_net_earnings_snapshot::numeric, 0)
-            - COALESCE(a.service_tax_amount::numeric, 0)) * fx.usd_per_local
-            AS service_earnings_amount_usd,
-          ROUND(COALESCE(a.service_tax_amount::numeric, 0) * fx.usd_per_local, 2)
-            AS tax_pass_through_amount_usd,
-          CASE
-            WHEN LOWER(COALESCE(pay.payment_method, a.payment_method, 'card')) IN ('cash', 'bank_transfer')
-            THEN ROUND(COALESCE(a.platform_fee_amount::numeric, 0) * fx.usd_per_local, 2)
-            ELSE 0
-          END AS cash_platform_fee_deduction_usd,
-          ROUND(COALESCE(a.provider_net_earnings_snapshot::numeric, 0) * fx.usd_per_local, 2)
-            AS gross_provider_payout_usd,
-          CASE
-            WHEN LOWER(COALESCE(pay.payment_method, a.payment_method, 'card')) IN ('cash', 'bank_transfer')
-            THEN 0
-            ELSE GREATEST(0, ROUND(
-              COALESCE(a.provider_net_earnings_snapshot::numeric, 0) * fx.usd_per_local,
-              2
-            ))
-          END AS settlement_amount_usd,
-          LOWER(COALESCE(pay.payment_method, a.payment_method, 'card')) AS payment_method,
-          p.country_code
-        FROM provider_earnings pe
-        JOIN appointments a ON a.id = pe.appointment_id
-        JOIN providers p ON p.id = pe.provider_id
-        LEFT JOIN LATERAL (
-          SELECT payment_method
-          FROM payments
-          WHERE appointment_id = a.id
-          ORDER BY created_at DESC
-          LIMIT 1
-        ) pay ON true
-        LEFT JOIN LATERAL (
-          SELECT CASE
-            WHEN COALESCE(a.final_total_usd::numeric, 0) > 0
-              AND COALESCE(a.total_amount::numeric, 0) > 0
-            THEN a.final_total_usd::numeric / a.total_amount::numeric
-            ELSE 1 / COALESCE(
-              (SELECT rate_from_usd::numeric
-               FROM currency_rates
-               WHERE currency_code = COALESCE(
-                 a.display_currency,
-                 CASE WHEN p.country_code::text = 'HU' THEN 'HUF'
-                      WHEN p.country_code::text = 'IR' THEN 'IRR'
-                      ELSE 'USD' END
-               )
-               LIMIT 1),
-              CASE WHEN p.country_code::text = 'HU' THEN 365
-                   WHEN p.country_code::text = 'IR' THEN 42000
-                   ELSE 1 END
-            )
-          END AS usd_per_local
-        ) fx ON true
-        WHERE pe.service_earnings_amount_usd IS NULL
-      `);
-
-      await client.query(`
-        UPDATE provider_earnings pe
-        SET
-          service_earnings_amount_usd = b.service_earnings_amount_usd,
-          tax_pass_through_amount_usd = b.tax_pass_through_amount_usd,
-          cash_platform_fee_deduction_usd = b.cash_platform_fee_deduction_usd,
-          gross_provider_payout_usd = b.gross_provider_payout_usd,
-          settlement_amount_usd = b.settlement_amount_usd,
-          payment_method = b.payment_method
-        FROM provider_settlement_backfill b
-        WHERE pe.id = b.id
-      `);
-
-      await client.query(`
-        UPDATE provider_ledger pl
-        SET amount = b.gross_provider_payout_usd,
-            description = COALESCE(pl.description, '') || ' — tax passed through'
-        FROM provider_settlement_backfill b
-        WHERE pl.entry_type = 'booking_income' AND pl.reference_id = b.appointment_id
-          AND b.payment_method NOT IN ('cash', 'bank_transfer')
-      `);
-      await client.query(`
-        INSERT INTO provider_ledger
-          (provider_id, amount, entry_type, reference_id, description, balance_after, country_code)
-        SELECT b.provider_id, b.gross_provider_payout_usd, 'booking_income', b.appointment_id,
-               'Booking income settlement — includes patient-paid tax', 0, b.country_code
-        FROM provider_settlement_backfill b
-        WHERE b.payment_method NOT IN ('cash', 'bank_transfer')
-          AND NOT EXISTS (
-          SELECT 1 FROM provider_ledger pl
-          WHERE pl.entry_type = 'booking_income' AND pl.reference_id = b.appointment_id
-        )
-      `);
-      await client.query(`
-        UPDATE provider_wallets pw
-        SET
-          available_balance = pw.available_balance + COALESCE(d.delta, 0),
-          lifetime_earnings = pw.lifetime_earnings + COALESCE(d.delta, 0),
-          updated_at = NOW()
-        FROM (
-          SELECT provider_id,
-                 SUM(CASE
-                   -- Offline legacy credits were removed above with their
-                   -- booking_income ledger rows; do not subtract them twice.
-                   WHEN payment_method IN ('cash', 'bank_transfer') THEN 0
-                   ELSE gross_provider_payout_usd - old_provider_earning
-                 END) AS delta
-          FROM provider_settlement_backfill
-          GROUP BY provider_id
-        ) d
-        WHERE pw.provider_id = d.provider_id
-      `);
-      await client.query("COMMIT");
-      console.log('[db] provider payout settlement snapshots/backfill ready');
-    } catch (backfillErr: any) {
-      await client.query("ROLLBACK").catch(() => {});
-      throw backfillErr;
-    } finally {
-      client.release();
-    }
-  } catch (err: any) {
-    console.warn('[db] provider payout settlement migration:', err.message);
-  }
-
 }
 
 /**
- * Phase 3 booking pricing contract DDL.
- *
- * This is intentionally independent from the historical startup migration
- * chain. Booking writes can begin only after this DDL has completed, while
- * unrelated legacy backfills are allowed to finish in their own sequence.
+ * Current booking pricing contract DDL.
  */
 export async function runBookingPricingSnapshotMigration(): Promise<void> {
   console.log("[db] booking pricing snapshot migration starting");
-  // Phase 3.1 canonical tax rules. Keep the legacy tax_percentage column for
-  // historical compatibility, but never use it for a new booking when a
-  // country-specific rule is available.
+  // Canonical country-specific tax rules.
   await pool.query(`
     CREATE TABLE IF NOT EXISTS sub_service_tax_rules (
       id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -3524,6 +3253,7 @@ export async function runBookingPricingSnapshotMigration(): Promise<void> {
     CREATE UNIQUE INDEX IF NOT EXISTS uq_sub_service_tax_rule_version
     ON sub_service_tax_rules(sub_service_id, country_code, effective_from)
   `);
+  await pool.query(`ALTER TABLE sub_services DROP COLUMN IF EXISTS tax_percentage`);
   await pool.query(`
     ALTER TABLE tax_settings
       ADD COLUMN IF NOT EXISTS effective_from TIMESTAMPTZ,
@@ -3542,16 +3272,13 @@ export async function runBookingPricingSnapshotMigration(): Promise<void> {
       ADD COLUMN IF NOT EXISTS payment_gateway_fee_amount NUMERIC(10,2) DEFAULT 0,
       ADD COLUMN IF NOT EXISTS admin_fee_amount NUMERIC(10,2) DEFAULT 0
   `);
-  // Required booking-time financial snapshot columns. These belong in the
-  // independent booking migration because the HTTP server accepts requests
-  // before the long legacy startup migration chain completes.
+  // Required booking-time financial snapshot columns.
   await pool.query(`
     ALTER TABLE appointments
       ADD COLUMN IF NOT EXISTS commission_rate NUMERIC(8,4) DEFAULT 0,
       ADD COLUMN IF NOT EXISTS commission_amount NUMERIC(10,2) DEFAULT 0,
       ADD COLUMN IF NOT EXISTS provider_gross_earnings_snapshot NUMERIC(10,2) DEFAULT 0,
       ADD COLUMN IF NOT EXISTS provider_net_earnings_snapshot NUMERIC(10,2) DEFAULT 0,
-      ADD COLUMN IF NOT EXISTS provider_earnings_snapshot NUMERIC(10,2) DEFAULT 0,
       ADD COLUMN IF NOT EXISTS payment_surcharge_amount NUMERIC(10,2) DEFAULT 0,
       ADD COLUMN IF NOT EXISTS travel_fee_snapshot NUMERIC(10,2) DEFAULT 0,
       ADD COLUMN IF NOT EXISTS platform_revenue_snapshot NUMERIC(10,2) DEFAULT 0,
@@ -3565,13 +3292,6 @@ export async function runBookingPricingSnapshotMigration(): Promise<void> {
       ADD COLUMN IF NOT EXISTS pricing_calculated_at TIMESTAMPTZ
   `);
   await pool.query(`
-    UPDATE appointments
-    SET provider_net_earnings_snapshot = provider_earnings_snapshot
-    WHERE provider_net_earnings_snapshot = 0
-      AND provider_earnings_snapshot IS NOT NULL
-      AND provider_earnings_snapshot <> 0
-  `);
-  await pool.query(`
     ALTER TABLE user_packages
       ADD COLUMN IF NOT EXISTS tax_amount NUMERIC(10,2) DEFAULT 0,
       ADD COLUMN IF NOT EXISTS tax_rate NUMERIC(5,2) DEFAULT 0,
@@ -3579,23 +3299,6 @@ export async function runBookingPricingSnapshotMigration(): Promise<void> {
       ADD COLUMN IF NOT EXISTS pricing_breakdown JSONB,
       ADD COLUMN IF NOT EXISTS tax_engine_version TEXT,
       ADD COLUMN IF NOT EXISTS tax_calculated_at TIMESTAMPTZ
-  `);
-  // Migrate the old global sub-service percentage into explicit country rows.
-  // A legacy 0% value is still a configured rule, not missing configuration;
-  // administrators can edit/deactivate each country independently afterwards.
-  await pool.query(`
-    INSERT INTO sub_service_tax_rules
-      (sub_service_id, country_code, tax_rate, effective_from, is_active)
-    SELECT ss.id, countries.code, ss.tax_percentage::numeric,
-           COALESCE(ss.created_at, NOW()), true
-    FROM sub_services ss
-    CROSS JOIN (VALUES ('HU'), ('IR')) AS countries(code)
-    WHERE NOT EXISTS (
-      SELECT 1 FROM sub_service_tax_rules r
-      WHERE r.sub_service_id = ss.id
-        AND r.country_code = countries.code
-        AND r.effective_from = COALESCE(ss.created_at, NOW())
-    )
   `);
   await pool.query(`ALTER TABLE appointments ADD COLUMN IF NOT EXISTS pricing_engine_version TEXT`);
   await pool.query(`ALTER TABLE appointments ADD COLUMN IF NOT EXISTS tax_engine_version TEXT`);
@@ -3622,7 +3325,6 @@ export async function runBookingPricingSnapshotMigration(): Promise<void> {
         OLD.pricing_breakdown IS DISTINCT FROM NEW.pricing_breakdown OR
         OLD.commission_rate IS DISTINCT FROM NEW.commission_rate OR
         OLD.commission_amount IS DISTINCT FROM NEW.commission_amount OR
-        OLD.provider_earnings_snapshot IS DISTINCT FROM NEW.provider_earnings_snapshot OR
         OLD.payment_surcharge_amount IS DISTINCT FROM NEW.payment_surcharge_amount OR
         OLD.travel_fee_snapshot IS DISTINCT FROM NEW.travel_fee_snapshot OR
         OLD.platform_revenue_snapshot IS DISTINCT FROM NEW.platform_revenue_snapshot OR
@@ -3688,81 +3390,6 @@ export async function runProviderSettlementMigration(): Promise<void> {
       console.warn(`[db] provider settlement column ${table}.${column}:`, err.message);
     }
   }
-  // Backfill the canonical provider economics from the immutable appointment
-  // snapshot. The nested tax breakdown is preferred because it separates
-  // service tax from platform tax; current tax/commission rules are never read.
-  try {
-    await pool.query(`
-      UPDATE provider_earnings pe
-      SET
-        provider_gross_earnings_amount_local = COALESCE(
-          NULLIF((a.pricing_breakdown->>'providerGrossEarnings')::numeric, 0),
-          NULLIF((a.pricing_breakdown->'taxBreakdown'->>'serviceTaxableSubtotal')::numeric, 0)
-            + COALESCE(a.service_tax_amount::numeric, 0),
-          COALESCE(a.service_subtotal::numeric, 0) + COALESCE(a.service_tax_amount::numeric, 0),
-          COALESCE(a.provider_earnings_snapshot::numeric, 0) + COALESCE(a.commission_amount::numeric, 0)
-        ),
-        provider_net_earnings_amount_local = GREATEST(0, COALESCE(
-          NULLIF((a.pricing_breakdown->>'providerGrossEarnings')::numeric, 0),
-          NULLIF((a.pricing_breakdown->'taxBreakdown'->>'serviceTaxableSubtotal')::numeric, 0)
-            + COALESCE(a.service_tax_amount::numeric, 0),
-          COALESCE(a.service_subtotal::numeric, 0) + COALESCE(a.service_tax_amount::numeric, 0),
-          COALESCE(a.provider_earnings_snapshot::numeric, 0) + COALESCE(a.commission_amount::numeric, 0)
-        ) - COALESCE(a.commission_amount::numeric, 0)),
-        service_tax_amount_usd = ROUND(
-          COALESCE(a.service_tax_amount::numeric, 0) *
-          COALESCE(NULLIF(pe.exchange_rate_used::numeric, 0), 1), 2
-        ),
-        provider_gross_earnings_amount_usd = ROUND(
-          COALESCE(
-            NULLIF((a.pricing_breakdown->>'providerGrossEarnings')::numeric, 0),
-            NULLIF((a.pricing_breakdown->'taxBreakdown'->>'serviceTaxableSubtotal')::numeric, 0)
-              + COALESCE(a.service_tax_amount::numeric, 0),
-            COALESCE(a.service_subtotal::numeric, 0) + COALESCE(a.service_tax_amount::numeric, 0),
-            COALESCE(a.provider_earnings_snapshot::numeric, 0) + COALESCE(a.commission_amount::numeric, 0)
-          ) * COALESCE(NULLIF(pe.exchange_rate_used::numeric, 0), 1), 2
-        ),
-        provider_net_earnings_amount_usd = ROUND(
-          GREATEST(0, COALESCE(
-            NULLIF((a.pricing_breakdown->>'providerGrossEarnings')::numeric, 0),
-            NULLIF((a.pricing_breakdown->'taxBreakdown'->>'serviceTaxableSubtotal')::numeric, 0)
-              + COALESCE(a.service_tax_amount::numeric, 0),
-            COALESCE(a.service_subtotal::numeric, 0) + COALESCE(a.service_tax_amount::numeric, 0),
-            COALESCE(a.provider_earnings_snapshot::numeric, 0) + COALESCE(a.commission_amount::numeric, 0)
-          ) - COALESCE(a.commission_amount::numeric, 0))
-          * COALESCE(NULLIF(pe.exchange_rate_used::numeric, 0), 1), 2
-        ),
-        gross_provider_payout_usd = ROUND(
-          GREATEST(0, COALESCE(
-            NULLIF((a.pricing_breakdown->>'providerGrossEarnings')::numeric, 0),
-            NULLIF((a.pricing_breakdown->'taxBreakdown'->>'serviceTaxableSubtotal')::numeric, 0)
-              + COALESCE(a.service_tax_amount::numeric, 0),
-            COALESCE(a.service_subtotal::numeric, 0) + COALESCE(a.service_tax_amount::numeric, 0),
-            COALESCE(a.provider_earnings_snapshot::numeric, 0) + COALESCE(a.commission_amount::numeric, 0)
-          ) - COALESCE(a.commission_amount::numeric, 0))
-          * COALESCE(NULLIF(pe.exchange_rate_used::numeric, 0), 1), 2
-        ),
-        provider_earning = ROUND(
-          GREATEST(0, COALESCE(
-            NULLIF((a.pricing_breakdown->>'providerGrossEarnings')::numeric, 0),
-            NULLIF((a.pricing_breakdown->'taxBreakdown'->>'serviceTaxableSubtotal')::numeric, 0)
-              + COALESCE(a.service_tax_amount::numeric, 0),
-            COALESCE(a.service_subtotal::numeric, 0) + COALESCE(a.service_tax_amount::numeric, 0),
-            COALESCE(a.provider_earnings_snapshot::numeric, 0) + COALESCE(a.commission_amount::numeric, 0)
-          ) - COALESCE(a.commission_amount::numeric, 0))
-          * COALESCE(NULLIF(pe.exchange_rate_used::numeric, 0), 1), 2
-        )
-      FROM appointments a
-      WHERE a.id = pe.appointment_id
-        AND (
-          pe.provider_net_earnings_amount_usd IS NULL
-          OR pe.provider_net_earnings_amount_local IS NULL
-          OR pe.service_tax_amount_usd IS NULL
-        )
-    `);
-  } catch (err: any) {
-    console.warn("[db] provider canonical economics backfill:", err.message);
-  }
   try {
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_provider_earnings_cash_settlement ON provider_earnings(provider_id, payment_method, created_at)`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_payout_requests_settlement ON payout_requests(provider_id, settlement_amount_usd)`);
@@ -3803,40 +3430,6 @@ export async function runPaymentArchitectureMigration(): Promise<void> {
     await pool.query(`ALTER TABLE payments ADD COLUMN IF NOT EXISTS remaining_amount_usd NUMERIC(14,2) NOT NULL DEFAULT 0`);
     await pool.query(`ALTER TABLE payments ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()`);
 
-    // A payment aggregate is appointment-scoped. Existing duplicate rows are
-    // intentionally collapsed because the new architecture does not preserve
-    // historical duplicate-payment behavior.
-    await pool.query(`
-      DELETE FROM payments duplicate
-       USING (
-         SELECT id,
-                ROW_NUMBER() OVER (
-                  PARTITION BY appointment_id
-                  ORDER BY
-                    CASE WHEN status::text IN ('completed','paid') THEN 0 ELSE 1 END,
-                    created_at DESC NULLS LAST,
-                    id
-                ) AS duplicate_rank
-           FROM payments
-          WHERE appointment_id IS NOT NULL
-       ) ranked
-       WHERE duplicate.id = ranked.id
-         AND ranked.duplicate_rank > 1
-    `);
-    await pool.query(`
-      UPDATE payments
-         SET status = 'paid',
-             paid_amount_usd = amount,
-             remaining_amount_usd = 0,
-             updated_at = NOW()
-       WHERE appointment_id IS NOT NULL AND status::text = 'completed'
-    `);
-    await pool.query(`
-      UPDATE payments
-         SET paid_amount_usd = CASE WHEN status::text IN ('paid','refunded','partially_refunded') THEN amount ELSE COALESCE(paid_amount_usd, 0) END,
-             remaining_amount_usd = GREATEST(0, amount - CASE WHEN status::text IN ('paid','refunded','partially_refunded') THEN amount ELSE COALESCE(paid_amount_usd, 0) END)
-       WHERE remaining_amount_usd IS NULL OR remaining_amount_usd = 0 AND status::text = 'pending'
-    `);
     await pool.query(`CREATE UNIQUE INDEX IF NOT EXISTS uq_payments_appointment_id ON payments(appointment_id) WHERE appointment_id IS NOT NULL`);
 
     await pool.query(`
@@ -3981,14 +3574,14 @@ export async function runCatalogSeed(): Promise<void> {
         values,
       );
       if ((rowCount ?? 0) > 0) {
-        console.log(`[db:catalog] sub_services catalogue seed: upserted ${rowCount} entries (incl. sub_group backfill)`);
+        console.log(`[db:catalog] sub_services catalogue configured: upserted ${rowCount} entries`);
       }
     }
   } catch (err: any) {
     console.warn("[db:catalog] sub_services catalogue seed (non-fatal):", err.message);
   }
 
-  // ── Catalog hierarchy fix: upsert categories + groups + backfill FKs ───────
+  // ── Current catalog hierarchy configuration ───────────────────────────────
   try {
     // 1. Ensure all 7 canonical categories exist with slugs matching providerTypeEnum
     await pool.query(`
@@ -4081,57 +3674,9 @@ export async function runCatalogSeed(): Promise<void> {
       `, [grpName, sortOrd, slug]);
     }
 
-    // 3. Backfill catalog_service_id on sub_services where sub_group matches catalog_services.name
-    const { rowCount: backfilled } = await pool.query(`
-      UPDATE sub_services ss
-      SET    catalog_service_id = cs.id
-      FROM   catalog_services cs
-      JOIN   categories cat ON cat.id = cs.category_id
-      WHERE  LOWER(ss.sub_group) = LOWER(cs.name)
-        AND  ss.category::text   = cat.slug
-        AND  ss.catalog_service_id IS NULL
-        AND  ss.deleted_at IS NULL
-        AND  cs.deleted_at IS NULL
-    `);
-
-    console.log(`[db:catalog] Catalog hierarchy fix complete — backfilled ${backfilled ?? 0} sub_service FK(s)`);
+    console.log("[db:catalog] Catalog hierarchy configuration ready");
   } catch (err: any) {
     console.warn("[db:catalog] Catalog hierarchy fix (non-fatal):", err.message);
-  }
-
-  // ── Sync provider_category display name from provider_type (single source of truth) ──
-  // provider_category is a redundant display-name field; always derive it from provider_type.
-  try {
-    await pool.query(`
-      UPDATE providers
-      SET    provider_category = CASE provider_type
-               WHEN 'physician'            THEN 'Medical Doctors & Specialists'
-               WHEN 'mental_health'        THEN 'Mental Health & Behavioral Professionals'
-               WHEN 'nutrition'            THEN 'Nutrition, Dietetics & Metabolic Wellness'
-               WHEN 'rehabilitation'       THEN 'Physical Therapy & Rehabilitation'
-               WHEN 'dental'               THEN 'Dental Care Professionals'
-               WHEN 'alternative_medicine' THEN 'Alternative, Holistic & Integrative Medicine'
-               WHEN 'nursing'              THEN 'Maternal, Nursing & Allied Health Support'
-               ELSE provider_category
-             END
-      WHERE  provider_type IN (
-               'physician','mental_health','nutrition','rehabilitation',
-               'dental','alternative_medicine','nursing'
-             )
-        AND  provider_category IS DISTINCT FROM CASE provider_type
-               WHEN 'physician'            THEN 'Medical Doctors & Specialists'
-               WHEN 'mental_health'        THEN 'Mental Health & Behavioral Professionals'
-               WHEN 'nutrition'            THEN 'Nutrition, Dietetics & Metabolic Wellness'
-               WHEN 'rehabilitation'       THEN 'Physical Therapy & Rehabilitation'
-               WHEN 'dental'               THEN 'Dental Care Professionals'
-               WHEN 'alternative_medicine' THEN 'Alternative, Holistic & Integrative Medicine'
-               WHEN 'nursing'              THEN 'Maternal, Nursing & Allied Health Support'
-               ELSE provider_category
-             END
-    `);
-    console.log("[db] provider_category sync from provider_type: OK");
-  } catch (err: any) {
-    console.warn("[db] provider_category sync (non-fatal):", err.message);
   }
 
   console.log("[db:catalog] Catalog seed complete.");

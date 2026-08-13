@@ -462,8 +462,6 @@ export async function executeReset(): Promise<ResetResult> {
     await safeDelete(client, `DELETE FROM appointment_consents WHERE appointment_id IN (SELECT id FROM appointments WHERE patient_id NOT IN (${ap}))`, errors);
     await safeDelete(client, `DELETE FROM room_reservations WHERE appointment_id IN (SELECT id FROM appointments WHERE patient_id NOT IN (${ap}))`, errors);
     await safeDelete(client, `DELETE FROM booking_revenue_shares WHERE appointment_id IN (SELECT id FROM appointments WHERE patient_id NOT IN (${ap}))`, errors);
-    // marketplace_ledger has appointment_id — no patient_id column
-    await safeDelete(client, `DELETE FROM marketplace_ledger WHERE appointment_id IN (SELECT id FROM appointments WHERE patient_id NOT IN (${ap}))`, errors);
     // appointment_slot_holds uses patient_id — not user_id
     await safeDelete(client, `DELETE FROM appointment_slot_holds WHERE patient_id NOT IN (${ap})`, errors);
 

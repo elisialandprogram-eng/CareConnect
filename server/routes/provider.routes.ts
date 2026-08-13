@@ -2402,8 +2402,7 @@ export function registerProviderRoutes(app: Express): void {
       providerListCache.clear();
       providerSearchCache.clear();
 
-      // Write practitioners to the primary `practitioners` table
-      // (replacing the legacy medical_practitioners path).
+      // Write practitioners to the primary `practitioners` table.
       if (practitioners && Array.isArray(practitioners)) {
         for (const p of practitioners) {
           if (p.name && p.name.trim() !== "") {
