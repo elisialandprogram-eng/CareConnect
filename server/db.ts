@@ -3808,18 +3808,20 @@ export async function runPaymentArchitectureMigration(): Promise<void> {
     // historical duplicate-payment behavior.
     await pool.query(`
       DELETE FROM payments duplicate
-       USING payments keeper
-       WHERE duplicate.appointment_id IS NOT NULL
-         AND duplicate.appointment_id = keeper.appointment_id
-         AND (
-           CASE WHEN duplicate.status::text IN ('completed','paid') THEN 0 ELSE 1 END,
-           duplicate.created_at DESC NULLS LAST,
-           duplicate.id
-         ) > (
-           CASE WHEN keeper.status::text IN ('completed','paid') THEN 0 ELSE 1 END,
-           keeper.created_at DESC NULLS LAST,
-           keeper.id
-         )
+       USING (
+         SELECT id,
+                ROW_NUMBER() OVER (
+                  PARTITION BY appointment_id
+                  ORDER BY
+                    CASE WHEN status::text IN ('completed','paid') THEN 0 ELSE 1 END,
+                    created_at DESC NULLS LAST,
+                    id
+                ) AS duplicate_rank
+           FROM payments
+          WHERE appointment_id IS NOT NULL
+       ) ranked
+       WHERE duplicate.id = ranked.id
+         AND ranked.duplicate_rank > 1
     `);
     await pool.query(`
       UPDATE payments

@@ -105,6 +105,7 @@ import {
 } from "./shared/helpers";
 import { logSystemEvent } from "../middleware/monitoring";
 import { localToUTC, getProviderTimezone } from "../lib/tzUtils";
+import { getReadiness } from "../lib/readiness";
 
 // Appointment idempotency TTL: 10 minutes. Keys are stored in the DB
 // (idempotency_keys table) so they survive restarts and work across instances.
@@ -308,6 +309,15 @@ export function registerAppointmentRoutes(app: Express): void {
 
   // Setup provider profile
   app.post("/api/appointments", authenticateToken, bookingLimiter, slotLimiter, async (req: AuthRequest, res: Response) => {
+    const readiness = getReadiness();
+    if (readiness.status !== "ready") {
+      return res.status(503).json({
+        message: readiness.status === "failed"
+          ? "Booking is temporarily unavailable while the database starts. Please try again shortly."
+          : "Booking is temporarily unavailable while the database finishes starting. Please try again shortly.",
+        code: "DATABASE_NOT_READY",
+      });
+    }
     const _bookingStart = Date.now(); // cold-start / slow-path timing
     try {
       const { providerId, serviceId, practitionerId, date, startTime, endTime, visitType, paymentMethod, notes, patientAddress, patientLatitude, patientLongitude, totalAmount, promoCode, giftCardCode, contactMobile, familyMemberId, intakeResponses, consentTerms, consentData } = req.body;

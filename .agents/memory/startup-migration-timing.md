@@ -20,3 +20,10 @@ httpServer.listen(port, "0.0.0.0", ...);
 ```
 
 Same principle applies to heavy seeding inside `runStartupMigrations()` — use `setTimeout(() => seedFn().catch(...), 0)` for slow sub-tasks like RBAC role/permission upserts so they don't block the outer await chain.
+
+## Request gating
+The port may be open while migrations are still running, so mutation endpoints that depend on migration-created constraints must check `getReadiness()` and return a temporary `503` until the status is `ready`.
+
+**Why:** A booking can arrive during the migration window; allowing it to continue can create partial business data and fail later when it reaches a newly-created payment constraint.
+
+**How to apply:** Keep health/listening endpoints available during startup, but gate schema-dependent writes with a stable error code such as `DATABASE_NOT_READY`.
