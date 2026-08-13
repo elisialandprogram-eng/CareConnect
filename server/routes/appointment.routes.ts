@@ -116,6 +116,7 @@ import {
   createAppointmentPayment,
   createPaymentAttempt,
   attachStripeAttempt,
+  completeStripeAttempt,
   applyWalletAllocation,
   transitionPayment,
   recordOfflineReceipt,
@@ -1562,7 +1563,7 @@ export function registerAppointmentRoutes(app: Express): void {
               ? `Appointment with ${providerName} on ${date} at ${startTime} (wallet credit ${walletApplied.toFixed(2)} USD applied)`
               : `Appointment with ${providerName} on ${date} at ${startTime}`,
             customerEmail: user.email,
-            successUrl: `${origin}/booking/confirmation/${appointment.id}?stripe=success`,
+             successUrl: `${origin}/booking/confirmation/${appointment.id}?stripe=success&session_id={CHECKOUT_SESSION_ID}`,
             cancelUrl: `${origin}/booking?stripe=cancelled&appointment=${appointment.id}`,
             metadata: {
               appointmentId: appointment.id,
@@ -1818,6 +1819,76 @@ export function registerAppointmentRoutes(app: Express): void {
       res.status(500).json({ message: "Failed to create appointment" });
     }
   });
+
+  // Stripe may redirect the patient before the webhook has arrived. Verify the
+  // checkout session directly and reconcile the canonical payment aggregate.
+  // This is idempotent with the webhook path through completeStripeAttempt().
+  app.post("/api/appointments/:id/stripe-confirm", authenticateToken, async (req: AuthRequest, res: Response) => {
+    try {
+      const appointment = await storage.getAppointment(req.params.id);
+      if (!appointment) return res.status(404).json({ message: "Appointment not found" });
+
+      const role = req.user?.role;
+      const ownsAppointment =
+        (role === "patient" && appointment.patientId === req.user!.id) ||
+        isAdminRole(role);
+      if (!ownsAppointment) {
+        if (role === "provider") {
+          const provider = await storage.getProviderByUserId(req.user!.id);
+          if (!provider || provider.id !== appointment.providerId) {
+            return res.status(404).json({ message: "Appointment not found" });
+          }
+        } else {
+          return res.status(404).json({ message: "Appointment not found" });
+        }
+      }
+
+      const sessionId = String(req.body?.sessionId || "").trim();
+      if (!sessionId) return res.status(400).json({ message: "Stripe session ID is required" });
+
+      const stripe = getStripe();
+      if (!stripe) return res.status(503).json({ message: "Stripe is not configured" });
+
+      const session = await stripe.checkout.sessions.retrieve(sessionId);
+      if (session.metadata?.appointmentId !== appointment.id) {
+        return res.status(403).json({ message: "Stripe session does not belong to this appointment" });
+      }
+      if (session.status !== "complete" || session.payment_status !== "paid") {
+        return res.status(409).json({ message: "Stripe payment has not completed" });
+      }
+
+      const paymentIntentId =
+        typeof session.payment_intent === "string"
+          ? session.payment_intent
+          : session.payment_intent?.id;
+      const payment = await completeStripeAttempt({
+        providerSessionId: session.id,
+        providerPaymentId: paymentIntentId || null,
+        idempotencyKey: `stripe:success:${session.id}`,
+      });
+      const transition = await storage.transitionAppointment(
+        appointment.id,
+        { status: "confirmed" } as any,
+        {
+          action: "confirm" as any,
+          actorUserId: null,
+          actorRole: null,
+          reason: `Stripe payment ${payment.status}`,
+          reasonCode: "stripe_payment_completed",
+        },
+        { allowNoop: true },
+      );
+      if (!transition.ok) {
+        return res.status(409).json({ message: transition.message || "Unable to confirm appointment" });
+      }
+
+      return res.json({ payment, appointment: transition.appointment });
+    } catch (error: any) {
+      console.error("[POST /api/appointments/:id/stripe-confirm] error:", error);
+      return res.status(500).json({ message: "Unable to confirm Stripe payment" });
+    }
+  });
+
   app.patch("/api/appointments/:id/status", authenticateToken, async (req: AuthRequest, res: Response) => {
     try {
       const { status } = req.body as { status: string };

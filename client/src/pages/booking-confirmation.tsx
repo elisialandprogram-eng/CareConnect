@@ -181,6 +181,14 @@ export default function BookingConfirmation() {
     }
   }, [authLoading, isAuthenticated, navigate]);
 
+  const stripeSuccess =
+    typeof window !== "undefined" &&
+    new URLSearchParams(window.location.search).get("stripe") === "success";
+  const stripeSessionId =
+    typeof window !== "undefined"
+      ? new URLSearchParams(window.location.search).get("session_id")
+      : null;
+
   const {
     data: appointmentData,
     isLoading,
@@ -192,14 +200,50 @@ export default function BookingConfirmation() {
     // Stripe redirects can arrive before the webhook request finishes. Poll
     // only that redirect, and stop as soon as the appointment is paid.
     refetchInterval: (query) => {
-      const stripeSuccess =
-        typeof window !== "undefined" &&
-        new URLSearchParams(window.location.search).get("stripe") === "success";
       const currentAppointment = query.state.data as any;
       return stripeSuccess && currentAppointment?.payment?.status !== "paid" ? 2000 : false;
     },
   });
   const appt: any = appointmentData;
+
+  // The success redirect is a second, verified reconciliation path for
+  // delayed/misconfigured webhooks. The server verifies the session with
+  // Stripe, so the browser cannot mark a payment paid by itself.
+  const stripeConfirmMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest("POST", `/api/appointments/${appointmentId}/stripe-confirm`, {
+        sessionId: stripeSessionId,
+      });
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: QK.appointment(appointmentId!) });
+      queryClient.invalidateQueries({ queryKey: ["/api/appointments/patient"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/appointments/provider"] });
+    },
+  });
+
+  useEffect(() => {
+    if (
+      stripeSuccess &&
+      stripeSessionId &&
+      appointmentId &&
+      appt?.payment?.status !== "paid" &&
+      !stripeConfirmMutation.isPending &&
+      !stripeConfirmMutation.isSuccess &&
+      !stripeConfirmMutation.isError
+    ) {
+      stripeConfirmMutation.mutate();
+    }
+  }, [
+    stripeSuccess,
+    stripeSessionId,
+    appointmentId,
+    appt?.payment?.status,
+    stripeConfirmMutation.isPending,
+    stripeConfirmMutation.isSuccess,
+    stripeConfirmMutation.isError,
+  ]);
 
   // Unified appointment action dialog state
   const [actionTarget, setActionTarget] = useState<AppointmentAction | null>(null);
