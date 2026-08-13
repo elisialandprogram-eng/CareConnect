@@ -145,7 +145,7 @@ export async function createAppointmentPayment(input: {
           display_amount, exchange_rate_used, country_code, updated_at)
        VALUES ($1, $2, $3, 0, $3, 0, 'USD', $4, 'pending',
                $5, $6, $7, $8, NOW())
-       ON CONFLICT (appointment_id) DO UPDATE
+       ON CONFLICT (appointment_id) WHERE appointment_id IS NOT NULL DO UPDATE
          SET updated_at = NOW()
        RETURNING *`,
       [

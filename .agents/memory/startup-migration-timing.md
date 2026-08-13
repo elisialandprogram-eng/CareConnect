@@ -27,3 +27,10 @@ The port may be open while migrations are still running, so mutation endpoints t
 **Why:** A booking can arrive during the migration window; allowing it to continue can create partial business data and fail later when it reaches a newly-created payment constraint.
 
 **How to apply:** Keep health/listening endpoints available during startup, but gate schema-dependent writes with a stable error code such as `DATABASE_NOT_READY`.
+
+## Partial unique indexes
+When a unique index is partial, its `ON CONFLICT` target must include a matching `WHERE` predicate for PostgreSQL to infer the index.
+
+**Why:** `ON CONFLICT (column)` does not match a unique index declared with `WHERE column IS NOT NULL`, even when the index exists.
+
+**How to apply:** Keep the conflict target and index predicate identical, such as `ON CONFLICT (appointment_id) WHERE appointment_id IS NOT NULL`.
