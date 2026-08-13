@@ -273,13 +273,9 @@ export default function BookingConfirmation() {
   // NOT in USD. Use formatInCurrency so we never double-multiply by the exchange rate.
   const bookingCurrency = appt?.displayCurrency ?? (appt as any)?.payment?.displayCurrency ?? "USD";
   const fmtAmt = (n: number) => formatInCurrency(n, bookingCurrency);
-  const displayPaymentStatus =
-    appt?.paymentStatus === "completed" || appt?.payment?.status === "completed"
-      ? "completed"
-      : appt?.paymentStatus || appt?.payment?.status;
-  const displayPaymentMethod = String(
-    appt?.paymentMethod || appt?.payment?.paymentMethod || "",
-  ).toLowerCase();
+  const canonicalPayment = (appt as any)?.payment;
+  const displayPaymentStatus = canonicalPayment?.status as string | undefined;
+  const displayPaymentMethod = String(canonicalPayment?.paymentMethod || "").toLowerCase();
 
   // Prefer the full JSONB breakdown stored at booking time; it contains
   // correct snapshots for every component (including zero-value lines).
@@ -554,7 +550,7 @@ export default function BookingConfirmation() {
           const pm = displayPaymentMethod;
           const ps = displayPaymentStatus;
           const isCashLike = pm === "cash" || pm === "bank_transfer";
-          if (!isCashLike || ps === "completed") return null;
+          if (!isCashLike || ps === "paid") return null;
           const refNum = appt.appointmentNumber || appt.id.slice(0, 8).toUpperCase();
           return (
             <div
@@ -757,7 +753,7 @@ export default function BookingConfirmation() {
               {displayPaymentStatus && (
                 <div className="pt-3">
                   <Badge
-                    variant={displayPaymentStatus === "completed" ? "default" : "secondary"}
+                    variant={displayPaymentStatus === "paid" ? "default" : "secondary"}
                     className="capitalize"
                     data-testid="badge-payment-status"
                   >

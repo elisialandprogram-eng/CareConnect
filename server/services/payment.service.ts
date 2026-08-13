@@ -163,6 +163,12 @@ export async function createAppointmentPayment(input: {
     if (!payment) {
       throw new Error("Appointment already has a different payment aggregate");
     }
+    if (
+      payment.patient_id !== input.patientId ||
+      Math.abs(Number(payment.amount) - input.totalAmountUsd) > 0.01
+    ) {
+      throw new Error("Appointment already has a different payment aggregate");
+    }
     await client.query(
       `INSERT INTO payment_events
          (payment_id, event_type, to_status, idempotency_key, metadata)
@@ -422,6 +428,13 @@ export async function completeStripeAttempt(input: {
           SET paid_amount_usd = $1,
               remaining_amount_usd = GREATEST(0, amount - $1),
               refunded_amount = $2,
+              payment_method = CASE
+                WHEN EXISTS (
+                  SELECT 1 FROM payment_allocations
+                   WHERE payment_id = $5 AND source = 'wallet' AND status IN ('paid','refunded')
+                ) THEN 'mixed'
+                ELSE 'card'
+              END,
               stripe_payment_id = COALESCE($3, stripe_payment_id),
               stripe_session_id = $4,
               updated_at = NOW()
@@ -585,20 +598,38 @@ export async function recordStripeRefund(input: {
     );
     const payment = paymentResult.rows[0];
     if (!payment) throw new Error("Payment aggregate not found for refund");
+    // Stripe's charge.refunded event reports charge.amount_refunded, which is
+    // cumulative. Only the delta since the last provider refund may be applied
+    // to local allocations.
+    const priorProviderRefunds = await client.query(
+      `SELECT COALESCE(SUM(amount_usd), 0) AS amount
+         FROM payment_refunds
+        WHERE payment_id = $1
+          AND provider_refund_id IS NOT NULL
+          AND status = 'processed'`,
+      [payment.id],
+    );
+    const priorRefunded = Number(priorProviderRefunds.rows[0]?.amount ?? 0);
+    const refundDelta = Number((input.amountUsd - priorRefunded).toFixed(2));
+    if (refundDelta <= 0) {
+      await client.query("COMMIT");
+      return payment;
+    }
+
     const inserted = await client.query(
       `INSERT INTO payment_refunds
          (payment_id, amount_usd, status, reason, idempotency_key, provider_refund_id, processed_at)
        VALUES ($1, $2, 'processed', 'stripe_refund', $3, $4, NOW())
        ON CONFLICT (idempotency_key) DO NOTHING
        RETURNING id`,
-      [payment.id, input.amountUsd.toFixed(2), input.idempotencyKey, input.providerRefundId],
+      [payment.id, refundDelta.toFixed(2), input.idempotencyKey, input.providerRefundId],
     );
     if (!inserted.rows[0]) {
       await client.query("COMMIT");
       return payment;
     }
 
-    let remaining = input.amountUsd;
+    let remaining = refundDelta;
     const allocations = await client.query(
       `SELECT id, amount_usd, refunded_amount_usd
          FROM payment_allocations
@@ -637,9 +668,10 @@ export async function recordStripeRefund(input: {
     await client.query(
       `UPDATE payments
           SET refunded_amount = $1,
+              stripe_refund_id = COALESCE($2, stripe_refund_id),
               updated_at = NOW()
-        WHERE id = $2`,
-      [refunded.toFixed(2), payment.id],
+        WHERE id = $3`,
+      [refunded.toFixed(2), input.providerRefundId, payment.id],
     );
     await transitionOnClient(client, payment.id, next, {
       idempotencyKey: `${input.idempotencyKey}:state`,
@@ -709,10 +741,21 @@ export async function refundPayment(input: {
     if (!Number.isFinite(requested) || requested <= 0) throw new Error("Refund amount must be positive");
     if (requested > refundable + 0.01) throw new Error("Refund exceeds the refundable payment amount");
 
-    const stripeAvailable = allocationResult.rows
-      .filter((row: any) => row.source === "stripe")
-      .reduce((sum: number, row: any) => sum + Math.max(0, Number(row.amount_usd) - Number(row.refunded_amount_usd)), 0);
-    const stripeRefundAmount = Math.min(requested, stripeAvailable);
+    // Plan the exact source split before calling Stripe. This prevents a
+    // mixed refund from charging Stripe for money that is being returned to
+    // the wallet first.
+    let planRemaining = requested;
+    const refundPlan = allocationResult.rows.map((allocation: any) => {
+      const available = Math.max(0, Number(allocation.amount_usd) - Number(allocation.refunded_amount_usd));
+      const refundAmount = Math.min(available, planRemaining);
+      planRemaining = Number((planRemaining - refundAmount).toFixed(2));
+      return { allocation, refundAmount };
+    }).filter(({ refundAmount }) => refundAmount > 0);
+    if (planRemaining > 0.01) throw new Error("Refund allocation could not be planned");
+
+    const stripeRefundAmount = refundPlan
+      .filter(({ allocation }: any) => allocation.source === "stripe")
+      .reduce((sum: number, { refundAmount }: any) => sum + refundAmount, 0);
     if (stripeRefundAmount > 0) {
       if (!payment.stripe_payment_id || !input.stripeRefund) {
         throw new Error("Stripe refund provider is unavailable");
@@ -733,11 +776,8 @@ export async function refundPayment(input: {
     );
 
     let remaining = requested;
-    for (const allocation of allocationResult.rows) {
+    for (const { allocation, refundAmount } of refundPlan) {
       if (remaining <= 0) break;
-      const available = Math.max(0, Number(allocation.amount_usd) - Number(allocation.refunded_amount_usd));
-      const refundAmount = Math.min(available, remaining);
-      if (refundAmount <= 0) continue;
 
       if (allocation.source === "wallet" || allocation.source === "cash" || allocation.source === "bank_transfer") {
         const walletResult = await client.query(
@@ -851,22 +891,30 @@ export async function recordOfflineReceipt(input: {
     );
     const payment = paymentResult.rows[0];
     if (!payment) throw new Error("Payment aggregate not found");
+    if (payment.payment_method !== input.source) {
+      throw new Error("Offline receipt source does not match the payment method");
+    }
+    const remainingAmount = Number(payment.remaining_amount_usd ?? 0);
+    if (!Number.isFinite(remainingAmount) || remainingAmount <= 0) {
+      await client.query("COMMIT");
+      return payment;
+    }
     const allocation = await client.query(
       `INSERT INTO payment_allocations
          (payment_id, source, amount_usd, idempotency_key, status, updated_at)
        VALUES ($1, $2, $3, $4, 'paid', NOW())
        ON CONFLICT (idempotency_key) DO NOTHING
        RETURNING id`,
-      [input.paymentId, input.source, payment.remaining_amount_usd, input.idempotencyKey],
+      [input.paymentId, input.source, remainingAmount.toFixed(2), input.idempotencyKey],
     );
     if (allocation.rows[0]) {
       await client.query(
         `UPDATE payments
-            SET paid_amount_usd = amount,
+            SET paid_amount_usd = paid_amount_usd + $1,
                 remaining_amount_usd = 0,
                 updated_at = NOW()
-          WHERE id = $1`,
-        [input.paymentId],
+          WHERE id = $2`,
+        [remainingAmount.toFixed(2), input.paymentId],
       );
     }
     await transitionOnClient(client, input.paymentId, "paid", {

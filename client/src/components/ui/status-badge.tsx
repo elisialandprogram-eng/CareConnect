@@ -37,6 +37,7 @@ const PAYMENT_STATUS: Record<string, StatusConfig> = {
   pending:             { label: "Pending",              classes: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border-amber-200/60" },
   pending_payment:     { label: "Awaiting Payment",     classes: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border-amber-200/60" },
   processing:          { label: "Processing",           classes: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 border-blue-200/60" },
+  paid:                { label: "Paid",                 classes: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border-green-200/60" },
   completed:           { label: "Paid",                 classes: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border-green-200/60" },
   failed:              { label: "Failed",               classes: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 border-red-200/60" },
   refunded:            { label: "Refunded",             classes: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400 border-purple-200/60" },

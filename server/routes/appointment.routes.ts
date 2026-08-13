@@ -1513,6 +1513,30 @@ export function registerAppointmentRoutes(app: Express): void {
       const wantsCard =
         selectedPaymentMethod === "card" ||
         (selectedPaymentMethod === "wallet" && walletApplied > 0 && remainderDue > 0);
+      if (!walletPaid && remainderDue > 0 && wantsCard && !isStripeConfigured()) {
+        if (reservedSlotId) {
+          await storage.updateTimeSlot(reservedSlotId, { isBooked: false }).catch(() => {});
+        }
+        await storage.transitionAppointment(
+          appointment.id,
+          { status: "cancelled" } as any,
+          {
+            action: "cancel" as any,
+            actorUserId: null,
+            actorRole: null,
+            reason: "Stripe is not configured",
+            reasonCode: "stripe_unavailable",
+          },
+          { allowNoop: true },
+        ).catch(() => {});
+        await transitionPayment(payment.id, "failed", {
+          idempotencyKey: `appointment:${appointment.id}:stripe-unavailable`,
+          metadata: { source: "stripe", error: "Stripe is not configured" },
+        }).catch(() => {});
+        return res.status(503).json({
+          message: "Card payments are temporarily unavailable. Please choose another payment method.",
+        });
+      }
       if (!walletPaid && remainderDue > 0 && wantsCard && isStripeConfigured()) {
         try {
           const origin =
@@ -2175,9 +2199,7 @@ export function registerAppointmentRoutes(app: Express): void {
        // Stripe/card and wallet payments are completed by their payment flow
        // (Stripe webhook or wallet debit). Only offline collections may be
        // manually marked as received by a provider or admin.
-       const effectivePaymentMethod = String(
-         (appointment as any).paymentMethod || payment.paymentMethod || "",
-       ).toLowerCase();
+        const effectivePaymentMethod = String(payment.paymentMethod || "").toLowerCase();
        if (!["cash", "bank_transfer"].includes(effectivePaymentMethod)) {
          return res.status(409).json({
            message: "Stripe and wallet payments are marked paid automatically; manual updates are only for cash or bank transfer.",
@@ -2681,17 +2703,8 @@ export function registerAppointmentRoutes(app: Express): void {
       if (action === "cancel" && quote.amount > 0 && !alreadyProcessed) {
         try {
           const payment = await storage.getPaymentByAppointment(updated.id);
-          const paidAmountUsd = Number(
-            (payment as any)?.paidAmountUsd ??
-            (payment as any)?.paid_amount_usd ??
-            (payment as any)?.amount ??
-            0,
-          );
-          const alreadyRefundedUsd = Number(
-            (payment as any)?.refundedAmount ??
-            (payment as any)?.refunded_amount ??
-            0,
-          );
+          const paidAmountUsd = Number((payment as any)?.paidAmountUsd ?? 0);
+          const alreadyRefundedUsd = Number((payment as any)?.refundedAmount ?? 0);
           const refundableUsd = Math.max(0, paidAmountUsd - alreadyRefundedUsd);
           let toRefund = refundableUsd;
           if (quote.policy === "full" || quote.policy === "provider_full") {
@@ -3112,17 +3125,8 @@ export function registerAppointmentRoutes(app: Express): void {
         try {
           const payment = await storage.getPaymentByAppointment(existing.id);
           if (payment) {
-            const paidAmountUsd = Number(
-              (payment as any).paidAmountUsd ??
-              (payment as any).paid_amount_usd ??
-              (payment as any).amount ??
-              0,
-            );
-            const refundedUsd = Number(
-              (payment as any).refundedAmount ??
-              (payment as any).refunded_amount ??
-              0,
-            );
+            const paidAmountUsd = Number((payment as any).paidAmountUsd ?? 0);
+            const refundedUsd = Number((payment as any).refundedAmount ?? 0);
             refundedAmount = Math.max(0, paidAmountUsd - refundedUsd);
             if (refundedAmount > 0) {
               await refundAppointmentPayment({

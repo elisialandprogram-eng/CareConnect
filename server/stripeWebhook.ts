@@ -327,10 +327,6 @@ export async function handleStripeWebhook(req: Request, res: Response) {
                 amountUsd: totalRefunded,
                 idempotencyKey: `stripe:refund:${latestRefundId}`,
               });
-              await pool.query(
-                `UPDATE payments SET stripe_refund_id = $1 WHERE id = $2`,
-                [latestRefundId, payment.id],
-              );
               logPayment({ event: "refund_issued", amountUsd: totalRefunded });
               console.log(
                 `[stripe webhook] charge.refunded synced: payment=${payment.id} totalRefunded=${totalRefunded}`,

@@ -29,7 +29,9 @@ export async function createInvoiceForAppointment(appointmentId: string): Promis
   }
 
   const payment = await storage.getPaymentByAppointment(booking.id);
-  const invoiceStatus = payment?.status === "completed" ? "paid" : "due";
+  const invoiceStatus = ["paid", "partially_refunded", "refunded", "disputed"].includes(String(payment?.status))
+    ? "paid"
+    : "due";
 
   // Resolve currency from the immutable appointment snapshot. Invoice
   // generation is a read-only consumer of the booking financial contract.

@@ -108,7 +108,7 @@ export function registerProviderWalletPayoutsRoutes(app: Express): void {
         ) pay ON true
         WHERE a.provider_id = $1
           AND a.status = 'completed'
-          AND COALESCE(pay.status, a.payment_status) = 'completed'
+          AND pay.status IN ('paid', 'partially_refunded', 'refunded', 'disputed')
           AND pe.id IS NULL
         ORDER BY a.updated_at DESC
         LIMIT 100
@@ -160,7 +160,7 @@ export function registerProviderWalletPayoutsRoutes(app: Express): void {
             a.visit_type                                          AS "visitType",
             a.appointment_number                                  AS "appointmentNumber",
             a.status                                              AS "appointmentStatus",
-            COALESCE(pay.status, a.payment_status)               AS "paymentStatus",
+            pay.status                                             AS "paymentStatus",
             a.promo_code                                          AS "promoCode",
             a.promo_discount                                      AS "promoDiscount",
             a.tax_amount                                          AS "taxAmount",
@@ -241,7 +241,7 @@ export function registerProviderWalletPayoutsRoutes(app: Express): void {
           pe.paid_at,
           a.refund_status,
           a.refund_amount,
-            COALESCE(pay.status, a.payment_status) AS payment_status
+            pay.status AS payment_status
         FROM provider_earnings pe
         LEFT JOIN appointments a ON a.id  = pe.appointment_id
          LEFT JOIN LATERAL (

@@ -3155,8 +3155,8 @@ export class DatabaseStorage extends PackagesMixin implements IStorage {
       const appointmentResult = await client.query(`
         SELECT
           a.*,
-          COALESCE(pay.payment_method, a.payment_method, 'card') AS settlement_payment_method,
-          COALESCE(pay.status, a.payment_status) AS settlement_payment_status,
+           pay.payment_method AS settlement_payment_method,
+           pay.status AS settlement_payment_status,
           p.fee_split_ratio
         FROM appointments a
         JOIN providers p ON p.id = a.provider_id
@@ -3180,10 +3180,11 @@ export class DatabaseStorage extends PackagesMixin implements IStorage {
       // snapshot must agree; this prevents a status-only completion path from
       // creating provider earnings or wallet credit for unpaid cash.
       if (
-        appt.status !== "completed" ||
-        appt.payment_status !== "completed" ||
-        appt.settlement_payment_status !== "completed" ||
-        !["card", "wallet", "cash", "bank_transfer"].includes(
+         appt.status !== "completed" ||
+         !["paid", "partially_refunded", "refunded", "disputed"].includes(
+           String(appt.settlement_payment_status || "").toLowerCase(),
+         ) ||
+         !["card", "wallet", "cash", "bank_transfer", "mixed"].includes(
           String(appt.settlement_payment_method || "").toLowerCase(),
         )
       ) {

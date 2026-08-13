@@ -631,7 +631,7 @@ export function registerPatientRoutes(app: Express): void {
         ),
         pool.query(
           `SELECT a.id, a.appointment_number, a.date, a.start_time, a.end_time,
-                  a.status, a.visit_type, a.total_amount, a.payment_status,
+                  a.status, a.visit_type, a.total_amount, pay.status AS payment_status,
                   a.notes, a.country_code, a.created_at,
                   s.name AS service_name,
                   pu.first_name AS provider_first, pu.last_name AS provider_last
@@ -639,6 +639,7 @@ export function registerPatientRoutes(app: Express): void {
            LEFT JOIN services s ON s.id = a.service_id
            LEFT JOIN providers p ON p.id = a.provider_id
            LEFT JOIN users pu ON pu.id = p.user_id
+           LEFT JOIN payments pay ON pay.appointment_id = a.id
            WHERE a.patient_id = $1
            ORDER BY a.date DESC LIMIT 500`,
           [userId],
@@ -944,22 +945,24 @@ export function registerPatientRoutes(app: Express): void {
             COUNT(*) FILTER (WHERE status = 'completed') AS completed,
             COUNT(*) FILTER (WHERE status IN ('cancelled','cancelled_by_patient','cancelled_by_provider')) AS cancelled,
             COUNT(*) FILTER (WHERE status IN ('pending','confirmed')) AS upcoming,
-            COALESCE(SUM(total_amount::numeric) FILTER (WHERE payment_status = 'completed'), 0) AS total_spend,
-            COALESCE(SUM(total_amount::numeric) FILTER (WHERE payment_status = 'completed' AND date::date >= CURRENT_DATE - INTERVAL '30 days'), 0) AS spend_30d,
-            COALESCE(SUM(total_amount::numeric) FILTER (WHERE payment_status = 'completed' AND date::date >= DATE_TRUNC('month', NOW())), 0) AS spend_this_month
-          FROM appointments
-          WHERE patient_id = $1
+             COALESCE(SUM(a.total_amount::numeric) FILTER (WHERE pay.status IN ('paid','partially_refunded','refunded','disputed')), 0) AS total_spend,
+             COALESCE(SUM(a.total_amount::numeric) FILTER (WHERE pay.status IN ('paid','partially_refunded','refunded','disputed') AND a.date::date >= CURRENT_DATE - INTERVAL '30 days'), 0) AS spend_30d,
+             COALESCE(SUM(a.total_amount::numeric) FILTER (WHERE pay.status IN ('paid','partially_refunded','refunded','disputed') AND a.date::date >= DATE_TRUNC('month', NOW())), 0) AS spend_this_month
+           FROM appointments a
+           LEFT JOIN payments pay ON pay.appointment_id = a.id
+           WHERE a.patient_id = $1
         `, [userId]);
         monthRows = await client.query(`
           SELECT TO_CHAR(DATE_TRUNC('month', date::date), 'Mon ''YY') AS month,
-                 COALESCE(SUM(total_amount::numeric) FILTER (WHERE payment_status = 'completed'), 0) AS spend,
-                 COUNT(*) FILTER (WHERE status = 'completed') AS completed,
-                 COUNT(*) FILTER (WHERE status IN ('cancelled','cancelled_by_patient','cancelled_by_provider')) AS cancelled
-          FROM appointments
-          WHERE patient_id = $1
-            AND date::date >= CURRENT_DATE - INTERVAL '12 months'
-          GROUP BY DATE_TRUNC('month', date::date)
-          ORDER BY DATE_TRUNC('month', date::date)
+                  COALESCE(SUM(a.total_amount::numeric) FILTER (WHERE pay.status IN ('paid','partially_refunded','refunded','disputed')), 0) AS spend,
+                  COUNT(*) FILTER (WHERE a.status = 'completed') AS completed,
+                  COUNT(*) FILTER (WHERE a.status IN ('cancelled','cancelled_by_patient','cancelled_by_provider')) AS cancelled
+           FROM appointments a
+           LEFT JOIN payments pay ON pay.appointment_id = a.id
+           WHERE a.patient_id = $1
+             AND a.date::date >= CURRENT_DATE - INTERVAL '12 months'
+           GROUP BY DATE_TRUNC('month', a.date::date)
+           ORDER BY DATE_TRUNC('month', a.date::date)
         `, [userId]);
         providerRows = await client.query(`
           SELECT p.id AS provider_id,
@@ -967,10 +970,11 @@ export function registerPatientRoutes(app: Express): void {
                  p.provider_type,
                  COUNT(*) AS visit_count,
                  MAX(a.date) AS last_visit,
-                 COALESCE(SUM(a.total_amount::numeric) FILTER (WHERE a.payment_status = 'completed'), 0) AS total_spent
+                  COALESCE(SUM(a.total_amount::numeric) FILTER (WHERE pay.status IN ('paid','partially_refunded','refunded','disputed')), 0) AS total_spent
           FROM appointments a
           JOIN providers p ON p.id = a.provider_id
           JOIN users u ON u.id = p.user_id
+           LEFT JOIN payments pay ON pay.appointment_id = a.id
           WHERE a.patient_id = $1 AND a.status = 'completed'
           GROUP BY p.id, u.first_name, u.last_name, p.clinic_name, p.provider_type
           ORDER BY visit_count DESC LIMIT 5
