@@ -3773,6 +3773,182 @@ export async function runProviderSettlementMigration(): Promise<void> {
 }
 
 /**
+ * Canonical appointment payment architecture.
+ *
+ * The `payments` row is the one appointment payment aggregate. Funding
+ * sources, provider attempts, refunds, disputes, and state transitions are
+ * represented by their own append-only/one-to-many tables.
+ */
+export async function runPaymentArchitectureMigration(): Promise<void> {
+  console.log("[db] canonical payment migration starting");
+  try {
+    for (const value of [
+      "processing",
+      "partially_paid",
+      "paid",
+      "refund_pending",
+      "partially_refunded",
+      "disputed",
+      "cancelled",
+    ]) {
+      await pool.query(
+        `DO $$ BEGIN
+           ALTER TYPE payment_status ADD VALUE IF NOT EXISTS '${value}';
+         EXCEPTION WHEN others THEN NULL;
+         END $$`,
+      );
+    }
+
+    await pool.query(`ALTER TABLE payments ADD COLUMN IF NOT EXISTS paid_amount_usd NUMERIC(14,2) NOT NULL DEFAULT 0`);
+    await pool.query(`ALTER TABLE payments ADD COLUMN IF NOT EXISTS remaining_amount_usd NUMERIC(14,2) NOT NULL DEFAULT 0`);
+    await pool.query(`ALTER TABLE payments ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()`);
+
+    // A payment aggregate is appointment-scoped. Existing duplicate rows are
+    // intentionally collapsed because the new architecture does not preserve
+    // historical duplicate-payment behavior.
+    await pool.query(`
+      DELETE FROM payments duplicate
+       USING payments keeper
+       WHERE duplicate.appointment_id IS NOT NULL
+         AND duplicate.appointment_id = keeper.appointment_id
+         AND (
+           CASE WHEN duplicate.status::text IN ('completed','paid') THEN 0 ELSE 1 END,
+           duplicate.created_at DESC NULLS LAST,
+           duplicate.id
+         ) > (
+           CASE WHEN keeper.status::text IN ('completed','paid') THEN 0 ELSE 1 END,
+           keeper.created_at DESC NULLS LAST,
+           keeper.id
+         )
+    `);
+    await pool.query(`
+      UPDATE payments
+         SET status = 'paid',
+             paid_amount_usd = amount,
+             remaining_amount_usd = 0,
+             updated_at = NOW()
+       WHERE appointment_id IS NOT NULL AND status::text = 'completed'
+    `);
+    await pool.query(`
+      UPDATE payments
+         SET paid_amount_usd = CASE WHEN status::text IN ('paid','refunded','partially_refunded') THEN amount ELSE COALESCE(paid_amount_usd, 0) END,
+             remaining_amount_usd = GREATEST(0, amount - CASE WHEN status::text IN ('paid','refunded','partially_refunded') THEN amount ELSE COALESCE(paid_amount_usd, 0) END)
+       WHERE remaining_amount_usd IS NULL OR remaining_amount_usd = 0 AND status::text = 'pending'
+    `);
+    await pool.query(`CREATE UNIQUE INDEX IF NOT EXISTS uq_payments_appointment_id ON payments(appointment_id) WHERE appointment_id IS NOT NULL`);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS payment_allocations (
+        id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+        payment_id VARCHAR NOT NULL REFERENCES payments(id) ON DELETE CASCADE,
+        source TEXT NOT NULL CHECK (source IN ('wallet','stripe','cash','bank_transfer')),
+        amount_usd NUMERIC(14,2) NOT NULL CHECK (amount_usd > 0),
+        refunded_amount_usd NUMERIC(14,2) NOT NULL DEFAULT 0 CHECK (refunded_amount_usd >= 0),
+        provider_reference TEXT,
+        idempotency_key TEXT NOT NULL UNIQUE,
+        status TEXT NOT NULL DEFAULT 'pending',
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )
+    `);
+    await pool.query(`ALTER TABLE payment_allocations ADD COLUMN IF NOT EXISTS idempotency_key TEXT`);
+    await pool.query(`CREATE UNIQUE INDEX IF NOT EXISTS uq_payment_allocations_idempotency_key ON payment_allocations(idempotency_key)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_payment_allocations_payment_id ON payment_allocations(payment_id)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_payment_allocations_source ON payment_allocations(source)`);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS payment_attempts (
+        id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+        payment_id VARCHAR NOT NULL REFERENCES payments(id) ON DELETE CASCADE,
+        source TEXT NOT NULL CHECK (source IN ('wallet','stripe','cash','bank_transfer')),
+        status TEXT NOT NULL DEFAULT 'pending',
+        amount_usd NUMERIC(14,2) NOT NULL CHECK (amount_usd > 0),
+        provider_session_id TEXT,
+        provider_payment_id TEXT,
+        failure_code TEXT,
+        failure_message TEXT,
+        idempotency_key TEXT UNIQUE,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )
+    `);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_payment_attempts_payment_id ON payment_attempts(payment_id)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_payment_attempts_provider_session ON payment_attempts(provider_session_id)`);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS payment_refunds (
+        id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+        payment_id VARCHAR NOT NULL REFERENCES payments(id) ON DELETE CASCADE,
+        amount_usd NUMERIC(14,2) NOT NULL CHECK (amount_usd > 0),
+        status TEXT NOT NULL DEFAULT 'pending',
+        reason TEXT,
+        idempotency_key TEXT NOT NULL UNIQUE,
+        provider_refund_id TEXT,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        processed_at TIMESTAMPTZ
+      )
+    `);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_payment_refunds_payment_id ON payment_refunds(payment_id)`);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS payment_disputes (
+        id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+        payment_id VARCHAR NOT NULL REFERENCES payments(id) ON DELETE CASCADE,
+        provider_dispute_id TEXT NOT NULL UNIQUE,
+        status TEXT NOT NULL DEFAULT 'open',
+        reason TEXT,
+        amount_usd NUMERIC(14,2) NOT NULL DEFAULT 0,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )
+    `);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_payment_disputes_payment_id ON payment_disputes(payment_id)`);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS payment_events (
+        id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+        payment_id VARCHAR NOT NULL REFERENCES payments(id) ON DELETE CASCADE,
+        event_type TEXT NOT NULL,
+        from_status TEXT,
+        to_status TEXT,
+        idempotency_key TEXT UNIQUE,
+        metadata JSONB,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )
+    `);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_payment_events_payment_id ON payment_events(payment_id)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_payment_events_created_at ON payment_events(created_at)`);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS wallet_topups (
+        id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id VARCHAR NOT NULL REFERENCES users(id),
+        provider_session_id TEXT NOT NULL UNIQUE,
+        provider_payment_id TEXT,
+        amount_usd NUMERIC(14,2) NOT NULL CHECK (amount_usd > 0),
+        status TEXT NOT NULL DEFAULT 'pending',
+        idempotency_key TEXT NOT NULL UNIQUE,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        completed_at TIMESTAMPTZ
+      )
+    `);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_wallet_topups_user_id ON wallet_topups(user_id)`);
+
+    // Only implemented patient payment rails remain active in checkout.
+    await pool.query(`
+      UPDATE payment_providers
+         SET is_enabled = false, maintenance_mode = true, updated_at = NOW()
+       WHERE provider_key IN ('crypto','apple_pay','google_pay')
+    `).catch(() => {});
+
+    console.log("[db] canonical payment migration ready");
+  } catch (err: any) {
+    console.warn("[db] canonical payment migration:", err.message);
+    throw err;
+  }
+}
+
+/**
  * runCatalogSeed — idempotent catalog data setup.
  *
  * Seeds the 7 canonical provider categories, their catalog_service groups, and

@@ -2054,12 +2054,8 @@ export class DatabaseStorage extends PackagesMixin implements IStorage {
     if (result.length === 0) return undefined;
 
     const r = result[0];
-    const paymentStatus =
-      r.payments?.status === "completed" || r.appointments.paymentStatus === "completed"
-        ? "completed"
-        : r.payments?.status || r.appointments.paymentStatus;
-    const paymentMethod =
-      r.appointments.paymentMethod || r.payments?.paymentMethod;
+    const paymentStatus = r.payments?.status ?? "pending";
+    const paymentMethod = r.payments?.paymentMethod ?? null;
     return {
       ...r.appointments,
       patient: r.patientUser,
@@ -2074,7 +2070,7 @@ export class DatabaseStorage extends PackagesMixin implements IStorage {
             ...r.payments,
             status: paymentStatus,
             paymentMethod,
-          }
+           } as any
         : undefined,
     };
   }
@@ -2112,7 +2108,12 @@ export class DatabaseStorage extends PackagesMixin implements IStorage {
       },
       service: r.services || undefined,
       practitioner: (r.practitioners as any) || undefined,
-      payment: r.payments || undefined,
+       payment: r.payments
+         ? ({
+             ...r.payments,
+             status: r.payments.status ?? "pending",
+           } as any)
+         : undefined,
     }));
   }
 
@@ -2141,12 +2142,8 @@ export class DatabaseStorage extends PackagesMixin implements IStorage {
       .limit(500);
 
     return result.map(r => {
-      const paymentStatus =
-        r.payments?.status === "completed" || r.appointments.paymentStatus === "completed"
-          ? "completed"
-          : r.payments?.status || r.appointments.paymentStatus;
-      const paymentMethod =
-        r.appointments.paymentMethod || r.payments?.paymentMethod;
+      const paymentStatus = r.payments?.status ?? "pending";
+      const paymentMethod = r.payments?.paymentMethod ?? null;
       return {
         ...r.appointments,
         patient: r.users,
@@ -2159,12 +2156,9 @@ export class DatabaseStorage extends PackagesMixin implements IStorage {
         payment: r.payments
           ? {
               ...r.payments,
-              // The appointment snapshot is the canonical fallback when a
-              // Stripe webhook completed the booking but the joined payment
-              // row is stale.
               status: paymentStatus,
               paymentMethod,
-            }
+            } as any
           : undefined,
       };
     });

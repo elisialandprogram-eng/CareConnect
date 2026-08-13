@@ -112,6 +112,14 @@ import { registerAppointmentWaitlistRoutes } from "./appointment-waitlist.routes
 import { registerAppointmentResourcesRoutes } from "./appointment-resources.routes";
 import { isProviderApproved } from "../lib/provider-visibility";
 import { resolvePaymentMethod } from "../lib/payment-method";
+import {
+  createAppointmentPayment,
+  createPaymentAttempt,
+  attachStripeAttempt,
+  applyWalletAllocation,
+  transitionPayment,
+  recordOfflineReceipt,
+} from "../services/payment.service";
 const APPT_IDEMPOTENCY_TTL_MS = 10 * 60 * 1000;
 
 export function registerAppointmentRoutes(app: Express): void {
@@ -1349,27 +1357,20 @@ export function registerAppointmentRoutes(app: Express): void {
       const _bookingExchangeRate = parseFloat((1 / _bookingRateVal).toFixed(6));
       const isOfflinePaymentMethod = ["cash", "bank_transfer"].includes(selectedPaymentMethod);
 
-      // Create payment record — always stored in USD; display fields hold local currency snapshot.
-      const payment = await storage.createPayment({
+      // Create the one canonical payment aggregate. Funding sources are
+      // recorded later as allocations, so mixed wallet + Stripe payments are
+      // never inferred from a single payment_method field.
+      const payment = await createAppointmentPayment({
         appointmentId: appointment.id,
         patientId: userId,
-        amount: _bookingFeeUSD.toFixed(2),
-        currency: "USD",
-        paymentMethod: selectedPaymentMethod,
-        status: "pending",
+        totalAmountUsd: _bookingFeeUSD,
+        initialMethod: selectedPaymentMethod as "card" | "wallet" | "cash" | "bank_transfer",
         countryCode: providerCountry,
         displayCurrency: _bookingSrcCurrency,
-        displayAmount: Number(fee).toFixed(2),
-        exchangeRateUsed: _bookingExchangeRate.toString(),
-      } as any);
-
-      // Keep the appointment snapshot aligned with the payment row. Settlement
-      // reads the completed payment, but this field makes the booking's
-      // selected rail visible and prevents card/cash label drift.
-      await pool.query(
-        `UPDATE appointments SET payment_method = $1 WHERE id = $2`,
-        [payment.paymentMethod || selectedPaymentMethod, appointment.id],
-      );
+        displayAmount: Number(fee),
+        exchangeRateUsed: _bookingExchangeRate,
+        idempotencyKey: `appointment:${appointment.id}:payment`,
+      });
 
       console.log("Payment record created:", payment.id);
 
@@ -1438,33 +1439,21 @@ export function registerAppointmentRoutes(app: Express): void {
       let walletPaid = false;
       if (walletApplied > 0) {
         try {
-          const wallet = await storage.getOrCreateWallet(userId);
-          if (wallet.isFrozen) {
-            throw new Error("Wallet is frozen");
-          }
-          if (Number(wallet.balance) + 1e-6 < walletAppliedUSD) {
-            throw new Error("Insufficient wallet balance");
-          }
-          await storage.debitWallet(userId, walletAppliedUSD, {
+          await applyWalletAllocation({
+            paymentId: payment.id,
+            userId,
+            amountUsd: walletAppliedUSD,
+            idempotencyKey: `appointment:${appointment.id}:wallet`,
             description: remainderDueLocal === 0
               ? "Appointment payment"
               : `Appointment payment (partial — wallet ${walletAppliedUSD.toFixed(2)} USD of ${_bookingFeeUSD.toFixed(2)} USD total)`,
-            referenceType: "appointment",
-            referenceId: appointment.id,
-            idempotencyKey: `appointment:${appointment.id}:wallet`,
           });
           if (remainderDue === 0 && !isOfflinePaymentMethod) {
-            // Fully paid via wallet — auto-confirm and mark payment completed.
-            await storage.updatePayment(payment.id, {
-              status: "completed",
-              paymentMethod: "wallet",
-            });
+            // Fully paid via wallet. Payment state is already canonical `paid`;
+            // appointment lifecycle remains independent.
             const confirmRes = await storage.transitionAppointment(
               appointment.id,
-              // paymentStatus must be updated here so the booking response and
-              // confirmation page reflect "completed" immediately — not just the
-              // payments table row.
-              { status: "confirmed", paymentStatus: "completed" } as any,
+              { status: "confirmed" } as any,
               {
                 action: "confirm" as any,
                 actorUserId: userId,
@@ -1499,7 +1488,10 @@ export function registerAppointmentRoutes(app: Express): void {
               },
             );
             if (reservedSlotId) await storage.updateTimeSlot(reservedSlotId, { isBooked: false });
-            await storage.updatePayment(payment.id, { status: "failed" });
+            await transitionPayment(payment.id, "failed", {
+              idempotencyKey: `appointment:${appointment.id}:wallet-failed`,
+              metadata: { source: "wallet", error: walletErr?.message },
+            }).catch(() => {});
           } catch {}
           logSystemEvent(
             "payment_failure",
@@ -1531,6 +1523,12 @@ export function registerAppointmentRoutes(app: Express): void {
             : "Provider";
           // remainderDue is already in USD (revenue engine output) — no conversion needed.
           const _amountUSD = remainderDue;
+           const paymentAttempt = await createPaymentAttempt({
+             paymentId: payment.id,
+             source: "stripe",
+             amountUsd: _amountUSD,
+             idempotencyKey: `appointment:${appointment.id}:stripe-attempt`,
+           });
           const session = await createCheckoutSession({
             appointmentId: appointment.id,
             amount: _amountUSD,
@@ -1543,15 +1541,15 @@ export function registerAppointmentRoutes(app: Express): void {
             cancelUrl: `${origin}/booking?stripe=cancelled&appointment=${appointment.id}`,
             metadata: {
               appointmentId: appointment.id,
+               paymentId: payment.id,
+               paymentAttemptId: paymentAttempt.id,
               patientId: userId,
               providerId,
               walletApplied: walletApplied.toFixed(2),
             },
           });
           checkoutUrl = session.url;
-          await storage.updatePayment(payment.id, {
-            stripeSessionId: session.sessionId,
-          });
+           await attachStripeAttempt(paymentAttempt.id, session.sessionId);
           console.log("Stripe checkout session created:", session.sessionId);
         } catch (stripeErr) {
           console.error("Stripe checkout creation failed:", stripeErr);
@@ -1869,35 +1867,19 @@ export function registerAppointmentRoutes(app: Express): void {
         }
       }
 
-       // Block "completed" if payment hasn't been collected yet. This applies
-       // equally to providers and admins; otherwise unpaid cash bookings could
-       // enter settlement and earnings flows.
-      // Card and wallet payments are pre-paid at booking — auto-complete them here
-      // in case the Stripe webhook never fired or payment was processed off-platform.
-       if (status === "completed") {
+      // Block completion until the canonical payment aggregate is paid. Payment
+      // confirmation never happens implicitly from appointment completion.
+      if (status === "completed") {
         const existingPayment = await storage.getPaymentByAppointment(req.params.id);
         if (!existingPayment) {
           return res.status(400).json({
-            message: "Payment must be marked as completed before this appointment can be closed.",
+             message: "Payment must be marked as paid before this appointment can be closed.",
           });
         }
-        if (existingPayment.status !== "completed") {
-          const autoCompleteMethods = ["card", "wallet"];
-          if (autoCompleteMethods.includes(existingPayment.paymentMethod ?? "")) {
-            // Auto-mark pre-paid methods as completed so providers aren't blocked
-            await storage.updatePayment(existingPayment.id, { status: "completed" });
-            await pool.query(
-              `UPDATE appointments
-                  SET payment_status = 'completed',
-                      payment_method = $1
-                WHERE id = $2`,
-              [existingPayment.paymentMethod || "card", req.params.id],
-            );
-          } else {
-            return res.status(400).json({
-              message: "Payment must be marked as completed before this appointment can be closed.",
-            });
-          }
+         if (existingPayment.status !== "paid") {
+           return res.status(400).json({
+             message: "Payment must be marked as paid before this appointment can be closed.",
+           });
         }
       }
 
@@ -2170,8 +2152,8 @@ export function registerAppointmentRoutes(app: Express): void {
   // Mark a cash/bank-transfer payment as received (provider or admin only)
   app.patch("/api/appointments/:id/payment-status", authenticateToken, async (req: AuthRequest, res: Response) => {
     try {
-      const { status } = req.body as { status: "completed" | "pending" | "refunded" | "failed" };
-      if (!["completed", "pending", "refunded", "failed"].includes(status)) {
+       const { status } = req.body as { status: "paid" | "pending" | "failed" };
+       if (!["paid", "pending", "failed"].includes(status)) {
         return res.status(400).json({ message: "Invalid payment status" });
       }
 
@@ -2201,33 +2183,22 @@ export function registerAppointmentRoutes(app: Express): void {
          });
        }
 
-       const wasAlreadyCompleted = payment.status === "completed";
-       // Keep both status columns in one transaction. A partial update here
-       // makes completion guards and earnings reconciliation disagree.
-       const client = await pool.connect();
-       try {
-         await client.query("BEGIN");
-         await client.query(
-           `UPDATE payments SET status = $1 WHERE id = $2`,
-           [status, payment.id],
-         );
-         await client.query(
-           `UPDATE appointments
-               SET payment_status = $1, payment_method = COALESCE($2, payment_method)
-             WHERE id = $3`,
-            [status, effectivePaymentMethod || "card", appointment.id],
-         );
-         await client.query("COMMIT");
-       } catch (txErr) {
-         await client.query("ROLLBACK").catch(() => {});
-         throw txErr;
-       } finally {
-         client.release();
-       }
-       const updated = await storage.getPayment(payment.id);
+        if (status === "paid") {
+          await recordOfflineReceipt({
+            paymentId: payment.id,
+            source: effectivePaymentMethod as "cash" | "bank_transfer",
+            idempotencyKey: `appointment:${appointment.id}:offline-receipt`,
+          });
+        } else if (status === "failed") {
+          await transitionPayment(payment.id, "failed", {
+            idempotencyKey: `appointment:${appointment.id}:offline-failed`,
+            metadata: { source: effectivePaymentMethod },
+          });
+        }
+        const updated = await storage.getPayment(payment.id);
 
       // If we just marked it paid AND the appointment is already completed, regenerate / refresh the invoice status.
-      if (status === "completed" && appointment.status === "completed" && !appointment.invoiceGenerated) {
+       if (status === "paid" && appointment.status === "completed" && !appointment.invoiceGenerated) {
         try {
           await createInvoiceForAppointment(appointment.id);
         } catch (invErr) {
@@ -2240,7 +2211,7 @@ export function registerAppointmentRoutes(app: Express): void {
       }
 
       // Payment now successful & appointment completed → generate provider earning record (idempotent)
-      if (status === "completed" && appointment.status === "completed") {
+       if (status === "paid" && appointment.status === "completed") {
         try {
           await storage.recordProviderEarning(appointment.id);
         } catch (earnErr) {
@@ -2253,7 +2224,7 @@ export function registerAppointmentRoutes(app: Express): void {
       }
 
       // Notify patient that payment was recorded
-       if (status === "completed" && !wasAlreadyCompleted) {
+       if (status === "paid") {
         // Email payment receipt to the patient
         try {
           const patient = await storage.getUser(appointment.patientId);

@@ -182,7 +182,7 @@ export default function BookingConfirmation() {
   }, [authLoading, isAuthenticated, navigate]);
 
   const {
-    data: appt,
+    data: appointmentData,
     isLoading,
     isError,
     error,
@@ -191,14 +191,15 @@ export default function BookingConfirmation() {
     enabled: !!appointmentId && isAuthenticated,
     // Stripe redirects can arrive before the webhook request finishes. Poll
     // only that redirect, and stop as soon as the appointment is paid.
-    refetchInterval: () => {
+    refetchInterval: (query) => {
       const stripeSuccess =
         typeof window !== "undefined" &&
         new URLSearchParams(window.location.search).get("stripe") === "success";
-      const paymentStatus = appt?.paymentStatus || appt?.payment?.status;
-      return stripeSuccess && paymentStatus !== "completed" ? 2000 : false;
+      const currentAppointment = query.state.data as any;
+      return stripeSuccess && currentAppointment?.payment?.status !== "paid" ? 2000 : false;
     },
   });
+  const appt: any = appointmentData;
 
   // Unified appointment action dialog state
   const [actionTarget, setActionTarget] = useState<AppointmentAction | null>(null);

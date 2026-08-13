@@ -18,6 +18,7 @@ import { isStripeConfigured, createCheckoutSession } from "../stripe";
 import { type CountryCode, countryCurrency } from "../middleware/country";
 import { authenticateToken, type AuthRequest } from "../middleware/auth";
 import { round2, roundToCents } from "../lib/math";
+import { applyWalletAllocation } from "../services/payment.service";
 
 export function registerWalletRoutes(app: Express): void {
 
@@ -99,7 +100,8 @@ export function registerWalletRoutes(app: Express): void {
   });
 
   // ── POST /api/wallet/pay-appointment ───────────────────────────────────
-  // Atomic: debits wallet, marks payment completed, confirms appointment.
+  // Atomic: records a wallet allocation in the canonical payment aggregate
+  // and confirms the appointment without writing a second payment authority.
   app.post("/api/wallet/pay-appointment", authenticateToken, async (req: AuthRequest, res: Response) => {
     try {
       if (!req.user) return res.status(401).json({ message: "Unauthorized" });
@@ -115,67 +117,26 @@ export function registerWalletRoutes(app: Express): void {
         return res.status(400).json({ message: "This appointment cannot be paid for" });
       }
 
-      const existingPayment = await storage.getPaymentByAppointment(appointmentId);
-      if (existingPayment && existingPayment.status === "completed") {
+       const existingPayment = await storage.getPaymentByAppointment(appointmentId);
+       if (!existingPayment) {
+         return res.status(409).json({ message: "Appointment has no canonical payment aggregate" });
+       }
+       if (existingPayment.status === "paid") {
         return res.status(400).json({ message: "This appointment is already paid" });
       }
 
-      const amountLocal = Number(appointment.totalAmount);
-      if (!Number.isFinite(amountLocal) || amountLocal <= 0) {
+       const amount = Number((existingPayment as any).remainingAmountUsd ?? (existingPayment as any).amount);
+       if (!Number.isFinite(amount) || amount <= 0) {
         return res.status(400).json({ message: "Invalid appointment amount" });
       }
 
-      const _wpRates = await getRates();
-      const _wpSrcCurrency = countryCurrency((appointment as any).countryCode as CountryCode | undefined);
-      const amount = toUSDSync(amountLocal, _wpSrcCurrency, _wpRates);
-
-      const wallet = await storage.getOrCreateWallet(req.user.id);
-      if (Number(wallet.balance) + 1e-6 < amount) {
-        return res.status(402).json({
-          message: "Insufficient wallet balance",
-          balance: Number(wallet.balance),
-          required: amount,
-        });
-      }
-
-      const idempotencyKey = `appointment:${appointmentId}`;
-      const { wallet: updatedWallet, transaction } = await storage.debitWallet(
-        req.user.id,
-        amount,
-        {
-          description: `Payment for appointment ${appointmentId}`,
-          referenceType: "appointment",
-          referenceId: appointmentId,
-          idempotencyKey,
-        },
-      );
-
-      // Wallet transactions are the canonical patient-payment audit trail.
-      // Do not mirror the USD debit into marketplace_ledger: that legacy table
-      // has no reliable booking-currency/unit contract.
-
-      if (existingPayment) {
-        await storage.updatePayment(existingPayment.id, {
-          status: "completed",
-          paymentMethod: "wallet",
-        });
-      } else {
-        const apptForCurrency = await storage.getAppointment(appointmentId);
-        const _wRates = await getRates();
-        const _wSrcCurrency = countryCurrency(apptForCurrency?.countryCode as CountryCode | undefined);
-        const _wRateVal = _wRates[_wSrcCurrency] ?? 1;
-        await storage.createPayment({
-          appointmentId,
-          patientId: req.user.id,
-          amount: round2(amount),
-          currency: "USD",
-          paymentMethod: "wallet",
-          status: "completed",
-          displayCurrency: _wSrcCurrency,
-          displayAmount: round2(amountLocal),
-          exchangeRateUsed: parseFloat((1 / _wRateVal).toFixed(6)).toString(),
-        } as any);
-      }
+       const allocationResult = await applyWalletAllocation({
+         paymentId: existingPayment.id,
+         userId: req.user.id,
+         amountUsd: amount,
+         idempotencyKey: `appointment:${appointmentId}:wallet-standalone`,
+         description: `Payment for appointment ${appointmentId}`,
+       });
 
       const existingAppt = await storage.getAppointment(appointmentId);
       const transition = await storage.transitionAppointment(
@@ -195,7 +156,11 @@ export function registerWalletRoutes(app: Express): void {
         return res.status(transition.status).json({ message: transition.message || "Unable to confirm appointment" });
       }
 
-      res.json({ ok: true, wallet: updatedWallet, transaction });
+       res.json({
+         ok: true,
+         wallet: await storage.getOrCreateWallet(req.user.id),
+         transaction: allocationResult.transaction,
+       });
     } catch (error: any) {
       console.error("Wallet pay-appointment error:", error);
       const msg = error?.message || "Payment failed";

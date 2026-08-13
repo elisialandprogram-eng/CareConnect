@@ -4,10 +4,15 @@ import { getStripe, getWebhookSecret } from "./stripe";
 import { storage } from "./storage";
 import { logWebhook, logPayment } from "./lib/logger";
 import { logSystemEvent } from "./middleware/monitoring";
-import { db } from "./db";
-import { payments } from "@shared/schema";
+import { pool } from "./db";
 import { notify } from "./services/notification-dispatcher";
 import { formatLocal } from "./services/currency";
+import {
+  completeStripeAttempt,
+  failPaymentAttempt,
+  recordStripeDispute,
+  recordStripeRefund,
+} from "./services/payment.service";
 
 // ── Idempotency guard (two-layer) ────────────────────────────────────────
 // Stripe can deliver the same event more than once.  We use two layers:
@@ -178,20 +183,21 @@ export async function handleStripeWebhook(req: Request, res: Response) {
                 formattedAmount: formatLocal(creditAmount, "USD"),
                 newBalance: formatLocal(Number(result.wallet?.balance ?? creditAmount), "USD"),
               }).catch(() => {});
-              // Bridge: write a tracking record into the global payments ledger
+              // Wallet top-ups are tracked separately from appointment payments.
               try {
-                await db.insert(payments).values({
-                  patientId: walletUserId,
-                  amount: String(creditAmount),
-                  currency: "USD",
-                  paymentMethod: "stripe_wallet_topup",
-                  status: "completed",
-                  stripeSessionId: session.id,
-                  stripePaymentId: paymentIntentId || null,
-                } as any).onConflictDoNothing();
-                console.log(`[stripe webhook] payments ledger bridge written for topup ${session.id}`);
+                await pool.query(
+                  `INSERT INTO wallet_topups
+                     (user_id, provider_session_id, provider_payment_id, amount_usd,
+                      status, idempotency_key, completed_at)
+                   VALUES ($1, $2, $3, $4, 'completed', $5, NOW())
+                   ON CONFLICT (provider_session_id) DO UPDATE
+                     SET status = 'completed',
+                         provider_payment_id = COALESCE(EXCLUDED.provider_payment_id, wallet_topups.provider_payment_id),
+                         completed_at = COALESCE(wallet_topups.completed_at, NOW())`,
+                  [walletUserId, session.id, paymentIntentId || null, creditAmount, `stripe:${session.id}`],
+                );
               } catch (bridgeErr) {
-                console.warn("[stripe webhook] payments ledger bridge failed (non-fatal):", (bridgeErr as Error).message);
+                console.warn("[stripe webhook] wallet top-up tracking failed (non-fatal):", (bridgeErr as Error).message);
               }
             } catch (err) {
               logPayment({ event: "wallet_delta", userId: walletUserId, amountUsd: creditAmount, error: String((err as Error).message) });
@@ -207,26 +213,21 @@ export async function handleStripeWebhook(req: Request, res: Response) {
         }
 
         if (appointmentId) {
-          const existing = await storage.getPaymentByAppointment(appointmentId);
-          if (existing) {
-            await storage.updatePayment(existing.id, {
-              status: "completed",
-              stripeSessionId: session.id,
-              stripePaymentId: paymentIntentId || null,
-            });
-          }
+          const payment = await completeStripeAttempt({
+            providerSessionId: session.id,
+            providerPaymentId: paymentIntentId || null,
+            idempotencyKey: `stripe:${event.id}`,
+          });
           const transition = await storage.transitionAppointment(
             appointmentId,
             {
               status: "confirmed",
-              paymentStatus: "completed",
-              paymentMethod: existing?.paymentMethod || "card",
             } as any,
             {
               action: "confirm" as any,
               actorUserId: null,
               actorRole: null,
-              reason: "Stripe payment completed",
+               reason: `Stripe payment ${payment.status}`,
               reasonCode: "stripe_payment_completed",
             },
             { allowNoop: true },
@@ -246,13 +247,12 @@ export async function handleStripeWebhook(req: Request, res: Response) {
         const session = event.data.object as Stripe.Checkout.Session;
         const appointmentId = session.metadata?.appointmentId;
         if (appointmentId) {
-          const existing = await storage.getPaymentByAppointment(appointmentId);
-          if (existing) {
-            await storage.updatePayment(existing.id, {
-              status: "failed",
-              stripeSessionId: session.id,
-            });
-          }
+          await failPaymentAttempt({
+            providerSessionId: session.id,
+            idempotencyKey: `stripe:${event.id}`,
+            failureCode: event.type,
+            failureMessage: "Stripe checkout session expired or failed",
+          });
           console.log(
             `[stripe webhook] payment failed/expired for appointment ${appointmentId}`,
           );
@@ -266,32 +266,16 @@ export async function handleStripeWebhook(req: Request, res: Response) {
         const dispute = event.data.object as Stripe.Dispute;
         const chargeId = typeof dispute.charge === "string" ? dispute.charge : dispute.charge?.id;
         try {
-          const { pool: _pool } = await import("./db");
-          // Resolve payment_intent from the charge
-          let paymentIntentId: string | null = null;
-          if (chargeId) {
-            const chargeRow = await _pool.query(
-              `SELECT stripe_payment_id FROM payments WHERE stripe_charge_id = $1 LIMIT 1`,
-              [chargeId],
-            ).catch(() => ({ rows: [] as any[] }));
-            if (!chargeRow.rows[0]) {
-              // Fallback: look up by dispute's payment_intent metadata if available
-              paymentIntentId = typeof dispute.payment_intent === "string"
-                ? dispute.payment_intent
-                : dispute.payment_intent?.id ?? null;
-            }
-          } else {
-            paymentIntentId = typeof dispute.payment_intent === "string"
-              ? dispute.payment_intent
-              : dispute.payment_intent?.id ?? null;
-          }
-
-          if (paymentIntentId) {
-            await _pool.query(
-              `UPDATE payments SET status = 'disputed' WHERE stripe_payment_id = $1`,
-              [paymentIntentId],
-            ).catch(() => {});
-          }
+          const paymentIntentId = typeof dispute.payment_intent === "string"
+            ? dispute.payment_intent
+            : dispute.payment_intent?.id ?? null;
+          if (!paymentIntentId) throw new Error("Dispute has no payment intent");
+          await recordStripeDispute({
+            paymentIntentId,
+            providerDisputeId: dispute.id,
+            amountUsd: dispute.amount / 100,
+            reason: dispute.reason,
+          });
 
           logPayment({
             event: "refund_failed",
@@ -322,28 +306,22 @@ export async function handleStripeWebhook(req: Request, res: Response) {
             : charge.payment_intent?.id;
         if (paymentIntentId) {
           try {
-            const rows = await import("./db").then(m =>
-              m.pool.query(
-                `SELECT id FROM payments WHERE stripe_payment_id = $1 LIMIT 1`,
-                [paymentIntentId],
-              ),
-            );
-            const paymentId = rows.rows[0]?.id;
-            if (paymentId) {
-              const totalRefunded = charge.amount_refunded / 100;
-              const latestRefundId = charge.refunds?.data?.[0]?.id ?? null;
-              await import("./db").then(m =>
-                m.pool.query(
-                  `UPDATE payments
-                   SET refunded_amount = $1,
-                       stripe_refund_id = COALESCE(stripe_refund_id, $2)
-                   WHERE id = $3`,
-                  [totalRefunded, latestRefundId, paymentId],
-                ),
+            const totalRefunded = charge.amount_refunded / 100;
+            const latestRefundId = charge.refunds?.data?.[0]?.id ?? null;
+            if (latestRefundId) {
+              const payment = await recordStripeRefund({
+                paymentIntentId,
+                providerRefundId: latestRefundId,
+                amountUsd: totalRefunded,
+                idempotencyKey: `stripe:refund:${latestRefundId}`,
+              });
+              await pool.query(
+                `UPDATE payments SET stripe_refund_id = $1 WHERE id = $2`,
+                [latestRefundId, payment.id],
               );
               logPayment({ event: "refund_issued", amountUsd: totalRefunded });
               console.log(
-                `[stripe webhook] charge.refunded synced: payment=${paymentId} totalRefunded=${totalRefunded}`,
+                `[stripe webhook] charge.refunded synced: payment=${payment.id} totalRefunded=${totalRefunded}`,
               );
             }
           } catch (err) {

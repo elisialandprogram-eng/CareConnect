@@ -23,7 +23,22 @@ export const appointmentStatusEnum = pgEnum("appointment_status", [
   "cancelled_by_patient", "cancelled_by_provider", "reschedule_requested", "reschedule_proposed", "expired",
 ]);
 export const visitTypeEnum = pgEnum("visit_type", ["online", "home", "clinic"]);
-export const paymentStatusEnum = pgEnum("payment_status", ["pending", "completed", "refunded", "failed"]);
+// Canonical appointment payment lifecycle. `completed` remains in the enum only
+// for non-appointment records that have not yet been migrated; appointment
+// payment code uses `paid` exclusively.
+export const paymentStatusEnum = pgEnum("payment_status", [
+  "pending",
+  "processing",
+  "partially_paid",
+  "paid",
+  "failed",
+  "refund_pending",
+  "partially_refunded",
+  "refunded",
+  "disputed",
+  "cancelled",
+  "completed",
+]);
 export const paymentMethodEnum = pgEnum("payment_method", ["card", "crypto", "cash", "bank_transfer"]);
 export const groupSessionStatusEnum = pgEnum("group_session_status", ["scheduled", "live", "completed", "cancelled"]);
 export const groupAttendanceEnum = pgEnum("group_attendance", ["registered", "joined", "no_show"]);
@@ -696,6 +711,10 @@ export const payments = pgTable("payments", {
   appointmentId: varchar("appointment_id").references(() => appointments.id),
   patientId: varchar("patient_id").notNull().references(() => users.id),
   amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  // Canonical aggregate amounts are USD. `amount` is retained as the total
+  // payable amount until the startup migration renames the physical columns.
+  paidAmountUsd: decimal("paid_amount_usd", { precision: 14, scale: 2 }).notNull().default("0.00"),
+  remainingAmountUsd: decimal("remaining_amount_usd", { precision: 14, scale: 2 }).notNull().default("0.00"),
   refundedAmount: decimal("refunded_amount", { precision: 10, scale: 2 }).default("0.00"),
   currency: text("currency").default("USD"),
   paymentMethod: text("payment_method").notNull().default("card"),
@@ -711,11 +730,89 @@ export const payments = pgTable("payments", {
   // Multi-country tenancy: copied from appointment on insert.
   countryCode: countryCodeEnum("country_code").notNull().default("HU"),
   createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 }, (t) => [
   index("idx_payments_appointment_id").on(t.appointmentId),
   index("idx_payments_patient_id").on(t.patientId),
   index("idx_payments_status").on(t.status),
   index("idx_payments_country_code").on(t.countryCode),
+]);
+
+// One allocation per actual funding source. Mixed wallet + Stripe payments
+// must never be inferred from a single payment_method field.
+export const paymentAllocations = pgTable("payment_allocations", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  paymentId: varchar("payment_id").notNull().references(() => payments.id, { onDelete: "cascade" }),
+  source: text("source").notNull(), // wallet | stripe | cash | bank_transfer
+  amountUsd: decimal("amount_usd", { precision: 14, scale: 2 }).notNull(),
+  refundedAmountUsd: decimal("refunded_amount_usd", { precision: 14, scale: 2 }).notNull().default("0.00"),
+  providerReference: text("provider_reference"),
+  idempotencyKey: text("idempotency_key").notNull().unique(),
+  status: text("status").notNull().default("pending"), // pending | paid | failed | refunded
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (t) => [
+  index("idx_payment_allocations_payment_id").on(t.paymentId),
+  index("idx_payment_allocations_source").on(t.source),
+]);
+
+export const paymentAttempts = pgTable("payment_attempts", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  paymentId: varchar("payment_id").notNull().references(() => payments.id, { onDelete: "cascade" }),
+  source: text("source").notNull(), // stripe | wallet | cash | bank_transfer
+  status: text("status").notNull().default("pending"), // pending | processing | paid | failed | expired
+  amountUsd: decimal("amount_usd", { precision: 14, scale: 2 }).notNull(),
+  providerSessionId: text("provider_session_id"),
+  providerPaymentId: text("provider_payment_id"),
+  failureCode: text("failure_code"),
+  failureMessage: text("failure_message"),
+  idempotencyKey: text("idempotency_key").unique(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (t) => [
+  index("idx_payment_attempts_payment_id").on(t.paymentId),
+  index("idx_payment_attempts_provider_session").on(t.providerSessionId),
+]);
+
+export const paymentRefunds = pgTable("payment_refunds", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  paymentId: varchar("payment_id").notNull().references(() => payments.id, { onDelete: "cascade" }),
+  amountUsd: decimal("amount_usd", { precision: 14, scale: 2 }).notNull(),
+  status: text("status").notNull().default("pending"), // pending | processing | processed | failed
+  reason: text("reason"),
+  idempotencyKey: text("idempotency_key").notNull().unique(),
+  providerRefundId: text("provider_refund_id"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  processedAt: timestamp("processed_at"),
+}, (t) => [
+  index("idx_payment_refunds_payment_id").on(t.paymentId),
+]);
+
+export const paymentDisputes = pgTable("payment_disputes", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  paymentId: varchar("payment_id").notNull().references(() => payments.id, { onDelete: "cascade" }),
+  providerDisputeId: text("provider_dispute_id").notNull().unique(),
+  status: text("status").notNull().default("open"), // open | won | lost | closed
+  reason: text("reason"),
+  amountUsd: decimal("amount_usd", { precision: 14, scale: 2 }).notNull().default("0.00"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (t) => [
+  index("idx_payment_disputes_payment_id").on(t.paymentId),
+]);
+
+export const paymentEvents = pgTable("payment_events", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  paymentId: varchar("payment_id").notNull().references(() => payments.id, { onDelete: "cascade" }),
+  eventType: text("event_type").notNull(),
+  fromStatus: text("from_status"),
+  toStatus: text("to_status"),
+  idempotencyKey: text("idempotency_key").unique(),
+  metadata: jsonb("metadata"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => [
+  index("idx_payment_events_payment_id").on(t.paymentId),
+  index("idx_payment_events_created_at").on(t.createdAt),
 ]);
 
 // ─── Group sessions (1 provider → many patients in one slot) ──────────────
@@ -1362,6 +1459,23 @@ export const walletTransactions = pgTable("wallet_transactions", {
   amountUsd: decimal("amount_usd", { precision: 14, scale: 4 }),
   exchangeRateUsed: decimal("exchange_rate_used", { precision: 16, scale: 6 }),
 });
+
+// Wallet top-ups are funding the wallet, not paying for an appointment.
+// They deliberately do not use the appointment payments aggregate.
+export const walletTopUps = pgTable("wallet_topups", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  providerSessionId: text("provider_session_id").notNull().unique(),
+  providerPaymentId: text("provider_payment_id"),
+  amountUsd: decimal("amount_usd", { precision: 14, scale: 2 }).notNull(),
+  status: text("status").notNull().default("pending"),
+  idempotencyKey: text("idempotency_key").notNull().unique(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  completedAt: timestamp("completed_at"),
+}, (t) => [
+  index("idx_wallet_topups_user_id").on(t.userId),
+  index("idx_wallet_topups_status").on(t.status),
+]);
 
 // Admin broadcasts (track who fired, audience filter, summary)
 export const adminBroadcasts = pgTable("admin_broadcasts", {

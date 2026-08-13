@@ -23,6 +23,7 @@ import { handleStripeWebhook } from "./stripeWebhook";
 import {
   runStartupMigrations,
   runProviderSettlementMigration,
+  runPaymentArchitectureMigration,
   runBookingPricingSnapshotMigration,
   runCatalogSeed,
   pool,
@@ -238,6 +239,7 @@ app.use((req, res, next) => {
     const pricingSnapshotMigration = runBookingPricingSnapshotMigration();
     pricingSnapshotMigration
       .then(() => runProviderSettlementMigration())
+      .then(() => runPaymentArchitectureMigration())
       .then(() => runStartupMigrations())
       .then(() => {
         markReady();
