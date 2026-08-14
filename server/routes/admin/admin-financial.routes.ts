@@ -596,7 +596,7 @@ export function registerAdminFinancialRoutes(app: Express): void {
         requested_amount_local: row.display_amount,
         requested_currency: row.display_currency || row.currency || "USD",
         request_exchange_rate: row.exchange_rate_used,
-        service_earnings_usd: Number(row.gross_settlement_amount_usd || 0) - Number(row.tax_pass_through_settlement_usd || 0),
+        service_earnings_usd: round2(Number(row.gross_settlement_amount_usd || 0) - Number(row.tax_pass_through_settlement_usd || 0)),
       })));
     } catch (err: any) { res.status(500).json({ message: err.message }); }
   });
@@ -2099,7 +2099,7 @@ export function registerAdminFinancialRoutes(app: Express): void {
             gross_usd: parseFloat(r.gross_usd),
             fees_usd: parseFloat(r.fees_usd),
             refunds_usd: parseFloat(r.refunds_usd),
-            net_usd: parseFloat(r.gross_usd) - parseFloat(r.fees_usd),
+            net_usd: round2(parseFloat(r.gross_usd) - parseFloat(r.fees_usd)),
           };
         }
 

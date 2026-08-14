@@ -83,7 +83,7 @@ async function checkWalletLedgerDrift(): Promise<ReconciliationFinding> {
   `, [...PROVIDER_LEDGER_BALANCE_AFFECTING_TYPES]);
 
   const severity: ReconciliationSeverity = rows.length === 0 ? "ok" : rows.some((r) => parseFloat(r.drift) > 10) ? "critical" : "high";
-  const totalDrift = rows.reduce((acc, r) => acc + parseFloat(r.drift), 0);
+  const totalDrift = Math.round(rows.reduce((acc, r) => acc + parseFloat(r.drift), 0) * 100) / 100;
 
   return {
     check: "wallet_ledger_drift",
@@ -111,7 +111,7 @@ async function checkNegativeBalances(): Promise<ReconciliationFinding> {
     LEFT JOIN users u ON u.id = p.user_id
     WHERE pw.available_balance < 0 OR pw.held_balance < 0 OR pw.pending_balance < 0
   `);
-  const totalAbs = rows.reduce((acc, r) => acc + Math.abs(parseFloat(r.available_balance ?? "0")), 0);
+  const totalAbs = Math.round(rows.reduce((acc, r) => acc + Math.abs(parseFloat(r.available_balance ?? "0")), 0) * 100) / 100;
   return {
     check: "negative_balances",
     severity: rows.length > 0 ? "critical" : "ok",
@@ -139,7 +139,7 @@ async function checkDuplicatePayouts(): Promise<ReconciliationFinding> {
     HAVING COUNT(*) > 1
     LIMIT 20
   `);
-  const totalAmt = rows.reduce((acc, r) => acc + parseFloat(r.total_amount ?? "0"), 0);
+  const totalAmt = Math.round(rows.reduce((acc, r) => acc + parseFloat(r.total_amount ?? "0"), 0) * 100) / 100;
   return {
     check: "duplicate_payouts",
     severity: rows.length > 0 ? "critical" : "ok",
@@ -173,7 +173,7 @@ async function checkOrphanedPayments(): Promise<ReconciliationFinding> {
     ORDER BY pay.created_at DESC
     LIMIT 20
   `);
-  const totalAmt = rows.reduce((acc, r) => acc + parseFloat(r.amount ?? "0"), 0);
+  const totalAmt = Math.round(rows.reduce((acc, r) => acc + parseFloat(r.amount ?? "0"), 0) * 100) / 100;
   return {
     check: "orphaned_payments",
     severity: rows.length === 0 ? "ok" : rows.length > 10 ? "high" : "medium",
@@ -206,7 +206,7 @@ async function checkRevenueSnapshotConsistency(): Promise<ReconciliationFinding>
     LIMIT 20
   `).catch(() => ({ rows: [] as Array<Record<string, unknown>> }));
 
-  const totalDelta = rows.reduce((acc, r) => acc + parseFloat((r.amount_delta as string) ?? "0"), 0);
+  const totalDelta = Math.round(rows.reduce((acc, r) => acc + parseFloat((r.amount_delta as string) ?? "0"), 0) * 100) / 100;
   return {
     check: "revenue_snapshot_consistency",
     severity: rows.length === 0 ? "ok" : rows.length > 5 ? "high" : "medium",
@@ -237,7 +237,7 @@ async function checkWalletCreditImbalance(): Promise<ReconciliationFinding> {
     LIMIT 20
   `).catch(() => ({ rows: [] as Array<Record<string, unknown>> }));
 
-  const totalDrift = rows.reduce((acc, r) => acc + parseFloat((r.drift as string) ?? "0"), 0);
+  const totalDrift = Math.round(rows.reduce((acc, r) => acc + parseFloat((r.drift as string) ?? "0"), 0) * 100) / 100;
   return {
     check: "patient_wallet_imbalance",
     severity: rows.length === 0 ? "ok" : rows.length > 5 ? "high" : "medium",
@@ -266,7 +266,7 @@ async function getReconciliationSummary() {
     return {
       totalProviderWalletBalance: parseFloat(walletBal.rows[0].total),
       totalLedgerBalance: parseFloat(ledgerBal.rows[0].total),
-      walletLedgerDrift: Math.abs(parseFloat(walletBal.rows[0].total) - parseFloat(ledgerBal.rows[0].total)),
+      walletLedgerDrift: Math.round(Math.abs(parseFloat(walletBal.rows[0].total) - parseFloat(ledgerBal.rows[0].total)) * 100) / 100,
       totalPendingPayouts: parseFloat(pendingPayouts.rows[0].total),
       totalCompletedPayoutsLast30d: parseFloat(recentPaid.rows[0].total),
       totalOrphanedPayments: 0,

@@ -644,7 +644,7 @@ export async function recordStripeRefund(input: {
       const available = Math.max(0, Number(allocation.amount_usd) - Number(allocation.refunded_amount_usd));
       const refund = Math.min(available, remaining);
       if (refund <= 0) continue;
-      const nextRefunded = Number(allocation.refunded_amount_usd) + refund;
+      const nextRefunded = round2(Number(allocation.refunded_amount_usd) + refund);
       await client.query(
         `UPDATE payment_allocations
             SET refunded_amount_usd = $1,
