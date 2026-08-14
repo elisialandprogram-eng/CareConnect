@@ -17,12 +17,11 @@
  */
 
 import { pool } from "../db";
+import { CURRENCY_CONFIGS as SHARED_CURRENCY_CONFIGS, formatCurrencyAmount, normalizeCurrencyCode, roundCurrencyAmount, type CurrencyCode } from "@shared/currency";
 
-export type SupportedCurrency = "USD" | "HUF" | "IRR" | "GBP";
+export type SupportedCurrency = CurrencyCode;
 
-export const SUPPORTED_CURRENCIES: SupportedCurrency[] = ["USD", "HUF", "IRR", "GBP"];
-
-const ZERO_DECIMAL_CURRENCIES = new Set(["HUF", "IRR", "JPY", "KRW"]);
+export const SUPPORTED_CURRENCIES: SupportedCurrency[] = ["USD", "HUF", "IRR", "GBP", "EUR", "JPY", "KRW"];
 
 const FALLBACK_RATES: Record<string, number> = {
   USD: 1,
@@ -30,15 +29,11 @@ const FALLBACK_RATES: Record<string, number> = {
   IRR: 42000,
   GBP: 0.79,
   EUR: 0.92,
+  JPY: 155,
+  KRW: 1380,
 };
 
-const CURRENCY_CONFIGS: Record<string, { locale: string; symbol: string; fractionDigits: number }> = {
-  USD: { locale: "en-US",  symbol: "$",  fractionDigits: 2 },
-  HUF: { locale: "hu-HU",  symbol: "Ft", fractionDigits: 0 },
-  IRR: { locale: "fa-IR",  symbol: "﷼", fractionDigits: 0 },
-  GBP: { locale: "en-GB",  symbol: "£",  fractionDigits: 2 },
-  EUR: { locale: "en-IE",  symbol: "€",  fractionDigits: 2 },
-};
+const CURRENCY_CONFIGS = SHARED_CURRENCY_CONFIGS;
 
 let _cache: { rates: Record<string, number>; fetchedAt: number } = {
   rates: { ...FALLBACK_RATES },
@@ -120,7 +115,7 @@ export function toUSDSync(amount: number, fromCurrency: string, rates: Record<st
  */
 export function convertUSDToLocal(amountUSD: number, targetCurrency: string, rates: Record<string, number>): number {
   const rate = rates[targetCurrency] ?? 1;
-  return Math.round(amountUSD * rate * 100) / 100;
+  return roundCurrencyAmount(amountUSD * rate, targetCurrency);
 }
 
 /**
@@ -130,7 +125,9 @@ export function convertUSDToLocal(amountUSD: number, targetCurrency: string, rat
  */
 export function convertLocalToUSD(localAmount: number, sourceCurrency: string, rates: Record<string, number>): number {
   const rate = rates[sourceCurrency] ?? 1;
-  return rate === 0 ? localAmount : Math.round((localAmount / rate) * 100) / 100;
+  return rate === 0
+    ? roundCurrencyAmount(localAmount, "USD")
+    : roundCurrencyAmount(localAmount / rate, "USD");
 }
 
 /** Format a USD amount as display currency string. */
@@ -140,17 +137,7 @@ export function formatSync(
   rates: Record<string, number>,
 ): string {
   const converted = fromUSDSync(amountUSD, toCurrency, rates);
-  const cfg = CURRENCY_CONFIGS[toCurrency] ?? CURRENCY_CONFIGS.USD;
-  try {
-    return new Intl.NumberFormat(cfg.locale, {
-      style: "currency",
-      currency: toCurrency,
-      maximumFractionDigits: cfg.fractionDigits,
-      minimumFractionDigits: cfg.fractionDigits === 0 ? 0 : 2,
-    }).format(converted);
-  } catch {
-    return `${cfg.symbol}${converted.toFixed(cfg.fractionDigits)}`;
-  }
+  return formatCurrencyAmount(converted, toCurrency);
 }
 
 /**
@@ -159,18 +146,7 @@ export function formatSync(
  * from legacy data or provider-side values that were never stored as USD.
  */
 export function formatLocal(amount: number, currency: string): string {
-  const cfg = CURRENCY_CONFIGS[currency] ?? CURRENCY_CONFIGS.USD;
-  const safeCurr = currency in CURRENCY_CONFIGS ? currency : "USD";
-  try {
-    return new Intl.NumberFormat(cfg.locale, {
-      style: "currency",
-      currency: safeCurr,
-      maximumFractionDigits: cfg.fractionDigits,
-      minimumFractionDigits: cfg.fractionDigits === 0 ? 0 : 2,
-    }).format(amount);
-  } catch {
-    return `${cfg.symbol}${amount.toFixed(cfg.fractionDigits)}`;
-  }
+  return formatCurrencyAmount(amount, currency);
 }
 
 /**
@@ -182,11 +158,9 @@ export function formatLocal(amount: number, currency: string): string {
  * in practice. This helper is kept correct for completeness.
  */
 export function toStripeAmount(amountUSD: number, currency: string): number {
-  const upper = currency.toUpperCase();
-  if (ZERO_DECIMAL_CURRENCIES.has(upper)) {
-    return Math.round(amountUSD);
-  }
-  return Math.round(amountUSD * 100);
+  const normalized = normalizeCurrencyCode(currency);
+  const rounded = roundCurrencyAmount(amountUSD, normalized);
+  return Math.round(rounded * (CURRENCY_CONFIGS[normalized].fractionDigits === 0 ? 1 : 100));
 }
 
 /**

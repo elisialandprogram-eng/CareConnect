@@ -193,7 +193,7 @@ export function computeFinalPrice(input: PricingInput): PricingBreakdown {
     surge: roundAmount(surgeTotal),
     emergencyFee: roundAmount(emergencyTotal),
     taxableSubtotal: roundAmount(taxableSubtotal),
-    tax: round2(taxAmount),
+    tax: roundAmount(taxAmount),
     discount: roundAmount(discountAmount),
     membershipDiscount: roundAmount(membershipBaseDiscount),
     total: roundAmount(total),

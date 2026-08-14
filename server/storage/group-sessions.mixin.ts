@@ -246,6 +246,7 @@ import {
 import { db, pool } from "../db";
 import { countryCurrency, type CountryCode } from "../middleware/country";
 import { getRates, toUSDSync } from "../services/currency";
+import { round2 } from "../lib/math";
 import { eq, and, desc, or, sql, count, asc, aliasedTable, inArray, gte, lte, lt, ilike, isNull, type SQL } from "drizzle-orm";
 
 
@@ -449,7 +450,7 @@ export abstract class GroupSessionsMixin {
       const _gsRateVal = _gsRates[_gsCurrency] ?? 1;
       const price = _gsCurrency === "USD"
         ? priceNative
-        : parseFloat((priceNative / _gsRateVal).toFixed(2)); // USD equivalent
+        : round2(priceNative / _gsRateVal); // USD equivalent
 
       // Debit wallet for paid sessions. We use a deterministic idempotency
       // key so a retried booking can never double-charge.
@@ -477,7 +478,7 @@ export abstract class GroupSessionsMixin {
             INSERT INTO wallet_transactions
               (wallet_id, user_id, type, status, amount, balance_after, currency, description, reference_type, reference_id, idempotency_key)
             VALUES
-              (${w.id}, ${userId}, 'debit', 'completed', ${(-price).toFixed(2)}, ${nextBal}, ${w.currency}, ${'Group session booking: ' + sessionId}, 'group_session', ${sessionId}, ${idem})
+              (${w.id}, ${userId}, 'debit', 'completed', ${(-round2(price)).toFixed(2)}, ${nextBal}, ${w.currency}, ${'Group session booking: ' + sessionId}, 'group_session', ${sessionId}, ${idem})
           `);
         }
       }
@@ -546,7 +547,7 @@ export abstract class GroupSessionsMixin {
               INSERT INTO wallet_transactions
                 (wallet_id, user_id, type, status, amount, balance_after, currency, description, reference_type, reference_id, idempotency_key, created_by_id)
               VALUES
-                (${w.id}, ${p.user_id}, 'refund', 'completed', ${amt.toFixed(2)}, ${nextBal}, ${w.currency}, ${'Group session cancelled: ' + sessionId}, 'group_session', ${sessionId}, ${idem}, ${performedBy})
+              (${w.id}, ${p.user_id}, 'refund', 'completed', ${round2(amt).toFixed(2)}, ${nextBal}, ${w.currency}, ${'Group session cancelled: ' + sessionId}, 'group_session', ${sessionId}, ${idem}, ${performedBy})
             `);
           }
           refundedTotal += amt;

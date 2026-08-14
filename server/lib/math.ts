@@ -15,7 +15,7 @@ import { roundCurrencyAmount } from "@shared/currency";
  *   roundToCents(0.1 + 0.2) → 30  (not 30.000000000000004)
  */
 export function roundToCents(value: number | string): number {
-  return Math.round(Number(value) * 100);
+  return Math.round(roundCurrencyAmount(value, "USD") * 100);
 }
 
 /**
@@ -32,8 +32,6 @@ export function round2(n: number): number {
  * HUF/IRR/JPY/KRW are zero-decimal currencies and use proper half-up
  * rounding. USD/EUR/GBP retain normal two-decimal pricing precision.
  */
-const ZERO_DECIMAL_CURRENCIES = new Set(["HUF", "IRR", "JPY", "KRW"]);
-
 export function roundBookingAmount(value: number, currency?: string | null): number {
   return roundCurrencyAmount(value, currency);
 }

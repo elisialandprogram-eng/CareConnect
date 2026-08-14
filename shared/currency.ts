@@ -24,6 +24,11 @@ export const CURRENCY_CONFIGS: Record<CurrencyCode, {
   KRW: { locale: "ko-KR", symbol: "₩", fractionDigits: 0 },
 };
 
+/** Number of minor units represented by one full currency unit. */
+export function currencyMinorUnitFactor(code: string | null | undefined): number {
+  return 10 ** currencyFractionDigits(code);
+}
+
 export function normalizeCurrencyCode(code: string | null | undefined): CurrencyCode {
   const normalized = String(code ?? "USD").trim().toUpperCase() as CurrencyCode;
   return normalized in CURRENCY_CONFIGS ? normalized : "USD";
@@ -38,10 +43,13 @@ export function roundCurrencyAmount(value: number | string | null | undefined, c
   const numeric = Number(value ?? 0);
   if (!Number.isFinite(numeric)) return 0;
   const digits = currencyFractionDigits(code);
-  const factor = 10 ** digits;
+  const factor = currencyMinorUnitFactor(code);
   const sign = numeric < 0 ? -1 : 1;
   const absolute = Math.abs(numeric);
-  return sign * (Math.round((absolute + Number.EPSILON * Math.max(1, absolute)) * factor) / factor);
+  const scaled = absolute * factor;
+  // Add a magnitude-aware epsilon so values such as 1.005 do not become
+  // 1.00 because of the binary representation immediately below the tie.
+  return sign * (Math.round(scaled + Number.EPSILON * Math.max(1, scaled)) / factor);
 }
 
 export function formatCurrencyAmount(

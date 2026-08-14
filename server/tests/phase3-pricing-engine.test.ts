@@ -84,7 +84,7 @@ assert.equal(standard.base, 100, "base service price is canonical");
 assert.equal(standard.tax, 0, "no tax is applied without a tax rate");
 assert.equal(standard.engineTravelFee, 10, "distance travel fee is included once");
 assert.equal(standard.commissionAmount, 20, "commission is calculated from the base");
-assert.equal(standard.providerEarnings, 80, "provider earnings are snapshotted");
+assert.equal(standard.providerEarnings, 90, "provider earnings include service-related travel before commission");
 assert.equal(standard.patientPayable, 120, "patient payable includes platform fee and travel");
 assert.equal(standard.finalTotalUsd, 120, "USD reporting equals payable in USD");
 assert.equal(standard.pricingEngineVersion, "pricing-v3");

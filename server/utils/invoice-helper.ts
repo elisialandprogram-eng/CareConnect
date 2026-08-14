@@ -2,7 +2,7 @@ import { storage } from "../storage";
 import { generateInvoicePDF } from "./invoice-gen";
 import { loadInvoiceTemplate } from "./invoice-template";
 import { Resend } from "resend";
-import { round2 } from "../lib/math";
+import { roundCurrencyAmount } from "@shared/currency";
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 const FROM_EMAIL = "GoldenLife <no-reply@goldenlife.health>";
@@ -57,17 +57,18 @@ export async function createInvoiceForAppointment(appointmentId: string): Promis
   const pricingSnapshot = ((booking as any).pricingBreakdown
     || (booking as any).pricing_breakdown
     || {}) as Record<string, any>;
+  const roundInvoice = (value: number) => roundCurrencyAmount(value, invoiceCurrency);
   const invoiceDisplayTotal = _snapshotDisplayAmt
-    ? String(round2(Number(_snapshotDisplayAmt)).toFixed(2))
-    : String(round2(Number(booking.totalAmount || pricingSnapshot.patientPayable || pricingSnapshot.total || 0)).toFixed(2));
+    ? String(roundInvoice(Number(_snapshotDisplayAmt)))
+    : String(roundInvoice(Number(booking.totalAmount || pricingSnapshot.patientPayable || pricingSnapshot.total || 0)));
   const snapshotTax = Number(
     (booking as any).taxAmount
     ?? (booking as any).tax_amount
     ?? pricingSnapshot.tax
     ?? 0,
   );
-  const taxAmount = round2(snapshotTax).toFixed(2);
-  const subtotal = round2(Math.max(0, Number(invoiceDisplayTotal) - snapshotTax)).toFixed(2);
+  const taxAmount = String(roundInvoice(snapshotTax));
+  const subtotal = String(roundInvoice(Math.max(0, Number(invoiceDisplayTotal) - snapshotTax)));
 
   const invoice = await storage.createInvoice(
     {
@@ -106,8 +107,8 @@ export async function createInvoiceForAppointment(appointmentId: string): Promis
       // using the same exchange rate snapshotted at booking time.
       const _rawWalletUSD = Number((booking as any).walletAmountUsed ?? 0);
       const _walletDisplay = _rawWalletUSD > 0
-        ? String(round2(_rawWalletUSD * _exchangeRate))
-        : "0.00";
+        ? String(roundInvoice(_rawWalletUSD * _exchangeRate))
+        : String(roundInvoice(0));
       const enrichedInvoiceRef = {
         ...invoiceWithRef,
         platformFee: (booking as any).platformFeeAmount ?? "0.00",

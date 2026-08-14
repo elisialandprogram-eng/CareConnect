@@ -1,8 +1,14 @@
 import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/lib/auth";
+import {
+  formatCurrencyAmount,
+  CURRENCY_CONFIGS,
+  normalizeCurrencyCode,
+  type CurrencyCode,
+} from "@shared/currency";
 
-export type SupportedCurrency = "USD" | "HUF" | "IRR" | "GBP" | "EUR";
+export type SupportedCurrency = CurrencyCode;
 
 type CurrencyConfig = {
   code: SupportedCurrency;
@@ -110,6 +116,17 @@ function resolveByCode(code: SupportedCurrency | string | null | undefined): Cur
   for (const cfg of Object.values(CURRENCY_BY_LANG)) {
     if (cfg.code === upper) return cfg;
   }
+  const normalized = normalizeCurrencyCode(upper);
+  if (normalized !== "USD" || upper === "USD") {
+    const shared = CURRENCY_CONFIGS[normalized];
+    return {
+      code: normalized,
+      locale: shared.locale,
+      symbol: shared.symbol,
+      rateFromUSD: 1,
+      fractionDigits: shared.fractionDigits,
+    };
+  }
   return null;
 }
 
@@ -118,16 +135,7 @@ function formatWith(cfg: CurrencyConfig, amountInUSD: number | string | null | u
   const safe = Number.isFinite(numeric) ? numeric : 0;
   const rate = getRateFromUSD(cfg);
   const converted = safe * rate;
-  try {
-    return new Intl.NumberFormat(cfg.locale, {
-      style: "currency",
-      currency: cfg.code,
-      maximumFractionDigits: cfg.fractionDigits,
-      minimumFractionDigits: cfg.fractionDigits === 0 ? 0 : 2,
-    }).format(converted);
-  } catch {
-    return `${cfg.symbol}${converted.toFixed(cfg.fractionDigits)}`;
-  }
+  return formatCurrencyAmount(converted, cfg.code);
 }
 
 /**
@@ -169,46 +177,17 @@ export function formatCurrency(
 
   // HUF — Hungarian Forint: integer, Ft suffix
   if (upper === "HUF" || cc === "HU") {
-    const int = Math.round(amount);
-    try {
-      return new Intl.NumberFormat("hu-HU", {
-        style: "currency",
-        currency: "HUF",
-        maximumFractionDigits: 0,
-        minimumFractionDigits: 0,
-      }).format(int);
-    } catch {
-      return `${int.toLocaleString("hu-HU")} Ft`;
-    }
+    return formatCurrencyAmount(amount, "HUF");
   }
 
   // IRR — Iranian Rial: integer, ﷼ symbol
   if (upper === "IRR" || cc === "IR") {
-    const int = Math.round(amount);
-    try {
-      return new Intl.NumberFormat("fa-IR", {
-        style: "currency",
-        currency: "IRR",
-        maximumFractionDigits: 0,
-        minimumFractionDigits: 0,
-      }).format(int);
-    } catch {
-      return `${int.toLocaleString("fa-IR")} ﷼`;
-    }
+    return formatCurrencyAmount(amount, "IRR");
   }
 
   // Fallback: resolve by currency code, default to USD
   const cfg = resolveByCode(upper) ?? DEFAULT_CURRENCY;
-  try {
-    return new Intl.NumberFormat(cfg.locale, {
-      style: "currency",
-      currency: cfg.code,
-      maximumFractionDigits: cfg.fractionDigits,
-      minimumFractionDigits: cfg.fractionDigits === 0 ? 0 : 2,
-    }).format(amount);
-  } catch {
-    return `${cfg.symbol}${amount.toFixed(cfg.fractionDigits)}`;
-  }
+  return formatCurrencyAmount(amount, cfg.code);
 }
 
 export function getCurrencyConfig(language: string | undefined): CurrencyConfig {
@@ -276,16 +255,7 @@ export function formatCurrencyForCountry(
   const cfg = getCurrencyConfigForCountry(countryCode);
   const numeric = Number(amount ?? 0);
   const safe = Number.isFinite(numeric) ? numeric : 0;
-  try {
-    return new Intl.NumberFormat(cfg.locale, {
-      style: "currency",
-      currency: cfg.code,
-      maximumFractionDigits: cfg.fractionDigits,
-      minimumFractionDigits: cfg.fractionDigits === 0 ? 0 : 2,
-    }).format(safe);
-  } catch {
-    return `${cfg.symbol}${safe.toFixed(cfg.fractionDigits)}`;
-  }
+  return formatCurrencyAmount(safe, cfg.code);
 }
 
 /**
@@ -350,16 +320,7 @@ export function formatInCurrency(
   if (!cfg) return String(Number(amount ?? 0).toFixed(2));
   const numeric = Number(amount ?? 0);
   const safe = Number.isFinite(numeric) ? numeric : 0;
-  try {
-    return new Intl.NumberFormat(cfg.locale, {
-      style: "currency",
-      currency: cfg.code,
-      maximumFractionDigits: cfg.fractionDigits,
-      minimumFractionDigits: cfg.fractionDigits === 0 ? 0 : 2,
-    }).format(safe);
-  } catch {
-    return `${cfg.symbol}${safe.toFixed(cfg.fractionDigits)}`;
-  }
+  return formatCurrencyAmount(safe, cfg.code);
 }
 
 /**

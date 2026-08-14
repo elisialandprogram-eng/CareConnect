@@ -62,6 +62,8 @@ const CURRENCY_OPTIONS = [
   { code: "IRR", label: "IRR (﷼) — Iranian Rial" },
   { code: "GBP", label: "GBP (£) — British Pound" },
   { code: "EUR", label: "EUR (€) — Euro" },
+  { code: "JPY", label: "JPY (¥) — Japanese Yen" },
+  { code: "KRW", label: "KRW (₩) — South Korean Won" },
 ] as const;
 
 export default function Settings() {

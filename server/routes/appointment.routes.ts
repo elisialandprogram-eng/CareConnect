@@ -86,7 +86,7 @@ import { generateInvoicePDF } from "../utils/invoice-gen";
 import { createInvoiceForAppointment } from "../utils/invoice-helper";
 import { sanitizeUser } from "../utils/sanitize";
 import { getRates, fromUSDSync, toUSDSync, formatSync, formatLocal } from "../services/currency";
-import { round2 } from "../lib/math";
+import { round2, roundBookingAmount } from "../lib/math";
 import { checkHomeVisitCoverage, haversineDistance, isValidCoordinates } from "../services/location.service";
 import { getOrCreateVideoSession } from "../services/video";
 import { slog } from "../lib/logger";
@@ -1434,9 +1434,10 @@ export function registerAppointmentRoutes(app: Express): void {
       // P-FINAL: wallet balance is held in USD; convert booking-currency amounts before debiting.
       if (selectedPaymentMethod === "wallet" && Number.isFinite(requestedWalletLocal) && requestedWalletLocal > 0) {
         // Frontend sends walletAmountUsed in LOCAL currency; convert to USD, cap at fee.
+        const requestedWalletAmount = roundBookingAmount(requestedWalletLocal, _bookingCurrency);
         const requestedWalletUSD = _bookingCurrency === "USD"
-          ? requestedWalletLocal
-          : round2(requestedWalletLocal / _bookingRateVal);
+          ? requestedWalletAmount
+          : round2(requestedWalletAmount / _bookingRateVal);
         walletAppliedUSD = Math.min(round2(requestedWalletUSD), round2(_bookingFeeUSD));
       } else if (selectedPaymentMethod === "wallet") {
         walletAppliedUSD = _bookingFeeUSD; // full fee in USD
@@ -2711,6 +2712,7 @@ export function registerAppointmentRoutes(app: Express): void {
         action: action as AppointmentAction,
         actorRole: role,
         totalPaid,
+        currency: (existing as any).bookingCurrency ?? (existing as any).displayCurrency ?? "USD",
         hoursBeforeStart: hours,
       }, activeRefundRule);
 
@@ -3012,6 +3014,7 @@ export function registerAppointmentRoutes(app: Express): void {
         action,
         actorRole: role,
         totalPaid: Number(existing.totalAmount || 0),
+        currency: (existing as any).bookingCurrency ?? (existing as any).displayCurrency ?? "USD",
         hoursBeforeStart: hours,
       });
       // Return role-appropriate cancel reasons so providers never see

@@ -18,6 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import type { Service, SubService } from "@shared/schema";
 import { useCurrency, SupportedCurrency, formatInCurrency, convertBetweenCurrencies, getCurrencySymbol } from "@/lib/currency";
+import { roundCurrencyAmount } from "@shared/currency";
 
 const PROVIDER_TYPE_OPTIONS = [
   { value: "physician",            label: "Medical Doctors & Specialists" },
@@ -249,7 +250,7 @@ export function ServiceFormDialog({ open, onOpenChange, service, providerId, adm
   const { t } = useTranslation();
 
   const priceCurrency: SupportedCurrency = adminMode ? "USD" : ((code as SupportedCurrency) || "USD");
-  const isWholeNumber = priceCurrency === "HUF" || priceCurrency === "IRR";
+  const isWholeNumber = ["HUF", "IRR", "JPY", "KRW"].includes(priceCurrency);
   const inputStep = isWholeNumber ? "1" : "0.01";
   const inputPlaceholder = isWholeNumber ? "0" : "0.00";
   const inputSymbol = getCurrencySymbol(priceCurrency);
@@ -328,7 +329,7 @@ export function ServiceFormDialog({ open, onOpenChange, service, providerId, adm
         // Prices are now stored in native currency — load them directly (no fromUSD conversion).
         const toStr = (v: string | number | null | undefined) => {
           const n = Number(v ?? 0);
-          return n > 0 ? (isWholeNumber ? String(Math.round(n)) : String(Math.round(n * 100) / 100)) : "";
+      return n > 0 ? String(roundCurrencyAmount(n, priceCurrency)) : "";
         };
         setPrice(toStr(service.price));
         setEnableDeposit(!!service.enableDeposit);

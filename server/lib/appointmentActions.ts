@@ -3,6 +3,7 @@ import {
   canTransition,
   isTerminalStatus,
 } from "./appointmentStatus";
+import { roundBookingAmount } from "./math";
 
 export type AppointmentAction = "cancel" | "reschedule" | "no_show" | "propose";
 export type ActorRole = "patient" | "provider" | "admin";
@@ -84,11 +85,12 @@ export function quoteRefundWithRule(
     action: AppointmentAction;
     actorRole: ActorRole;
     totalPaid: number;
+    currency?: string | null;
     hoursBeforeStart: number | null;
   },
   rule?: RefundRule | null,
 ): RefundQuote {
-  const { action, actorRole, totalPaid, hoursBeforeStart } = opts;
+  const { action, actorRole, totalPaid, currency, hoursBeforeStart } = opts;
   const paid = Math.max(0, Number(totalPaid) || 0);
 
   if (action === "no_show") {
@@ -117,7 +119,7 @@ export function quoteRefundWithRule(
   }
   if (hoursBeforeStart >= partialLow) {
     return {
-      amount: Math.round(paid * partialPct * 100) / 100,
+      amount: roundBookingAmount(paid * partialPct, currency),
       policy: "partial",
       reason: `Cancelled ${partialLow}–${fullHours}h before appointment — ${partialPct * 100}% refund.`,
       hoursBeforeStart,

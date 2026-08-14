@@ -13,6 +13,7 @@ import { useCurrency, SupportedCurrency, formatInCurrency, convertBetweenCurrenc
 import { useToast } from "@/hooks/use-toast";
 import { showErrorModal } from "@/components/error-modal";
 import type { SubService } from "@shared/schema";
+import { roundCurrencyAmount } from "@shared/currency";
 
 interface Props {
   open: boolean;
@@ -212,7 +213,7 @@ export function AddServiceCatalogueDialog({ open, onOpenChange, providerId }: Pr
   const [showPropose, setShowPropose] = useState(false);
   const [priceCurrency, setPriceCurrency] = useState<SupportedCurrency>(preferredCode as SupportedCurrency);
 
-  const isWholeNumber = priceCurrency === "HUF" || priceCurrency === "IRR";
+  const isWholeNumber = ["HUF", "IRR", "JPY", "KRW"].includes(priceCurrency);
   const inputStep = isWholeNumber ? "1" : "0.01";
   const inputPlaceholder = isWholeNumber ? "0" : "0.00";
   const inputSymbol = getCurrencySymbol(priceCurrency);
@@ -246,7 +247,7 @@ export function AddServiceCatalogueDialog({ open, onOpenChange, providerId }: Pr
       if (!n || !val) return val;
       const c = convertBetweenCurrencies(n, prev, priceCurrency);
       const wn = priceCurrency === "HUF" || priceCurrency === "IRR";
-      return wn ? String(Math.round(c)) : String(Math.round(c * 100) / 100);
+      return String(roundCurrencyAmount(c, pkgPriceCurrency));
     };
     setPrice(v => v ? reconv(v) : v);
     setHomeVisitFee(v => v ? reconv(v) : v);
@@ -450,8 +451,7 @@ export function AddServiceCatalogueDialog({ open, onOpenChange, providerId }: Pr
       const converted = priceCurrency === "USD"
         ? usdVal
         : convertBetweenCurrencies(usdVal, "USD", priceCurrency);
-      const wn = priceCurrency === "HUF" || priceCurrency === "IRR";
-      setPrice(wn ? String(Math.round(converted)) : String(Math.round(converted * 100) / 100));
+      setPrice(String(roundCurrencyAmount(converted, priceCurrency)));
     } else {
       setPrice("");
     }

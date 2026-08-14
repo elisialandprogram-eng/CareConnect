@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient, invalidateProviderProfile } from "@/lib/queryClient";
 import { useCurrency, getCurrencySymbol, convertBetweenCurrencies, formatInCurrency, type SupportedCurrency } from "@/lib/currency";
+import { roundCurrencyAmount } from "@shared/currency";
 import { ServiceFormDialog } from "@/components/service-form-dialog";
 import { AddServiceCatalogueDialog } from "@/components/add-service-catalogue-dialog";
 import { PractitionerManagementCard } from "@/components/practitioner-management";
@@ -45,7 +46,7 @@ function RequestServiceEditDialog({
   const { toast } = useToast();
   const { code } = useCurrency();
   const editCurrency: SupportedCurrency = (code as SupportedCurrency) || "USD";
-  const editIsWholeNumber = editCurrency === "HUF" || editCurrency === "IRR";
+  const editIsWholeNumber = ["HUF", "IRR", "JPY", "KRW"].includes(editCurrency);
   const editStep = editIsWholeNumber ? "1" : "0.01";
   const editSymbol = getCurrencySymbol(editCurrency);
 
@@ -53,7 +54,7 @@ function RequestServiceEditDialog({
   // No USD conversion needed — values displayed and saved as-is.
   const toDisplay = (v: string | number): string => {
     const n = Number(v) || 0;
-    return editIsWholeNumber ? String(Math.round(n)) : String(Number(n.toFixed(2)));
+    return String(roundCurrencyAmount(n, editCurrency));
   };
 
   const [draft, setDraft] = useState<any>(() => service ? {
@@ -191,7 +192,7 @@ export function ProviderServicesTab({ providerData, providerWithServices, setAct
   const { toast } = useToast();
   const { format: fmtMoney, code } = useCurrency();
   const pkgPriceCurrency: SupportedCurrency = (code as SupportedCurrency) || "USD";
-  const pkgIsWholeNumber = pkgPriceCurrency === "HUF" || pkgPriceCurrency === "IRR";
+  const pkgIsWholeNumber = ["HUF", "IRR", "JPY", "KRW"].includes(pkgPriceCurrency);
   const pkgInputStep = pkgIsWholeNumber ? "1" : "0.01";
   const pkgInputSymbol = getCurrencySymbol(pkgPriceCurrency);
   const pkgToUSD = (v: string): string => {
@@ -204,7 +205,7 @@ export function ProviderServicesTab({ providerData, providerWithServices, setAct
     if (pkgPriceCurrency === "USD") return String(Number(v) || 0);
     const n = Number(v) || 0;
     const c = convertBetweenCurrencies(n, "USD", pkgPriceCurrency);
-    return pkgIsWholeNumber ? String(Math.round(c)) : String(Number(c.toFixed(2)));
+    return String(roundCurrencyAmount(c, pkgPriceCurrency));
   };
   const pkgUsdHint = (v: string): string | null => {
     if (pkgPriceCurrency === "USD" || !v || Number(v) === 0) return null;

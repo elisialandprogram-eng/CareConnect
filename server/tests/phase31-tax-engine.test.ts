@@ -161,7 +161,7 @@ const hufWholeUnit = calculateTaxBreakdown({
   serviceTaxRatePercent: 27,
   platformTaxRatePercent: 0,
 });
-assert.equal(hufWholeUnit.serviceTax, 256, "HUF tax truncates fractional forint units instead of displaying 257 Ft");
-assert.equal(hufWholeUnit.totalTax, 256, "HUF total tax remains consistent with the displayed tax line");
+assert.equal(hufWholeUnit.serviceTax, 257, "HUF tax uses half-up currency rounding (950 × 27% = 256.5 → 257)");
+assert.equal(hufWholeUnit.totalTax, 257, "HUF total tax remains consistent with the displayed tax line");
 
 console.log("Phase 3.1 canonical tax engine tests passed");

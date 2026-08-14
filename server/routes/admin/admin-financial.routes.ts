@@ -27,7 +27,7 @@ import {
   listingCountryFilter,
   type CountryCode,
 } from "../../middleware/country";
-import { getRates, formatSync, formatLocal } from "../../services/currency";
+import { getRates, formatSync, formatLocal, convertUSDToLocal } from "../../services/currency";
 import { countryCurrency } from "../../middleware/country";
 import { getStripe } from "../../stripe";
 import { createInvoiceForAppointment } from "../../utils/invoice-helper";
@@ -1781,7 +1781,6 @@ export function registerAdminFinancialRoutes(app: Express): void {
 
         const cc = (r.country_code ?? "").toUpperCase();
         const localCurrency = cc === "HU" ? "HUF" : cc === "IR" ? "IRR" : "USD";
-        const localRate     = cc === "HU" ? hufRate : cc === "IR" ? irrRate : 1;
 
         return {
           country_code:     r.country_code,
@@ -1792,9 +1791,9 @@ export function registerAdminFinancialRoutes(app: Express): void {
           fees_usd:         feesUsd,
           refunds_usd:      refundsUsd,
           net_usd:          netUsd,
-          gross_local:      Math.round(grossUsd * localRate),
-          fees_local:       Math.round(feesUsd * localRate),
-          net_local:        Math.round(netUsd * localRate),
+          gross_local:      convertUSDToLocal(grossUsd, localCurrency, rates),
+          fees_local:       convertUSDToLocal(feesUsd, localCurrency, rates),
+          net_local:        convertUSDToLocal(netUsd, localCurrency, rates),
         };
       });
 

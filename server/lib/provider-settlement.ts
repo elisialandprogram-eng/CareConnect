@@ -1,4 +1,4 @@
-import { round2 } from "./math";
+import { round2, roundBookingAmount } from "./math";
 import type { PoolClient } from "pg";
 
 export const OFFLINE_PAYMENT_METHODS = new Set(["cash", "bank_transfer"]);
@@ -49,10 +49,11 @@ export function calculateProviderSettlement(input: ProviderSettlementInput): Pro
     ? Number(input.rates[input.bookingCurrency] ?? 1)
     : 1;
 
-  const providerNetEarningsLocal = round2(Math.max(0, Number(input.providerNetEarningsLocal) || 0));
-  const serviceTaxLocal = round2(Math.max(0, Number(input.serviceTaxLocal) || 0));
+  const roundLocal = (value: number) => roundBookingAmount(value, input.bookingCurrency);
+  const providerNetEarningsLocal = roundLocal(Math.max(0, Number(input.providerNetEarningsLocal) || 0));
+  const serviceTaxLocal = roundLocal(Math.max(0, Number(input.serviceTaxLocal) || 0));
   const cashPlatformFeeLocal = isOffline
-    ? round2(Math.max(0, Number(input.platformFeeLocal) || 0))
+    ? roundLocal(Math.max(0, Number(input.platformFeeLocal) || 0))
     : 0;
   const grossProviderPayoutLocal = providerNetEarningsLocal;
   const providerPayoutLocal = isOffline

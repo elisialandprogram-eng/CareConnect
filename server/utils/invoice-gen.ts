@@ -1,38 +1,25 @@
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import { DEFAULT_INVOICE_TEMPLATE, hexToRgb, type InvoiceTemplate } from "./invoice-template";
+import { CURRENCY_CONFIGS, formatCurrencyAmount, normalizeCurrencyCode } from "@shared/currency";
 
 type CurrencyConfig = {
   code: string;
   locale: string;
   symbol: string;
-  position: "prefix" | "suffix";
   fractionDigits: number;
 };
 
-const CURRENCY_CONFIGS: Record<string, CurrencyConfig> = {
-  USD: { code: "USD", locale: "en-US", symbol: "$", position: "prefix", fractionDigits: 2 },
-  EUR: { code: "EUR", locale: "en-IE", symbol: "EUR ", position: "prefix", fractionDigits: 2 },
-  GBP: { code: "GBP", locale: "en-GB", symbol: "GBP ", position: "prefix", fractionDigits: 2 },
-  HUF: { code: "HUF", locale: "hu-HU", symbol: " Ft", position: "suffix", fractionDigits: 0 },
-  IRR: { code: "IRR", locale: "fa-IR", symbol: " IRR", position: "suffix", fractionDigits: 0 },
-};
-
 function getCurrency(code: string | null | undefined): CurrencyConfig {
-  if (!code) return CURRENCY_CONFIGS.USD;
-  return CURRENCY_CONFIGS[String(code).toUpperCase()] ?? CURRENCY_CONFIGS.USD;
+  const normalized = normalizeCurrencyCode(code);
+  return { code: normalized, ...CURRENCY_CONFIGS[normalized] };
 }
 
 function makeFormatter(code: string | null | undefined) {
   const cfg = getCurrency(code);
   return (value: any): string => {
     const n = Number(value || 0);
-    if (!Number.isFinite(n)) return cfg.position === "prefix" ? `${cfg.symbol}0` : `0${cfg.symbol}`;
-    const formatted = n.toLocaleString(cfg.locale, {
-      minimumFractionDigits: cfg.fractionDigits,
-      maximumFractionDigits: cfg.fractionDigits,
-    });
-    return cfg.position === "prefix" ? `${cfg.symbol}${formatted}` : `${formatted}${cfg.symbol}`;
+    return formatCurrencyAmount(Number.isFinite(n) ? n : 0, cfg.code);
   };
 }
 
