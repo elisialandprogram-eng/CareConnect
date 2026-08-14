@@ -107,7 +107,7 @@ pool.connect()
 export const db = drizzle(pool, { schema });
 
 /**
- * Auto-apply schema migrations that cannot be handled by db:push alone.
+ * Apply the current Supabase schema contract and required configuration.
  * Idempotent — safe to run on every startup.
  *
  * ── SECTION CLASSIFICATION ──────────────────────────────────────────────────
@@ -118,7 +118,7 @@ export const db = drizzle(pool, { schema });
  *                     Fully idempotent.  Safe to keep at startup indefinitely.
  *
  * Startup owns current schema/readiness setup only. Historical data repair and
- * compatibility backfills must not run from this function.
+ * Historical data repair must not run from this function.
  */
 export async function runStartupMigrations() {
   try {
@@ -873,7 +873,7 @@ export async function runStartupMigrations() {
     `);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_idem_keys_expires ON idempotency_keys(expires_at)`);
 
-    // ── Providers: columns added after initial db:push ─────────────────────
+    // ── Providers: current profile and operational columns ────────────────
     // These were in shared/schema.ts but never reached the Supabase DB via a
     // migration.  All are idempotent (ADD COLUMN IF NOT EXISTS).
     await pool.query(`ALTER TABLE providers ADD COLUMN IF NOT EXISTS risk_score INTEGER DEFAULT 0`);
@@ -1691,7 +1691,6 @@ async function seedRbacRoles(): Promise<void> {
     console.warn("[db] TZ Sprint provider_timezone:", err.message);
   }
 
-  // [CONSOLIDATED] TZ backfill was here — removed after all rows confirmed populated.
   // All new appointments write start_at/end_at/provider_timezone at booking time.
 
   // Sprint C20.0 — OCC version column on time_slots for Optimistic Concurrency Control
@@ -3358,8 +3357,7 @@ export async function runBookingPricingSnapshotMigration(): Promise<void> {
 
 /**
  * Provider payout settlement columns are intentionally migrated independently
- * from the legacy startup migration chain. The payout API must not wait behind
- * unrelated historical migrations.
+ * The payout API does not wait behind unrelated catalog setup.
  */
 export async function runProviderSettlementMigration(): Promise<void> {
   console.log("[db] provider settlement migration starting");
@@ -3548,7 +3546,7 @@ export async function runPaymentArchitectureMigration(): Promise<void> {
  *
  * Seeds the 7 canonical provider categories, their catalog_service groups, and
  * ensures sub_services have the correct catalog_service_id FK. Also merges any
- * legacy category slugs into the canonical set.
+ * canonical category slugs into the current catalog.
  *
  * Called fire-and-forget after HTTP listen (same timing as the old deferred
  * migrations). Safe to re-run on every boot — all operations are ON CONFLICT

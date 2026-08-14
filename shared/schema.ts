@@ -2673,8 +2673,6 @@ export const walletRules = pgTable("wallet_rules", {
 export const insertWalletRuleSchema = createInsertSchema(walletRules).omit({ id: true, createdAt: true, updatedAt: true });
 export type WalletRule = typeof walletRules.$inferSelect;
 export type InsertWalletRule = z.infer<typeof insertWalletRuleSchema>;
-export type InsertMarketplaceLedger = z.infer<typeof insertMarketplaceLedgerSchema>;
-
 // ──────────────── P7: Legal, Consent & Compliance Framework ────────────────
 
 export const legalDocuments = pgTable("legal_documents", {

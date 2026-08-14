@@ -464,7 +464,7 @@ function generateExecutiveSummary() {
     [
       ['Chat/Messaging', 'realtime_conversations, realtime_messages', 'chat_conversations, chat_messages, conversations, messages', 'medium'],
       ['Services', 'catalog_services, sub_services, services', '5-level hierarchy — intentional but complex', 'low'],
-      ['Practitioners', 'practitioners, practitioner_schedules', 'medical_practitioners (display-only?)', 'medium'],
+      ['Practitioners', 'practitioners, practitioner_schedules', 'canonical practitioners table', 'good'],
     ],
     [90, 170, 190, 55]);
 
@@ -1489,7 +1489,7 @@ function generateDetailedAudit() {
   miniHeader(doc, 'Low Issues (11)');
   const lows = [
     ['DB-005', 'provider_gallery table vs text[] on providers', 'Two representations of gallery — unclear which is canonical'],
-    ['DB-006', 'medical_practitioners vs practitioners', 'medical_practitioners appears legacy/display-only'],
+    ['DB-006', 'Practitioners table authority', 'practitioners is the canonical provider-practitioner table'],
     ['DB-007', 'user_packages: no cascade on delete', 'Packages deleted before user_packages creates orphan subscriptions'],
     ['DB-008', 'appointments.appointment_number index in db.ts only', 'Not in schema.ts definition — consistency issue'],
     ['PERF-006', 'routes.ts 7,000+ lines', 'Single file; slow to navigate; hard to maintain'],
@@ -1547,7 +1547,7 @@ function generateDetailedAudit() {
     'Clarify provider gallery: retire either provider_gallery table or the text[] column on providers',
     'Add navigation link to /consent page within provider onboarding or patient settings',
     'Add country_code to announcements and FAQs tables',
-    'Investigate medical_practitioners table — document if active or drop if legacy',
+    'Keep practitioner writes and reads on the canonical practitioners table',
   ];
   p4.forEach(t => bullet(doc, t));
 

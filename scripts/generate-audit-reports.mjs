@@ -299,7 +299,7 @@ const PERFORMANCE_CHECKLIST = [
   { area: "Server-side caching", detail: "No caching for stable endpoints like /api/categories", status: "warning" },
   { area: "DB connection pooling", detail: "pg pool configured with Drizzle ORM", status: "good" },
   { area: "Bundle size", detail: "All route-level lazy loading in place; heavy admin chunks ~8.7k lines", status: "warning" },
-  { area: "Startup migrations", detail: "Now non-blocking (fire-and-forget after port open)", status: "good" },
+  { area: "Startup schema", detail: "Current schema setup completes before readiness and scheduler startup", status: "good" },
 ];
 
 const RECOMMENDATIONS = [

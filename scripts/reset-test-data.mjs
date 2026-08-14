@@ -56,7 +56,7 @@ const SNAPSHOT_TABLES = [
   "provider_wallets", "provider_ledger", "wallet_transactions",
   "reviews", "disputes", "referrals", "support_tickets", "ticket_messages",
   "services", "service_packages", "package_services", "practitioners",
-  "medical_practitioners", "service_practitioners",
+  "service_practitioners",
   "provider_documents", "provider_credentials", "provider_gallery",
   "provider_earnings", "payout_requests",
   "provider_office_hours", "provider_time_off", "availability_exceptions",
