@@ -1,12 +1,9 @@
 /**
- * server/lib/math.ts
- *
  * Authoritative math utilities for all financial calculations.
  * Import from here instead of defining inline helpers.
- *
- * - roundToCents  — converts a dollar value to integer cents (ledger operations)
- * - round2        — rounds to 2 decimal places (dollar display / pricing engine)
  */
+
+import { roundCurrencyAmount } from "@shared/currency";
 
 /**
  * Convert a dollar-denominated value to an exact integer cent count.
@@ -26,21 +23,17 @@ export function roundToCents(value: number | string): number {
  * Canonical replacement for all inline `round2` definitions across the codebase.
  */
 export function round2(n: number): number {
-  return Math.round(n * 100) / 100;
+  return roundCurrencyAmount(n, "USD");
 }
 
 /**
  * Round an amount in its booking currency.
  *
- * HUF/IRR are zero-decimal currencies. Truncating their fractional units
- * prevents display and charge amounts such as 960.5 from becoming 961 Ft.
- * USD/EUR/GBP retain normal two-decimal pricing precision.
+ * HUF/IRR/JPY/KRW are zero-decimal currencies and use proper half-up
+ * rounding. USD/EUR/GBP retain normal two-decimal pricing precision.
  */
 const ZERO_DECIMAL_CURRENCIES = new Set(["HUF", "IRR", "JPY", "KRW"]);
 
 export function roundBookingAmount(value: number, currency?: string | null): number {
-  const amount = Number.isFinite(value) ? value : 0;
-  return ZERO_DECIMAL_CURRENCIES.has(String(currency ?? "USD").toUpperCase())
-    ? Math.trunc(amount)
-    : round2(amount);
+  return roundCurrencyAmount(value, currency);
 }

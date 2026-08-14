@@ -6,7 +6,7 @@
  * charge buckets; every downstream consumer reads the resulting snapshot.
  */
 
-import { round2 } from "./math";
+import { roundCurrencyAmount } from "@shared/currency";
 
 export const TAX_ENGINE_VERSION = "tax-v2";
 
@@ -98,16 +98,11 @@ const finite = (value: unknown): number => {
 const ZERO_DECIMAL_CURRENCIES = new Set(["HUF", "IRR", "JPY", "KRW"]);
 
 /**
- * Tax amounts are returned in booking currency. HUF/IRR have no fractional
- * unit, so truncating here prevents the display formatter from turning a
- * fractional amount such as 256.5 into 257 Ft. USD/EUR/GBP retain cent
- * precision and use normal two-decimal rounding.
+ * Tax amounts are returned in booking currency and rounded by the canonical
+ * currency policy at the tax-line boundary.
  */
 function roundTaxAmount(amount: number, currency?: string | null): number {
-  const normalized = String(currency ?? "USD").trim().toUpperCase();
-  return ZERO_DECIMAL_CURRENCIES.has(normalized)
-    ? Math.trunc(Math.max(0, amount))
-    : round2(amount);
+  return roundCurrencyAmount(Math.max(0, amount), currency);
 }
 
 /**
@@ -126,8 +121,8 @@ export function calculateTaxBreakdown(input: TaxCalculationInput): TaxBreakdown 
   );
   const discountRatio = gross > 0 ? discount / gross : 0;
 
-  const serviceTaxableSubtotal = round2(serviceGross * (1 - discountRatio));
-  const platformTaxableSubtotal = round2(platformGross * (1 - discountRatio));
+  const serviceTaxableSubtotal = roundCurrencyAmount(serviceGross * (1 - discountRatio), input.currency);
+  const platformTaxableSubtotal = roundCurrencyAmount(platformGross * (1 - discountRatio), input.currency);
   const serviceTaxRate = Math.max(0, finite(input.serviceTaxRatePercent));
   const platformTaxRate = Math.max(0, finite(input.platformTaxRatePercent));
   const serviceTax = roundTaxAmount(
