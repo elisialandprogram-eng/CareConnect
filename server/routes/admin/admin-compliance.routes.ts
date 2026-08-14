@@ -24,6 +24,7 @@ import {
 import { dispatchNotification, notify } from "../../services/notification-dispatcher";
 import { pushToUser } from "../../chat/ws";
 import { getStripe } from "../../stripe";
+import { roundToCents } from "../../lib/math";
 import { isCloudinaryConfigured, deleteCloudinaryFile, cloudinary } from "../../services/cloudinary";
 
 export function registerAdminComplianceRoutes(app: Express): void {
@@ -378,7 +379,7 @@ export function registerAdminComplianceRoutes(app: Express): void {
             if (stripe) {
               await stripe.refunds.create({
                 payment_intent: payment.stripe_payment_intent_id,
-                amount: Math.round(refundAmount * 100),
+                amount: roundToCents(refundAmount),
               }, { idempotencyKey: `dispute:${dispute.id}:refund` });
               await pool.query(
                 `UPDATE payments SET refunded_amount = COALESCE(refunded_amount, 0) + $1,

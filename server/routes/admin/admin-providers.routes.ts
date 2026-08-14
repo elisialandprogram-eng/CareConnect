@@ -46,6 +46,7 @@ import {
 import { providerListCache, providerSearchCache } from "../../lib/cache";
 import { dispatchNotification } from "../../services/notification-dispatcher";
 import { sendAppointmentEmail } from "../shared/helpers";
+import { round2 } from "../../lib/math";
 
 export function registerAdminProvidersRoutes(app: Express): void {
 
@@ -546,7 +547,7 @@ export function registerAdminProvidersRoutes(app: Express): void {
   app.get("/api/admin/providers/:id/revenue", authenticateToken, requireAdmin, async (req: AuthRequest, res: Response) => {
     try {
       const totalRevenue = await storage.getProviderRevenueTotal(req.params.id);
-      res.json({ totalRevenue: Math.round(totalRevenue * 100) / 100 });
+      res.json({ totalRevenue: round2(totalRevenue) });
     } catch (error) {
       res.status(500).json({ message: "Failed to calculate revenue" });
     }

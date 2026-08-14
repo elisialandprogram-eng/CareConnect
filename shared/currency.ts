@@ -24,6 +24,17 @@ export const CURRENCY_CONFIGS: Record<CurrencyCode, {
   KRW: { locale: "ko-KR", symbol: "₩", fractionDigits: 0 },
 };
 
+/** Development/fallback rates used only when live rates are unavailable. */
+export const DEFAULT_EXCHANGE_RATES: Record<CurrencyCode, number> = {
+  USD: 1,
+  HUF: 365,
+  IRR: 42000,
+  GBP: 0.79,
+  EUR: 0.92,
+  JPY: 155,
+  KRW: 1380,
+};
+
 /** Number of minor units represented by one full currency unit. */
 export function currencyMinorUnitFactor(code: string | null | undefined): number {
   return 10 ** currencyFractionDigits(code);
@@ -69,4 +80,14 @@ export function formatCurrencyAmount(
   } catch {
     return `${config.symbol}${rounded.toFixed(config.fractionDigits)}`;
   }
+}
+
+/** Format an integer amount in the currency's smallest unit. */
+export function formatCurrencyMinorUnits(
+  minorUnits: number | string | null | undefined,
+  code: string | null | undefined,
+): string {
+  const normalized = normalizeCurrencyCode(code);
+  const factor = currencyMinorUnitFactor(normalized);
+  return formatCurrencyAmount(Number(minorUnits ?? 0) / factor, normalized);
 }

@@ -11,6 +11,7 @@
  */
 
 import { pool } from "../db";
+import { roundToCents } from "../lib/math";
 
 // ── Lazy Stripe import (optional dependency) ──────────────────────────────────
 
@@ -262,7 +263,7 @@ export async function transferToConnectedAccount(
   if (!rows[0]?.stripe_account_id) throw new Error("Provider has no connected Stripe account");
   if (!rows[0].payouts_enabled) throw new Error("Provider Stripe account payouts are not enabled");
 
-  const amountCents = Math.round(amountUsd * 100);
+  const amountCents = roundToCents(amountUsd);
   if (amountCents < 1) throw new Error("Transfer amount too small");
 
   // Idempotency key prevents duplicate transfers on network timeout/retry.

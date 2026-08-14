@@ -5,9 +5,9 @@ description: USD canonical storage with dynamic display conversion — rules for
 
 # Currency System Architecture
 
-**Rule:** Accounting storage remains USD, but booking pricing is calculated in the provider's native booking currency. For zero-decimal booking currencies (HUF/IRR), truncate booking amounts instead of rounding them upward.
+**Rule:** Accounting storage remains USD, but booking pricing is calculated in the provider's native booking currency. HUF, IRR, JPY, and KRW are zero-decimal currencies and use canonical half-up rounding at monetary boundaries.
 
-**Why:** The P-FINAL pricing model needs local service-price math before the one-time USD accounting conversion. Rounding fractional HUF/IRR amounts with `Math.round` made values such as 960.5 display and charge as 961.
+**Why:** The payment contract requires the same amount in tax, totals, refunds, earnings, wallet ledgers, settlements, and displays; truncation or independent formatters caused charges and visible amounts to diverge.
 
 **How to apply:**
 - Server: use `CurrencyService` in `server/services/currency.ts` — `toUSDSync()` to store, `fromUSDSync()` + `formatSync()` to display.
@@ -16,5 +16,5 @@ description: USD canonical storage with dynamic display conversion — rules for
 - `provider_wallets.currency` must always be `"USD"` (fixed in `storage.ts` `getOrCreateProviderWallet`).
 - `fmtBalance(n, currency)` in `admin-dashboard.tsx` and `fmtUSD(n)` in `provider-operations-console.tsx` are the admin-side formatters — use them, do not add new ones.
 - Live rates: fetched hourly by cron (`reminderCron.ts` → `CurrencyService.syncRates()`), stored in `currency_rates` table, served via `GET /api/exchange-rates`, cached client-side by `useLiveRates()`.
-- Fallback rates exist in both server (`FALLBACK_RATES`) and client (`CURRENCY_BY_LANG`) so the app always starts.
-- Use the shared booking-amount rounding helper for all non-tax booking price components and totals; tax has its own zero-decimal truncation rule.
+- Fallback rates and currency metadata come from the shared currency policy so server and client agree on codes, symbols, precision, and conversion defaults.
+- Use `roundCurrencyAmount()`/`roundBookingAmount()` for monetary boundaries; preserve precision between boundaries. Use `roundToCents()` only for USD minor-unit wallet/Stripe amounts.

@@ -14,6 +14,7 @@
  */
 
 import { pool } from "../db";
+import { roundToCents } from "./math";
 
 export function withTimeout<T>(
   promise: Promise<T>,
@@ -45,7 +46,7 @@ export async function getLoyaltyPointsSafe(userId: string): Promise<number> {
       [userId],
     )
     .then((result) =>
-      result.rows[0] ? Math.floor(parseFloat(result.rows[0].balance) * 100) : 0,
+      result.rows[0] ? roundToCents(parseFloat(result.rows[0].balance)) : 0,
     )
     .catch(() => 0);
 

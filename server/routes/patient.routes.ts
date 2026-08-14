@@ -23,6 +23,7 @@ import {
   type CountryCode,
 } from "../middleware/country";
 import { getRates, toUSDSync, formatLocal } from "../services/currency";
+import { round2, roundBookingAmount } from "../lib/math";
 import { notify } from "../services/notification-dispatcher";
 import { packagesCache } from "../lib/cache";
 import { countryCurrency } from "../middleware/country";
@@ -242,10 +243,10 @@ export function registerPatientRoutes(app: Express): void {
             userId: req.user!.id,
             packageId: pkg.id,
             status: "pending",
-            pricePaid: String(Math.round(priceUSD * 100) / 100),
-            taxAmount: packageTax.totalTax.toFixed(2),
-            taxRate: packageTax.platformTaxRate.toFixed(2),
-            totalAmount: priceWithTax.toFixed(2),
+            pricePaid: String(round2(priceUSD)),
+            taxAmount: String(roundBookingAmount(packageTax.totalTax, _pkgWalletCurrency)),
+            taxRate: String(round2(packageTax.platformTaxRate)),
+            totalAmount: String(roundBookingAmount(priceWithTax, _pkgWalletCurrency)),
             pricingBreakdown: packageTax,
             taxEngineVersion: TAX_ENGINE_VERSION,
             taxCalculatedAt: new Date(),
@@ -400,7 +401,7 @@ export function registerPatientRoutes(app: Express): void {
           name, description: description ?? null,
           countryCode: countryCode ?? null,
           durationDays: durationDays ?? 30,
-          price: String(Math.round(Number(price ?? 0) * 100) / 100),
+          price: String(roundBookingAmount(Number(price ?? 0), currency ?? "USD")),
           currency: currency ?? "USD",
           targetUserType: targetUserType ?? "patient",
           isActive: isActive ?? true,

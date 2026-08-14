@@ -95,8 +95,6 @@ const finite = (value: unknown): number => {
   return Number.isFinite(parsed) ? parsed : 0;
 };
 
-const ZERO_DECIMAL_CURRENCIES = new Set(["HUF", "IRR", "JPY", "KRW"]);
-
 /**
  * Tax amounts are returned in booking currency and rounded by the canonical
  * currency policy at the tax-line boundary.

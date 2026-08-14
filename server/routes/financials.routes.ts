@@ -7,6 +7,7 @@
 
 import type { Express, Response } from "express";
 import { pool } from "../db";
+import { roundToCents, round2 } from "../lib/math";
 import { authenticateToken, type AuthRequest } from "../middleware/auth";
 
 export function registerFinancialsRoutes(app: Express): void {
@@ -81,14 +82,14 @@ export function registerFinancialsRoutes(app: Express): void {
       res.json({
         currency: wallet.currency || "USD",
         // Legacy fields are cents, now explicitly cents of canonical USD.
-        withdrawable_balance_cents: Math.round(Number(wallet.available_balance) * 100),
-        pending_escrow_cents: Math.round(
-          (Number(wallet.pending_balance) + Number(wallet.held_balance)) * 100,
+        withdrawable_balance_cents: roundToCents(wallet.available_balance),
+        pending_escrow_cents: roundToCents(
+          round2(Number(wallet.pending_balance) + Number(wallet.held_balance)),
         ),
-        available_balance_usd: Number(wallet.available_balance),
-        pending_balance_usd: Number(wallet.pending_balance),
-        held_balance_usd: Number(wallet.held_balance),
-        lifetime_earnings_usd: Number(wallet.lifetime_earnings),
+        available_balance_usd: round2(Number(wallet.available_balance)),
+        pending_balance_usd: round2(Number(wallet.pending_balance)),
+        held_balance_usd: round2(Number(wallet.held_balance)),
+        lifetime_earnings_usd: round2(Number(wallet.lifetime_earnings)),
         ledger: ledgerRes.rows,
       });
     } catch (err: any) {

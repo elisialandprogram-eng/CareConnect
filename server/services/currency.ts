@@ -17,21 +17,20 @@
  */
 
 import { pool } from "../db";
-import { CURRENCY_CONFIGS as SHARED_CURRENCY_CONFIGS, formatCurrencyAmount, normalizeCurrencyCode, roundCurrencyAmount, type CurrencyCode } from "@shared/currency";
+import {
+  CURRENCY_CONFIGS as SHARED_CURRENCY_CONFIGS,
+  DEFAULT_EXCHANGE_RATES,
+  formatCurrencyAmount,
+  normalizeCurrencyCode,
+  roundCurrencyAmount,
+  type CurrencyCode,
+} from "@shared/currency";
 
 export type SupportedCurrency = CurrencyCode;
 
 export const SUPPORTED_CURRENCIES: SupportedCurrency[] = ["USD", "HUF", "IRR", "GBP", "EUR", "JPY", "KRW"];
 
-const FALLBACK_RATES: Record<string, number> = {
-  USD: 1,
-  HUF: 365,
-  IRR: 42000,
-  GBP: 0.79,
-  EUR: 0.92,
-  JPY: 155,
-  KRW: 1380,
-};
+const FALLBACK_RATES: Record<string, number> = { ...DEFAULT_EXCHANGE_RATES };
 
 const CURRENCY_CONFIGS = SHARED_CURRENCY_CONFIGS;
 

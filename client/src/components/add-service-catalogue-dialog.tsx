@@ -246,8 +246,7 @@ export function AddServiceCatalogueDialog({ open, onOpenChange, providerId }: Pr
       const n = Number(val);
       if (!n || !val) return val;
       const c = convertBetweenCurrencies(n, prev, priceCurrency);
-      const wn = priceCurrency === "HUF" || priceCurrency === "IRR";
-      return String(roundCurrencyAmount(c, pkgPriceCurrency));
+      return String(roundCurrencyAmount(c, priceCurrency));
     };
     setPrice(v => v ? reconv(v) : v);
     setHomeVisitFee(v => v ? reconv(v) : v);

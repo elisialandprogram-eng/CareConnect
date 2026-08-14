@@ -16,6 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Plus, Users, Calendar, Trash2, Eye, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { roundCurrencyAmount } from "@shared/currency";
 
 type GroupSession = {
   id: string;
@@ -57,7 +58,7 @@ export function GroupSessionsPanel() {
   const { t } = useTranslation();
   const { toast } = useToast();
   const { code, format: fmtCurrency } = useCurrency();
-  const isWholeNumber = code === "HUF" || code === "IRR";
+  const isWholeNumber = ["HUF", "IRR", "JPY", "KRW"].includes(code);
   const inputStep = isWholeNumber ? "1" : "0.01";
   const inputSymbol = getCurrencySymbol(code);
   // PRICE-DRIFT-FIX: group_sessions.price_per_user is stored in native currency
@@ -67,7 +68,7 @@ export function GroupSessionsPanel() {
     const n = Number(v);
     if (!Number.isFinite(n) || n < 0) return "0";
     // Whole-number currencies should not have decimals
-    return isWholeNumber ? String(Math.round(n)) : v;
+    return String(roundCurrencyAmount(n, code));
   };
   const [open, setOpen] = useState(false);
   const [detailId, setDetailId] = useState<string | null>(null);

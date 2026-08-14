@@ -18,6 +18,7 @@
 import { Pool } from 'pg';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import * as schema from "@shared/schema";
+import { DEFAULT_EXCHANGE_RATES } from "@shared/currency";
 import { SUB_SERVICE_SEED } from "./lib/sub-service-seed-data";
 
 // ── Startup validation ────────────────────────────────────────────────────────
@@ -1067,7 +1068,9 @@ export async function runStartupMigrations() {
     // Seed fallback rows so the table is never empty after first boot
     await pool.query(`
       INSERT INTO currency_rates (currency_code, rate_from_usd)
-      VALUES ('USD', 1), ('HUF', 365), ('IRR', 42000), ('GBP', 0.79), ('EUR', 0.92)
+      VALUES ${Object.entries(DEFAULT_EXCHANGE_RATES)
+        .map(([code, rate]) => `('${code}', ${rate})`)
+        .join(", ")}
       ON CONFLICT (currency_code) DO NOTHING
     `);
 

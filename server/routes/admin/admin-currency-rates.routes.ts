@@ -2,6 +2,7 @@ import type { Express } from "express";
 import { pool } from "../../db";
 import { authenticateToken, requireAdmin } from "../../middleware/auth";
 import { getRates, syncRates, invalidateRateCache, SUPPORTED_CURRENCIES } from "../../services/currency";
+import { DEFAULT_EXCHANGE_RATES } from "@shared/currency";
 
 export function registerAdminCurrencyRatesRoutes(app: Express): void {
 
@@ -23,7 +24,7 @@ export function registerAdminCurrencyRatesRoutes(app: Express): void {
          ORDER BY currency_code`
       );
 
-      const fallback: Record<string, number> = { USD: 1, HUF: 365, IRR: 42000, GBP: 0.79, EUR: 0.92 };
+      const fallback: Record<string, number> = { ...DEFAULT_EXCHANGE_RATES };
       const dbMap = new Map(result.rows.map(r => [r.currency_code, r]));
 
       const currencies = [...new Set([...SUPPORTED_CURRENCIES, "EUR"])].map(code => {

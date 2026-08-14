@@ -1,5 +1,6 @@
 import { pool } from "../db";
 import { getStripe } from "../stripe";
+import { round2, roundToCents } from "../lib/math";
 
 export type PaymentState =
   | "pending"
@@ -151,10 +152,10 @@ export async function createAppointmentPayment(input: {
       [
         input.appointmentId,
         input.patientId,
-        input.totalAmountUsd.toFixed(2),
+        round2(input.totalAmountUsd).toFixed(2),
         normalizedMethod,
         input.displayCurrency,
-        input.displayAmount.toFixed(2),
+        round2(input.displayAmount).toFixed(2),
         input.exchangeRateUsed.toFixed(6),
         input.countryCode,
       ],
@@ -213,7 +214,7 @@ export async function createPaymentAttempt(input: {
          (payment_id, source, status, amount_usd, idempotency_key, updated_at)
        VALUES ($1, $2, 'processing', $3, $4, NOW())
        RETURNING *`,
-      [input.paymentId, input.source, input.amountUsd.toFixed(2), input.idempotencyKey],
+        [input.paymentId, input.source, round2(input.amountUsd).toFixed(2), input.idempotencyKey],
     );
     await client.query("COMMIT");
     return attempt.rows[0];
@@ -273,7 +274,7 @@ export async function applyWalletAllocation(input: {
     if (wallet.is_frozen) throw new Error("Wallet is frozen");
     const balance = Number(wallet.balance);
     const remaining = Number(payment.remaining_amount_usd ?? payment.amount);
-    const amountToApply = Number(Math.min(input.amountUsd, remaining).toFixed(2));
+    const amountToApply = round2(Math.min(input.amountUsd, remaining));
     if (amountToApply <= 0) throw new Error("Payment is already fully funded");
     if (balance + 1e-6 < amountToApply) throw new Error("Insufficient wallet balance");
 
@@ -284,7 +285,7 @@ export async function applyWalletAllocation(input: {
       });
     }
 
-    const nextBalance = Number((balance - amountToApply).toFixed(2));
+    const nextBalance = round2(balance - amountToApply);
     const walletTx = await client.query(
       `INSERT INTO wallet_transactions
          (wallet_id, user_id, type, status, amount, balance_after, currency,
@@ -335,7 +336,7 @@ export async function applyWalletAllocation(input: {
               END,
               updated_at = NOW()
         WHERE id = $2`,
-      [paid.toFixed(2), input.paymentId],
+      [round2(paid).toFixed(2), input.paymentId],
     );
     await transitionOnClient(client, input.paymentId, nextStatus, {
       idempotencyKey: `${input.idempotencyKey}:state`,
@@ -439,7 +440,7 @@ export async function completeStripeAttempt(input: {
               stripe_session_id = $4,
               updated_at = NOW()
         WHERE id = $5`,
-      [paid.toFixed(2), refunded.toFixed(2), input.providerPaymentId ?? null, input.providerSessionId, attempt.payment_id],
+      [round2(paid).toFixed(2), round2(refunded).toFixed(2), input.providerPaymentId ?? null, input.providerSessionId, attempt.payment_id],
     );
     await transitionOnClient(client, attempt.payment_id, next, {
       idempotencyKey: `${input.idempotencyKey}:state`,
@@ -567,7 +568,7 @@ export async function recordStripeDispute(input: {
        VALUES ($1, $2, 'open', $3, $4, NOW())
        ON CONFLICT (provider_dispute_id) DO UPDATE
          SET status = 'open', reason = EXCLUDED.reason, amount_usd = EXCLUDED.amount_usd, updated_at = NOW()`,
-      [payment.id, input.providerDisputeId, input.reason ?? null, input.amountUsd.toFixed(2)],
+      [payment.id, input.providerDisputeId, input.reason ?? null, round2(input.amountUsd).toFixed(2)],
     );
     await transitionOnClient(client, payment.id, "disputed", {
       idempotencyKey: `dispute:${input.providerDisputeId}:state`,
@@ -610,7 +611,7 @@ export async function recordStripeRefund(input: {
       [payment.id],
     );
     const priorRefunded = Number(priorProviderRefunds.rows[0]?.amount ?? 0);
-    const refundDelta = Number((input.amountUsd - priorRefunded).toFixed(2));
+    const refundDelta = round2(input.amountUsd - priorRefunded);
     if (refundDelta <= 0) {
       await client.query("COMMIT");
       return payment;
@@ -652,7 +653,7 @@ export async function recordStripeRefund(input: {
           WHERE id = $3`,
         [nextRefunded.toFixed(2), refund.toFixed(2), allocation.id],
       );
-      remaining = Number((remaining - refund).toFixed(2));
+      remaining = round2(remaining - refund);
     }
 
     const totals = await client.query(
@@ -671,7 +672,7 @@ export async function recordStripeRefund(input: {
               stripe_refund_id = COALESCE($2, stripe_refund_id),
               updated_at = NOW()
         WHERE id = $3`,
-      [refunded.toFixed(2), input.providerRefundId, payment.id],
+      [round2(refunded).toFixed(2), input.providerRefundId, payment.id],
     );
     await transitionOnClient(client, payment.id, next, {
       idempotencyKey: `${input.idempotencyKey}:state`,
@@ -737,7 +738,7 @@ export async function refundPayment(input: {
       (sum: number, row: any) => sum + Math.max(0, Number(row.amount_usd) - Number(row.refunded_amount_usd)),
       0,
     );
-    const requested = Number((input.amountUsd ?? refundable).toFixed(2));
+    const requested = round2(input.amountUsd ?? refundable);
     if (!Number.isFinite(requested) || requested <= 0) throw new Error("Refund amount must be positive");
     if (requested > refundable + 0.01) throw new Error("Refund exceeds the refundable payment amount");
 
@@ -748,7 +749,7 @@ export async function refundPayment(input: {
     const refundPlan = allocationResult.rows.map((allocation: any) => {
       const available = Math.max(0, Number(allocation.amount_usd) - Number(allocation.refunded_amount_usd));
       const refundAmount = Math.min(available, planRemaining);
-      planRemaining = Number((planRemaining - refundAmount).toFixed(2));
+      planRemaining = round2(planRemaining - refundAmount);
       return { allocation, refundAmount };
     }).filter(({ refundAmount }) => refundAmount > 0);
     if (planRemaining > 0.01) throw new Error("Refund allocation could not be planned");
@@ -762,7 +763,7 @@ export async function refundPayment(input: {
       }
       await input.stripeRefund({
         paymentIntentId: payment.stripe_payment_id,
-        amountUsd: Number(stripeRefundAmount.toFixed(2)),
+        amountUsd: round2(stripeRefundAmount),
         idempotencyKey: `${input.idempotencyKey}:stripe`,
       });
     }
@@ -786,7 +787,7 @@ export async function refundPayment(input: {
         );
         const wallet = walletResult.rows[0];
         if (!wallet) throw new Error("Wallet not found for refund");
-        const balanceAfter = Number((Number(wallet.balance) + refundAmount).toFixed(2));
+        const balanceAfter = round2(Number(wallet.balance) + refundAmount);
         const walletIdempotency = `${input.idempotencyKey}:wallet:${allocation.id}`;
         const walletTx = await client.query(
           `INSERT INTO wallet_transactions
@@ -823,7 +824,7 @@ export async function refundPayment(input: {
           WHERE id = $2`,
         [nextRefunded.toFixed(2), allocation.id],
       );
-      remaining = Number((remaining - refundAmount).toFixed(2));
+      remaining = round2(remaining - refundAmount);
     }
     if (remaining > 0.01) throw new Error("Refund allocation could not be completed");
 
@@ -841,7 +842,7 @@ export async function refundPayment(input: {
       `UPDATE payments
           SET refunded_amount = $1, updated_at = NOW()
         WHERE id = $2`,
-      [refunded.toFixed(2), input.paymentId],
+      [round2(refunded).toFixed(2), input.paymentId],
     );
     await transitionOnClient(client, input.paymentId, next, {
       idempotencyKey: `${input.idempotencyKey}:state`,
@@ -869,7 +870,7 @@ export async function refundAppointmentPayment(input: {
       const stripe = getStripe();
       if (!stripe) throw new Error("Stripe refund provider is unavailable");
       const refund = await stripe.refunds.create(
-        { payment_intent: paymentIntentId, amount: Math.round(amountUsd * 100) },
+        { payment_intent: paymentIntentId, amount: roundToCents(amountUsd) },
         { idempotencyKey },
       );
       return { id: refund.id };
@@ -905,7 +906,7 @@ export async function recordOfflineReceipt(input: {
        VALUES ($1, $2, $3, $4, 'paid', NOW())
        ON CONFLICT (idempotency_key) DO NOTHING
        RETURNING id`,
-      [input.paymentId, input.source, remainingAmount.toFixed(2), input.idempotencyKey],
+      [input.paymentId, input.source, round2(remainingAmount).toFixed(2), input.idempotencyKey],
     );
     if (allocation.rows[0]) {
       await client.query(
@@ -914,7 +915,7 @@ export async function recordOfflineReceipt(input: {
                 remaining_amount_usd = 0,
                 updated_at = NOW()
           WHERE id = $2`,
-        [remainingAmount.toFixed(2), input.paymentId],
+        [round2(remainingAmount).toFixed(2), input.paymentId],
       );
     }
     await transitionOnClient(client, input.paymentId, "paid", {

@@ -3,8 +3,11 @@ import { useTranslation } from "react-i18next";
 import { useAuth } from "@/lib/auth";
 import {
   formatCurrencyAmount,
+  formatCurrencyMinorUnits,
   CURRENCY_CONFIGS,
+  DEFAULT_EXCHANGE_RATES,
   normalizeCurrencyCode,
+  roundCurrencyAmount,
   type CurrencyCode,
 } from "@shared/currency";
 
@@ -123,7 +126,7 @@ function resolveByCode(code: SupportedCurrency | string | null | undefined): Cur
       code: normalized,
       locale: shared.locale,
       symbol: shared.symbol,
-      rateFromUSD: 1,
+      rateFromUSD: DEFAULT_EXCHANGE_RATES[normalized],
       fractionDigits: shared.fractionDigits,
     };
   }
@@ -164,30 +167,27 @@ function formatCurrencyByLanguage(
  * @param countryCode  Two-letter country code, e.g. "HU", "IR"
  */
 export function formatCurrency(
-  amountCents: number,
+  amountMinorUnits: number,
   currencyIso: string,
   countryCode: string,
 ): string {
   const upper = (currencyIso ?? "").toUpperCase();
   const cc    = (countryCode ?? "").toUpperCase();
 
-  // Resolve cents → full unit (HUF and IRR use 1:1 subunit in practice,
-  // but our storage is in integer "cents" so we always divide by 100).
-  const amount = (Number.isFinite(amountCents) ? amountCents : 0) / 100;
+  // Resolve minor units using the canonical currency precision. USD/EUR/GBP
+  // use 100 minor units; HUF/IRR/JPY/KRW are already whole-unit currencies.
+  const amount = Number.isFinite(amountMinorUnits) ? amountMinorUnits : 0;
 
-  // HUF — Hungarian Forint: integer, Ft suffix
   if (upper === "HUF" || cc === "HU") {
-    return formatCurrencyAmount(amount, "HUF");
+    return formatCurrencyMinorUnits(amount, "HUF");
   }
 
-  // IRR — Iranian Rial: integer, ﷼ symbol
   if (upper === "IRR" || cc === "IR") {
-    return formatCurrencyAmount(amount, "IRR");
+    return formatCurrencyMinorUnits(amount, "IRR");
   }
 
-  // Fallback: resolve by currency code, default to USD
   const cfg = resolveByCode(upper) ?? DEFAULT_CURRENCY;
-  return formatCurrencyAmount(amount, cfg.code);
+  return formatCurrencyMinorUnits(amount, cfg.code);
 }
 
 export function getCurrencyConfig(language: string | undefined): CurrencyConfig {
@@ -268,14 +268,14 @@ export function convertBetweenCurrencies(
   toCode: string,
 ): number {
   if (fromCode === toCode) return amount;
-  const rates = _liveRates ?? { USD: 1, HUF: 365, IRR: 42000, GBP: 0.79 };
+  const rates: Record<string, number> = _liveRates ?? DEFAULT_EXCHANGE_RATES;
   const fromRate = rates[fromCode] ?? 1;
   const toRate = rates[toCode] ?? 1;
   const inUSD = amount / fromRate;
-  return inUSD * toRate;
+  return roundCurrencyAmount(inUSD * toRate, toCode);
 }
 
-export const SUPPORTED_CURRENCIES: SupportedCurrency[] = ["USD", "HUF", "IRR", "GBP", "EUR"];
+export const SUPPORTED_CURRENCIES: SupportedCurrency[] = ["USD", "HUF", "IRR", "GBP", "EUR", "JPY", "KRW"];
 
 
 /**

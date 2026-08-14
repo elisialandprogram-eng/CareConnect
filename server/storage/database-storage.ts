@@ -245,6 +245,7 @@ import { countryCurrency, type CountryCode } from "../middleware/country";
 import { nativeCurrencyForCountry } from "../lib/service-currency-guard";
 import { getRates, toUSDSync } from "../services/currency";
 import { calculateProviderSettlement, OFFLINE_PAYMENT_METHODS } from "../lib/provider-settlement";
+import { round2, roundToCents } from "../lib/math";
 import { eq, and, desc, or, sql, count, asc, aliasedTable, inArray, gte, lte, lt, ilike, isNull, type SQL } from "drizzle-orm";
 import { canTransition, nextStatusesFor } from "../lib/appointmentStatus";
 
@@ -2983,12 +2984,12 @@ export class DatabaseStorage extends PackagesMixin implements IStorage {
       retentionRate: activePatientsNum > 0 ? Math.round((returningNum / activePatientsNum) * 100) : 0,
       avgAppointmentsPerPatient: activePatientsNum > 0 ? Math.round((totalAppts / activePatientsNum) * 10) / 10 : 0,
       refundCount: Number(refundRow?.cnt ?? 0),
-      refundTotal: (Math.round(Number(refundRow?.total ?? 0) * 100) / 100).toFixed(2),
+      refundTotal: round2(Number(refundRow?.total ?? 0)).toFixed(2),
       topProviders: topProvRows.map((r: any) => ({
         providerId: r.provider_id,
         providerName: r.name,
         appointmentCount: Number(r.apt_count),
-        revenue: (Math.round(Number(r.rev) * 100) / 100).toFixed(2),
+        revenue: round2(Number(r.rev)).toFixed(2),
       })),
       bookingsByType: typeRows.map((r: any) => ({ visitType: r.visit_type, count: Number(r.cnt) })),
       cancelRate: totalAppts > 0 ? Math.round((cancelledAppts / totalAppts) * 1000) / 10 : 0,
@@ -3469,7 +3470,7 @@ export class DatabaseStorage extends PackagesMixin implements IStorage {
     const providerCommission = Number(row.provider_commission ?? 0);
     const patientPlatformFees = Number(row.patient_platform_fees ?? 0);
     const totalPlatformRevenue = providerCommission + patientPlatformFees;
-    const fixed = (n: number) => (Math.round(n * 100) / 100).toFixed(2);
+    const fixed = (n: number) => round2(n).toFixed(2);
     return {
       totalEarnings: fixed(totalNet),
       pendingAmount: fixed(pendingNet),
@@ -3884,7 +3885,7 @@ export class DatabaseStorage extends PackagesMixin implements IStorage {
         throw new Error("Wallet is frozen");
       }
 
-      const currentCents = Math.round(Number(wallet.balance) * 100);
+      const currentCents = roundToCents(Number(wallet.balance));
       const nextCents = currentCents + args.deltaCents;
       if (nextCents < 0 && !args.allowNegative) {
         throw new Error("Insufficient wallet balance");
@@ -3931,7 +3932,7 @@ export class DatabaseStorage extends PackagesMixin implements IStorage {
     if (!(amount > 0)) throw new Error("Top-up amount must be positive");
     return this.applyWalletDelta({
       userId,
-      deltaCents: Math.round(amount * 100),
+      deltaCents: roundToCents(amount),
       type: "topup",
       description: opts.description ?? "Wallet top-up",
       referenceType: opts.referenceType ?? "stripe_session",
@@ -3950,7 +3951,7 @@ export class DatabaseStorage extends PackagesMixin implements IStorage {
     if (!(amount > 0)) throw new Error("Debit amount must be positive");
     return this.applyWalletDelta({
       userId,
-      deltaCents: -Math.round(amount * 100),
+      deltaCents: -roundToCents(amount),
       type: "debit",
       description: opts.description,
       referenceType: opts.referenceType ?? "appointment",
@@ -3969,7 +3970,7 @@ export class DatabaseStorage extends PackagesMixin implements IStorage {
     if (!(amount > 0)) throw new Error("Refund amount must be positive");
     return this.applyWalletDelta({
       userId,
-      deltaCents: Math.round(amount * 100),
+      deltaCents: roundToCents(amount),
       type: "refund",
       description: opts.description,
       referenceType: opts.referenceType ?? "appointment",
@@ -3985,7 +3986,7 @@ export class DatabaseStorage extends PackagesMixin implements IStorage {
     }
     return this.applyWalletDelta({
       userId,
-      deltaCents: Math.round(signedAmount * 100),
+      deltaCents: roundToCents(signedAmount),
       type: "adjustment",
       description: opts.reason,
       referenceType: "admin",

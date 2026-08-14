@@ -246,7 +246,7 @@ import {
 import { db, pool } from "../db";
 import { countryCurrency, type CountryCode } from "../middleware/country";
 import { getRates, toUSDSync } from "../services/currency";
-import { round2 } from "../lib/math";
+import { round2, roundToCents } from "../lib/math";
 import { eq, and, desc, or, sql, count, asc, aliasedTable, inArray, gte, lte, lt, ilike, isNull, type SQL } from "drizzle-orm";
 
 
@@ -468,8 +468,8 @@ export abstract class GroupSessionsMixin {
           if (wArr.length === 0) throw new Error("Wallet missing");
           const w = wArr[0];
           if (w.is_frozen) throw new Error("Wallet is frozen");
-          const balanceCents = Math.round(Number(w.balance) * 100);
-          const priceCents = Math.round(price * 100); // USD cents
+          const balanceCents = roundToCents(Number(w.balance));
+          const priceCents = roundToCents(price); // USD cents
           if (balanceCents < priceCents) throw new Error("Insufficient wallet balance");
           const nextCents = balanceCents - priceCents;
           const nextBal = (nextCents / 100).toFixed(2);
@@ -540,7 +540,7 @@ export abstract class GroupSessionsMixin {
             await tx.execute(sql`INSERT INTO wallets (user_id) VALUES (${p.user_id}) ON CONFLICT (user_id) DO NOTHING`);
             const wRows = await tx.execute(sql`SELECT id, balance, currency FROM wallets WHERE user_id = ${p.user_id} FOR UPDATE`);
             const w = (((wRows as any).rows ?? wRows) as any[])[0];
-            const nextCents = Math.round(Number(w.balance) * 100) + Math.round(amt * 100);
+            const nextCents = roundToCents(Number(w.balance)) + roundToCents(amt);
             const nextBal = (nextCents / 100).toFixed(2);
             await tx.execute(sql`UPDATE wallets SET balance = ${nextBal}, updated_at = NOW() WHERE id = ${w.id}`);
             await tx.execute(sql`
@@ -1550,7 +1550,7 @@ export abstract class GroupSessionsMixin {
 
       const revenueSeries = seriesRes.rows.map(r => ({
         name: monthLabelFn(Number(r.yr), Number(r.mo)),
-        revenue: Math.round(Number(r.revenue) * 100) / 100,
+        revenue: round2(Number(r.revenue)),
         bookings: Number(r.bookings),
       }));
 
@@ -1558,19 +1558,19 @@ export abstract class GroupSessionsMixin {
         totalUsers:        Number(userRes.rows[0].cnt),
         totalProviders:    Number(pr.total),
         totalBookings:     Number(bk.total),
-        totalRevenue:      Math.round(totalRevenue * 100) / 100,
+        totalRevenue:      round2(totalRevenue),
         pendingBookings:   Number(bk.pending),
         completedBookings: Number(bk.completed),
         confirmedBookings: Number(bk.confirmed),
         cancelledBookings: Number(bk.cancelled),
         recentPayments:    paymentsRes.rows,
         revenueSeries,
-        platformFees:      Math.round(platformFees * 100) / 100,
-        providerPayouts:   Math.round(Number(payoutsRes.rows[0]?.total_paid ?? 0) * 100) / 100,
-        avgBookingValue:   Math.round((paidCount > 0 ? totalRevenue / paidCount : 0) * 100) / 100,
-        revenueToday:      Math.round(Number(rev.revenue_today) * 100) / 100,
-        revenueThisMonth:  Math.round(revenueThisMonth * 100) / 100,
-        revenueLastMonth:  Math.round(revenueLastMonth * 100) / 100,
+        platformFees:      round2(platformFees),
+        providerPayouts:   round2(Number(payoutsRes.rows[0]?.total_paid ?? 0)),
+        avgBookingValue:   round2(paidCount > 0 ? totalRevenue / paidCount : 0),
+        revenueToday:      round2(Number(rev.revenue_today)),
+        revenueThisMonth:  round2(revenueThisMonth),
+        revenueLastMonth:  round2(revenueLastMonth),
         revenueGrowthPct,
         activeProviders:   Number(pr.active),
       };

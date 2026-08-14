@@ -1,0 +1,329 @@
+I’ll first inspect the unfinished diff and the canonical currency files, then I’ll complete only the financial-path changes, run the focused currency checks plus type-check/build, and fix any failures.
+
+Show less
+
+Opened currency-architecture.md
+
+Reviewing current files
+
+Reviewing current files
+
+Checked git status
+
+Investigating git diff issues
+
+Investigating git diff issues
+
+Opened currency.ts
+
+Opened math.ts
+
+Opened currency.ts
+
+Opened currency.ts
+
+Inspecting git and searching math truncation
+
+Inspecting git and searching math truncation
+
+Reading tax-engine.ts
+
+Found files
+
+Inspecting project details
+
+Inspecting project details
+
+Opened tax-engine.ts
+
+Reviewing code and pricing
+
+Reviewing code and pricing
+
+Opened pricing.ts
+
+Opened revenue-engine.ts
+
+Opened format-utils.ts
+
+Opened phase31-tax-engine.test.ts
+
+Opened phase3-pricing-engine.test.ts
+
+Evaluating currency configurations
+
+Evaluating currency configurations
+
+Searched for "Intl\.NumberFormat|toLo…"
+
+Refining currency conversion functions
+
+Refining currency conversion functions
+
+Searched for "formatCurrency\("
+
+Evaluating patch application
+
+Evaluating patch application
+
+The unfinished work has a shared helper, but it is not yet authoritative: server and client still duplicate currency tables, tax tests still expect truncation, and several settlement/display paths still hard-code USD-style rounding. I’m tightening the shared policy first, then I’ll update the highest-impact financial boundaries and the stale focused tests.
+
+Show less
+
+Opened provider-settlement.ts
+
+Opened appointmentActions.ts
+
+Inspecting settings
+
+Inspecting settings
+
+Opened invoice-helper.ts
+
+Opened settings.tsx
+
+Considering code edits
+
+Considering code edits
+
+Opened admin-financial.routes.ts
+
+Investigating currency formatting
+
+Investigating currency formatting
+
+Searched for "currency|\$|format|pref…"
+
+Edited currency.ts
+
+Edited math.ts
+
+Opened currency.ts
+
+Troubleshooting patch failure
+
+Troubleshooting patch failure
+
+Investigating patch issues
+
+Investigating patch issues
+
+Processed text
+
+Troubleshooting patch issues
+
+Troubleshooting patch issues
+
+Edited currency.ts
+
+Edited currency.ts
+
+Edited currency.ts
+
+Edited currency.ts
+
+Resolving config issues
+
+Resolving config issues
+
+Opened currency.ts
+
+Edited currency.ts
+
+Modifying object properties
+
+Modifying object properties
+
+Edited currency.ts
+
+Opened currency.ts
+
+Edited currency.ts
+
+Continuing the process
+
+Continuing the process
+
+Figuring out the patch issue
+
+Figuring out the patch issue
+
+Edited currency.ts
+
+Edited currency.ts
+
+Continuing server functions
+
+Continuing server functions
+
+Opened currency.ts
+
+Checking code changes
+
+Checking code changes
+
+Edited currency.ts
+
+Applying canonical division
+
+Applying canonical division
+
+Edited currency.ts
+
+Evaluating code imports and settings
+
+Evaluating code imports and settings
+
+Evaluating code imports and settings
+
+I need to remove the unused roundCurrencyAmount imported from the client. Maybe I should check the TypeScript noUnused rule in the tsconfig. I'm also thinking about adding settings options for JPY and KRW, since the service currently handles whole numbers only for HUF and IRR. Additionally, I need to patch the service dialogue to ensure it uses Math.round(converted) correctly with the price currency. I'll inspect the top imports as well.
+
+Processed text
+
+Updating provider settlements
+
+Updating provider settlements
+
+Searched for "quoteRefundWithRule\("
+
+Planning for user demands
+
+Planning for user demands
+
+Opened appointment.routes.ts
+
+Opened appointment.routes.ts
+
+Considering currency adjustments
+
+Considering currency adjustments
+
+Opened appointment.routes.ts
+
+Edited appointmentActions.ts
+
+Edited provider-settlement.ts
+
+Edited appointment.routes.ts
+
+Patching the invoice formatter
+
+Patching the invoice formatter
+
+Searched for "\bcfg\b|CURRENCY_CONFIG…"
+
+Evaluating invoice edits
+
+Evaluating invoice edits
+
+Edited invoice-gen.ts
+
+Edited invoice-helper.ts
+
+Addressing platform fees
+
+Addressing platform fees
+
+Edited pricing.ts
+
+Edited revenue-engine.ts
+
+Reviewing test updates
+
+Reviewing test updates
+
+Edited phase31-tax-engine.test.ts
+
+Created currency-rounding.test.ts
+
+Running type checks and patches
+
+Running type checks and patches
+
+The canonical half-up rule is now wired into shared formatting, server formatting/conversion, booking pricing/tax, refunds, provider settlement, invoice generation, and the focused tests. I’m running the focused checks and type-check now; any errors should be limited to integration details from the centralization.
+
+Show less
+
+Ran a Node.js script
+
+Ran the check script
+
+Edited currency-rounding.test.ts
+
+Ran a Node.js script
+
+Viewed code changes
+
+Considering provider earnings
+
+Considering provider earnings
+
+Ran a Node.js script
+
+Inspecting code for consistency
+
+Inspecting code for consistency
+
+Edited phase3-pricing-engine.test.ts
+
+Refining user requests
+
+Refining user requests
+
+Viewed code changes
+
+Processed text
+
+Edited currency.ts
+
+Edited settings.tsx
+
+Edited service-form-dialog.tsx
+
+Evaluating follow-up plan
+
+Evaluating follow-up plan
+
+Searched for "from "@shared/schema"|f…"
+
+Edited add-service-catalogue-dialog.tsx
+
+Edited ProviderServicesTab.tsx
+
+Opened admin-financial.routes.ts
+
+Edited admin-financial.routes.ts
+
+Inspecting currency settings
+
+Inspecting currency settings
+
+Opened appointment.routes.ts
+
+Troubleshooting conversion logic
+
+Troubleshooting conversion logic
+
+Processed text
+
+Figuring out session pricing
+
+Figuring out session pricing
+
+Searched for "getRates|countryCurrenc…"
+
+Evaluating code imports
+
+Evaluating code imports
+
+Edited group-sessions.mixin.ts
+
+Edited appointment.routes.ts
+
+The focused test suite exposed one stale pricing assertion unrelated to the rounding change; the implementation already includes service travel in provider earnings, so I aligned that assertion with the current canonical economics. I also covered wallet/group-session local-to-USD boundaries and admin regional summaries so they no longer use ad-hoc rounding.
+
+Show less
+
+Ran a Node.js script
+
+Ran the check script

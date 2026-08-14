@@ -2822,7 +2822,7 @@ export function registerAppointmentRoutes(app: Express): void {
             const pct = activeRefundRule?.partial_refund_percent != null
               ? Number(activeRefundRule.partial_refund_percent) / 100
               : PARTIAL_REFUND_PERCENT;
-            toRefund = Math.round(refundableUsd * pct * 100) / 100;
+            toRefund = round2(refundableUsd * pct);
           } else {
             toRefund = 0;
           }
