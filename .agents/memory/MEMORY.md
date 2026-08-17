@@ -125,3 +125,4 @@
 - [Phase 2 security architecture](phase2-security-architecture.md) — shared role catalogue, centralized admin boundary, explicit RBAC denies, hashed public refresh tokens, and session invalidation on credential changes
 - [Canonical appointment lifecycle](canonical-appointment-lifecycle.md) — all appointment status writes must use the locked transition service; direct status updates are intentionally rejected
 - [Stripe appointment webhook linkage](stripe-appointment-webhook.md) — checkout metadata must include appointmentId or the webhook cannot complete the booking
+- [Payment status action values](payment-status-action-values.md) — provider receipt requests use `paid`; the server persists the resulting payment as `completed`

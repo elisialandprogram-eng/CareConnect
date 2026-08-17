@@ -179,7 +179,7 @@ export function ProviderAppointmentsTabs({ providerData, highlightApptId, active
   });
 
   const markPaymentMutation = useMutation({
-    mutationFn: async ({ id, status }: { id: string; status: "completed" }) => {
+    mutationFn: async ({ id, status }: { id: string; status: "paid" }) => {
       const response = await apiRequest("PATCH", `/api/appointments/${id}/payment-status`, { status });
       return response.json();
     },
@@ -493,7 +493,7 @@ export function ProviderAppointmentsTabs({ providerData, highlightApptId, active
           <div className="flex flex-wrap items-center gap-2 pl-14 pt-1" onClick={(e) => e.stopPropagation()}>
             {canMarkPaid && (
               <Button size="sm" variant="secondary" disabled={isMarkingPaid}
-                onClick={() => markPaymentMutation.mutate({ id: appointment.id, status: "completed" })}
+                 onClick={() => markPaymentMutation.mutate({ id: appointment.id, status: "paid" })}
                 data-testid={`button-mark-paid-${appointment.id}`}>
                 {isMarkingPaid ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Banknote className="h-3 w-3 mr-1" />}
                 {t("dashboard.mark_payment_received", "Mark payment received")}
