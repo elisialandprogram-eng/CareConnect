@@ -145,9 +145,7 @@ export function registerProviderWalletPayoutsRoutes(app: Express): void {
             pe.provider_net_earnings_amount_local                 AS "providerNetEarningsLocal",
             pe.gross_provider_payout_usd                          AS "grossProviderPayoutUsd",
             pe.settlement_amount_usd                               AS "settlementAmountUsd",
-            pe.service_tax_amount_usd                              AS "serviceTaxAmountUsd",
             pe.cash_platform_fee_deduction_usd                     AS "cashPlatformFeeDeductionUsd",
-            pe.cash_platform_fee_applied_usd                       AS "cashPlatformFeeAppliedUsd",
              COALESCE(pay.payment_method, pe.payment_method, a.payment_method, 'card')
                                                                       AS "paymentMethod",
             pe.created_at                                         AS "createdAt",
@@ -185,7 +183,12 @@ export function registerProviderWalletPayoutsRoutes(app: Express): void {
           WHERE pe.provider_id = $1
           ORDER BY pe.created_at DESC
         `, [provider.id]),
-        storage.getEarningsSummary(provider.id).then(({ platformRevenue: _platformRevenue, ...providerSummary }) => providerSummary),
+        storage.getEarningsSummary(provider.id).then(({
+          platformRevenue: _platformRevenue,
+          patientPlatformFees: _patientPlatformFees,
+          totalPlatformRevenue: _totalPlatformRevenue,
+          ...providerSummary
+        }) => providerSummary),
       ]);
 
       res.json({ earnings: richResult.rows, summary });
@@ -215,7 +218,7 @@ export function registerProviderWalletPayoutsRoutes(app: Express): void {
                    pe.provider_gross_earnings_amount_usd, pe.gross_provider_payout_usd) AS provider_gross_earnings_local,
           a.commission_amount AS provider_commission_local,
           COALESCE(pe.provider_net_earnings_amount_local, pe.provider_net_earnings_amount_usd) AS provider_net_earnings_local,
-           pe.cash_platform_fee_deduction_usd AS cash_platform_fee_deduction_usd,
+           pe.cash_platform_fee_deduction_usd AS provider_settlement_deduction_usd,
           pe.settlement_amount_usd AS settlement_amount_usd,
            COALESCE(pay.payment_method, pe.payment_method, a.payment_method, 'card') AS payment_method,
           COALESCE(pe.display_currency, 'USD') AS currency,
@@ -242,7 +245,7 @@ export function registerProviderWalletPayoutsRoutes(app: Express): void {
       const headers = [
         "Date","Appointment #","Appointment Date","Time","Visit Type","Service",
         "Patient","Provider Gross Earnings","Provider Commission","Provider Net Earnings",
-        "Offline Payment Fee","Settlement Amount","Payment Method","Currency","Status","Paid On",
+         "Provider Settlement Deduction","Settlement Amount","Payment Method","Currency","Status","Paid On",
         "Refund Status","Payment Status",
       ];
 
@@ -257,7 +260,7 @@ export function registerProviderWalletPayoutsRoutes(app: Express): void {
         r.provider_gross_earnings_local ?? r.provider_gross_earnings_usd ?? "0",
         r.provider_commission_local ?? "0",
         r.provider_net_earnings_local ?? r.provider_net_earnings_usd ?? "0",
-        r.cash_platform_fee_deduction_usd ?? "0",
+         r.provider_settlement_deduction_usd ?? "0",
         r.settlement_amount_usd ?? "0",
          r.payment_method ?? "",
         r.currency ?? "USD",

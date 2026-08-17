@@ -3447,17 +3447,19 @@ export class DatabaseStorage extends PackagesMixin implements IStorage {
           FILTER (WHERE pe.status <> 'paid'), 0) AS pending_net,
         COALESCE(SUM(COALESCE(pe.provider_net_earnings_amount_usd, 0))
           FILTER (WHERE pe.status = 'paid'), 0) AS paid_net,
-        COALESCE(SUM(COALESCE(pe.provider_net_earnings_amount_usd, 0)), 0)
-          AS gross_provider_payout,
-        COALESCE(SUM(COALESCE(pe.platform_fee::numeric, 0)), 0) AS provider_commission,
+        COALESCE(SUM(COALESCE(
+          pe.provider_gross_earnings_amount_usd,
+          pe.gross_provider_payout_usd,
+          0
+        )), 0) AS gross_provider_payout,
         COALESCE(SUM(
           CASE
-            WHEN a.platform_fee_amount IS NOT NULL
+            WHEN a.commission_amount IS NOT NULL
               AND NULLIF(pe.exchange_rate_used::numeric, 0) IS NOT NULL
-            THEN a.platform_fee_amount::numeric * NULLIF(pe.exchange_rate_used::numeric, 0)
+            THEN a.commission_amount::numeric / NULLIF(pe.exchange_rate_used::numeric, 0)
             ELSE 0
           END
-        ), 0) AS patient_platform_fees,
+        ), 0) AS provider_commission,
         COUNT(*) AS earning_count
       FROM provider_earnings pe
       LEFT JOIN appointments a ON a.id = pe.appointment_id
@@ -3468,19 +3470,17 @@ export class DatabaseStorage extends PackagesMixin implements IStorage {
     const pendingNet = Number(row.pending_net ?? 0);
     const paidNet = Number(row.paid_net ?? 0);
     const providerCommission = Number(row.provider_commission ?? 0);
-    const patientPlatformFees = Number(row.patient_platform_fees ?? 0);
-    const totalPlatformRevenue = providerCommission + patientPlatformFees;
     const fixed = (n: number) => round2(n).toFixed(2);
     return {
       totalEarnings: fixed(totalNet),
       pendingAmount: fixed(pendingNet),
       paidAmount: fixed(paidNet),
       grossProviderPayout: fixed(Number(row.gross_provider_payout ?? 0)),
-      // Keep the legacy key, but make it mean the clearly named total below.
-      platformRevenue: fixed(totalPlatformRevenue),
+      // Kept internally for admin callers; provider routes strip this field.
+      platformRevenue: "0.00",
       providerCommission: fixed(providerCommission),
-      patientPlatformFees: fixed(patientPlatformFees),
-      totalPlatformRevenue: fixed(totalPlatformRevenue),
+      patientPlatformFees: "0.00",
+      totalPlatformRevenue: "0.00",
       count: Number(row.earning_count ?? 0),
     };
   }

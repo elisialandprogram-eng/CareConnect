@@ -9,8 +9,8 @@ Provider gross payout is service earnings plus patient-paid tax. Card and wallet
 
 **How to apply:** Keep settlement snapshots in USD on provider earnings and payout requests. Use the latest payment row, falling back to the appointment method, when classifying offline history during reconciliation or cleanup. Use the shared payout lifecycle for held/paid/rejected/cancelled transitions. Run settlement-column DDL independently before the legacy startup backfill; the backfill may remain in the legacy chain, but schema ownership must stay single-source.
 
-Provider-facing earnings statements must keep patient platform fee, provider commission, provider service net, tax pass-through, gross payout, offline fee, and actual net payout as separate labels; summary cards, rows, exports, and payout totals must use actual net payout consistently.
+Provider-facing earnings statements must exclude patient platform fee, platform/service tax, gateway/surcharge, and patient total/price-line data; expose only provider gross earnings, actual provider-side deductions, net earnings/settlement, and payment status/method.
 
-**Why:** Combining fee and commission into “platform take,” or showing gross provider earning as net payout, made otherwise correct arithmetic appear inconsistent and could double-subtract offline fees.
+**Why:** Provider screens and APIs are not patient invoices. Exposing patient-side components or relabeling them as provider deductions creates a privacy leak and misleading settlement arithmetic.
 
-**How to apply:** Display `gross payout - offline fee` as actual net payout; only cash and bank-transfer methods receive the offline deduction. Keep card and wallet settlement unchanged.
+**How to apply:** Build provider booking details, earnings APIs, exports, emails, and notifications from immutable provider settlement snapshots; keep patient `pricing_breakdown.lines` and stored patient totals confined to patient/admin surfaces.

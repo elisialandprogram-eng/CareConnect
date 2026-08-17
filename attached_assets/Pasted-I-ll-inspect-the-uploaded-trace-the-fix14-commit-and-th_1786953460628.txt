@@ -1,0 +1,283 @@
+I’ll inspect the uploaded trace, the fix14 commit, and the current financial/booking code paths first. Then I’ll finish only the missing implementation, run focused validation, and report the exact scope.
+
+Show less
+
+Ran pwd
+
+Searched for "provider|earnings|prici…"
+
+Viewed a commit
+
+Searched for "pricingBreakdown|pricin…"
+
+Checking commit details
+
+Checking commit details
+
+fix14 is the current HEAD commit (959b319), not a separate ref. I’m checking its actual diff and the uploaded trace now; the initial sweep already shows the likely leak in provider earnings UI/API, so I’ll trace those boundaries before editing.
+
+Show less
+
+Viewed a commit
+
+Read files
+
+Searched for "provider.*appointment|a…"
+
+Viewed a commit
+
+Inspecting appointment systems
+
+Inspecting appointment systems
+
+The fix14 commit only added a provider scrubber to appointment list/detail responses; it did not finish earnings, emails, or snapshot-based booking details. I’m narrowing the remaining work to the provider API/UI surfaces and the immutable snapshot source, without touching the revenue engine or patient routes.
+
+Show less
+
+Processed text
+
+Searched for "earnings|export|provide…"
+
+Processed text
+
+Searched for "getAppointmentsByProvid…"
+
+Processed text
+
+Processed text
+
+Processed text
+
+Processed text
+
+Inspecting schema fields
+
+Inspecting schema fields
+
+Processed text
+
+Processed text
+
+Processed text
+
+Processed text
+
+Processed text
+
+Processed text
+
+Processed text
+
+Processed text
+
+Inspecting provider routes
+
+Inspecting provider routes
+
+Ran nl
+
+Ran nl
+
+Searched for "providerEarnings|provid…"
+
+Searched for "providerFinancials|tota…"
+
+Ran nl
+
+Ran nl
+
+Ran nl
+
+Ran nl
+
+Ran nl
+
+Deciding on edits
+
+Deciding on edits
+
+Processed text
+
+Ran nl
+
+Continuing with edits
+
+Continuing with edits
+
+Ran nl
+
+Searched for "platformRevenue|totalPl…"
+
+The concrete leaks are confirmed: provider earnings still returns patient totals, patient platform fee, booking tax/discount lines, and raw pricingBreakdown; the earnings UI renders them, CSV exports them, and provider dashboard analytics still reads the now-scrubbed patient total. I’m replacing those with stored provider gross/commission/net snapshots and payment status only.
+
+Show less
+
+Edited provider-wallet-payouts.routes.ts
+
+Updating export query
+
+Updating export query
+
+Edited provider-wallet-payouts.routes.ts
+
+Ran nl
+
+Planning code patching
+
+Planning code patching
+
+Edited provider-earnings.tsx
+
+Processed text
+
+Evaluating function patching
+
+Evaluating function patching
+
+Edited provider-earnings.tsx
+
+Processed text
+
+Processed text
+
+Edited provider-earnings.tsx
+
+Continuing the patching process
+
+Continuing the patching process
+
+Processed text
+
+Processed text
+
+Inspecting patch failures
+
+Inspecting patch failures
+
+One UI patch didn’t match because the existing breakdown block has duplicated/nested markup from the interrupted edit. I’m correcting that component in smaller, exact patches rather than broad-rewriting unrelated page code.
+
+Show less
+
+Ran nl
+
+Edited provider-earnings.tsx
+
+Ran nl
+
+Edited provider-earnings.tsx
+
+Looking for patch table
+
+Looking for patch table
+
+Ran nl
+
+Working on patch updates
+
+Working on patch updates
+
+Processed text
+
+Edited provider-earnings.tsx
+
+Fixing provider metrics
+
+Fixing provider metrics
+
+Processed text
+
+Edited provider-wallet-payouts.routes.ts
+
+Processed text
+
+Edited ProviderReportingCenter.tsx
+
+Updating provider details
+
+Updating provider details
+
+Edited appointment.routes.ts
+
+Continuing patch application
+
+Continuing patch application
+
+Edited ProviderAppointmentsTabs.tsx
+
+Updating dashboard analytics
+
+Updating dashboard analytics
+
+Edited provider-dashboard.tsx
+
+Assessing server requirements
+
+Assessing server requirements
+
+Searched for "promoCode|totalAmount|p…"
+
+Searched for "export const services =…"
+
+Viewed code changes
+
+The main scrub is now in place. I’m doing the final consistency pass: removing the remaining dashboard read of totalAmount, checking the provider reporting copy, adding the provider-only snapshot fallback where needed, then I’ll run the requested type-check/build and inspect workflow logs for real failures.
+
+Show less
+
+Ran nl
+
+Ran nl
+
+Searched for "totalAmount|platformFee…"
+
+Viewed code changes
+
+Evaluating patient data tracking
+
+Evaluating patient data tracking
+
+Searched for "totalSpend|uniqueClient…"
+
+Searched for "providerGrossPayoutLoca…"
+
+Searched for "platformRevenue|Platfor…"
+
+Processed text
+
+Continuing with API updates
+
+Continuing with API updates
+
+Ran nl
+
+Addressing data gaps
+
+Addressing data gaps
+
+Ran nl
+
+Edited provider.routes.ts
+
+Edited provider-dashboard.tsx
+
+Updating interface and UI
+
+Updating interface and UI
+
+Edited ProviderReportingCenter.tsx
+
+Processed text
+
+The sweep found two additional provider-only leaks beyond the interrupted commit: the provider insights API still summed appointments.total_amount for revenue/analytics, and “loyal clients” exposed patient spend. I’m removing those patient-spend fields and switching provider analytics to settlement snapshots before validation.
+
+Show less
+
+Ran nl
+
+Patching provider analytics
+
+Patching provider analytics
+
+Edited provider.routes.ts
+
+Edited appointment.routes.ts

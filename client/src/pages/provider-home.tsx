@@ -25,7 +25,6 @@ interface Appointment {
   endAt?: string;
   visitType?: string;
   serviceName?: string;
-  totalAmount?: string | number;
   videoRoomUrl?: string;
   patient?: { firstName?: string; lastName?: string; avatarUrl?: string };
   patientName?: string;

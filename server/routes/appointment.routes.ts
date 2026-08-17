@@ -117,15 +117,38 @@ const PROVIDER_HIDDEN_FINANCIAL_FIELDS = [
   "packageDiscountAmount",
   "taxAmount",
   "serviceTaxAmount",
+  "serviceSubtotal",
   "platformTaxAmount",
+  "platformTaxableSubtotal",
+  "serviceTaxRate",
+  "platformTaxRate",
+  "paymentGatewayFeeAmount",
+  "adminFeeAmount",
   "pricingBreakdown",
   "paymentSurcharge",
+  "paymentSurchargeAmount",
+  "travelFeeSnapshot",
+  "platformRevenueSnapshot",
+  "commissionRate",
+  "commissionAmount",
+  "providerGrossEarningsSnapshot",
+  "providerNetEarningsSnapshot",
+  "bookingCurrency",
+  "providerCurrency",
+  "patientCurrency",
+  "reAppliedRules",
+  "pricingEngineVersion",
+  "taxEngineVersion",
+  "pricingCalculatedAt",
   "displayAmount",
   "refundAmount",
 ] as const;
 
 const PROVIDER_HIDDEN_SERVICE_PRICE_FIELDS = [
   "price",
+  "adminPriceOverride",
+  "depositAmount",
+  "platformFee",
   "platformFeeOverride",
   "homeVisitFee",
   "clinicFee",
@@ -1789,13 +1812,11 @@ export function registerAppointmentRoutes(app: Express): void {
           appointmentId: appointment.id,
           formattedAmount: _fmtPatientNotifAmt,
         }).catch(err => console.error("[notify] appointmentBooked patient", err));
-        // Format provider notification amounts in the provider's preferred currency.
+        // Provider notifications must never contain the patient's price
+        // breakdown. If financial context is useful, use only the immutable
+        // provider settlement snapshot produced by the revenue engine.
         const _provNotifCurr = providerWithUser?.user?.preferredCurrency || _bookingSrcCurrency;
-        // P-FINAL: platformFee/promoDiscount/taxAmountNum are in bookingCurrency (HUF/IRR/USD).
-        // Keep the exact booking-currency snapshot when the provider's display
-        // currency matches it. Otherwise convert directly from the local
-        // snapshot without first rounding to two USD decimals.
-        const _fmtProv = (amountInBookingCurrency: number) => {
+        const _fmtProviderAmount = (amountInBookingCurrency: number) => {
           if (_provNotifCurr === _bookingSrcCurrency) {
             return formatLocal(amountInBookingCurrency, _bookingSrcCurrency);
           }
@@ -1826,15 +1847,17 @@ export function registerAppointmentRoutes(app: Express): void {
                   : visitType === "clinic"
                   ? [{ label: "Clinic Address", value: provider.primaryServiceLocation || provider.city || "Clinic" }]
                   : [{ label: "Address", value: "Online (link will be shared)" }]),
-                ...(platformFee > 0 ? [{ label: "Platform Fee", value: _fmtProv(platformFee) }] : []),
-                ...(promoDiscount > 0 ? [{ label: `Promo${appliedPromoCode ? ' (' + appliedPromoCode + ')' : ''}`, value: `-${_fmtProv(promoDiscount)}` }] : []),
-                 ...(revenueEngineResult?.taxBreakdown?.serviceTax
-                   ? [{ label: "Service tax", value: _fmtProv(revenueEngineResult.taxBreakdown.serviceTax) }]
-                   : []),
-                 ...(revenueEngineResult?.taxBreakdown?.platformTax
-                   ? [{ label: "Platform tax", value: _fmtProv(revenueEngineResult.taxBreakdown.platformTax) }]
-                   : []),
-                { label: "Total", value: _fmtProv(_bookingDisplayTotal) },
+                { label: "Payment Method", value: selectedPaymentMethod.replace("_", " ") },
+                { label: "Payment Status", value: String(appointment.paymentStatus || "pending") },
+                ...(revenueEngineResult
+                  ? [
+                      { label: "Provider Gross Earnings", value: _fmtProviderAmount(revenueEngineResult.providerGrossEarnings) },
+                      ...(revenueEngineResult.commissionAmount > 0
+                        ? [{ label: "Provider-side Commission", value: `-${_fmtProviderAmount(revenueEngineResult.commissionAmount)}` }]
+                        : []),
+                      { label: "Provider Net Earnings", value: _fmtProviderAmount(revenueEngineResult.providerEarnings) },
+                    ]
+                  : []),
               ],
             },
             data: { appointmentId: appointment.id },
