@@ -107,6 +107,109 @@ import { logSystemEvent } from "../middleware/monitoring";
 import { localToUTC, getProviderTimezone } from "../lib/tzUtils";
 import { getReadiness } from "../lib/readiness";
 
+const PROVIDER_HIDDEN_FINANCIAL_FIELDS = [
+  "totalAmount",
+  "finalTotalUsd",
+  "platformFeeAmount",
+  "servicePriceSnapshot",
+  "promoDiscount",
+  "packageDiscountAmount",
+  "taxAmount",
+  "serviceTaxAmount",
+  "platformTaxAmount",
+  "pricingBreakdown",
+  "paymentSurcharge",
+  "displayAmount",
+  "refundAmount",
+] as const;
+
+const PROVIDER_HIDDEN_SERVICE_PRICE_FIELDS = [
+  "price",
+  "platformFeeOverride",
+  "homeVisitFee",
+  "clinicFee",
+  "telemedicineFee",
+  "emergencyFee",
+] as const;
+
+async function getProviderFinancialSnapshots(
+  appointmentIds: string[],
+): Promise<Map<string, Record<string, unknown>>> {
+  const snapshots = new Map<string, Record<string, unknown>>();
+  if (appointmentIds.length === 0) return snapshots;
+
+  const result = await pool.query(`
+    SELECT
+      a.id,
+      a.country_code,
+      a.provider_gross_earnings_snapshot,
+      a.provider_net_earnings_snapshot,
+      a.commission_amount,
+      pe.display_currency,
+      pe.status AS earning_status,
+      pe.gross_provider_payout_usd,
+      pe.settlement_amount_usd,
+      pe.provider_net_earnings_amount_usd,
+      pe.provider_net_earnings_amount_local
+    FROM appointments a
+    LEFT JOIN provider_earnings pe ON pe.appointment_id = a.id
+    WHERE a.id = ANY($1::text[])
+  `, [appointmentIds]);
+
+  for (const row of result.rows) {
+    const currency = row.display_currency || countryCurrency(row.country_code as CountryCode);
+    snapshots.set(String(row.id), {
+      currency,
+      providerGrossPayoutLocal: row.provider_gross_earnings_snapshot == null
+        ? null
+        : Number(row.provider_gross_earnings_snapshot),
+      providerCommissionLocal: row.commission_amount == null
+        ? null
+        : Number(row.commission_amount),
+      providerNetEarningsLocal: row.provider_net_earnings_snapshot == null
+        ? null
+        : Number(row.provider_net_earnings_snapshot),
+      grossPayoutUsd: row.gross_provider_payout_usd == null ? null : Number(row.gross_provider_payout_usd),
+      settlementUsd: row.settlement_amount_usd == null ? null : Number(row.settlement_amount_usd),
+      providerNetEarningsUsd: row.provider_net_earnings_amount_usd == null
+        ? null
+        : Number(row.provider_net_earnings_amount_usd),
+      providerNetEarningsDisplay: row.provider_net_earnings_amount_local == null
+        ? null
+        : Number(row.provider_net_earnings_amount_local),
+      earningStatus: row.earning_status ?? null,
+    });
+  }
+  return snapshots;
+}
+
+function toProviderAppointmentView(
+  appointment: Record<string, any>,
+  providerFinancials?: Record<string, unknown>,
+): Record<string, any> {
+  const safe = { ...appointment };
+  for (const field of PROVIDER_HIDDEN_FINANCIAL_FIELDS) delete safe[field];
+
+  if (safe.payment) {
+    const payment = safe.payment;
+    safe.payment = {
+      id: payment.id,
+      status: payment.status,
+      paymentMethod: payment.paymentMethod,
+      paidAt: payment.paidAt ?? null,
+    };
+  }
+
+  if (safe.service) {
+    const service = { ...safe.service };
+    for (const field of PROVIDER_HIDDEN_SERVICE_PRICE_FIELDS) delete service[field];
+    safe.service = service;
+  }
+
+  safe.providerFinancials = providerFinancials ?? null;
+  return safe;
+}
+
 // Appointment idempotency TTL: 10 minutes. Keys are stored in the DB
 // (idempotency_keys table) so they survive restarts and work across instances.
 import { registerAppointmentWaitlistRoutes } from "./appointment-waitlist.routes";
@@ -162,8 +265,11 @@ export function registerAppointmentRoutes(app: Express): void {
       const t1 = Date.now();
       if (!provider) return res.status(404).json({ message: "Provider not found" });
       const appointments = await storage.getAppointmentsByProvider(provider.id);
+      const financials = await getProviderFinancialSnapshots(appointments.map((appointment) => appointment.id));
       const t2 = Date.now();
-      res.json(appointments);
+      res.json(appointments.map((appointment) =>
+        toProviderAppointmentView(appointment as any, financials.get(appointment.id)),
+      ));
       const t3 = Date.now();
       if (t3 - t0 > 1000) {
         console.warn(
@@ -253,8 +359,15 @@ export function registerAppointmentRoutes(app: Express): void {
         }
       }
 
+      const responseAppointment = role === "provider"
+        ? toProviderAppointmentView(
+            appointment as any,
+            (await getProviderFinancialSnapshots([appointment.id])).get(appointment.id),
+          )
+        : appointment;
+
       res.json({
-        ...appointment,
+        ...responseAppointment,
         invoiceId,
         hasReview,
         ...(signOffCode ? { signOffCode } : {}),
