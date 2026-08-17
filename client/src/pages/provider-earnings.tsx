@@ -31,16 +31,11 @@ interface RichEarning {
   id: string;
   providerId: string;
   appointmentId: string;
-  totalAmount: string;
-  platformFee: string;
-  /** Legacy database column; never use as a financial source of truth. */
-  providerEarning: string;
   status: string;
   paidAt: string | null;
   paidByUserId: string | null;
   payoutReference: string | null;
   displayCurrency: string | null;
-  displayAmount: string | null;
   exchangeRateUsed: string | null;
   createdAt: string;
   // appointment context
@@ -50,28 +45,23 @@ interface RichEarning {
   appointmentNumber: string | null;
   appointmentStatus: string | null;
   paymentStatus: string | null;
-  promoCode: string | null;
-  promoDiscount: string | null;
-  taxAmount: string | null;
   refundStatus: string | null;
-  refundAmount: string | null;
   cancelledBy: string | null;
   cancelledAt: string | null;
-  servicePriceSnapshot: string | null;
-  pricingBreakdown: Record<string, unknown> | null;
   countryCode: string | null;
-  appointmentPlatformFee: string | null;
   paymentMethod: string | null;
+  providerGrossEarningsUsd: string | null;
+  providerGrossEarningsLocal: string | null;
+  providerGrossEarningsSnapshot: string | null;
+  providerCommissionLocal: string | null;
+  providerNetEarningsSnapshot: string | null;
   grossProviderPayoutUsd: string | null;
   settlementAmountUsd: string | null;
   providerNetEarningsUsd: string | null;
   providerNetEarningsLocal: string | null;
-  serviceEarningsAmountUsd: string | null;
-  taxPassThroughAmountUsd: string | null;
+  serviceTaxAmountUsd: string | null;
   cashPlatformFeeDeductionUsd: string | null;
   cashPlatformFeeAppliedUsd: string | null;
-  /** Booking-currency patient total from appointments.total_amount (HUF/IRR/USD). */
-  appointmentTotalAmount: string | null;
   serviceName: string | null;
   patientFirstName: string | null;
   patientLastName: string | null;
@@ -84,8 +74,6 @@ interface EarningsPayload {
     pendingAmount: string;
     paidAmount: string;
     grossProviderPayout?: string;
-    platformRevenue: string;
-    totalPlatformRevenue?: string;
     count: number;
   };
 }
@@ -137,131 +125,53 @@ function visitBadge(type: string | null) {
 }
 
 type EarningDisplay = {
-  patientPaid: number;
-  patientPlatformFee: number;
+  providerGross: number;
   providerCommission: number;
-  serviceNet: number;
-  taxPassThrough: number;
-  grossPayout: number;
+  providerNet: number;
   offlineFee: number;
-  netPayout: number;
-  refundAmt: number;
+  settlement: number;
   fmtPay: (n: number) => string;
 };
 
-/** Resolve the provider-facing settlement waterfall in one display currency. */
+/** Resolve only provider-owned settlement values in one display currency. */
 function resolveEarningDisplay(
   e: RichEarning,
   fmtUsd: (n: number) => string,
 ): EarningDisplay {
-  const pb = e.pricingBreakdown as any;
   const displayCurrency = e.displayCurrency ?? "USD";
-  const hasLocal = displayCurrency !== "USD" &&
-    e.appointmentTotalAmount != null && Number(e.appointmentTotalAmount) > 0;
-  // exchangeRateUsed is USD per booking-currency unit (for example 1/365).
+  const localGross = Number(e.providerGrossEarningsLocal ?? e.providerGrossEarningsSnapshot ?? 0);
+  const localCommission = Number(e.providerCommissionLocal ?? 0);
+  const localNet = Number(e.providerNetEarningsLocal ?? e.providerNetEarningsSnapshot ?? 0);
+  const hasLocal = displayCurrency !== "USD" && (localGross > 0 || localNet > 0);
   const usdToLocal = Number(e.exchangeRateUsed ?? 0) > 0
     ? 1 / Number(e.exchangeRateUsed)
     : 1;
   const toDisplay = (usd: number) => hasLocal ? usd * usdToLocal : usd;
-  const fromBooking = (local: number) => hasLocal
-    ? local
-    : local * Number(e.exchangeRateUsed || 1);
-  const providerNetUsd = Number(e.providerNetEarningsUsd ?? 0);
-  const serviceNetUsd = Number(e.serviceEarningsAmountUsd ?? 0) > 0
-    ? Number(e.serviceEarningsAmountUsd)
-    : Math.max(0, providerNetUsd - Number(e.taxPassThroughAmountUsd ?? 0));
-  const taxUsd = Number(e.taxPassThroughAmountUsd ?? 0) > 0
-    ? Number(e.taxPassThroughAmountUsd)
-    : fromBooking(Number(e.taxAmount ?? 0));
-  const providerCommissionUsd = hasLocal
-    ? fromBooking(Number(e.platformFee ?? 0))
-    : Number(e.platformFee ?? 0);
-  const patientFee = Number(e.appointmentPlatformFee ?? 0);
-  const grossUsd = Number(e.grossProviderPayoutUsd ?? 0) > 0
-    ? Number(e.grossProviderPayoutUsd)
-    : serviceNetUsd + taxUsd;
-  const offlineFeeUsd = Number(e.cashPlatformFeeDeductionUsd ?? 0) > 0
-    ? Number(e.cashPlatformFeeDeductionUsd)
-    : ["cash", "bank_transfer"].includes(e.paymentMethod ?? "")
-      ? fromBooking(patientFee)
-      : 0;
-  // A persisted zero is meaningful for pending cash/bank-transfer rows:
-  // provider earnings exist, but no platform settlement has occurred.
-  const netUsd = e.settlementAmountUsd != null
-    ? Number(e.settlementAmountUsd)
-    : Math.max(0, grossUsd - offlineFeeUsd);
-  // Service net and tax are both present in the original booking-currency
-  // snapshot. Prefer those values for the provider-facing waterfall:
-  // converting rounded USD settlement snapshots back into HUF/IRR can turn
-  // exact booking values such as 960 Ft and 270 Ft into 959 Ft and 271 Ft.
-  const localServiceNet = toDisplay(serviceNetUsd);
-  const localTax = hasLocal ? Number(e.taxAmount ?? 0) : toDisplay(taxUsd);
+  const grossUsd = Number(e.providerGrossEarningsUsd ?? e.grossProviderPayoutUsd ?? 0);
+  const netUsd = Number(e.providerNetEarningsUsd ?? e.grossProviderPayoutUsd ?? 0);
+  const commissionUsd = Math.max(0, grossUsd - netUsd);
+  const offlineFeeUsd = Number(e.cashPlatformFeeDeductionUsd ?? 0);
+  const settlementUsd = e.settlementAmountUsd == null ? netUsd : Number(e.settlementAmountUsd);
 
   return {
-    patientPaid: hasLocal ? Number(e.appointmentTotalAmount) : Number(e.totalAmount ?? 0),
-    patientPlatformFee: hasLocal ? patientFee : fromBooking(patientFee),
-    providerCommission: toDisplay(providerCommissionUsd),
-    serviceNet: localServiceNet,
-    taxPassThrough: localTax,
-    grossPayout: toDisplay(grossUsd),
+    providerGross: hasLocal && localGross > 0 ? localGross : toDisplay(grossUsd),
+    providerCommission: hasLocal && localCommission > 0 ? localCommission : toDisplay(commissionUsd),
+    providerNet: hasLocal && localNet > 0 ? localNet : toDisplay(netUsd),
     offlineFee: toDisplay(offlineFeeUsd),
-    netPayout: toDisplay(netUsd),
-    refundAmt: hasLocal ? toDisplay(Number(e.refundAmount ?? 0)) : Number(e.refundAmount ?? 0),
+    settlement: toDisplay(settlementUsd),
     fmtPay: hasLocal ? (n: number) => formatInCurrency(n, displayCurrency) : fmtUsd,
   };
 }
 
 function EarningBreakdownRow({ e, fmt }: { e: RichEarning; fmt: (n: number) => string }) {
-  const displayCur = e.displayCurrency ?? "USD";
-  const fmtLocal = (n: number) => formatInCurrency(n, displayCur);
-
-  const pb = e.pricingBreakdown as any;
-  const hasPB = pb != null && typeof pb === "object" && Number(pb.providerEarnings ?? 0) > 0;
-
-  // Booking-currency amounts from appointments snapshot columns
-  const base  = Number(e.servicePriceSnapshot ?? 0);
-  const promo = Number(e.promoDiscount ?? 0);
-  const tax   = Number(e.taxAmount ?? 0);
-
-  // Commission deducted from provider's share (from revenue engine, in booking currency).
-  // commissionRate is stored as a whole-number percentage (e.g. 4 = 4%), NOT a decimal,
-  // so we must NOT multiply by 100 — doing so produces 400%.
-  const commissionAmt  = hasPB ? Number(pb.commissionAmount ?? 0) : 0;
-  const commissionRate = hasPB && pb.commissionRate != null
-    ? Math.round(Number(pb.commissionRate))
-    : null;
-
-  // Platform fee charged TO the patient (not the commission) — in booking currency
-  const apptPlatformFee = Number(e.appointmentPlatformFee ?? 0);
-
-  // Resolved totals — uses pricingBreakdown snapshot when available (see resolveEarningDisplay)
   const {
-    patientPaid,
-    patientPlatformFee,
+    providerGross,
     providerCommission,
-    serviceNet,
-    taxPassThrough,
-    grossPayout,
+    providerNet,
     offlineFee,
-    netPayout,
-    refundAmt,
+    settlement,
     fmtPay,
   } = resolveEarningDisplay(e, fmt);
-
-  // Payment method surcharge or discount (e.g. cash discount, Stripe surcharge) in booking currency.
-  // Stored on pricingBreakdown.paymentSurcharge by the revenue engine.
-  const paymentSurcharge = Number(pb?.paymentSurcharge ?? 0);
-
-  // Pricing detail lines (patient-facing breakdown from booking snapshot)
-  const rawPricingLines = pb?.lines as Array<{ label: string; amount: number }> | undefined;
-  const pricingLines = rawPricingLines?.map((l) =>
-    /platform\s*fee/i.test(l.label) && l.amount === 0 && apptPlatformFee > 0
-      ? { ...l, amount: apptPlatformFee }
-      : l,
-  );
-
-  // Exact commission is stored in booking currency in the pricing snapshot.
-  const showCommissionAmt = commissionAmt > 0 ? commissionAmt : providerCommission;
 
   return (
     <TableRow className="bg-muted/20 hover:bg-muted/30">
@@ -275,121 +185,32 @@ function EarningBreakdownRow({ e, fmt }: { e: RichEarning; fmt: (n: number) => s
                 Earnings Breakdown
               </p>
               <div className="space-y-1 text-sm">
-                {/* Service price */}
-                {base > 0 && (
-                  <div className="flex justify-between gap-4">
-                    <span className="text-muted-foreground">Service price</span>
-                    <span className="tabular-nums font-medium">{fmtLocal(base)}</span>
-                  </div>
-                )}
-                {/* Promo discount off service price */}
-                {promo > 0 && (
-                  <div className="flex justify-between gap-4 pl-3">
-                    <span className="text-muted-foreground">
-                      Promo discount{e.promoCode ? ` (${e.promoCode})` : ""}
-                    </span>
-                    <span className="tabular-nums font-medium text-amber-600">−{fmtLocal(promo)}</span>
-                  </div>
-                )}
-                {/* Platform commission deducted from provider's service revenue */}
-                {showCommissionAmt > 0 && (
-                  <div className="flex justify-between gap-4 pl-3">
-                    <span className="text-muted-foreground">
-                      Platform commission{commissionRate != null ? ` (${commissionRate}%)` : ""}
-                    </span>
-                    <span className="tabular-nums font-medium text-orange-600">−{fmtPay(showCommissionAmt)}</span>
-                  </div>
-                )}
-                {/* Provider service net */}
-                <div className="flex justify-between gap-4 border-t pt-1 mt-1 font-bold text-emerald-700 dark:text-emerald-400">
-                  <span>Provider service net</span>
-                  <span className="tabular-nums">{fmtPay(serviceNet)}</span>
+                <div className="flex justify-between gap-4">
+                  <span className="text-muted-foreground">Provider gross earnings</span>
+                  <span className="tabular-nums font-medium">{fmtPay(providerGross)}</span>
                 </div>
-                {taxPassThrough > 0 && (
-                  <div className="flex justify-between gap-4">
-                    <span className="text-muted-foreground">Patient tax passed through</span>
-                    <span className="tabular-nums">{fmtPay(taxPassThrough)}</span>
+                {providerCommission > 0 && (
+                  <div className="flex justify-between gap-4 pl-3">
+                    <span className="text-muted-foreground">Provider-side commission</span>
+                    <span className="tabular-nums font-medium text-orange-600">−{fmtPay(providerCommission)}</span>
                   </div>
                 )}
-                <div className="flex justify-between gap-4 font-semibold">
-                  <span>Gross provider payout</span>
-                  <span className="tabular-nums">{fmtPay(grossPayout)}</span>
+                <div className="flex justify-between gap-4 border-t pt-1 mt-1 font-bold text-emerald-700 dark:text-emerald-400">
+                  <span>Provider net earnings</span>
+                  <span className="tabular-nums">{fmtPay(providerNet)}</span>
                 </div>
                 {offlineFee > 0 && (
                   <div className="flex justify-between gap-4 text-orange-600">
-                    <span>Offline payment fee</span>
+                    <span>Provider settlement deduction</span>
                     <span className="tabular-nums font-medium">−{fmtPay(offlineFee)}</span>
                   </div>
                 )}
                 <div className="flex justify-between gap-4 border-t pt-1 mt-1 font-bold text-emerald-700 dark:text-emerald-400">
-                  <span>Actual net payout</span>
-                  <span className="tabular-nums">{fmtPay(netPayout)}</span>
-                </div>
-                {/* Refund (if any) */}
-                {refundAmt > 0 && (
-                  <div className="flex justify-between gap-4 text-red-600">
-                    <span>Refund issued</span>
-                    <span className="tabular-nums font-medium">−{fmtPay(refundAmt)}</span>
-                  </div>
-                )}
-
-                {/* Patient payment context */}
-                <div className="border-t pt-2 mt-2 space-y-1">
-                  <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">
-                    Patient payment
-                  </p>
-                  {patientPlatformFee > 0 && (
-                    <div className="flex justify-between gap-4">
-                      <span className="text-muted-foreground">Platform fee (billed to patient)</span>
-                      <span className="tabular-nums text-muted-foreground">{fmtPay(patientPlatformFee)}</span>
-                    </div>
-                  )}
-                  {tax > 0 && (
-                    <div className="flex justify-between gap-4">
-                      <span className="text-muted-foreground">Patient tax</span>
-                      <span className="tabular-nums text-muted-foreground">{fmtLocal(tax)}</span>
-                    </div>
-                  )}
-                  {paymentSurcharge !== 0 && (
-                    <div className="flex justify-between gap-4">
-                      <span className="text-muted-foreground">
-                        {paymentSurcharge > 0 ? "Payment surcharge" : "Payment discount"}
-                      </span>
-                      <span className={`tabular-nums text-muted-foreground ${paymentSurcharge < 0 ? "text-emerald-600 dark:text-emerald-400" : ""}`}>
-                        {paymentSurcharge > 0 ? "+" : "−"}{fmtLocal(Math.abs(paymentSurcharge))}
-                      </span>
-                    </div>
-                  )}
-                  <div className="flex justify-between gap-4 font-semibold">
-                    <span>Patient paid total</span>
-                    <span className="tabular-nums">{fmtPay(patientPaid)}</span>
-                  </div>
-                  {providerCommission > 0 && (
-                    <div className="flex justify-between gap-4 text-[11px] text-muted-foreground">
-                      <span>Provider commission</span>
-                      <span className="tabular-nums">{fmtPay(providerCommission)}</span>
-                    </div>
-                  )}
+                  <span>Settlement</span>
+                  <span className="tabular-nums">{fmtPay(settlement)}</span>
                 </div>
               </div>
             </div>
-
-            {/* RIGHT: Patient-facing booking price detail */}
-            {pricingLines && pricingLines.length > 0 && (
-              <div>
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
-                  Booking price detail
-                </p>
-                <div className="space-y-1 text-sm">
-                  {pricingLines.map((l, i) => (
-                    <div key={i} className="flex justify-between gap-4">
-                      <span className="text-muted-foreground">{l.label}</span>
-                      <span className="tabular-nums">{fmtLocal(l.amount)}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
 
             {/* Appointment metadata */}
             <div className="sm:col-span-2 grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs text-muted-foreground border-t pt-2">
@@ -677,9 +498,8 @@ export default function ProviderEarnings() {
                   </TooltipTrigger>
                   <TooltipContent side="left" className="max-w-xs text-xs">
                     <p className="font-semibold mb-1">How your earnings are calculated:</p>
-                    <p>Service Price − Promo Discount = Subtotal</p>
-                    <p>Provider service net + Patient tax passed through − Offline payment fee = <span className="font-semibold">Actual net payout</span></p>
-                    <p className="mt-1 text-muted-foreground">The patient platform fee and provider commission are shown separately as platform revenue.</p>
+                    <p>Provider gross earnings − provider-side commission = provider net earnings.</p>
+                    <p>Offline settlement deductions, when applicable, are shown separately before the final settlement amount.</p>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
@@ -707,16 +527,16 @@ export default function ProviderEarnings() {
                       <TableHead>Service</TableHead>
                       <TableHead className="hidden md:table-cell">Patient</TableHead>
                       <TableHead className="hidden sm:table-cell">Type</TableHead>
-                      <TableHead className="text-right">Patient paid</TableHead>
-                      <TableHead className="text-right hidden sm:table-cell">Platform revenue</TableHead>
-                      <TableHead className="text-right">Net payout</TableHead>
+                      <TableHead className="text-right">Provider gross</TableHead>
+                      <TableHead className="text-right hidden sm:table-cell">Provider deduction</TableHead>
+                      <TableHead className="text-right">Settlement</TableHead>
                       <TableHead className="w-[130px]">Payment status</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {filteredEarnings.map((e) => {
                       const expanded = expandedId === e.id;
-                      const hasRefund = e.refundStatus && e.refundStatus !== "none" && Number(e.refundAmount ?? 0) > 0;
+                      const hasRefund = e.refundStatus && e.refundStatus !== "none";
                       return (
                         <>
                           <TableRow
@@ -750,24 +570,18 @@ export default function ProviderEarnings() {
                               {visitBadge(e.visitType)}
                             </TableCell>
                             {(() => {
-                              const { patientPaid, patientPlatformFee, providerCommission, netPayout, fmtPay } =
+                              const { providerGross, providerCommission, settlement, fmtPay } =
                                 resolveEarningDisplay(e, fmtMoney);
-                              const platformRevenue = patientPlatformFee + providerCommission;
                               return (
                                 <>
                                   <TableCell className="text-right tabular-nums text-sm">
-                                    {fmtPay(patientPaid)}
-                                    {Number(e.promoDiscount ?? 0) > 0 && (
-                                      <div className="text-[10px] text-amber-600">
-                                        −{formatInCurrency(Number(e.promoDiscount), e.displayCurrency ?? "USD")} promo
-                                      </div>
-                                    )}
+                                    {fmtPay(providerGross)}
                                   </TableCell>
                                   <TableCell className="text-right tabular-nums text-sm text-muted-foreground hidden sm:table-cell">
-                                    {fmtPay(platformRevenue)}
+                                    {providerCommission > 0 ? `−${fmtPay(providerCommission)}` : "—"}
                                   </TableCell>
                                   <TableCell className="text-right tabular-nums font-semibold text-emerald-700 dark:text-emerald-400" data-testid={`text-earning-amount-${e.id}`}>
-                                    {fmtPay(netPayout)}
+                                    {fmtPay(settlement)}
                                   </TableCell>
                                 </>
                               );
@@ -822,8 +636,8 @@ export default function ProviderEarnings() {
                 <ReceiptText className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
                 <div className="text-xs text-muted-foreground space-y-0.5">
                   <p className="font-medium text-foreground">How your earnings are calculated</p>
-                  <p>Provider service net + Patient tax passed through − Offline payment fee = <span className="text-emerald-700 dark:text-emerald-400 font-semibold">Actual net payout</span></p>
-                  <p>Patient platform fee and provider commission are shown separately as platform revenue. All values are stored in USD and displayed in your local currency.</p>
+                  <p>Provider gross earnings − provider-side deductions = provider net earnings and settlement.</p>
+                  <p>Patient totals, platform fees, taxes, surcharges, and booking price lines are not included in provider earnings.</p>
                 </div>
               </div>
             </CardContent>

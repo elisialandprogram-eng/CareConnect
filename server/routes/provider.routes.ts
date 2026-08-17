@@ -989,11 +989,12 @@ export function registerProviderRoutes(app: Express): void {
         // 1. Revenue per ISO week, last 12 weeks (completed only)
         weekRevRows = await _ic.query<{ week_start: string; revenue: string; count: string }>(
           `SELECT DATE_TRUNC('week', date::date)::date AS week_start,
-                  COALESCE(SUM(total_amount::numeric), 0) AS revenue,
+                  COALESCE(SUM(pe.provider_net_earnings_amount_usd::numeric), 0) AS revenue,
                   COUNT(*) AS count
-           FROM appointments
-           WHERE provider_id = $1 AND status = 'completed'
-             AND date::date >= CURRENT_DATE - INTERVAL '12 weeks'
+           FROM appointments a
+           LEFT JOIN provider_earnings pe ON pe.appointment_id = a.id
+           WHERE a.provider_id = $1 AND a.status = 'completed'
+            AND a.date::date >= CURRENT_DATE - INTERVAL '12 weeks'
            GROUP BY week_start ORDER BY week_start`,
           [pid],
         );
@@ -1029,9 +1030,8 @@ export function registerProviderRoutes(app: Express): void {
           [pid],
         );
         // 5. Repeat patients (≥ 2 completed appointments, all time)
-        repeatRows = await _ic.query<{ patient_id: string; visit_count: string; last_visit: string; total_spend: string; first_name: string; last_name: string }>(
+        repeatRows = await _ic.query<{ patient_id: string; visit_count: string; last_visit: string; first_name: string; last_name: string }>(
           `SELECT a.patient_id, COUNT(*) AS visit_count, MAX(a.date) AS last_visit,
-                  COALESCE(SUM(a.total_amount::numeric), 0) AS total_spend,
                   MAX(u.first_name) AS first_name, MAX(u.last_name) AS last_name
            FROM appointments a
            JOIN users u ON u.id = a.patient_id
@@ -1088,7 +1088,6 @@ export function registerProviderRoutes(app: Express): void {
         name: `${r.first_name} ${r.last_name}`,
         visitCount: Number(r.visit_count),
         lastVisit: String(r.last_visit).slice(0, 10),
-        totalSpend: Number(r.total_spend),
       }));
 
       const insightsCancellationRate = totalBookings > 0 ? Math.round((cancelledCnt / totalBookings) * 100) : 0;
@@ -1160,9 +1159,10 @@ export function registerProviderRoutes(app: Express): void {
         svcRows = await _ac.query<{ service_name: string; bookings: string; revenue: string; avg_rating: string }>(
           `SELECT COALESCE(s.name, 'Other') AS service_name,
                   COUNT(*) AS bookings,
-                  COALESCE(SUM(a.total_amount::numeric), 0) AS revenue,
+                  COALESCE(SUM(pe.provider_net_earnings_amount_usd::numeric), 0) AS revenue,
                   COALESCE(AVG(r.rating), 0) AS avg_rating
            FROM appointments a
+           LEFT JOIN provider_earnings pe ON pe.appointment_id = a.id
            LEFT JOIN services s ON s.id = a.service_id
            LEFT JOIN reviews r ON r.appointment_id = a.id
            WHERE a.provider_id = $1 AND a.status = 'completed'
@@ -1181,13 +1181,14 @@ export function registerProviderRoutes(app: Express): void {
         // 3. Monthly trend — last 12 months (completed + cancelled + no_show)
         monthRows = await _ac.query<{ month: string; revenue: string; bookings: string; cancellations: string; no_shows: string }>(
           `SELECT TO_CHAR(DATE_TRUNC('month', date::date), 'Mon YY') AS month,
-                  COALESCE(SUM(total_amount::numeric) FILTER (WHERE status = 'completed'), 0) AS revenue,
-                  COUNT(*) FILTER (WHERE status = 'completed') AS bookings,
-                  COUNT(*) FILTER (WHERE status IN ('cancelled','cancelled_by_patient','cancelled_by_provider','rejected','expired')) AS cancellations,
-                  COUNT(*) FILTER (WHERE status = 'no_show') AS no_shows
-           FROM appointments
-           WHERE provider_id = $1
-             AND date::date >= CURRENT_DATE - INTERVAL '12 months'
+                  COALESCE(SUM(pe.provider_net_earnings_amount_usd::numeric) FILTER (WHERE a.status = 'completed'), 0) AS revenue,
+                  COUNT(*) FILTER (WHERE a.status = 'completed') AS bookings,
+                  COUNT(*) FILTER (WHERE a.status IN ('cancelled','cancelled_by_patient','cancelled_by_provider','rejected','expired')) AS cancellations,
+                  COUNT(*) FILTER (WHERE a.status = 'no_show') AS no_shows
+           FROM appointments a
+           LEFT JOIN provider_earnings pe ON pe.appointment_id = a.id
+           WHERE a.provider_id = $1
+             AND a.date::date >= CURRENT_DATE - INTERVAL '12 months'
            GROUP BY DATE_TRUNC('month', date::date)
            ORDER BY DATE_TRUNC('month', date::date)`,
           [pid],

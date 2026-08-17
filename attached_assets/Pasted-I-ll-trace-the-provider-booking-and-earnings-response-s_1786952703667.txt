@@ -1,0 +1,92 @@
+I’ll trace the provider booking and earnings response shapes first, then remove patient/platform financial fields at the provider boundary and switch appointment details to the stored booking snapshot. I’ll preserve the revenue engine and patient-facing flows, then run only the requested type-check, build, and focused financial tests.
+
+Show less
+
+Searched for "appointments/provider|p…"
+
+Searched for "getAppointmentsByProvid…"
+
+Processed text
+
+Processed text
+
+Implementing appointment response
+
+Implementing appointment response
+
+Opened appointment.routes.ts
+
+Opened database-storage.ts
+
+Opened provider-wallet-payouts.routes.ts
+
+Opened appointment.routes.ts
+
+Identifying provider details
+
+Identifying provider details
+
+Opened appointment.routes.ts
+
+Opened appointment.routes.ts
+
+Calculating provider details
+
+Calculating provider details
+
+Searching appointment schemas
+
+Searching appointment schemas
+
+Searched for "providerNetEarningsSnap…"
+
+Searched for "appointment-details|/ap…"
+
+Opened appointment-details.tsx
+
+Searched for "provider_earnings.*CREA…"
+
+Inspecting financial details
+
+Inspecting financial details
+
+Opened ProviderAppointmentsTabs.tsx
+
+Searched for "get.*Earning|provider_e…"
+
+Removing unnecessary financial data
+
+Removing unnecessary financial data
+
+Checking schema compatibility
+
+Checking schema compatibility
+
+Searched for "providerGrossEarningsSn…"
+
+Searched for "provider.*email|to:.*pr…"
+
+Processed text
+
+Searched for "platformRevenue|totalPl…"
+
+Searched for "getEarningsSummary\("
+
+Searched for "earnings/export|CSV|pla…"
+
+Opened provider-wallet-payouts.routes.ts
+
+Opened appointment-details.tsx
+
+Focusing on current priorities
+
+Focusing on current priorities
+
+The audit found the main leak points: provider appointment APIs return the full appointment/payment/service pricing objects, provider earnings returns patient totals and pricing lines, and the CSV export includes patient price columns. I’ll replace these with a small provider-only financial summary and leave the patient API unchanged.
+
+Show less
+
+Edited appointment.routes.ts
+
+Edited appointment.routes.ts
+

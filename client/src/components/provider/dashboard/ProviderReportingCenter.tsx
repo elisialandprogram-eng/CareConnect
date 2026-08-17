@@ -39,7 +39,7 @@ interface InsightsData {
     totalBookings: number;
   };
   popularServices: { name: string; count: number }[];
-  repeatPatients: { patientId: string; name: string; visitCount: number; lastVisit: string; totalSpend: number }[];
+  repeatPatients: { patientId: string; name: string; visitCount: number; lastVisit: string }[];
   growthTips: string[];
 }
 
@@ -51,7 +51,6 @@ interface EarningsData {
     pendingAmount?: number;
     paidEarnings: number;
     grossProviderPayout?: number;
-    platformRevenue: number;
   };
 }
 
@@ -289,7 +288,6 @@ function PatientsTab({ insights, fmtMoney }: { insights?: InsightsData; fmtMoney
                   </div>
                   <div className="text-right shrink-0 flex items-center gap-3">
                     <Badge variant="secondary">{p.visitCount} visits</Badge>
-                    <span className="text-emerald-600 font-medium text-xs">{fmtMoney(p.totalSpend)}</span>
                   </div>
                 </div>
               ))}
@@ -565,7 +563,6 @@ function FinancialsTab({ fmtMoney, enabled }: { fmtMoney: (v: number) => string;
     <div className="space-y-6">
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <KpiCard icon={DollarSign} label="Actual Net Payout" value={fmtMoney(s.totalEarnings ?? 0)} color="text-emerald-600" />
-        <KpiCard icon={Activity} label="Platform Revenue" value={fmtMoney(s.platformRevenue ?? 0)} color="text-rose-600" />
         <KpiCard icon={TrendingUp} label="Gross Provider Payout" value={fmtMoney(s.grossProviderPayout ?? s.totalEarnings ?? 0)} color="text-blue-600" />
         <KpiCard icon={Clock} label="Pending Net Payout" value={fmtMoney(s.pendingAmount ?? s.pendingEarnings ?? 0)} sub="not yet paid" color="text-amber-600" />
       </div>
@@ -750,7 +747,7 @@ function ExportsTab({ fmtMoney }: { fmtMoney: (v: number) => string }) {
         <CardContent className="p-4 flex items-center justify-between gap-4">
           <div>
             <p className="text-sm font-medium">Earnings CSV</p>
-            <p className="text-xs text-muted-foreground mt-0.5">Full earnings history with service, patient, platform fee, and net earning columns.</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Provider-only earnings and settlement columns.</p>
           </div>
           <a href="/api/provider/earnings/export" download data-testid="export-provider-earnings-csv">
             <Button size="sm" variant="outline" className="gap-1.5 shrink-0">

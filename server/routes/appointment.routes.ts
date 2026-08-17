@@ -113,6 +113,7 @@ const PROVIDER_HIDDEN_FINANCIAL_FIELDS = [
   "platformFeeAmount",
   "servicePriceSnapshot",
   "promoDiscount",
+  "promoCode",
   "packageDiscountAmount",
   "taxAmount",
   "serviceTaxAmount",
@@ -175,7 +176,7 @@ async function getProviderFinancialSnapshots(
         ? null
         : Number(row.provider_net_earnings_amount_usd),
       providerNetEarningsDisplay: row.provider_net_earnings_amount_local == null
-        ? null
+        ? (row.provider_net_earnings_snapshot == null ? null : Number(row.provider_net_earnings_snapshot))
         : Number(row.provider_net_earnings_amount_local),
       earningStatus: row.earning_status ?? null,
     });

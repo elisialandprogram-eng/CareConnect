@@ -101,7 +101,7 @@ interface InsightsData {
     totalBookings: number;
   };
   popularServices: { name: string; count: number }[];
-  repeatPatients: { patientId: string; name: string; visitCount: number; lastVisit: string; totalSpend: number }[];
+  repeatPatients: { patientId: string; name: string; visitCount: number; lastVisit: string }[];
   growthTips?: string[];
 }
 
@@ -258,10 +258,7 @@ function ProviderInsightsTab({ data, fmtMoney }: { data: InsightsData; fmtMoney:
                     <span className="font-medium text-sm">{p.name}</span>
                     <span className="text-xs text-muted-foreground ml-2">· {p.visitCount} visits</span>
                   </div>
-                  <div className="text-right">
-                    <div className="text-xs text-muted-foreground">Last: {p.lastVisit}</div>
-                    <div className="text-sm font-medium">{fmtMoney(p.totalSpend)}</div>
-                  </div>
+                  <div className="text-right text-xs text-muted-foreground">Last: {p.lastVisit}</div>
                 </div>
               ))}
             </div>
@@ -356,15 +353,17 @@ export default function ProviderDashboard() {
     queryKey: QK.providerMe(),
   });
 
-  // appointment.totalAmount is in the provider's booking currency (HUF/IRR/USD), NOT USD.
-  // fmtMoney (useCurrency) converts FROM USD — using it on booking-currency amounts
-  // double-converts for HUF/IRR providers. Use fmtEarnings (formatInCurrency, no
-  // conversion) for all analytics/earnings values that originate from appointment.totalAmount.
+  // Provider appointment APIs intentionally omit patient totals. Analytics use
+  // the immutable provider settlement snapshot attached to each appointment.
   const providerNativeCurrency =
     providerData?.countryCode === "IR" ? "IRR" :
     providerData?.countryCode === "HU" ? "HUF" :
     "USD";
   const fmtEarnings = (n: number) => formatInCurrency(n, providerNativeCurrency);
+  const providerNetForAppointment = (appointment: any) =>
+    Number(appointment.providerFinancials?.providerNetEarningsDisplay
+      ?? appointment.providerFinancials?.providerNetEarningsLocal
+      ?? 0);
 
   const appointmentTabs = new Set(["upcoming", "active", "history", "calendar", "analytics"]);
   const { data: appointments, isLoading: isLoadingAppointments } = useQuery<AppointmentWithDetails[]>({
@@ -469,17 +468,15 @@ export default function ProviderDashboard() {
   const uniquePatientCount = new Set(allAppointments.map((a) => a.patientId)).size;
 
   const uniqueClients = useMemo(() => {
-    const map = new Map<string, { patientId: string; name: string; avatarUrl?: string | null; visitCount: number; lastVisit: string; totalSpend: number }>();
+    const map = new Map<string, { patientId: string; name: string; avatarUrl?: string | null; visitCount: number; lastVisit: string }>();
     for (const a of allAppointments) {
       const patient = (a as any).patient;
       const pid = a.patientId;
       if (!pid) continue;
       const existing = map.get(pid);
-      const spend = a.status === "completed" ? Number((a as any).totalAmount || 0) : 0;
       if (existing) {
         existing.visitCount++;
         if (a.date > existing.lastVisit) existing.lastVisit = a.date;
-        existing.totalSpend += spend;
       } else {
         map.set(pid, {
           patientId: pid,
@@ -487,22 +484,21 @@ export default function ProviderDashboard() {
           avatarUrl: patient?.avatarUrl,
           visitCount: 1,
           lastVisit: a.date,
-          totalSpend: spend,
         });
       }
     }
     return Array.from(map.values()).sort((a, b) => b.visitCount - a.visitCount);
   }, [allAppointments]);
   const pendingCount = allAppointments.filter((a) => a.status === "pending").length;
-  const totalEarnings = completedAppointments.reduce((s, a) => s + Number((a as any).totalAmount ?? (a as any).total_amount ?? 0), 0);
+  const totalEarnings = completedAppointments.reduce((s, a) => s + providerNetForAppointment(a), 0);
   const now = new Date();
   const weekAgo = new Date(now); weekAgo.setDate(weekAgo.getDate() - 7);
   const monthAgo = new Date(now); monthAgo.setDate(monthAgo.getDate() - 30);
   const prevMonthAgo = new Date(now); prevMonthAgo.setDate(prevMonthAgo.getDate() - 60);
-  const weeklyEarnings = completedAppointments.filter((a) => a.date >= weekAgo.toISOString().slice(0, 10)).reduce((s, a) => s + Number((a as any).totalAmount ?? (a as any).total_amount ?? 0), 0);
-  const monthlyEarnings = completedAppointments.filter((a) => a.date >= monthAgo.toISOString().slice(0, 10)).reduce((s, a) => s + Number((a as any).totalAmount ?? (a as any).total_amount ?? 0), 0);
-  const prevMonthEarnings = completedAppointments.filter((a) => a.date >= prevMonthAgo.toISOString().slice(0, 10) && a.date < monthAgo.toISOString().slice(0, 10)).reduce((s, a) => s + Number((a as any).totalAmount ?? (a as any).total_amount ?? 0), 0);
-  const todayEarnings = completedAppointments.filter((a) => a.date === todayStr).reduce((s, a) => s + Number((a as any).totalAmount ?? (a as any).total_amount ?? 0), 0);
+  const weeklyEarnings = completedAppointments.filter((a) => a.date >= weekAgo.toISOString().slice(0, 10)).reduce((s, a) => s + providerNetForAppointment(a), 0);
+  const monthlyEarnings = completedAppointments.filter((a) => a.date >= monthAgo.toISOString().slice(0, 10)).reduce((s, a) => s + providerNetForAppointment(a), 0);
+  const prevMonthEarnings = completedAppointments.filter((a) => a.date >= prevMonthAgo.toISOString().slice(0, 10) && a.date < monthAgo.toISOString().slice(0, 10)).reduce((s, a) => s + providerNetForAppointment(a), 0);
+  const todayEarnings = completedAppointments.filter((a) => a.date === todayStr).reduce((s, a) => s + providerNetForAppointment(a), 0);
   const avgPerBooking = completedAppointments.length > 0 ? totalEarnings / completedAppointments.length : 0;
   const monthlyGrowthPct = prevMonthEarnings > 0 ? ((monthlyEarnings - prevMonthEarnings) / prevMonthEarnings) * 100 : 0;
   const completionRate = allAppointments.length > 0 ? Math.round((completedAppointments.length / allAppointments.length) * 100) : 0;
@@ -520,7 +516,7 @@ export default function ProviderDashboard() {
       const d = new Date(now);
       d.setDate(d.getDate() - i);
       const key = d.toISOString().slice(0, 10);
-      data.push({ v: completedAppointments.filter((a) => a.date === key).reduce((s, a) => s + Number((a as any).totalAmount || 0), 0) });
+      data.push({ v: completedAppointments.filter((a) => a.date === key).reduce((s, a) => s + providerNetForAppointment(a), 0) });
     }
     return data;
   })();
@@ -1445,7 +1441,6 @@ export default function ProviderDashboard() {
                           <th className="text-left px-4 py-3 font-medium text-muted-foreground">Client</th>
                           <th className="text-right px-4 py-3 font-medium text-muted-foreground">Visits</th>
                           <th className="text-right px-4 py-3 font-medium text-muted-foreground hidden md:table-cell">Last visit</th>
-                          <th className="text-right px-4 py-3 font-medium text-muted-foreground hidden md:table-cell">Total spent</th>
                           <th className="text-right px-4 py-3 font-medium text-muted-foreground"></th>
                         </tr>
                       </thead>
@@ -1463,9 +1458,6 @@ export default function ProviderDashboard() {
                             </td>
                             <td className="px-4 py-3 text-right text-muted-foreground hidden md:table-cell">
                               {c.lastVisit}
-                            </td>
-                            <td className="px-4 py-3 text-right font-medium hidden md:table-cell">
-                              {fmtEarnings(c.totalSpend)}
                             </td>
                             <td className="px-4 py-3 text-right">
                               <Button
@@ -1725,7 +1717,7 @@ export default function ProviderDashboard() {
                   <div>
                     <span className="font-bold">{timelineClient?.name || "Patient"}</span>
                     <p className="text-xs font-normal text-muted-foreground mt-0.5">
-                      {timelineAppts.length} appointment{timelineAppts.length !== 1 ? "s" : ""} · {fmtEarnings(timelineClient?.totalSpend ?? 0)} total
+                      {timelineAppts.length} appointment{timelineAppts.length !== 1 ? "s" : ""}
                     </p>
                   </div>
                 </DialogTitle>
@@ -1751,9 +1743,9 @@ export default function ProviderDashboard() {
                               </span>
                             </div>
                             {svcName && <p className="text-sm font-medium mt-0.5 truncate">{svcName}</p>}
-                            {a.status === "completed" && (a as any).totalAmount && (
+                            {a.status === "completed" && providerNetForAppointment(a) > 0 && (
                               <p className="text-xs text-emerald-600 dark:text-emerald-400 font-medium mt-0.5">
-                                {formatInCurrency(Number((a as any).totalAmount || 0), (a as any).displayCurrency ?? providerNativeCurrency)}
+                                {formatInCurrency(providerNetForAppointment(a), (a as any).providerFinancials?.currency ?? providerNativeCurrency)}
                               </p>
                             )}
                             {(a as any).visitType && (

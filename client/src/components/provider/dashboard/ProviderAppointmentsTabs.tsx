@@ -283,9 +283,23 @@ export function ProviderAppointmentsTabs({ providerData, highlightApptId, active
   };
 
   const exportAppointmentsCSV = (list: AppointmentWithDetails[]) => {
-    const headers = ["id", "date", "startTime", "endTime", "client", "service", "visitType", "status", "totalAmount", "paymentStatus", "paymentMethod"];
+    const headers = [
+      "id", "date", "startTime", "endTime", "client", "service", "visitType", "status",
+      "providerGrossEarnings", "providerCommission", "providerNetEarnings",
+      "paymentStatus", "paymentMethod",
+    ];
     const escape = (v: any) => { const s = v == null ? "" : String(v); return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
-    const rows = list.map((a: any) => [a.id, a.date, a.startTime, a.endTime || "", `${a.patient?.firstName || ""} ${a.patient?.lastName || ""}`.trim(), a.service?.name || "", a.visitType, a.status, a.totalAmount || "", a.payment?.status || "", a.payment?.paymentMethod || ""]);
+    const rows = list.map((a: any) => {
+      const f = a.providerFinancials ?? {};
+      return [
+        a.id, a.date, a.startTime, a.endTime || "",
+        `${a.patient?.firstName || ""} ${a.patient?.lastName || ""}`.trim(),
+        a.service?.name || "", a.visitType, a.status,
+        f.providerGrossPayoutLocal ?? "", f.providerCommissionLocal ?? "",
+        f.providerNetEarningsLocal ?? f.providerNetEarningsDisplay ?? "",
+        a.payment?.status || "", a.payment?.paymentMethod || "",
+      ];
+    });
     const csv = [headers, ...rows].map((r) => r.map(escape).join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
@@ -1075,11 +1089,37 @@ export function ProviderAppointmentsTabs({ providerData, highlightApptId, active
                   <p className="text-muted-foreground">{t("provider_dashboard.service_label", "Service")}</p>
                   <p className="font-medium">{(selectedAppt as any).service?.name || "—"}</p>
                 </div>
-                <div>
-                  <p className="text-muted-foreground">{t("provider_dashboard.total_label", "Total")}</p>
-                  <p className="font-medium">{formatInCurrency(Number((selectedAppt as any).totalAmount || 0), (selectedAppt as any).displayCurrency ?? "USD")}</p>
-                </div>
+                {(selectedAppt as any).providerFinancials && (
+                  <div>
+                    <p className="text-muted-foreground">{t("provider_dashboard.provider_earnings_label", "Provider earnings")}</p>
+                    <p className="font-medium">
+                      {formatInCurrency(
+                        Number((selectedAppt as any).providerFinancials.providerNetEarningsLocal ?? 0),
+                        (selectedAppt as any).providerFinancials.currency ?? "USD",
+                      )}
+                    </p>
+                  </div>
+                )}
               </div>
+              {(selectedAppt as any).providerFinancials && (
+                <div className="rounded-lg border bg-muted/30 p-3 space-y-1 text-sm">
+                  <p className="font-semibold">Provider settlement</p>
+                  <div className="flex justify-between gap-4">
+                    <span className="text-muted-foreground">Gross earnings</span>
+                    <span>{formatInCurrency(Number((selectedAppt as any).providerFinancials.providerGrossPayoutLocal ?? 0), (selectedAppt as any).providerFinancials.currency ?? "USD")}</span>
+                  </div>
+                  {Number((selectedAppt as any).providerFinancials.providerCommissionLocal ?? 0) > 0 && (
+                    <div className="flex justify-between gap-4">
+                      <span className="text-muted-foreground">Provider-side commission</span>
+                      <span>−{formatInCurrency(Number((selectedAppt as any).providerFinancials.providerCommissionLocal), (selectedAppt as any).providerFinancials.currency ?? "USD")}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between gap-4 font-semibold border-t pt-1">
+                    <span>Net earnings</span>
+                    <span>{formatInCurrency(Number((selectedAppt as any).providerFinancials.providerNetEarningsLocal ?? 0), (selectedAppt as any).providerFinancials.currency ?? "USD")}</span>
+                  </div>
+                </div>
+              )}
               {(selectedAppt as any).patientAddress && (
                 <div>
                   <p className="text-muted-foreground text-sm">{t("provider_dashboard.address_label", "Address")}</p>
