@@ -51,9 +51,7 @@ interface MonthlyRow {
 
 interface Breakdown {
   net_income: string | null;
-  platform_fees: string | null;
-  tax_passed_through: string | null;
-  cash_platform_fee_deductions: string | null;
+  cash_settlement_deductions: string | null;
   commission: string | null;
   total_bookings: string | null;
 }
@@ -62,10 +60,10 @@ interface Breakdown {
 function entryTypeBadge(type: string) {
   const map: Record<string, { label: string; color: string }> = {
     booking_income:       { label: "Income",         color: "bg-emerald-100 text-emerald-800 border-emerald-200" },
-    platform_fee_deduction: { label: "Platform fee", color: "bg-slate-100 text-slate-700 border-slate-200" },
-    tax_deduction:        { label: "Tax",             color: "bg-slate-100 text-slate-700 border-slate-200" },
+     platform_fee_deduction: { label: "Provider settlement deduction", color: "bg-slate-100 text-slate-700 border-slate-200" },
+     tax_deduction:        { label: "Provider settlement deduction", color: "bg-slate-100 text-slate-700 border-slate-200" },
     commission_deduction: { label: "Commission",      color: "bg-slate-100 text-slate-700 border-slate-200" },
-    cash_platform_fee_deduction: { label: "Cash platform fee", color: "bg-amber-100 text-amber-800 border-amber-200" },
+     cash_platform_fee_deduction: { label: "Cash settlement deduction", color: "bg-amber-100 text-amber-800 border-amber-200" },
     payout_held:          { label: "Payout held",     color: "bg-amber-100 text-amber-800 border-amber-200" },
     payout_deduction:     { label: "Payout sent",     color: "bg-blue-100 text-blue-800 border-blue-200" },
     payout_returned:      { label: "Returned",        color: "bg-purple-100 text-purple-800 border-purple-200" },
@@ -354,7 +352,9 @@ export function ProviderWalletPanel() {
                               <td className="px-4 py-2.5 text-xs text-muted-foreground whitespace-nowrap">{formatDate(entry.createdAt)}</td>
                               <td className="px-4 py-2.5">{entryTypeBadge(entry.entryType)}</td>
                               <td className="px-4 py-2.5 text-xs text-muted-foreground max-w-[200px] truncate hidden sm:table-cell">
-                                {entry.description ?? "—"}
+                                {["platform_fee_deduction", "tax_deduction", "cash_platform_fee_deduction"].includes(entry.entryType)
+                                  ? "Provider settlement deduction"
+                                  : (entry.description ?? "—")}
                               </td>
                               <td className={`px-4 py-2.5 text-right font-medium tabular-nums text-sm ${amt >= 0 ? "text-emerald-600" : "text-red-600"}`}>
                                 {amt >= 0 ? "+" : ""}{fmt(amt)}
@@ -416,21 +416,9 @@ export function ProviderWalletPanel() {
                       </p>
                     </div>
                     <div className="rounded-lg border p-4">
-                      <p className="text-xs text-muted-foreground mb-1">Platform fees</p>
-                      <p className="text-lg font-semibold text-red-600" data-testid="text-breakdown-fees">
-                        −{fmt(Number(breakdown.platform_fees || 0))}
-                      </p>
-                    </div>
-                    <div className="rounded-lg border p-4">
-                      <p className="text-xs text-muted-foreground mb-1">Tax passed through</p>
-                      <p className="text-lg font-semibold text-emerald-600" data-testid="text-breakdown-tax">
-                        {fmt(Number(breakdown.tax_passed_through || 0))}
-                      </p>
-                    </div>
-                    <div className="rounded-lg border p-4">
-                      <p className="text-xs text-muted-foreground mb-1">Cash platform-fee deductions</p>
+                      <p className="text-xs text-muted-foreground mb-1">Cash settlement deductions</p>
                       <p className="text-lg font-semibold text-amber-700" data-testid="text-breakdown-cash-fee">
-                        −{fmt(Number(breakdown.cash_platform_fee_deductions || 0))}
+                        −{fmt(Number(breakdown.cash_settlement_deductions || 0))}
                       </p>
                     </div>
                   </div>
@@ -442,17 +430,6 @@ export function ProviderWalletPanel() {
                       </p>
                     </div>
                   )}
-                  <div className="rounded-lg border bg-muted/50 p-4">
-                    <p className="text-xs text-muted-foreground mb-1">Gross received by clients</p>
-                    <p className="text-lg font-bold" data-testid="text-breakdown-gross">
-                      {fmt(
-                        Number(breakdown.net_income || 0) +
-                        Number(breakdown.platform_fees || 0) +
-                        Number(breakdown.tax_passed_through || 0) +
-                        Number(breakdown.commission || 0)
-                      )}
-                    </p>
-                  </div>
                 </div>
               )}
             </CardContent>

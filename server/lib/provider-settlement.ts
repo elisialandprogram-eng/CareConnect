@@ -10,6 +10,10 @@ export interface ProviderSettlementInput {
   serviceTaxLocal: number;
   /** Platform fee billed to the patient, in booking currency. */
   platformFeeLocal: number;
+  /** Platform tax billed to the patient, in booking currency. */
+  platformTaxLocal?: number;
+  /** Provider-side commission frozen on the booking, in booking currency. */
+  commissionLocal?: number;
   paymentMethod: string | null | undefined;
   bookingCurrency: string;
   /** Rates are USD-based: 1 USD = rates[currency] local units. */
@@ -27,6 +31,8 @@ export interface ProviderSettlement {
   providerNetEarningsUsd: number;
   serviceTaxPassThroughUsd: number;
   cashPlatformFeeDeductionUsd: number;
+  cashPlatformTaxDeductionUsd: number;
+  cashCommissionDeductionUsd: number;
   grossProviderPayoutUsd: number;
   providerPayoutUsd: number;
   exchangeRateUsed: number;
@@ -36,11 +42,11 @@ export interface ProviderSettlement {
  * Canonical provider settlement:
  *   provider payout base = canonical provider net earnings
  *   online final provider payout = gross provider payout
- *   offline final provider payout = 0 (offline payments never enter the
- *   platform/provider payout wallet)
+ *   offline final provider payout = 0 (offline payments never create wallet
+ *   income; their platform fee, platform tax, and commission debit the wallet)
  *
- * Offline bookings still retain the gross and fee snapshots for audit/reporting,
- * but their settlement amount is deliberately non-withdrawable.
+ * Offline bookings still retain the gross and settlement snapshots for
+ * audit/reporting, but their settlement amount is deliberately non-withdrawable.
  */
 export function calculateProviderSettlement(input: ProviderSettlementInput): ProviderSettlement {
   const paymentMethod = String(input.paymentMethod || "card").toLowerCase();
@@ -52,9 +58,12 @@ export function calculateProviderSettlement(input: ProviderSettlementInput): Pro
   const roundLocal = (value: number) => roundBookingAmount(value, input.bookingCurrency);
   const providerNetEarningsLocal = roundLocal(Math.max(0, Number(input.providerNetEarningsLocal) || 0));
   const serviceTaxLocal = roundLocal(Math.max(0, Number(input.serviceTaxLocal) || 0));
-  const cashPlatformFeeLocal = isOffline
-    ? roundLocal(Math.max(0, Number(input.platformFeeLocal) || 0))
-    : 0;
+  const platformFeeLocal = roundLocal(Math.max(0, Number(input.platformFeeLocal) || 0));
+  const platformTaxLocal = roundLocal(Math.max(0, Number(input.platformTaxLocal ?? 0) || 0));
+  const commissionLocal = roundLocal(Math.max(0, Number(input.commissionLocal ?? 0) || 0));
+  const cashPlatformFeeLocal = isOffline ? platformFeeLocal : 0;
+  const cashPlatformTaxLocal = isOffline ? platformTaxLocal : 0;
+  const cashCommissionLocal = isOffline ? commissionLocal : 0;
   const grossProviderPayoutLocal = providerNetEarningsLocal;
   const providerPayoutLocal = isOffline
     ? 0
@@ -64,6 +73,8 @@ export function calculateProviderSettlement(input: ProviderSettlementInput): Pro
   const providerNetEarningsUsd = toUsd(providerNetEarningsLocal);
   const serviceTaxPassThroughUsd = toUsd(serviceTaxLocal);
   const cashPlatformFeeDeductionUsd = toUsd(cashPlatformFeeLocal);
+  const cashPlatformTaxDeductionUsd = toUsd(cashPlatformTaxLocal);
+  const cashCommissionDeductionUsd = toUsd(cashCommissionLocal);
   const grossProviderPayoutUsd = providerNetEarningsUsd;
   const providerPayoutUsd = isOffline
     ? 0
@@ -80,6 +91,8 @@ export function calculateProviderSettlement(input: ProviderSettlementInput): Pro
     providerNetEarningsUsd,
     serviceTaxPassThroughUsd,
     cashPlatformFeeDeductionUsd,
+    cashPlatformTaxDeductionUsd,
+    cashCommissionDeductionUsd,
     grossProviderPayoutUsd,
     providerPayoutUsd,
     exchangeRateUsed,

@@ -19,11 +19,9 @@ import { useCurrency } from "@/lib/currency";
 interface PayoutSummary {
   availableBalance: number;
   grossAvailableBalance: number;
-  pendingCashFeeDeduction: number;
+  pendingSettlementDeduction: number;
   finalAvailableBalance: number;
   cashBookingCount: number;
-  cashPlatformFeesDeducted: number;
-  taxPassedThrough: number;
   pendingPayouts: number;
   lifetimePaidOut: number;
   lifetimePaidEarnings: number;
@@ -146,7 +144,7 @@ export function ProviderPayoutPanel() {
                 <Wallet className="h-4 w-4 text-white/70" />
               </div>
               <p className="text-3xl font-bold mt-2" data-testid="text-available-balance">{fmt(available)}</p>
-              <p className="text-[11px] text-white/70 mt-1">After pending cash-fee deductions</p>
+               <p className="text-[11px] text-white/70 mt-1">After pending settlement deductions</p>
             </div>
 
             <div className="relative overflow-hidden rounded-xl p-5 bg-gradient-to-br from-amber-500 to-orange-500 text-white shadow-md" data-testid="card-pending-payout">
@@ -176,12 +174,11 @@ export function ProviderPayoutPanel() {
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-base">Settlement details</CardTitle>
-            <CardDescription>Tax is passed through to you. Cash and bank-transfer platform fees are settled when you request a payout.</CardDescription>
+             <CardDescription>Provider-side settlement deductions are applied automatically when applicable.</CardDescription>
           </CardHeader>
           <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <div className="rounded-lg border p-3"><p className="text-xs text-muted-foreground">Gross available</p><p className="font-semibold mt-1">{fmt(summary.grossAvailableBalance ?? 0)}</p></div>
-            <div className="rounded-lg border p-3"><p className="text-xs text-muted-foreground">Pending cash-fee deduction</p><p className="font-semibold mt-1 text-amber-700">−{fmt(summary.pendingCashFeeDeduction ?? 0)}</p></div>
-            <div className="rounded-lg border p-3"><p className="text-xs text-muted-foreground">Tax passed through</p><p className="font-semibold mt-1 text-emerald-700">{fmt(summary.taxPassedThrough ?? 0)}</p></div>
+             <div className="rounded-lg border p-3"><p className="text-xs text-muted-foreground">Pending settlement deduction</p><p className="font-semibold mt-1 text-amber-700">−{fmt(summary.pendingSettlementDeduction ?? 0)}</p></div>
             <div className="rounded-lg border p-3"><p className="text-xs text-muted-foreground">Cash bookings</p><p className="font-semibold mt-1">{summary.cashBookingCount ?? 0}</p></div>
           </CardContent>
         </Card>

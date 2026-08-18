@@ -321,17 +321,10 @@ export function registerProviderWalletPayoutsRoutes(app: Express): void {
              WHERE pe.provider_id = $1 AND pe.status = 'pending'
                AND COALESCE(pe.payment_method, ea.payment_method, 'card')
                      NOT IN ('cash', 'bank_transfer')
-           ), 0) AS pending_cash_fee
+            ), 0) AS pending_settlement_deduction
           ,COALESCE((SELECT COUNT(*) FROM provider_earnings pe
                      WHERE pe.provider_id = $1
                        AND pe.payment_method IN ('cash', 'bank_transfer')), 0) AS cash_booking_count
-          ,0 AS cash_fee_deducted
-          ,COALESCE((SELECT SUM(COALESCE(pe.tax_pass_through_amount_usd, 0))
-                     FROM provider_earnings pe
-                     LEFT JOIN appointments ea ON ea.id = pe.appointment_id
-                     WHERE pe.provider_id = $1
-                       AND COALESCE(pe.payment_method, ea.payment_method, 'card')
-                             NOT IN ('cash', 'bank_transfer')), 0) AS tax_passed_through
         FROM provider_wallets pw
         WHERE pw.provider_id = $1
       `, [provider.id]);
@@ -339,17 +332,15 @@ export function registerProviderWalletPayoutsRoutes(app: Express): void {
       const row = result.rows[0] || {};
       const walletBalance = Number(row.wallet_balance || 0);
       const inFlight      = Number(row.in_flight_amount || 0);
-      const pendingCashFee = Number(row.pending_cash_fee || 0);
-      const availableBalance = Math.max(0, walletBalance - inFlight - pendingCashFee);
+       const pendingSettlementDeduction = Number(row.pending_settlement_deduction || 0);
+       const availableBalance = Math.max(0, walletBalance - inFlight - pendingSettlementDeduction);
       const localCurrency = countryCurrency(provider.countryCode as CountryCode | undefined);
       res.json({
         availableBalance,
          grossAvailableBalance: walletBalance,
-         pendingCashFeeDeduction: pendingCashFee,
+         pendingSettlementDeduction,
         finalAvailableBalance: availableBalance,
         cashBookingCount: Number(row.cash_booking_count || 0),
-        cashPlatformFeesDeducted: Number(row.cash_fee_deducted || 0),
-        taxPassedThrough: Number(row.tax_passed_through || 0),
         pendingPayouts:  inFlight,
         lifetimePaidOut: Number(row.lifetime_paid_out   || 0),
         lifetimePaidEarnings: Number(row.total_paid_earnings || 0),
@@ -603,7 +594,8 @@ export function registerProviderWalletPayoutsRoutes(app: Express): void {
     }
   });
 
-  // Provider: tax/commission breakdown for current period
+  // Provider: settlement breakdown for current period. Patient/platform
+  // pricing components are intentionally not returned to provider clients.
   app.get("/api/provider/wallet/breakdown", authenticateToken, async (req: AuthRequest, res: Response) => {
     try {
       if (req.user?.role !== "provider") return res.status(403).json({ message: "Provider account required" });
@@ -619,15 +611,7 @@ export function registerProviderWalletPayoutsRoutes(app: Express): void {
                         AND COALESCE(a.payment_method, 'card') IN ('cash', 'bank_transfer')
                     )
                    THEN pl.amount ELSE 0 END) AS net_income,
-          ABS(SUM(CASE WHEN pl.entry_type = 'platform_fee_deduction' THEN pl.amount ELSE 0 END)) AS platform_fees,
-          COALESCE((SELECT SUM(COALESCE(pe.tax_pass_through_amount_usd, 0))
-                    FROM provider_earnings pe
-                    WHERE pe.provider_id = $1
-                      AND pe.created_at >= DATE_TRUNC('month', NOW())), 0) AS tax_passed_through,
-          COALESCE((SELECT SUM(COALESCE(pe.cash_platform_fee_applied_usd, 0))
-                    FROM provider_earnings pe
-                    WHERE pe.provider_id = $1
-                      AND pe.created_at >= DATE_TRUNC('month', NOW())), 0) AS cash_platform_fee_deductions,
+          ABS(SUM(CASE WHEN pl.entry_type = 'cash_platform_fee_deduction' THEN pl.amount ELSE 0 END)) AS cash_settlement_deductions,
           ABS(SUM(CASE WHEN pl.entry_type = 'commission_deduction' THEN pl.amount ELSE 0 END)) AS commission,
           COUNT(*) FILTER (
             WHERE pl.entry_type = 'booking_income'
@@ -641,7 +625,7 @@ export function registerProviderWalletPayoutsRoutes(app: Express): void {
         WHERE pl.provider_id = $1
           AND created_at >= DATE_TRUNC('month', NOW())
       `, [provider.id]);
-      res.json(result.rows[0] || {});
+       res.json(result.rows[0] || {});
     } catch (e: any) {
       res.status(500).json({ message: "Failed to load breakdown" });
     }

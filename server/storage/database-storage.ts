@@ -3148,10 +3148,6 @@ export class DatabaseStorage extends PackagesMixin implements IStorage {
       // concurrent caller that loses the insert race returns the existing row
       // without crediting the wallet a second time.
       const existing = await client.query(`SELECT * FROM provider_earnings WHERE appointment_id = $1 FOR UPDATE`, [appointmentId]);
-      if (existing.rows[0]) {
-        await client.query("COMMIT");
-        return mapProviderEarningRow(existing.rows[0]);
-      }
 
       const appointmentResult = await client.query(`
         SELECT
@@ -3227,11 +3223,18 @@ export class DatabaseStorage extends PackagesMixin implements IStorage {
         ? providerGrossEarningsLocal
         : Math.max(0, providerNetEarningsLocal + Number(appt.commission_amount ?? 0));
       const platformFeeLocal = Math.max(0, Number(appt.platform_fee_amount || 0));
+      const platformTaxLocal = Math.max(0, Number(appt.platform_tax_amount || 0));
+      const commissionLocal = Math.max(
+        0,
+        Number(appt.commission_amount ?? snapshot.rows[0]?.commission_amount ?? 0),
+      );
 
       const settlement = calculateProviderSettlement({
         providerNetEarningsLocal,
         serviceTaxLocal: serviceTaxAmountLocal,
         platformFeeLocal,
+        platformTaxLocal,
+        commissionLocal,
         paymentMethod: appt.settlement_payment_method,
         bookingCurrency: currency,
         rates: _rates,
@@ -3242,6 +3245,99 @@ export class DatabaseStorage extends PackagesMixin implements IStorage {
         ? Number(appt.final_total_usd)
         : Number((totalAmountLocal / rateVal).toFixed(2));
       const platformFeeUsd = Number((platformFeeLocal / rateVal).toFixed(2));
+      const cashPlatformObligationUsd = round2(
+        settlement.cashPlatformFeeDeductionUsd +
+        settlement.cashPlatformTaxDeductionUsd,
+      );
+      const cashCommissionDebitUsd = round2(settlement.cashCommissionDeductionUsd);
+      const cashWalletDebitUsd = round2(cashPlatformObligationUsd + cashCommissionDebitUsd);
+
+      const applyOfflineWalletDeductions = async (): Promise<void> => {
+        if (!settlement.isOffline || cashWalletDebitUsd <= 0) return;
+
+        await client.query(`
+          INSERT INTO provider_wallets (provider_id, available_balance, lifetime_earnings, currency, country_code)
+          VALUES ($1, 0, 0, 'USD', $2)
+          ON CONFLICT (provider_id) DO NOTHING
+        `, [appt.provider_id, countryCode]);
+        await client.query(
+          `SELECT available_balance FROM provider_wallets WHERE provider_id = $1 FOR UPDATE`,
+          [appt.provider_id],
+        );
+
+        if (cashPlatformObligationUsd > 0) {
+          await client.query(`
+            UPDATE provider_wallets
+            SET available_balance = available_balance - $1,
+                updated_at = NOW()
+            WHERE provider_id = $2
+          `, [cashPlatformObligationUsd, appt.provider_id]);
+          const walletRes = await client.query(
+            `SELECT available_balance FROM provider_wallets WHERE provider_id = $1`,
+            [appt.provider_id],
+          );
+          await client.query(`
+            INSERT INTO provider_ledger
+              (provider_id, amount, entry_type, reference_id, description, balance_after, country_code)
+            VALUES ($1, $2, 'cash_platform_fee_deduction', $3, $4, $5, $6)
+          `, [
+            appt.provider_id,
+            -cashPlatformObligationUsd,
+            appointmentId,
+            `Cash settlement deduction — appt #${appt.appointment_number || appointmentId.slice(0, 8)}`,
+            walletRes.rows[0]?.available_balance ?? 0,
+            countryCode,
+          ]);
+        }
+
+        if (cashCommissionDebitUsd > 0) {
+          await client.query(`
+            UPDATE provider_wallets
+            SET available_balance = available_balance - $1,
+                updated_at = NOW()
+            WHERE provider_id = $2
+          `, [cashCommissionDebitUsd, appt.provider_id]);
+          const walletRes = await client.query(
+            `SELECT available_balance FROM provider_wallets WHERE provider_id = $1`,
+            [appt.provider_id],
+          );
+          await client.query(`
+            INSERT INTO provider_ledger
+              (provider_id, amount, entry_type, reference_id, description, balance_after, country_code)
+            VALUES ($1, $2, 'commission_deduction', $3, $4, $5, $6)
+          `, [
+            appt.provider_id,
+            -cashCommissionDebitUsd,
+            appointmentId,
+            `Cash settlement deduction — appt #${appt.appointment_number || appointmentId.slice(0, 8)}`,
+            walletRes.rows[0]?.available_balance ?? 0,
+            countryCode,
+          ]);
+        }
+      };
+
+      if (existing.rows[0]) {
+        const alreadyAppliedUsd = Number(existing.rows[0].cash_wallet_debit_applied_usd ?? 0);
+        if (settlement.isOffline && cashWalletDebitUsd > 0 && alreadyAppliedUsd <= 0) {
+          await applyOfflineWalletDeductions();
+          await client.query(`
+            UPDATE provider_earnings
+            SET cash_platform_fee_deduction_usd = $1,
+                cash_platform_tax_deduction_usd = $2,
+                cash_commission_deduction_usd = $3,
+                cash_wallet_debit_applied_usd = $4
+            WHERE id = $5
+          `, [
+            settlement.cashPlatformFeeDeductionUsd.toFixed(2),
+            settlement.cashPlatformTaxDeductionUsd.toFixed(2),
+            settlement.cashCommissionDeductionUsd.toFixed(2),
+            cashWalletDebitUsd.toFixed(2),
+            existing.rows[0].id,
+          ]);
+        }
+        await client.query("COMMIT");
+        return mapProviderEarningRow(existing.rows[0]);
+      }
 
       let insertResult;
       try {
@@ -3253,10 +3349,11 @@ export class DatabaseStorage extends PackagesMixin implements IStorage {
             provider_gross_earnings_amount_usd, provider_gross_earnings_amount_local,
             provider_net_earnings_amount_usd, provider_net_earnings_amount_local,
             service_tax_amount_usd,
-            cash_platform_fee_deduction_usd, gross_provider_payout_usd,
+             cash_platform_fee_deduction_usd, cash_platform_tax_deduction_usd,
+             cash_commission_deduction_usd, gross_provider_payout_usd,
             settlement_amount_usd, payment_method
           )
-          VALUES ($1,$2,$3,$4,$5,'pending',$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)
+           VALUES ($1,$2,$3,$4,$5,'pending',$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21)
           ON CONFLICT (appointment_id) DO NOTHING
           RETURNING *
         `, [
@@ -3278,6 +3375,8 @@ export class DatabaseStorage extends PackagesMixin implements IStorage {
            settlement.providerNetEarningsLocal.toFixed(2),
            settlement.serviceTaxPassThroughUsd.toFixed(2),
           settlement.cashPlatformFeeDeductionUsd.toFixed(2),
+           settlement.cashPlatformTaxDeductionUsd.toFixed(2),
+           settlement.cashCommissionDeductionUsd.toFixed(2),
           settlement.grossProviderPayoutUsd.toFixed(2),
           settlement.isOffline ? "0.00" : settlement.providerPayoutUsd.toFixed(2),
           settlement.paymentMethod,
@@ -3292,10 +3391,11 @@ export class DatabaseStorage extends PackagesMixin implements IStorage {
         return raced.rows[0] ? mapProviderEarningRow(raced.rows[0]) : null;
       }
 
-      // Online bookings create withdrawable wallet income. Offline bookings
-      // retain the provider_earnings audit snapshot above but never touch the
-      // provider wallet or provider ledger.
-      if (!settlement.isOffline) {
+       // Online bookings create withdrawable wallet income. Cash bookings are
+       // paid directly to the provider, so they do not create wallet income;
+       // instead, their platform fee, platform tax, and commission are debited
+       // from the provider wallet exactly once in this same transaction.
+       if (!settlement.isOffline) {
         await client.query(`
         INSERT INTO provider_wallets (provider_id, available_balance, lifetime_earnings, currency, country_code)
         VALUES ($1, $2, $2, 'USD', $3)
@@ -3321,7 +3421,14 @@ export class DatabaseStorage extends PackagesMixin implements IStorage {
         balAfterIncome,
         countryCode,
         ]);
-      }
+       } else {
+         await applyOfflineWalletDeductions();
+         await client.query(`
+           UPDATE provider_earnings
+           SET cash_wallet_debit_applied_usd = $1
+           WHERE id = $2
+         `, [cashWalletDebitUsd.toFixed(2), insertResult.rows[0].id]);
+       }
       await client.query("COMMIT");
       return mapProviderEarningRow(insertResult.rows[0]);
     } catch (error) {
