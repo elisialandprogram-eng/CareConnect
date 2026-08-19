@@ -6,7 +6,10 @@
  * charge buckets; every downstream consumer reads the resulting snapshot.
  */
 
-import { roundCurrencyAmount } from "@shared/currency";
+import {
+  allocateRoundedCurrencyAmounts,
+  roundCurrencyAmount,
+} from "@shared/currency";
 
 export const TAX_ENGINE_VERSION = "tax-v2";
 
@@ -119,17 +122,23 @@ export function calculateTaxBreakdown(input: TaxCalculationInput): TaxBreakdown 
   );
   const discountRatio = gross > 0 ? discount / gross : 0;
 
-  const serviceTaxableSubtotal = roundCurrencyAmount(serviceGross * (1 - discountRatio), input.currency);
-  const platformTaxableSubtotal = roundCurrencyAmount(platformGross * (1 - discountRatio), input.currency);
+  const discountedTaxableTotal = roundCurrencyAmount(gross - discount, input.currency);
+  const [serviceTaxableSubtotal, platformTaxableSubtotal] = allocateRoundedCurrencyAmounts(
+    [
+      serviceGross * (1 - discountRatio),
+      platformGross * (1 - discountRatio),
+    ],
+    input.currency,
+    discountedTaxableTotal,
+  );
   const serviceTaxRate = Math.max(0, finite(input.serviceTaxRatePercent));
   const platformTaxRate = Math.max(0, finite(input.platformTaxRatePercent));
-  const serviceTax = roundTaxAmount(
-    serviceTaxableSubtotal * (serviceTaxRate / 100),
+  const rawServiceTax = serviceTaxableSubtotal * (serviceTaxRate / 100);
+  const rawPlatformTax = platformTaxableSubtotal * (platformTaxRate / 100);
+  const [serviceTax, platformTax] = allocateRoundedCurrencyAmounts(
+    [rawServiceTax, rawPlatformTax],
     input.currency,
-  );
-  const platformTax = roundTaxAmount(
-    platformTaxableSubtotal * (platformTaxRate / 100),
-    input.currency,
+    rawServiceTax + rawPlatformTax,
   );
 
   return {

@@ -14,6 +14,7 @@ import {
   AuthRequest,
 } from "../middleware/auth";
 import { fromUSDSync, getRates, toUSDSync } from "../services/currency";
+import { roundBookingAmount } from "../lib/math";
 
 // ── Referral reward config (mirrors routes.ts constants) ──────────────────────
 const REFERRAL_REFERRER_REWARD = Number(process.env.REFERRAL_REFERRER_REWARD || 5);
@@ -50,10 +51,10 @@ export function registerCommunityRoutes(app: Express): void {
       const bookingCurrency = String(currency ?? "USD").toUpperCase();
       const promoCurrency = String(promo.baseCurrency ?? "USD").toUpperCase();
       const rates = await getRates();
-      const minAmount = promo.minAmount == null
+       const minAmount = promo.minAmount == null
         ? 0
         : promoCurrency === bookingCurrency
-          ? Number(promo.minAmount)
+           ? roundBookingAmount(Number(promo.minAmount), bookingCurrency)
           : fromUSDSync(
               toUSDSync(Number(promo.minAmount), promoCurrency, rates),
               bookingCurrency,
@@ -67,19 +68,19 @@ export function registerCommunityRoutes(app: Express): void {
         discount = (baseAmount * Number(promo.discountValue)) / 100;
       } else {
         discount = promoCurrency === bookingCurrency
-          ? Number(promo.discountValue)
+           ? roundBookingAmount(Number(promo.discountValue), bookingCurrency)
           : fromUSDSync(
               toUSDSync(Number(promo.discountValue), promoCurrency, rates),
               bookingCurrency,
               rates,
             );
       }
-      if (discount > baseAmount) discount = baseAmount;
+       if (discount > baseAmount) discount = baseAmount;
       res.json({
         code: promo.code,
         discountType: promo.discountType,
         discountValue: promo.discountValue,
-        discount: Number(discount.toFixed(2)),
+         discount: roundBookingAmount(discount, bookingCurrency),
       });
     } catch (e) {
       console.error("Promo validate error:", e);

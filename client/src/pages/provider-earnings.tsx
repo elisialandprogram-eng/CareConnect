@@ -138,7 +138,6 @@ function resolveEarningDisplay(
 ): EarningDisplay {
   const displayCurrency = e.displayCurrency ?? "USD";
   const localGross = Number(e.providerGrossEarningsLocal ?? e.providerGrossEarningsSnapshot ?? 0);
-  const localCommission = Number(e.providerCommissionLocal ?? 0);
   const localNet = Number(e.providerNetEarningsLocal ?? e.providerNetEarningsSnapshot ?? 0);
   const hasLocal = displayCurrency !== "USD" && (localGross > 0 || localNet > 0);
   const usdToLocal = Number(e.exchangeRateUsed ?? 0) > 0
@@ -150,10 +149,13 @@ function resolveEarningDisplay(
   const commissionUsd = Math.max(0, grossUsd - netUsd);
    const offlineFeeUsd = Number(e.cashPlatformFeeDeductionUsd ?? 0);
   const settlementUsd = e.settlementAmountUsd == null ? netUsd : Number(e.settlementAmountUsd);
+  const localCommission = Number(e.providerCommissionLocal ?? 0) > 0
+    ? Number(e.providerCommissionLocal)
+    : Math.max(0, localGross - localNet);
 
   return {
     providerGross: hasLocal && localGross > 0 ? localGross : toDisplay(grossUsd),
-    providerCommission: hasLocal && localCommission > 0 ? localCommission : toDisplay(commissionUsd),
+     providerCommission: hasLocal ? localCommission : toDisplay(commissionUsd),
     providerNet: hasLocal && localNet > 0 ? localNet : toDisplay(netUsd),
     offlineFee: toDisplay(offlineFeeUsd),
     settlement: toDisplay(settlementUsd),

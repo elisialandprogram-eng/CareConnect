@@ -3,6 +3,7 @@ import {
   formatCurrencyAmount,
   formatCurrencyMinorUnits,
   roundCurrencyAmount,
+  allocateRoundedCurrencyAmounts,
 } from "@shared/currency";
 import { roundBookingAmount, roundToCents } from "../lib/math";
 
@@ -13,6 +14,11 @@ assert.equal(roundBookingAmount(256.5, "JPY"), 257);
 assert.equal(roundBookingAmount(256.5, "KRW"), 257);
 assert.equal(roundBookingAmount(1.005, "USD"), 1.01);
 assert.equal(roundToCents(1.005), 101);
+assert.deepEqual(
+  allocateRoundedCurrencyAmounts([950, 50], "HUF", 999),
+  [949, 50],
+  "rounded components reconcile to the rounded aggregate",
+);
 assert.equal(roundCurrencyAmount(-256.5, "HUF"), -257);
 
 assert.match(formatCurrencyAmount(256.5, "HUF"), /257/);

@@ -46,6 +46,8 @@ import {
 import { dispatchNotification } from "../services/notification-dispatcher";
 import { trackEvent } from "../services/analyticsTracker";
 import { getRates, fromUSDSync, toUSDSync, formatSync } from "../services/currency";
+import { round2, roundBookingAmount } from "../lib/math";
+import { currencyFractionDigits } from "@shared/currency";
 import {
   uploadAvatarImage,
   uploadGalleryImage,
@@ -368,7 +370,8 @@ export function registerProviderWalletPayoutsRoutes(app: Express): void {
     // not a DB write, so it is safe to call outside the serialised block.
     const _prRates = await getRates();
     const _prLocalCurrency = countryCurrency(provider.countryCode as CountryCode | undefined);
-    const _prAmtUSD = toUSDSync(Number(amount), _prLocalCurrency, _prRates);
+    const _prLocalAmount = roundBookingAmount(Number(amount), _prLocalCurrency);
+    const _prAmtUSD = round2(toUSDSync(_prLocalAmount, _prLocalCurrency, _prRates));
     const _prRate = _prRates[_prLocalCurrency] ?? 1;
 
     const client = await pool.connect();
@@ -437,7 +440,7 @@ export function registerProviderWalletPayoutsRoutes(app: Express): void {
         notes || null,
         "USD",
         _prLocalCurrency,
-        Number(amount).toFixed(2),
+         _prLocalAmount.toFixed(currencyFractionDigits(_prLocalCurrency)),
         _prRate.toFixed(6),
          (_prAmtUSD + cashFeeApplication.totalAppliedUsd).toFixed(2),
          cashFeeApplication.taxPassThroughUsd.toFixed(2),

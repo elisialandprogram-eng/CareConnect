@@ -54,4 +54,24 @@ assert.ok(OFFLINE_PAYMENT_METHODS.has("bank_transfer"), "bank transfer is an off
 const unknown = settlement("unknown");
 assert.equal(unknown.providerPayoutUsd, 100, "unknown methods default to card behavior");
 
+const local = calculateProviderSettlement({
+  providerNetEarningsLocal: 100,
+  serviceTaxLocal: 20,
+  platformFeeLocal: 15,
+  platformTaxLocal: 5,
+  commissionLocal: 3,
+  paymentMethod: "cash",
+  bookingCurrency: "HUF",
+  rates: { HUF: 365, USD: 1 },
+});
+assert.equal(
+  local.providerNetEarningsUsd +
+    local.serviceTaxPassThroughUsd +
+    local.cashPlatformFeeDeductionUsd +
+    local.cashPlatformTaxDeductionUsd +
+    local.cashCommissionDeductionUsd,
+  0.39,
+  "USD settlement components use the aggregate conversion boundary",
+);
+
 console.log("Provider settlement unit tests passed");

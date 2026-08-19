@@ -27,14 +27,15 @@ import {
   listingCountryFilter,
   type CountryCode,
 } from "../../middleware/country";
-import { getRates, formatSync, formatLocal, convertUSDToLocal } from "../../services/currency";
+import { getRates, formatSync, formatLocal, convertUSDToLocal, toUSDSync } from "../../services/currency";
 import { countryCurrency } from "../../middleware/country";
 import { getStripe } from "../../stripe";
 import { createInvoiceForAppointment } from "../../utils/invoice-helper";
 import { transitionProviderPayout } from "../../lib/provider-payout-lifecycle";
 import { refundAppointmentPayment } from "../../services/payment.service";
 
-import { round2, roundToCents } from "../../lib/math";
+import { round2, roundToCents, roundBookingAmount } from "../../lib/math";
+import { currencyFractionDigits } from "@shared/currency";
 
 function toCsv(rows: any[], cols: string[]): string {
   const header = cols.join(",");
@@ -1314,15 +1315,31 @@ export function registerAdminFinancialRoutes(app: Express): void {
       if (!payment) return res.status(409).json({ message: "Appointment has no canonical payment aggregate" });
       if (payment.status === "refunded") return res.status(409).json({ message: "Refund already processed" });
 
+      const bookingCurrency = String(
+        appt.booking_currency || appt.display_currency || payment.display_currency || "USD",
+      ).toUpperCase();
+      const exchangeRate = Number(
+        payment.exchange_rate_used || appt.exchange_rate_used || 1,
+      );
+      const safeRate = Number.isFinite(exchangeRate) && exchangeRate > 0 ? exchangeRate : 1;
        const totalPaid = Math.max(
          0,
          Number(payment.paid_amount_usd ?? 0) -
          Number(payment.refunded_amount ?? 0),
        );
       let refundAmt = 0;
-      if (action === "approve") refundAmt = Math.max(0, Number(appt.refund_amount || totalPaid));
+      if (action === "approve") {
+        const requestedLocal = Number(appt.refund_amount);
+        refundAmt = Number.isFinite(requestedLocal) && requestedLocal > 0
+          ? round2(toUSDSync(requestedLocal, bookingCurrency, { [bookingCurrency]: safeRate, USD: 1 }))
+          : totalPaid;
+      }
       else if (action === "partial" || action === "manual") refundAmt = Math.min(Number(amount ?? 0), totalPaid);
       refundAmt = Math.min(refundAmt, totalPaid);
+      const refundAmountLocal = roundBookingAmount(
+        refundAmt * safeRate,
+        bookingCurrency,
+      );
 
       const newStatus = action === "reject" ? "none" : (refundAmt > 0 ? "processed" : "none");
 
@@ -1341,13 +1358,13 @@ export function registerAdminFinancialRoutes(app: Express): void {
 
       await pool.query(
         "UPDATE appointments SET refund_status = $1, refund_amount = $2, refund_notes = COALESCE($3, refund_notes), updated_at = NOW() WHERE id = $4",
-        [newStatus, String(refundAmt), note ?? null, appt.id]
+        [newStatus, refundAmountLocal.toFixed(currencyFractionDigits(bookingCurrency)), note ?? null, appt.id]
       );
 
       if (appt.patient_id) {
         const notifMsg = action === "reject"
           ? `Your refund request for appointment ${appt.appointment_number || "#" + appt.id.slice(0, 8)} was reviewed and declined.`
-          : `A refund of ${refundAmt} has been issued to your wallet for appointment ${appt.appointment_number || "#" + appt.id.slice(0, 8)}.`;
+          : `A refund of ${refundAmountLocal} ${bookingCurrency} has been issued to your wallet for appointment ${appt.appointment_number || "#" + appt.id.slice(0, 8)}.`;
         storage.createNotification({ userId: appt.patient_id, title: action === "reject" ? "Refund declined" : "Refund processed", message: notifMsg, type: "refund" } as any).catch(() => {});
       }
 

@@ -1,4 +1,5 @@
 import { round2, roundBookingAmount } from "./math";
+import { allocateRoundedCurrencyAmounts } from "@shared/currency";
 import type { PoolClient } from "pg";
 
 export const OFFLINE_PAYMENT_METHODS = new Set(["cash", "bank_transfer"]);
@@ -69,13 +70,31 @@ export function calculateProviderSettlement(input: ProviderSettlementInput): Pro
     ? 0
     : grossProviderPayoutLocal;
 
-  const toUsd = (value: number) => round2(value / exchangeRateUsed);
-  const providerNetEarningsUsd = toUsd(providerNetEarningsLocal);
-  const serviceTaxPassThroughUsd = toUsd(serviceTaxLocal);
-  const cashPlatformFeeDeductionUsd = toUsd(cashPlatformFeeLocal);
-  const cashPlatformTaxDeductionUsd = toUsd(cashPlatformTaxLocal);
-  const cashCommissionDeductionUsd = toUsd(cashCommissionLocal);
-  const grossProviderPayoutUsd = providerNetEarningsUsd;
+  const usdParts = allocateRoundedCurrencyAmounts(
+    [
+      providerNetEarningsLocal / exchangeRateUsed,
+      serviceTaxLocal / exchangeRateUsed,
+      cashPlatformFeeLocal / exchangeRateUsed,
+      cashPlatformTaxLocal / exchangeRateUsed,
+      cashCommissionLocal / exchangeRateUsed,
+    ],
+    "USD",
+    (
+      providerNetEarningsLocal +
+      serviceTaxLocal +
+      cashPlatformFeeLocal +
+      cashPlatformTaxLocal +
+      cashCommissionLocal
+    ) / exchangeRateUsed,
+  );
+  const [
+    providerNetEarningsUsd,
+    serviceTaxPassThroughUsd,
+    cashPlatformFeeDeductionUsd,
+    cashPlatformTaxDeductionUsd,
+    cashCommissionDeductionUsd,
+  ] = usdParts;
+  const grossProviderPayoutUsd = round2(providerNetEarningsLocal / exchangeRateUsed);
   const providerPayoutUsd = isOffline
     ? 0
     : grossProviderPayoutUsd;

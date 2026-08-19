@@ -63,6 +63,50 @@ export function roundCurrencyAmount(value: number | string | null | undefined, c
   return sign * (Math.round(scaled + Number.EPSILON * Math.max(1, scaled)) / factor);
 }
 
+/**
+ * Round components while preserving a separately rounded aggregate.
+ *
+ * The residual is assigned in deterministic largest-remainder order so tax,
+ * settlement, and payment allocations remain auditable and sum exactly.
+ */
+export function allocateRoundedCurrencyAmounts(
+  values: readonly (number | string | null | undefined)[],
+  code: string | null | undefined,
+  target?: number | string | null,
+): number[] {
+  if (values.length === 0) return [];
+  const normalized = values.map((value) => {
+    const numeric = Number(value ?? 0);
+    return Number.isFinite(numeric) ? numeric : 0;
+  });
+  const rounded = normalized.map((value) => roundCurrencyAmount(value, code));
+  const targetAmount = roundCurrencyAmount(
+    target ?? normalized.reduce((sum, value) => sum + value, 0),
+    code,
+  );
+  const unit = 1 / currencyMinorUnitFactor(code);
+  let residualUnits = Math.round(
+    (targetAmount - rounded.reduce((sum, value) => sum + value, 0)) / unit,
+  );
+  if (residualUnits === 0) return rounded;
+
+  const order = normalized
+    .map((value, index) => ({
+      index,
+      remainder: Math.abs(value * currencyMinorUnitFactor(code) -
+        Math.round(value * currencyMinorUnitFactor(code))),
+    }))
+    .sort((a, b) => b.remainder - a.remainder || a.index - b.index);
+  const step = residualUnits > 0 ? unit : -unit;
+  let cursor = 0;
+  while (residualUnits !== 0) {
+    rounded[order[cursor % order.length].index] += step;
+    residualUnits -= step > 0 ? 1 : -1;
+    cursor += 1;
+  }
+  return rounded;
+}
+
 export function formatCurrencyAmount(
   value: number | string | null | undefined,
   code: string | null | undefined,

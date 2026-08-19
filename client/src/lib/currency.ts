@@ -153,7 +153,18 @@ function formatCurrencyByLanguage(
 }
 
 /**
- * Authoritative dual-country display formatter.
+ * Format a full-unit amount already denominated in the requested currency.
+ * Use this for API/database monetary values such as 950 HUF or 12.34 USD.
+ */
+export function formatCurrencyFullUnits(
+  amount: number | string | null | undefined,
+  currencyIso: string,
+): string {
+  return formatCurrencyAmount(amount, currencyIso);
+}
+
+/**
+ * Authoritative minor-unit display formatter.
  *
  * Converts an integer cent value (e.g. 500000 = 5 000 Ft) into the correct
  * display string for the given ISO-4217 currency + country context.
@@ -166,7 +177,7 @@ function formatCurrencyByLanguage(
  * @param currencyIso  ISO-4217 code, e.g. "HUF", "IRR", "USD"
  * @param countryCode  Two-letter country code, e.g. "HU", "IR"
  */
-export function formatCurrency(
+export function formatCurrencyMinorUnitsForCountry(
   amountMinorUnits: number,
   currencyIso: string,
   countryCode: string,
@@ -189,6 +200,9 @@ export function formatCurrency(
   const cfg = resolveByCode(upper) ?? DEFAULT_CURRENCY;
   return formatCurrencyMinorUnits(amount, cfg.code);
 }
+
+/** @deprecated Use formatCurrencyFullUnits() or formatCurrencyMinorUnitsForCountry(). */
+export const formatCurrency = formatCurrencyMinorUnitsForCountry;
 
 export function getCurrencyConfig(language: string | undefined): CurrencyConfig {
   return resolveConfig(language);

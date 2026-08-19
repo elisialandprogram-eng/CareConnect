@@ -32,6 +32,7 @@ import { eq, and, gte, lte, inArray } from "drizzle-orm";
 import { isProviderApproved } from "../lib/provider-visibility";
 import { resolvePaymentMethod } from "../lib/payment-method";
 import { haversineDistance, isValidCoordinates } from "../services/location.service";
+import { roundBookingAmount } from "../lib/math";
 
 export function registerCatalogRoutes(app: Express): void {
 
@@ -585,6 +586,9 @@ export function registerCatalogRoutes(app: Express): void {
                 quoteCurrency,
                 quoteRates,
               );
+            }
+            if (promo.discountType !== "percentage") {
+              promoValue = roundBookingAmount(promoValue, quoteCurrency);
             }
             discount = {
               type: promo.discountType === "percentage" ? "percent" : "fixed",
