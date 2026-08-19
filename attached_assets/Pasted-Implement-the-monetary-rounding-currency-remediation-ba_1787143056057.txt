@@ -1,0 +1,360 @@
+Implement the monetary rounding/currency remediation based on the completed
+"Golden Life Currency and Monetary Rounding Audit".
+
+IMPORTANT:
+Do not mechanically replace Math.trunc(), Math.round(), Math.floor(), or toFixed().
+Preserve precision during calculations and round only at defined monetary boundaries.
+
+We do NOT need historical/backward compatibility for obsolete monetary fields or
+legacy calculation paths. Use the current canonical architecture.
+
+GOAL:
+Establish ONE consistent monetary calculation and rounding policy across the
+entire project.
+
+1. CANONICAL ROUNDING
+
+Use:
+- shared/currency.ts as the currency policy
+- server/lib/math.ts for backend monetary helpers
+- roundBookingAmount() for booking currency
+- round2()/roundToCents() for USD accounting
+
+Zero-decimal currencies:
+- HUF
+- IRR
+- JPY
+- KRW
+
+must produce integer final monetary values using proper half-up rounding.
+
+USD/EUR/GBP and other two-decimal currencies must use two-decimal monetary
+boundaries.
+
+Do not round intermediate calculations unless required by an explicit
+financial boundary.
+
+2. PRICING / REVENUE ENGINE
+
+Audit and fix:
+- server/lib/pricing.ts
+- server/lib/revenue-engine.ts
+
+Do not feed display-rounded components back into later calculations.
+
+Keep full precision internally.
+
+Round only at the appropriate output boundaries:
+- booking lines
+- taxable subtotals
+- taxes
+- final patient total
+- provider local snapshots
+- final USD accounting amount
+
+Ensure:
+
+sum(lines) == final booking total
+
+after applying the defined residual/reconciliation strategy.
+
+3. TAX ENGINE
+
+Fix server/lib/tax-engine.ts.
+
+When service/platform taxable amounts are allocated proportionally:
+
+- calculate using full precision
+- round the final total
+- allocate residual deterministically
+- ensure:
+
+service taxable amount + platform taxable amount
+==
+discounted taxable total
+
+Likewise ensure:
+
+service tax + platform tax == total tax
+
+especially for HUF/IRR .5 cases.
+
+Do not independently round buckets in a way that creates a residual mismatch.
+
+4. PROVIDER SETTLEMENT
+
+Fix server/lib/provider-settlement.ts.
+
+Do not independently round every local component and then independently
+convert every component to USD.
+
+Instead:
+
+local canonical aggregate
+→ convert aggregate to USD
+→ round USD accounting amount
+
+Where USD component values are required, allocate residuals deterministically
+so all components reconcile exactly with the canonical USD aggregate.
+
+Ensure provider earnings, tax pass-through, commissions, platform deductions,
+wallet settlement, and ledger values reconcile.
+
+5. REFUNDS
+
+Fix the confirmed currency mismatch in:
+
+server/routes/admin/admin-financial.routes.ts
+
+Do not write a USD refund amount into a booking-currency field.
+
+Clearly distinguish:
+- booking-currency refund snapshot
+- USD accounting/payment refund amount
+
+Trace the complete refund flow through:
+- appointment
+- payment
+- wallet
+- Stripe/payment provider
+- provider settlement
+- notifications
+- reports
+
+Ensure every value is interpreted in its actual currency.
+
+6. FIXED / MIN / MAX / TRAVEL / PAYMENT FEES
+
+Audit all fee rules in:
+
+server/lib/revenue-engine.ts
+
+Explicitly establish the currency contract for:
+- fixed platform fees
+- minimum platform fees
+- maximum platform fees
+- fixed payment adjustments
+- travel fees
+- percentage fees
+
+Do not assume a fixed monetary rule is USD or booking currency without
+confirming its intended contract from the existing implementation/schema.
+
+Make the rule currency explicit where necessary.
+
+7. CURRENCY CONVERSION
+
+Follow this principle:
+
+local booking calculation
+→ final local aggregate
+→ one USD conversion at accounting boundary
+
+Avoid unnecessary:
+
+local → USD → local
+
+round trips.
+
+Do not round during intermediate conversions.
+
+Same-currency conversion should remain exact.
+
+8. ZERO-DECIMAL VALIDATION
+
+Enforce currency precision at monetary boundaries.
+
+For HUF/IRR/JPY/KRW:
+- booking totals must be integers
+- tax must be integers
+- discounts must be integers
+- local refunds must be integers
+- local payout amounts must be integers
+- local monetary snapshots must not contain fractional values
+
+Do not blindly change database column types unless required by the existing
+schema architecture. Enforce the correct monetary value at write boundaries.
+
+9. PAYOUTS
+
+Audit:
+
+server/routes/provider-wallet-payouts.routes.ts
+
+Validate local payout input according to the currency precision before converting
+to USD.
+
+Ensure:
+local payout
+→ USD accounting amount
+is performed once at the accounting boundary.
+
+10. GROUP SESSIONS
+
+Audit:
+
+server/storage/group-sessions.mixin.ts
+
+Ensure native session prices respect their currency precision before USD
+conversion.
+
+Do not introduce unnecessary rounding before the final accounting boundary.
+
+11. PROMOTIONS
+
+Audit:
+
+server/routes/community.routes.ts
+server/routes/catalog.routes.ts
+server/routes/appointment.routes.ts
+
+Avoid unnecessary local → USD → local conversions when the promotion and
+booking are already in the same currency.
+
+Preserve the original monetary value where possible.
+
+12. FRONTEND CURRENCY API
+
+Audit:
+
+client/src/lib/currency.ts
+
+Remove ambiguous monetary formatter contracts.
+
+Clearly distinguish:
+- USD full units
+- local full units
+- minor units
+- USD → local conversion
+- local → USD conversion
+
+Prefer explicit APIs such as:
+
+formatUsdAmount()
+formatLocalAmount()
+formatMinorUnits()
+convertLocalToUsdAtBoundary()
+convertUsdToLocalAtBoundary()
+
+Do not allow a full-unit value to accidentally enter a minor-unit formatter.
+
+Then audit all frontend callers and migrate them to the correct contract.
+
+13. PROVIDER EARNINGS DISPLAY
+
+Audit:
+
+client/src/pages/provider-earnings.tsx
+
+Do not mix stored local snapshots and independently converted USD fallback
+values in the same monetary row.
+
+Each displayed monetary value must have one clear currency source and one
+rounding path.
+
+14. DATABASE SNAPSHOTS
+
+Audit all monetary snapshot writes.
+
+Do not use .toFixed() as a calculation mechanism.
+
+Use explicit monetary rounding helpers before persistence.
+
+For zero-decimal currencies, persisted local values must represent whole units.
+
+15. DISPLAY
+
+Display formatting must be the FINAL operation.
+
+Never:
+
+format → parse → calculate
+
+Never use display-rounded values as calculation inputs.
+
+Use the canonical currency formatter for final presentation.
+
+16. RECONCILIATION INVARIANTS
+
+Add or update tests/assertions for:
+
+- booking lines == booking total
+- service tax + platform tax == total tax
+- service taxable + platform taxable == discounted taxable total
+- provider components == provider aggregate
+- USD provider components == canonical USD settlement
+- payment allocations == payment total
+- refunds <= paid amount
+- wallet balance reconciliation
+- ledger reconciliation
+- zero-decimal currencies contain no fractional final values
+
+17. FULL PROJECT SWEEP
+
+After implementing the above, perform another full repository search for:
+
+Math.trunc
+Math.floor
+Math.ceil
+Math.round
+toFixed
+parseInt
+currency conversion helpers
+USD/local conversion
+minor-unit conversion
+tax percentage calculations
+fee calculations
+commission calculations
+monetary database writes
+
+Review every remaining occurrence.
+
+Do NOT remove a rounding operation simply because it uses Math.round().
+Determine whether it represents a legitimate monetary boundary.
+
+18. TESTING
+
+Run:
+
+npm run check
+npm run build
+
+Run all existing relevant tests.
+
+Add focused tests for:
+
+- HUF 950 × 27% = 257 Ft
+- IRR zero-decimal rounding
+- JPY/KRW zero-decimal rounding
+- USD 1.005 boundary
+- tax residual allocation
+- discount residual allocation
+- provider settlement reconciliation
+- HUF/IRR refunds
+- HUF/IRR payouts
+- payment allocation reconciliation
+- same-currency conversion
+- no unnecessary local → USD → local conversion
+
+Also test positive and negative half-up cases where applicable.
+
+IMPORTANT:
+Do not change unrelated business logic.
+Do not introduce historical compatibility logic.
+Do not reintroduce obsolete fields or migration/backfill behavior.
+Do not create another parallel rounding system.
+
+At the end provide:
+
+1. Files changed
+2. Universal rounding policy implemented
+3. Remaining Math.round()/toFixed()/conversion occurrences and why they are valid
+4. Currency-boundary changes
+5. Tax reconciliation changes
+6. Provider settlement reconciliation changes
+7. Refund currency fix
+8. Frontend formatter changes
+9. Tests added/updated
+10. npm run check result
+11. npm run build result
+12. Any remaining risks
