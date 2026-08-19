@@ -1,0 +1,97 @@
+Perform a FULL PROJECT-WIDE AUDIT of currency rounding and monetary calculations.
+
+Do NOT change any code yet.
+
+Sweep the entire repository, including:
+- Backend
+- Frontend/client
+- Revenue/pricing engine
+- Tax engine
+- Booking calculations
+- Payment calculations
+- Platform fees
+- Provider earnings
+- Wallet/ledger
+- Payouts
+- Refunds
+- Discounts/promos
+- Travel/home-visit fees
+- Payment gateway fees
+- Currency conversion
+- USD accounting conversions
+- Database snapshot calculations
+- Emails/notifications
+- Provider dashboard
+- Patient dashboard
+- Admin dashboard
+- Reports
+- API responses
+- Any utility/helper functions
+
+Find EVERY place that:
+- Uses Math.round, Math.floor, Math.ceil, Math.trunc
+- Uses toFixed, parseInt, Number(), decimal conversions, integer casts, SQL ROUND/FLOOR/CEIL
+- Converts between currencies
+- Converts USD ↔ local currency
+- Calculates tax
+- Calculates percentages
+- Calculates fees/commissions
+- Calculates totals/subtotals
+- Formats monetary values for display
+- Stores monetary values in the database
+- Converts database monetary values back for display
+- Performs intermediate rounding before the final total
+
+Pay special attention to zero-decimal currencies such as:
+HUF, JPY, KRW, IRR and any other supported zero-decimal currencies.
+
+IMPORTANT:
+Do not assume that every Math.round() is correct.
+Determine WHERE rounding should happen and whether rounding is currently happening too early, multiple times, inconsistently, or differently between backend and frontend.
+
+Trace the complete money flow:
+
+Base price
+→ adjustments/fees
+→ discounts
+→ taxable amounts
+→ service tax
+→ platform fee
+→ platform tax
+→ payment fees
+→ final patient total
+→ provider earnings
+→ wallet/ledger
+→ payout/refund
+→ display
+
+For each occurrence, document:
+
+1. File and line
+2. Current calculation
+3. Current rounding behavior
+4. Currency involved
+5. Whether rounding is required at that stage
+6. Whether it causes financial loss/gain or display inconsistency
+7. What the canonical behavior should be
+
+Then identify ALL duplicate/inconsistent rounding implementations.
+
+Do NOT fix anything yet.
+
+At the end, produce:
+
+A. Complete rounding/calculation inventory
+B. All problematic locations
+C. Recommended single universal monetary-rounding strategy
+D. Where that strategy should live (shared backend/frontend utility if appropriate)
+E. Exact places that should use it
+F. Places where rounding should NOT happen
+G. Recommended precision/rounding rules for zero-decimal and decimal currencies
+H. Tests required to prove the fix works
+
+The goal is NOT simply to replace Math.trunc() with Math.round().
+
+The goal is to understand the COMPLETE monetary calculation pipeline and then establish ONE consistent rounding policy across the entire project.
+
+Do not modify any files during this audit.
