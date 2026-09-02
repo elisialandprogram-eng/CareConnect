@@ -580,6 +580,37 @@ export default function BookWizard() {
     });
   };
 
+  /* ── Visit type change during checkout ───────────────────────────── */
+  // A slot is selected and held for a specific visit type. Changing from
+  // clinic to home (or vice versa) changes the effective buffer window, so
+  // keeping the old hold would let checkout submit a slot that was never
+  // available for the newly selected visit type.
+  const handleCanvasVisitTypeChange = (nextVisitType: "clinic" | "home" | "online") => {
+    if (nextVisitType === visitType) return;
+    const hid = holdId;
+    setVisitType(nextVisitType);
+    setCanvasOpen(false);
+    setSelectedSlot(null);
+    setHoldId(null);
+    setHoldExpiresAt(null);
+    if (hid) {
+      apiRequest("DELETE", `/api/slot-holds/${hid}`).catch(() => {});
+    }
+    queryClient.invalidateQueries({
+      queryKey: QK.providerSlots(
+        selectedProvider?.id ?? "",
+        selectedDate,
+        effectivePractitionerId ?? "any",
+        selectedService?.id ?? "any",
+        nextVisitType,
+      ),
+    });
+    toast({
+      title: "Visit type changed",
+      description: "Please choose a new time that is available for this visit type.",
+    });
+  };
+
   /* ── Canvas close: release hold ─────────────────────────────────── */
   const handleCanvasClose = async () => {
     setCanvasOpen(false);
@@ -1139,7 +1170,7 @@ export default function BookWizard() {
           subServiceId={selectedService?.subServiceId ?? null}
           breakdown={quote ?? null}
            quoteLoading={quoteFetching || !quote}
-          onVisitTypeChange={setVisitType}
+          onVisitTypeChange={handleCanvasVisitTypeChange}
           onLocationChange={setQuoteLocation}
           onPaymentMethodChange={setQuotePaymentMethod}
           onPromoCodeChange={(code) => setQuotePromoCode(code ?? "")}

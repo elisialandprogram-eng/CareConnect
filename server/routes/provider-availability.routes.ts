@@ -75,7 +75,11 @@ import {
   fireAdminNotification,
   sendAppointmentEmail,
 } from "./shared/helpers";
-import { checkConflict, getBufferSettings, BLOCKING_STATUSES } from "../conflictEngine";
+import {
+  effectiveWindow,
+  getBufferSettings,
+  getProviderBookedAppointments,
+} from "../conflictEngine";
 import multer from "multer";
 import { notify } from "../services/notification-dispatcher";
 
@@ -103,11 +107,14 @@ export function registerProviderAvailabilityRoutes(app: Express): void {
         console.error("Time-off lookup failed (continuing):", offErr);
       }
 
-      // Fetch provider, time slots, booked windows, provider blocks, availability exceptions, and active slot holds in parallel.
-      const [provider, slots, bookedWindows, provBlocksRes, availExRes, holdsRes] = await Promise.all([
+      // Fetch provider, time slots, booked appointments, provider blocks,
+      // availability exceptions, and active slot holds in parallel.
+      // Booked appointments include visit type and service buffers so the
+      // picker uses exactly the same effective-window rules as checkout.
+      const [provider, slots, bookedAppointments, provBlocksRes, availExRes, holdsRes] = await Promise.all([
         storage.getProvider(req.params.id),
         storage.getTimeSlotsByProvider(req.params.id, date),
-        storage.getProviderBookedWindows(req.params.id, date),
+        getProviderBookedAppointments(req.params.id, date, qPractitionerId ?? null),
         pool.query(
           `SELECT start_datetime::text, end_datetime::text FROM provider_blocks
            WHERE provider_id = $1
@@ -120,7 +127,7 @@ export function registerProviderAvailabilityRoutes(app: Express): void {
           [req.params.id, date],
         ),
         pool.query(
-          `SELECT start_time, end_time, patient_id FROM appointment_slot_holds
+          `SELECT start_time, end_time, patient_id, visit_type FROM appointment_slot_holds
            WHERE provider_id = $1 AND date = $2 AND expires_at > NOW()`,
           [req.params.id, date],
         ),
@@ -156,8 +163,6 @@ export function registerProviderAvailabilityRoutes(app: Express): void {
       }
 
       // Build a set of blocked start times (used for explicit-slot isBooked flag).
-      const blockedTimes = new Set((bookedWindows as Array<{startTime: string}>).map(w => w.startTime));
-
       // Resolve optional service for slot-length and availability-hours override.
       let service: any | null = null;
       if (serviceId) {
@@ -229,13 +234,63 @@ export function registerProviderAvailabilityRoutes(app: Express): void {
       const effBufBefore = Math.max(provBufBefore, svcBufBefore);
       const effBufAfter  = Math.max(provBufAfter,  svcBufAfter);
 
-      // Returns true if [slotStartMins, slotEndMins] overlaps any booking's effective window.
+      // Compute the requested slot's effective window once. Existing
+      // appointments use their own visit type and service buffers below.
+      const requestedWindow = (slotStartMins: number, slotEndMins: number) =>
+        effectiveWindow(
+          date,
+          fmt(slotStartMins),
+          fmt(slotEndMins),
+          visitTypeKey === "home" || visitTypeKey === "online" ? visitTypeKey : "clinic",
+          bufSettings,
+          svcBufBefore,
+          svcBufAfter,
+        );
+
+      // Returns true if [slotStartMins, slotEndMins] overlaps any booking's
+      // effective window. This is intentionally the same calculation used by
+      // POST /api/appointments.
       const isBookedByAppt = (slotStartMins: number, slotEndMins: number): boolean => {
-        for (const w of bookedWindows as Array<{startTime: string; endTime: string}>) {
-          const bStart = toMins(w.startTime);
-          const bEnd   = toMins(w.endTime);
-          if ((slotStartMins - effBufBefore) < (bEnd   + provBufAfter) &&
-              (slotEndMins   + effBufAfter)  > (bStart - provBufBefore)) {
+        const requested = requestedWindow(slotStartMins, slotEndMins);
+        for (const booked of bookedAppointments) {
+          const existing = effectiveWindow(
+            date,
+            booked.startTime,
+            booked.endTime,
+            booked.visitType,
+            bufSettings,
+            booked.serviceBufferBefore,
+            booked.serviceBufferAfter,
+          );
+          if (
+            requested.effectiveStart < existing.effectiveEnd &&
+            requested.effectiveEnd > existing.effectiveStart
+          ) {
+            return true;
+          }
+        }
+        return false;
+      };
+
+      // A hold reserves the same effective window as the appointment it
+      // represents. In particular, a home hold must also protect its travel
+      // buffer from an adjacent clinic/online booking.
+      const isHeldByHold = (slotStartMins: number, slotEndMins: number): boolean => {
+        const requested = requestedWindow(slotStartMins, slotEndMins);
+        for (const hold of (holdsRes as any).rows) {
+          const held = effectiveWindow(
+            date,
+            hold.start_time,
+            hold.end_time,
+            hold.visit_type === "home" || hold.visit_type === "online"
+              ? hold.visit_type
+              : "clinic",
+            bufSettings,
+          );
+          if (
+            requested.effectiveStart < held.effectiveEnd &&
+            requested.effectiveEnd > held.effectiveStart
+          ) {
             return true;
           }
         }
@@ -285,7 +340,7 @@ export function registerProviderAvailabilityRoutes(app: Express): void {
             const holdKey = `${s.startTime}|${s.endTime}`;
             const status: "BOOKED" | "HELD" | "AVAILABLE" =
               isBookedFinal ? "BOOKED"
-              : holdMap.has(holdKey) ? "HELD"
+              : (holdMap.has(holdKey) || isHeldByHold(startMinsVal, endMinsVal)) ? "HELD"
               : "AVAILABLE";
             // Add authoritative UTC instant so the frontend can compute urgency
             // and past-slot checks without relying on browser-local time parsing.
@@ -392,8 +447,22 @@ export function registerProviderAvailabilityRoutes(app: Express): void {
       // Part 3 — Build sorted booked-window list for buffer squeezer.
       // The squeezer uses this to snap the walking pointer past booked blocks
       // instead of leaving un-bookable gaps between appointments.
-      const sortedBooked = (bookedWindows as Array<{startTime: string; endTime: string}>)
-        .map(w => ({ startMins: toMins(w.startTime), endMins: toMins(w.endTime) }))
+      const sortedBooked = bookedAppointments
+        .map(booked => {
+          const window = effectiveWindow(
+            date,
+            booked.startTime,
+            booked.endTime,
+            booked.visitType,
+            bufSettings,
+            booked.serviceBufferBefore,
+            booked.serviceBufferAfter,
+          );
+          return {
+            startMins: window.effectiveStart,
+            endMins: window.effectiveEnd,
+          };
+        })
         .sort((a, b) => a.startMins - b.startMins);
 
       const synthetic: Array<{
@@ -439,7 +508,9 @@ export function registerProviderAvailabilityRoutes(app: Express): void {
                 const holdKey = `${startTime}|${fmt(t + SLOT_MIN)}`;
                 const isBooked = isBookedByAppt(t, t + SLOT_MIN);
                 const status: "AVAILABLE" | "HELD" | "BOOKED" =
-                  isBooked ? "BOOKED" : holdMap.has(holdKey) ? "HELD" : "AVAILABLE";
+                  isBooked ? "BOOKED"
+                    : (holdMap.has(holdKey) || isHeldByHold(t, t + SLOT_MIN)) ? "HELD"
+                    : "AVAILABLE";
                 synthetic.push({
                   id: `virtual-${date}-${startTime}`,
                   date,
@@ -464,7 +535,9 @@ export function registerProviderAvailabilityRoutes(app: Express): void {
           const holdKey = `${startTime}|${fmt(t + SLOT_MIN)}`;
           const isBooked = isBookedByAppt(t, t + SLOT_MIN);
           const status: "AVAILABLE" | "HELD" | "BOOKED" =
-            isBooked ? "BOOKED" : holdMap.has(holdKey) ? "HELD" : "AVAILABLE";
+             isBooked ? "BOOKED"
+               : (holdMap.has(holdKey) || isHeldByHold(t, t + SLOT_MIN)) ? "HELD"
+               : "AVAILABLE";
           synthetic.push({
             id: `virtual-${date}-${startTime}`,
             date,

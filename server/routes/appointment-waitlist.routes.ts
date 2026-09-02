@@ -388,15 +388,33 @@ export function registerAppointmentWaitlistRoutes(app: Express): void {
         startTime: z.string().regex(/^\d{2}:\d{2}$/),
         endTime: z.string().regex(/^\d{2}:\d{2}$/),
         visitType: z.enum(["clinic", "home", "online"]),
+        serviceBufferBefore: z.number().int().min(0).max(240).optional(),
+        serviceBufferAfter: z.number().int().min(0).max(240).optional(),
         patientLatitude: z.number().optional().nullable(),
         patientLongitude: z.number().optional().nullable(),
         excludeAppointmentId: z.string().optional(),
         excludeHoldId: z.string().optional(),
+        serviceId: z.string().optional().nullable(),
       });
       const parsed = schema.safeParse(req.body);
       if (!parsed.success) return res.status(400).json({ message: parsed.error.errors[0]?.message });
 
-      const report = await checkConflict(parsed.data as any);
+      let serviceBufferBefore = parsed.data.serviceBufferBefore ?? 0;
+      let serviceBufferAfter = parsed.data.serviceBufferAfter ?? 0;
+      if (parsed.data.serviceId) {
+        try {
+          const service = await storage.getService(parsed.data.serviceId);
+          serviceBufferBefore = Number(service?.bufferBefore ?? serviceBufferBefore);
+          serviceBufferAfter = Number(service?.bufferAfter ?? serviceBufferAfter);
+        } catch { /* use values supplied by the caller */ }
+      }
+      const report = await checkConflict({
+        ...parsed.data,
+        serviceBufferBefore,
+        serviceBufferAfter,
+        // The authenticated patient's own hold is not a conflict.
+        excludePatientId: req.user!.id,
+      } as any);
       return res.json(report);
     } catch (e: any) {
       return res.status(500).json({ message: e.message });

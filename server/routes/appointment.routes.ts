@@ -1416,8 +1416,10 @@ export function registerAppointmentRoutes(app: Express): void {
               startTime: extra.startTime,
               endTime: extra.endTime,
               visitType: (visitType || "clinic") as "clinic" | "home" | "online",
-              serviceBufferBefore: 0,
-              serviceBufferAfter: 0,
+              serviceBufferBefore: Number(svcRecord?.bufferBefore ?? 0),
+              serviceBufferAfter: Number(svcRecord?.bufferAfter ?? 0),
+              patientLatitude: typeof patientLatitude === "number" ? patientLatitude : null,
+              patientLongitude: typeof patientLongitude === "number" ? patientLongitude : null,
               excludePatientId: userId,
             });
             if (extraConflict.result.hasConflict) {

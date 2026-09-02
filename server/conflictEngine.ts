@@ -70,6 +70,17 @@ export interface ConflictReport {
   checkedAt: string;
 }
 
+export interface BookedAppointmentWindow {
+  id: string;
+  startTime: string;
+  endTime: string;
+  visitType: "clinic" | "home" | "online";
+  patientLatitude?: number | null;
+  patientLongitude?: number | null;
+  serviceBufferBefore: number;
+  serviceBufferAfter: number;
+}
+
 // ── Utility helpers ────────────────────────────────────────────────────────────
 
 function timeToMinutes(hhmm: string): number {
@@ -81,6 +92,62 @@ function minutesToTime(minutes: number): string {
   const h = Math.floor(minutes / 60) % 24;
   const m = minutes % 60;
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+}
+
+function normalizeVisitType(value: unknown): "clinic" | "home" | "online" {
+  return value === "home" || value === "online" ? value : "clinic";
+}
+
+/**
+ * Load the appointments that occupy a provider's schedule with all data
+ * required to calculate their effective windows. Availability and checkout
+ * must use the same visit-type-specific buffers.
+ */
+export async function getProviderBookedAppointments(
+  providerId: string,
+  date: string,
+  practitionerId?: string | null,
+  excludeAppointmentId?: string,
+): Promise<BookedAppointmentWindow[]> {
+  const placeholders: any[] = [providerId, date, BLOCKING_STATUSES];
+  let practitionerClause = "";
+  if (practitionerId) {
+    practitionerClause = `AND (a.practitioner_id = $${placeholders.length + 1} OR a.practitioner_id IS NULL)`;
+    placeholders.push(practitionerId);
+  }
+  let excludeClause = "";
+  if (excludeAppointmentId) {
+    excludeClause = `AND a.id != $${placeholders.length + 1}`;
+    placeholders.push(excludeAppointmentId);
+  }
+
+  const result = await pool.query(
+    `SELECT a.id, a.start_time, a.end_time, a.visit_type,
+            a.patient_latitude, a.patient_longitude,
+            COALESCE(s.buffer_before, 0) AS svc_buf_before,
+            COALESCE(s.buffer_after, 0) AS svc_buf_after
+       FROM appointments a
+       LEFT JOIN services s ON a.service_id = s.id
+      WHERE a.provider_id = $1
+        AND a.date = $2
+        AND a.status = ANY($3::appointment_status[])
+        ${practitionerClause}
+        ${excludeClause}`,
+    placeholders,
+  );
+
+  return result.rows
+    .filter((row: any) => row.start_time && row.end_time)
+    .map((row: any) => ({
+      id: String(row.id),
+      startTime: String(row.start_time),
+      endTime: String(row.end_time),
+      visitType: normalizeVisitType(row.visit_type),
+      patientLatitude: row.patient_latitude == null ? null : Number(row.patient_latitude),
+      patientLongitude: row.patient_longitude == null ? null : Number(row.patient_longitude),
+      serviceBufferBefore: Number(row.svc_buf_before ?? 0),
+      serviceBufferAfter: Number(row.svc_buf_after ?? 0),
+    }));
 }
 
 /**
@@ -210,42 +277,20 @@ export async function checkConflict(
 
   // ── 1. Check existing appointments ─────────────────────────────────────────
   {
-    const placeholders: any[] = [
+    const bookedAppointments = await getProviderBookedAppointments(
       providerId,
       date,
-      BLOCKING_STATUSES,
-    ];
-    let practitionerClause = "";
-    if (practitionerId) {
-      practitionerClause = `AND (practitioner_id = $${placeholders.length + 1} OR practitioner_id IS NULL)`;
-      placeholders.push(practitionerId);
-    }
-    const excludeClause = excludeAppointmentId
-      ? `AND a.id != $${placeholders.length + 1}`
-      : "";
-    if (excludeAppointmentId) placeholders.push(excludeAppointmentId);
-
-    const apptResult = await pool.query(
-      `SELECT a.id, a.start_time, a.end_time, a.visit_type, a.patient_latitude, a.patient_longitude,
-              COALESCE(s.buffer_before, 0) AS svc_buf_before,
-              COALESCE(s.buffer_after,  0) AS svc_buf_after
-       FROM appointments a
-       LEFT JOIN services s ON a.service_id = s.id
-       WHERE a.provider_id = $1
-         AND a.date = $2
-         AND a.status = ANY($3::appointment_status[])
-         ${practitionerClause}
-         ${excludeClause}`,
-      placeholders,
+      practitionerId,
+      excludeAppointmentId,
     );
 
-    for (const row of apptResult.rows) {
-      const existingVT = (row.visit_type === "home" ? "home" : "clinic") as "clinic" | "home";
+    for (const row of bookedAppointments) {
+      const existingVT = row.visitType;
       // Include the existing appointment's own service buffers so buffer-zone
       // collisions on both sides are caught (not just the new appointment's buffers).
       const existing = effectiveWindow(
-        date, row.start_time, row.end_time, existingVT, buffers,
-        Number(row.svc_buf_before ?? 0), Number(row.svc_buf_after ?? 0),
+        date, row.startTime, row.endTime, existingVT, buffers,
+        row.serviceBufferBefore, row.serviceBufferAfter,
       );
 
       const overlaps =
@@ -274,13 +319,13 @@ export async function checkConflict(
         existingVT === "home" &&
         patientLatitude != null &&
         patientLongitude != null &&
-        row.patient_latitude != null &&
-        row.patient_longitude != null &&
+        row.patientLatitude != null &&
+        row.patientLongitude != null &&
         buffers.travelRadiusKm > 0
       ) {
         const distKm = haversineKm(
           patientLatitude, patientLongitude,
-          parseFloat(row.patient_latitude), parseFloat(row.patient_longitude),
+          Number(row.patientLatitude), Number(row.patientLongitude),
         );
         if (distKm > buffers.travelRadiusKm) {
           return {
@@ -370,7 +415,7 @@ export async function checkConflict(
       : "";
 
     const holdResult = await pool.query(
-      `SELECT id, start_time, end_time, patient_id
+      `SELECT id, start_time, end_time, patient_id, visit_type
        FROM appointment_slot_holds
        WHERE provider_id = $1
          AND date = $2
@@ -381,11 +426,20 @@ export async function checkConflict(
     );
 
     for (const row of holdResult.rows) {
-      const holdStartMins = timeToMinutes(row.start_time);
-      const holdEndMins = timeToMinutes(row.end_time);
+      // A hold reserves the appointment plus the buffer required by its own
+      // visit type. Otherwise a home hold would only block the exact slot and
+      // an adjacent clinic booking could pass the picker but fail at checkout.
+      const heldWindow = effectiveWindow(
+        date,
+        row.start_time,
+        row.end_time,
+        normalizeVisitType(row.visit_type),
+        buffers,
+      );
 
       const overlaps =
-        effectiveStart < holdEndMins && effectiveEnd > holdStartMins;
+        effectiveStart < heldWindow.effectiveEnd &&
+        effectiveEnd > heldWindow.effectiveStart;
 
       if (overlaps) {
         return {
