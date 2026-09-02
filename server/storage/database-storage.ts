@@ -3155,11 +3155,13 @@ export class DatabaseStorage extends PackagesMixin implements IStorage {
           a.*,
            pay.payment_method AS settlement_payment_method,
            pay.status AS settlement_payment_status,
+           pay.paid_amount_usd AS settlement_paid_amount_usd,
+           pay.refunded_amount AS settlement_refunded_amount_usd,
           p.fee_split_ratio
         FROM appointments a
         JOIN providers p ON p.id = a.provider_id
           LEFT JOIN LATERAL (
-          SELECT payment_method, status
+          SELECT payment_method, status, paid_amount_usd, refunded_amount
           FROM payments
             WHERE appointment_id = a.id
           ORDER BY created_at DESC
@@ -3185,6 +3187,22 @@ export class DatabaseStorage extends PackagesMixin implements IStorage {
          !["card", "wallet", "cash", "bank_transfer", "mixed"].includes(
           String(appt.settlement_payment_method || "").toLowerCase(),
         )
+      ) {
+        await client.query("ROLLBACK");
+        return null;
+      }
+      const settlementPaymentStatus = String(appt.settlement_payment_status || "").toLowerCase();
+      const settlementRemainingUsd = Math.max(
+        0,
+        Number(appt.settlement_paid_amount_usd || 0) -
+        Number(appt.settlement_refunded_amount_usd || 0),
+      );
+      // A fully refunded booking must never create a new earning record on a
+      // completion retry. Partial refunds remain eligible only for the
+      // unrefunded portion.
+      if (
+        settlementPaymentStatus === "refunded" ||
+        (settlementPaymentStatus === "partially_refunded" && settlementRemainingUsd <= 0.005)
       ) {
         await client.query("ROLLBACK");
         return null;
@@ -3223,16 +3241,25 @@ export class DatabaseStorage extends PackagesMixin implements IStorage {
       const resolvedProviderGrossEarningsLocal = providerGrossEarningsLocal > 0
         ? providerGrossEarningsLocal
         : Math.max(0, providerNetEarningsLocal + Number(appt.commission_amount ?? 0));
-      const platformFeeLocal = Math.max(0, Number(appt.platform_fee_amount || 0));
-      const platformTaxLocal = Math.max(0, Number(appt.platform_tax_amount || 0));
+      const paymentMethod = String(appt.settlement_payment_method || "").toLowerCase();
+      const paidAmountUsd = Math.max(0, Number(appt.settlement_paid_amount_usd || 0));
+      const refundedAmountUsd = Math.max(0, Number(appt.settlement_refunded_amount_usd || 0));
+      const offlineUnrefundedRatio = OFFLINE_PAYMENT_METHODS.has(paymentMethod) && paidAmountUsd > 0
+        ? Math.min(1, Math.max(0, (paidAmountUsd - refundedAmountUsd) / paidAmountUsd))
+        : 1;
+      const effectiveProviderNetEarningsLocal = providerNetEarningsLocal * offlineUnrefundedRatio;
+      const effectiveServiceTaxAmountLocal = serviceTaxAmountLocal * offlineUnrefundedRatio;
+      const effectiveProviderGrossEarningsLocal = resolvedProviderGrossEarningsLocal * offlineUnrefundedRatio;
+      const platformFeeLocal = Math.max(0, Number(appt.platform_fee_amount || 0)) * offlineUnrefundedRatio;
+      const platformTaxLocal = Math.max(0, Number(appt.platform_tax_amount || 0)) * offlineUnrefundedRatio;
       const commissionLocal = Math.max(
         0,
         Number(appt.commission_amount ?? snapshot.rows[0]?.commission_amount ?? 0),
-      );
+      ) * offlineUnrefundedRatio;
 
       const settlement = calculateProviderSettlement({
-        providerNetEarningsLocal,
-        serviceTaxLocal: serviceTaxAmountLocal,
+        providerNetEarningsLocal: effectiveProviderNetEarningsLocal,
+        serviceTaxLocal: effectiveServiceTaxAmountLocal,
         platformFeeLocal,
         platformTaxLocal,
         commissionLocal,
@@ -3376,8 +3403,8 @@ export class DatabaseStorage extends PackagesMixin implements IStorage {
           exchangeRate.toFixed(6),
            usdMoney(Math.max(0, settlement.providerNetEarningsUsd - settlement.serviceTaxPassThroughUsd)),
            usdMoney(settlement.serviceTaxPassThroughUsd),
-           usdMoney(resolvedProviderGrossEarningsLocal / rateVal),
-           localMoney(resolvedProviderGrossEarningsLocal),
+            usdMoney(effectiveProviderGrossEarningsLocal / rateVal),
+            localMoney(effectiveProviderGrossEarningsLocal),
            usdMoney(settlement.providerNetEarningsUsd),
            localMoney(settlement.providerNetEarningsLocal),
            usdMoney(settlement.serviceTaxPassThroughUsd),

@@ -150,6 +150,9 @@ export function registerProviderWalletPayoutsRoutes(app: Express): void {
            pe.cash_platform_fee_deduction_usd                     AS "cashPlatformFeeDeductionUsd",
            pe.cash_platform_tax_deduction_usd                     AS "cashPlatformTaxDeductionUsd",
            pe.cash_commission_deduction_usd                        AS "cashCommissionDeductionUsd",
+            pe.cash_platform_fee_reversed_usd                       AS "cashPlatformFeeReversedUsd",
+            pe.cash_platform_tax_reversed_usd                       AS "cashPlatformTaxReversedUsd",
+            pe.cash_commission_reversed_usd                          AS "cashCommissionReversedUsd",
            pe.cash_wallet_debit_applied_usd                        AS "cashWalletDebitAppliedUsd",
              COALESCE(pay.payment_method, pe.payment_method, a.payment_method, 'card')
                                                                       AS "paymentMethod",
@@ -226,6 +229,16 @@ export function registerProviderWalletPayoutsRoutes(app: Express): void {
            COALESCE(pe.cash_platform_fee_deduction_usd, 0)
              + COALESCE(pe.cash_platform_tax_deduction_usd, 0)
              + COALESCE(pe.cash_commission_deduction_usd, 0) AS provider_settlement_deduction_usd,
+           COALESCE(pe.cash_platform_fee_reversed_usd, 0)
+             + COALESCE(pe.cash_platform_tax_reversed_usd, 0)
+             + COALESCE(pe.cash_commission_reversed_usd, 0) AS provider_settlement_reversal_usd,
+           GREATEST(0,
+             COALESCE(pe.cash_platform_fee_deduction_usd, 0)
+             + COALESCE(pe.cash_platform_tax_deduction_usd, 0)
+             + COALESCE(pe.cash_commission_deduction_usd, 0)
+             - COALESCE(pe.cash_platform_fee_reversed_usd, 0)
+             - COALESCE(pe.cash_platform_tax_reversed_usd, 0)
+             - COALESCE(pe.cash_commission_reversed_usd, 0)) AS provider_net_settlement_deduction_usd,
           pe.settlement_amount_usd AS settlement_amount_usd,
            COALESCE(pay.payment_method, pe.payment_method, a.payment_method, 'card') AS payment_method,
           COALESCE(pe.display_currency, 'USD') AS currency,
@@ -348,10 +361,12 @@ export function registerProviderWalletPayoutsRoutes(app: Express): void {
       const inFlight      = Number(row.in_flight_amount || 0);
        const pendingSettlementDeduction = Number(row.pending_settlement_deduction || 0);
        const availableBalance = Math.max(0, walletBalance - inFlight - pendingSettlementDeduction);
+       const outstandingWalletDebt = Math.max(0, -walletBalance);
       const localCurrency = countryCurrency(provider.countryCode as CountryCode | undefined);
       res.json({
         availableBalance,
          grossAvailableBalance: walletBalance,
+         outstandingWalletDebt,
          pendingSettlementDeduction,
         finalAvailableBalance: availableBalance,
         cashBookingCount: Number(row.cash_booking_count || 0),

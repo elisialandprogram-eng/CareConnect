@@ -618,6 +618,7 @@ export function registerAdminFinancialRoutes(app: Express): void {
       }
        if (req.query.status === "pending") conditions.push(`COALESCE(pe.cash_wallet_debit_applied_usd, 0) < COALESCE(pe.cash_platform_fee_deduction_usd, 0) + COALESCE(pe.cash_platform_tax_deduction_usd, 0) + COALESCE(pe.cash_commission_deduction_usd, 0)`);
        if (req.query.status === "applied") conditions.push(`COALESCE(pe.cash_wallet_debit_applied_usd, 0) >= COALESCE(pe.cash_platform_fee_deduction_usd, 0) + COALESCE(pe.cash_platform_tax_deduction_usd, 0) + COALESCE(pe.cash_commission_deduction_usd, 0)`);
+       if (req.query.status === "reversed") conditions.push(`COALESCE(pe.cash_wallet_debit_reversed_usd, 0) > 0`);
       const { rows } = await pool.query(`
         SELECT pe.id, pe.provider_id, pe.appointment_id,
                COALESCE(NULLIF(TRIM(COALESCE(u.first_name,'') || ' ' || COALESCE(u.last_name,'')), ''), p.clinic_name, 'Unknown') AS provider_name,
@@ -630,10 +631,14 @@ export function registerAdminFinancialRoutes(app: Express): void {
                COALESCE(pe.cash_platform_fee_deduction_usd, 0)::numeric AS cash_platform_fee_deduction_usd,
                COALESCE(pe.cash_platform_tax_deduction_usd, 0)::numeric AS cash_platform_tax_deduction_usd,
                COALESCE(pe.cash_commission_deduction_usd, 0)::numeric AS cash_commission_deduction_usd,
+                COALESCE(pe.cash_platform_fee_reversed_usd, 0)::numeric AS cash_platform_fee_reversed_usd,
+                COALESCE(pe.cash_platform_tax_reversed_usd, 0)::numeric AS cash_platform_tax_reversed_usd,
+                COALESCE(pe.cash_commission_reversed_usd, 0)::numeric AS cash_commission_reversed_usd,
                COALESCE(pe.cash_wallet_debit_applied_usd, 0)::numeric AS cash_wallet_debit_applied_usd,
                COALESCE(pe.cash_platform_fee_applied_usd, 0)::numeric AS cash_platform_fee_applied_usd,
                COALESCE(pe.settlement_amount_usd, 0)::numeric AS final_settlement_usd,
-               CASE WHEN COALESCE(pe.cash_wallet_debit_applied_usd, 0) >= COALESCE(pe.cash_platform_fee_deduction_usd, 0) + COALESCE(pe.cash_platform_tax_deduction_usd, 0) + COALESCE(pe.cash_commission_deduction_usd, 0)
+                CASE WHEN COALESCE(pe.cash_wallet_debit_reversed_usd, 0) >= COALESCE(pe.cash_wallet_debit_applied_usd, 0) AND COALESCE(pe.cash_wallet_debit_applied_usd, 0) > 0 THEN 'reversed'
+                     WHEN COALESCE(pe.cash_wallet_debit_applied_usd, 0) >= COALESCE(pe.cash_platform_fee_deduction_usd, 0) + COALESCE(pe.cash_platform_tax_deduction_usd, 0) + COALESCE(pe.cash_commission_deduction_usd, 0)
                     THEN 'applied' ELSE 'pending' END AS deduction_status,
                pe.cash_platform_fee_payout_request_id AS payout_request_id,
                pe.created_at
@@ -666,6 +671,7 @@ export function registerAdminFinancialRoutes(app: Express): void {
       }
        if (req.query.status === "pending") conditions.push(`COALESCE(pe.cash_wallet_debit_applied_usd, 0) < COALESCE(pe.cash_platform_fee_deduction_usd, 0) + COALESCE(pe.cash_platform_tax_deduction_usd, 0) + COALESCE(pe.cash_commission_deduction_usd, 0)`);
        if (req.query.status === "applied") conditions.push(`COALESCE(pe.cash_wallet_debit_applied_usd, 0) >= COALESCE(pe.cash_platform_fee_deduction_usd, 0) + COALESCE(pe.cash_platform_tax_deduction_usd, 0) + COALESCE(pe.cash_commission_deduction_usd, 0)`);
+       if (req.query.status === "reversed") conditions.push(`COALESCE(pe.cash_wallet_debit_reversed_usd, 0) > 0`);
       const { rows } = await pool.query(`
         SELECT pe.provider_id, COALESCE(NULLIF(TRIM(COALESCE(u.first_name,'') || ' ' || COALESCE(u.last_name,'')), ''), p.clinic_name, 'Unknown') AS provider_name,
                p.country_code::text AS country_code, pe.appointment_id, a.appointment_number, a.date AS appointment_date,
@@ -675,10 +681,14 @@ export function registerAdminFinancialRoutes(app: Express): void {
                COALESCE(pe.cash_platform_fee_deduction_usd, 0) AS cash_platform_fee_deduction_usd,
                COALESCE(pe.cash_platform_tax_deduction_usd, 0) AS cash_platform_tax_deduction_usd,
                COALESCE(pe.cash_commission_deduction_usd, 0) AS cash_commission_deduction_usd,
+                COALESCE(pe.cash_platform_fee_reversed_usd, 0) AS cash_platform_fee_reversed_usd,
+                COALESCE(pe.cash_platform_tax_reversed_usd, 0) AS cash_platform_tax_reversed_usd,
+                COALESCE(pe.cash_commission_reversed_usd, 0) AS cash_commission_reversed_usd,
                COALESCE(pe.cash_wallet_debit_applied_usd, 0) AS cash_wallet_debit_applied_usd,
                COALESCE(pe.cash_platform_fee_applied_usd, 0) AS cash_platform_fee_applied_usd,
                COALESCE(pe.settlement_amount_usd, 0) AS final_settlement_usd,
-               CASE WHEN COALESCE(pe.cash_wallet_debit_applied_usd, 0) >= COALESCE(pe.cash_platform_fee_deduction_usd, 0) + COALESCE(pe.cash_platform_tax_deduction_usd, 0) + COALESCE(pe.cash_commission_deduction_usd, 0) THEN 'applied' ELSE 'pending' END AS deduction_status,
+                CASE WHEN COALESCE(pe.cash_wallet_debit_reversed_usd, 0) >= COALESCE(pe.cash_wallet_debit_applied_usd, 0) AND COALESCE(pe.cash_wallet_debit_applied_usd, 0) > 0 THEN 'reversed'
+                     WHEN COALESCE(pe.cash_wallet_debit_applied_usd, 0) >= COALESCE(pe.cash_platform_fee_deduction_usd, 0) + COALESCE(pe.cash_platform_tax_deduction_usd, 0) + COALESCE(pe.cash_commission_deduction_usd, 0) THEN 'applied' ELSE 'pending' END AS deduction_status,
                pe.created_at
         FROM provider_earnings pe
         JOIN providers p ON p.id = pe.provider_id

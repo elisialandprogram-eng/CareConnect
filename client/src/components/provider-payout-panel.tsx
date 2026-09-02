@@ -19,6 +19,7 @@ import { useCurrency } from "@/lib/currency";
 interface PayoutSummary {
   availableBalance: number;
   grossAvailableBalance: number;
+  outstandingWalletDebt?: number;
   pendingSettlementDeduction: number;
   finalAvailableBalance: number;
   cashBookingCount: number;
@@ -179,6 +180,12 @@ export function ProviderPayoutPanel() {
           <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <div className="rounded-lg border p-3"><p className="text-xs text-muted-foreground">Gross available</p><p className="font-semibold mt-1">{fmt(summary.grossAvailableBalance ?? 0)}</p></div>
              <div className="rounded-lg border p-3"><p className="text-xs text-muted-foreground">Pending settlement deduction</p><p className="font-semibold mt-1 text-amber-700">−{fmt(summary.pendingSettlementDeduction ?? 0)}</p></div>
+            {(summary.outstandingWalletDebt ?? 0) > 0 && (
+              <div className="rounded-lg border border-red-200 bg-red-50 p-3 dark:border-red-900/50 dark:bg-red-950/20">
+                <p className="text-xs text-red-700 dark:text-red-300">Outstanding platform balance</p>
+                <p className="font-semibold mt-1 text-red-700 dark:text-red-300">{fmt(summary.outstandingWalletDebt)}</p>
+              </div>
+            )}
             <div className="rounded-lg border p-3"><p className="text-xs text-muted-foreground">Cash bookings</p><p className="font-semibold mt-1">{summary.cashBookingCount ?? 0}</p></div>
           </CardContent>
         </Card>

@@ -2,6 +2,7 @@ import { pool } from "../db";
 import { getStripe } from "../stripe";
 import { round2, roundToCents } from "../lib/math";
 import { currencyFractionDigits } from "@shared/currency";
+import { reverseOfflineSettlement } from "../lib/provider-settlement";
 
 export type PaymentState =
   | "pending"
@@ -724,6 +725,31 @@ export async function refundPayment(input: {
       [input.idempotencyKey],
     );
     if (existingRefund.rows[0]) {
+      // Recover an offline settlement reversal if the refund was recorded by
+      // an older/partially completed request before the reversal step existed.
+      const existingAllocations = await client.query(
+        `SELECT source, amount_usd, refunded_amount_usd
+           FROM payment_allocations
+          WHERE payment_id = $1 AND source IN ('cash', 'bank_transfer')
+            AND status IN ('paid', 'refunded')`,
+        [input.paymentId],
+      );
+      const offlineAllocationAmountUsd = existingAllocations.rows.reduce(
+        (sum: number, row: any) => sum + Math.max(0, Number(row.amount_usd) || 0),
+        0,
+      );
+      const offlineRefundedToDateUsd = existingAllocations.rows.reduce(
+        (sum: number, row: any) => sum + Math.max(0, Number(row.refunded_amount_usd) || 0),
+        0,
+      );
+      if (offlineRefundedToDateUsd > 0 && offlineAllocationAmountUsd > 0) {
+        await reverseOfflineSettlement(client, {
+          appointmentId: payment.appointment_id,
+          refundId: existingRefund.rows[0].id,
+          cashRefundedToDateUsd: offlineRefundedToDateUsd,
+          cashAllocationAmountUsd: offlineAllocationAmountUsd,
+        });
+      }
       await client.query("COMMIT");
       return (await pool.query(`SELECT * FROM payments WHERE id = $1`, [input.paymentId])).rows[0];
     }
@@ -755,6 +781,14 @@ export async function refundPayment(input: {
       return { allocation, refundAmount };
     }).filter(({ refundAmount }) => refundAmount > 0);
     if (planRemaining > 0.01) throw new Error("Refund allocation could not be planned");
+
+    const offlineAllocations = allocationResult.rows.filter(
+      (allocation: any) => allocation.source === "cash" || allocation.source === "bank_transfer",
+    );
+    const offlineAllocationAmountUsd = offlineAllocations.reduce(
+      (sum: number, allocation: any) => sum + Math.max(0, Number(allocation.amount_usd) || 0),
+      0,
+    );
 
     const stripeRefundAmount = round2(
       refundPlan
@@ -828,9 +862,26 @@ export async function refundPayment(input: {
           WHERE id = $2`,
         [nextRefunded.toFixed(2), allocation.id],
       );
+      allocation.refunded_amount_usd = nextRefunded;
       remaining = round2(remaining - refundAmount);
     }
     if (remaining > 0.01) throw new Error("Refund allocation could not be completed");
+
+    // Cash/bank-transfer bookings are settled from the provider wallet after
+    // receipt. Reverse the refunded portion in the same transaction as the
+    // patient refund so provider and patient accounting cannot diverge.
+    const offlineRefundedToDateUsd = offlineAllocations.reduce(
+      (sum: number, allocation: any) => sum + Math.max(0, Number(allocation.refunded_amount_usd) || 0),
+      0,
+    );
+    if (offlineRefundedToDateUsd > 0 && offlineAllocationAmountUsd > 0) {
+      await reverseOfflineSettlement(client, {
+        appointmentId: payment.appointment_id,
+        refundId: refund.rows[0].id,
+        cashRefundedToDateUsd: offlineRefundedToDateUsd,
+        cashAllocationAmountUsd: offlineAllocationAmountUsd,
+      });
+    }
 
     const totals = await client.query(
       `SELECT

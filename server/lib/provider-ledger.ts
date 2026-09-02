@@ -20,6 +20,8 @@ export const PROVIDER_LEDGER_BALANCE_AFFECTING_TYPES = [
   "wallet_adjustment",
   "commission_deduction",
   "cash_platform_fee_deduction",
+  "commission_reversal",
+  "cash_platform_fee_reversal",
   "membership_charge",
   "package_charge",
 ] as const;

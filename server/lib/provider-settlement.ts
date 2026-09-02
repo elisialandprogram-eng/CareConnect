@@ -126,6 +126,152 @@ export interface CashFeeApplication {
   earningIds: string[];
 }
 
+export interface OfflineSettlementReversalInput {
+  appointmentId: string;
+  refundId: string;
+  cashRefundedToDateUsd: number;
+  cashAllocationAmountUsd: number;
+  actorId?: string | null;
+}
+
+/**
+ * Reverse the portion of an already-applied offline settlement that belongs
+ * to a cash/bank-transfer refund. The refund service calls this inside its
+ * existing transaction, so the patient credit and provider-wallet reversal
+ * commit or roll back together.
+ *
+ * The original deduction columns remain immutable audit snapshots. Separate
+ * reversed columns plus idempotent ledger references track the net obligation.
+ */
+export async function reverseOfflineSettlement(
+  client: PoolClient,
+  input: OfflineSettlementReversalInput,
+): Promise<number> {
+  const cashRefundedToDateUsd = Math.max(0, Number(input.cashRefundedToDateUsd) || 0);
+  const cashAllocationAmountUsd = Math.max(0, Number(input.cashAllocationAmountUsd) || 0);
+  if (cashRefundedToDateUsd <= 0 || cashAllocationAmountUsd <= 0) return 0;
+
+  const earningResult = await client.query(`
+    SELECT
+      pe.id,
+      pe.provider_id,
+      pe.cash_platform_fee_deduction_usd,
+      pe.cash_platform_tax_deduction_usd,
+      pe.cash_commission_deduction_usd,
+      pe.cash_platform_fee_reversed_usd,
+      pe.cash_platform_tax_reversed_usd,
+      pe.cash_commission_reversed_usd,
+      pe.cash_wallet_debit_reversed_usd,
+      a.payment_method AS appointment_payment_method,
+      p.country_code
+    FROM provider_earnings pe
+    JOIN appointments a ON a.id = pe.appointment_id
+    JOIN providers p ON p.id = pe.provider_id
+    WHERE pe.appointment_id = $1
+      AND COALESCE(NULLIF(pe.payment_method, ''), a.payment_method, '') IN ('cash', 'bank_transfer')
+    LIMIT 1
+    FOR UPDATE OF pe
+  `, [input.appointmentId]);
+  const earning = earningResult.rows[0];
+  if (!earning) return 0;
+
+  const fraction = Math.min(1, cashRefundedToDateUsd / cashAllocationAmountUsd);
+  const targets = {
+    platformFee: round2(Math.max(0, Number(earning.cash_platform_fee_deduction_usd || 0)) * fraction),
+    platformTax: round2(Math.max(0, Number(earning.cash_platform_tax_deduction_usd || 0)) * fraction),
+    commission: round2(Math.max(0, Number(earning.cash_commission_deduction_usd || 0)) * fraction),
+  };
+  const alreadyReversed = {
+    platformFee: Math.max(0, Number(earning.cash_platform_fee_reversed_usd || 0)),
+    platformTax: Math.max(0, Number(earning.cash_platform_tax_reversed_usd || 0)),
+    commission: Math.max(0, Number(earning.cash_commission_reversed_usd || 0)),
+  };
+  const reversals = {
+    platformFee: round2(Math.max(0, targets.platformFee - alreadyReversed.platformFee)),
+    platformTax: round2(Math.max(0, targets.platformTax - alreadyReversed.platformTax)),
+    commission: round2(Math.max(0, targets.commission - alreadyReversed.commission)),
+  };
+  const platformReversal = round2(reversals.platformFee + reversals.platformTax);
+  const totalReversal = round2(platformReversal + reversals.commission);
+  if (totalReversal <= 0) return 0;
+
+  await client.query(`
+    INSERT INTO provider_wallets (provider_id, available_balance, lifetime_earnings, currency, country_code)
+    VALUES ($1, 0, 0, 'USD', COALESCE($2, 'HU'))
+    ON CONFLICT (provider_id) DO NOTHING
+  `, [earning.provider_id, earning.country_code]);
+  await client.query(
+    `SELECT provider_id FROM provider_wallets WHERE provider_id = $1 FOR UPDATE`,
+    [earning.provider_id],
+  );
+  await client.query(`
+    UPDATE provider_wallets
+       SET available_balance = available_balance + $1,
+           updated_at = NOW()
+     WHERE provider_id = $2
+  `, [totalReversal, earning.provider_id]);
+
+  const platformReference = `${input.appointmentId}:cash-refund:${input.refundId}:platform`;
+  const commissionReference = `${input.appointmentId}:cash-refund:${input.refundId}:commission`;
+  if (platformReversal > 0) {
+    const wallet = await client.query(
+      `SELECT available_balance FROM provider_wallets WHERE provider_id = $1`,
+      [earning.provider_id],
+    );
+    await client.query(`
+      INSERT INTO provider_ledger
+        (provider_id, amount, entry_type, reference_id, description, actor_id, balance_after, country_code)
+      VALUES ($1, $2, 'cash_platform_fee_reversal', $3, $4, $5, $6, $7)
+      ON CONFLICT DO NOTHING
+    `, [
+      earning.provider_id,
+      platformReversal,
+      platformReference,
+      `Cash refund reversal — platform fee + tax for appt #${input.appointmentId}`,
+      input.actorId ?? null,
+      wallet.rows[0]?.available_balance ?? 0,
+      earning.country_code ?? "HU",
+    ]);
+  }
+  if (reversals.commission > 0) {
+    const wallet = await client.query(
+      `SELECT available_balance FROM provider_wallets WHERE provider_id = $1`,
+      [earning.provider_id],
+    );
+    await client.query(`
+      INSERT INTO provider_ledger
+        (provider_id, amount, entry_type, reference_id, description, actor_id, balance_after, country_code)
+      VALUES ($1, $2, 'commission_reversal', $3, $4, $5, $6, $7)
+      ON CONFLICT DO NOTHING
+    `, [
+      earning.provider_id,
+      reversals.commission,
+      commissionReference,
+      `Cash refund reversal — commission for appt #${input.appointmentId}`,
+      input.actorId ?? null,
+      wallet.rows[0]?.available_balance ?? 0,
+      earning.country_code ?? "HU",
+    ]);
+  }
+
+  await client.query(`
+    UPDATE provider_earnings
+       SET cash_platform_fee_reversed_usd = GREATEST(COALESCE(cash_platform_fee_reversed_usd, 0), $1),
+           cash_platform_tax_reversed_usd = GREATEST(COALESCE(cash_platform_tax_reversed_usd, 0), $2),
+           cash_commission_reversed_usd = GREATEST(COALESCE(cash_commission_reversed_usd, 0), $3),
+           cash_wallet_debit_reversed_usd = GREATEST(COALESCE(cash_wallet_debit_reversed_usd, 0), $4)
+     WHERE id = $5
+  `, [
+    targets.platformFee,
+    targets.platformTax,
+    targets.commission,
+    round2(targets.platformFee + targets.platformTax + targets.commission),
+    earning.id,
+  ]);
+
+  return totalReversal;
+}
+
 /** Attach the idempotently applied cash-fee rows to the payout request that
  * caused the debit and persist the final per-earning settlement snapshot. */
 export async function linkCashFeeDeductionsToPayout(

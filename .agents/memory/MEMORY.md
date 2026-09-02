@@ -127,3 +127,4 @@
 - [Canonical appointment lifecycle](canonical-appointment-lifecycle.md) — all appointment status writes must use the locked transition service; direct status updates are intentionally rejected
 - [Stripe appointment webhook linkage](stripe-appointment-webhook.md) — checkout metadata must include appointmentId or the webhook cannot complete the booking
 - [Payment status action values](payment-status-action-values.md) — provider receipt requests use `paid`; the server persists the resulting payment as `completed`
+- [Offline refund settlement](offline-refund-settlement.md) — cash refunds reverse provider wallet fee/tax/commission deductions idempotently; fully refunded payments cannot create new earnings
