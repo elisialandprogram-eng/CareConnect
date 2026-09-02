@@ -136,10 +136,22 @@ export const QK = {
   providerServices: () => ["/api/provider/services"] as const,
   providerAvailability: () => ["/api/provider/availability"] as const,
   providerEarnings: () => ["/api/provider/earnings"] as const,
-  providerSlots: (providerId: string, date: string, practitionerId?: string) =>
-    practitionerId
-      ? ["/api/providers", providerId, "slots", date, practitionerId]
-      : ["/api/providers", providerId, "slots", date],
+  providerSlots: (
+    providerId: string,
+    date: string,
+    practitionerId?: string,
+    serviceId?: string,
+    visitType?: string,
+  ) =>
+    [
+      "/api/providers",
+      providerId,
+      "slots",
+      date,
+      practitionerId ?? "any",
+      serviceId ?? "any",
+      visitType ?? "clinic",
+    ],
   provider: (id: string) => ["/api/providers", id] as const,
   providerReviews: (id: string) => ["/api/providers", id, "reviews"] as const,
   providerSlotsByDate: (providerId: string, date: string) =>

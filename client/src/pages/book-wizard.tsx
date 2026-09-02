@@ -336,10 +336,14 @@ export default function BookWizard() {
       selectedProvider?.id ?? "",
       selectedDate,
       effectivePractitionerId ?? "any",
+      selectedService?.id ?? "any",
+      visitType,
     ),
     queryFn: () => {
       const params = new URLSearchParams({ date: selectedDate });
       if (effectivePractitionerId) params.set("practitionerId", effectivePractitionerId);
+      if (selectedService?.id) params.set("serviceId", selectedService.id);
+      params.set("visitType", visitType);
       return fetch(
         `/api/providers/${selectedProvider!.id}/available-slots?${params}`,
       ).then(r => r.json());
@@ -504,7 +508,15 @@ export default function BookWizard() {
         setSelectedSlot(null);
         setHoldId(null);
         setHoldExpiresAt(null);
-        queryClient.invalidateQueries({ queryKey: QK.providerSlots(selectedProvider?.id ?? "", selectedDate, effectivePractitionerId ?? "any") });
+        queryClient.invalidateQueries({
+          queryKey: QK.providerSlots(
+            selectedProvider?.id ?? "",
+            selectedDate,
+            effectivePractitionerId ?? "any",
+            selectedService?.id ?? "any",
+            visitType,
+          ),
+        });
         return;
       }
       toast({ title: "Booking failed", description: e?.message || "Please try again.", variant: "destructive" });
