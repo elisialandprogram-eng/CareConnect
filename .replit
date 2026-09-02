@@ -1,4 +1,4 @@
-modules = ["bash", "nodejs-20", "postgresql-16", "python-3.11", "web"]
+modules = ["bash", "nodejs-20", "python-3.11", "web", "postgresql-16"]
 
 [workflows]
 runButton = "Project"

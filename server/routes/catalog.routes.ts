@@ -652,7 +652,10 @@ export function registerCatalogRoutes(app: Express): void {
       const sps = await storage.getServicePractitioners(req.params.serviceId);
       const active = sps.filter(p => p.isActive !== false && p.practitioner && isProviderApproved((p.practitioner as any).status));
       if (active.length === 0) {
-        return res.status(404).json({ message: "No practitioners are assigned to this service yet." });
+        // Auto-assignment is an optional enhancement during checkout. Return a
+        // normal empty result when the provider has not assigned practitioners
+        // instead of making the browser report an avoidable 404.
+        return res.json({ practitioner: null, fee: null, currentLoad: 0 });
       }
 
       const today = new Date().toISOString().slice(0, 10);

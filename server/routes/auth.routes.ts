@@ -38,6 +38,7 @@ import {
 } from "../middleware/country";
 import {
   authenticateToken,
+  optionalAuth,
   invalidateAuthCache,
   getCachedUser,
   JWT_SECRET,
@@ -377,8 +378,11 @@ export function registerAuthRoutes(app: Express): void {
   });
 
   // ── GET /api/auth/me ────────────────────────────────────────────────────
-  app.get("/api/auth/me", authenticateToken, async (req: AuthRequest, res: Response) => {
+  app.get("/api/auth/me", optionalAuth, async (req: AuthRequest, res: Response) => {
     try {
+      // This endpoint is also the session probe used by the public app shell.
+      // Anonymous visitors are a valid state, not an authorization failure.
+      if (!req.user) return res.json({ user: null });
       const cached = getCachedUser(req.user!.id);
       if (cached) return res.json({ user: cached });
       const user = await storage.getUser(req.user!.id);

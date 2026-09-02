@@ -18,6 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogFooter,
@@ -133,6 +134,9 @@ function AddressFormDialog({
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>{initial?.id ? "Edit Address" : "Add Address"}</DialogTitle>
+          <DialogDescription>
+            {initial?.id ? "Update this saved address." : "Add an address for future home visits."}
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-2">

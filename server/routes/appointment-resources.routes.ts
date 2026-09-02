@@ -81,13 +81,15 @@ export function registerAppointmentResourcesRoutes(app: Express): void {
   app.get("/api/services/:serviceId/intake-schema", authenticateToken, async (req: AuthRequest, res: Response) => {
     try {
       const svc = await storage.getService(req.params.serviceId);
-      if (!svc) return res.status(404).json({ message: "Service not found" });
+      // BookingCanvas receives the catalogue sub-service ID, while provider
+      // service pages may send the provider service ID. Support both shapes so
+      // an optional intake form does not turn into a noisy 404 during checkout.
+      const directSubService = svc ? null : await storage.getSubService(req.params.serviceId);
+      if (!svc && !directSubService) return res.status(404).json({ message: "Service not found" });
       let schema: any[] = [];
-      if (svc.subServiceId) {
-        const subSvc = await storage.getSubService(svc.subServiceId);
-        schema = (subSvc as any)?.intakeSchema ?? (subSvc as any)?.intake_schema ?? [];
-        if (!Array.isArray(schema)) schema = [];
-      }
+      const subSvc = directSubService ?? (svc?.subServiceId ? await storage.getSubService(svc.subServiceId) : null);
+      schema = (subSvc as any)?.intakeSchema ?? (subSvc as any)?.intake_schema ?? [];
+      if (!Array.isArray(schema)) schema = [];
       return res.json({ schema });
     } catch (e: any) {
       return res.status(500).json({ message: e.message });
