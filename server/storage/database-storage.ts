@@ -3329,13 +3329,16 @@ export class DatabaseStorage extends PackagesMixin implements IStorage {
             SET cash_platform_fee_deduction_usd = $1,
                 cash_platform_tax_deduction_usd = $2,
                 cash_commission_deduction_usd = $3,
-                cash_wallet_debit_applied_usd = $4
-            WHERE id = $5
+                cash_wallet_debit_applied_usd = $4,
+                cash_platform_fee_applied_usd = $5,
+                cash_platform_fee_applied_at = COALESCE(cash_platform_fee_applied_at, NOW())
+            WHERE id = $6
           `, [
             usdMoney(settlement.cashPlatformFeeDeductionUsd),
             usdMoney(settlement.cashPlatformTaxDeductionUsd),
             usdMoney(settlement.cashCommissionDeductionUsd),
             usdMoney(cashWalletDebitUsd),
+            usdMoney(settlement.cashPlatformFeeDeductionUsd),
             existing.rows[0].id,
           ]);
         }
@@ -3429,9 +3432,15 @@ export class DatabaseStorage extends PackagesMixin implements IStorage {
          await applyOfflineWalletDeductions();
          await client.query(`
            UPDATE provider_earnings
-           SET cash_wallet_debit_applied_usd = $1
-           WHERE id = $2
-         `, [cashWalletDebitUsd.toFixed(2), insertResult.rows[0].id]);
+            SET cash_wallet_debit_applied_usd = $1,
+                cash_platform_fee_applied_usd = $2,
+                cash_platform_fee_applied_at = COALESCE(cash_platform_fee_applied_at, NOW())
+            WHERE id = $3
+          `, [
+            cashWalletDebitUsd.toFixed(2),
+            usdMoney(settlement.cashPlatformFeeDeductionUsd),
+            insertResult.rows[0].id,
+          ]);
        }
       await client.query("COMMIT");
       return mapProviderEarningRow(insertResult.rows[0]);

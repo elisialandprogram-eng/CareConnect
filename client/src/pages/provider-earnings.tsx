@@ -60,6 +60,9 @@ interface RichEarning {
   providerNetEarningsUsd: string | null;
   providerNetEarningsLocal: string | null;
   cashPlatformFeeDeductionUsd: string | null;
+  cashPlatformTaxDeductionUsd: string | null;
+  cashCommissionDeductionUsd: string | null;
+  cashWalletDebitAppliedUsd: string | null;
   serviceName: string | null;
   patientFirstName: string | null;
   patientLastName: string | null;
@@ -147,7 +150,10 @@ function resolveEarningDisplay(
   const grossUsd = Number(e.providerGrossEarningsUsd ?? e.grossProviderPayoutUsd ?? 0);
   const netUsd = Number(e.providerNetEarningsUsd ?? e.grossProviderPayoutUsd ?? 0);
   const commissionUsd = Math.max(0, grossUsd - netUsd);
-   const offlineFeeUsd = Number(e.cashPlatformFeeDeductionUsd ?? 0);
+   const offlineFeeUsd =
+     Number(e.cashPlatformFeeDeductionUsd ?? 0)
+     + Number(e.cashPlatformTaxDeductionUsd ?? 0)
+     + Number(e.cashCommissionDeductionUsd ?? 0);
   const settlementUsd = e.settlementAmountUsd == null ? netUsd : Number(e.settlementAmountUsd);
   const localCommission = Number(e.providerCommissionLocal ?? 0) > 0
     ? Number(e.providerCommissionLocal)

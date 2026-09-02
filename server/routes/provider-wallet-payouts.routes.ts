@@ -147,7 +147,10 @@ export function registerProviderWalletPayoutsRoutes(app: Express): void {
             pe.provider_net_earnings_amount_local                 AS "providerNetEarningsLocal",
             pe.gross_provider_payout_usd                          AS "grossProviderPayoutUsd",
             pe.settlement_amount_usd                               AS "settlementAmountUsd",
-            pe.cash_platform_fee_deduction_usd                     AS "cashPlatformFeeDeductionUsd",
+           pe.cash_platform_fee_deduction_usd                     AS "cashPlatformFeeDeductionUsd",
+           pe.cash_platform_tax_deduction_usd                     AS "cashPlatformTaxDeductionUsd",
+           pe.cash_commission_deduction_usd                        AS "cashCommissionDeductionUsd",
+           pe.cash_wallet_debit_applied_usd                        AS "cashWalletDebitAppliedUsd",
              COALESCE(pay.payment_method, pe.payment_method, a.payment_method, 'card')
                                                                       AS "paymentMethod",
             pe.created_at                                         AS "createdAt",
@@ -220,7 +223,9 @@ export function registerProviderWalletPayoutsRoutes(app: Express): void {
                    pe.provider_gross_earnings_amount_usd, pe.gross_provider_payout_usd) AS provider_gross_earnings_local,
           a.commission_amount AS provider_commission_local,
           COALESCE(pe.provider_net_earnings_amount_local, pe.provider_net_earnings_amount_usd) AS provider_net_earnings_local,
-           pe.cash_platform_fee_deduction_usd AS provider_settlement_deduction_usd,
+           COALESCE(pe.cash_platform_fee_deduction_usd, 0)
+             + COALESCE(pe.cash_platform_tax_deduction_usd, 0)
+             + COALESCE(pe.cash_commission_deduction_usd, 0) AS provider_settlement_deduction_usd,
           pe.settlement_amount_usd AS settlement_amount_usd,
            COALESCE(pay.payment_method, pe.payment_method, a.payment_method, 'card') AS payment_method,
           COALESCE(pe.display_currency, 'USD') AS currency,
@@ -317,12 +322,19 @@ export function registerProviderWalletPayoutsRoutes(app: Express): void {
                     NOT IN ('cash', 'bank_transfer')
           ), 0) AS total_paid_earnings
            ,COALESCE((
-             SELECT SUM(GREATEST(0, COALESCE(pe.cash_platform_fee_deduction_usd, 0) - COALESCE(pe.cash_platform_fee_applied_usd, 0)))
+             SELECT SUM(GREATEST(0,
+               CASE WHEN COALESCE(pe.cash_wallet_debit_applied_usd, 0) > 0
+                    THEN 0
+                    ELSE COALESCE(pe.cash_platform_fee_deduction_usd, 0)
+                       + COALESCE(pe.cash_platform_tax_deduction_usd, 0)
+                       + COALESCE(pe.cash_commission_deduction_usd, 0)
+                       - COALESCE(pe.cash_platform_fee_applied_usd, 0)
+               END))
              FROM provider_earnings pe
              LEFT JOIN appointments ea ON ea.id = pe.appointment_id
              WHERE pe.provider_id = $1 AND pe.status = 'pending'
-               AND COALESCE(pe.payment_method, ea.payment_method, 'card')
-                     NOT IN ('cash', 'bank_transfer')
+                AND COALESCE(NULLIF(pe.payment_method, ''), ea.payment_method, 'card')
+                      IN ('cash', 'bank_transfer')
             ), 0) AS pending_settlement_deduction
           ,COALESCE((SELECT COUNT(*) FROM provider_earnings pe
                      WHERE pe.provider_id = $1

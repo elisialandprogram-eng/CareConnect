@@ -7,7 +7,7 @@ Provider gross payout is service earnings plus patient-paid service tax. Card an
 
 **Why:** Offline patients pay the provider directly, so the platform must settle its fee, platform tax, and commission from the provider wallet without creating a second wallet credit.
 
-**How to apply:** Keep immutable booking snapshots in booking currency and convert each offline obligation to USD once inside the receipt transaction. Use the latest payment row, falling back to the appointment method, when classifying offline history. Use the shared payout lifecycle for held/paid/rejected/cancelled transitions.
+**How to apply:** Keep immutable booking snapshots in booking currency and convert each offline obligation to USD once inside the receipt transaction. Use the latest payment row, falling back to the appointment method, when classifying offline history. Use the shared payout lifecycle for held/paid/rejected/cancelled transitions. The wallet-debit marker is authoritative; payout creation must reconcile any older cash earning whose receipt debit was missed, covering platform fee, platform tax, and commission exactly once.
 
 Provider-facing earnings statements must exclude patient platform fee, platform/service tax, gateway/surcharge, and patient total/price-line data; expose only provider gross earnings, actual provider-side deductions, net earnings/settlement, and payment status/method.
 

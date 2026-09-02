@@ -616,8 +616,8 @@ export function registerAdminFinancialRoutes(app: Express): void {
       if (req.query.paymentMethod && ["cash", "bank_transfer"].includes(String(req.query.paymentMethod))) {
         conditions.push(`pe.payment_method = $${i++}`); params.push(String(req.query.paymentMethod));
       }
-      if (req.query.status === "pending") conditions.push(`COALESCE(pe.cash_platform_fee_applied_usd, 0) < COALESCE(pe.cash_platform_fee_deduction_usd, 0)`);
-      if (req.query.status === "applied") conditions.push(`COALESCE(pe.cash_platform_fee_applied_usd, 0) >= COALESCE(pe.cash_platform_fee_deduction_usd, 0)`);
+       if (req.query.status === "pending") conditions.push(`COALESCE(pe.cash_wallet_debit_applied_usd, 0) < COALESCE(pe.cash_platform_fee_deduction_usd, 0) + COALESCE(pe.cash_platform_tax_deduction_usd, 0) + COALESCE(pe.cash_commission_deduction_usd, 0)`);
+       if (req.query.status === "applied") conditions.push(`COALESCE(pe.cash_wallet_debit_applied_usd, 0) >= COALESCE(pe.cash_platform_fee_deduction_usd, 0) + COALESCE(pe.cash_platform_tax_deduction_usd, 0) + COALESCE(pe.cash_commission_deduction_usd, 0)`);
       const { rows } = await pool.query(`
         SELECT pe.id, pe.provider_id, pe.appointment_id,
                COALESCE(NULLIF(TRIM(COALESCE(u.first_name,'') || ' ' || COALESCE(u.last_name,'')), ''), p.clinic_name, 'Unknown') AS provider_name,
@@ -628,9 +628,12 @@ export function registerAdminFinancialRoutes(app: Express): void {
                COALESCE(pe.tax_pass_through_amount_usd, 0)::numeric AS tax_pass_through_usd,
                COALESCE(pe.gross_provider_payout_usd, 0)::numeric AS gross_provider_payout_usd,
                COALESCE(pe.cash_platform_fee_deduction_usd, 0)::numeric AS cash_platform_fee_deduction_usd,
+               COALESCE(pe.cash_platform_tax_deduction_usd, 0)::numeric AS cash_platform_tax_deduction_usd,
+               COALESCE(pe.cash_commission_deduction_usd, 0)::numeric AS cash_commission_deduction_usd,
+               COALESCE(pe.cash_wallet_debit_applied_usd, 0)::numeric AS cash_wallet_debit_applied_usd,
                COALESCE(pe.cash_platform_fee_applied_usd, 0)::numeric AS cash_platform_fee_applied_usd,
                COALESCE(pe.settlement_amount_usd, 0)::numeric AS final_settlement_usd,
-               CASE WHEN COALESCE(pe.cash_platform_fee_applied_usd, 0) >= COALESCE(pe.cash_platform_fee_deduction_usd, 0)
+               CASE WHEN COALESCE(pe.cash_wallet_debit_applied_usd, 0) >= COALESCE(pe.cash_platform_fee_deduction_usd, 0) + COALESCE(pe.cash_platform_tax_deduction_usd, 0) + COALESCE(pe.cash_commission_deduction_usd, 0)
                     THEN 'applied' ELSE 'pending' END AS deduction_status,
                pe.cash_platform_fee_payout_request_id AS payout_request_id,
                pe.created_at
@@ -661,8 +664,8 @@ export function registerAdminFinancialRoutes(app: Express): void {
       if (req.query.paymentMethod && ["cash", "bank_transfer"].includes(String(req.query.paymentMethod))) {
         conditions.push(`pe.payment_method = $${i++}`); params.push(String(req.query.paymentMethod));
       }
-      if (req.query.status === "pending") conditions.push(`COALESCE(pe.cash_platform_fee_applied_usd, 0) < COALESCE(pe.cash_platform_fee_deduction_usd, 0)`);
-      if (req.query.status === "applied") conditions.push(`COALESCE(pe.cash_platform_fee_applied_usd, 0) >= COALESCE(pe.cash_platform_fee_deduction_usd, 0)`);
+       if (req.query.status === "pending") conditions.push(`COALESCE(pe.cash_wallet_debit_applied_usd, 0) < COALESCE(pe.cash_platform_fee_deduction_usd, 0) + COALESCE(pe.cash_platform_tax_deduction_usd, 0) + COALESCE(pe.cash_commission_deduction_usd, 0)`);
+       if (req.query.status === "applied") conditions.push(`COALESCE(pe.cash_wallet_debit_applied_usd, 0) >= COALESCE(pe.cash_platform_fee_deduction_usd, 0) + COALESCE(pe.cash_platform_tax_deduction_usd, 0) + COALESCE(pe.cash_commission_deduction_usd, 0)`);
       const { rows } = await pool.query(`
         SELECT pe.provider_id, COALESCE(NULLIF(TRIM(COALESCE(u.first_name,'') || ' ' || COALESCE(u.last_name,'')), ''), p.clinic_name, 'Unknown') AS provider_name,
                p.country_code::text AS country_code, pe.appointment_id, a.appointment_number, a.date AS appointment_date,
@@ -670,9 +673,12 @@ export function registerAdminFinancialRoutes(app: Express): void {
                COALESCE(pe.tax_pass_through_amount_usd, 0) AS tax_pass_through_usd,
                COALESCE(pe.gross_provider_payout_usd, 0) AS gross_provider_payout_usd,
                COALESCE(pe.cash_platform_fee_deduction_usd, 0) AS cash_platform_fee_deduction_usd,
+               COALESCE(pe.cash_platform_tax_deduction_usd, 0) AS cash_platform_tax_deduction_usd,
+               COALESCE(pe.cash_commission_deduction_usd, 0) AS cash_commission_deduction_usd,
+               COALESCE(pe.cash_wallet_debit_applied_usd, 0) AS cash_wallet_debit_applied_usd,
                COALESCE(pe.cash_platform_fee_applied_usd, 0) AS cash_platform_fee_applied_usd,
                COALESCE(pe.settlement_amount_usd, 0) AS final_settlement_usd,
-               CASE WHEN COALESCE(pe.cash_platform_fee_applied_usd, 0) >= COALESCE(pe.cash_platform_fee_deduction_usd, 0) THEN 'applied' ELSE 'pending' END AS deduction_status,
+               CASE WHEN COALESCE(pe.cash_wallet_debit_applied_usd, 0) >= COALESCE(pe.cash_platform_fee_deduction_usd, 0) + COALESCE(pe.cash_platform_tax_deduction_usd, 0) + COALESCE(pe.cash_commission_deduction_usd, 0) THEN 'applied' ELSE 'pending' END AS deduction_status,
                pe.created_at
         FROM provider_earnings pe
         JOIN providers p ON p.id = pe.provider_id
@@ -681,7 +687,7 @@ export function registerAdminFinancialRoutes(app: Express): void {
         WHERE ${conditions.join(" AND ")}
         ORDER BY pe.created_at DESC LIMIT 10000
       `, params);
-      const csv = toCsv(rows, ["provider_id", "provider_name", "country_code", "appointment_id", "appointment_number", "appointment_date", "payment_method", "service_earnings_usd", "tax_pass_through_usd", "gross_provider_payout_usd", "cash_platform_fee_deduction_usd", "cash_platform_fee_applied_usd", "final_settlement_usd", "deduction_status", "created_at"]);
+       const csv = toCsv(rows, ["provider_id", "provider_name", "country_code", "appointment_id", "appointment_number", "appointment_date", "payment_method", "service_earnings_usd", "tax_pass_through_usd", "gross_provider_payout_usd", "cash_platform_fee_deduction_usd", "cash_platform_tax_deduction_usd", "cash_commission_deduction_usd", "cash_wallet_debit_applied_usd", "cash_platform_fee_applied_usd", "final_settlement_usd", "deduction_status", "created_at"]);
       res.setHeader("Content-Type", "text/csv; charset=utf-8");
       res.setHeader("Content-Disposition", "attachment; filename=cash-fee-settlements.csv");
       res.send(csv);
