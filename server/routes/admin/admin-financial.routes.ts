@@ -1782,9 +1782,15 @@ export function registerAdminFinancialRoutes(app: Express): void {
           a.country_code::text                                              AS country_code,
           COUNT(CASE WHEN a.payment_status = 'completed' THEN 1 END)       AS completed_count,
           COUNT(a.id)                                                       AS total_count,
-          COALESCE(SUM(CASE WHEN a.payment_status = 'completed' THEN a.total_amount::numeric ELSE 0 END), 0)                   AS gross_usd,
-          COALESCE(SUM(CASE WHEN a.payment_status = 'completed' THEN COALESCE(a.platform_fee_amount::numeric, 0) ELSE 0 END), 0) AS fees_usd,
-          COALESCE(SUM(CASE WHEN a.payment_status = 'completed' THEN COALESCE(a.refund_amount::numeric, 0) ELSE 0 END), 0)      AS refunds_usd
+          COALESCE(SUM(CASE WHEN a.payment_status = 'completed' THEN COALESCE(a.final_total_usd, a.total_amount)::numeric ELSE 0 END), 0) AS gross_usd,
+          COALESCE(SUM(CASE WHEN a.payment_status = 'completed' AND a.total_amount::numeric > 0
+            THEN ROUND(COALESCE(a.platform_fee_amount::numeric, 0) / a.total_amount::numeric
+              * COALESCE(a.final_total_usd, a.total_amount)::numeric, 4)
+            ELSE 0 END), 0) AS fees_usd,
+          COALESCE(SUM(CASE WHEN a.payment_status = 'completed' AND a.total_amount::numeric > 0
+            THEN ROUND(COALESCE(a.refund_amount::numeric, 0) / a.total_amount::numeric
+              * COALESCE(a.final_total_usd, a.total_amount)::numeric, 4)
+            ELSE 0 END), 0) AS refunds_usd
         FROM appointments a
         GROUP BY a.country_code
         ORDER BY gross_usd DESC
@@ -1794,7 +1800,7 @@ export function registerAdminFinancialRoutes(app: Express): void {
         const grossUsd  = parseFloat(r.gross_usd);
         const feesUsd   = parseFloat(r.fees_usd);
         const refundsUsd = parseFloat(r.refunds_usd);
-        const netUsd = grossUsd - feesUsd;
+        const netUsd = grossUsd - feesUsd - refundsUsd;
 
         const cc = (r.country_code ?? "").toUpperCase();
         const localCurrency = cc === "HU" ? "HUF" : cc === "IR" ? "IRR" : "USD";
@@ -2116,7 +2122,7 @@ export function registerAdminFinancialRoutes(app: Express): void {
             gross_usd: parseFloat(r.gross_usd),
             fees_usd: parseFloat(r.fees_usd),
             refunds_usd: parseFloat(r.refunds_usd),
-            net_usd: round2(parseFloat(r.gross_usd) - parseFloat(r.fees_usd)),
+            net_usd: round2(parseFloat(r.gross_usd) - parseFloat(r.fees_usd) - parseFloat(r.refunds_usd)),
           };
         }
 

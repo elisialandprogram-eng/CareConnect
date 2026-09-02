@@ -24,6 +24,7 @@ import {
 } from "../middleware/country";
 import { getRates, toUSDSync, formatLocal } from "../services/currency";
 import { round2, roundBookingAmount } from "../lib/math";
+import { currencyFractionDigits } from "@shared/currency";
 import { notify } from "../services/notification-dispatcher";
 import { packagesCache } from "../lib/cache";
 import { countryCurrency } from "../middleware/country";
@@ -200,6 +201,7 @@ export function registerPatientRoutes(app: Express): void {
         ? Number(_pkgLocalPrices[userCurrency])
         : Number(pkg.price);
       const _pkgPriceCurrency = hasLocalPrice ? userCurrency : ((pkg as any).currency || 'USD');
+      const priceRounded = roundBookingAmount(price, _pkgPriceCurrency);
 
       // Package purchases use the canonical tax engine as a platform-generated
       // charge. The result is snapshotted on user_packages and never rebuilt
@@ -207,10 +209,14 @@ export function registerPatientRoutes(app: Express): void {
       const packageTaxRules = await loadTaxRules(null, userCountry);
       const packageTax = calculateResolvedTax({
         serviceSubtotal: 0,
-        platformSubtotal: price,
+        platformSubtotal: priceRounded,
         discount: 0,
+        currency: _pkgPriceCurrency,
       }, packageTaxRules);
-      const priceWithTax = price + packageTax.totalTax;
+      const priceWithTax = roundBookingAmount(priceRounded + packageTax.totalTax, _pkgPriceCurrency);
+      const localMoney = (value: number | string | null | undefined) =>
+        roundBookingAmount(Number(value ?? 0), _pkgPriceCurrency)
+          .toFixed(currencyFractionDigits(_pkgPriceCurrency));
 
       if (price === 0) {
         const up = await storage.createUserPackage({
@@ -232,7 +238,7 @@ export function registerPatientRoutes(app: Express): void {
       const _pkgWalletRates = await getRates();
       // Use the resolved price currency (local fixed price currency or package.currency)
       const _pkgWalletCurrency = _pkgPriceCurrency;
-      const priceUSD = toUSDSync(priceWithTax, _pkgWalletCurrency, _pkgWalletRates);
+      const priceUSD = round2(toUSDSync(priceWithTax, _pkgWalletCurrency, _pkgWalletRates));
 
       const { paymentMethod } = req.body;
       if (paymentMethod === "wallet") {
@@ -243,10 +249,10 @@ export function registerPatientRoutes(app: Express): void {
             userId: req.user!.id,
             packageId: pkg.id,
             status: "pending",
-            pricePaid: String(round2(priceUSD)),
-            taxAmount: String(roundBookingAmount(packageTax.totalTax, _pkgWalletCurrency)),
+            pricePaid: round2(priceUSD).toFixed(2),
+            taxAmount: localMoney(packageTax.totalTax),
             taxRate: String(round2(packageTax.platformTaxRate)),
-            totalAmount: String(roundBookingAmount(priceWithTax, _pkgWalletCurrency)),
+            totalAmount: localMoney(priceWithTax),
             pricingBreakdown: packageTax,
             taxEngineVersion: TAX_ENGINE_VERSION,
             taxCalculatedAt: new Date(),
@@ -279,9 +285,9 @@ export function registerPatientRoutes(app: Express): void {
         packageId: pkg.id,
         status: "pending",
         pricePaid: priceUSD.toFixed(2),
-        taxAmount: packageTax.totalTax.toFixed(2),
+        taxAmount: localMoney(packageTax.totalTax),
         taxRate: packageTax.platformTaxRate.toFixed(2),
-        totalAmount: priceWithTax.toFixed(2),
+        totalAmount: localMoney(priceWithTax),
         pricingBreakdown: packageTax,
         taxEngineVersion: TAX_ENGINE_VERSION,
         taxCalculatedAt: new Date(),

@@ -189,15 +189,13 @@ export function formatCurrencyMinorUnitsForCountry(
   // use 100 minor units; HUF/IRR/JPY/KRW are already whole-unit currencies.
   const amount = Number.isFinite(amountMinorUnits) ? amountMinorUnits : 0;
 
-  if (upper === "HUF" || cc === "HU") {
-    return formatCurrencyMinorUnits(amount, "HUF");
-  }
-
-  if (upper === "IRR" || cc === "IR") {
-    return formatCurrencyMinorUnits(amount, "IRR");
-  }
-
-  const cfg = resolveByCode(upper) ?? DEFAULT_CURRENCY;
+  // The ISO code is authoritative. Country is only a fallback for callers
+  // that pass an unknown/empty code; it must not reinterpret USD cents as HUF
+  // merely because the user is in Hungary.
+  const cfg = resolveByCode(upper)
+    ?? (cc === "HU" ? CURRENCY_BY_COUNTRY.HU
+      : cc === "IR" ? CURRENCY_BY_COUNTRY.IR
+      : DEFAULT_CURRENCY);
   return formatCurrencyMinorUnits(amount, cfg.code);
 }
 

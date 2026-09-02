@@ -246,7 +246,7 @@ import {
 import { db, pool } from "../db";
 import { countryCurrency, type CountryCode } from "../middleware/country";
 import { getRates, toUSDSync } from "../services/currency";
-import { round2, roundToCents } from "../lib/math";
+import { round2, roundToCents, roundBookingAmount } from "../lib/math";
 import { eq, and, desc, or, sql, count, asc, aliasedTable, inArray, gte, lte, lt, ilike, isNull, type SQL } from "drizzle-orm";
 
 
@@ -442,11 +442,11 @@ export abstract class GroupSessionsMixin {
       const taken = Number(cntArr[0]?.c) || 0;
       if (taken >= Number(s.max_participants)) throw new Error("Session is full");
 
-      const priceNative = Number(s.price_per_user);
       // P-FINAL: price_per_user is stored in the session's native currency (HUF/IRR/USD).
       // Wallets are always denominated in USD — convert before comparing or debiting.
-      const _gsRates = await getRates();
       const _gsCurrency = countryCurrency(s.country_code as CountryCode);
+      const _gsRates = await getRates();
+      const priceNative = roundBookingAmount(Number(s.price_per_user), _gsCurrency);
       const _gsRateVal = _gsRates[_gsCurrency] ?? 1;
       const price = _gsCurrency === "USD"
         ? priceNative

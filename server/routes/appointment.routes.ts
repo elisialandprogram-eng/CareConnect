@@ -87,6 +87,7 @@ import { createInvoiceForAppointment } from "../utils/invoice-helper";
 import { sanitizeUser } from "../utils/sanitize";
 import { getRates, fromUSDSync, toUSDSync, formatSync, formatLocal } from "../services/currency";
 import { round2, roundBookingAmount } from "../lib/math";
+import { currencyFractionDigits } from "@shared/currency";
 import { checkHomeVisitCoverage, haversineDistance, isValidCoordinates } from "../services/location.service";
 import { getOrCreateVideoSession } from "../services/video";
 import { slog } from "../lib/logger";
@@ -143,6 +144,14 @@ const PROVIDER_HIDDEN_FINANCIAL_FIELDS = [
   "displayAmount",
   "refundAmount",
 ] as const;
+
+function formatBookingMoneyForStorage(
+  value: number | string | null | undefined,
+  currency: string,
+): string {
+  return roundBookingAmount(Number(value ?? 0), currency)
+    .toFixed(currencyFractionDigits(currency));
+}
 
 const PROVIDER_HIDDEN_SERVICE_PRICE_FIELDS = [
   "price",
@@ -972,7 +981,7 @@ export function registerAppointmentRoutes(app: Express): void {
             const minimumAmount = promo.minAmount == null
               ? 0
               : promoBaseCurrency === bookingCurrency
-                ? Number(promo.minAmount)
+                ? roundBookingAmount(Number(promo.minAmount), bookingCurrency)
                 : fromUSDSync(
                     toUSDSync(Number(promo.minAmount), promoBaseCurrency, promoRates),
                     bookingCurrency,
@@ -1004,6 +1013,9 @@ export function registerAppointmentRoutes(app: Express): void {
               if (promoType === "fixed" && promoBaseCurrency !== bookingCurrency) {
                 const inUSD = toUSDSync(promoValue, promoBaseCurrency, promoRates);
                 promoValue = fromUSDSync(inUSD, bookingCurrency, promoRates);
+              }
+              if (promoType === "fixed") {
+                promoValue = roundBookingAmount(promoValue, bookingCurrency);
               }
               promoDiscountInput = { type: promoType, value: promoValue, code: promo.code };
               appliedPromoCode = promo.code;
@@ -1158,27 +1170,44 @@ export function registerAppointmentRoutes(app: Express): void {
           patientAddress: patientAddress || null,
           patientLatitude: typeof patientLatitude === "number" ? patientLatitude : null,
           patientLongitude: typeof patientLongitude === "number" ? patientLongitude : null,
-          totalAmount: fee.toString(),
-          platformFeeAmount: platformFee.toFixed(2),
+          totalAmount: formatBookingMoneyForStorage(fee, _bookingCurrency),
+          platformFeeAmount: formatBookingMoneyForStorage(platformFee, _bookingCurrency),
           // Lock the base service price at booking time — never changes after creation.
-          servicePriceSnapshot: svcRecord ? Number(svcRecord.price || 0).toFixed(2) : null,
+          servicePriceSnapshot: svcRecord
+            ? formatBookingMoneyForStorage(svcRecord.price, _bookingCurrency)
+            : null,
           promoCode: appliedPromoCode,
-          promoDiscount: promoDiscount.toFixed(2),
-          taxAmount: taxAmountNum.toFixed(2),
-           serviceSubtotal: revenueEngineResult?.serviceGrossSubtotal?.toFixed(2) ?? "0.00",
-           serviceTaxRate: revenueEngineResult?.taxBreakdown.serviceTaxRate?.toFixed(2) ?? "0.00",
-           serviceTaxAmount: revenueEngineResult?.taxBreakdown.serviceTax?.toFixed(2) ?? "0.00",
-           platformTaxableSubtotal: revenueEngineResult?.taxBreakdown.platformTaxableSubtotal?.toFixed(2) ?? "0.00",
-           platformTaxRate: revenueEngineResult?.taxBreakdown.platformTaxRate?.toFixed(2) ?? "0.00",
-           platformTaxAmount: revenueEngineResult?.taxBreakdown.platformTax?.toFixed(2) ?? "0.00",
+          promoDiscount: formatBookingMoneyForStorage(promoDiscount, _bookingCurrency),
+          taxAmount: formatBookingMoneyForStorage(taxAmountNum, _bookingCurrency),
+          serviceSubtotal: formatBookingMoneyForStorage(
+            revenueEngineResult?.serviceGrossSubtotal,
+            _bookingCurrency,
+          ),
+          serviceTaxRate: Number(revenueEngineResult?.taxBreakdown.serviceTaxRate ?? 0).toFixed(2),
+          serviceTaxAmount: formatBookingMoneyForStorage(
+            revenueEngineResult?.taxBreakdown.serviceTax,
+            _bookingCurrency,
+          ),
+          platformTaxableSubtotal: formatBookingMoneyForStorage(
+            revenueEngineResult?.taxBreakdown.platformTaxableSubtotal,
+            _bookingCurrency,
+          ),
+          platformTaxRate: Number(revenueEngineResult?.taxBreakdown.platformTaxRate ?? 0).toFixed(2),
+          platformTaxAmount: formatBookingMoneyForStorage(
+            revenueEngineResult?.taxBreakdown.platformTax,
+            _bookingCurrency,
+          ),
           // Full breakdown snapshot so the confirmation page shows exact figures
           // without reconstructing from (potentially stale) live service data.
           pricingBreakdown: pricingBreakdownSnapshot,
           countryCode: providerCountry,
           packageIdUsed: appliedUserPackageId ?? null,
           packageDiscountAmount: pricingBreakdownSnapshot?.membershipDiscount
-            ? pricingBreakdownSnapshot.membershipDiscount.toFixed(2)
-            : "0.00",
+            ? formatBookingMoneyForStorage(
+                pricingBreakdownSnapshot.membershipDiscount,
+                _bookingCurrency,
+              )
+            : formatBookingMoneyForStorage(0, _bookingCurrency),
           displayCurrency: _bookingCurrency,
         } as any,
         {

@@ -1,6 +1,7 @@
 import { pool } from "../db";
 import { getStripe } from "../stripe";
 import { round2, roundToCents } from "../lib/math";
+import { currencyFractionDigits } from "@shared/currency";
 
 export type PaymentState =
   | "pending"
@@ -136,6 +137,7 @@ export async function createAppointmentPayment(input: {
     throw new Error("Payment total must be positive");
   }
   const normalizedMethod = input.initialMethod === "card" ? "card" : input.initialMethod;
+  const displayDigits = currencyFractionDigits(input.displayCurrency);
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
@@ -155,7 +157,7 @@ export async function createAppointmentPayment(input: {
         round2(input.totalAmountUsd).toFixed(2),
         normalizedMethod,
         input.displayCurrency,
-        round2(input.displayAmount).toFixed(2),
+        round2(input.displayAmount).toFixed(displayDigits),
         input.exchangeRateUsed.toFixed(6),
         input.countryCode,
       ],
@@ -734,10 +736,10 @@ export async function refundPayment(input: {
         FOR UPDATE`,
       [input.paymentId],
     );
-    const refundable = allocationResult.rows.reduce(
+    const refundable = round2(allocationResult.rows.reduce(
       (sum: number, row: any) => sum + Math.max(0, Number(row.amount_usd) - Number(row.refunded_amount_usd)),
       0,
-    );
+    ));
     const requested = round2(input.amountUsd ?? refundable);
     if (!Number.isFinite(requested) || requested <= 0) throw new Error("Refund amount must be positive");
     if (requested > refundable + 0.01) throw new Error("Refund exceeds the refundable payment amount");
@@ -748,15 +750,17 @@ export async function refundPayment(input: {
     let planRemaining = requested;
     const refundPlan = allocationResult.rows.map((allocation: any) => {
       const available = Math.max(0, Number(allocation.amount_usd) - Number(allocation.refunded_amount_usd));
-      const refundAmount = Math.min(available, planRemaining);
+      const refundAmount = round2(Math.min(available, planRemaining));
       planRemaining = round2(planRemaining - refundAmount);
       return { allocation, refundAmount };
     }).filter(({ refundAmount }) => refundAmount > 0);
     if (planRemaining > 0.01) throw new Error("Refund allocation could not be planned");
 
-    const stripeRefundAmount = refundPlan
-      .filter(({ allocation }: any) => allocation.source === "stripe")
-      .reduce((sum: number, { refundAmount }: any) => sum + refundAmount, 0);
+    const stripeRefundAmount = round2(
+      refundPlan
+        .filter(({ allocation }: any) => allocation.source === "stripe")
+        .reduce((sum: number, { refundAmount }: any) => sum + refundAmount, 0),
+    );
     if (stripeRefundAmount > 0) {
       if (!payment.stripe_payment_id || !input.stripeRefund) {
         throw new Error("Stripe refund provider is unavailable");
@@ -815,7 +819,7 @@ export async function refundPayment(input: {
         }
       }
 
-      const nextRefunded = Number(allocation.refunded_amount_usd) + refundAmount;
+      const nextRefunded = round2(Number(allocation.refunded_amount_usd) + refundAmount);
       await client.query(
         `UPDATE payment_allocations
             SET refunded_amount_usd = $1,

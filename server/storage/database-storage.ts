@@ -245,7 +245,8 @@ import { countryCurrency, type CountryCode } from "../middleware/country";
 import { nativeCurrencyForCountry } from "../lib/service-currency-guard";
 import { getRates, toUSDSync } from "../services/currency";
 import { calculateProviderSettlement, OFFLINE_PAYMENT_METHODS } from "../lib/provider-settlement";
-import { round2, roundToCents } from "../lib/math";
+import { round2, roundToCents, roundBookingAmount } from "../lib/math";
+import { currencyFractionDigits } from "@shared/currency";
 import { eq, and, desc, or, sql, count, asc, aliasedTable, inArray, gte, lte, lt, ilike, isNull, type SQL } from "drizzle-orm";
 import { canTransition, nextStatusesFor } from "../lib/appointmentStatus";
 
@@ -3242,9 +3243,12 @@ export class DatabaseStorage extends PackagesMixin implements IStorage {
       const rateVal = settlement.exchangeRateUsed;
       const exchangeRate = Number((1 / rateVal).toFixed(6));
       const totalAmountUsd = Number(appt.final_total_usd || 0) > 0
-        ? Number(appt.final_total_usd)
-        : Number((totalAmountLocal / rateVal).toFixed(2));
-      const platformFeeUsd = Number((platformFeeLocal / rateVal).toFixed(2));
+        ? round2(Number(appt.final_total_usd))
+        : round2(totalAmountLocal / rateVal);
+      const platformFeeUsd = round2(platformFeeLocal / rateVal);
+      const usdMoney = (value: number) => round2(value).toFixed(2);
+      const localMoney = (value: number) =>
+        roundBookingAmount(value, currency).toFixed(currencyFractionDigits(currency));
       const cashPlatformObligationUsd = round2(
         settlement.cashPlatformFeeDeductionUsd +
         settlement.cashPlatformTaxDeductionUsd,
@@ -3328,10 +3332,10 @@ export class DatabaseStorage extends PackagesMixin implements IStorage {
                 cash_wallet_debit_applied_usd = $4
             WHERE id = $5
           `, [
-            settlement.cashPlatformFeeDeductionUsd.toFixed(2),
-            settlement.cashPlatformTaxDeductionUsd.toFixed(2),
-            settlement.cashCommissionDeductionUsd.toFixed(2),
-            cashWalletDebitUsd.toFixed(2),
+            usdMoney(settlement.cashPlatformFeeDeductionUsd),
+            usdMoney(settlement.cashPlatformTaxDeductionUsd),
+            usdMoney(settlement.cashCommissionDeductionUsd),
+            usdMoney(cashWalletDebitUsd),
             existing.rows[0].id,
           ]);
         }
@@ -3359,26 +3363,26 @@ export class DatabaseStorage extends PackagesMixin implements IStorage {
         `, [
           appt.provider_id,
           appt.id,
-          totalAmountUsd.toFixed(2),
-          platformFeeUsd.toFixed(2),
+          usdMoney(totalAmountUsd),
+          usdMoney(platformFeeUsd),
              // provider_earning remains the provider_earnings aggregate's
              // required settlement amount column.
-             settlement.providerNetEarningsUsd.toFixed(2),
+             usdMoney(settlement.providerNetEarningsUsd),
           currency,
-          settlement.providerPayoutLocal.toFixed(2),
+          localMoney(settlement.providerPayoutLocal),
           exchangeRate.toFixed(6),
-           Math.max(0, settlement.providerNetEarningsUsd - settlement.serviceTaxPassThroughUsd).toFixed(2),
-           settlement.serviceTaxPassThroughUsd.toFixed(2),
-           (resolvedProviderGrossEarningsLocal / rateVal).toFixed(2),
-           resolvedProviderGrossEarningsLocal.toFixed(2),
-           settlement.providerNetEarningsUsd.toFixed(2),
-           settlement.providerNetEarningsLocal.toFixed(2),
-           settlement.serviceTaxPassThroughUsd.toFixed(2),
-          settlement.cashPlatformFeeDeductionUsd.toFixed(2),
-           settlement.cashPlatformTaxDeductionUsd.toFixed(2),
-           settlement.cashCommissionDeductionUsd.toFixed(2),
-          settlement.grossProviderPayoutUsd.toFixed(2),
-          settlement.isOffline ? "0.00" : settlement.providerPayoutUsd.toFixed(2),
+           usdMoney(Math.max(0, settlement.providerNetEarningsUsd - settlement.serviceTaxPassThroughUsd)),
+           usdMoney(settlement.serviceTaxPassThroughUsd),
+           usdMoney(resolvedProviderGrossEarningsLocal / rateVal),
+           localMoney(resolvedProviderGrossEarningsLocal),
+           usdMoney(settlement.providerNetEarningsUsd),
+           localMoney(settlement.providerNetEarningsLocal),
+           usdMoney(settlement.serviceTaxPassThroughUsd),
+          usdMoney(settlement.cashPlatformFeeDeductionUsd),
+           usdMoney(settlement.cashPlatformTaxDeductionUsd),
+           usdMoney(settlement.cashCommissionDeductionUsd),
+          usdMoney(settlement.grossProviderPayoutUsd),
+          settlement.isOffline ? usdMoney(0) : usdMoney(settlement.providerPayoutUsd),
           settlement.paymentMethod,
         ]);
       } catch (insertErr: any) {
