@@ -92,6 +92,7 @@ const ProviderFinancialReports = lazy(() => import("@/components/admin/provider-
 const MonitoringPanel = lazy(() => import("@/components/admin/monitoring-panel"));
 const RbacPermissionsMatrix = lazy(() => import("@/components/admin/rbac-permissions-matrix"));
 const ReviewModerationPanel = lazy(() => import("@/components/admin/dashboard/review-moderation"));
+const PlatformRevenueReport = lazy(() => import("@/components/admin/dashboard/platform-revenue-report"));
 
 // ── Suspense fallback ─────────────────────────────────────────────────────────
 function PanelSkeleton() {
@@ -188,6 +189,7 @@ function buildNavGroups(isGlobalAdmin: boolean, t: (k: string, d?: string) => st
         { value: "provider-wallets", label: "Provider Wallets", icon: Wallet },
         { value: "invoices", label: t("admin.invoices", "Invoices"), icon: FileText },
         { value: "financial-reports", label: "Provider Financials", icon: BarChart3 },
+        { value: "platform-revenue", label: "Platform Revenue", icon: Percent },
         { value: "cash-fee-settlements", label: "Cash Fee Settlements", icon: Banknote },
         { value: "ledger-overrides", label: "Ledger Overrides", icon: BookOpen },
         { value: "refunds", label: "Refunds", icon: RotateCcw },
@@ -590,6 +592,14 @@ export default function AdminDashboard() {
                   </PanelErrorBoundary>
                 </CardContent>
               </Card>
+            )}
+
+            {activeTab === "platform-revenue" && (
+              <PanelErrorBoundary>
+                <Suspense fallback={<PanelSkeleton />}>
+                  <PlatformRevenueReport />
+                </Suspense>
+              </PanelErrorBoundary>
             )}
 
             {activeTab === "payouts" && (

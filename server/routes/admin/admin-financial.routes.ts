@@ -2278,6 +2278,319 @@ export function registerAdminFinancialRoutes(app: Express): void {
 
   const mw = [authenticateToken, requireAdmin, requirePermission(PERMISSIONS.PAYMENTS_VIEW)];
 
+  const EARNING_PAYMENT_STATUSES = "'paid','partially_refunded','refunded','disputed'";
+  const platformUsdExpr = (column: string) =>
+    `CASE WHEN COALESCE(a.total_amount::numeric, 0) > 0
+      THEN ROUND(COALESCE(a.${column}::numeric, 0) / a.total_amount::numeric
+        * COALESCE(a.final_total_usd, a.total_amount)::numeric, 2)
+      ELSE 0 END`;
+  const platformTaxOtherExpr = `GREATEST(
+    COALESCE(a.tax_amount::numeric, 0)
+      - COALESCE(a.service_tax_amount::numeric, 0)
+      - COALESCE(a.platform_tax_amount::numeric, 0),
+    0
+  )`;
+
+  function buildPlatformRevenueWhere(q: Record<string, any>, countryFilter: string | null) {
+    const conditions: string[] = ["1=1"];
+    const params: any[] = [];
+    let idx = 1;
+    const add = (sql: string, value: unknown) => {
+      conditions.push(sql.replaceAll("?", `$${idx++}`));
+      params.push(value);
+    };
+
+    if (countryFilter) add("a.country_code::text = ?", countryFilter);
+    if (q.dateFrom) add("a.created_at >= ?::timestamptz", q.dateFrom);
+    if (q.dateTo) add("a.created_at < (?::date + INTERVAL '1 day')::timestamptz", q.dateTo);
+    if (!q.dateFrom && !q.dateTo && q.month && /^\d{4}-\d{2}$/.test(String(q.month))) {
+      add("a.created_at >= ?::date", `${q.month}-01`);
+      conditions.push(`a.created_at < ($${idx - 1}::date + INTERVAL '1 month')`);
+      // Reuse the month-start parameter; this avoids a second date parser path.
+    }
+    if (q.providerId) add("a.provider_id = ?", q.providerId);
+    if (q.patientId) add("a.patient_id = ?", q.patientId);
+    if (q.paymentStatus && q.paymentStatus !== "all") add("pay.status::text = ?", q.paymentStatus);
+    if (q.providerSearch) {
+      const value = `%${String(q.providerSearch).trim()}%`;
+      conditions.push(`(
+        pru.first_name ILIKE $${idx} OR pru.last_name ILIKE $${idx}
+        OR pru.email ILIKE $${idx} OR prov.clinic_name ILIKE $${idx}
+        OR CAST(a.provider_id AS text) ILIKE $${idx}
+      )`);
+      params.push(value);
+      idx++;
+    }
+    if (q.clientSearch) {
+      const value = `%${String(q.clientSearch).trim()}%`;
+      conditions.push(`(
+        pu.first_name ILIKE $${idx} OR pu.last_name ILIKE $${idx}
+        OR pu.email ILIKE $${idx} OR CAST(a.patient_id AS text) ILIKE $${idx}
+      )`);
+      params.push(value);
+      idx++;
+    }
+    return { where: conditions.join(" AND "), params, nextIdx: idx };
+  }
+
+  const PLATFORM_REVENUE_JOIN = `
+    FROM appointments a
+    JOIN users pu ON pu.id = a.patient_id
+    JOIN providers prov ON prov.id = a.provider_id
+    JOIN users pru ON pru.id = prov.user_id
+    LEFT JOIN services svc ON svc.id = a.service_id
+    LEFT JOIN LATERAL (
+      SELECT p.status, p.payment_method
+      FROM payments p
+      WHERE p.appointment_id = a.id
+      ORDER BY p.created_at DESC NULLS LAST, p.id DESC
+      LIMIT 1
+    ) pay ON true
+  `;
+
+  const PLATFORM_REVENUE_CSV_COLUMNS = [
+    "Booking Ref", "Appointment ID", "Booking Date", "Appointment Status",
+    "Payment Status", "Payment Method", "Country", "Booking Currency",
+    "Booking Amount", "Client ID", "Client Name", "Client Email",
+    "Provider ID", "Provider Name", "Provider Email", "Service",
+    "Platform Commission (USD)", "Platform Fee (USD)",
+    "Payment Gateway Fee or Tax (USD)", "Service Tax (USD)",
+    "Platform Tax (USD)", "Other Tax (USD)", "Admin Fee (USD)",
+    "Gross Booking (USD)",
+  ];
+
+  app.get(
+    "/api/admin/financial/platform-revenue/filters",
+    ...mw,
+    async (req: AuthRequest, res: Response) => {
+      try {
+        const countryFilter = listingCountryFilter(req.user!, req.query as any);
+        const params: unknown[] = countryFilter ? [countryFilter] : [];
+        const countryClause = countryFilter ? "WHERE a.country_code::text = $1" : "";
+        const [providersResult, clientsResult] = await Promise.all([
+          pool.query(`
+            SELECT DISTINCT prov.id,
+              CONCAT_WS(' ', pru.first_name, pru.last_name) AS name,
+              pru.email
+            FROM appointments a
+            JOIN providers prov ON prov.id = a.provider_id
+            JOIN users pru ON pru.id = prov.user_id
+            ${countryClause}
+            ORDER BY name NULLS LAST, pru.email NULLS LAST
+            LIMIT 1000
+          `, params),
+          pool.query(`
+            SELECT DISTINCT pu.id,
+              CONCAT_WS(' ', pu.first_name, pu.last_name) AS name,
+              pu.email
+            FROM appointments a
+            JOIN users pu ON pu.id = a.patient_id
+            ${countryClause}
+            ORDER BY name NULLS LAST, pu.email NULLS LAST
+            LIMIT 1000
+          `, params),
+        ]);
+        res.json({
+          providers: providersResult.rows,
+          clients: clientsResult.rows,
+        });
+      } catch (err: any) {
+        console.error("[platform-revenue-report-filters]", err);
+        res.status(500).json({ message: err.message || "Failed to load report filters" });
+      }
+    },
+  );
+
+  function platformRevenueSelect(earnedOnly: boolean) {
+    const gate = earnedOnly ? `CASE WHEN pay.status IN (${EARNING_PAYMENT_STATUSES}) THEN ` : "";
+    const close = earnedOnly ? " ELSE 0 END" : "";
+    const commission = `${gate}${platformUsdExpr("commission_amount")}${close}`;
+    const fee = `${gate}${platformUsdExpr("platform_fee_amount")}${close}`;
+    const gateway = `${gate}${platformUsdExpr("payment_gateway_fee_amount")}${close}`;
+    const serviceTax = `${gate}${platformUsdExpr("service_tax_amount")}${close}`;
+    const platformTax = `${gate}${platformUsdExpr("platform_tax_amount")}${close}`;
+    const otherTax = `${gate}${platformUsdExpr("tax_amount").replace(
+      platformUsdExpr("tax_amount"),
+      `CASE WHEN COALESCE(a.total_amount::numeric, 0) > 0
+        THEN ROUND(${platformTaxOtherExpr} / a.total_amount::numeric
+          * COALESCE(a.final_total_usd, a.total_amount)::numeric, 2)
+        ELSE 0 END`,
+    )}${close}`;
+    const adminFee = `${gate}${platformUsdExpr("admin_fee_amount")}${close}`;
+    return { commission, fee, gateway, serviceTax, platformTax, otherTax, adminFee };
+  }
+
+  // ── Platform commissions & tax report ─────────────────────────────────────
+  app.get(
+    "/api/admin/financial/platform-revenue",
+    ...mw,
+    async (req: AuthRequest, res: Response) => {
+      try {
+        const q = req.query as Record<string, any>;
+        const countryFilter = listingCountryFilter(req.user!, q);
+        const { where, params, nextIdx } = buildPlatformRevenueWhere(q, countryFilter);
+        const page = Math.max(1, parseInt(q.page || "1", 10));
+        const limit = Math.min(200, Math.max(1, parseInt(q.limit || "50", 10)));
+        const offset = (page - 1) * limit;
+        const values = platformRevenueSelect(true);
+        const rowsSql = `
+          SELECT
+            a.id,
+            a.appointment_number,
+            a.created_at,
+            a.status,
+            pay.status AS payment_status,
+            pay.payment_method,
+            a.country_code::text AS country_code,
+            COALESCE(a.booking_currency, a.display_currency, svc.currency, 'USD') AS booking_currency,
+            a.total_amount AS booking_amount,
+            pu.id AS patient_id,
+            CONCAT_WS(' ', pu.first_name, pu.last_name) AS patient_name,
+            pu.email AS patient_email,
+            prov.id AS provider_id,
+            CONCAT_WS(' ', pru.first_name, pru.last_name) AS provider_name,
+            pru.email AS provider_email,
+            svc.name AS service_name,
+            ${values.commission} AS commission_usd,
+            ${values.fee} AS platform_fee_usd,
+            ${values.gateway} AS gateway_fee_tax_usd,
+            ${values.serviceTax} AS service_tax_usd,
+            ${values.platformTax} AS platform_tax_usd,
+            ${values.otherTax} AS other_tax_usd,
+            ${values.adminFee} AS admin_fee_usd,
+            COALESCE(a.final_total_usd, a.total_amount)::numeric AS gross_amount_usd
+          ${PLATFORM_REVENUE_JOIN}
+          WHERE ${where}
+          ORDER BY a.created_at DESC
+          LIMIT $${nextIdx} OFFSET $${nextIdx + 1}
+        `;
+        const countSql = `SELECT COUNT(*) AS total ${PLATFORM_REVENUE_JOIN} WHERE ${where}`;
+        const summarySql = `
+          WITH report AS (
+            SELECT
+              pay.status AS payment_status,
+              ${values.commission} AS commission_usd,
+              ${values.fee} AS platform_fee_usd,
+              ${values.gateway} AS gateway_fee_tax_usd,
+              ${values.serviceTax} AS service_tax_usd,
+              ${values.platformTax} AS platform_tax_usd,
+              ${values.otherTax} AS other_tax_usd,
+              ${values.adminFee} AS admin_fee_usd
+            ${PLATFORM_REVENUE_JOIN}
+            WHERE ${where}
+          )
+          SELECT
+            COUNT(*) AS booking_count,
+            COUNT(*) FILTER (WHERE payment_status IN (${EARNING_PAYMENT_STATUSES})) AS earned_booking_count,
+            COALESCE(SUM(commission_usd), 0) AS commission_usd,
+            COALESCE(SUM(platform_fee_usd), 0) AS platform_fee_usd,
+            COALESCE(SUM(gateway_fee_tax_usd), 0) AS gateway_fee_tax_usd,
+            COALESCE(SUM(service_tax_usd), 0) AS service_tax_usd,
+            COALESCE(SUM(platform_tax_usd), 0) AS platform_tax_usd,
+            COALESCE(SUM(other_tax_usd), 0) AS other_tax_usd,
+            COALESCE(SUM(admin_fee_usd), 0) AS admin_fee_usd
+          FROM report
+        `;
+        const [rowsResult, countResult, summaryResult] = await Promise.all([
+          pool.query(rowsSql, [...params, limit, offset]),
+          pool.query(countSql, params),
+          pool.query(summarySql, params),
+        ]);
+        const summaryRow = summaryResult.rows[0] ?? {};
+        const summary = {
+          bookingCount: Number(summaryRow.booking_count ?? 0),
+          earnedBookingCount: Number(summaryRow.earned_booking_count ?? 0),
+          commissionUsd: round2(Number(summaryRow.commission_usd ?? 0)),
+          platformFeeUsd: round2(Number(summaryRow.platform_fee_usd ?? 0)),
+          gatewayFeeTaxUsd: round2(Number(summaryRow.gateway_fee_tax_usd ?? 0)),
+          serviceTaxUsd: round2(Number(summaryRow.service_tax_usd ?? 0)),
+          platformTaxUsd: round2(Number(summaryRow.platform_tax_usd ?? 0)),
+          otherTaxUsd: round2(Number(summaryRow.other_tax_usd ?? 0)),
+          adminFeeUsd: round2(Number(summaryRow.admin_fee_usd ?? 0)),
+          totalTaxesUsd: 0,
+          totalPlatformEarningsUsd: 0,
+        };
+        summary.totalTaxesUsd = round2(
+          summary.gatewayFeeTaxUsd + summary.serviceTaxUsd
+            + summary.platformTaxUsd + summary.otherTaxUsd,
+        );
+        summary.totalPlatformEarningsUsd = round2(
+          summary.commissionUsd + summary.platformFeeUsd
+            + summary.gatewayFeeTaxUsd + summary.adminFeeUsd,
+        );
+        const total = Number(countResult.rows[0]?.total ?? 0);
+        res.json({
+          rows: rowsResult.rows,
+          total,
+          page,
+          limit,
+          totalPages: Math.ceil(total / limit),
+          summary,
+        });
+      } catch (err: any) {
+        console.error("[platform-revenue-report]", err);
+        res.status(500).json({ message: err.message || "Failed to load platform revenue report" });
+      }
+    },
+  );
+
+  // ── Platform commissions & tax CSV export ─────────────────────────────────
+  app.get(
+    "/api/admin/financial/platform-revenue/export/csv",
+    ...mw,
+    async (req: AuthRequest, res: Response) => {
+      try {
+        const q = req.query as Record<string, any>;
+        const countryFilter = listingCountryFilter(req.user!, q);
+        const { where, params, nextIdx } = buildPlatformRevenueWhere(q, countryFilter);
+        const values = platformRevenueSelect(true);
+        const limit = Math.min(100000, Math.max(1, parseInt(q.limit || "100000", 10)));
+        const sql = `
+          SELECT
+            a.appointment_number AS "Booking Ref",
+            a.id AS "Appointment ID",
+            TO_CHAR(a.created_at, 'YYYY-MM-DD HH24:MI') AS "Booking Date",
+            a.status AS "Appointment Status",
+            pay.status AS "Payment Status",
+            pay.payment_method AS "Payment Method",
+            a.country_code::text AS "Country",
+            COALESCE(a.booking_currency, a.display_currency, svc.currency, 'USD') AS "Booking Currency",
+            a.total_amount AS "Booking Amount",
+            pu.id AS "Client ID",
+            CONCAT_WS(' ', pu.first_name, pu.last_name) AS "Client Name",
+            pu.email AS "Client Email",
+            prov.id AS "Provider ID",
+            CONCAT_WS(' ', pru.first_name, pru.last_name) AS "Provider Name",
+            pru.email AS "Provider Email",
+            svc.name AS "Service",
+            ${values.commission} AS "Platform Commission (USD)",
+            ${values.fee} AS "Platform Fee (USD)",
+            ${values.gateway} AS "Payment Gateway Fee or Tax (USD)",
+            ${values.serviceTax} AS "Service Tax (USD)",
+            ${values.platformTax} AS "Platform Tax (USD)",
+            ${values.otherTax} AS "Other Tax (USD)",
+            ${values.adminFee} AS "Admin Fee (USD)",
+            COALESCE(a.final_total_usd, a.total_amount)::numeric AS "Gross Booking (USD)"
+          ${PLATFORM_REVENUE_JOIN}
+          WHERE ${where}
+          ORDER BY a.created_at DESC
+          LIMIT $${nextIdx}
+        `;
+        const result = await pool.query(sql, [...params, limit]);
+        const csv = toCsv(result.rows, PLATFORM_REVENUE_CSV_COLUMNS);
+        res.setHeader("Content-Type", "text/csv; charset=utf-8");
+        res.setHeader(
+          "Content-Disposition",
+          `attachment; filename="platform-revenue-report-${new Date().toISOString().slice(0, 10)}.csv"`,
+        );
+        res.send(csv);
+      } catch (err: any) {
+        console.error("[platform-revenue-report-csv]", err);
+        res.status(500).json({ message: err.message || "Failed to export platform revenue report" });
+      }
+    },
+  );
+
   // Shared query builder — returns { sql, params }
   function buildMasterWhere(q: Record<string, any>, countryFilter: string | null) {
     const conditions: string[] = ["1=1"];
