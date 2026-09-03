@@ -599,6 +599,8 @@ export async function runStartupMigrations() {
       expires_at TIMESTAMP NOT NULL,
       created_at TIMESTAMP DEFAULT NOW()
     )`);
+    await pool.query(`ALTER TABLE appointment_slot_holds
+      ADD COLUMN IF NOT EXISTS service_id VARCHAR REFERENCES services(id) ON DELETE SET NULL`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_slot_holds_provider_date ON appointment_slot_holds(provider_id, date)`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_slot_holds_expires ON appointment_slot_holds(expires_at)`);
 

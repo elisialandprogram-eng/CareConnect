@@ -83,6 +83,30 @@ import {
 import multer from "multer";
 import { notify } from "../services/notification-dispatcher";
 
+async function getActiveSlotHolds(providerId: string, date: string) {
+  try {
+    return await pool.query(
+      `SELECT h.start_time, h.end_time, h.patient_id, h.visit_type,
+              COALESCE(s.buffer_before, 0) AS svc_buf_before,
+              COALESCE(s.buffer_after, 0) AS svc_buf_after
+         FROM appointment_slot_holds h
+         LEFT JOIN services s ON s.id = h.service_id
+        WHERE h.provider_id = $1 AND h.date = $2 AND h.expires_at > NOW()`,
+      [providerId, date],
+    );
+  } catch (holdSchemaErr: any) {
+    const holdSchemaCode = holdSchemaErr?.code ?? holdSchemaErr?.cause?.code;
+    if (holdSchemaCode !== "42703" && holdSchemaCode !== "42P01") throw holdSchemaErr;
+    return pool.query(
+      `SELECT start_time, end_time, patient_id, visit_type,
+              0 AS svc_buf_before, 0 AS svc_buf_after
+         FROM appointment_slot_holds
+        WHERE provider_id = $1 AND date = $2 AND expires_at > NOW()`,
+      [providerId, date],
+    );
+  }
+}
+
 export function registerProviderAvailabilityRoutes(app: Express): void {
   // Get available time slots for a provider on a given date.
   // Combines the provider's published slots with their existing appointments
@@ -126,11 +150,7 @@ export function registerProviderAvailabilityRoutes(app: Express): void {
           `SELECT date FROM availability_exceptions WHERE provider_id = $1 AND date = $2`,
           [req.params.id, date],
         ),
-        pool.query(
-          `SELECT start_time, end_time, patient_id, visit_type FROM appointment_slot_holds
-           WHERE provider_id = $1 AND date = $2 AND expires_at > NOW()`,
-          [req.params.id, date],
-        ),
+        getActiveSlotHolds(req.params.id, date),
       ]);
       if (!provider) return res.json([]);
 
@@ -286,6 +306,8 @@ export function registerProviderAvailabilityRoutes(app: Express): void {
               ? hold.visit_type
               : "clinic",
             bufSettings,
+            Number(hold.svc_buf_before ?? 0),
+            Number(hold.svc_buf_after ?? 0),
           );
           if (
             requested.effectiveStart < held.effectiveEnd &&

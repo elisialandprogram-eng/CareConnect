@@ -294,16 +294,57 @@ export function registerAppointmentWaitlistRoutes(app: Express): void {
       const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
       let hold: any;
       try {
-        hold = await storage.createSlotHold({
-          providerId: parsed.data.providerId,
-          practitionerId: parsed.data.practitionerId ?? null,
-          patientId: userId,
-          date: parsed.data.date,
-          startTime: parsed.data.startTime,
-          endTime: parsed.data.endTime,
-          visitType: parsed.data.visitType as "clinic" | "home" | "online",
-          expiresAt,
-        });
+        // Store the service on the hold so service-specific buffers are
+        // available when availability and checkout evaluate this hold later.
+        // Fall back to the legacy Drizzle insert if an older process receives
+        // a request before the additive startup migration has run.
+        try {
+          const inserted = await pool.query(
+            `INSERT INTO appointment_slot_holds
+              (provider_id, practitioner_id, patient_id, service_id, date, start_time, end_time, visit_type, expires_at)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+             RETURNING id, provider_id, practitioner_id, patient_id, service_id,
+                       date, start_time, end_time, visit_type, expires_at, created_at`,
+            [
+              parsed.data.providerId,
+              parsed.data.practitionerId ?? null,
+              userId,
+              parsed.data.serviceId ?? null,
+              parsed.data.date,
+              parsed.data.startTime,
+              parsed.data.endTime,
+              parsed.data.visitType,
+              expiresAt,
+            ],
+          );
+          const row = inserted.rows[0];
+          hold = {
+            id: row.id,
+            providerId: row.provider_id,
+            practitionerId: row.practitioner_id,
+            patientId: row.patient_id,
+            serviceId: row.service_id,
+            date: row.date,
+            startTime: row.start_time,
+            endTime: row.end_time,
+            visitType: row.visit_type,
+            expiresAt: row.expires_at,
+            createdAt: row.created_at,
+          };
+        } catch (legacyInsertErr: any) {
+          const legacyCode = legacyInsertErr?.code ?? legacyInsertErr?.cause?.code;
+          if (legacyCode !== "42703" && legacyCode !== "42P01") throw legacyInsertErr;
+          hold = await storage.createSlotHold({
+            providerId: parsed.data.providerId,
+            practitionerId: parsed.data.practitionerId ?? null,
+            patientId: userId,
+            date: parsed.data.date,
+            startTime: parsed.data.startTime,
+            endTime: parsed.data.endTime,
+            visitType: parsed.data.visitType as "clinic" | "home" | "online",
+            expiresAt,
+          });
+        }
       } catch (insertErr: any) {
         // Unique index violation means another patient just took this slot.
         // Drizzle ORM wraps the underlying pg error, so check both the direct

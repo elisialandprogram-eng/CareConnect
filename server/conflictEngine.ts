@@ -81,6 +81,19 @@ export interface BookedAppointmentWindow {
   serviceBufferAfter: number;
 }
 
+export interface TravelDistanceCandidate {
+  startTime: string;
+  visitType: "clinic" | "home" | "online";
+  patientLatitude?: number | null;
+  patientLongitude?: number | null;
+}
+
+export interface TravelDistanceConflict {
+  appointment: BookedAppointmentWindow;
+  distanceKm: number;
+  direction: "before" | "after";
+}
+
 // ── Utility helpers ────────────────────────────────────────────────────────────
 
 function timeToMinutes(hhmm: string): number {
@@ -166,6 +179,70 @@ function haversineKm(
       Math.cos((lat2 * Math.PI) / 180) *
       Math.sin(dLon / 2) ** 2;
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+/**
+ * Return a travel conflict only for an immediately adjacent home visit.
+ *
+ * A provider's route is ordered by all appointments, not by home visits alone.
+ * Therefore a clinic or online appointment between two home visits breaks the
+ * home-to-home travel constraint. Comparing the candidate with every home
+ * appointment incorrectly rejects valid sequences such as:
+ *
+ *   home → home → clinic → home
+ */
+export function findTravelDistanceConflict(
+  candidate: TravelDistanceCandidate,
+  appointments: BookedAppointmentWindow[],
+  travelRadiusKm: number,
+): TravelDistanceConflict | null {
+  if (
+    candidate.visitType !== "home" ||
+    candidate.patientLatitude == null ||
+    candidate.patientLongitude == null ||
+    !Number.isFinite(travelRadiusKm) ||
+    travelRadiusKm <= 0
+  ) {
+    return null;
+  }
+
+  const candidateStart = timeToMinutes(candidate.startTime);
+  const ordered = [...appointments]
+    .filter((appointment) => Number.isFinite(timeToMinutes(appointment.startTime)))
+    .sort((a, b) => timeToMinutes(a.startTime) - timeToMinutes(b.startTime));
+
+  const previous = ordered.filter(
+    (appointment) => timeToMinutes(appointment.startTime) < candidateStart,
+  ).at(-1);
+  const next = ordered.find(
+    (appointment) => timeToMinutes(appointment.startTime) > candidateStart,
+  );
+
+  const neighbors: Array<{ appointment: BookedAppointmentWindow; direction: "before" | "after" }> = [];
+  if (previous) neighbors.push({ appointment: previous, direction: "before" });
+  if (next) neighbors.push({ appointment: next, direction: "after" });
+
+  for (const { appointment, direction } of neighbors) {
+    if (
+      appointment.visitType !== "home" ||
+      appointment.patientLatitude == null ||
+      appointment.patientLongitude == null
+    ) {
+      continue;
+    }
+
+    const distanceKm = haversineKm(
+      Number(candidate.patientLatitude),
+      Number(candidate.patientLongitude),
+      Number(appointment.patientLatitude),
+      Number(appointment.patientLongitude),
+    );
+    if (distanceKm > travelRadiusKm) {
+      return { appointment, distanceKm, direction };
+    }
+  }
+
+  return null;
 }
 
 
@@ -313,36 +390,35 @@ export async function checkConflict(
         };
       }
 
-      // Travel distance check for consecutive home visits
-      if (
-        visitType === "home" &&
-        existingVT === "home" &&
-        patientLatitude != null &&
-        patientLongitude != null &&
-        row.patientLatitude != null &&
-        row.patientLongitude != null &&
-        buffers.travelRadiusKm > 0
-      ) {
-        const distKm = haversineKm(
-          patientLatitude, patientLongitude,
-          Number(row.patientLatitude), Number(row.patientLongitude),
-        );
-        if (distKm > buffers.travelRadiusKm) {
-          return {
-            checked: params,
-            buffers,
-            result: {
-              hasConflict: true,
-              conflictType: "travel_distance",
-              conflictId: row.id,
-              message: `Travel distance to this home visit (${distKm.toFixed(1)} km) exceeds the provider's travel radius (${buffers.travelRadiusKm} km).`,
-              effectiveStart: effectiveStartTime,
-              effectiveEnd: effectiveEndTime,
-            },
-            checkedAt: new Date().toISOString(),
-          };
-        }
-      }
+    }
+
+    // Travel distance applies only between consecutive home visits in the
+    // provider's complete schedule. A clinic/online visit between two home
+    // visits breaks that route, so do not compare against every home visit.
+    const travelConflict = findTravelDistanceConflict(
+      {
+        startTime,
+        visitType,
+        patientLatitude,
+        patientLongitude,
+      },
+      bookedAppointments,
+      buffers.travelRadiusKm,
+    );
+    if (travelConflict) {
+      return {
+        checked: params,
+        buffers,
+        result: {
+          hasConflict: true,
+          conflictType: "travel_distance",
+          conflictId: travelConflict.appointment.id,
+          message: `Travel distance to this home visit (${travelConflict.distanceKm.toFixed(1)} km) exceeds the provider's travel radius (${buffers.travelRadiusKm} km).`,
+          effectiveStart: effectiveStartTime,
+          effectiveEnd: effectiveEndTime,
+        },
+        checkedAt: new Date().toISOString(),
+      };
     }
   }
 
@@ -395,7 +471,7 @@ export async function checkConflict(
     const placeholders: any[] = [providerId, date, new Date()];
     let practitionerClause = "";
     if (practitionerId) {
-      practitionerClause = `AND (practitioner_id = $${placeholders.length + 1} OR practitioner_id IS NULL)`;
+      practitionerClause = `AND (h.practitioner_id = $${placeholders.length + 1} OR h.practitioner_id IS NULL)`;
       placeholders.push(practitionerId);
     }
     // Build exclusion clause: skip holds by specific ID and/or by patient owner.
@@ -403,27 +479,50 @@ export async function checkConflict(
     // to keep the slot reserved FOR them, not to block them.
     const excludeClauses: string[] = [];
     if (excludeHoldId) {
-      excludeClauses.push(`id != $${placeholders.length + 1}`);
+      excludeClauses.push(`h.id != $${placeholders.length + 1}`);
       placeholders.push(excludeHoldId);
     }
     if (excludePatientId) {
-      excludeClauses.push(`patient_id != $${placeholders.length + 1}`);
+      excludeClauses.push(`h.patient_id != $${placeholders.length + 1}`);
       placeholders.push(excludePatientId);
     }
     const excludeClause = excludeClauses.length > 0
       ? `AND ${excludeClauses.join(" AND ")}`
       : "";
 
-    const holdResult = await pool.query(
-      `SELECT id, start_time, end_time, patient_id, visit_type
-       FROM appointment_slot_holds
-       WHERE provider_id = $1
-         AND date = $2
-         AND expires_at > $3
-         ${practitionerClause}
-         ${excludeClause}`,
-      placeholders,
-    );
+    let holdResult;
+    try {
+      holdResult = await pool.query(
+        `SELECT h.id, h.start_time, h.end_time, h.patient_id, h.visit_type,
+                COALESCE(s.buffer_before, 0) AS svc_buf_before,
+                COALESCE(s.buffer_after, 0) AS svc_buf_after
+           FROM appointment_slot_holds h
+           LEFT JOIN services s ON s.id = h.service_id
+          WHERE h.provider_id = $1
+            AND h.date = $2
+            AND h.expires_at > $3
+            ${practitionerClause}
+            ${excludeClause}`,
+        placeholders,
+      );
+    } catch (holdSchemaErr: any) {
+      // The service_id column is additive. Keep the conflict engine usable
+      // during the brief window before the startup migration reaches an older
+      // installation; legacy holds still retain their visit-type buffers.
+      const holdSchemaCode = holdSchemaErr?.code ?? holdSchemaErr?.cause?.code;
+      if (holdSchemaCode !== "42703" && holdSchemaCode !== "42P01") throw holdSchemaErr;
+      holdResult = await pool.query(
+        `SELECT h.id, h.start_time, h.end_time, h.patient_id, h.visit_type,
+                0 AS svc_buf_before, 0 AS svc_buf_after
+           FROM appointment_slot_holds h
+          WHERE h.provider_id = $1
+            AND h.date = $2
+            AND h.expires_at > $3
+            ${practitionerClause}
+            ${excludeClause}`,
+        placeholders,
+      );
+    }
 
     for (const row of holdResult.rows) {
       // A hold reserves the appointment plus the buffer required by its own
@@ -435,6 +534,8 @@ export async function checkConflict(
         row.end_time,
         normalizeVisitType(row.visit_type),
         buffers,
+        Number(row.svc_buf_before ?? 0),
+        Number(row.svc_buf_after ?? 0),
       );
 
       const overlaps =
