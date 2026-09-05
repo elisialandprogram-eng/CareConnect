@@ -1220,12 +1220,8 @@ export async function runStartupMigrations() {
       ON appointments (provider_id, date, start_time)
       WHERE status IN ('pending','approved','confirmed','in_progress')
     `);
-    // Phase 11b: unique constraint on time_slots(provider_id, date, start_time)
-    // required by Drizzle's onConflictDoNothing({target:[...]}) in bulkCreateTimeSlots.
-    await pool.query(`
-      CREATE UNIQUE INDEX IF NOT EXISTS uq_time_slots_provider_date_start
-      ON time_slots (provider_id, date, start_time)
-    `);
+    // time_slots uniqueness is established by the modality-aware migration
+    // below; do not recreate the historical three-column index here.
     // Original slot preservation: set once on first reschedule so history
     // survives multiple reschedules without digging through audit event JSON.
     await pool.query(`ALTER TABLE appointments ADD COLUMN IF NOT EXISTS original_date TEXT`);
@@ -1706,6 +1702,26 @@ async function seedRbacRoles(): Promise<void> {
     console.log("[db] time_slots.version column ready");
   } catch (err: any) {
     console.warn("[db] time_slots.version migration error:", err.message);
+  }
+
+  // Modality-aware provider capacity. NULL represents a shared/general slot.
+  // Replace the historical provider+date+start uniqueness so simultaneous
+  // modality schedules can coexist without losing their provenance.
+  try {
+    await pool.query(`ALTER TABLE time_slots ADD COLUMN IF NOT EXISTS modality TEXT`);
+    await pool.query(`DROP INDEX IF EXISTS uq_time_slots_provider_date_start`);
+    await pool.query(`
+      CREATE UNIQUE INDEX IF NOT EXISTS uq_time_slots_provider_date_start_modality
+      ON time_slots (
+        provider_id, date, start_time,
+        COALESCE(modality, '__shared__')
+      )
+    `);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_time_slots_provider_date_modality
+      ON time_slots(provider_id, date, modality)`);
+    console.log("[db] time_slots.modality schema ready");
+  } catch (err: any) {
+    console.warn("[db] time_slots.modality migration error:", err.message);
   }
 
   // Sprint C19.0 — appointment_consents: immutable cryptographic audit ledger

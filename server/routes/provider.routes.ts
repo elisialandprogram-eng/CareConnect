@@ -86,6 +86,7 @@ import { checkConflict, getBufferSettings, BLOCKING_STATUSES } from "../conflict
 import multer from "multer";
 import { notify } from "../services/notification-dispatcher";
 import { assertNativeCurrency, ServiceCurrencyError } from "../lib/service-currency-guard";
+import { normalizeScheduleModality } from "../lib/visitType";
 
 // ── Slot regeneration helper (Part 1: Instant forward-sync) ──────────────────
 // After a provider saves a schedule template, this runs fire-and-forget to
@@ -125,16 +126,27 @@ async function syncTemplatesToOfficeHours(providerId: string, userId: string): P
 async function regenerateSlotsForDayOfWeek(
   providerId: string,
   dayOfWeek: number,
-  tmpl: { startTime: string; endTime: string; slotDurationMins: number; bufferBeforeMins: number; bufferAfterMins: number },
+  tmpl: {
+    startTime: string;
+    endTime: string;
+    slotDurationMins: number;
+    bufferBeforeMins: number;
+    bufferAfterMins: number;
+    modality?: string | null;
+  },
+  additionalTemplates: Array<{
+    startTime: string;
+    endTime: string;
+    slotDurationMins: number;
+    bufferBeforeMins: number;
+    bufferAfterMins: number;
+    modality?: string | null;
+  }> = [],
 ): Promise<void> {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  // Cadence is duration plus the effective after-buffer. The before-buffer
-  // protects the preceding appointment; including it in cadence skips valid
-  // starts (especially for home visits).
-  const step = tmpl.slotDurationMins + tmpl.bufferAfterMins;
-  const startMins = _toMins(tmpl.startTime);
-  const endMins   = _toMins(tmpl.endTime);
+  const templates = [tmpl, ...additionalTemplates];
+  const modality = normalizeScheduleModality(templates[0]?.modality);
 
   for (let i = 0; i < 30; i++) {
     const d = new Date(today);
@@ -142,10 +154,14 @@ async function regenerateSlotsForDayOfWeek(
     if (d.getDay() !== dayOfWeek) continue;
     const ds = `${d.getFullYear()}-${_pad(d.getMonth() + 1)}-${_pad(d.getDate())}`;
 
-    // Purge existing unbooked/unheld slots for this provider+date
+    // Purge only the modality being regenerated. A modality-specific save must
+    // never delete another modality's availability.
+    const modalityClause = modality
+      ? "AND modality = $3"
+      : "AND modality IS NULL";
     await pool.query(
       `DELETE FROM time_slots
-        WHERE provider_id = $1 AND date = $2 AND is_booked = FALSE
+        WHERE provider_id = $1 AND date = $2 ${modalityClause} AND is_booked = FALSE
           AND id NOT IN (
             SELECT DISTINCT ts.id FROM time_slots ts
             INNER JOIN appointment_slot_holds ash
@@ -155,19 +171,56 @@ async function regenerateSlotsForDayOfWeek(
               AND ash.end_time    = ts.end_time
               AND ash.expires_at  > NOW()
           )`,
-      [providerId, ds],
+      modality ? [providerId, ds, modality] : [providerId, ds],
     );
 
-    // Insert fresh slots
-    for (let t = startMins; t + tmpl.slotDurationMins <= endMins; t += step) {
-      await pool.query(
-        `INSERT INTO time_slots (id, provider_id, date, start_time, end_time, is_booked, is_blocked)
-         VALUES (gen_random_uuid(), $1, $2, $3, $4, FALSE, FALSE)
-         ON CONFLICT DO NOTHING`,
-        [providerId, ds, _fmt(t), _fmt(t + tmpl.slotDurationMins)],
-      );
+    // Insert every window in one regeneration pass. Calling the old helper
+    // once per window would make the last window delete the earlier windows.
+    for (const windowTemplate of templates) {
+      const step = windowTemplate.slotDurationMins + windowTemplate.bufferAfterMins;
+      const startMins = _toMins(windowTemplate.startTime);
+      const endMins = _toMins(windowTemplate.endTime);
+      for (let t = startMins; t + windowTemplate.slotDurationMins <= endMins; t += step) {
+        await pool.query(
+          `INSERT INTO time_slots (id, provider_id, date, start_time, end_time, modality, is_booked, is_blocked)
+           VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, FALSE, FALSE)
+           ON CONFLICT DO NOTHING`,
+          [providerId, ds, _fmt(t), _fmt(t + windowTemplate.slotDurationMins), modality],
+        );
+      }
     }
   }
+}
+
+async function clearUnbookedSlotsForDayOfWeek(
+  providerId: string,
+  dayOfWeek: number,
+  modality: string | null | "all",
+): Promise<void> {
+  const modalityClause = modality === "all"
+    ? ""
+    : modality ? "AND modality = $3" : "AND modality IS NULL";
+  const params = modality === "all"
+    ? [providerId, dayOfWeek]
+    : modality ? [providerId, dayOfWeek, modality] : [providerId, dayOfWeek];
+  await pool.query(
+    `DELETE FROM time_slots
+      WHERE provider_id = $1
+        AND date::date IS NOT NULL
+        AND EXTRACT(DOW FROM date::date) = $2
+        ${modalityClause}
+        AND is_booked = FALSE
+        AND NOT EXISTS (
+          SELECT 1
+            FROM appointment_slot_holds ash
+           WHERE ash.provider_id = time_slots.provider_id
+             AND ash.date = time_slots.date
+             AND ash.start_time = time_slots.start_time
+             AND ash.end_time = time_slots.end_time
+             AND ash.expires_at > NOW()
+        )`,
+    params,
+  );
 }
 
 // ── Multer upload instances ───────────────────────────────────────────────────
@@ -3174,6 +3227,7 @@ export function registerProviderRoutes(app: Express): void {
       if (!provider) return res.status(404).json({ message: "Provider not found" });
 
       const modality = req.query.modality as string | undefined;
+      const normalizedModality = normalizeScheduleModality(modality);
       let sql: string;
       let params: any[];
       if (!modality || modality === "all") {
@@ -3184,7 +3238,7 @@ export function registerProviderRoutes(app: Express): void {
                 WHERE provider_id = $1
                 ORDER BY day_of_week, start_time`;
         params = [provider.id];
-      } else if (modality === "none") {
+      } else if (modality === "none" || normalizedModality == null) {
         sql = `SELECT id, provider_id, day_of_week, start_time, end_time,
                       slot_duration_mins, buffer_before_mins, buffer_after_mins, is_active, modality,
                       created_at, updated_at
@@ -3199,7 +3253,7 @@ export function registerProviderRoutes(app: Express): void {
                  FROM provider_schedule_templates
                 WHERE provider_id = $1 AND modality = $2
                 ORDER BY day_of_week, start_time`;
-        params = [provider.id, modality];
+        params = [provider.id, normalizedModality];
       }
       const { rows } = await pool.query(sql, params);
       return res.json(rows);
@@ -3233,7 +3287,8 @@ export function registerProviderRoutes(app: Express): void {
       });
       const parsed = schema.safeParse(req.body);
       if (!parsed.success) return res.status(400).json({ message: parsed.error.errors[0]?.message });
-      const { dayOfWeek, modality, windows } = parsed.data;
+      const { dayOfWeek, windows } = parsed.data;
+      const modality = normalizeScheduleModality(parsed.data.modality);
 
       const client = await pool.connect();
       try {
@@ -3255,20 +3310,40 @@ export function registerProviderRoutes(app: Express): void {
           const { rows } = await client.query(
             `INSERT INTO provider_schedule_templates
                (id, provider_id, day_of_week, start_time, end_time,
-                slot_duration_mins, buffer_before_mins, buffer_after_mins, is_active, modality)
-             VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, TRUE, $8)
+                 slot_duration_mins, buffer_before_mins, buffer_after_mins, is_active, modality)
+              VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, TRUE, $8)
              RETURNING *`,
             [provider.id, dayOfWeek, w.startTime, w.endTime, w.slotDurationMins, w.bufferBeforeMins, w.bufferAfterMins, modality ?? null],
           );
           inserted.push(rows[0]);
         }
         await client.query("COMMIT");
-        // Fire-and-forget slot regeneration for this day
-        for (const w of windows) {
+        // Fire-and-forget one regeneration pass for this day. Keeping all
+        // windows in one pass prevents a later window from purging earlier
+        // windows in the same modality.
+        if (windows.length > 0) {
+          const [firstWindow, ...remainingWindows] = windows;
           regenerateSlotsForDayOfWeek(provider.id, dayOfWeek, {
-            startTime: w.startTime, endTime: w.endTime,
-            slotDurationMins: w.slotDurationMins, bufferBeforeMins: w.bufferBeforeMins, bufferAfterMins: w.bufferAfterMins,
-          }).catch((e: Error) => console.warn(`[regenerateSlotsForDayOfWeek] batch provider=${provider.id} dow=${dayOfWeek}: ${e.message}`));
+            startTime: firstWindow.startTime,
+            endTime: firstWindow.endTime,
+            slotDurationMins: firstWindow.slotDurationMins,
+            bufferBeforeMins: firstWindow.bufferBeforeMins,
+            bufferAfterMins: firstWindow.bufferAfterMins,
+            modality,
+          }, remainingWindows.map(w => ({
+            startTime: w.startTime,
+            endTime: w.endTime,
+            slotDurationMins: w.slotDurationMins,
+            bufferBeforeMins: w.bufferBeforeMins,
+            bufferAfterMins: w.bufferAfterMins,
+            modality,
+          }))).catch((e: Error) =>
+            console.warn(`[regenerateSlotsForDayOfWeek] batch provider=${provider.id} dow=${dayOfWeek}: ${e.message}`),
+          );
+        } else {
+          clearUnbookedSlotsForDayOfWeek(provider.id, dayOfWeek, modality).catch((e: Error) =>
+            console.warn(`[clearUnbookedSlotsForDayOfWeek] batch provider=${provider.id} dow=${dayOfWeek}: ${e.message}`),
+          );
         }
         // Fire-and-forget: sync null-modality templates → provider_office_hours.weeklySchedule
         // so the fallback slot synthesizer works for dates beyond the 90-day rolling cron window.
@@ -3307,23 +3382,27 @@ export function registerProviderRoutes(app: Express): void {
         slotDurationMins: z.number().int().min(5).max(480).default(30),
         bufferBeforeMins: z.number().int().min(0).max(120).default(0),
         bufferAfterMins: z.number().int().min(0).max(120).default(5),
+        modality: z.string().nullable().optional(),
       });
       const parsed = schema.safeParse(req.body);
       if (!parsed.success) return res.status(400).json({ message: parsed.error.errors[0]?.message });
       const d = parsed.data;
+      const modality = normalizeScheduleModality(d.modality);
 
       // Delete existing templates for this provider+day, then insert fresh
       await pool.query(
-        `DELETE FROM provider_schedule_templates WHERE provider_id = $1 AND day_of_week = $2`,
-        [provider.id, d.dayOfWeek],
+        modality
+          ? `DELETE FROM provider_schedule_templates WHERE provider_id = $1 AND day_of_week = $2 AND modality = $3`
+          : `DELETE FROM provider_schedule_templates WHERE provider_id = $1 AND day_of_week = $2 AND modality IS NULL`,
+        modality ? [provider.id, d.dayOfWeek, modality] : [provider.id, d.dayOfWeek],
       );
       const { rows } = await pool.query(
         `INSERT INTO provider_schedule_templates
            (id, provider_id, day_of_week, start_time, end_time,
-            slot_duration_mins, buffer_before_mins, buffer_after_mins, is_active)
-         VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, TRUE)
+            slot_duration_mins, buffer_before_mins, buffer_after_mins, is_active, modality)
+         VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, TRUE, $8)
          RETURNING *`,
-        [provider.id, d.dayOfWeek, d.startTime, d.endTime, d.slotDurationMins, d.bufferBeforeMins, d.bufferAfterMins],
+        [provider.id, d.dayOfWeek, d.startTime, d.endTime, d.slotDurationMins, d.bufferBeforeMins, d.bufferAfterMins, modality],
       );
 
       // ── Part 1: Instant forward-sync ───────────────────────────────────────
@@ -3336,6 +3415,7 @@ export function registerProviderRoutes(app: Express): void {
         slotDurationMins: d.slotDurationMins,
         bufferBeforeMins: d.bufferBeforeMins,
         bufferAfterMins: d.bufferAfterMins,
+        modality,
       }).catch((e: Error) =>
         console.warn(`[regenerateSlotsForDayOfWeek] provider=${provider.id} dow=${d.dayOfWeek}: ${e.message}`),
       );
@@ -3356,11 +3436,20 @@ export function registerProviderRoutes(app: Express): void {
       const provider = await storage.getProviderByUserId(req.user!.id);
       if (!provider) return res.status(404).json({ message: "Provider not found" });
 
-      const { rowCount } = await pool.query(
+      const existing = await pool.query(
+        `SELECT day_of_week, modality FROM provider_schedule_templates WHERE id = $1 AND provider_id = $2`,
+        [req.params.id, provider.id],
+      );
+      if (!existing.rows[0]) return res.status(404).json({ message: "Template not found" });
+      await pool.query(
         `DELETE FROM provider_schedule_templates WHERE id = $1 AND provider_id = $2`,
         [req.params.id, provider.id],
       );
-      if (!rowCount) return res.status(404).json({ message: "Template not found" });
+      await clearUnbookedSlotsForDayOfWeek(
+        provider.id,
+        Number(existing.rows[0].day_of_week),
+        normalizeScheduleModality(existing.rows[0].modality),
+      );
       return res.status(204).end();
     } catch (err: any) {
       console.error("[DELETE /api/provider/schedule-templates/:id]", err);
@@ -3380,12 +3469,13 @@ export function registerProviderRoutes(app: Express): void {
       const dow = parseInt(req.params.dow, 10);
       if (isNaN(dow) || dow < 0 || dow > 6) return res.status(400).json({ message: "dow must be 0-6" });
       const modality = req.query.modality as string | undefined;
+      const normalizedModality = normalizeScheduleModality(modality);
       if (!modality || modality === "all") {
         await pool.query(
           `DELETE FROM provider_schedule_templates WHERE provider_id = $1 AND day_of_week = $2`,
           [provider.id, dow],
         );
-      } else if (modality === "none") {
+      } else if (modality === "none" || normalizedModality == null) {
         await pool.query(
           `DELETE FROM provider_schedule_templates WHERE provider_id = $1 AND day_of_week = $2 AND modality IS NULL`,
           [provider.id, dow],
@@ -3393,9 +3483,14 @@ export function registerProviderRoutes(app: Express): void {
       } else {
         await pool.query(
           `DELETE FROM provider_schedule_templates WHERE provider_id = $1 AND day_of_week = $2 AND modality = $3`,
-          [provider.id, dow, modality],
+          [provider.id, dow, normalizedModality],
         );
       }
+      await clearUnbookedSlotsForDayOfWeek(
+        provider.id,
+        dow,
+        !modality || modality === "all" ? "all" : normalizedModality,
+      );
       return res.status(204).end();
     } catch (err: any) {
       console.error("[DELETE /api/provider/schedule-templates/day/:dow]", err);
@@ -3422,6 +3517,7 @@ export function registerProviderRoutes(app: Express): void {
 
       const schema = z.object({
         date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+        modality: z.string().nullable().optional(),
         slots: z.array(z.object({
           startTime: z.string().regex(/^\d{2}:\d{2}$/),
           endTime: z.string().regex(/^\d{2}:\d{2}$/),
@@ -3430,6 +3526,7 @@ export function registerProviderRoutes(app: Express): void {
       const parsed = schema.safeParse(req.body);
       if (!parsed.success) return res.status(400).json({ message: parsed.error.errors[0]?.message });
       const { date, slots } = parsed.data;
+      const modality = normalizeScheduleModality(parsed.data.modality);
 
       const client = await pool.connect();
       let deletedCount = 0;
@@ -3442,6 +3539,7 @@ export function registerProviderRoutes(app: Express): void {
           `DELETE FROM time_slots
             WHERE provider_id = $1
               AND date = $2
+              AND ${modality ? "modality = $3" : "modality IS NULL"}
               AND is_booked = FALSE
               AND id NOT IN (
                 SELECT DISTINCT ts.id FROM time_slots ts
@@ -3452,17 +3550,17 @@ export function registerProviderRoutes(app: Express): void {
                   AND ash.end_time    = ts.end_time
                   AND ash.expires_at  > NOW()
               )`,
-          [provider.id, date],
+          modality ? [provider.id, date, modality] : [provider.id, date],
         );
         deletedCount = delRes.rowCount ?? 0;
 
         // Insert new slots with ON CONFLICT DO NOTHING (idempotent on same start/end)
         for (const s of slots) {
           const ins = await client.query(
-            `INSERT INTO time_slots (id, provider_id, date, start_time, end_time, is_booked, is_blocked)
-             VALUES (gen_random_uuid(), $1, $2, $3, $4, FALSE, FALSE)
+            `INSERT INTO time_slots (id, provider_id, date, start_time, end_time, modality, is_booked, is_blocked)
+             VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, FALSE, FALSE)
              ON CONFLICT DO NOTHING`,
-            [provider.id, date, s.startTime, s.endTime],
+            [provider.id, date, s.startTime, s.endTime, modality],
           );
           insertedCount += ins.rowCount ?? 0;
         }

@@ -424,12 +424,11 @@ export async function checkConflict(
 
   // ── 2. Check manual provider blocks ────────────────────────────────────────
   {
-    // Pass ISO strings directly so Postgres compares TIMESTAMP ↔ TIMESTAMP
-    // without any JS-side timezone conversion.  Using new Date() here would
-    // coerce the string into UTC, which drifts by up to ±14 h from whatever
-    // local time the block was entered as (DST risk).
-    const requestStartStr = `${date}T${startTime}:00`;
-    const requestEndStr = `${date}T${endTime}:00`;
+    // Compare the whole effective appointment window, not only the raw
+    // appointment time. This prevents a home/online/service buffer from
+    // landing inside a manual provider block.
+    const requestStartStr = `${date}T${effectiveStartTime}:00`;
+    const requestEndStr = `${date}T${effectiveEndTime}:00`;
 
     const placeholders: any[] = [providerId, requestStartStr, requestEndStr];
     let practitionerClause = "";

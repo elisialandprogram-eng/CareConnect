@@ -1144,7 +1144,7 @@ export function registerAppointmentRoutes(app: Express): void {
       // If another patient already reserved this exact slot we abort with 409.
       let reservedSlotId: string | null = null;
       try {
-        const reserved = await storage.reserveTimeSlot(providerId, date, startTime, endTime);
+        const reserved = await storage.reserveTimeSlot(providerId, date, startTime, endTime, visitType);
         reservedSlotId = reserved.id;
       } catch (slotErr: any) {
         console.warn("Slot reservation failed:", slotErr?.message);
@@ -1428,7 +1428,7 @@ export function registerAppointmentRoutes(app: Express): void {
                 (extraConflict.result.message ? `: ${extraConflict.result.message}` : "."),
               );
             }
-            const reservedExtra = await storage.reserveTimeSlot(providerId, extra.date, extra.startTime, extra.endTime);
+            const reservedExtra = await storage.reserveTimeSlot(providerId, extra.date, extra.startTime, extra.endTime, visitType);
             const childRes = await storage.createAppointmentWithEvent(
               {
                 patientId: userId,

@@ -14,6 +14,7 @@
 
 import { pool } from "../db";
 import { todayInTz } from "../lib/tzUtils";
+import { normalizeScheduleModality } from "../lib/visitType";
 
 const log = (msg: string) => console.log(`[rolling-schedule] ${msg}`);
 const warn = (msg: string) => console.warn(`[rolling-schedule] ${msg}`);
@@ -49,9 +50,10 @@ export async function runRollingSchedule(): Promise<{ generated: number; skipped
       slot_duration_mins: number;
       buffer_before_mins: number;
       buffer_after_mins: number;
+      modality: string | null;
     }>(
       `SELECT provider_id, day_of_week, start_time, end_time,
-              slot_duration_mins, buffer_before_mins, buffer_after_mins
+              slot_duration_mins, buffer_before_mins, buffer_after_mins, modality
          FROM provider_schedule_templates
         WHERE is_active = TRUE
         ORDER BY provider_id, day_of_week, start_time`,
@@ -149,8 +151,9 @@ export async function runRollingSchedule(): Promise<{ generated: number; skipped
         const { rows: existingRows } = await pool.query<{
           start_time: string;
           end_time: string;
+          modality: string | null;
         }>(
-          `SELECT start_time, end_time
+          `SELECT start_time, end_time, modality
              FROM time_slots
             WHERE provider_id = $1 AND date = $2
               AND is_booked = FALSE
@@ -164,7 +167,9 @@ export async function runRollingSchedule(): Promise<{ generated: number; skipped
               )`,
           [providerId, ds],
         );
-        const existingSet = new Set(existingRows.map(r => `${r.start_time}|${r.end_time}`));
+        const existingSet = new Set(existingRows.map(r =>
+          `${r.start_time}|${r.end_time}|${normalizeScheduleModality(r.modality) ?? "shared"}`,
+        ));
 
         // ── Interval Slicer Engine ─────────────────────────────────────────
         // For each template window on this day, generate slots using
@@ -180,16 +185,17 @@ export async function runRollingSchedule(): Promise<{ generated: number; skipped
           for (let t = startMins; t + dur <= endMins; t += step) {
             const startTime = fmt(t);
             const endTime = fmt(t + dur);
-            const key = `${startTime}|${endTime}`;
+            const modality = normalizeScheduleModality(tmpl.modality);
+            const key = `${startTime}|${endTime}|${modality ?? "shared"}`;
             if (existingSet.has(key)) continue; // already present — skip
 
             // Insert with ON CONFLICT DO NOTHING for idempotency
             try {
               await pool.query(
-                `INSERT INTO time_slots (id, provider_id, date, start_time, end_time, is_booked, is_blocked)
-                 VALUES (gen_random_uuid(), $1, $2, $3, $4, FALSE, FALSE)
+                `INSERT INTO time_slots (id, provider_id, date, start_time, end_time, modality, is_booked, is_blocked)
+                 VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, FALSE, FALSE)
                  ON CONFLICT DO NOTHING`,
-                [providerId, ds, startTime, endTime],
+                [providerId, ds, startTime, endTime, modality],
               );
               generated++;
             } catch (insertErr: any) {

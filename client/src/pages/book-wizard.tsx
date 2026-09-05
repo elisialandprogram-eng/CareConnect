@@ -59,6 +59,7 @@ interface ProviderService {
 
 interface TimeSlot {
   id: string; date: string; startTime: string; endTime: string;
+  modality?: "clinic" | "home" | "online" | null;
   /** Authoritative UTC instant from the server — used for accurate past-slot filtering. */
   startAtUtc?: string;
   isBooked?: boolean; isBlocked?: boolean;
@@ -338,12 +339,16 @@ export default function BookWizard() {
       effectivePractitionerId ?? "any",
       selectedService?.id ?? "any",
       visitType,
+      quoteLocation.latitude,
+      quoteLocation.longitude,
     ),
     queryFn: () => {
       const params = new URLSearchParams({ date: selectedDate });
       if (effectivePractitionerId) params.set("practitionerId", effectivePractitionerId);
       if (selectedService?.id) params.set("serviceId", selectedService.id);
       params.set("visitType", visitType);
+      if (Number.isFinite(quoteLocation.latitude)) params.set("patientLatitude", String(quoteLocation.latitude));
+      if (Number.isFinite(quoteLocation.longitude)) params.set("patientLongitude", String(quoteLocation.longitude));
       return fetch(
         `/api/providers/${selectedProvider!.id}/available-slots?${params}`,
       ).then(r => r.json());
@@ -435,6 +440,8 @@ export default function BookWizard() {
         startTime: slot.startTime,
         endTime: slot.endTime,
         visitType,
+        patientLatitude: visitType === "home" ? quoteLocation.latitude ?? null : null,
+        patientLongitude: visitType === "home" ? quoteLocation.longitude ?? null : null,
       });
       return res.json();
     },
@@ -603,6 +610,8 @@ export default function BookWizard() {
         effectivePractitionerId ?? "any",
         selectedService?.id ?? "any",
         nextVisitType,
+          quoteLocation.latitude,
+          quoteLocation.longitude,
       ),
     });
     toast({

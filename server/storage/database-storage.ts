@@ -241,6 +241,7 @@ import {
   type InsertProviderLedger,
 } from "@shared/schema";
 import { db, pool } from "../db";
+import { normalizeScheduleModality } from "../lib/visitType";
 import { countryCurrency, type CountryCode } from "../middleware/country";
 import { nativeCurrencyForCountry } from "../lib/service-currency-guard";
 import { getRates, toUSDSync } from "../services/currency";
@@ -376,7 +377,7 @@ export interface IStorage {
   createTimeSlot(slot: InsertTimeSlot): Promise<TimeSlot>;
   updateTimeSlot(id: string, data: Partial<InsertTimeSlot>): Promise<TimeSlot | undefined>;
   deleteTimeSlot(id: string): Promise<void>;
-  reserveTimeSlot(providerId: string, date: string, startTime: string, endTime: string): Promise<TimeSlot>;
+  reserveTimeSlot(providerId: string, date: string, startTime: string, endTime: string, modality?: string | null): Promise<TimeSlot>;
 
   // Provider Time Off (vacation mode)
   listProviderTimeOff(providerId: string): Promise<ProviderTimeOff[]>;
@@ -2004,11 +2005,49 @@ export class DatabaseStorage extends PackagesMixin implements IStorage {
   }
 
   async getTimeSlotsByProvider(providerId: string, date?: string): Promise<TimeSlot[]> {
-    let query = db.select().from(timeSlots).where(eq(timeSlots.providerId, providerId));
-    if (date) {
-      query = db.select().from(timeSlots).where(and(eq(timeSlots.providerId, providerId), eq(timeSlots.date, date)));
+    const params: any[] = [providerId];
+    const dateClause = date ? ` AND date = $2` : "";
+    if (date) params.push(date);
+    try {
+      const result = await pool.query(
+        `SELECT id, provider_id, date, start_time, end_time, modality, is_booked, is_blocked
+           FROM time_slots
+          WHERE provider_id = $1${dateClause}
+          ORDER BY date, start_time, end_time`,
+        params,
+      );
+      return result.rows.map((row: any) => ({
+        id: row.id,
+        providerId: row.provider_id,
+        date: row.date,
+        startTime: row.start_time,
+        endTime: row.end_time,
+        modality: row.modality ?? null,
+        isBooked: row.is_booked ?? false,
+        isBlocked: row.is_blocked ?? false,
+      })) as TimeSlot[];
+    } catch (err: any) {
+      const pgCode = err?.code ?? err?.cause?.code;
+      if (pgCode !== "42703") throw err;
+      // Keep availability usable during the brief startup-migration window.
+      const legacy = await pool.query(
+        `SELECT id, provider_id, date, start_time, end_time, is_booked, is_blocked
+           FROM time_slots
+          WHERE provider_id = $1${dateClause}
+          ORDER BY date, start_time, end_time`,
+        params,
+      );
+      return legacy.rows.map((row: any) => ({
+        id: row.id,
+        providerId: row.provider_id,
+        date: row.date,
+        startTime: row.start_time,
+        endTime: row.end_time,
+        modality: null,
+        isBooked: row.is_booked ?? false,
+        isBlocked: row.is_blocked ?? false,
+      })) as TimeSlot[];
     }
-    return query;
   }
 
   async createTimeSlot(slot: InsertTimeSlot): Promise<TimeSlot> {
@@ -2585,9 +2624,10 @@ export class DatabaseStorage extends PackagesMixin implements IStorage {
     return db
       .insert(timeSlots)
       .values(slots)
-      .onConflictDoNothing({
-        target: [timeSlots.providerId, timeSlots.date, timeSlots.startTime],
-      })
+      // Modality-aware uniqueness is an expression index
+      // (COALESCE(modality, '__shared__')), so a column-targeted conflict
+      // clause would no longer match the database index.
+      .onConflictDoNothing()
       .returning();
   }
 
@@ -3642,7 +3682,14 @@ export class DatabaseStorage extends PackagesMixin implements IStorage {
   //   L3 — version-guarded UPDATE: if another session already incremented `version` between
   //        our SELECT and our UPDATE, the WHERE clause returns 0 rows → we throw and the
   //        appointment route catches it as a 409 Conflict.
-  async reserveTimeSlot(providerId: string, date: string, startTime: string, endTime: string): Promise<TimeSlot> {
+  async reserveTimeSlot(
+    providerId: string,
+    date: string,
+    startTime: string,
+    endTime: string,
+    requestedModality?: string | null,
+  ): Promise<TimeSlot> {
+    const modality = normalizeScheduleModality(requestedModality);
     return await db.transaction(async (tx) => {
       // L1: Advisory lock — serialises concurrent tx for the same provider/date/slot.
       const lockKey = `${providerId}|${date}|${startTime}`;
@@ -3658,17 +3705,20 @@ export class DatabaseStorage extends PackagesMixin implements IStorage {
                end_time             AS "endTime",
                is_booked            AS "isBooked",
                is_blocked           AS "isBlocked",
+               modality,
                COALESCE(version, 1) AS version
         FROM time_slots
         WHERE provider_id = ${providerId}
           AND date        = ${date}
           AND start_time  = ${startTime}
+          AND (modality = ${modality} OR modality IS NULL)
+        ORDER BY CASE WHEN modality = ${modality} THEN 0 ELSE 1 END
         FOR UPDATE
         LIMIT 1
       `);
       const rows = sel.rows as Array<{
         id: string; providerId: string; date: string; startTime: string; endTime: string;
-        isBooked: boolean; isBlocked: boolean; version: number;
+        modality: string | null; isBooked: boolean; isBlocked: boolean; version: number;
       }>;
 
       if (rows.length > 0) {
@@ -3710,7 +3760,8 @@ export class DatabaseStorage extends PackagesMixin implements IStorage {
             start_time  AS "startTime",
             end_time    AS "endTime",
             is_booked   AS "isBooked",
-            is_blocked  AS "isBlocked"
+            is_blocked  AS "isBlocked",
+            modality
         `);
         if ((upd.rows as any[]).length === 0) {
           throw new Error("This time slot was just reserved by another patient. Please choose a different time.");
@@ -3722,9 +3773,9 @@ export class DatabaseStorage extends PackagesMixin implements IStorage {
       try {
         const ins = await tx.execute(sql`
           INSERT INTO time_slots
-            (provider_id, date, start_time, end_time, is_booked, is_blocked, version)
+            (provider_id, date, start_time, end_time, modality, is_booked, is_blocked, version)
           VALUES
-            (${providerId}, ${date}, ${startTime}, ${endTime}, true, false, 1)
+            (${providerId}, ${date}, ${startTime}, ${endTime}, ${modality}, true, false, 1)
           RETURNING
             id,
             provider_id AS "providerId",
@@ -3732,7 +3783,8 @@ export class DatabaseStorage extends PackagesMixin implements IStorage {
             start_time  AS "startTime",
             end_time    AS "endTime",
             is_booked   AS "isBooked",
-            is_blocked  AS "isBlocked"
+            is_blocked  AS "isBlocked",
+            modality
         `);
         return (ins.rows as any[])[0] as TimeSlot;
       } catch (err: any) {

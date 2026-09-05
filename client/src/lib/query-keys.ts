@@ -142,6 +142,8 @@ export const QK = {
     practitionerId?: string,
     serviceId?: string,
     visitType?: string,
+    latitude?: number,
+    longitude?: number,
   ) =>
     [
       "/api/providers",
@@ -151,6 +153,8 @@ export const QK = {
       practitionerId ?? "any",
       serviceId ?? "any",
       visitType ?? "clinic",
+      latitude ?? null,
+      longitude ?? null,
     ],
   provider: (id: string) => ["/api/providers", id] as const,
   providerReviews: (id: string) => ["/api/providers", id, "reviews"] as const,

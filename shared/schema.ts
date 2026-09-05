@@ -500,6 +500,10 @@ export const timeSlots = pgTable("time_slots", {
   date: text("date").notNull(),
   startTime: text("start_time").notNull(),
   endTime: text("end_time").notNull(),
+  // null = shared/general provider capacity; otherwise modality-specific.
+  // This column is added by an idempotent startup migration and is read via
+  // raw SQL in the availability path for backward compatibility during boot.
+  modality: text("modality"),
   isBooked: boolean("is_booked").default(false),
   isBlocked: boolean("is_blocked").default(false),
 }, (t) => [

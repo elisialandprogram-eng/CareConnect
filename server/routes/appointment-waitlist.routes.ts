@@ -32,6 +32,8 @@ import {
   getBufferSettings,
   BLOCKING_STATUSES,
 } from "../conflictEngine";
+import { supportsVisitType } from "../lib/visitType";
+import { checkHomeVisitCoverage, isValidCoordinates } from "../services/location.service";
 import { dispatchNotification, notify } from "../services/notification-dispatcher";
 import { trackEvent } from "../services/analyticsTracker";
 import { broadcastSlotMutation } from "../lib/slotEvents";
@@ -187,9 +189,17 @@ export function registerAppointmentWaitlistRoutes(app: Express): void {
         startTime: z.string().regex(/^\d{2}:\d{2}$/),
         endTime: z.string().regex(/^\d{2}:\d{2}$/),
         visitType: z.enum(["clinic", "home", "online"]).default("clinic"),
+        patientLatitude: z.number().finite().optional().nullable(),
+        patientLongitude: z.number().finite().optional().nullable(),
       });
       const parsed = schema.safeParse(req.body);
       if (!parsed.success) return res.status(400).json({ message: parsed.error.errors[0]?.message });
+      if (
+        parsed.data.visitType === "home" &&
+        (!isValidCoordinates(parsed.data.patientLatitude ?? NaN, parsed.data.patientLongitude ?? NaN))
+      ) {
+        return res.status(400).json({ message: "A valid home-visit address is required before reserving this slot." });
+      }
 
       // Load service-level buffer settings so the hold respects service padding.
       let holdSvcBufBefore = 0;
@@ -197,6 +207,31 @@ export function registerAppointmentWaitlistRoutes(app: Express): void {
       if (parsed.data.serviceId) {
         try {
           const svc = await storage.getService(parsed.data.serviceId);
+          if (!svc || svc.providerId !== parsed.data.providerId) {
+            return res.status(400).json({ message: "Selected service does not belong to this provider." });
+          }
+          if (!supportsVisitType((svc as any).locationMode, parsed.data.visitType)) {
+            return res.status(400).json({ message: "This service is not available for the selected visit type." });
+          }
+          if (parsed.data.visitType === "home") {
+            const provider = await storage.getProvider(parsed.data.providerId);
+            const radiusKm =
+              parseInt(String((provider as any)?.maxTravelDistanceKm ?? "0")) ||
+              parseInt(String((provider as any)?.serviceRadiusKm ?? "0")) ||
+              0;
+            const providerLat = Number((provider as any)?.latitude);
+            const providerLng = Number((provider as any)?.longitude);
+            if (radiusKm > 0 && isValidCoordinates(providerLat, providerLng)) {
+              const coverage = checkHomeVisitCoverage(
+                { latitude: parsed.data.patientLatitude!, longitude: parsed.data.patientLongitude! },
+                { latitude: providerLat, longitude: providerLng },
+                radiusKm,
+              );
+              if (!coverage.isEligible) {
+                return res.status(400).json({ message: "This address is outside the provider's home visit service area." });
+              }
+            }
+          }
           holdSvcBufBefore = svc?.bufferBefore ?? 0;
           holdSvcBufAfter  = svc?.bufferAfter  ?? 0;
         } catch { /* non-fatal; fall back to 0 */ }
@@ -213,6 +248,8 @@ export function registerAppointmentWaitlistRoutes(app: Express): void {
         startTime: parsed.data.startTime,
         endTime: parsed.data.endTime,
         visitType: parsed.data.visitType,
+        patientLatitude: parsed.data.patientLatitude ?? null,
+        patientLongitude: parsed.data.patientLongitude ?? null,
         serviceBufferBefore: holdSvcBufBefore,
         serviceBufferAfter:  holdSvcBufAfter,
         // If this patient already has an active hold on this exact slot (e.g.

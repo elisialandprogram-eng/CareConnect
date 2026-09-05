@@ -77,9 +77,11 @@ import {
 } from "./shared/helpers";
 import {
   effectiveWindow,
+  findTravelDistanceConflict,
   getBufferSettings,
   getProviderBookedAppointments,
 } from "../conflictEngine";
+import { normalizeVisitType, supportsVisitType } from "../lib/visitType";
 import multer from "multer";
 import { notify } from "../services/notification-dispatcher";
 
@@ -115,8 +117,10 @@ export function registerProviderAvailabilityRoutes(app: Express): void {
   // with the provider's schedule so only mutually-available slots are shown.
   app.get("/api/providers/:id/available-slots", async (req: Request, res: Response) => {
     try {
-      const { date, serviceId, visitType: qVisitType, practitionerId: qPractitionerId } = req.query as {
+      const { date, serviceId, visitType: qVisitType, practitionerId: qPractitionerId,
+        patientLatitude: qPatientLatitude, patientLongitude: qPatientLongitude } = req.query as {
         date?: string; serviceId?: string; visitType?: string; practitionerId?: string;
+        patientLatitude?: string; patientLongitude?: string;
       };
       if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
         return res.status(400).json({ message: "date query param required (YYYY-MM-DD)" });
@@ -229,7 +233,10 @@ export function registerProviderAvailabilityRoutes(app: Express): void {
 
       // Per-service availability hours: { clinic?, home?, online? } each { start, end }
       // Fetched once and shared by both the published-slots and synthetic paths.
-      const visitTypeKey = qVisitType ?? "clinic";
+      const visitTypeKey = normalizeVisitType(qVisitType);
+      if (service && !supportsVisitType((service as any).locationMode, visitTypeKey)) {
+        return res.json([]);
+      }
       const svcWindow = (service?.availabilityHours as any)?.[visitTypeKey] as
         | { start?: string; end?: string }
         | null
@@ -266,6 +273,24 @@ export function registerProviderAvailabilityRoutes(app: Express): void {
           svcBufBefore,
           svcBufAfter,
         );
+
+      const patientLatitude = qPatientLatitude == null ? null : Number(qPatientLatitude);
+      const patientLongitude = qPatientLongitude == null ? null : Number(qPatientLongitude);
+      const hasPatientCoordinates =
+        Number.isFinite(patientLatitude) && Number.isFinite(patientLongitude);
+      const isBlockedByTravel = (slotStartMins: number): boolean => {
+        if (!hasPatientCoordinates) return false;
+        return !!findTravelDistanceConflict(
+          {
+            startTime: fmt(slotStartMins),
+            visitType: visitTypeKey,
+            patientLatitude,
+            patientLongitude,
+          },
+          bookedAppointments,
+          bufSettings.travelRadiusKm,
+        );
+      };
 
       // Returns true if [slotStartMins, slotEndMins] overlaps any booking's
       // effective window. This is intentionally the same calculation used by
@@ -323,8 +348,9 @@ export function registerProviderAvailabilityRoutes(app: Express): void {
       // Uses localToUTC to convert slot wall-clock times to UTC for correct block comparison —
       // blocks are stored as TIMESTAMPTZ (UTC), so we must compare apples to apples.
       const isBlockedByBlock = (slotStartMins: number, slotEndMins: number): boolean => {
-        const slotStartMs = localToUTC(date, fmt(slotStartMins), providerTz).getTime();
-        const slotEndMs   = localToUTC(date, fmt(slotEndMins), providerTz).getTime();
+         const requested = requestedWindow(slotStartMins, slotEndMins);
+         const slotStartMs = localToUTC(date, fmt(Math.max(0, requested.effectiveStart)), providerTz).getTime();
+         const slotEndMs   = localToUTC(date, fmt(Math.min(24 * 60 - 1, requested.effectiveEnd)), providerTz).getTime();
         if (!Number.isFinite(slotStartMs) || !Number.isFinite(slotEndMs)) return false;
         for (const block of (provBlocksRes as any).rows) {
           const bStart = new Date(block.start_datetime).getTime();
@@ -334,19 +360,54 @@ export function registerProviderAvailabilityRoutes(app: Express): void {
         return false;
       };
 
+      // Published slots must remain inside the full effective weekly
+      // template window, not just inside the service's hours.
+      let scheduleWindows: { start: string; end: string }[] = [];
+      try {
+        const scheduleRows = await pool.query<{ start_time: string; end_time: string }>(
+          `SELECT start_time, end_time
+             FROM provider_schedule_templates
+            WHERE provider_id = $1
+              AND day_of_week = $2
+              AND is_active = TRUE
+              AND (modality IS NULL OR modality = $3)
+            ORDER BY start_time`,
+          [req.params.id, new Date(`${date}T00:00:00Z`).getUTCDay(), visitTypeKey],
+        );
+        scheduleWindows = scheduleRows.rows.map(row => ({ start: row.start_time, end: row.end_time }));
+      } catch (scheduleErr: any) {
+        const pgCode = scheduleErr?.code ?? scheduleErr?.cause?.code;
+        if (pgCode !== "42703") throw scheduleErr;
+      }
+
       // If the provider has explicitly published slots for this date, use them.
       // All checks — booking overlap, provider blocks, and service window — now apply.
+      const relevantSlots = slots.filter(s => {
+        const modality = (s as any).modality;
+        return modality == null || normalizeVisitType(modality) === visitTypeKey;
+      });
       if (slots.length > 0) {
         const noticeMs = minNotice * 60 * 1000;
         const svcStartMins = svcWindow?.start ? toMins(svcWindow.start) : null;
         const svcEndMins   = svcWindow?.end   ? toMins(svcWindow.end)   : null;
-        const result = slots
+        const result = relevantSlots
           .filter(s => {
             // Convert provider wall-clock slot time → UTC for accurate past-slot check
             const slotUtcMs = localToUTC(s.date, s.startTime, providerTz).getTime();
             if (!Number.isFinite(slotUtcMs) || slotUtcMs <= Date.now() + noticeMs) return false;
             if (svcStartMins !== null && toMins(s.startTime) < svcStartMins) return false;
             if (svcEndMins   !== null && toMins(s.endTime)   > svcEndMins)   return false;
+            const effective = requestedWindow(toMins(s.startTime), toMins(s.endTime));
+            if (svcStartMins !== null && effective.effectiveStart < svcStartMins) return false;
+            if (svcEndMins !== null && effective.effectiveEnd > svcEndMins) return false;
+            if (
+              scheduleWindows.length > 0 &&
+              !scheduleWindows.some(window =>
+                effective.effectiveStart >= toMins(window.start) &&
+                effective.effectiveEnd <= toMins(window.end),
+              )
+            ) return false;
+            if (isBlockedByTravel(toMins(s.startTime))) return false;
             return true;
           })
           .map(s => {
@@ -387,22 +448,32 @@ export function registerProviderAvailabilityRoutes(app: Express): void {
         return res.json(result.filter(s => s.status === "AVAILABLE" && !s.isBlocked));
       }
 
-      // ── Fallback: synthesize slots from office hours ────────────────────────
-      const officeHours = await storage.getProviderOfficeHours(provider.userId);
-      if (!officeHours?.weeklySchedule) return res.json([]);
+      // ── Fallback: synthesize slots from the selected modality's templates ──
+      // Modality-specific templates must remain usable beyond the rolling-slot
+      // horizon. Shared/null-modality templates are still valid for every mode.
+      const templateDow = new Date(`${date}T00:00:00Z`).getUTCDay();
+      let windowsToProcess: { start: string; end: string }[] = [];
+      if (scheduleWindows.length > 0) {
+        windowsToProcess = scheduleWindows;
+      } else {
+        const officeHours = await storage.getProviderOfficeHours(provider.userId);
+        if (!officeHours?.weeklySchedule) return res.json([]);
 
-      // Provider's weekly schedule always controls which days are open.
-      let weekly: Record<string, { start: string; end: string; enabled: boolean }> = {};
-      try {
-        weekly = JSON.parse(officeHours.weeklySchedule);
-      } catch { return res.json([]); }
+        let weekly: Record<string, { start: string; end: string; enabled: boolean; windows?: { start: string; end: string }[] }> = {};
+        try {
+          weekly = JSON.parse(officeHours.weeklySchedule);
+        } catch { return res.json([]); }
 
-      const dayKey = (() => {
-        const dt = new Date(dy, (dm || 1) - 1, dd || 1);
-        return ["sun", "mon", "tue", "wed", "thu", "fri", "sat"][dt.getDay()];
-      })();
-      const day = weekly[dayKey];
-      if (!day?.enabled || !day.start || !day.end) return res.json([]);
+        const dayKey = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"][templateDow];
+        const day = weekly[dayKey];
+        if (!day?.enabled || !day.start || !day.end) return res.json([]);
+
+        const dayWindows = day.windows;
+        windowsToProcess =
+          Array.isArray(dayWindows) && dayWindows.length > 0
+            ? dayWindows
+            : [{ start: day.start, end: day.end }];
+      }
 
       // Slot interval: service.timeSlotLength > service.duration > 30 min default.
       const SLOT_MIN = service?.timeSlotLength
@@ -418,15 +489,6 @@ export function registerProviderAvailabilityRoutes(app: Express): void {
       // svcBufBefore/svcBufAfter are hoisted above so both paths share them.
       const SLOT_STEP = SLOT_MIN + effBufAfter;
 
-      // Support multiple time windows per day (break gaps between windows are skipped).
-      // Falls back to single start→end when no windows array is present.
-      const dayWindows: { start: string; end: string }[] = (day as any).windows;
-      // Use let so we can intersect with practitioner schedule below.
-      let windowsToProcess: { start: string; end: string }[] =
-        Array.isArray(dayWindows) && dayWindows.length > 0
-          ? dayWindows
-          : [{ start: day.start, end: day.end }];
-
       // ── Practitioner schedule intersection ──────────────────────────────────
       // When a practitionerId is provided and they have an active schedule,
       // restrict windows to the intersection of provider AND practitioner hours.
@@ -436,7 +498,8 @@ export function registerProviderAvailabilityRoutes(app: Express): void {
           const practSched = await storage.getPractitionerSchedule(qPractitionerId);
           if (practSched?.weeklySchedule) {
             const practWeekly = practSched.weeklySchedule as Record<string, any>;
-            const practDay = practWeekly[dayKey];
+             const practDayKey = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"][templateDow];
+             const practDay = practWeekly[practDayKey];
             if (!practDay?.enabled) {
               // Practitioner not working this day.
               return res.json([]);
@@ -508,6 +571,11 @@ export function registerProviderAvailabilityRoutes(app: Express): void {
 
         let t = startMins;
         while (t + SLOT_MIN <= endMins) {
+          // The whole effective window must fit inside the provider window.
+          if (t - effBufBefore < provStartMins || t + SLOT_MIN + effBufAfter > provEndMins) {
+            t += SLOT_STEP;
+            continue;
+          }
           const startTime = fmt(t);
           // Convert provider wall-clock time → UTC for accurate past-slot filter
           const slotUtcMs = localToUTC(date, startTime, providerTz).getTime();
@@ -528,7 +596,11 @@ export function registerProviderAvailabilityRoutes(app: Express): void {
                 // Emit this slot before snapping
                 const optimal = (t >= 540 && t < 660) || (t >= 840 && t < 960);
                 const holdKey = `${startTime}|${fmt(t + SLOT_MIN)}`;
-                const isBooked = isBookedByAppt(t, t + SLOT_MIN);
+           const isBooked = isBookedByAppt(t, t + SLOT_MIN);
+           if (isBlockedByTravel(t)) {
+             t += SLOT_STEP;
+             continue;
+           }
                 const status: "AVAILABLE" | "HELD" | "BOOKED" =
                   isBooked ? "BOOKED"
                     : (holdMap.has(holdKey) || isHeldByHold(t, t + SLOT_MIN)) ? "HELD"
@@ -555,7 +627,11 @@ export function registerProviderAvailabilityRoutes(app: Express): void {
           // 09:00-11:00 and 14:00-16:00 are the optimal booking windows
           const optimal = (t >= 540 && t < 660) || (t >= 840 && t < 960);
           const holdKey = `${startTime}|${fmt(t + SLOT_MIN)}`;
-          const isBooked = isBookedByAppt(t, t + SLOT_MIN);
+           const isBooked = isBookedByAppt(t, t + SLOT_MIN);
+           if (isBlockedByTravel(t)) {
+             t += SLOT_STEP;
+             continue;
+           }
           const status: "AVAILABLE" | "HELD" | "BOOKED" =
              isBooked ? "BOOKED"
                : (holdMap.has(holdKey) || isHeldByHold(t, t + SLOT_MIN)) ? "HELD"
