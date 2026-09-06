@@ -194,13 +194,6 @@ export function registerAppointmentWaitlistRoutes(app: Express): void {
       });
       const parsed = schema.safeParse(req.body);
       if (!parsed.success) return res.status(400).json({ message: parsed.error.errors[0]?.message });
-      if (
-        parsed.data.visitType === "home" &&
-        (!isValidCoordinates(parsed.data.patientLatitude ?? NaN, parsed.data.patientLongitude ?? NaN))
-      ) {
-        return res.status(400).json({ message: "A valid home-visit address is required before reserving this slot." });
-      }
-
       // Load service-level buffer settings so the hold respects service padding.
       let holdSvcBufBefore = 0;
       let holdSvcBufAfter = 0;
@@ -221,7 +214,11 @@ export function registerAppointmentWaitlistRoutes(app: Express): void {
               0;
             const providerLat = Number((provider as any)?.latitude);
             const providerLng = Number((provider as any)?.longitude);
-            if (radiusKm > 0 && isValidCoordinates(providerLat, providerLng)) {
+            if (
+              radiusKm > 0 &&
+              isValidCoordinates(providerLat, providerLng) &&
+              isValidCoordinates(parsed.data.patientLatitude ?? NaN, parsed.data.patientLongitude ?? NaN)
+            ) {
               const coverage = checkHomeVisitCoverage(
                 { latitude: parsed.data.patientLatitude!, longitude: parsed.data.patientLongitude! },
                 { latitude: providerLat, longitude: providerLng },
@@ -240,6 +237,10 @@ export function registerAppointmentWaitlistRoutes(app: Express): void {
       // Part 1 (M-07): Validate against all conflict sources BEFORE creating hold.
       // This prevents double-booking before payment — we check appointments,
       // manual blocks, and any existing active slot holds simultaneously.
+      // Home coordinates are optional at this stage because the hold is created
+      // before BookingCanvas collects the patient's address. Final appointment
+      // creation still requires the home address and performs coverage/travel
+      // validation with the submitted coordinates.
       // Now also passes service-level buffers so holds cannot land inside padding windows.
       const preConflict = await checkConflict({
         providerId: parsed.data.providerId,
