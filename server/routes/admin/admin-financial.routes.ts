@@ -580,7 +580,15 @@ export function registerAdminFinancialRoutes(app: Express): void {
                ru.email AS reviewed_by_email,
                COALESCE(pr.gross_amount_usd, pr.amount) AS gross_settlement_amount_usd,
                COALESCE(pr.tax_pass_through_amount_usd, 0) AS tax_pass_through_settlement_usd,
-               COALESCE(pr.cash_platform_fee_deduction_usd, 0) AS cash_platform_fee_settlement_usd,
+                GREATEST(
+                  0,
+                  COALESCE(pr.cash_platform_fee_deduction_usd, 0)
+                  - COALESCE(pr.cash_platform_tax_deduction_usd, 0)
+                  - COALESCE(pr.cash_commission_deduction_usd, 0)
+                ) AS cash_platform_fee_settlement_usd,
+                COALESCE(pr.cash_platform_tax_deduction_usd, 0) AS cash_platform_tax_settlement_usd,
+                COALESCE(pr.cash_commission_deduction_usd, 0) AS cash_commission_settlement_usd,
+                COALESCE(pr.cash_platform_fee_deduction_usd, 0) AS cash_total_deduction_usd,
                COALESCE(pr.settlement_amount_usd, pr.amount) AS final_settlement_amount_usd
         FROM payout_requests pr
         JOIN providers p ON p.id = pr.provider_id
@@ -1508,8 +1516,11 @@ export function registerAdminFinancialRoutes(app: Express): void {
       let where = "WHERE 1=1";
       if (countryFilter) { params.push(countryFilter); where += ` AND p.country_code = $${params.length}`; }
       const result = await pool.query(
-        `SELECT pr.id, pr.amount, pr.currency, pr.status, pr.created_at, pr.paid_at,
-                pr.method, pr.payment_reference, pr.notes,
+         `SELECT pr.id, pr.amount, pr.currency, pr.status, pr.created_at, pr.paid_at,
+                 pr.method, pr.payment_reference, pr.notes,
+                 COALESCE(pr.cash_platform_fee_deduction_usd, 0) AS cash_total_deduction_usd,
+                 COALESCE(pr.cash_platform_tax_deduction_usd, 0) AS cash_platform_tax_deduction_usd,
+                 COALESCE(pr.cash_commission_deduction_usd, 0) AS cash_commission_deduction_usd,
                 u.email AS provider_email, u.first_name, u.last_name,
                 p.provider_type, p.country_code
          FROM payout_requests pr
@@ -1521,7 +1532,8 @@ export function registerAdminFinancialRoutes(app: Express): void {
       const dataRows = toCsv(result.rows, [
         "id","provider_email","first_name","last_name","provider_type",
         "amount","currency","status","method","payment_reference",
-        "notes","country_code","created_at","paid_at",
+         "notes","cash_total_deduction_usd","cash_platform_tax_deduction_usd",
+         "cash_commission_deduction_usd","country_code","created_at","paid_at",
       ]);
       res.setHeader("Content-Type", "text/csv");
       res.setHeader("Content-Disposition", "attachment; filename=payouts.csv");

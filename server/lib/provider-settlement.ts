@@ -122,6 +122,9 @@ export interface CashFeeApplication {
   totalAppliedUsd: number;
   earningsCount: number;
   taxPassThroughUsd: number;
+  platformFeeUsd: number;
+  platformTaxUsd: number;
+  commissionUsd: number;
   grossEligibleUsd: number;
   earningIds: string[];
 }
@@ -339,6 +342,9 @@ export async function applyPendingCashFeeDeductions(
       totalAppliedUsd: 0,
       earningsCount: 0,
       taxPassThroughUsd: 0,
+      platformFeeUsd: 0,
+      platformTaxUsd: 0,
+      commissionUsd: 0,
       grossEligibleUsd: 0,
       earningIds: [],
     };
@@ -358,15 +364,18 @@ export async function applyPendingCashFeeDeductions(
 
   let totalAppliedUsd = 0;
   let taxPassThroughUsd = 0;
+  let platformFeeUsd = 0;
+  let platformTaxUsd = 0;
+  let commissionUsd = 0;
   let grossEligibleUsd = 0;
   const appliedEarningIds: string[] = [];
 
   for (const row of pending.rows) {
-    const platformFeeUsd = Math.max(0, Number(row.platform_fee_usd || 0));
-    const platformTaxUsd = Math.max(0, Number(row.platform_tax_usd || 0));
-    const commissionUsd = Math.max(0, Number(row.commission_usd || 0));
+    const rowPlatformFeeUsd = Math.max(0, Number(row.platform_fee_usd || 0));
+    const rowPlatformTaxUsd = Math.max(0, Number(row.platform_tax_usd || 0));
+    const rowCommissionUsd = Math.max(0, Number(row.commission_usd || 0));
     const previouslyAppliedFeeUsd = Math.min(
-      platformFeeUsd,
+      rowPlatformFeeUsd,
       Math.max(0, Number(row.fee_applied_usd || 0)),
     );
 
@@ -389,11 +398,11 @@ export async function applyPendingCashFeeDeductions(
 
     const outstandingPlatformFeeUsd = platformLedgerAppliedUsd > 0.005
       ? 0
-      : Math.max(0, platformFeeUsd - previouslyAppliedFeeUsd);
-    const outstandingPlatformTaxUsd = platformLedgerAppliedUsd > 0.005 ? 0 : platformTaxUsd;
+      : Math.max(0, rowPlatformFeeUsd - previouslyAppliedFeeUsd);
+    const outstandingPlatformTaxUsd = platformLedgerAppliedUsd > 0.005 ? 0 : rowPlatformTaxUsd;
     const outstandingCommissionUsd = Math.max(
       0,
-      commissionUsd - commissionLedgerAppliedUsd,
+      rowCommissionUsd - commissionLedgerAppliedUsd,
     );
     const platformObligationUsd = round2(outstandingPlatformFeeUsd + outstandingPlatformTaxUsd);
     const commissionDebitUsd = round2(outstandingCommissionUsd);
@@ -451,7 +460,7 @@ export async function applyPendingCashFeeDeductions(
 
     // Keep the legacy fee-applied field component-based for admin reporting,
     // while the wallet-debit field is the authoritative total idempotency mark.
-    const totalObligationUsd = round2(platformFeeUsd + platformTaxUsd + commissionUsd);
+    const totalObligationUsd = round2(rowPlatformFeeUsd + rowPlatformTaxUsd + rowCommissionUsd);
     await client.query(`
       UPDATE provider_earnings
       SET cash_platform_fee_applied_usd = GREATEST(
@@ -468,6 +477,9 @@ export async function applyPendingCashFeeDeductions(
 
     if (appliedUsd > 0) {
       totalAppliedUsd = round2(totalAppliedUsd + appliedUsd);
+      platformFeeUsd = round2(platformFeeUsd + outstandingPlatformFeeUsd);
+      platformTaxUsd = round2(platformTaxUsd + outstandingPlatformTaxUsd);
+      commissionUsd = round2(commissionUsd + outstandingCommissionUsd);
       appliedEarningIds.push(row.id);
     }
     taxPassThroughUsd = round2(taxPassThroughUsd + Number(row.tax_pass_through_usd || 0));
@@ -478,6 +490,9 @@ export async function applyPendingCashFeeDeductions(
     totalAppliedUsd,
     earningsCount: appliedEarningIds.length,
     taxPassThroughUsd,
+    platformFeeUsd,
+    platformTaxUsd,
+    commissionUsd,
     grossEligibleUsd,
     earningIds: appliedEarningIds,
   };

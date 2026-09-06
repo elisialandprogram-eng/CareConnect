@@ -1,4 +1,5 @@
 import type { PoolClient } from "pg";
+import { applyPendingCashFeeDeductions, linkCashFeeDeductionsToPayout } from "./provider-settlement";
 
 export type PayoutLifecycleStatus = "approved" | "paid" | "rejected" | "cancelled" | "on_hold";
 
@@ -39,6 +40,44 @@ export async function transitionProviderPayout(
 
   const previousStatus = String(payout.status);
   const amountUsd = Number(payout.amount || 0);
+
+  // Cash bookings are paid directly to the provider, so their platform fee,
+  // platform tax, and commission must be recovered from the provider wallet
+  // rather than included in the withdrawable payout. Normally this happens
+  // when the cash earning is created; this reconciliation closes legacy and
+  // late-receipt gaps before any payout lifecycle transition can release or
+  // pay wallet funds.
+  const cashFeeApplication = await applyPendingCashFeeDeductions(
+    client,
+    payout.provider_id,
+    actorId,
+  );
+  if (cashFeeApplication.earningIds.length > 0) {
+    await linkCashFeeDeductionsToPayout(
+      client,
+      cashFeeApplication.earningIds,
+      payoutRequestId,
+    );
+    await client.query(`
+      UPDATE payout_requests
+      SET gross_amount_usd = COALESCE(gross_amount_usd, amount) + $1::numeric,
+          cash_platform_fee_deduction_usd =
+            COALESCE(cash_platform_fee_deduction_usd, 0) + $1::numeric,
+          cash_platform_tax_deduction_usd =
+            COALESCE(cash_platform_tax_deduction_usd, 0) + $2::numeric,
+          cash_commission_deduction_usd =
+            COALESCE(cash_commission_deduction_usd, 0) + $3::numeric,
+          settlement_amount_usd = amount,
+          updated_at = NOW()
+      WHERE id = $4
+    `, [
+      cashFeeApplication.totalAppliedUsd,
+      cashFeeApplication.platformTaxUsd,
+      cashFeeApplication.commissionUsd,
+      payoutRequestId,
+    ]);
+  }
+
   if (previousStatus === nextStatus) {
     return { row: payout, changed: false, previousStatus, amountUsd };
   }

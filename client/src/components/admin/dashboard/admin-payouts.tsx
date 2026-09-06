@@ -265,11 +265,14 @@ export function AdminPayoutsPanel() {
                         <p className="text-xs text-muted-foreground mb-2">
                           This is a wallet withdrawal request. The amounts below are the immutable settlement snapshot used to fund the request; it is not limited to one appointment.
                         </p>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 text-xs">
+                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 text-xs">
                           <span className="rounded bg-slate-50 text-slate-800 px-2 py-1">Provider service earnings: <strong>{fmtCurrency(r.service_earnings_usd ?? 0)}</strong></span>
                           <span className="rounded bg-muted px-2 py-1">Gross provider payout: <strong>{fmtCurrency(r.gross_settlement_amount_usd ?? r.amount)}</strong></span>
                           <span className="rounded bg-emerald-50 text-emerald-800 px-2 py-1">Patient tax passed through: <strong>{fmtCurrency(r.tax_pass_through_settlement_usd ?? 0)}</strong></span>
-                          <span className="rounded bg-amber-50 text-amber-800 px-2 py-1">Offline platform fee: <strong>{fmtCurrency(r.cash_platform_fee_settlement_usd ?? 0)}</strong></span>
+                           <span className="rounded bg-amber-50 text-amber-800 px-2 py-1">Cash platform fee: <strong>{fmtCurrency(r.cash_platform_fee_settlement_usd ?? 0)}</strong></span>
+                           <span className="rounded bg-orange-50 text-orange-800 px-2 py-1">Cash platform tax: <strong>{fmtCurrency(r.cash_platform_tax_settlement_usd ?? 0)}</strong></span>
+                           <span className="rounded bg-rose-50 text-rose-800 px-2 py-1">Cash commission: <strong>{fmtCurrency(r.cash_commission_settlement_usd ?? 0)}</strong></span>
+                           <span className="rounded bg-red-50 text-red-800 px-2 py-1">Total cash deductions: <strong>{fmtCurrency(r.cash_total_deduction_usd ?? 0)}</strong></span>
                           <span className="rounded bg-blue-50 text-blue-800 px-2 py-1">Final settlement: <strong>{fmtCurrency(r.final_settlement_amount_usd ?? r.amount)}</strong></span>
                         </div>
                       </div>

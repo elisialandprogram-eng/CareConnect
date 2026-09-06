@@ -48,7 +48,7 @@ async function transitionOnClient(
 ) {
   assertState(toStatus);
   const current = await client.query(
-    `SELECT id, status FROM payments WHERE id = $1 FOR UPDATE`,
+    `SELECT id, appointment_id, status FROM payments WHERE id = $1 FOR UPDATE`,
     [paymentId],
   );
   if (!current.rows[0]) throw new Error("Payment aggregate not found");
@@ -77,6 +77,12 @@ async function transitionOnClient(
     );
     if (!event.rows[0]) {
       const existing = await client.query(`SELECT * FROM payments WHERE id = $1`, [paymentId]);
+      if (existing.rows[0]?.appointment_id) {
+        await client.query(
+          `UPDATE appointments SET payment_status = $1 WHERE id = $2`,
+          [existing.rows[0].status, existing.rows[0].appointment_id],
+        );
+      }
       return existing.rows[0];
     }
   } else {
@@ -101,6 +107,16 @@ async function transitionOnClient(
       RETURNING *`,
     [toStatus, paymentId],
   );
+  if (updated.rows[0]?.appointment_id) {
+    // Keep the appointment-level payment status synchronized with the
+    // canonical payment aggregate in the same transaction. This is
+    // especially important for cash/bank-transfer receipts, which are
+    // confirmed by the provider after booking.
+    await client.query(
+      `UPDATE appointments SET payment_status = $1 WHERE id = $2`,
+      [toStatus, updated.rows[0].appointment_id],
+    );
+  }
   return updated.rows[0];
 }
 
@@ -952,6 +968,12 @@ export async function recordOfflineReceipt(input: {
     }
     const remainingAmount = Number(payment.remaining_amount_usd ?? 0);
     if (!Number.isFinite(remainingAmount) || remainingAmount <= 0) {
+      if (payment.appointment_id) {
+        await client.query(
+          `UPDATE appointments SET payment_status = $1 WHERE id = $2`,
+          [payment.status, payment.appointment_id],
+        );
+      }
       await client.query("COMMIT");
       return payment;
     }

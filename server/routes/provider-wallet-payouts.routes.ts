@@ -454,8 +454,10 @@ export function registerProviderWalletPayoutsRoutes(app: Express): void {
         INSERT INTO payout_requests
           (provider_id, amount, currency, display_currency, display_amount, exchange_rate_used,
             method, bank_name, account_holder, account_number_masked, notes,
-            gross_amount_usd, tax_pass_through_amount_usd, cash_platform_fee_deduction_usd, settlement_amount_usd)
-         VALUES ($1, $2, $8, $9, $10, $11, $3, $4, $5, $6, $7, $12, $13, $14, $15)
+             gross_amount_usd, tax_pass_through_amount_usd,
+             cash_platform_fee_deduction_usd, cash_platform_tax_deduction_usd,
+             cash_commission_deduction_usd, settlement_amount_usd)
+         VALUES ($1, $2, $8, $9, $10, $11, $3, $4, $5, $6, $7, $12, $13, $14, $15, $16, $17)
         RETURNING *
       `, [
         provider.id,
@@ -472,6 +474,8 @@ export function registerProviderWalletPayoutsRoutes(app: Express): void {
          (_prAmtUSD + cashFeeApplication.totalAppliedUsd).toFixed(2),
          cashFeeApplication.taxPassThroughUsd.toFixed(2),
          cashFeeApplication.totalAppliedUsd.toFixed(2),
+          cashFeeApplication.platformTaxUsd.toFixed(2),
+          cashFeeApplication.commissionUsd.toFixed(2),
          _prAmtUSD.toFixed(2),
       ]);
 

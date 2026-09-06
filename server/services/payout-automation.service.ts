@@ -214,12 +214,17 @@ export async function runBatchPayout(
       const { rows: reqRows } = await client.query<{ id: string }>(
         `INSERT INTO payout_requests
            (provider_id, amount, currency, status, notes, payment_method, payout_batch_id,
-            gross_amount_usd, cash_platform_fee_deduction_usd, settlement_amount_usd)
-         VALUES ($1, $2, 'USD', 'approved', $3, $4, $5, $6, $7, $2)
+             gross_amount_usd, cash_platform_fee_deduction_usd,
+             cash_platform_tax_deduction_usd, cash_commission_deduction_usd,
+             settlement_amount_usd)
+          VALUES ($1, $2, 'USD', 'approved', $3, $4, $5, $6, $7, $8, $9, $2)
          RETURNING id`,
         [provider.providerId, requestedAmount, `Automated batch payout ${batchId}`,
          provider.stripeAccountId ? "stripe_connect" : "manual", batchId,
-         requestedAmount + appliedCashFeeUsd, appliedCashFeeUsd],
+          requestedAmount + appliedCashFeeUsd,
+          appliedCashFeeUsd,
+          cashFeeApplication.platformTaxUsd,
+          cashFeeApplication.commissionUsd],
       );
       payoutRequestId = reqRows[0].id;
       await linkCashFeeDeductionsToPayout(client, cashFeeApplication.earningIds, payoutRequestId);

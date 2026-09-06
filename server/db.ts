@@ -3407,6 +3407,8 @@ export async function runProviderSettlementMigration(): Promise<void> {
     ["payout_requests", "gross_amount_usd", "NUMERIC(14,2)"],
     ["payout_requests", "tax_pass_through_amount_usd", "NUMERIC(14,2)"],
     ["payout_requests", "cash_platform_fee_deduction_usd", "NUMERIC(14,2)"],
+    ["payout_requests", "cash_platform_tax_deduction_usd", "NUMERIC(14,2)"],
+    ["payout_requests", "cash_commission_deduction_usd", "NUMERIC(14,2)"],
     ["payout_requests", "settlement_amount_usd", "NUMERIC(14,2)"],
   ] as const;
   for (const [table, column, definition] of columns) {
