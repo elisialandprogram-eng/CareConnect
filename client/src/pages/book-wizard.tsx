@@ -448,7 +448,7 @@ export default function BookWizard() {
     onSuccess: (data: any) => {
       const expiry = data?.expiresAt
         ? new Date(data.expiresAt)
-        : new Date(Date.now() + 10 * 60 * 1000);
+        : new Date(Date.now() + 3 * 60 * 1000);
       setHoldExpiresAt(expiry);
       setHoldId(data?.id ?? null);
       setCanvasOpen(true);
@@ -1145,7 +1145,7 @@ export default function BookWizard() {
               Your reservation has expired
             </DialogTitle>
             <DialogDescription>
-              Your 10-minute slot hold has timed out and the time has been released. Pick a fresh
+              Your 3-minute slot hold has timed out and the time has been released. Pick a fresh
               slot to continue with your booking.
             </DialogDescription>
           </DialogHeader>

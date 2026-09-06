@@ -5,7 +5,7 @@
  * practitioner by inspecting three sources:
  *   1. Confirmed appointments (with per-visit-type buffer windows)
  *   2. Manual provider blocks (vacation, leave, breaks)
- *   3. Active slot holds (10-minute checkout reservations)
+ *   3. Active slot holds (3-minute checkout reservations)
  *
  * Also validates home-visit travel feasibility when consecutive home
  * appointments are too far apart to travel between them.

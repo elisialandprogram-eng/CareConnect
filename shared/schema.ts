@@ -1951,7 +1951,7 @@ export const providerBlocks = pgTable("provider_blocks", {
 export const insertProviderBlockSchema = createInsertSchema(providerBlocks).omit({ id: true, createdAt: true });
 
 // ── Appointment Slot Holds ─────────────────────────────────────────────────────
-// Short-lived holds (10 minutes) placed when a patient starts the checkout
+// Short-lived holds (3 minutes) placed when a patient starts the checkout
 // flow.  The conflict engine checks active holds before confirming bookings.
 export const appointmentSlotHolds = pgTable("appointment_slot_holds", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),

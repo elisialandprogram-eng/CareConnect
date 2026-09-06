@@ -329,7 +329,7 @@ export function registerAppointmentWaitlistRoutes(app: Express): void {
       // Release any previous holds this patient has on the same provider+date
       await storage.deletePatientSlotHolds(userId, parsed.data.providerId, parsed.data.date);
 
-      const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+      const expiresAt = new Date(Date.now() + 3 * 60 * 1000);
       let hold: any;
       try {
         // Store the service on the hold so service-specific buffers are
