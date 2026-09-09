@@ -50,6 +50,7 @@ import { registerFullReconciliationRoute } from "./routes/admin/full-reconciliat
 import { registerAdminLegalRoutes } from "./routes/admin/legal.routes";
 import { registerLegalPublicRoutes } from "./routes/legal-public.routes";
 import { registerAdminCurrencyRatesRoutes } from "./routes/admin/admin-currency-rates.routes";
+import { registerAdminCustomReportsRoutes } from "./routes/admin/admin-custom-reports.routes";
 
 export async function registerRoutes(
   httpServer: Server,
@@ -154,6 +155,7 @@ export async function registerRoutes(
   registerAdminLegalRoutes(app);
   registerLegalPublicRoutes(app);
   registerAdminCurrencyRatesRoutes(app);
+  registerAdminCustomReportsRoutes(app);
 
   return httpServer;
 }

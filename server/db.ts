@@ -1286,6 +1286,25 @@ export async function runStartupMigrations() {
   }
   console.log("[db] analytics performance indexes ready");
 
+  // Admin custom reports store validated report definitions, never generated rows.
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS admin_saved_reports (
+        id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+        name TEXT NOT NULL,
+        definition JSONB NOT NULL,
+        created_by VARCHAR NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        country_code TEXT,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )
+    `);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_admin_saved_reports_scope ON admin_saved_reports(country_code, updated_at DESC)`);
+    console.log("[db] admin_saved_reports table ready");
+  } catch (reportErr: any) {
+    console.warn("[db] admin_saved_reports migration warning (non-fatal):", reportErr.message);
+  }
+
   // ── Sprint 5: Provider full-text search (H-06) ────────────────────────────
   // GENERATED ALWAYS AS is rejected by Postgres when any sub-expression is
   // STABLE rather than IMMUTABLE (array_to_string is STABLE).  We use a

@@ -1,0 +1,87 @@
+Implement a **Custom Report Builder inside the existing Admin Dashboard**.
+
+First inspect the current admin dashboard, database schema, Drizzle models, RBAC/auth system, existing reporting/export functionality, and all current database tables. Reuse the existing architecture and components where possible.
+
+### Requirements
+
+Build an admin page called **Custom Reports** where an authorized admin can:
+
+* Select a data source/table.
+* See **all current reportable fields/columns** from the database.
+* Select any combination of fields for the report.
+* Automatically handle relationships/joins between related tables.
+* Add filters with appropriate operators based on field type.
+* Sort by any selected field.
+* Group by fields.
+* Use aggregations such as COUNT, SUM, AVG, MIN and MAX where applicable.
+* Preview the report in a table.
+* Paginate large results.
+* Save report definitions.
+* Load/edit/delete saved reports.
+* Export reports to CSV and Excel if existing project infrastructure supports them.
+
+### Important
+
+Do NOT allow the browser/admin to execute raw SQL.
+
+Create a server-side reporting metadata/field registry and safe query builder that:
+
+* Allow-lists reportable tables and fields.
+* Knows the relationships/joins between tables.
+* Validates every selected field, filter, sort, grouping and aggregation.
+* Uses parameterized queries.
+* Prevents SQL injection.
+* Respects existing Admin RBAC/permissions.
+* Never exposes passwords, tokens, secrets, hashes or other security-sensitive fields.
+
+The report builder should expose the **current canonical database schema**, including the current booking, customer, provider, payment, pricing, tax, wallet, ledger, settlement and other business fields that are appropriate for admin reporting.
+
+Do not recreate or bring back any retired/legacy tables or fields.
+
+For financial fields, use the existing canonical stored values and currency fields. Do not recalculate historical booking financials using current pricing or tax rules.
+
+### UI
+
+Add **Custom Reports** under the existing Admin Dashboard navigation.
+
+Use a simple interface:
+
+1. Data Source
+2. Available Fields
+3. Selected Columns
+4. Filters
+5. Group By
+6. Sort
+7. Aggregations
+8. Preview Results
+9. Save Report
+10. Export
+
+Make the field picker searchable because there may be many database fields.
+
+### Saved Reports
+
+Store the report definition rather than storing the generated result set. A saved definition should contain the selected source, fields, filters, grouping, sorting and aggregations.
+
+### Performance
+
+* Use server-side pagination.
+* Add sensible maximum row limits.
+* Avoid N+1 queries.
+* Build joins efficiently.
+* Do not load the entire database into memory.
+* Apply filters at the database level.
+
+### Implementation process
+
+First audit the existing project and current database schema, then implement the feature fully. Do not create duplicate functionality if an existing component/service can be reused.
+
+After implementation:
+
+* Run `npm run check`
+* Run `npm run build`
+* Run relevant tests
+* Fix any errors
+* Verify the Admin Dashboard and report builder work correctly.
+
+Do not stop after the audit or provide only a plan. **Implement the complete working feature.**

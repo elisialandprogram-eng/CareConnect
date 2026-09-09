@@ -93,6 +93,9 @@ const MonitoringPanel = lazy(() => import("@/components/admin/monitoring-panel")
 const RbacPermissionsMatrix = lazy(() => import("@/components/admin/rbac-permissions-matrix"));
 const ReviewModerationPanel = lazy(() => import("@/components/admin/dashboard/review-moderation"));
 const PlatformRevenueReport = lazy(() => import("@/components/admin/dashboard/platform-revenue-report"));
+const CustomReportsBuilder = lazy(() =>
+  import("@/components/admin/dashboard/custom-reports-builder").then(m => ({ default: m.CustomReportsBuilder }))
+);
 
 // ── Suspense fallback ─────────────────────────────────────────────────────────
 function PanelSkeleton() {
@@ -153,6 +156,7 @@ function buildNavGroups(isGlobalAdmin: boolean, t: (k: string, d?: string) => st
       icon: BarChart3,
       items: [
         { value: "reports", label: "Reports", icon: BarChart3 },
+        { value: "custom-reports", label: "Custom Reports", icon: FileText },
         { value: "monitoring", label: t("admin.tab_monitoring", "Monitoring"), icon: Activity },
         { value: "db-health", label: "DB Health", icon: Database },
       ],
@@ -477,6 +481,14 @@ export default function AdminDashboard() {
             )}
 
             {activeTab === "reports" && <AdminReportingCenter onNavigate={setActiveTab} />}
+
+            {activeTab === "custom-reports" && (
+              <PanelErrorBoundary>
+                <Suspense fallback={<PanelSkeleton />}>
+                  <CustomReportsBuilder />
+                </Suspense>
+              </PanelErrorBoundary>
+            )}
 
             {activeTab === "providers" && (
               <ProviderOperationsConsole jumpToProviderId={jumpToProviderId} />
