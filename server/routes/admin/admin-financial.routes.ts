@@ -1276,7 +1276,10 @@ export function registerAdminFinancialRoutes(app: Express): void {
         userId: (inv as any).patientId,
         type: "payment_reminder",
         subject: `Payment reminder: Invoice ${(inv as any).invoiceNumber}`,
-        body: `Your invoice ${(inv as any).invoiceNumber} for ${formatLocal(Number((inv as any).amount), (inv as any).currency ?? "USD")} is overdue. Please settle it to avoid service disruption.`,
+        body: `Your invoice ${(inv as any).invoiceNumber} for ${formatLocal(
+          Number((inv as any).totalAmount ?? (inv as any).amount ?? 0),
+          (inv as any).currency || countryCurrency((inv as any).countryCode) || "USD",
+        )} is overdue. Please settle it to avoid service disruption.`,
       });
       await pool.query(
         `UPDATE invoices SET last_reminder_at = NOW(), reminder_count = COALESCE(reminder_count, 0) + 1 WHERE id = $1`,

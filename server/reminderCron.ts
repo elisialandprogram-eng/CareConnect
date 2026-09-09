@@ -482,11 +482,18 @@ async function sendOverdueInvoiceReminders() {
       const dueIso = new Date(inv.dueDate).toISOString().slice(0, 10);
       const remindersBefore = inv.reminderCount ?? 0;
       const ordinal = remindersBefore === 0 ? "" : ` (reminder #${remindersBefore + 1})`;
+      // Invoice totals are already denominated in the booking/provider
+      // currency. Older invoice rows do not expose a persisted currency field,
+      // so derive it from the invoice country rather than defaulting to USD.
+      const invoiceCurrency =
+        (inv as any).currency
+        || countryCurrency((inv as any).countryCode)
+        || "USD";
       await dispatchNotification({
         userId: patient.id,
         eventKey: "invoice.overdue",
         title: `Reminder: Invoice ${inv.invoiceNumber} is overdue${ordinal}`,
-        body: `Hello ${patient.firstName}, your invoice ${inv.invoiceNumber} for ${formatLocal(Number(inv.totalAmount), (inv as any).currency || "USD")} was due on ${dueIso} and is still unpaid. Please log in to settle it at your earliest convenience.`,
+        body: `Hello ${patient.firstName}, your invoice ${inv.invoiceNumber} for ${formatLocal(Number(inv.totalAmount), invoiceCurrency)} was due on ${dueIso} and is still unpaid. Please log in to settle it at your earliest convenience.`,
         data: { invoiceId: inv.id, invoiceNumber: inv.invoiceNumber, dueDate: dueIso },
       });
       await storage.markInvoiceReminderSent(inv.id);
