@@ -129,3 +129,4 @@
 - [Payment status action values](payment-status-action-values.md) — provider receipt requests use `paid`; the server persists the resulting payment as `completed`
 - [Offline refund settlement](offline-refund-settlement.md) — cash refunds reverse provider wallet fee/tax/commission deductions idempotently; fully refunded payments cannot create new earnings
 - [Modality-aware scheduling](modality-aware-scheduling.md) — canonical clinic/home/online slot provenance; shared slots are null and modality edits must not erase other modes
+- [Stripe webhook idempotency schema compatibility](idempotency-schema-compat.md) — claim only portable key/scope/expiry fields with untargeted ON CONFLICT; legacy DBs differ from current idempotency schema

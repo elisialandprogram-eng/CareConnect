@@ -45,9 +45,12 @@ async function claimWebhookEvent(eventId: string): Promise<boolean> {
   try {
     const { pool } = await import("./db");
     const result = await pool.query(
-      `INSERT INTO idempotency_keys (key, scope, expires_at, status)
-       VALUES ($1, 'stripe_webhook', NOW() + INTERVAL '72 hours', 200)
-       ON CONFLICT (key, scope) DO NOTHING`,
+      // Keep this insert compatible with both the current migration
+      // (unique key+scope, status default) and older deployed tables
+      // (unique key, response_status). The claim only needs the unique key.
+      `INSERT INTO idempotency_keys (key, scope, expires_at)
+       VALUES ($1, 'stripe_webhook', NOW() + INTERVAL '72 hours')
+       ON CONFLICT DO NOTHING`,
       [eventId],
     );
     if ((result.rowCount ?? 0) === 0) return false; // conflict → already processed
