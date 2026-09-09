@@ -99,7 +99,7 @@ interface ProviderReport {
   byVisitType: Array<{
     visit_type: string;
     completed: string;
-    revenue: string;
+    net_earnings: string;
   }>;
   earnings: EarningRecord[];
 }
@@ -525,7 +525,8 @@ function ProviderDetail({ providerId, onBack }: { providerId: string; onBack: ()
               <Card key={vt.visit_type}>
                 <CardContent className="pt-5 pb-4">
                   <p className="text-sm font-medium text-muted-foreground mb-1">{visitTypeLabel(vt.visit_type)}</p>
-                  <p className="text-2xl font-bold tabular-nums">{fmtCurr(vt.revenue, cc)}</p>
+                  <p className="text-2xl font-bold tabular-nums">{fmtCurr(vt.net_earnings, cc)}</p>
+                  <p className="text-xs text-muted-foreground">Net earnings</p>
                   <p className="text-xs text-muted-foreground mt-1">{vt.completed} completed appointment{vt.completed !== "1" ? "s" : ""}</p>
                 </CardContent>
               </Card>

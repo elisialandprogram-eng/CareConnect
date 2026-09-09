@@ -176,15 +176,35 @@ export function registerAdminFinancialRoutes(app: Express): void {
           u.email AS provider_email,
           p.country_code AS country_code,
           p.provider_type AS provider_type,
-          COALESCE(SUM(CASE WHEN pay.status IN ('paid','partially_refunded','refunded','disputed') THEN COALESCE(a.final_total_usd, a.total_amount)::numeric ELSE 0 END), 0) AS gross_revenue,
-          COALESCE(SUM(CASE WHEN pay.status IN ('paid','partially_refunded','refunded','disputed') AND a.total_amount::numeric > 0 THEN ROUND(COALESCE(a.platform_fee_amount::numeric, 0) / a.total_amount::numeric * COALESCE(a.final_total_usd, a.total_amount)::numeric, 4) ELSE 0 END), 0) AS total_platform_fees,
+          COALESCE((
+            SELECT SUM(COALESCE(pe.total_amount, 0))
+            FROM provider_earnings pe
+            LEFT JOIN appointments ea ON ea.id = pe.appointment_id
+            WHERE pe.provider_id = p.id
+              AND ea.payment_status = 'completed'
+              AND COALESCE(pe.payment_method, ea.payment_method, 'card')
+                    NOT IN ('cash', 'bank_transfer')
+          ), 0) AS gross_revenue,
+          COALESCE((
+            SELECT SUM(COALESCE(pe.platform_fee, 0))
+            FROM provider_earnings pe
+            LEFT JOIN appointments ea ON ea.id = pe.appointment_id
+            WHERE pe.provider_id = p.id
+              AND ea.payment_status = 'completed'
+              AND COALESCE(pe.payment_method, ea.payment_method, 'card')
+                    NOT IN ('cash', 'bank_transfer')
+          ), 0) AS total_platform_fees,
           COALESCE(SUM(CASE WHEN pay.refunded_amount > 0 AND a.total_amount::numeric > 0 THEN ROUND(pay.refunded_amount::numeric, 4) ELSE 0 END), 0) AS total_refunds,
           0 AS total_promo_discount,
-          COALESCE(SUM(CASE WHEN pay.status IN ('paid','partially_refunded','refunded','disputed') THEN
-            COALESCE(a.final_total_usd, a.total_amount)::numeric
-            - CASE WHEN a.total_amount::numeric > 0 THEN ROUND(COALESCE(a.platform_fee_amount::numeric, 0) / a.total_amount::numeric * COALESCE(a.final_total_usd, a.total_amount)::numeric, 4) ELSE 0 END
-            - CASE WHEN a.total_amount::numeric > 0 THEN ROUND(COALESCE(a.refund_amount::numeric, 0) / a.total_amount::numeric * COALESCE(a.final_total_usd, a.total_amount)::numeric, 4) ELSE 0 END
-            ELSE 0 END), 0) AS net_earnings,
+          COALESCE((
+            SELECT SUM(COALESCE(pe.provider_net_earnings_amount_usd, 0))
+            FROM provider_earnings pe
+            LEFT JOIN appointments ea ON ea.id = pe.appointment_id
+            WHERE pe.provider_id = p.id
+              AND ea.payment_status = 'completed'
+              AND COALESCE(pe.payment_method, ea.payment_method, 'card')
+                    NOT IN ('cash', 'bank_transfer')
+          ), 0) AS net_earnings,
           COALESCE((SELECT SUM(COALESCE(pe.gross_provider_payout_usd, 0))
                     FROM provider_earnings pe
                     LEFT JOIN appointments ea ON ea.id = pe.appointment_id
@@ -208,7 +228,16 @@ export function registerAdminFinancialRoutes(app: Express): void {
           COUNT(CASE WHEN a.status IN ('cancelled', 'no_show') THEN 1 END) AS cancelled_appointments,
           COUNT(a.id) AS total_appointments,
           MAX(a.date) AS last_appointment_date,
-          COALESCE(pw.available_balance::numeric, 0) AS pending_payout,
+          COALESCE((
+            SELECT SUM(COALESCE(pe.provider_net_earnings_amount_usd, 0))
+            FROM provider_earnings pe
+            LEFT JOIN appointments ea ON ea.id = pe.appointment_id
+            WHERE pe.provider_id = p.id
+              AND pe.status = 'pending'
+              AND ea.payment_status = 'completed'
+              AND COALESCE(pe.payment_method, ea.payment_method, 'card')
+                    NOT IN ('cash', 'bank_transfer')
+          ), 0) AS pending_payout,
           COALESCE((SELECT COALESCE(SUM(pr2.amount::numeric), 0) FROM payout_requests pr2 WHERE pr2.provider_id = p.id AND pr2.status = 'paid'), 0) AS paid_payout
         FROM providers p
         JOIN users u ON u.id = p.user_id
@@ -259,16 +288,46 @@ export function registerAdminFinancialRoutes(app: Express): void {
             COUNT(CASE WHEN a.status = 'completed' THEN 1 END)::text AS completed_count,
             COUNT(CASE WHEN a.status IN ('cancelled','no_show') THEN 1 END)::text AS cancelled_count,
             COUNT(CASE WHEN a.status IN ('confirmed','pending','in_progress') THEN 1 END)::text AS active_count,
-             COALESCE(SUM(CASE WHEN pay.status IN ('paid','partially_refunded','refunded','disputed') THEN COALESCE(a.final_total_usd, a.total_amount)::numeric ELSE 0 END), 0)::text AS gross_revenue,
-             COALESCE(SUM(CASE WHEN pay.status IN ('paid','partially_refunded','refunded','disputed') AND a.total_amount::numeric > 0 THEN ROUND(COALESCE(a.platform_fee_amount::numeric,0) / a.total_amount::numeric * COALESCE(a.final_total_usd, a.total_amount)::numeric, 4) ELSE 0 END), 0)::text AS platform_fees,
+             COALESCE((
+               SELECT SUM(COALESCE(pe.total_amount, 0))
+               FROM provider_earnings pe
+               LEFT JOIN appointments ea ON ea.id = pe.appointment_id
+               WHERE pe.provider_id = $1
+                 AND ea.payment_status = 'completed'
+                 AND COALESCE(pe.payment_method, ea.payment_method, 'card')
+                       NOT IN ('cash', 'bank_transfer')
+             ), 0)::text AS gross_revenue,
+             COALESCE((
+               SELECT SUM(COALESCE(pe.platform_fee, 0))
+               FROM provider_earnings pe
+               LEFT JOIN appointments ea ON ea.id = pe.appointment_id
+               WHERE pe.provider_id = $1
+                 AND ea.payment_status = 'completed'
+                 AND COALESCE(pe.payment_method, ea.payment_method, 'card')
+                       NOT IN ('cash', 'bank_transfer')
+             ), 0)::text AS platform_fees,
              COALESCE(SUM(CASE WHEN pay.status IN ('paid','partially_refunded','refunded','disputed') AND a.total_amount::numeric > 0 THEN ROUND(COALESCE(a.promo_discount::numeric,0) / a.total_amount::numeric * COALESCE(a.final_total_usd, a.total_amount)::numeric, 4) ELSE 0 END), 0)::text AS promo_discounts,
              COALESCE(SUM(CASE WHEN pay.status IN ('paid','partially_refunded','refunded','disputed') AND a.total_amount::numeric > 0 THEN ROUND(COALESCE(a.tax_amount::numeric,0) / a.total_amount::numeric * COALESCE(a.final_total_usd, a.total_amount)::numeric, 4) ELSE 0 END), 0)::text AS tax_collected,
              COALESCE(SUM(CASE WHEN pay.refunded_amount > 0 THEN pay.refunded_amount::numeric ELSE 0 END), 0)::text AS refunds_issued,
-             COALESCE(SUM(CASE WHEN pay.status IN ('paid','partially_refunded','refunded','disputed') THEN
-              COALESCE(a.final_total_usd, a.total_amount)::numeric
-              - CASE WHEN a.total_amount::numeric > 0 THEN ROUND(COALESCE(a.platform_fee_amount::numeric,0) / a.total_amount::numeric * COALESCE(a.final_total_usd, a.total_amount)::numeric, 4) ELSE 0 END
-              ELSE 0 END), 0)::text AS net_earnings,
-            COUNT(CASE WHEN a.payment_status = 'completed' THEN 1 END)::text AS pending_records
+             COALESCE((
+               SELECT SUM(COALESCE(pe.provider_net_earnings_amount_usd, 0))
+               FROM provider_earnings pe
+               LEFT JOIN appointments ea ON ea.id = pe.appointment_id
+               WHERE pe.provider_id = $1
+                 AND ea.payment_status = 'completed'
+                 AND COALESCE(pe.payment_method, ea.payment_method, 'card')
+                       NOT IN ('cash', 'bank_transfer')
+             ), 0)::text AS net_earnings,
+             COALESCE((
+               SELECT COUNT(*)
+               FROM provider_earnings pe
+               LEFT JOIN appointments ea ON ea.id = pe.appointment_id
+               WHERE pe.provider_id = $1
+                 AND pe.status = 'pending'
+                 AND ea.payment_status = 'completed'
+                 AND COALESCE(pe.payment_method, ea.payment_method, 'card')
+                       NOT IN ('cash', 'bank_transfer')
+             ), 0)::text AS pending_records
           FROM appointments a
            LEFT JOIN payments pay ON pay.appointment_id = a.id
           WHERE a.provider_id = $1
@@ -280,13 +339,29 @@ export function registerAdminFinancialRoutes(app: Express): void {
             TO_CHAR(a.date::date, 'YYYY-MM') AS month,
             COUNT(CASE WHEN a.status = 'completed' THEN 1 END)::text AS completed,
             COUNT(CASE WHEN a.status IN ('cancelled','no_show') THEN 1 END)::text AS cancelled,
-            COALESCE(SUM(CASE WHEN a.payment_status = 'completed' THEN COALESCE(a.final_total_usd, a.total_amount)::numeric ELSE 0 END), 0)::text AS gross_revenue,
-            COALESCE(SUM(CASE WHEN a.payment_status = 'completed' AND a.total_amount::numeric > 0 THEN ROUND(COALESCE(a.platform_fee_amount::numeric,0) / a.total_amount::numeric * COALESCE(a.final_total_usd, a.total_amount)::numeric, 4) ELSE 0 END), 0)::text AS platform_fees,
-            COALESCE(SUM(CASE WHEN a.payment_status = 'completed' THEN
-              COALESCE(a.final_total_usd, a.total_amount)::numeric
-              - CASE WHEN a.total_amount::numeric > 0 THEN ROUND(COALESCE(a.platform_fee_amount::numeric,0) / a.total_amount::numeric * COALESCE(a.final_total_usd, a.total_amount)::numeric, 4) ELSE 0 END
-              ELSE 0 END), 0)::text AS net_earnings
+             COALESCE(SUM(CASE
+               WHEN a.payment_status = 'completed'
+                AND COALESCE(pe.payment_method, a.payment_method, 'card')
+                      NOT IN ('cash', 'bank_transfer')
+               THEN COALESCE(pe.total_amount, 0)
+               ELSE 0
+             END), 0)::text AS gross_revenue,
+             COALESCE(SUM(CASE
+               WHEN a.payment_status = 'completed'
+                AND COALESCE(pe.payment_method, a.payment_method, 'card')
+                      NOT IN ('cash', 'bank_transfer')
+               THEN COALESCE(pe.platform_fee, 0)
+               ELSE 0
+             END), 0)::text AS platform_fees,
+             COALESCE(SUM(CASE
+               WHEN a.payment_status = 'completed'
+                AND COALESCE(pe.payment_method, a.payment_method, 'card')
+                      NOT IN ('cash', 'bank_transfer')
+               THEN COALESCE(pe.provider_net_earnings_amount_usd, 0)
+               ELSE 0
+             END), 0)::text AS net_earnings
           FROM appointments a
+           LEFT JOIN provider_earnings pe ON pe.appointment_id = a.id
           WHERE a.provider_id = $1
             AND a.date::date >= (CURRENT_DATE - INTERVAL '13 months')
           GROUP BY TO_CHAR(a.date::date, 'YYYY-MM')
@@ -298,11 +373,18 @@ export function registerAdminFinancialRoutes(app: Express): void {
           SELECT
             a.visit_type,
             COUNT(CASE WHEN a.status = 'completed' THEN 1 END)::text AS completed,
-            COALESCE(SUM(CASE WHEN a.payment_status = 'completed' THEN COALESCE(a.final_total_usd, a.total_amount)::numeric ELSE 0 END), 0)::text AS revenue
+             COALESCE(SUM(CASE
+               WHEN a.payment_status = 'completed'
+                AND COALESCE(pe.payment_method, a.payment_method, 'card')
+                      NOT IN ('cash', 'bank_transfer')
+               THEN COALESCE(pe.provider_net_earnings_amount_usd, 0)
+               ELSE 0
+             END), 0)::text AS net_earnings
           FROM appointments a
+           LEFT JOIN provider_earnings pe ON pe.appointment_id = a.id
           WHERE a.provider_id = $1
           GROUP BY a.visit_type
-          ORDER BY revenue DESC
+           ORDER BY net_earnings DESC
         `, [providerId]),
 
         // Earnings records (completed appointments treated as earnings)
@@ -332,14 +414,19 @@ export function registerAdminFinancialRoutes(app: Express): void {
           WHERE a.provider_id = $1
             AND a.payment_status = 'completed'
             AND COALESCE(a.payment_method, 'card') NOT IN ('cash', 'bank_transfer')
-          ORDER BY a.date DESC
-          LIMIT 200
+           ORDER BY a.date DESC
         `, [providerId]),
 
         // Wallet balance
         pool.query(`
-          SELECT COALESCE(pw.available_balance, '0')::text AS pending_payout
-          FROM provider_wallets pw WHERE pw.provider_id = $1 LIMIT 1
+           SELECT COALESCE(SUM(COALESCE(pe.provider_net_earnings_amount_usd, 0)), 0)::text AS pending_payout
+           FROM provider_earnings pe
+           LEFT JOIN appointments a ON a.id = pe.appointment_id
+           WHERE pe.provider_id = $1
+             AND pe.status = 'pending'
+             AND a.payment_status = 'completed'
+             AND COALESCE(pe.payment_method, a.payment_method, 'card')
+                   NOT IN ('cash', 'bank_transfer')
         `, [providerId]),
 
         // Paid payouts total
