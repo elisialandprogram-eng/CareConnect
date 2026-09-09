@@ -47,6 +47,7 @@ interface MasterRow {
   display_amount: string | null;
   exchange_rate_used: string | null;
   service_price_snapshot: string | null;
+  commission_amount: string | null;
   promo_code: string | null;
   promo_discount: string;
   tax_amount: string;
@@ -59,6 +60,7 @@ interface MasterRow {
   // Financial — USD
   final_total_usd: string | null;
   platform_fee_amount: string;
+  provider_commission_usd: string | null;
   appt_payment_method: string | null;
   // Patient
   patient_id: string;
@@ -110,6 +112,7 @@ interface Summary {
   refundedCount: number;
   grossRevenue: number;
   platformRevenue: number;
+  providerCommission: number;
   providerEarnings: number;
   totalRefunds: number;
   taxesCollected: number;
@@ -147,11 +150,11 @@ const COLUMN_GROUPS = [
   { id: "patient",   label: "B · Patient",   cols: ["patient"] },
   { id: "provider",  label: "C · Provider",  cols: ["provider"] },
   { id: "service",   label: "D · Service",   cols: ["service"] },
-  { id: "financial", label: "E · Financial", cols: ["gross","net"] },
+  { id: "financial", label: "E · Financial", cols: ["gross","commission","net"] },
   { id: "payout",    label: "G · Payout",    cols: ["earning"] },
 ] as const;
 
-const DEFAULT_VISIBLE = new Set(["ref","status","payment","type","date","patient","provider","service","gross","net","earning"]);
+const DEFAULT_VISIBLE = new Set(["ref","status","payment","type","date","patient","provider","service","gross","commission","net","earning"]);
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -236,6 +239,7 @@ function SummaryCards({ summary, fmt }: { summary: Summary; fmt: (n: number) => 
   const cards = [
     { label: "Gross Revenue",      value: fmt(summary.grossRevenue),      icon: DollarSign,    color: "from-emerald-500 to-teal-600", id: "gross", note: "USD" },
     { label: "Platform Revenue",   value: fmt(summary.platformRevenue),   icon: TrendingUp,    color: "from-blue-500 to-indigo-600",  id: "platform", note: "USD" },
+    { label: "Provider Commission", value: fmt(summary.providerCommission), icon: TrendingUp, color: "from-violet-500 to-purple-600", id: "provider-commission", note: "USD" },
     { label: "Provider Earnings",  value: fmt(summary.providerEarnings),  icon: Wallet,        color: "from-purple-500 to-fuchsia-600", id: "provider", note: "USD" },
     { label: "Pending Payouts",    value: fmt(summary.pendingPayouts),    icon: Clock,         color: "from-amber-500 to-orange-500", id: "pending-payout", note: "USD" },
     { label: "Total Refunds",      value: fmt(summary.totalRefunds),      icon: RefreshCw,     color: "from-rose-500 to-pink-600",    id: "refunds", note: "USD" },
@@ -420,6 +424,16 @@ function InvestigationDrawer({
               </span>
             } />
             <Row label="Platform Fee"    value={fmtLocal(n(row.platform_fee_amount))} />
+             <Row label="Provider Commission" value={
+               <span>
+                 {fmtLocal(n(row.commission_amount))}
+                 {cur !== "USD" && n(row.provider_commission_usd) > 0 && (
+                   <span className="text-xs text-muted-foreground ms-1">
+                     ({fmt(n(row.provider_commission_usd))})
+                   </span>
+                 )}
+               </span>
+             } />
             <Row label={`Service tax (${n(row.service_tax_rate)}%)`} value={fmtLocal(n(row.service_tax_amount))} />
             <Row label={`Platform tax (${n(row.platform_tax_rate)}%)`} value={fmtLocal(n(row.platform_tax_amount))} />
             <Row label="Total tax"       value={fmtLocal(n(row.tax_amount))} />
@@ -483,7 +497,7 @@ function ExpandedRow({ row, fmt }: { row: MasterRow; fmt: (n: number) => string 
 
   return (
     <tr>
-      <td colSpan={12} className="px-4 py-3 bg-muted/30 border-b">
+      <td colSpan={14} className="px-4 py-3 bg-muted/30 border-b">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="space-y-1 text-sm">
             <p className="font-semibold text-xs uppercase tracking-wider text-muted-foreground mb-2">
@@ -491,6 +505,7 @@ function ExpandedRow({ row, fmt }: { row: MasterRow; fmt: (n: number) => string 
             </p>
             <div className="flex justify-between"><span className="text-muted-foreground">Base Price</span><span>{fmtLocal(n(row.service_price_snapshot))}</span></div>
             <div className="flex justify-between"><span className="text-muted-foreground">Platform Fee</span><span>{fmtLocal(n(row.platform_fee_amount))}</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">Provider Commission</span><span>{fmtLocal(n(row.commission_amount))}{cur !== "USD" && n(row.provider_commission_usd) > 0 ? ` (${fmt(n(row.provider_commission_usd))})` : ""}</span></div>
             <div className="flex justify-between"><span className="text-muted-foreground">Service tax ({n(row.service_tax_rate)}%)</span><span>{fmtLocal(n(row.service_tax_amount))}</span></div>
             <div className="flex justify-between"><span className="text-muted-foreground">Platform tax ({n(row.platform_tax_rate)}%)</span><span>{fmtLocal(n(row.platform_tax_amount))}</span></div>
             <div className="flex justify-between"><span className="text-muted-foreground">Total tax</span><span>{fmtLocal(n(row.tax_amount))}</span></div>
@@ -797,7 +812,7 @@ export function FinancialMasterReport() {
       {/* Summary Cards — USD platform totals */}
       {summaryLoading ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
-          {Array.from({ length: 11 }).map((_, i) => (
+          {Array.from({ length: 12 }).map((_, i) => (
             <div key={i} className="h-20 rounded-xl bg-muted animate-pulse" />
           ))}
         </div>
@@ -1005,6 +1020,9 @@ export function FinancialMasterReport() {
                       Booking Amount <SortIcon field="total_amount" />
                     </th>
                   )}
+                   {visibleCols.has("commission") && (
+                     <th className="px-3 py-2.5 text-right font-medium whitespace-nowrap">Provider Commission</th>
+                   )}
                   {visibleCols.has("net") && (
                     <th className="px-3 py-2.5 text-right font-medium whitespace-nowrap">Net (USD)</th>
                   )}
@@ -1111,6 +1129,18 @@ export function FinancialMasterReport() {
                             )}
                           </td>
                         )}
+                         {visibleCols.has("commission") && (
+                           <td className="px-3 py-2.5 text-right tabular-nums text-violet-700 dark:text-violet-400 whitespace-nowrap">
+                             {n(row.commission_amount) > 0 ? (
+                               <>
+                                 {fmtBooking(n(row.commission_amount), cur)}
+                                 {cur !== "USD" && n(row.provider_commission_usd) > 0 && (
+                                   <div className="text-[10px] text-muted-foreground">≈ {fmt(n(row.provider_commission_usd))}</div>
+                                 )}
+                               </>
+                             ) : <span className="text-muted-foreground">—</span>}
+                           </td>
+                         )}
                         {visibleCols.has("net") && (
                           <td className="px-3 py-2.5 text-right tabular-nums text-muted-foreground whitespace-nowrap">
                             {/* Net = usdNorm - platformFee (platform_fee_amount is booking currency) */}

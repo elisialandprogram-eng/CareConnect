@@ -2337,6 +2337,14 @@ export function registerAdminFinancialRoutes(app: Express): void {
       - COALESCE(a.platform_tax_amount::numeric, 0),
     0
   )`;
+  // commission_amount is frozen by the revenue engine in the booking currency.
+  // Convert it proportionally only for USD-normalized report totals/exports.
+  const providerCommissionUsdExpr = `CASE
+    WHEN COALESCE(a.total_amount::numeric, 0) > 0
+    THEN ROUND(COALESCE(a.commission_amount::numeric, 0) / a.total_amount::numeric
+      * COALESCE(a.final_total_usd, a.total_amount)::numeric, 4)
+    ELSE 0
+  END`;
 
   function buildPlatformRevenueWhere(q: Record<string, any>, countryFilter: string | null) {
     const conditions: string[] = ["1=1"];
@@ -2738,6 +2746,8 @@ export function registerAdminFinancialRoutes(app: Express): void {
             a.display_amount,
             a.exchange_rate_used,
             a.platform_fee_amount,
+             a.commission_amount,
+             ${providerCommissionUsdExpr} AS provider_commission_usd,
             a.promo_code,
             a.promo_discount,
             a.tax_amount,
@@ -2837,6 +2847,7 @@ export function registerAdminFinancialRoutes(app: Express): void {
             COUNT(*) FILTER (WHERE a.refund_status = 'processed')        AS refunded_count,
             COALESCE(SUM(CASE WHEN pay.status IN ('paid','partially_refunded','refunded','disputed') THEN COALESCE(a.final_total_usd, a.total_amount)::numeric ELSE 0 END), 0)        AS gross_revenue,
             COALESCE(SUM(CASE WHEN pay.status IN ('paid','partially_refunded','refunded','disputed') AND a.total_amount::numeric > 0 THEN ROUND(COALESCE(a.platform_fee_amount::numeric,0) / a.total_amount::numeric * COALESCE(a.final_total_usd, a.total_amount)::numeric, 4) ELSE 0 END), 0) AS platform_revenue,
+             COALESCE(SUM(CASE WHEN pay.status IN ('paid','partially_refunded','refunded','disputed') THEN ${providerCommissionUsdExpr} ELSE 0 END), 0) AS provider_commission,
             COALESCE(SUM(CASE
               WHEN pay.status IN ('paid','partially_refunded','refunded','disputed')
                AND COALESCE(pay.payment_method, pe.payment_method, 'card')
@@ -2862,6 +2873,7 @@ export function registerAdminFinancialRoutes(app: Express): void {
           refundedCount:    Number(r.refunded_count),
           grossRevenue:     parseFloat(r.gross_revenue),
           platformRevenue:  parseFloat(r.platform_revenue),
+           providerCommission: parseFloat(r.provider_commission),
           providerEarnings: parseFloat(r.provider_earnings),
           totalRefunds:     parseFloat(r.total_refunds),
           taxesCollected:   parseFloat(r.taxes_collected),
@@ -2946,6 +2958,8 @@ export function registerAdminFinancialRoutes(app: Express): void {
             a.total_amount                              AS "Booking Amount",
             COALESCE(a.final_total_usd, a.total_amount) AS "Normalized USD Amount",
             a.platform_fee_amount                       AS "Platform Fee (USD)",
+             a.commission_amount                         AS "Provider Commission",
+             ${providerCommissionUsdExpr}                AS "Provider Commission (USD)",
             pe.provider_net_earnings_amount_usd        AS "Provider Net Earnings (USD)",
             a.promo_discount                            AS "Promo Discount",
             a.promo_code                                AS "Promo Code",
