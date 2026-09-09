@@ -3557,6 +3557,22 @@ export async function runPaymentArchitectureMigration(): Promise<void> {
     `);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_wallet_topups_user_id ON wallet_topups(user_id)`);
 
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS provider_wallet_topups (
+        id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+        provider_id VARCHAR NOT NULL REFERENCES providers(id) ON DELETE CASCADE,
+        provider_session_id TEXT NOT NULL UNIQUE,
+        provider_payment_id TEXT,
+        amount_usd NUMERIC(14,2) NOT NULL CHECK (amount_usd > 0),
+        status TEXT NOT NULL DEFAULT 'pending',
+        idempotency_key TEXT NOT NULL UNIQUE,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        completed_at TIMESTAMPTZ
+      )
+    `);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_provider_wallet_topups_provider_id ON provider_wallet_topups(provider_id)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_provider_wallet_topups_status ON provider_wallet_topups(status)`);
+
     // Only implemented patient payment rails remain active in checkout.
     await pool.query(`
       UPDATE payment_providers

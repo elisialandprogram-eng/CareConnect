@@ -1959,7 +1959,8 @@ export function registerAdminFinancialRoutes(app: Express): void {
                    'booking_income', 'refund_deduction', 'payout_held',
                    'payout_deduction', 'payout_returned', 'manual_correction',
                    'wallet_adjustment', 'commission_deduction',
-                   'cash_platform_fee_deduction', 'membership_charge',
+                   'cash_platform_fee_deduction', 'provider_wallet_topup',
+                   'membership_charge',
                    'package_charge'
                  )
             ), 0),

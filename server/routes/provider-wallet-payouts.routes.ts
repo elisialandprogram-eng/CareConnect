@@ -46,8 +46,10 @@ import {
 import { dispatchNotification } from "../services/notification-dispatcher";
 import { trackEvent } from "../services/analyticsTracker";
 import { getRates, fromUSDSync, toUSDSync, formatSync } from "../services/currency";
+import { isStripeConfigured, createCheckoutSession } from "../stripe";
 import { round2, roundBookingAmount } from "../lib/math";
 import { currencyFractionDigits } from "@shared/currency";
+import { paymentLimiter } from "../middleware/rateLimiter";
 import {
   uploadAvatarImage,
   uploadGalleryImage,
@@ -567,7 +569,64 @@ export function registerProviderWalletPayoutsRoutes(app: Express): void {
     }
   });
 
-  // Admin: list payout requests (all or filtered by status)
+  // Provider wallet top-up — starts Stripe Checkout. The webhook credits the
+  // provider wallet only after Stripe confirms payment.
+  app.post("/api/provider/wallet/topup", authenticateToken, paymentLimiter, async (req: AuthRequest, res: Response) => {
+    try {
+      if (req.user?.role !== "provider") {
+        return res.status(403).json({ message: "Provider account required" });
+      }
+      const amount = Number(req.body?.amount);
+      if (!Number.isFinite(amount) || amount <= 0) {
+        return res.status(400).json({ message: "Amount must be a positive number" });
+      }
+      if (amount > 1_000_000) {
+        return res.status(400).json({ message: "Amount exceeds maximum allowed top-up" });
+      }
+      if (!isStripeConfigured()) {
+        return res.status(503).json({ message: "Online top-up is not available right now. Please contact support." });
+      }
+
+      const provider = await storage.getProviderByUserId(req.user.id);
+      if (!provider) return res.status(404).json({ message: "Provider not found" });
+      const user = await storage.getUser(req.user.id);
+      if (!user) return res.status(404).json({ message: "User not found" });
+      const wallet = await storage.getOrCreateProviderWallet(provider.id);
+
+      const origin = (req.headers.origin as string) || `${req.protocol}://${req.get("host")}`;
+      const rawReturnPath = typeof req.body?.returnPath === "string"
+        ? req.body.returnPath
+        : "/provider/dashboard?tab=payouts";
+      const returnPath = rawReturnPath.startsWith("/") && !rawReturnPath.startsWith("//")
+        ? rawReturnPath
+        : "/provider/dashboard?tab=payouts";
+      const cleanReturnPath = returnPath.replace(/[?&]topup=[^&]*/g, "").replace(/\?$/, "");
+      const separator = cleanReturnPath.includes("?") ? "&" : "?";
+
+      const session = await createCheckoutSession({
+        appointmentId: `provider-wallet:${wallet.id}`,
+        amount: round2(amount),
+        currency: "usd",
+        description: `Provider wallet top-up (${round2(amount)} USD)`,
+        customerEmail: user.email,
+        successUrl: `${origin}${cleanReturnPath}${separator}topup=success`,
+        cancelUrl: `${origin}${cleanReturnPath}${separator}topup=cancelled`,
+        metadata: {
+          type: "provider_wallet_topup",
+          providerId: provider.id,
+          providerUserId: req.user.id,
+          providerWalletId: wallet.id,
+          amount: String(round2(amount)),
+        },
+      });
+
+      res.json({ url: session.url, sessionId: session.sessionId });
+    } catch (error: any) {
+      console.error("[POST /api/provider/wallet/topup]", error);
+      res.status(500).json({ message: error?.message || "Failed to start provider wallet top-up" });
+    }
+  });
+
   app.get("/api/provider/wallet", authenticateToken, async (req: AuthRequest, res: Response) => {
     try {
       if (req.user?.role !== "provider") return res.status(403).json({ message: "Provider account required" });
@@ -607,6 +666,7 @@ export function registerProviderWalletPayoutsRoutes(app: Express): void {
         SELECT
           TO_CHAR(DATE_TRUNC('month', created_at), 'YYYY-MM') AS month,
           SUM(CASE WHEN amount > 0 AND entry_type = 'booking_income' THEN amount ELSE 0 END) AS gross_income,
+           SUM(CASE WHEN amount > 0 AND entry_type = 'provider_wallet_topup' THEN amount ELSE 0 END) AS topups,
            SUM(CASE WHEN amount < 0 AND entry_type = 'payout_deduction' THEN ABS(amount) ELSE 0 END) AS payouts,
           COUNT(*) FILTER (
             WHERE pl.entry_type = 'booking_income'

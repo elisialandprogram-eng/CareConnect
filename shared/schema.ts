@@ -2322,7 +2322,8 @@ export type InsertProviderWallet = z.infer<typeof insertProviderWalletSchema>;
 // ── Provider Ledger ────────────────────────────────────────────────────────────
 // Append-only financial event log for every balance-affecting action.
 // entryType: booking_income | refund_deduction | platform_fee_deduction |
-//   commission_deduction | tax_deduction | wallet_adjustment | payout_held |
+//   commission_deduction | tax_deduction | provider_wallet_topup |
+//   wallet_adjustment | payout_held |
 //   payout_deduction | payout_returned | manual_correction | membership_charge | package_charge
 export const providerLedger = pgTable("provider_ledger", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),

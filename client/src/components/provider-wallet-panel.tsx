@@ -11,7 +11,8 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { queryClient } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { WalletTopUpModal } from "@/components/patient/WalletTopUpModal";
 import {
   Wallet, TrendingUp, ArrowDownToLine, History, AlertTriangle, LockKeyhole,
   ChevronDown, ChevronUp, RefreshCw, ShieldAlert, Phone,
@@ -45,6 +46,7 @@ interface LedgerEntry {
 interface MonthlyRow {
   month: string;
   gross_income: string;
+  topups: string;
   payouts: string;
   booking_count: string;
 }
@@ -60,6 +62,7 @@ interface Breakdown {
 function entryTypeBadge(type: string) {
   const map: Record<string, { label: string; color: string }> = {
     booking_income:       { label: "Income",         color: "bg-emerald-100 text-emerald-800 border-emerald-200" },
+    provider_wallet_topup:{ label: "Wallet top-up",   color: "bg-emerald-100 text-emerald-800 border-emerald-200" },
      platform_fee_deduction: { label: "Provider settlement deduction", color: "bg-slate-100 text-slate-700 border-slate-200" },
      tax_deduction:        { label: "Provider settlement deduction", color: "bg-slate-100 text-slate-700 border-slate-200" },
     commission_deduction: { label: "Commission",      color: "bg-slate-100 text-slate-700 border-slate-200" },
@@ -88,6 +91,7 @@ export function ProviderWalletPanel() {
   const { toast } = useToast();
   const { format: fmt } = useCurrency();
   const [showAll, setShowAll] = useState(false);
+  const [topUpOpen, setTopUpOpen] = useState(false);
 
   const { data: wallet, isLoading: walletLoading } = useQuery<ProviderWallet>({
     queryKey: ["/api/provider/wallet"],
@@ -118,6 +122,30 @@ export function ProviderWalletPanel() {
     onSuccess: () => toast({ title: "Wallet refreshed" }),
   });
 
+  const topUpMutation = useMutation({
+    mutationFn: async (amountUSD: number) => {
+      const response = await apiRequest("POST", "/api/provider/wallet/topup", {
+        amount: amountUSD,
+        returnPath: "/provider/dashboard?tab=payouts",
+      });
+      return response.json();
+    },
+    onSuccess: (data: { url?: string }) => {
+      if (data?.url) {
+        window.location.href = data.url;
+        return;
+      }
+      toast({ title: "Top-up started", description: "Waiting for payment confirmation." });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Top-up failed",
+        description: error?.message || "Unable to start wallet top-up.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const available = Number(wallet?.availableBalance ?? 0);
   const held = Number(wallet?.heldBalance ?? 0);
   const lifetime = Number(wallet?.lifetimeEarnings ?? 0);
@@ -126,6 +154,7 @@ export function ProviderWalletPanel() {
   const chartData = monthly.map((row) => ({
     month: formatMonthLabel(row.month),
     "Income": Number(row.gross_income || 0),
+    "Top-ups": Number(row.topups || 0),
     "Payouts": Number(row.payouts || 0),
   }));
 
@@ -269,16 +298,28 @@ export function ProviderWalletPanel() {
             <TabsTrigger value="ledger" data-testid="tab-wallet-ledger">Transaction history</TabsTrigger>
             <TabsTrigger value="breakdown" data-testid="tab-wallet-breakdown">This month</TabsTrigger>
           </TabsList>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => refreshMutation.mutate()}
-            disabled={refreshMutation.isPending}
-            data-testid="btn-wallet-refresh"
-          >
-            <RefreshCw className={`h-4 w-4 mr-1 ${refreshMutation.isPending ? "animate-spin" : ""}`} />
-            Refresh
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setTopUpOpen(true)}
+              disabled={topUpMutation.isPending}
+              data-testid="btn-provider-wallet-topup"
+            >
+              <Wallet className="h-4 w-4 mr-1" />
+              Add funds
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => refreshMutation.mutate()}
+              disabled={refreshMutation.isPending}
+              data-testid="btn-wallet-refresh"
+            >
+              <RefreshCw className={`h-4 w-4 mr-1 ${refreshMutation.isPending ? "animate-spin" : ""}`} />
+              Refresh
+            </Button>
+          </div>
         </div>
 
         {/* ── Monthly earnings chart ── */}
@@ -304,6 +345,7 @@ export function ProviderWalletPanel() {
                     <Tooltip formatter={(value: number) => fmt(value)} />
                     <Legend />
                     <Bar dataKey="Income" fill="hsl(var(--primary))" radius={[3, 3, 0, 0]} />
+                    <Bar dataKey="Top-ups" fill="hsl(142 70% 45%)" radius={[3, 3, 0, 0]} />
                     <Bar dataKey="Payouts" fill="hsl(var(--muted-foreground) / 0.4)" radius={[3, 3, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
@@ -442,6 +484,13 @@ export function ProviderWalletPanel() {
           Last updated: {formatDate(wallet.updatedAt)}
         </p>
       )}
+
+      <WalletTopUpModal
+        open={topUpOpen}
+        onOpenChange={setTopUpOpen}
+        onTopUp={(amountUSD) => topUpMutation.mutate(amountUSD)}
+        isPending={topUpMutation.isPending}
+      />
     </div>
   );
 }

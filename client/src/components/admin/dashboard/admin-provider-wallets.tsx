@@ -73,7 +73,7 @@ function entryTypeLabel(t: string): string {
 }
 
 function entryTypeColor(t: string): string {
-  const credits = ["booking_income", "admin_credit", "wallet_adjustment", "payout_returned", "manual_correction"];
+  const credits = ["booking_income", "provider_wallet_topup", "admin_credit", "wallet_adjustment", "payout_returned", "manual_correction"];
   const debits  = ["refund_deduction", "platform_fee_deduction", "commission_deduction",
                    "tax_deduction", "payout_held", "payout_deduction", "admin_debit", "membership_charge", "package_charge"];
   if (credits.some(k => t.includes(k))) return "credit";

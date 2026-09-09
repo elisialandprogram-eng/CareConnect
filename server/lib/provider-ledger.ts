@@ -12,6 +12,7 @@
 
 export const PROVIDER_LEDGER_BALANCE_AFFECTING_TYPES = [
   "booking_income",
+  "provider_wallet_topup",
   "refund_deduction",
   "payout_held",
   "payout_deduction",

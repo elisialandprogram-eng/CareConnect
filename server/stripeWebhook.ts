@@ -207,6 +207,130 @@ export async function handleStripeWebhook(req: Request, res: Response) {
             ? session.payment_intent
             : session.payment_intent?.id;
 
+        if (session.metadata?.type === "provider_wallet_topup") {
+          const providerId = session.metadata.providerId;
+          const providerUserId = session.metadata.providerUserId;
+          const amountFromMeta = Number(session.metadata.amount);
+          const amountFromStripe =
+            typeof session.amount_total === "number"
+              ? session.amount_total / 100
+              : NaN;
+          const creditAmount = Number.isFinite(amountFromStripe) && amountFromStripe > 0
+            ? amountFromStripe
+            : amountFromMeta;
+
+          if (providerId && providerUserId && Number.isFinite(creditAmount) && creditAmount > 0) {
+            const client = await pool.connect();
+            try {
+              await client.query("BEGIN");
+              let credited = false;
+
+              const providerResult = await client.query(
+                `SELECT id, user_id, country_code::text AS country_code
+                   FROM providers
+                  WHERE id = $1 AND user_id = $2
+                  FOR UPDATE`,
+                [providerId, providerUserId],
+              );
+              if (!providerResult.rows[0]) {
+                throw new Error("Provider wallet top-up metadata does not match provider");
+              }
+
+              await client.query(`
+                INSERT INTO provider_wallet_topups
+                  (provider_id, provider_session_id, provider_payment_id, amount_usd,
+                   status, idempotency_key)
+                VALUES ($1, $2, $3, $4, 'pending', $5)
+                ON CONFLICT (provider_session_id) DO NOTHING
+              `, [
+                providerId,
+                session.id,
+                paymentIntentId || null,
+                creditAmount,
+                `stripe:${session.id}`,
+              ]);
+
+              const topupResult = await client.query(`
+                SELECT id, status
+                  FROM provider_wallet_topups
+                 WHERE provider_session_id = $1
+                 FOR UPDATE
+              `, [session.id]);
+              const topup = topupResult.rows[0];
+              if (!topup) throw new Error("Provider wallet top-up record was not created");
+
+              if (topup.status !== "completed") {
+                await client.query(`
+                  INSERT INTO provider_wallets
+                    (provider_id, available_balance, currency, country_code)
+                  VALUES ($1, $2, 'USD', $3)
+                  ON CONFLICT (provider_id) DO UPDATE SET
+                    available_balance = provider_wallets.available_balance + $2::numeric,
+                    updated_at = NOW()
+                `, [providerId, creditAmount, providerResult.rows[0].country_code || "HU"]);
+
+                const walletResult = await client.query(`
+                  SELECT available_balance
+                    FROM provider_wallets
+                   WHERE provider_id = $1
+                   FOR UPDATE
+                `, [providerId]);
+                const balanceAfter = walletResult.rows[0]?.available_balance ?? creditAmount;
+
+                await client.query(`
+                  INSERT INTO provider_ledger
+                    (provider_id, amount, amount_usd, currency, entry_type,
+                     reference_id, description, balance_after, country_code)
+                  VALUES ($1, $2, $2, 'USD', 'provider_wallet_topup',
+                          $3, $4, $5, $6)
+                `, [
+                  providerId,
+                  creditAmount,
+                  session.id,
+                  `Stripe provider wallet top-up — ${creditAmount.toFixed(2)} USD`,
+                  balanceAfter,
+                  providerResult.rows[0].country_code || "HU",
+                ]);
+
+                await client.query(`
+                  UPDATE provider_wallet_topups
+                     SET provider_payment_id = COALESCE($1, provider_payment_id),
+                         amount_usd = $2,
+                         status = 'completed',
+                         completed_at = COALESCE(completed_at, NOW())
+                   WHERE id = $3
+                `, [paymentIntentId || null, creditAmount, topup.id]);
+                credited = true;
+              }
+
+              await client.query("COMMIT");
+              client.release();
+
+              if (credited) {
+                logPayment({ event: "wallet_delta", userId: providerUserId, amountUsd: creditAmount });
+                const walletResult = await pool.query(
+                  `SELECT available_balance FROM provider_wallets WHERE provider_id = $1`,
+                  [providerId],
+                );
+                notify.walletTopup(providerUserId, {
+                  formattedAmount: formatLocal(creditAmount, "USD"),
+                  newBalance: formatLocal(Number(walletResult.rows[0]?.available_balance ?? creditAmount), "USD"),
+                }).catch(() => {});
+              }
+            } catch (err) {
+              await client.query("ROLLBACK").catch(() => {});
+              client.release();
+              throw err;
+            }
+          } else {
+            console.warn(
+              "[stripe webhook] provider_wallet_topup session missing provider or amount:",
+              session.id,
+            );
+          }
+          break;
+        }
+
         if (session.metadata?.type === "wallet_topup") {
           const walletUserId = session.metadata.walletUserId;
           const amountFromMeta = Number(session.metadata.amount);

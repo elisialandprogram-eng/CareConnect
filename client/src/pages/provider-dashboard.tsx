@@ -342,11 +342,29 @@ export default function ProviderDashboard() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const tab = params.get("tab");
+    const topupStatus = params.get("topup");
     if (tab) {
       setActiveTab(tab);
+    }
+    if (topupStatus === "success") {
+      toast({
+        title: "Provider wallet topped up",
+        description: "Your funds will appear in the wallet shortly.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/provider/wallet"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/provider/wallet/ledger"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/provider/wallet/monthly"] });
+      window.history.replaceState({}, "", window.location.pathname);
+    } else if (topupStatus === "cancelled") {
+      toast({
+        title: "Top-up cancelled",
+        description: "No charge was made.",
+      });
+      window.history.replaceState({}, "", window.location.pathname);
+    } else if (tab) {
       window.history.replaceState({}, "", window.location.pathname);
     }
-  }, []);
+  }, [toast]);
 
   // ── Queries ────────────────────────────────────────────────────────────────
   const { data: providerData, isLoading: isLoadingProvider } = useQuery<ProviderWithServices>({

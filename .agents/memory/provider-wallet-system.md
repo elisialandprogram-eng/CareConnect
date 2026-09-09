@@ -12,6 +12,7 @@ description: Design decisions for provider_wallets + provider_ledger — balance
 - `held_balance` — sum of pending/approved payout request amounts
 - `lifetime_earnings` — cumulative total ever credited (never decremented)
 - `pending_balance` — reserved for future settlement-period holds (currently 0)
+- Stripe provider wallet top-ups increase `available_balance` and are withdrawable, but do not increase `lifetime_earnings`; they are tracked separately for payment idempotency.
 
 ## Trigger points (where wallet is updated)
 1. `recordProviderEarning()` in storage.ts → +available_balance, +lifetime_earnings; ledger: `booking_income`, `platform_fee_deduction`, `tax_deduction`
@@ -21,6 +22,7 @@ description: Design decisions for provider_wallets + provider_ledger — balance
 5. `PATCH /api/admin/payout-requests/:id` status=rejected → −held_balance, +available_balance; ledger: `payout_returned`
 6. `DELETE /api/provider/payout-requests/:id` (cancel) → −held_balance, +available_balance; ledger: `payout_returned`
 7. `POST /api/admin/provider-wallets/:id/adjust` → ±available_balance; ledger: `manual_correction` or custom type
+8. Verified Stripe `provider_wallet_topup` webhook → +available_balance only; separate top-up record and ledger entry, idempotent by Checkout session
 
 ## Two-flow reconciliation
 The existing system has two parallel payout flows:

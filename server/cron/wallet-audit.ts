@@ -34,6 +34,7 @@ const DRIFT_THRESHOLD_USD = 0.05;
 
 const BALANCE_AFFECTING_TYPES = [
   "booking_income",
+  "provider_wallet_topup",
   "refund_deduction",
   "payout_held",
   "payout_deduction",
