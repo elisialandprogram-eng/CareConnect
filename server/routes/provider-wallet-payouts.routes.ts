@@ -607,7 +607,7 @@ export function registerProviderWalletPayoutsRoutes(app: Express): void {
         SELECT
           TO_CHAR(DATE_TRUNC('month', created_at), 'YYYY-MM') AS month,
           SUM(CASE WHEN amount > 0 AND entry_type = 'booking_income' THEN amount ELSE 0 END) AS gross_income,
-          SUM(CASE WHEN amount < 0 AND entry_type IN ('payout_deduction','payout_held') THEN ABS(amount) ELSE 0 END) AS payouts,
+           SUM(CASE WHEN amount < 0 AND entry_type = 'payout_deduction' THEN ABS(amount) ELSE 0 END) AS payouts,
           COUNT(*) FILTER (
             WHERE pl.entry_type = 'booking_income'
               AND NOT EXISTS (

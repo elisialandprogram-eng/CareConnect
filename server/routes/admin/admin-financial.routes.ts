@@ -938,12 +938,27 @@ export function registerAdminFinancialRoutes(app: Express): void {
         [String(newBalance), providerId],
       );
 
-      const ledgerType = entryType ?? (adjustmentUSD > 0 ? "admin_credit" : "admin_debit");
+      const ledgerType = entryType ?? "manual_correction";
+      if (!["manual_correction", "wallet_adjustment"].includes(ledgerType)) {
+        return res.status(400).json({
+          message: "entryType must be manual_correction or wallet_adjustment",
+        });
+      }
       await pool.query(
-        `INSERT INTO provider_ledger (provider_id, entry_type, amount, description, actor_id, balance_after)
-         VALUES ($1, $2, $3, $4, $5, $6)`,
-        [providerId, ledgerType, String(Math.abs(adjustmentUSD)), description.trim(), req.user!.id, String(newBalance)],
-      ).catch(() => {});
+        `INSERT INTO provider_ledger
+           (provider_id, entry_type, amount, amount_usd, currency, description,
+            actor_id, balance_after, country_code)
+         VALUES ($1, $2, $3, $3, 'USD', $4, $5, $6, $7)`,
+        [
+          providerId,
+          ledgerType,
+          String(adjustmentUSD),
+          description.trim(),
+          req.user!.id,
+          String(newBalance),
+          wallet.country_code,
+        ],
+      );
 
       pool.query(
         `INSERT INTO audit_logs (user_id, action, entity_type, entity_id, details)
