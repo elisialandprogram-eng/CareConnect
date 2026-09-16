@@ -22,7 +22,7 @@ description: Design decisions for provider_wallets + provider_ledger — balance
 5. `PATCH /api/admin/payout-requests/:id` status=rejected → −held_balance, +available_balance; ledger: `payout_returned`
 6. `DELETE /api/provider/payout-requests/:id` (cancel) → −held_balance, +available_balance; ledger: `payout_returned`
 7. `POST /api/admin/provider-wallets/:id/adjust` → ±available_balance; ledger: `manual_correction` or custom type
-8. Verified Stripe `provider_wallet_topup` webhook → +available_balance only; separate top-up record and ledger entry, idempotent by Checkout session
+8. Verified Stripe `provider_wallet_topup` webhook → +available_balance only; separate top-up record and ledger entry, idempotent by Checkout session. Checkout success returns must also verify the session server-side as a fallback for delayed/missing webhooks.
 
 ## Two-flow reconciliation
 The existing system has two parallel payout flows:

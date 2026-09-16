@@ -347,13 +347,42 @@ export default function ProviderDashboard() {
       setActiveTab(tab);
     }
     if (topupStatus === "success") {
-      toast({
-        title: "Provider wallet topped up",
-        description: "Your funds will appear in the wallet shortly.",
-      });
-      queryClient.invalidateQueries({ queryKey: ["/api/provider/wallet"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/provider/wallet/ledger"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/provider/wallet/monthly"] });
+      const sessionId = params.get("session_id");
+      if (sessionId) {
+        apiRequest("GET", `/api/provider/wallet/topup/verify?sessionId=${encodeURIComponent(sessionId)}`)
+          .then((response) => response.json())
+          .then((result: { status?: string; credited?: boolean }) => {
+            if (result.status === "paid") {
+              toast({
+                title: "Provider wallet topped up",
+                description: result.credited
+                  ? "Your funds have been added to the wallet."
+                  : "This top-up was already added to the wallet.",
+              });
+              queryClient.invalidateQueries({ queryKey: ["/api/provider/wallet"] });
+              queryClient.invalidateQueries({ queryKey: ["/api/provider/wallet/ledger"] });
+              queryClient.invalidateQueries({ queryKey: ["/api/provider/wallet/monthly"] });
+              queryClient.invalidateQueries({ queryKey: ["/api/provider/wallet/breakdown"] });
+            } else {
+              toast({
+                title: "Payment is still processing",
+                description: "Stripe has not confirmed the top-up yet. Please refresh shortly.",
+                variant: "default",
+              });
+            }
+          })
+          .catch(() => {
+            toast({
+              title: "Top-up verification pending",
+              description: "Payment succeeded, but confirmation is still processing. Please refresh shortly.",
+            });
+          });
+      } else {
+        toast({
+          title: "Top-up verification pending",
+          description: "Payment succeeded, but no Checkout session was returned. Please refresh shortly.",
+        });
+      }
       window.history.replaceState({}, "", window.location.pathname);
     } else if (topupStatus === "cancelled") {
       toast({

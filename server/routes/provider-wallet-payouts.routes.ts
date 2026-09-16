@@ -46,7 +46,7 @@ import {
 import { dispatchNotification } from "../services/notification-dispatcher";
 import { trackEvent } from "../services/analyticsTracker";
 import { getRates, fromUSDSync, toUSDSync, formatSync } from "../services/currency";
-import { isStripeConfigured, createCheckoutSession } from "../stripe";
+import { getStripe, isStripeConfigured, createCheckoutSession } from "../stripe";
 import { round2, roundBookingAmount } from "../lib/math";
 import { currencyFractionDigits } from "@shared/currency";
 import { paymentLimiter } from "../middleware/rateLimiter";
@@ -72,7 +72,7 @@ import {
   sanitizeProviderWithUser,
   sanitizeProviderListItem,
 } from "../utils/sanitize";
-import { slog } from "../lib/logger";
+import { logPayment, slog } from "../lib/logger";
 import { requirePermission, PERMISSIONS } from "../middleware/rbac";
 import {
   fireAdminNotification,
@@ -83,6 +83,7 @@ import multer from "multer";
 import { notify } from "../services/notification-dispatcher";
 import { applyPendingCashFeeDeductions, linkCashFeeDeductionsToPayout } from "../lib/provider-settlement";
 import { transitionProviderPayout } from "../lib/provider-payout-lifecycle";
+import { creditProviderWalletTopup } from "../services/provider-wallet-topup.service";
 
 export function registerProviderWalletPayoutsRoutes(app: Express): void {
   app.get("/api/provider/earnings", authenticateToken, async (req: AuthRequest, res: Response) => {
@@ -607,7 +608,7 @@ export function registerProviderWalletPayoutsRoutes(app: Express): void {
         currency: "usd",
         description: `Provider wallet top-up (${round2(amount)} USD)`,
         customerEmail: user.email,
-        successUrl: `${origin}${cleanReturnPath}${separator}topup=success`,
+       successUrl: `${origin}${cleanReturnPath}${separator}topup=success&session_id={CHECKOUT_SESSION_ID}`,
         cancelUrl: `${origin}${cleanReturnPath}${separator}topup=cancelled`,
         metadata: {
           type: "provider_wallet_topup",
@@ -622,6 +623,78 @@ export function registerProviderWalletPayoutsRoutes(app: Express): void {
     } catch (error: any) {
       console.error("[POST /api/provider/wallet/topup]", error);
       res.status(500).json({ message: error?.message || "Failed to start provider wallet top-up" });
+    }
+  });
+
+  // Stripe webhooks are the primary settlement path. This endpoint is an
+  // idempotent fallback for the Checkout success return, so a delayed/missing
+  // webhook cannot leave a successfully paid top-up invisible in the wallet.
+  app.get("/api/provider/wallet/topup/verify", authenticateToken, async (req: AuthRequest, res: Response) => {
+    try {
+      if (req.user?.role !== "provider") {
+        return res.status(403).json({ message: "Provider account required" });
+      }
+      const sessionId = String(req.query.sessionId ?? "");
+      if (!/^cs_[A-Za-z0-9_]+$/.test(sessionId)) {
+        return res.status(400).json({ message: "Invalid Stripe Checkout session" });
+      }
+
+      const stripe = getStripe();
+      if (!stripe) {
+        return res.status(503).json({ message: "Stripe is not configured" });
+      }
+
+      const provider = await storage.getProviderByUserId(req.user.id);
+      if (!provider) return res.status(404).json({ message: "Provider not found" });
+
+      const session = await stripe.checkout.sessions.retrieve(sessionId);
+      const metadata = session.metadata ?? {};
+      if (
+        metadata.type !== "provider_wallet_topup"
+        || metadata.providerId !== provider.id
+        || metadata.providerUserId !== req.user.id
+      ) {
+        return res.status(403).json({ message: "Checkout session does not belong to this provider" });
+      }
+
+      if (session.payment_status !== "paid") {
+        return res.json({ status: session.payment_status ?? "pending", credited: false });
+      }
+
+      const paymentIntentId = typeof session.payment_intent === "string"
+        ? session.payment_intent
+        : session.payment_intent?.id ?? null;
+      const amountFromStripe = typeof session.amount_total === "number"
+        ? session.amount_total / 100
+        : Number(metadata.amount);
+      if (!(amountFromStripe > 0) || !Number.isFinite(amountFromStripe)) {
+        return res.status(400).json({ message: "Stripe session has no valid top-up amount" });
+      }
+
+      const result = await creditProviderWalletTopup({
+        providerId: provider.id,
+        providerUserId: req.user.id,
+        providerSessionId: session.id,
+        providerPaymentId: paymentIntentId,
+        amountUsd: round2(amountFromStripe),
+      });
+
+      if (result.credited) {
+        logPayment({ event: "wallet_delta", userId: req.user.id, amountUsd: amountFromStripe });
+        notify.walletTopup(req.user.id, {
+          formattedAmount: formatSync(amountFromStripe, "USD", await getRates()),
+          newBalance: formatSync(result.balanceAfter, "USD", await getRates()),
+        }).catch(() => {});
+      }
+
+      return res.json({
+        status: "paid",
+        credited: result.credited,
+        balanceAfter: result.balanceAfter,
+      });
+    } catch (error: any) {
+      console.error("[GET /api/provider/wallet/topup/verify]", error);
+      return res.status(500).json({ message: error?.message || "Failed to verify wallet top-up" });
     }
   });
 
