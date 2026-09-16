@@ -602,9 +602,9 @@ export default function ProviderEarnings() {
                             })()}
                             <TableCell>
                               <div className="flex items-center gap-1 flex-wrap">
-                                {e.paymentStatus === "completed" ? (
+                                {["paid", "completed"].includes(e.paymentStatus ?? "") ? (
                                   <Badge className="bg-green-500/10 text-green-700 dark:text-green-400 border border-green-500/20 text-xs" data-testid={`badge-status-${e.id}`}>
-                                    Completed
+                                    Paid
                                   </Badge>
                                 ) : (
                                   <Badge variant="outline" className="bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20 text-xs" data-testid={`badge-status-${e.id}`}>

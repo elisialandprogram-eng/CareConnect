@@ -13,5 +13,6 @@ Cash and bank-transfer bookings must keep the payment row in `pending` status at
 - Backfill: any existing rows where `payments.status = 'completed'` but `appointments.payment_status = 'pending'` should be repaired with an `UPDATE`.
 - Wallet/card flows are the only methods that auto-complete at booking.
 - When a provider marks the appointment as `completed`, the status-update endpoint will auto-complete only pre-paid methods (`card`/`wallet`); cash/bank_transfer remain blocked until payment is explicitly marked completed.
+- Provider earnings and payout queries must treat `paid` as the canonical successful payment status; `completed` is legacy compatibility only. Return the latest payment row rather than filtering only on `status = 'completed'`.
 
 **Why:** The provider earnings page shows a `Payment:` line that reads `appointments.payment_status`. If that column is not kept in sync with `payments.status`, the provider sees a completed payment as still pending in earnings. The earnings table's own `Status` column is the *payout* status (`provider_earnings.status`), which is a separate lifecycle and correctly stays pending until the admin pays out.

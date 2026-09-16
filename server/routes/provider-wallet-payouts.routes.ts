@@ -184,7 +184,6 @@ export function registerProviderWalletPayoutsRoutes(app: Express): void {
             SELECT p.status, p.payment_method
             FROM payments p
             WHERE p.appointment_id = a.id
-              AND p.status = 'completed'
             ORDER BY p.created_at DESC
             LIMIT 1
           ) pay ON true
@@ -254,7 +253,6 @@ export function registerProviderWalletPayoutsRoutes(app: Express): void {
               SELECT p.status, p.payment_method
              FROM payments p
               WHERE p.appointment_id = a.id
-                AND p.status = 'completed'
              ORDER BY p.created_at DESC
              LIMIT 1
          ) pay ON true
