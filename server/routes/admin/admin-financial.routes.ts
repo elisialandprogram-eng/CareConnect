@@ -2827,6 +2827,7 @@ export function registerAdminFinancialRoutes(app: Express): void {
             a.end_at,
             a.provider_timezone,
             a.country_code,
+             a.notes AS booking_note,
             a.total_amount,
             a.final_total_usd,
             a.display_currency,

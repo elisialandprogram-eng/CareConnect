@@ -41,6 +41,7 @@ interface MasterRow {
   end_at: string | null;
   provider_timezone: string | null;
   country_code: string;
+  booking_note: string | null;
   // Financial — booking currency
   total_amount: string;
   display_currency: string | null;
@@ -376,6 +377,7 @@ function InvestigationDrawer({
             <Row label="Last Updated"    value={fmtDateTime(row.updated_at)} />
             <Row label="Timezone"        value={row.provider_timezone} />
             <Row label="Country"         value={row.country_code} />
+             <Row label="Booking Note"    value={row.booking_note} />
             <Row label="Audit Reference" value={<span className="font-mono text-xs">{row.id}</span>} />
           </Section>
 
@@ -466,6 +468,9 @@ function InvestigationDrawer({
           <Section title="G · Payout" icon={Wallet}>
             <Row label="Earning ID"      value={row.earning_id} />
             <Row label="Provider Net Earnings (USD)" value={row.provider_net_earnings_usd ? fmt(n(row.provider_net_earnings_usd)) : null} />
+             <Row label="Provider-side Commission (USD)" value={
+               row.provider_commission_usd != null ? fmt(n(row.provider_commission_usd)) : null
+             } />
             <Row label="Platform Fee (USD)"   value={row.earning_platform_fee ? fmt(n(row.earning_platform_fee)) : null} />
             <Row label="Earnings Status" value={<StatusBadge value={row.earning_status} />} />
             <Row label="Payout Reference" value={row.payout_reference} />
