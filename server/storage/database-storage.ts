@@ -1283,7 +1283,11 @@ export class DatabaseStorage extends PackagesMixin implements IStorage {
       // reflects the most recent booking between this patient–provider pair.
       if (opts?.appointmentId && existing.appointmentId !== opts.appointmentId) {
         const [updated] = await db.update(realtimeConversations)
-          .set({ appointmentId: opts.appointmentId, contextType: opts.contextType ?? "appointment" })
+          .set({
+            appointmentId: opts.appointmentId,
+            contextType: opts.contextType ?? "appointment",
+            lockedAt: null,
+          })
           .where(eq(realtimeConversations.id, existing.id))
           .returning();
         return updated;

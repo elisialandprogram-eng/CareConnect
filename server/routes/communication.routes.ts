@@ -19,6 +19,7 @@ import {
 import { isAdminRole } from "../middleware/country";
 import { saveChatUpload } from "../services/uploads";
 import { getOrCreateVideoSession } from "../services/video";
+import { canUseDirectPatientProviderChat } from "../services/chat-access";
 import { isUserOnline, pushToUser } from "../chat/ws";
 import { db, pool } from "../db";
 import { realtimeConversations, realtimeMessages, messageEditHistory } from "@shared/schema";
@@ -28,6 +29,21 @@ export function registerCommunicationRoutes(app: Express): void {
 
   app.get("/api/chat/messages/:conversationId", authenticateToken, async (req: AuthRequest, res: Response) => {
     try {
+      const [conversation] = await db.select().from(realtimeConversations)
+        .where(eq(realtimeConversations.id, req.params.conversationId));
+      if (!conversation) return res.status(404).json({ message: "Conversation not found" });
+      if (conversation.participant1Id !== req.user!.id && conversation.participant2Id !== req.user!.id) {
+        return res.status(403).json({ message: "Not a participant in this conversation" });
+      }
+      const otherId = conversation.participant1Id === req.user!.id
+        ? conversation.participant2Id
+        : conversation.participant1Id;
+      if (!await canUseDirectPatientProviderChat(req.user!.id, otherId)) {
+        return res.status(403).json({
+          message: "Direct chat is available only with an upcoming or ongoing appointment.",
+          code: "CHAT_REQUIRES_ACTIVE_APPOINTMENT",
+        });
+      }
       const msgs = await storage.getRealtimeMessages(req.params.conversationId);
       res.json(msgs);
     } catch (error) {
@@ -50,6 +66,13 @@ export function registerCommunicationRoutes(app: Express): void {
       if (!conv) return res.status(404).json({ message: "Conversation not found" });
       if (conv.participant1Id !== req.user!.id && conv.participant2Id !== req.user!.id) {
         return res.status(403).json({ message: "Not a participant in this conversation" });
+      }
+      const chatOtherId = conv.participant1Id === req.user!.id ? conv.participant2Id : conv.participant1Id;
+      if (!await canUseDirectPatientProviderChat(req.user!.id, chatOtherId)) {
+        return res.status(403).json({
+          message: "Direct chat is available only with an upcoming or ongoing appointment.",
+          code: "CHAT_REQUIRES_ACTIVE_APPOINTMENT",
+        });
       }
 
       // Check if conversation is locked
@@ -136,6 +159,13 @@ export function registerCommunicationRoutes(app: Express): void {
   app.post("/api/chat/conversations", authenticateToken, async (req: AuthRequest, res: Response) => {
     try {
       const { participantId } = req.body;
+      if (!participantId) return res.status(400).json({ message: "participantId required" });
+      if (!await canUseDirectPatientProviderChat(req.user!.id, participantId)) {
+        return res.status(403).json({
+          message: "You need an upcoming or ongoing appointment with this provider to start a chat.",
+          code: "CHAT_REQUIRES_ACTIVE_APPOINTMENT",
+        });
+      }
       const conv = await storage.getOrCreateConversation(req.user!.id, participantId);
       res.json(conv);
     } catch (error) {
@@ -149,6 +179,12 @@ export function registerCommunicationRoutes(app: Express): void {
       const { participantId, appointmentId } = req.body || {};
       if (!participantId) return res.status(400).json({ message: "participantId required" });
       if (participantId === req.user!.id) return res.status(400).json({ message: "Cannot chat with yourself" });
+      if (!await canUseDirectPatientProviderChat(req.user!.id, participantId)) {
+        return res.status(403).json({
+          message: "You need an upcoming or ongoing appointment with this provider to start a chat.",
+          code: "CHAT_REQUIRES_ACTIVE_APPOINTMENT",
+        });
+      }
       const conv = await storage.getOrCreateRealtimeConversation(
         req.user!.id,
         participantId,
@@ -180,6 +216,12 @@ export function registerCommunicationRoutes(app: Express): void {
       if (!isParticipant) return res.status(403).json({ message: "Not a participant in this appointment" });
       if (!providerUserId) return res.status(400).json({ message: "Provider user not found" });
       if (providerUserId === appt.patientId) return res.status(400).json({ message: "Invalid participants" });
+      if (!await canUseDirectPatientProviderChat(appt.patientId, providerUserId)) {
+        return res.status(403).json({
+          message: "Direct chat is available only with an upcoming or ongoing appointment.",
+          code: "CHAT_REQUIRES_ACTIVE_APPOINTMENT",
+        });
+      }
 
       const conv = await storage.getOrCreateRealtimeConversation(
         appt.patientId,
@@ -199,12 +241,20 @@ export function registerCommunicationRoutes(app: Express): void {
       const me = req.user!.id;
       const convs = await storage.getRealtimeConversations(me);
       const counts = await storage.getUnreadChatCounts(me);
-      const otherIds = Array.from(new Set(convs.map(c => c.participant1Id === me ? c.participant2Id : c.participant1Id)));
+      const eligibleConvs = (await Promise.all(
+        convs.map(async (conversation) => {
+          const otherId = conversation.participant1Id === me
+            ? conversation.participant2Id
+            : conversation.participant1Id;
+          return await canUseDirectPatientProviderChat(me, otherId) ? conversation : null;
+        }),
+      )).filter((conversation): conversation is typeof convs[number] => !!conversation);
+      const otherIds = Array.from(new Set(eligibleConvs.map(c => c.participant1Id === me ? c.participant2Id : c.participant1Id)));
       const others = await Promise.all(otherIds.map(id => storage.getUser(id)));
       const map = new Map(others.filter(Boolean).map(u => [u!.id, u!]));
 
       // Batch-fetch appointment context for linked conversations
-      const apptIds = convs
+      const apptIds = eligibleConvs
         .filter(c => !!(c as any).appointmentId)
         .map(c => (c as any).appointmentId as string);
       const apptMap = new Map<string, any>();
@@ -234,7 +284,7 @@ export function registerCommunicationRoutes(app: Express): void {
         }));
       }
 
-      const out = convs.map(c => {
+      const out = eligibleConvs.map(c => {
         const otherId = c.participant1Id === me ? c.participant2Id : c.participant1Id;
         const u = map.get(otherId);
         const apptId = (c as any).appointmentId as string | null;
@@ -278,8 +328,21 @@ export function registerCommunicationRoutes(app: Express): void {
   app.get("/api/chat/unread-counts", authenticateToken, async (req: AuthRequest, res: Response) => {
     try {
       const counts = await storage.getUnreadChatCounts(req.user!.id);
-      const total = Object.values(counts).reduce((a, b) => a + b, 0);
-      res.json({ counts, total });
+      const conversations = await storage.getRealtimeConversations(req.user!.id);
+      const eligibleIds = new Set<string>();
+      await Promise.all(conversations.map(async (conversation) => {
+        const otherId = conversation.participant1Id === req.user!.id
+          ? conversation.participant2Id
+          : conversation.participant1Id;
+        if (await canUseDirectPatientProviderChat(req.user!.id, otherId)) {
+          eligibleIds.add(conversation.id);
+        }
+      }));
+      const eligibleCounts = Object.fromEntries(
+        Object.entries(counts).filter(([conversationId]) => eligibleIds.has(conversationId)),
+      );
+      const total = Object.values(eligibleCounts).reduce((a, b) => a + b, 0);
+      res.json({ counts: eligibleCounts, total });
     } catch (e) {
       res.status(500).json({ counts: {}, total: 0 });
     }

@@ -6,6 +6,7 @@ import { realtimeMessages, realtimeConversations, messageEditHistory, providerOf
 import { and, eq, ne } from "drizzle-orm";
 import jwt from "jsonwebtoken";
 import { notify } from "../services/notification-dispatcher";
+import { canUseDirectPatientProviderChat } from "../services/chat-access";
 
 // SESSION_SECRET is validated at startup (server/config/env.ts) and guaranteed
 // to be present and secure before this module is ever loaded. No fallback allowed.
@@ -170,6 +171,17 @@ export function setupChatWS(server: Server) {
               try { ws.send(JSON.stringify({ type: "error", code: "NOT_PARTICIPANT", message: "You are not a participant in this conversation." })); } catch {}
               return;
             }
+            const recipientId = partsCheck.p1 === ws.userId ? partsCheck.p2 : partsCheck.p1;
+            if (!await canUseDirectPatientProviderChat(ws.userId, recipientId)) {
+              try {
+                ws.send(JSON.stringify({
+                  type: "error",
+                  code: "CHAT_REQUIRES_ACTIVE_APPOINTMENT",
+                  message: "Direct chat is available only with an upcoming or ongoing appointment.",
+                }));
+              } catch {}
+              return;
+            }
             if (partsCheck.lockedAt && partsCheck.lockedAt <= new Date()) {
               try { ws.send(JSON.stringify({ type: "error", code: "CONVERSATION_LOCKED", message: "This conversation has ended." })); } catch {}
               return;
@@ -187,7 +199,6 @@ export function setupChatWS(server: Server) {
             } as any);
             // Reuse the already-fetched participants (avoids a second DB round-trip)
             const parts = partsCheck;
-            const recipientId = parts.p1 === ws.userId ? parts.p2 : parts.p1;
 
             // Push to both participants' open sockets
             sendTo(parts.p1, { type: "message", data: newMessage });

@@ -1227,7 +1227,7 @@
     "toast_practitioner_assigned": "Szakember hozzárendelve a szolgáltatáshoz",
     "toast_service_added": "Szolgáltatás sikeresen hozzáadva",
     "toast_appt_completed": "Időpont befejezve",
-    "toast_appt_completed_desc": "A {{number}} számú számla létrehozva és e-mailben elküldve a páciensnek.",
+    "toast_appt_completed_desc": "A {{invoiceNumber}} számú számla létrehozva és e-mailben elküldve a páciensnek.",
     "toast_appt_updated": "Időpont frissítve",
     "toast_failed_update_appt": "Az időpont frissítése sikertelen",
     "toast_payment_marked": "Fizetés beérkezettként megjelölve",

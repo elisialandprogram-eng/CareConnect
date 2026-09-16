@@ -1227,7 +1227,7 @@
     "toast_practitioner_assigned": "متخصص به خدمت تخصیص داده شد",
     "toast_service_added": "خدمت با موفقیت اضافه شد",
     "toast_appt_completed": "نوبت تکمیل شد",
-    "toast_appt_completed_desc": "فاکتور {{number}} ایجاد و به ایمیل بیمار ارسال شد.",
+    "toast_appt_completed_desc": "فاکتور {{invoiceNumber}} ایجاد و به ایمیل بیمار ارسال شد.",
     "toast_appt_updated": "نوبت به‌روزرسانی شد",
     "toast_failed_update_appt": "به‌روزرسانی نوبت ناموفق بود",
     "toast_payment_marked": "پرداخت به عنوان دریافت شده علامت‌گذاری شد",

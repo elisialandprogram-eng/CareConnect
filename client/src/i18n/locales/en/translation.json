@@ -1227,7 +1227,7 @@
     "toast_practitioner_assigned": "Practitioner assigned to service",
     "toast_service_added": "Service added successfully",
     "toast_appt_completed": "Appointment completed",
-    "toast_appt_completed_desc": "Invoice {{number}} was generated and emailed to the client.",
+    "toast_appt_completed_desc": "Invoice {{invoiceNumber}} was generated and emailed to the client.",
     "toast_appt_updated": "Appointment updated",
     "toast_failed_update_appt": "Failed to update appointment",
     "toast_payment_marked": "Payment marked as received",

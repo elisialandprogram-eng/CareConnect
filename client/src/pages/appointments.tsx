@@ -324,7 +324,7 @@ export default function Appointments() {
                                 method: "POST",
                                 credentials: "include",
                                 headers: { "Content-Type": "application/json" },
-                                body: JSON.stringify({ participantId }),
+                                body: JSON.stringify({ participantId, appointmentId: appointment.id }),
                               });
                               window.dispatchEvent(new CustomEvent("open-chat"));
                               toast({ title: t("appointments.chat_opened"), description: t("appointments.chat_opened_desc") });
