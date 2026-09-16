@@ -53,6 +53,7 @@ interface BookingRow {
   end_at: string | null;
   provider_timezone: string | null;
   country_code: string;
+  booking_note: string | null;
   // Financial
   total_amount: string;
   final_total_usd: string | null;
@@ -60,6 +61,8 @@ interface BookingRow {
   display_amount: string | null;
   exchange_rate_used: string | null;
   platform_fee_amount: string;
+  commission_amount: string | null;
+  provider_commission_usd: string | null;
   promo_code: string | null;
   promo_discount: string;
   tax_amount: string;
@@ -324,6 +327,7 @@ function InvestigationDrawer({
             <Row label="Payment Status" value={<SBadge value={row.payment_status} />} />
             <Row label="Refund Status"  value={<SBadge value={row.refund_status} />} />
             <Row label="Country"        value={row.country_code} />
+             <Row label="Booking Note"   value={row.booking_note?.trim() || "No booking note recorded"} />
             <Row label="Created"        value={fmtDateTime(row.created_at)} />
             <Row label="Last Updated"   value={fmtDateTime(row.updated_at)} />
             <Row label="Audit Ref"      value={<span className="font-mono text-xs">{row.id}</span>} />
@@ -379,6 +383,16 @@ function InvestigationDrawer({
             <Row label="Booking Amount"    value={<strong>{fmtLocal(n(row.total_amount))}</strong>} />
             {cur !== "USD" && usdNorm != null && <Row label="≈ USD" value={<span className="text-muted-foreground">{fmt(usdNorm)}</span>} />}
             <Row label="Platform Fee"      value={fmtLocal(n(row.platform_fee_amount))} />
+             <Row label="Platform Commission" value={
+               <span>
+                 {fmtLocal(n(row.commission_amount))}
+                 {cur !== "USD" && row.provider_commission_usd != null && (
+                   <span className="text-xs text-muted-foreground ms-1">
+                     ({fmt(n(row.provider_commission_usd))})
+                   </span>
+                 )}
+               </span>
+             } />
             <Row label={`Service tax (${n(row.service_tax_rate)}%)`} value={fmtLocal(n(row.service_tax_amount))} />
             <Row label={`Platform tax (${n(row.platform_tax_rate)}%)`} value={fmtLocal(n(row.platform_tax_amount))} />
             <Row label="Total tax"          value={fmtLocal(n(row.tax_amount))} />
@@ -387,6 +401,9 @@ function InvestigationDrawer({
             {n(row.refund_amount) > 0 && <Row label="Refund Amount" value={fmtLocal(n(row.refund_amount))} />}
             {row.exchange_rate_used && cur !== "USD" && <Row label="Exchange Rate" value={`1 USD = ${row.exchange_rate_used} ${cur}`} />}
             <Row label="Provider Net Earnings (USD)" value={row.provider_net_earnings_usd ? fmt(n(row.provider_net_earnings_usd)) : null} />
+             <Row label="Provider-side Commission (USD)" value={
+               row.provider_commission_usd != null ? fmt(n(row.provider_commission_usd)) : null
+             } />
           </Section>
 
           {/* G: Payment */}

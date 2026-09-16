@@ -426,7 +426,7 @@ function InvestigationDrawer({
               </span>
             } />
             <Row label="Platform Fee"    value={fmtLocal(n(row.platform_fee_amount))} />
-             <Row label="Provider Commission" value={
+             <Row label="Platform Commission" value={
                <span>
                  {fmtLocal(n(row.commission_amount))}
                  {cur !== "USD" && n(row.provider_commission_usd) > 0 && (
