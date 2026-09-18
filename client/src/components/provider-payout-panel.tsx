@@ -15,6 +15,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Banknote, ArrowDownToLine, Clock, CheckCircle2, XCircle, AlertCircle, Wallet, TrendingUp, History } from "lucide-react";
 import { useCurrency } from "@/lib/currency";
+import { useTranslation } from "react-i18next";
 
 interface PayoutSummary {
   availableBalance: number;
@@ -45,12 +46,12 @@ interface PayoutRequest {
   created_at: string;
 }
 
-function statusBadge(status: string) {
+function statusBadge(status: string, t: any) {
   switch (status) {
-    case "pending":  return <Badge className="bg-amber-100 text-amber-800 border-amber-200">Pending review</Badge>;
-    case "approved": return <Badge className="bg-blue-100 text-blue-800 border-blue-200">Approved</Badge>;
-    case "paid":     return <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200">Paid</Badge>;
-    case "rejected": return <Badge className="bg-red-100 text-red-800 border-red-200">Rejected</Badge>;
+    case "pending":  return <Badge className="bg-amber-100 text-amber-800 border-amber-200">{t("provider_dashboard.pending_review", "Pending review")}</Badge>;
+    case "approved": return <Badge className="bg-blue-100 text-blue-800 border-blue-200">{t("provider_dashboard.approved", "Approved")}</Badge>;
+    case "paid":     return <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200">{t("provider_dashboard.paid", "Paid")}</Badge>;
+    case "rejected": return <Badge className="bg-red-100 text-red-800 border-red-200">{t("provider_dashboard.rejected", "Rejected")}</Badge>;
     default:         return <Badge variant="outline">{status}</Badge>;
   }
 }
@@ -63,6 +64,7 @@ function statusIcon(status: string) {
 }
 
 export function ProviderPayoutPanel() {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const { format: fmt, convert, code } = useCurrency();
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -96,7 +98,7 @@ export function ProviderPayoutPanel() {
   const createMutation = useMutation({
     mutationFn: (body: object) => apiRequest("POST", "/api/provider/payout-requests", body),
     onSuccess: () => {
-      toast({ title: "Payout request submitted", description: "Admin will review your request shortly." });
+      toast({ title: t("provider_dashboard.payout_submitted", "Payout request submitted"), description: t("provider_dashboard.payout_review_shortly", "Admin will review your request shortly.") });
       queryClient.invalidateQueries({ queryKey: ["/api/provider/payout-summary"] });
       queryClient.invalidateQueries({ queryKey: ["/api/provider/payout-requests"] });
       queryClient.invalidateQueries({ queryKey: ["/api/provider/wallet"] });
@@ -104,19 +106,19 @@ export function ProviderPayoutPanel() {
       setDialogOpen(false);
       setAmount(""); setBankName(""); setAccountHolder(""); setAccountNumberMasked(""); setNotes("");
     },
-    onError: (e: any) => toast({ title: "Failed to submit", description: e.message, variant: "destructive" }),
+    onError: (e: any) => toast({ title: t("provider_dashboard.failed_to_submit", "Failed to submit"), description: e.message, variant: "destructive" }),
   });
 
   const cancelMutation = useMutation({
     mutationFn: (id: string) => apiRequest("DELETE", `/api/provider/payout-requests/${id}`),
     onSuccess: () => {
-      toast({ title: "Payout request cancelled", description: "Your funds have been returned to your available balance." });
+      toast({ title: t("provider_dashboard.payout_cancelled", "Payout request cancelled"), description: t("provider_dashboard.payout_funds_returned", "Your funds have been returned to your available balance.") });
       queryClient.invalidateQueries({ queryKey: ["/api/provider/payout-summary"] });
       queryClient.invalidateQueries({ queryKey: ["/api/provider/payout-requests"] });
       queryClient.invalidateQueries({ queryKey: ["/api/provider/wallet"] });
       queryClient.invalidateQueries({ queryKey: ["/api/provider/wallet/ledger"] });
     },
-    onError: (e: any) => toast({ title: "Failed to cancel", description: e.message, variant: "destructive" }),
+    onError: (e: any) => toast({ title: t("provider_dashboard.failed_to_cancel", "Failed to cancel"), description: e.message, variant: "destructive" }),
   });
 
   const hasOpenRequest = requests?.some(r => r.status === "pending" || r.status === "approved");
@@ -124,9 +126,9 @@ export function ProviderPayoutPanel() {
 
   function handleSubmit() {
     const n = parseFloat(amount);
-    if (isNaN(n) || n <= 0) { toast({ title: "Enter a valid amount", variant: "destructive" }); return; }
+    if (isNaN(n) || n <= 0) { toast({ title: t("provider_dashboard.enter_valid_amount", "Enter a valid amount"), variant: "destructive" }); return; }
     const availableLocal = convert(available);
-    if (n > availableLocal + 0.5) { toast({ title: "Amount exceeds available balance", variant: "destructive" }); return; }
+    if (n > availableLocal + 0.5) { toast({ title: t("provider_dashboard.amount_exceeds_balance", "Amount exceeds available balance"), variant: "destructive" }); return; }
     createMutation.mutate({ amount: n, method, bankName, accountHolder, accountNumberMasked, notes });
   }
 
@@ -141,31 +143,31 @@ export function ProviderPayoutPanel() {
             <div className="relative overflow-hidden rounded-xl p-5 bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-md" data-testid="card-available-balance">
               <div className="absolute -right-4 -top-4 h-20 w-20 rounded-full bg-white/10 blur-xl" />
               <div className="flex items-center justify-between">
-              <p className="text-xs font-semibold uppercase tracking-wider text-white/80">Final withdrawable balance</p>
+              <p className="text-xs font-semibold uppercase tracking-wider text-white/80">{t("provider_dashboard.final_withdrawable_balance", "Final withdrawable balance")}</p>
                 <Wallet className="h-4 w-4 text-white/70" />
               </div>
               <p className="text-3xl font-bold mt-2" data-testid="text-available-balance">{fmt(available)}</p>
-               <p className="text-[11px] text-white/70 mt-1">After pending settlement deductions</p>
+                <p className="text-[11px] text-white/70 mt-1">{t("provider_dashboard.after_settlement_deductions", "After pending settlement deductions")}</p>
             </div>
 
             <div className="relative overflow-hidden rounded-xl p-5 bg-gradient-to-br from-amber-500 to-orange-500 text-white shadow-md" data-testid="card-pending-payout">
               <div className="absolute -right-4 -top-4 h-20 w-20 rounded-full bg-white/10 blur-xl" />
               <div className="flex items-center justify-between">
-                <p className="text-xs font-semibold uppercase tracking-wider text-white/80">In-flight payouts</p>
+                <p className="text-xs font-semibold uppercase tracking-wider text-white/80">{t("provider_dashboard.in_flight_payouts", "In-flight payouts")}</p>
                 <Clock className="h-4 w-4 text-white/70" />
               </div>
               <p className="text-3xl font-bold mt-2" data-testid="text-pending-payout">{fmt(summary?.pendingPayouts ?? 0)}</p>
-              <p className="text-[11px] text-white/70 mt-1">Pending admin approval</p>
+               <p className="text-[11px] text-white/70 mt-1">{t("provider_dashboard.pending_admin_approval", "Pending admin approval")}</p>
             </div>
 
             <div className="relative overflow-hidden rounded-xl p-5 bg-gradient-to-br from-violet-500 to-fuchsia-600 text-white shadow-md" data-testid="card-lifetime-paid">
               <div className="absolute -right-4 -top-4 h-20 w-20 rounded-full bg-white/10 blur-xl" />
               <div className="flex items-center justify-between">
-                <p className="text-xs font-semibold uppercase tracking-wider text-white/80">Lifetime paid out</p>
+                <p className="text-xs font-semibold uppercase tracking-wider text-white/80">{t("provider_dashboard.lifetime_paid_out", "Lifetime paid out")}</p>
                 <TrendingUp className="h-4 w-4 text-white/70" />
               </div>
               <p className="text-3xl font-bold mt-2" data-testid="text-lifetime-paid">{fmt(summary?.lifetimePaidOut ?? 0)}</p>
-              <p className="text-[11px] text-white/70 mt-1">All-time withdrawals</p>
+               <p className="text-[11px] text-white/70 mt-1">{t("provider_dashboard.all_time_withdrawals", "All-time withdrawals")}</p>
             </div>
           </>
         )}
@@ -174,19 +176,19 @@ export function ProviderPayoutPanel() {
       {!summaryLoading && summary && (
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-base">Settlement details</CardTitle>
-             <CardDescription>Provider-side settlement deductions are applied automatically when applicable.</CardDescription>
+            <CardTitle className="text-base">{t("provider_dashboard.settlement_details", "Settlement details")}</CardTitle>
+             <CardDescription>{t("provider_dashboard.settlement_details_desc", "Provider-side settlement deductions are applied automatically when applicable.")}</CardDescription>
           </CardHeader>
           <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <div className="rounded-lg border p-3"><p className="text-xs text-muted-foreground">Gross available</p><p className="font-semibold mt-1">{fmt(summary.grossAvailableBalance ?? 0)}</p></div>
-             <div className="rounded-lg border p-3"><p className="text-xs text-muted-foreground">Pending settlement deduction</p><p className="font-semibold mt-1 text-amber-700">−{fmt(summary.pendingSettlementDeduction ?? 0)}</p></div>
+            <div className="rounded-lg border p-3"><p className="text-xs text-muted-foreground">{t("provider_dashboard.gross_available", "Gross available")}</p><p className="font-semibold mt-1">{fmt(summary.grossAvailableBalance ?? 0)}</p></div>
+             <div className="rounded-lg border p-3"><p className="text-xs text-muted-foreground">{t("provider_dashboard.pending_settlement_deduction", "Pending settlement deduction")}</p><p className="font-semibold mt-1 text-amber-700">−{fmt(summary.pendingSettlementDeduction ?? 0)}</p></div>
             {(summary.outstandingWalletDebt ?? 0) > 0 && (
               <div className="rounded-lg border border-red-200 bg-red-50 p-3 dark:border-red-900/50 dark:bg-red-950/20">
-                <p className="text-xs text-red-700 dark:text-red-300">Outstanding platform balance</p>
+                 <p className="text-xs text-red-700 dark:text-red-300">{t("provider_dashboard.outstanding_platform_balance", "Outstanding platform balance")}</p>
                 <p className="font-semibold mt-1 text-red-700 dark:text-red-300">{fmt(summary.outstandingWalletDebt)}</p>
               </div>
             )}
-            <div className="rounded-lg border p-3"><p className="text-xs text-muted-foreground">Cash bookings</p><p className="font-semibold mt-1">{summary.cashBookingCount ?? 0}</p></div>
+             <div className="rounded-lg border p-3"><p className="text-xs text-muted-foreground">{t("provider_dashboard.cash_bookings", "Cash bookings")}</p><p className="font-semibold mt-1">{summary.cashBookingCount ?? 0}</p></div>
           </CardContent>
         </Card>
       )}
@@ -198,10 +200,10 @@ export function ProviderPayoutPanel() {
             <div>
               <CardTitle className="flex items-center gap-2 text-base">
                 <ArrowDownToLine className="h-5 w-5 text-emerald-600" />
-                Request Withdrawal
+                {t("provider_dashboard.request_withdrawal", "Request Withdrawal")}
               </CardTitle>
               <CardDescription className="mt-1">
-                Withdraw your available earnings. Processed within 2–3 business days.
+                 {t("provider_dashboard.withdrawal_desc", "Withdraw your available earnings. Processed within 2–3 business days.")}
               </CardDescription>
             </div>
             <Button
@@ -211,19 +213,19 @@ export function ProviderPayoutPanel() {
               data-testid="button-request-payout"
             >
               <ArrowDownToLine className="h-4 w-4 mr-2" />
-              Request Withdrawal
+               {t("provider_dashboard.request_withdrawal", "Request Withdrawal")}
             </Button>
           </div>
           {hasOpenRequest && (
             <div className="mt-3 flex items-center gap-2 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
               <AlertCircle className="h-4 w-4 shrink-0" />
-              You already have an open payout request being processed.
+               {t("provider_dashboard.open_payout_request", "You already have an open payout request being processed.")}
             </div>
           )}
           {available <= 0 && !hasOpenRequest && (
             <div className="mt-3 flex items-center gap-2 text-sm text-muted-foreground bg-muted/50 border border-border rounded-lg px-3 py-2">
               <AlertCircle className="h-4 w-4 shrink-0" />
-              No available balance to withdraw yet.
+               {t("provider_dashboard.no_available_balance", "No available balance to withdraw yet.")}
             </div>
           )}
         </CardHeader>
@@ -234,9 +236,9 @@ export function ProviderPayoutPanel() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
             <History className="h-5 w-5" />
-            Payout History
+             {t("provider_dashboard.payout_history", "Payout History")}
           </CardTitle>
-          <CardDescription>All your withdrawal requests and their status.</CardDescription>
+           <CardDescription>{t("provider_dashboard.payout_history_desc", "All your withdrawal requests and their status.")}</CardDescription>
         </CardHeader>
         <CardContent>
           {requestsLoading ? (
@@ -246,7 +248,7 @@ export function ProviderPayoutPanel() {
           ) : !requests?.length ? (
             <div className="text-center py-10 text-muted-foreground">
               <Banknote className="h-10 w-10 mx-auto mb-3 opacity-30" />
-              <p className="text-sm">No payout requests yet.</p>
+               <p className="text-sm">{t("provider_dashboard.no_payout_requests", "No payout requests yet.")}</p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -256,7 +258,7 @@ export function ProviderPayoutPanel() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-semibold text-sm">{fmt(Number(r.amount))}</span>
-                      {statusBadge(r.status)}
+                       {statusBadge(r.status, t)}
                       <span className="text-xs text-muted-foreground capitalize">{r.method?.replace("_", " ")}</span>
                     </div>
                     {r.bank_name && (
@@ -266,11 +268,11 @@ export function ProviderPayoutPanel() {
                       <p className="text-xs text-amber-700 bg-amber-50 rounded px-2 py-1 mt-1 border border-amber-100">{r.admin_note}</p>
                     )}
                     {r.payment_reference && (
-                      <p className="text-xs text-emerald-700 mt-1">Ref: {r.payment_reference}</p>
+                       <p className="text-xs text-emerald-700 mt-1">{t("provider_dashboard.ref", "Ref:")} {r.payment_reference}</p>
                     )}
                     <p className="text-xs text-muted-foreground mt-1">
-                      Requested {formatDate(r.created_at)}
-                      {r.paid_at ? ` · Paid ${formatDate(r.paid_at)}` : r.reviewed_at ? ` · Reviewed ${formatDate(r.reviewed_at)}` : ""}
+                       {t("provider_dashboard.requested", "Requested")} {formatDate(r.created_at)}
+                       {r.paid_at ? ` · ${t("provider_dashboard.paid", "Paid")} ${formatDate(r.paid_at)}` : r.reviewed_at ? ` · ${t("provider_dashboard.reviewed", "Reviewed")} ${formatDate(r.reviewed_at)}` : ""}
                     </p>
                   </div>
                   {r.status === "pending" && (
@@ -282,7 +284,7 @@ export function ProviderPayoutPanel() {
                       disabled={cancelMutation.isPending}
                       data-testid={`btn-cancel-payout-${r.id}`}
                     >
-                      {cancelMutation.isPending ? "…" : "Cancel"}
+                       {cancelMutation.isPending ? "…" : t("common.cancel", "Cancel")}
                     </Button>
                   )}
                 </div>
@@ -296,14 +298,14 @@ export function ProviderPayoutPanel() {
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Request Withdrawal</DialogTitle>
+           <DialogTitle>{t("provider_dashboard.request_withdrawal", "Request Withdrawal")}</DialogTitle>
             <DialogDescription>
-              Available balance: <strong>{fmt(available)}</strong>. Enter the amount and payment details below.
+               {t("provider_dashboard.available_balance_enter", "Available balance:")} <strong>{fmt(available)}</strong>. {t("provider_dashboard.enter_payment_details", "Enter the amount and payment details below.")}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-1.5">
-              <Label htmlFor="payout-amount">Amount *</Label>
+               <Label htmlFor="payout-amount">{t("provider_dashboard.amount_required", "Amount *")}</Label>
               <Input
                 id="payout-amount"
                 type="number"
@@ -315,45 +317,45 @@ export function ProviderPayoutPanel() {
                 placeholder={`Max ${formatCount(Math.floor(convert(available)))}`}
                 data-testid="input-payout-amount"
               />
-              <p className="text-xs text-muted-foreground">Available: {fmt(available)}</p>
+               <p className="text-xs text-muted-foreground">{t("provider_dashboard.available", "Available:")} {fmt(available)}</p>
             </div>
             <div className="space-y-1.5">
-              <Label>Payment Method *</Label>
+               <Label>{t("provider_dashboard.payment_method_required", "Payment Method *")}</Label>
               <Select value={method} onValueChange={setMethod}>
                 <SelectTrigger data-testid="select-payout-method">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
-                  <SelectItem value="manual">Manual / Cash</SelectItem>
+                   <SelectItem value="bank_transfer">{t("provider_dashboard.bank_transfer", "Bank Transfer")}</SelectItem>
+                   <SelectItem value="manual">{t("provider_dashboard.manual_cash", "Manual / Cash")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             {method === "bank_transfer" && (
               <>
                 <div className="space-y-1.5">
-                  <Label htmlFor="payout-bank">Bank Name</Label>
+                   <Label htmlFor="payout-bank">{t("provider_dashboard.bank_name", "Bank Name")}</Label>
                   <Input id="payout-bank" value={bankName} onChange={(e) => setBankName(e.target.value)} placeholder="e.g. OTP Bank" data-testid="input-payout-bank" />
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="payout-holder">Account Holder Name</Label>
+                   <Label htmlFor="payout-holder">{t("provider_dashboard.account_holder_name", "Account Holder Name")}</Label>
                   <Input id="payout-holder" value={accountHolder} onChange={(e) => setAccountHolder(e.target.value)} placeholder="Full name on account" data-testid="input-payout-holder" />
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="payout-acct">Account Number (last 4 digits)</Label>
+                   <Label htmlFor="payout-acct">{t("provider_dashboard.account_number_last4", "Account Number (last 4 digits)")}</Label>
                   <Input id="payout-acct" value={accountNumberMasked} onChange={(e) => setAccountNumberMasked(e.target.value)} placeholder="e.g. ****1234" maxLength={10} data-testid="input-payout-account" />
                 </div>
               </>
             )}
             <div className="space-y-1.5">
-              <Label htmlFor="payout-notes">Notes (optional)</Label>
+               <Label htmlFor="payout-notes">{t("provider_dashboard.notes_optional", "Notes (optional)")}</Label>
               <Textarea id="payout-notes" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Any additional instructions for admin..." rows={2} data-testid="input-payout-notes" />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)} disabled={createMutation.isPending}>Cancel</Button>
+             <Button variant="outline" onClick={() => setDialogOpen(false)} disabled={createMutation.isPending}>{t("common.cancel", "Cancel")}</Button>
             <Button onClick={handleSubmit} disabled={createMutation.isPending || !amount} className="bg-emerald-600 hover:bg-emerald-700 text-white" data-testid="button-submit-payout">
-              {createMutation.isPending ? "Submitting…" : "Submit Request"}
+               {createMutation.isPending ? t("provider_dashboard.submitting", "Submitting…") : t("provider_dashboard.submit_request", "Submit Request")}
             </Button>
           </DialogFooter>
         </DialogContent>

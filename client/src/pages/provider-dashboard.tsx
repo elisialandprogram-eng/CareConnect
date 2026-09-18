@@ -133,6 +133,7 @@ function ProfileCompletenessCard({
   provider: any;
   onProfileClick?: (section?: ProfileSubSection) => void;
 }) {
+  const { t } = useTranslation();
   const [dismissed, setDismissed] = useState(() => {
     try { return localStorage.getItem("profile_completeness_dismissed") === "1"; } catch { return false; }
   });
@@ -164,11 +165,11 @@ function ProfileCompletenessCard({
               <span className={`absolute inset-0 flex items-center justify-center text-xs font-bold ${getColor()}`}>{pct}%</span>
             </div>
             <div>
-              <p className="font-semibold text-sm">Profile completeness</p>
+               <p className="font-semibold text-sm">{t("provider_dashboard.profile_completeness", "Profile completeness")}</p>
               <p className="text-xs text-muted-foreground mt-0.5">
-                {pct < 50 ? "Your profile needs more info before clients can find and book you."
-                  : pct < 80 ? "Almost there — a few more fields and you'll be discoverable."
-                  : "Looking good! Just a few optional items remaining."}
+                 {pct < 50 ? t("provider_dashboard.profile_needs_info", "Your profile needs more info before clients can find and book you.")
+                   : pct < 80 ? t("provider_dashboard.profile_almost", "Almost there — a few more fields and you'll be discoverable.")
+                   : t("provider_dashboard.profile_looking_good", "Looking good! Just a few optional items remaining.")}
               </p>
             </div>
           </div>
@@ -177,7 +178,7 @@ function ProfileCompletenessCard({
             onClick={() => { localStorage.setItem("profile_completeness_dismissed", "1"); setDismissed(true); }}
             data-testid="button-dismiss-profile-completeness"
           >
-            Dismiss
+             {t("provider_dashboard.dismiss", "Dismiss")}
           </button>
         </div>
         <div className="mt-4">
@@ -192,7 +193,7 @@ function ProfileCompletenessCard({
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border bg-background hover:border-primary/50 hover:bg-primary/5 transition-all text-sm text-muted-foreground hover:text-foreground group"
                 data-testid={`button-complete-section-${section.section}`}>
                 <span>{section.icon}</span>
-                <span className="font-medium">{section.label}</span>
+                 <span className="font-medium">{t(`provider_dashboard.nav_${section.section}`, section.label)}</span>
                 <Badge variant="secondary" className="text-[10px] h-4 px-1.5">{missing.length}</Badge>
                 <ChevronRight className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
               </button>
@@ -603,7 +604,7 @@ export default function ProviderDashboard() {
                 {submitReviewMutation.isPending
                   ? <Loader2 className="h-4 w-4 animate-spin" />
                   : <SendHorizonal className="h-4 w-4" />}
-                Submit for Review
+                {t("provider_dashboard.submit_review", "Submit for Review")}
               </Button>
               <Button variant="ghost" size="sm" className="w-full text-muted-foreground" onClick={() => setLocation("/providers")}>
                 {t("provider_dashboard.browse_others", "Browse Other Providers")}
@@ -626,17 +627,17 @@ export default function ProviderDashboard() {
             <div className="inline-flex h-24 w-24 items-center justify-center rounded-full bg-primary/10 ring-8 ring-primary/5 mb-6">
               <Shield className="h-12 w-12 text-primary" />
             </div>
-            <h1 className="text-2xl font-bold mb-3 text-foreground tracking-tight">Under Compliance Review</h1>
+            <h1 className="text-2xl font-bold mb-3 text-foreground tracking-tight">{t("provider_dashboard.compliance_review_title", "Under Compliance Review")}</h1>
             <p className="text-muted-foreground mb-6 leading-relaxed text-balance">
-              Your credentials and professional materials are currently undergoing active medical compliance verification by our licensed review team. This process typically takes <strong>1–3 business days</strong>.
+              {t("provider_dashboard.compliance_review_desc", "Your credentials and professional materials are currently undergoing active medical compliance verification by our licensed review team. This process typically takes")} <strong>1–3 {t("provider_dashboard.business_days", "business days")}</strong>.
             </p>
             <div className="rounded-2xl border border-border bg-card p-6 text-left mb-6 shadow-sm">
-              <h2 className="font-semibold text-sm text-foreground mb-4">What happens next?</h2>
+              <h2 className="font-semibold text-sm text-foreground mb-4">{t("provider_dashboard.what_happens_next", "What happens next?")}</h2>
               <ul className="space-y-3">
                 {[
-                  "Our compliance team reviews your license, credentials, and bio.",
-                  "You'll receive an email once approved (or with feedback if changes are needed).",
-                  "Once approved, your profile goes live and patients can start booking you.",
+                  t("provider_dashboard.compliance_step_1", "Our compliance team reviews your license, credentials, and bio."),
+                  t("provider_dashboard.compliance_step_2", "You'll receive an email once approved (or with feedback if changes are needed)."),
+                  t("provider_dashboard.compliance_step_3", "Once approved, your profile goes live and patients can start booking you."),
                 ].map((step, i) => (
                   <li key={i} className="flex items-start gap-3 text-sm text-muted-foreground">
                     <span className="mt-0.5 h-5 w-5 rounded-full bg-primary/10 text-primary text-[10px] flex items-center justify-center flex-shrink-0 font-bold">{i + 1}</span>
@@ -647,10 +648,10 @@ export default function ProviderDashboard() {
             </div>
             <div className="flex flex-col gap-3">
               <Button variant="outline" onClick={() => setActiveTab("profile")} data-testid="button-edit-while-pending">
-                <Pencil className="h-4 w-4 mr-2" /> Edit Your Profile
+                <Pencil className="h-4 w-4 mr-2" /> {t("provider_dashboard.edit_profile", "Edit Your Profile")}
               </Button>
               <Button variant="ghost" size="sm" className="text-muted-foreground" onClick={() => setLocation("/providers")}>
-                Browse Other Providers
+                {t("provider_dashboard.browse_others", "Browse Other Providers")}
               </Button>
             </div>
           </div>
@@ -664,7 +665,7 @@ export default function ProviderDashboard() {
   return (
     <div className="min-h-screen flex flex-col dark:bg-[#0d0f1a]">
       <Header />
-      <PageBreadcrumbs items={[{ label: "Provider Dashboard" }]} />
+      <PageBreadcrumbs items={[{ label: t("provider_dashboard.provider_dashboard", "Provider Dashboard") }]} />
       <div className="flex flex-1 overflow-hidden">
         {/* ── Left sidebar navigation ────────────────────────────────────────── */}
         <aside className="hidden md:flex w-[260px] shrink-0 flex-col bg-[#121420] border-r border-[#1f2235] p-4 overflow-y-auto">
@@ -695,7 +696,7 @@ export default function ProviderDashboard() {
             return (
               <div className={`mb-4 rounded-xl p-3 border ${borderCls}`} data-testid="sidebar-status-card">
                 <div className="flex items-center justify-between mb-1.5">
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-white/40">Account Status</span>
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-white/40">{t("provider_dashboard.account_status", "Account Status")}</span>
                   <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${pillCls}`}>
                     {labelMap[providerStatus] ?? providerStatus.replace(/_/g, " ")}
                   </span>
@@ -703,23 +704,27 @@ export default function ProviderDashboard() {
                 {isActionRequired && rejectedDocCount > 0 && (
                   <p className="text-[11px] text-rose-400 flex items-center gap-1 mb-2">
                     <AlertTriangle className="h-3 w-3 shrink-0" />
-                    {rejectedDocCount} doc{rejectedDocCount !== 1 ? "s" : ""} need{rejectedDocCount === 1 ? "s" : ""} attention
+                     {t("provider_dashboard.documents_need_attention", "{{count}} document{{suffix}} need{{verb}} attention", {
+                       count: rejectedDocCount,
+                       suffix: rejectedDocCount !== 1 ? "s" : "",
+                       verb: rejectedDocCount === 1 ? "s" : "",
+                     })}
                   </p>
                 )}
                 {isActionRequired && rejectedDocCount === 0 && (
-                  <p className="text-[11px] text-rose-400/80 mb-2">Update your profile then resubmit.</p>
+                   <p className="text-[11px] text-rose-400/80 mb-2">{t("provider_dashboard.update_then_resubmit", "Update your profile then resubmit.")}</p>
                 )}
                 {isDraft && (
-                  <p className="text-[11px] text-amber-400/80 mb-2">Complete your profile &amp; submit for review.</p>
+                   <p className="text-[11px] text-amber-400/80 mb-2">{t("provider_dashboard.complete_submit_review", "Complete your profile & submit for review.")}</p>
                 )}
                 {isPending && (
-                  <p className="text-[11px] text-blue-400/80">Compliance review · 1–3 business days</p>
+                   <p className="text-[11px] text-blue-400/80">{t("provider_dashboard.compliance_review_days", "Compliance review · 1–3 business days")}</p>
                 )}
                 {isLive && (
-                  <p className="text-[11px] text-emerald-400">✓ Profile is live — accepting bookings</p>
+                   <p className="text-[11px] text-emerald-400">{t("provider_dashboard.profile_live_accepting", "✓ Profile is live — accepting bookings")}</p>
                 )}
                 {isRejected && (
-                  <p className="text-[11px] text-rose-400/80 mb-2">Review rejected. See feedback above.</p>
+                   <p className="text-[11px] text-rose-400/80 mb-2">{t("provider_dashboard.review_rejected_feedback", "Review rejected. See feedback above.")}</p>
                 )}
                 {(isDraft || isActionRequired) && (
                   <button
@@ -728,7 +733,7 @@ export default function ProviderDashboard() {
                     disabled={submitReviewMutation.isPending}
                     data-testid="button-sidebar-submit-review"
                   >
-                    {submitReviewMutation.isPending ? "Submitting…" : isActionRequired ? "Resubmit for Review →" : "Submit for Review →"}
+                     {submitReviewMutation.isPending ? t("provider_dashboard.submitting", "Submitting…") : isActionRequired ? `${t("provider_dashboard.resubmit_review", "Resubmit for Review")} →` : `${t("provider_dashboard.submit_review", "Submit for Review")} →`}
                   </button>
                 )}
               </div>
@@ -736,42 +741,42 @@ export default function ProviderDashboard() {
           })()}
 
           {([
-            { group: "OVERVIEW", items: [
-              { label: "Practice Overview", value: "overview", icon: <LayoutDashboard className="h-4 w-4" />, badge: 0 },
+             { group: t("provider_dashboard.group_overview", "OVERVIEW"), items: [
+               { label: t("provider_dashboard.nav_practice_overview", "Practice Overview"), value: "overview", icon: <LayoutDashboard className="h-4 w-4" />, badge: 0 },
               { label: t("provider_dashboard.tab_upcoming","Upcoming"), value: "upcoming", icon: <CalendarIcon className="h-4 w-4" />, badge: upcomingAppointments.length },
               { label: t("provider_dashboard.tab_active","Active Today"), value: "active", icon: <Zap className="h-4 w-4" />, badge: activeAppointments.length },
               { label: t("provider_dashboard.tab_calendar","Calendar"), value: "calendar", icon: <CalendarDays className="h-4 w-4" />, badge: 0 },
               { label: t("provider_dashboard.tab_history","History"), value: "history", icon: <Clock className="h-4 w-4" />, badge: historyAppointments.length },
             ]},
-            { group: "CLIENTS", items: [
+             { group: t("provider_dashboard.group_clients", "CLIENTS"), items: [
               { label: t("provider_dashboard.tab_clients","Clients"), value: "clients", icon: <Users className="h-4 w-4" />, badge: uniquePatientCount },
               { label: t("provider_dashboard.tab_reviews","Reviews"), value: "reviews", icon: <Star className="h-4 w-4" />, badge: providerReviews?.length ?? 0 },
             ]},
-            { group: "SCHEDULE", items: [
+             { group: t("provider_dashboard.group_schedule", "SCHEDULE"), items: [
               { label: t("provider_dashboard.tab_availability","Availability"), value: "availability", icon: <CalendarDays className="h-4 w-4" />, badge: 0, locked: !isApproved },
-              { label: "Time Engine", value: "time-engine", icon: <Zap className="h-4 w-4" />, badge: 0, locked: !isApproved },
+               { label: t("provider_dashboard.nav_time_engine", "Time Engine"), value: "time-engine", icon: <Zap className="h-4 w-4" />, badge: 0, locked: !isApproved },
             ]},
-            { group: "ANALYTICS", items: [
+             { group: t("provider_dashboard.group_analytics", "ANALYTICS"), items: [
               { label: t("provider_dashboard.tab_analytics","Analytics"), value: "analytics", icon: <TrendingUp className="h-4 w-4" />, badge: 0 },
               { label: t("provider_dashboard.tab_insights","Insights"), value: "insights", icon: <BarChart2 className="h-4 w-4" />, badge: 0 },
             ]},
-            { group: "FINANCE", items: [
-              { label: "Wallet & Payouts", value: "payouts", icon: <Wallet className="h-4 w-4" />, badge: 0 },
-              { label: "Earnings & Reports", value: "__nav__/provider/earnings", icon: <Banknote className="h-4 w-4" />, badge: 0 },
-              { label: "Memberships & Packages", value: "__nav__/packages", icon: <TrendingUp className="h-4 w-4" />, badge: 0 },
+             { group: t("provider_dashboard.group_finance", "FINANCE"), items: [
+               { label: t("provider_dashboard.nav_wallet_payouts", "Wallet & Payouts"), value: "payouts", icon: <Wallet className="h-4 w-4" />, badge: 0 },
+               { label: t("provider_dashboard.nav_earnings_reports", "Earnings & Reports"), value: "__nav__/provider/earnings", icon: <Banknote className="h-4 w-4" />, badge: 0 },
+               { label: t("provider_dashboard.nav_memberships_packages", "Memberships & Packages"), value: "__nav__/packages", icon: <TrendingUp className="h-4 w-4" />, badge: 0 },
             ]},
-            { group: "SERVICES", items: [
+             { group: t("provider_dashboard.group_services", "SERVICES"), items: [
               { label: t("provider_dashboard.tab_services","Service Catalog"), value: "services", icon: <FileText className="h-4 w-4" />, badge: 0, locked: !isApproved },
               { label: t("provider_dashboard.tab_group_sessions","Group Sessions"), value: "group-sessions", icon: <Users className="h-4 w-4" />, badge: 0, locked: !isApproved },
             ]},
-            { group: "PROFILE", items: [
-              { label: "Overview",      value: "profile", profileSection: "overview"      as ProfileSubSection, icon: <LayoutDashboard className="h-4 w-4" />, badge: 0 },
-              { label: "Personal Info", value: "profile", profileSection: "personal"      as ProfileSubSection, icon: <UserRound className="h-4 w-4" />, badge: 0 },
-              { label: "Professional",  value: "profile", profileSection: "professional"  as ProfileSubSection, icon: <Briefcase className="h-4 w-4" />, badge: 0 },
-              { label: "Workplace",     value: "profile", profileSection: "workplace"     as ProfileSubSection, icon: <MapPin className="h-4 w-4" />, badge: 0 },
-              { label: "Services",      value: "profile", profileSection: "services"      as ProfileSubSection, icon: <Stethoscope className="h-4 w-4" />, badge: 0 },
-              { label: "Documents",     value: "profile", profileSection: "verification"  as ProfileSubSection, icon: <FileCheck className="h-4 w-4" />, badge: rejectedDocCount, alert: rejectedDocCount > 0 },
-              { label: "Settings",      value: "profile", profileSection: "settings"      as ProfileSubSection, icon: <Settings className="h-4 w-4" />, badge: 0 },
+             { group: t("provider_dashboard.group_profile", "PROFILE"), items: [
+               { label: t("provider_dashboard.nav_overview", "Overview"),      value: "profile", profileSection: "overview"      as ProfileSubSection, icon: <LayoutDashboard className="h-4 w-4" />, badge: 0 },
+               { label: t("provider_dashboard.nav_personal_info", "Personal Info"), value: "profile", profileSection: "personal"      as ProfileSubSection, icon: <UserRound className="h-4 w-4" />, badge: 0 },
+               { label: t("provider_dashboard.nav_professional", "Professional"),  value: "profile", profileSection: "professional"  as ProfileSubSection, icon: <Briefcase className="h-4 w-4" />, badge: 0 },
+               { label: t("provider_dashboard.nav_workplace", "Workplace"),     value: "profile", profileSection: "workplace"     as ProfileSubSection, icon: <MapPin className="h-4 w-4" />, badge: 0 },
+               { label: t("provider_dashboard.services", "Services"),      value: "profile", profileSection: "services"      as ProfileSubSection, icon: <Stethoscope className="h-4 w-4" />, badge: 0 },
+               { label: t("provider_dashboard.nav_documents", "Documents"),     value: "profile", profileSection: "verification"  as ProfileSubSection, icon: <FileCheck className="h-4 w-4" />, badge: rejectedDocCount, alert: rejectedDocCount > 0 },
+               { label: t("provider_dashboard.nav_settings", "Settings"),      value: "profile", profileSection: "settings"      as ProfileSubSection, icon: <Settings className="h-4 w-4" />, badge: 0 },
             ]},
           ] as { group: string; items: { label: string; value: string; icon: React.ReactNode; badge: number; alert?: boolean; locked?: boolean; profileSection?: ProfileSubSection }[] }[]).map(({ group, items }) => (
             <div key={group} className="mb-4">
@@ -822,7 +827,7 @@ export default function ProviderDashboard() {
                 </div>
                 <div>
                   <p className="text-white/80 text-sm font-medium uppercase tracking-wider">
-                    {(providerData as any)?.accountType === "clinic" ? "Clinic Dashboard" : "Provider Dashboard"}
+                    {(providerData as any)?.accountType === "clinic" ? t("provider_dashboard.clinic_dashboard", "Clinic Dashboard") : t("provider_dashboard.provider_dashboard", "Provider Dashboard")}
                   </p>
                   <h1 className="text-2xl md:text-3xl font-bold text-white" data-testid="text-dashboard-welcome">
                     {(providerData as any)?.accountType === "clinic" && (providerData as any)?.clinicName
@@ -857,7 +862,7 @@ export default function ProviderDashboard() {
                     {submitReviewMutation.isPending
                       ? <Loader2 className="h-4 w-4 animate-spin" />
                       : <SendHorizonal className="h-4 w-4" />}
-                    Submit for Review
+                    {t("provider_dashboard.submit_review", "Submit for Review")}
                   </Button>
                 )}
               </div>
@@ -884,11 +889,11 @@ export default function ProviderDashboard() {
                     <Shield className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
                   </div>
                   <div className="flex-1">
-                    <p className="font-bold text-emerald-800 dark:text-emerald-300 text-base">🎉 Congratulations — you're approved!</p>
-                    <p className="text-emerald-700 dark:text-emerald-400 text-sm mt-1">Your profile is now live and patients can discover and book you.</p>
+                    <p className="font-bold text-emerald-800 dark:text-emerald-300 text-base">{t("provider_dashboard.approved_congratulations", "🎉 Congratulations — you're approved!")}</p>
+                    <p className="text-emerald-700 dark:text-emerald-400 text-sm mt-1">{t("provider_dashboard.approved_live_desc", "Your profile is now live and patients can discover and book you.")}</p>
                     {nextSteps.length > 0 && (
                       <div className="mt-3">
-                        <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 mb-2">Complete these steps to start getting bookings:</p>
+                        <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 mb-2">{t("provider_dashboard.approved_next_steps", "Complete these steps to start getting bookings:")}</p>
                         <div className="flex flex-wrap gap-2">
                           {nextSteps.map(s => (
                             <button key={s.label} onClick={s.action} className="text-xs px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-medium transition-colors">
@@ -899,7 +904,7 @@ export default function ProviderDashboard() {
                       </div>
                     )}
                     {nextSteps.length === 0 && (
-                      <p className="text-emerald-600 dark:text-emerald-500 text-xs mt-2 font-medium">✓ Profile is fully set up — you're ready for patients!</p>
+                      <p className="text-emerald-600 dark:text-emerald-500 text-xs mt-2 font-medium">{t("provider_dashboard.approved_ready", "✓ Profile is fully set up — you're ready for patients!")}</p>
                     )}
                   </div>
                 </div>
@@ -932,17 +937,17 @@ export default function ProviderDashboard() {
                     : "text-amber-800 dark:text-amber-300"
                 }`}>
                   {providerStatus === "action_required"
-                    ? "Action required — please update your profile and resubmit"
-                    : "Ready to go live? Submit your profile for compliance review"}
+                    ? t("provider_dashboard.action_required_update", "Action required — please update your profile and resubmit")
+                    : t("provider_dashboard.ready_submit_review", "Ready to go live? Submit your profile for compliance review")}
                 </p>
                 <p className={`text-xs mt-1 leading-relaxed ${
                   providerStatus === "action_required"
                     ? "text-rose-700 dark:text-rose-400"
                     : "text-amber-700 dark:text-amber-400"
                 }`}>
-                  {providerStatus === "action_required"
-                    ? "Our team has requested changes to your profile. Update the flagged items, then resubmit to continue the verification process."
-                    : "Complete your profile details and upload your documents in My Profile, then click Submit for Review. Verification typically takes 1–3 business days."}
+                   {providerStatus === "action_required"
+                     ? t("provider_dashboard.action_required_desc", "Our team has requested changes to your profile. Update the flagged items, then resubmit to continue the verification process.")
+                     : t("provider_dashboard.ready_submit_desc", "Complete your profile details and upload your documents in My Profile, then click Submit for Review. Verification typically takes 1–3 business days.")}
                 </p>
                 <div className="flex flex-wrap gap-2 mt-3">
                   <Button
@@ -957,10 +962,10 @@ export default function ProviderDashboard() {
                     {submitReviewMutation.isPending
                       ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
                       : <SendHorizonal className="h-3.5 w-3.5" />}
-                    {providerStatus === "action_required" ? "Resubmit for Review" : "Submit for Review"}
+                    {providerStatus === "action_required" ? t("provider_dashboard.resubmit_review", "Resubmit for Review") : t("provider_dashboard.submit_review", "Submit for Review")}
                   </Button>
                   <Button size="sm" variant="outline" className="gap-1.5" onClick={() => { setProfileSection("verification"); setActiveTab("profile"); }} data-testid="button-banner-go-to-docs">
-                    <FileCheck className="h-3.5 w-3.5" /> Check Documents
+                    <FileCheck className="h-3.5 w-3.5" /> {t("provider_dashboard.check_documents", "Check Documents")}
                   </Button>
                 </div>
               </div>
@@ -974,16 +979,16 @@ export default function ProviderDashboard() {
                 <AlertTriangle className="w-5 h-5 text-rose-600 dark:text-rose-400" />
               </div>
               <div className="flex-1">
-                <p className="font-semibold text-rose-800 dark:text-rose-300 text-sm">Profile review — changes required</p>
+                <p className="font-semibold text-rose-800 dark:text-rose-300 text-sm">{t("provider_dashboard.profile_review_changes", "Profile review — changes required")}</p>
                 {(providerData as any)?.rejectionReason && (
                   <p className="text-rose-700 dark:text-rose-400 text-xs mt-1 leading-relaxed italic">
                     "{(providerData as any).rejectionReason}"
                   </p>
                 )}
-                <p className="text-rose-600 dark:text-rose-500 text-xs mt-2">Please update your profile based on the feedback above, then resubmit for review.</p>
+                <p className="text-rose-600 dark:text-rose-500 text-xs mt-2">{t("provider_dashboard.profile_review_desc", "Please update your profile based on the feedback above, then resubmit for review.")}</p>
               </div>
               <Button size="sm" variant="outline" className="border-rose-300 dark:border-rose-700 text-rose-700 dark:text-rose-400 shrink-0" onClick={() => setActiveTab("profile")}>
-                Update &amp; Resubmit
+                {t("provider_dashboard.update_resubmit", "Update & Resubmit")}
               </Button>
             </div>
           )}

@@ -105,6 +105,7 @@ export function StructuredScheduleEditor({
   isPendingPublish?: boolean;
 }) {
   const { toast } = useToast();
+  const { t } = useTranslation();
   const [state, setState] = useState<SEState>(() => seInitState(initialSchedule));
   const [isDirty, setIsDirty] = useState(false);
   const [replaceExisting, setReplaceExisting] = useState(false);
@@ -158,13 +159,13 @@ export function StructuredScheduleEditor({
     },
     onSuccess: (data) => {
       toast({
-        title: "Week cleared",
-        description: `Removed ${data?.deletedCount ?? 0} open slot(s). ${data?.preservedCount ?? 0} booked/held slot(s) kept.`,
+        title: t("provider_dashboard.week_cleared", "Week cleared"),
+        description: t("provider_dashboard.week_cleared_desc", "Removed {{open}} open slot(s). {{protected}} booked/held slot(s) kept.", { open: data?.deletedCount ?? 0, protected: data?.preservedCount ?? 0 }),
       });
       queryClient.invalidateQueries({ queryKey: QK.providerAvailability() });
       queryClient.invalidateQueries({ queryKey: ["/api/provider/week-slots-summary"], exact: false });
     },
-    onError: () => toast({ title: "Failed to clear week", variant: "destructive" }),
+    onError: () => toast({ title: t("provider_dashboard.failed_clear_week", "Failed to clear week"), variant: "destructive" }),
   });
 
   const cloneWeekMut = useMutation({
@@ -177,14 +178,14 @@ export function StructuredScheduleEditor({
     },
     onSuccess: (data) => {
       toast({
-        title: "Schedule pasted",
-        description: `Cloned ${data?.clonedCount ?? 0} slot(s) to target week. ${data?.preservedInTarget ?? 0} protected slot(s) kept.`,
+        title: t("provider_dashboard.schedule_pasted", "Schedule pasted"),
+        description: t("provider_dashboard.schedule_pasted_desc", "Cloned {{cloned}} slot(s) to target week. {{protected}} protected slot(s) kept.", { cloned: data?.clonedCount ?? 0, protected: data?.preservedInTarget ?? 0 }),
       });
       queryClient.invalidateQueries({ queryKey: QK.providerAvailability() });
       queryClient.invalidateQueries({ queryKey: ["/api/provider/week-slots-summary"], exact: false });
       setPasteDialogOpen(false);
     },
-    onError: () => toast({ title: "Failed to paste schedule", variant: "destructive" }),
+    onError: () => toast({ title: t("provider_dashboard.failed_paste_schedule", "Failed to paste schedule"), variant: "destructive" }),
   });
 
   // Add 6 days to a YYYY-MM-DD string to get Sunday of that week
@@ -291,7 +292,7 @@ export function StructuredScheduleEditor({
     }
     const first = Object.values(currentSchedule).find((v: any) => v?.enabled);
     if (!first || dates.length === 0) {
-      toast({ title: "No days enabled", description: "Enable at least one day in your schedule above.", variant: "destructive" });
+      toast({ title: t("provider_dashboard.no_days_enabled", "No days enabled"), description: t("provider_dashboard.enable_schedule_day", "Enable at least one day in your schedule above."), variant: "destructive" });
       return;
     }
     const slots = (first as any).windows?.length
@@ -353,7 +354,7 @@ export function StructuredScheduleEditor({
                   {SE_DAY_LABEL[d]}
                 </span>
                 {!day.enabled && (
-                  <span className="text-xs text-muted-foreground">Unavailable</span>
+                   <span className="text-xs text-muted-foreground">{t("provider_dashboard.unavailable", "Unavailable")}</span>
                 )}
                 {day.enabled && (
                   <div className="flex items-center gap-1 ml-auto flex-wrap">
@@ -369,9 +370,9 @@ export function StructuredScheduleEditor({
                       <button type="button"
                         className="text-[10px] px-1.5 py-0.5 rounded text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
                         onClick={() => copyFromPrev(d)}
-                        title={`Same as ${SE_DAY_SHORT[SE_DAY_KEYS[idx - 1]]}`}
+                         title={t("provider_dashboard.same_as", "Same as {{day}}", { day: SE_DAY_SHORT[SE_DAY_KEYS[idx - 1]] })}
                         data-testid={`button-copy-prev-${d}`}>
-                        ↑ Copy {SE_DAY_SHORT[SE_DAY_KEYS[idx - 1]]}
+                         ↑ {t("provider_dashboard.copy_day", "Copy {{day}}", { day: SE_DAY_SHORT[SE_DAY_KEYS[idx - 1]] })}
                       </button>
                     )}
                   </div>
@@ -400,7 +401,7 @@ export function StructuredScheduleEditor({
                         </Button>
                       )}
                       <span className="text-[10px] text-muted-foreground">
-                        {wi === 0 ? "main hours" : "after break"}
+                         {wi === 0 ? t("provider_dashboard.main_hours", "main hours") : t("provider_dashboard.after_break", "after break")}
                       </span>
                     </div>
                   ))}
@@ -408,7 +409,7 @@ export function StructuredScheduleEditor({
                     className="flex items-center gap-1 text-xs text-primary hover:text-primary/80 transition-colors mt-1"
                     onClick={() => addWindow(d)}
                     data-testid={`button-add-window-${d}`}>
-                    <Plus className="h-3 w-3" /> Add break / extra window
+                     <Plus className="h-3 w-3" /> {t("provider_dashboard.add_break_window", "Add break / extra window")}
                   </button>
                 </div>
               )}
@@ -419,13 +420,13 @@ export function StructuredScheduleEditor({
 
       <div className="flex items-center justify-between pt-2 border-t border-border">
         {isDirty
-          ? <p className="text-xs text-amber-600 dark:text-amber-400 font-medium">● Unsaved changes</p>
-          : <p className="text-xs text-muted-foreground">Schedule up to date</p>}
+          ? <p className="text-xs text-amber-600 dark:text-amber-400 font-medium">● {t("provider_dashboard.unsaved_changes", "Unsaved changes")}</p>
+          : <p className="text-xs text-muted-foreground">{t("provider_dashboard.schedule_up_to_date", "Schedule up to date")}</p>}
         <Button className="gap-2 rounded-xl" disabled={isSaving || !isDirty}
           onClick={() => { onSave(currentSchedule); setIsDirty(false); }}
           data-testid="button-save-schedule">
           {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-          Save schedule
+          {t("provider_dashboard.save_schedule", "Save schedule")}
         </Button>
       </div>
 
@@ -434,7 +435,7 @@ export function StructuredScheduleEditor({
           className="w-full flex items-center justify-between gap-2 px-4 py-3 text-left hover:bg-muted/40 transition-colors"
           onClick={() => setPreviewOpen(v => !v)}
           data-testid="button-toggle-preview">
-          <span className="text-sm font-medium">Visual preview</span>
+           <span className="text-sm font-medium">{t("provider_dashboard.visual_preview", "Visual preview")}</span>
           {previewOpen
             ? <ChevronUp className="h-4 w-4 text-muted-foreground" />
             : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
@@ -450,10 +451,10 @@ export function StructuredScheduleEditor({
         <div>
           <p className="text-sm font-medium flex items-center gap-1.5">
             <Calendar className="h-4 w-4 text-muted-foreground" />
-            Publish to calendar
+             {t("provider_dashboard.publish_calendar", "Publish to calendar")}
           </p>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Generate bookable slots for the selected week based on your schedule above.
+             {t("provider_dashboard.publish_calendar_desc", "Generate bookable slots for the selected week based on your schedule above.")}
           </p>
         </div>
 
@@ -466,7 +467,7 @@ export function StructuredScheduleEditor({
               className="h-7 w-7 flex items-center justify-center rounded-lg hover:bg-muted transition-colors shrink-0"
               onClick={() => setPublishWeekOffset(o => o - 1)}
               data-testid="button-prev-week"
-              aria-label="Previous week"
+               aria-label={t("provider_dashboard.previous_week", "Previous week")}
             >
               <ChevronLeft className="h-4 w-4" />
             </button>
@@ -474,13 +475,13 @@ export function StructuredScheduleEditor({
               <p className="text-xs font-semibold text-foreground truncate">{fmtWeekRange(selectedWeekStart)}</p>
               <p className="text-[10px] text-muted-foreground">
                 {publishWeekOffset === 0
-                  ? "Current week"
-                  : publishWeekOffset === 1
-                  ? "Next week"
-                  : publishWeekOffset < 0
-                  ? `${Math.abs(publishWeekOffset)} week(s) ago`
-                  : `${publishWeekOffset} weeks ahead`}
-                {isPastWeek && " · past"}
+                   ? t("provider_dashboard.current_week", "Current week")
+                   : publishWeekOffset === 1
+                   ? t("provider_dashboard.next_week", "Next week")
+                   : publishWeekOffset < 0
+                   ? t("provider_dashboard.weeks_ago", "{{count}} week(s) ago", { count: Math.abs(publishWeekOffset) })
+                   : t("provider_dashboard.weeks_ahead", "{{count}} weeks ahead", { count: publishWeekOffset })}
+                 {isPastWeek && ` · ${t("provider_dashboard.past", "past")}`}
               </p>
             </div>
             <button
@@ -488,7 +489,7 @@ export function StructuredScheduleEditor({
               className="h-7 w-7 flex items-center justify-center rounded-lg hover:bg-muted transition-colors shrink-0"
               onClick={() => setPublishWeekOffset(o => o + 1)}
               data-testid="button-next-week"
-              aria-label="Next week"
+               aria-label={t("provider_dashboard.next_week", "Next week")}
             >
               <ChevronRight className="h-4 w-4" />
             </button>
@@ -498,19 +499,19 @@ export function StructuredScheduleEditor({
           <div className="border-t border-border px-3 py-2 bg-muted/30">
             {summaryLoading ? (
               <div className="flex items-center justify-center gap-1 text-[10px] text-muted-foreground py-0.5">
-                <Loader2 className="h-3 w-3 animate-spin" /> Checking slots…
+                 <Loader2 className="h-3 w-3 animate-spin" /> {t("provider_dashboard.checking_slots", "Checking slots…")}
               </div>
             ) : weekSummary && weekSummary.totalSlots > 0 ? (
               <div className="space-y-1.5">
                 {/* Aggregate row */}
                 <div className="flex items-center justify-between text-[10px]">
-                  <span className="text-muted-foreground">Week totals</span>
+                   <span className="text-muted-foreground">{t("provider_dashboard.week_totals", "Week totals")}</span>
                   <div className="flex items-center gap-2">
-                    <span className="text-emerald-600 dark:text-emerald-400 font-medium">{weekSummary.availableSlots} free</span>
+                     <span className="text-emerald-600 dark:text-emerald-400 font-medium">{weekSummary.availableSlots} {t("provider_dashboard.free", "free")}</span>
                     {weekSummary.bookedSlots > 0 && (
-                      <span className="text-blue-600 dark:text-blue-400 font-medium">{weekSummary.bookedSlots} booked</span>
+                       <span className="text-blue-600 dark:text-blue-400 font-medium">{weekSummary.bookedSlots} {t("provider_dashboard.booked", "booked")}</span>
                     )}
-                    <span className="text-muted-foreground">{weekSummary.totalSlots} total</span>
+                     <span className="text-muted-foreground">{weekSummary.totalSlots} {t("provider_dashboard.total", "total")}</span>
                   </div>
                 </div>
                 {/* Per-day mini strip */}
@@ -541,7 +542,7 @@ export function StructuredScheduleEditor({
                 </div>
               </div>
             ) : (
-              <p className="text-[10px] text-muted-foreground text-center py-0.5">No slots published for this week</p>
+               <p className="text-[10px] text-muted-foreground text-center py-0.5">{t("provider_dashboard.no_slots_published", "No slots published for this week")}</p>
             )}
           </div>
         </div>
@@ -554,13 +555,13 @@ export function StructuredScheduleEditor({
             onClick={() => setPublishWeekOffset(0)}
             data-testid="button-jump-current-week"
           >
-            ↩ Jump to current week
+             ↩ {t("provider_dashboard.jump_current_week", "Jump to current week")}
           </button>
         )}
         {isPastWeek && (
           <div className="flex items-center gap-2 text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg px-3 py-2">
             <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
-            This week is in the past — slots will be created as historical records.
+             {t("provider_dashboard.past_week_slots_desc", "This week is in the past — slots will be created as historical records.")}
           </div>
         )}
 
@@ -862,6 +863,7 @@ export function ProviderOfficeHoursCard({
 // ─── Availability Exceptions Card ─────────────────────────────────────────────
 export function AvailabilityExceptionsCard() {
   const { toast } = useToast();
+  const { t } = useTranslation();
   const todayStr = new Date().toISOString().slice(0, 10);
   const [date, setDate] = useState(todayStr);
   const [reason, setReason] = useState("");
@@ -874,17 +876,17 @@ export function AvailabilityExceptionsCard() {
     mutationFn: (payload: { date: string; reason?: string }) =>
       apiRequest("POST", "/api/provider/availability-exceptions", payload),
     onSuccess: () => {
-      toast({ title: "Date blocked" });
+      toast({ title: t("provider_dashboard.date_blocked", "Date blocked") });
       queryClient.invalidateQueries({ queryKey: ["/api/provider/availability-exceptions"] });
       setReason("");
     },
-    onError: (e: any) => toast({ title: e?.message || "Could not block date", variant: "destructive" }),
+    onError: (e: any) => toast({ title: e?.message || t("provider_dashboard.could_not_block_date", "Could not block date"), variant: "destructive" }),
   });
 
   const deleteMut = useMutation({
     mutationFn: (d: string) => apiRequest("DELETE", `/api/provider/availability-exceptions/${d}`),
     onSuccess: () => {
-      toast({ title: "Date unblocked" });
+      toast({ title: t("provider_dashboard.date_unblocked", "Date unblocked") });
       queryClient.invalidateQueries({ queryKey: ["/api/provider/availability-exceptions"] });
     },
   });
@@ -892,13 +894,13 @@ export function AvailabilityExceptionsCard() {
   return (
     <Card data-testid="card-availability-exceptions">
       <CardHeader>
-        <CardTitle className="text-base">Block specific dates</CardTitle>
-        <CardDescription>Block individual dates when you are unavailable (e.g. public holidays, personal days). Clients will not be able to book on these dates.</CardDescription>
+        <CardTitle className="text-base">{t("provider_dashboard.block_specific_dates", "Block specific dates")}</CardTitle>
+        <CardDescription>{t("provider_dashboard.block_specific_dates_desc", "Block individual dates when you are unavailable (e.g. public holidays, personal days). Clients will not be able to book on these dates.")}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex flex-wrap gap-3 items-end">
           <div className="space-y-1">
-            <Label className="text-xs">Date</Label>
+            <Label className="text-xs">{t("provider_dashboard.date", "Date")}</Label>
             <Input
               type="date"
               value={date}
@@ -909,11 +911,11 @@ export function AvailabilityExceptionsCard() {
             />
           </div>
           <div className="space-y-1 flex-1">
-            <Label className="text-xs">Reason (optional)</Label>
+            <Label className="text-xs">{t("provider_dashboard.reason_optional", "Reason (optional)")}</Label>
             <Input
               value={reason}
               onChange={e => setReason(e.target.value)}
-              placeholder="e.g. Public holiday"
+              placeholder={t("provider_dashboard.public_holiday_placeholder", "e.g. Public holiday")}
               data-testid="input-exception-reason"
             />
           </div>
@@ -923,13 +925,13 @@ export function AvailabilityExceptionsCard() {
             data-testid="button-add-exception"
           >
             {addMut.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
-            Block date
+            {t("provider_dashboard.block_date", "Block date")}
           </Button>
         </div>
         {isLoading ? (
-          <p className="text-sm text-muted-foreground">Loading…</p>
+          <p className="text-sm text-muted-foreground">{t("common.loading", "Loading…")}</p>
         ) : (exceptions as any[]).length === 0 ? (
-          <p className="text-sm text-muted-foreground">No dates blocked.</p>
+          <p className="text-sm text-muted-foreground">{t("provider_dashboard.no_dates_blocked", "No dates blocked.")}</p>
         ) : (
           <div className="space-y-1">
             {(exceptions as any[]).map((ex: any) => (
@@ -960,6 +962,7 @@ export function AvailabilityExceptionsCard() {
 // ─── Cancellation Policy ──────────────────────────────────────────────────────
 export function CancellationPolicyCard() {
   const { toast } = useToast();
+  const { t } = useTranslation();
   const { data: provider } = useQuery<any>({ queryKey: QK.providerMe() });
   const [hours, setHours] = useState(24);
   const [percent, setPercent] = useState(0);
@@ -978,22 +981,22 @@ export function CancellationPolicyCard() {
         cancellationFeePercent: percent,
       }),
     onSuccess: () => {
-      toast({ title: "Cancellation policy saved" });
+      toast({ title: t("provider_dashboard.cancellation_policy_saved", "Cancellation policy saved") });
       void invalidateProviderProfile();
     },
-    onError: () => toast({ title: "Failed to save policy", variant: "destructive" }),
+    onError: () => toast({ title: t("provider_dashboard.failed_save_policy", "Failed to save policy"), variant: "destructive" }),
   });
 
   return (
     <Card data-testid="card-cancellation-policy">
       <CardHeader>
-        <CardTitle className="text-base">Cancellation policy</CardTitle>
-        <CardDescription>Set how many hours before an appointment a client can cancel for free. Cancellations within this window may incur a fee.</CardDescription>
+        <CardTitle className="text-base">{t("provider_dashboard.cancellation_policy", "Cancellation policy")}</CardTitle>
+        <CardDescription>{t("provider_dashboard.cancellation_policy_desc", "Set how many hours before an appointment a client can cancel for free. Cancellations within this window may incur a fee.")}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1">
-            <Label className="text-xs">Free cancellation up to (hours before)</Label>
+            <Label className="text-xs">{t("provider_dashboard.free_cancel_hours", "Free cancellation up to (hours before)")}</Label>
             <Input
               type="number"
               min={0}
@@ -1002,10 +1005,10 @@ export function CancellationPolicyCard() {
               onChange={e => setHours(Number(e.target.value))}
               data-testid="input-cancellation-hours"
             />
-            <p className="text-xs text-muted-foreground">0 = no free cancellation window</p>
+            <p className="text-xs text-muted-foreground">{t("provider_dashboard.no_free_cancel", "0 = no free cancellation window")}</p>
           </div>
           <div className="space-y-1">
-            <Label className="text-xs">Late cancellation fee (%)</Label>
+            <Label className="text-xs">{t("provider_dashboard.late_cancel_fee", "Late cancellation fee (%)")}</Label>
             <Input
               type="number"
               min={0}
@@ -1014,12 +1017,12 @@ export function CancellationPolicyCard() {
               onChange={e => setPercent(Number(e.target.value))}
               data-testid="input-cancellation-fee-percent"
             />
-            <p className="text-xs text-muted-foreground">0 = no fee charged</p>
+            <p className="text-xs text-muted-foreground">{t("provider_dashboard.no_cancel_fee", "0 = no fee charged")}</p>
           </div>
         </div>
         {hours > 0 && percent > 0 && (
           <p className="text-sm text-muted-foreground p-2 rounded-md bg-muted/40">
-            Clients who cancel within {hours} hours of their appointment will be charged {percent}% of the service fee.
+             {t("provider_dashboard.cancel_fee_notice", "Clients who cancel within {{hours}} hours of their appointment will be charged {{percent}}% of the service fee.", { hours, percent })}
           </p>
         )}
         <Button
@@ -1028,7 +1031,7 @@ export function CancellationPolicyCard() {
           data-testid="button-save-cancellation-policy"
         >
           {saveMut.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
-          Save policy
+           {t("provider_dashboard.save_policy", "Save policy")}
         </Button>
       </CardContent>
     </Card>
@@ -1038,6 +1041,7 @@ export function CancellationPolicyCard() {
 // ─── Workload Controls ─────────────────────────────────────────────────────────
 export function WorkloadControlsCard({ provider }: { provider: any }) {
   const { toast } = useToast();
+  const { t } = useTranslation();
   const [maxDaily, setMaxDaily] = useState<string>("");
   const [minGap, setMinGap] = useState<string>("0");
   const [minNotice, setMinNotice] = useState<string>("60");
@@ -1070,10 +1074,10 @@ export function WorkloadControlsCard({ provider }: { provider: any }) {
         timezone,
       }),
     onSuccess: () => {
-      toast({ title: "Workload settings saved" });
+      toast({ title: t("provider_dashboard.workload_saved", "Workload settings saved") });
       void invalidateProviderProfile();
     },
-    onError: () => toast({ title: "Failed to save workload settings", variant: "destructive" }),
+    onError: () => toast({ title: t("provider_dashboard.failed_save_workload", "Failed to save workload settings"), variant: "destructive" }),
   });
 
   const commonTimezones = [
@@ -1087,29 +1091,29 @@ export function WorkloadControlsCard({ provider }: { provider: any }) {
       <CardHeader>
         <CardTitle className="text-base flex items-center gap-2">
           <AlertTriangle className="h-4 w-4 text-primary" />
-          Workload &amp; Waitlist Settings
+           {t("provider_dashboard.workload_waitlist_settings", "Workload & Waitlist Settings")}
         </CardTitle>
         <CardDescription>
-          Limit how many appointments you accept per day, require rest gaps between sessions, and control waitlist behaviour.
+           {t("provider_dashboard.workload_desc", "Limit how many appointments you accept per day, require rest gaps between sessions, and control waitlist behaviour.")}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-5">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-1">
-            <Label className="text-xs">Max appointments per day</Label>
+             <Label className="text-xs">{t("provider_dashboard.max_appointments_day", "Max appointments per day")}</Label>
             <Input
               type="number"
               min={1}
               max={100}
-              placeholder="No limit"
+               placeholder={t("provider_dashboard.no_limit", "No limit")}
               value={maxDaily}
               onChange={e => setMaxDaily(e.target.value)}
               data-testid="input-max-daily-appointments"
             />
-            <p className="text-xs text-muted-foreground">Leave blank to accept unlimited bookings per day.</p>
+             <p className="text-xs text-muted-foreground">{t("provider_dashboard.unlimited_bookings_hint", "Leave blank to accept unlimited bookings per day.")}</p>
           </div>
           <div className="space-y-1">
-            <Label className="text-xs">Minimum gap between appointments (minutes)</Label>
+             <Label className="text-xs">{t("provider_dashboard.min_gap", "Minimum gap between appointments (minutes)")}</Label>
             <Input
               type="number"
               min={0}
@@ -1118,10 +1122,10 @@ export function WorkloadControlsCard({ provider }: { provider: any }) {
               onChange={e => setMinGap(e.target.value)}
               data-testid="input-min-gap-minutes"
             />
-            <p className="text-xs text-muted-foreground">0 = no gap required. Max 120 min.</p>
+             <p className="text-xs text-muted-foreground">{t("provider_dashboard.min_gap_hint", "0 = no gap required. Max 120 min.")}</p>
           </div>
           <div className="space-y-1">
-            <Label className="text-xs">Minimum booking notice (minutes)</Label>
+             <Label className="text-xs">{t("provider_dashboard.min_notice", "Minimum booking notice (minutes)")}</Label>
             <Input
               type="number"
               min={0}
@@ -1131,10 +1135,10 @@ export function WorkloadControlsCard({ provider }: { provider: any }) {
               onChange={e => setMinNotice(e.target.value)}
               data-testid="input-min-notice-minutes"
             />
-            <p className="text-xs text-muted-foreground">How far in advance patients must book. 60 = 1 hour.</p>
+             <p className="text-xs text-muted-foreground">{t("provider_dashboard.min_notice_hint", "How far in advance patients must book. 60 = 1 hour.")}</p>
           </div>
           <div className="space-y-1">
-            <Label className="text-xs">Maximum booking horizon (days)</Label>
+             <Label className="text-xs">{t("provider_dashboard.max_booking_horizon", "Maximum booking horizon (days)")}</Label>
             <Input
               type="number"
               min={1}
@@ -1144,15 +1148,15 @@ export function WorkloadControlsCard({ provider }: { provider: any }) {
               onChange={e => setMaxDays(e.target.value)}
               data-testid="input-max-booking-days"
             />
-            <p className="text-xs text-muted-foreground">How far ahead patients can book. Default is 90 days.</p>
+             <p className="text-xs text-muted-foreground">{t("provider_dashboard.max_booking_horizon_hint", "How far ahead patients can book. Default is 90 days.")}</p>
           </div>
         </div>
 
         <div className="space-y-1">
-          <Label className="text-xs">Your timezone</Label>
+           <Label className="text-xs">{t("provider_dashboard.your_timezone", "Your timezone")}</Label>
           <Select value={timezone} onValueChange={setTimezone}>
             <SelectTrigger className="w-full" data-testid="select-provider-timezone">
-              <SelectValue placeholder="Select timezone" />
+               <SelectValue placeholder={t("provider_dashboard.select_timezone", "Select timezone")} />
             </SelectTrigger>
             <SelectContent>
               {commonTimezones.map(tz => (
@@ -1160,7 +1164,7 @@ export function WorkloadControlsCard({ provider }: { provider: any }) {
               ))}
             </SelectContent>
           </Select>
-          <p className="text-xs text-muted-foreground">Used to calculate available slots relative to your local time.</p>
+           <p className="text-xs text-muted-foreground">{t("provider_dashboard.timezone_hint", "Used to calculate available slots relative to your local time.")}</p>
         </div>
 
         <Separator />

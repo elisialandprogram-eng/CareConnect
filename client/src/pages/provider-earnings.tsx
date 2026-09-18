@@ -178,6 +178,7 @@ function resolveEarningDisplay(
 }
 
 function EarningBreakdownRow({ e, fmt }: { e: RichEarning; fmt: (n: number) => string }) {
+  const { t } = useTranslation();
   const {
     providerGross,
     providerCommission,
@@ -196,31 +197,31 @@ function EarningBreakdownRow({ e, fmt }: { e: RichEarning; fmt: (n: number) => s
             {/* LEFT: Provider earnings waterfall */}
             <div>
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
-                Earnings Breakdown
+                {t("provider_dashboard.earnings_breakdown", "Earnings Breakdown")}
               </p>
               <div className="space-y-1 text-sm">
                 <div className="flex justify-between gap-4">
-                  <span className="text-muted-foreground">Provider gross earnings</span>
+                    <span className="text-muted-foreground">{t("provider_dashboard.provider_gross", "Provider gross earnings")}</span>
                   <span className="tabular-nums font-medium">{fmtPay(providerGross)}</span>
                 </div>
                 {providerCommission > 0 && (
                   <div className="flex justify-between gap-4 pl-3">
-                    <span className="text-muted-foreground">Provider-side commission</span>
+                     <span className="text-muted-foreground">{t("provider_dashboard.provider_commission", "Provider-side commission")}</span>
                     <span className="tabular-nums font-medium text-orange-600">−{fmtPay(providerCommission)}</span>
                   </div>
                 )}
                 <div className="flex justify-between gap-4 border-t pt-1 mt-1 font-bold text-emerald-700 dark:text-emerald-400">
-                  <span>Provider net earnings</span>
+                   <span>{t("provider_dashboard.provider_net", "Provider net earnings")}</span>
                   <span className="tabular-nums">{fmtPay(providerNet)}</span>
                 </div>
                 {offlineFee > 0 && (
                   <div className="flex justify-between gap-4 text-orange-600">
-                    <span>Provider settlement deduction</span>
+                     <span>{t("provider_dashboard.settlement_deduction", "Provider settlement deduction")}</span>
                     <span className="tabular-nums font-medium">−{fmtPay(offlineFee)}</span>
                   </div>
                 )}
                 <div className="flex justify-between gap-4 border-t pt-1 mt-1 font-bold text-emerald-700 dark:text-emerald-400">
-                  <span>Settlement</span>
+                   <span>{t("provider_dashboard.settlement", "Settlement")}</span>
                   <span className="tabular-nums">{fmtPay(settlement)}</span>
                 </div>
               </div>
@@ -229,26 +230,26 @@ function EarningBreakdownRow({ e, fmt }: { e: RichEarning; fmt: (n: number) => s
             {/* Appointment metadata */}
             <div className="sm:col-span-2 grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs text-muted-foreground border-t pt-2">
               {e.appointmentNumber && (
-                <div><span className="font-medium text-foreground">Ref:</span> {e.appointmentNumber}</div>
+                 <div><span className="font-medium text-foreground">{t("provider_dashboard.ref", "Ref:")}</span> {e.appointmentNumber}</div>
               )}
               {e.paymentStatus && (
-                <div><span className="font-medium text-foreground">Payment:</span> {e.paymentStatus}</div>
+                 <div><span className="font-medium text-foreground">{t("provider_dashboard.payment", "Payment:")}</span> {e.paymentStatus}</div>
               )}
               {e.appointmentStatus && (
-                <div><span className="font-medium text-foreground">Appt status:</span> {e.appointmentStatus}</div>
+                 <div><span className="font-medium text-foreground">{t("provider_dashboard.appt_status", "Appt status:")}</span> {e.appointmentStatus}</div>
               )}
               {e.paymentMethod && (
-                <div><span className="font-medium text-foreground">Method:</span> {e.paymentMethod.replace("_", " ")}</div>
+                 <div><span className="font-medium text-foreground">{t("provider_dashboard.method", "Method:")}</span> {e.paymentMethod.replace("_", " ")}</div>
               )}
               {e.cancelledBy && (
                 <div className="text-red-600">
-                  <span className="font-medium">Cancelled by:</span> {e.cancelledBy}
-                  {e.cancelledAt && ` on ${formatDate(e.cancelledAt)}`}
+                   <span className="font-medium">{t("provider_dashboard.cancelled_by", "Cancelled by:")}</span> {e.cancelledBy}
+                   {e.cancelledAt && ` ${t("provider_dashboard.on", "on")} ${formatDate(e.cancelledAt)}`}
                 </div>
               )}
               <div>
-                <span className="font-medium text-foreground">Payout:</span>{" "}
-                {e.status === "paid" ? "paid" : "pending"}
+                 <span className="font-medium text-foreground">{t("provider_dashboard.payout", "Payout:")}</span>{" "}
+                 {e.status === "paid" ? t("provider_dashboard.paid", "paid") : t("provider_dashboard.pending", "pending")}
                 {e.payoutReference ? ` · ${e.payoutReference}` : ""}
               </div>
             </div>
@@ -340,7 +341,7 @@ export default function ProviderEarnings() {
               {t("provider_earnings.title", "Earnings & Payouts")}
             </h1>
             <p className="text-muted-foreground mt-1 text-sm">
-              Per-appointment earnings history with full deduction transparency.
+               {t("provider_dashboard.earnings_desc", "Per-appointment earnings history with full deduction transparency.")}
             </p>
           </div>
           <Button
@@ -352,7 +353,7 @@ export default function ProviderEarnings() {
           >
             {exporting
               ? <><Clock className="h-3.5 w-3.5 mr-1.5 animate-spin" />Exporting…</>
-              : <><Download className="h-3.5 w-3.5 mr-1.5" />Export CSV</>}
+               : <><Download className="h-3.5 w-3.5 mr-1.5" />{t("provider_dashboard.export_csv", "Export CSV")}</>}
           </Button>
         </div>
 
@@ -361,14 +362,14 @@ export default function ProviderEarnings() {
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
               <Filter className="h-4 w-4" />
-              Filter earnings
+               {t("provider_dashboard.filter_earnings", "Filter earnings")}
               {isFiltered && (
                 <button
                   onClick={clearFilters}
                   className="ml-auto flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
                   data-testid="button-clear-earnings-filters"
                 >
-                  <X className="h-3 w-3" /> Clear filters
+                   <X className="h-3 w-3" /> {t("provider_dashboard.clear_filters", "Clear filters")}
                 </button>
               )}
             </CardTitle>
@@ -376,7 +377,7 @@ export default function ProviderEarnings() {
           <CardContent>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               <div className="space-y-1">
-                <Label className="text-xs">Payment status</Label>
+                 <Label className="text-xs">{t("provider_dashboard.payment_status", "Payment status")}</Label>
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
                   <SelectTrigger className="h-8 text-xs" data-testid="select-earnings-status-filter">
                     <SelectValue />
@@ -389,7 +390,7 @@ export default function ProviderEarnings() {
                 </Select>
               </div>
               <div className="space-y-1">
-                <Label className="text-xs">Currency</Label>
+                 <Label className="text-xs">{t("provider_dashboard.currency", "Currency")}</Label>
                 <Select value={currencyFilter} onValueChange={setCurrencyFilter}>
                   <SelectTrigger className="h-8 text-xs" data-testid="select-currency-filter">
                     <SelectValue />
@@ -402,7 +403,7 @@ export default function ProviderEarnings() {
                 </Select>
               </div>
               <div className="space-y-1">
-                <Label className="text-xs">From date</Label>
+                 <Label className="text-xs">{t("provider_dashboard.from_date", "From date")}</Label>
                 <Input
                   type="date"
                   value={dateFrom}
@@ -412,7 +413,7 @@ export default function ProviderEarnings() {
                 />
               </div>
               <div className="space-y-1">
-                <Label className="text-xs">To date</Label>
+                 <Label className="text-xs">{t("provider_dashboard.to_date", "To date")}</Label>
                 <Input
                   type="date"
                   value={dateTo}
@@ -425,7 +426,7 @@ export default function ProviderEarnings() {
             </div>
             {isFiltered && (
               <p className="mt-2 text-xs text-muted-foreground" data-testid="text-filter-results">
-                Showing <span className="font-semibold text-foreground">{filteredEarnings.length}</span> of {allEarnings.length} records
+                 {t("provider_dashboard.showing_records", "Showing")} <span className="font-semibold text-foreground">{filteredEarnings.length}</span> {t("provider_dashboard.of_records", "of")} {allEarnings.length} {t("provider_dashboard.records", "records")}
               </p>
             )}
           </CardContent>
@@ -436,8 +437,8 @@ export default function ProviderEarnings() {
           <Card data-testid="card-total-earnings">
             <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
               <CardTitle className="text-sm font-medium text-muted-foreground">
-                Total net payout
-                {isFiltered && <span className="ml-1 text-[10px] text-primary">(filtered)</span>}
+                 {t("provider_dashboard.total_net_payout", "Total net payout")}
+                 {isFiltered && <span className="ml-1 text-[10px] text-primary">({t("provider_dashboard.filtered", "filtered")})</span>}
               </CardTitle>
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
@@ -448,7 +449,7 @@ export default function ProviderEarnings() {
                 </div>
               )}
               <p className="text-xs text-muted-foreground mt-1">
-                From {summaryCount} completed appointment(s)
+                 {t("provider_dashboard.from_completed_appointments", "From {{count}} completed appointment(s)", { count: summaryCount })}
               </p>
             </CardContent>
           </Card>
@@ -456,8 +457,8 @@ export default function ProviderEarnings() {
           <Card data-testid="card-pending-payouts">
             <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
               <CardTitle className="text-sm font-medium text-muted-foreground">
-                Pending payouts
-                {isFiltered && <span className="ml-1 text-[10px] text-primary">(filtered)</span>}
+                 {t("provider_dashboard.pending_payouts", "Pending payouts")}
+                 {isFiltered && <span className="ml-1 text-[10px] text-primary">({t("provider_dashboard.filtered", "filtered")})</span>}
               </CardTitle>
               <Clock className="h-4 w-4 text-amber-500" />
             </CardHeader>
@@ -467,15 +468,15 @@ export default function ProviderEarnings() {
                   {fmtMoney(summaryPending)}
                 </div>
               )}
-              <p className="text-xs text-muted-foreground mt-1">Awaiting payout from admin</p>
+               <p className="text-xs text-muted-foreground mt-1">{t("provider_dashboard.awaiting_payout_admin", "Awaiting payout from admin")}</p>
             </CardContent>
           </Card>
 
           <Card data-testid="card-paid-amount">
             <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
               <CardTitle className="text-sm font-medium text-muted-foreground">
-                Paid out
-                {isFiltered && <span className="ml-1 text-[10px] text-primary">(filtered)</span>}
+                 {t("provider_dashboard.paid_out", "Paid out")}
+                 {isFiltered && <span className="ml-1 text-[10px] text-primary">({t("provider_dashboard.filtered", "filtered")})</span>}
               </CardTitle>
               <CheckCircle2 className="h-4 w-4 text-green-500" />
             </CardHeader>
@@ -485,7 +486,7 @@ export default function ProviderEarnings() {
                   {fmtMoney(summaryPaid)}
                 </div>
               )}
-              <p className="text-xs text-muted-foreground mt-1">Already received</p>
+               <p className="text-xs text-muted-foreground mt-1">{t("provider_dashboard.already_received", "Already received")}</p>
             </CardContent>
           </Card>
         </div>
@@ -497,10 +498,10 @@ export default function ProviderEarnings() {
               <div>
                 <CardTitle className="flex items-center gap-2">
                   <Wallet className="h-5 w-5" />
-                  Earnings history
+                   {t("provider_dashboard.earnings_history", "Earnings history")}
                 </CardTitle>
                 <CardDescription>
-                  Click any row to see the full deduction breakdown for that appointment.
+                   {t("provider_dashboard.earnings_history_desc", "Click any row to see the full deduction breakdown for that appointment.")}
                 </CardDescription>
               </div>
               <TooltipProvider>
@@ -511,9 +512,9 @@ export default function ProviderEarnings() {
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent side="left" className="max-w-xs text-xs">
-                    <p className="font-semibold mb-1">How your earnings are calculated:</p>
-                    <p>Provider gross earnings − provider-side commission = provider net earnings.</p>
-                    <p>Offline settlement deductions, when applicable, are shown separately before the final settlement amount.</p>
+                     <p className="font-semibold mb-1">{t("provider_dashboard.earnings_calculated", "How your earnings are calculated:")}</p>
+                     <p>{t("provider_dashboard.earnings_formula", "Provider gross earnings − provider-side commission = provider net earnings.")}</p>
+                     <p>{t("provider_dashboard.offline_deductions_desc", "Offline settlement deductions, when applicable, are shown separately before the final settlement amount.")}</p>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
@@ -529,22 +530,22 @@ export default function ProviderEarnings() {
             ) : filteredEarnings.length === 0 ? (
               <div className="text-center py-12 text-muted-foreground" data-testid="text-no-earnings">
                 {isFiltered
-                  ? "No earnings match the current filters."
-                  : "No earnings yet. Complete appointments to start earning."}
+                   ? t("provider_dashboard.no_earnings_filtered", "No earnings match the current filters.")
+                   : t("provider_dashboard.no_earnings_yet", "No earnings yet. Complete appointments to start earning.")}
               </div>
             ) : (
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-muted/30">
-                      <TableHead className="pl-4 w-[160px]">Appointment date</TableHead>
-                      <TableHead>Service</TableHead>
-                      <TableHead className="hidden md:table-cell">Patient</TableHead>
-                      <TableHead className="hidden sm:table-cell">Type</TableHead>
-                      <TableHead className="text-right">Provider gross</TableHead>
-                      <TableHead className="text-right hidden sm:table-cell">Provider deduction</TableHead>
-                      <TableHead className="text-right">Settlement</TableHead>
-                      <TableHead className="w-[130px]">Payment status</TableHead>
+                       <TableHead className="pl-4 w-[160px]">{t("provider_dashboard.appointment_date", "Appointment date")}</TableHead>
+                       <TableHead>{t("provider_dashboard.service_label", "Service")}</TableHead>
+                       <TableHead className="hidden md:table-cell">{t("provider_dashboard.patient_label", "Patient")}</TableHead>
+                       <TableHead className="hidden sm:table-cell">{t("provider_dashboard.type_label", "Type")}</TableHead>
+                       <TableHead className="text-right">{t("provider_dashboard.provider_gross_short", "Provider gross")}</TableHead>
+                       <TableHead className="text-right hidden sm:table-cell">{t("provider_dashboard.provider_deduction", "Provider deduction")}</TableHead>
+                       <TableHead className="text-right">{t("provider_dashboard.settlement", "Settlement")}</TableHead>
+                       <TableHead className="w-[130px]">{t("provider_dashboard.payment_status", "Payment status")}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -604,17 +605,17 @@ export default function ProviderEarnings() {
                               <div className="flex items-center gap-1 flex-wrap">
                                 {["paid", "completed"].includes(e.paymentStatus ?? "") ? (
                                   <Badge className="bg-green-500/10 text-green-700 dark:text-green-400 border border-green-500/20 text-xs" data-testid={`badge-status-${e.id}`}>
-                                    Paid
+                                     {t("provider_dashboard.paid", "Paid")}
                                   </Badge>
                                 ) : (
                                   <Badge variant="outline" className="bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20 text-xs" data-testid={`badge-status-${e.id}`}>
-                                    {e.paymentStatus ?? "Pending"}
+                                     {e.paymentStatus ?? t("provider_dashboard.pending", "Pending")}
                                   </Badge>
                                 )}
                                 {hasRefund && (
                                   <Badge className="bg-red-500/10 text-red-700 border-red-500/20 text-xs" data-testid={`badge-refund-${e.id}`}>
                                     <AlertTriangle className="h-2.5 w-2.5 mr-0.5" />
-                                    Refund
+                                     {t("provider_dashboard.refund", "Refund")}
                                   </Badge>
                                 )}
                                 <button
@@ -649,9 +650,9 @@ export default function ProviderEarnings() {
               <div className="flex items-start gap-2">
                 <ReceiptText className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
                 <div className="text-xs text-muted-foreground space-y-0.5">
-                  <p className="font-medium text-foreground">How your earnings are calculated</p>
-                  <p>Provider gross earnings − provider-side deductions = provider net earnings and settlement.</p>
-                  <p>Patient totals, platform fees, taxes, surcharges, and booking price lines are not included in provider earnings.</p>
+                   <p className="font-medium text-foreground">{t("provider_dashboard.earnings_calculated", "How your earnings are calculated")}</p>
+                   <p>{t("provider_dashboard.earnings_formula_full", "Provider gross earnings − provider-side deductions = provider net earnings and settlement.")}</p>
+                   <p>{t("provider_dashboard.earnings_exclusions", "Patient totals, platform fees, taxes, surcharges, and booking price lines are not included in provider earnings.")}</p>
                 </div>
               </div>
             </CardContent>

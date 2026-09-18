@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -57,17 +58,19 @@ function computeReadinessScore(provider: ProviderData | undefined, docs: KycDoc[
 }
 
 interface BannerCfg {
-  title: string;
-  body: string;
+  titleKey: string;
+  titleDefault: string;
+  bodyKey: string;
+  bodyDefault: string;
   variant: "info" | "warning" | "success" | "error";
 }
 const BANNERS: Record<string, BannerCfg> = {
-  draft:              { title: "Complete Your Verification",   body: "Upload the required documents in the Documents section above and submit for review to activate your account.", variant: "info" },
-  pending_approval:   { title: "Application Under Review",     body: "Our compliance team is reviewing your documents. You'll be notified within 1–3 business days.",                variant: "info" },
-  action_required:    { title: "Action Required",              body: "One or more documents were rejected or need attention. Re-upload the flagged documents in the section above.", variant: "warning" },
-  documents_verified: { title: "Documents Verified ✓",        body: "Your documents are approved. Awaiting final compliance sign-off.",                                            variant: "success" },
-  approved:           { title: "Approved ✓",                   body: "Your provider account is fully approved.",                                                                   variant: "success" },
-  rejected:           { title: "Application Not Approved",     body: "Your application was not approved. See the rejection reason below.",                                          variant: "error" },
+  draft:              { titleKey: "kyc_complete_verification", titleDefault: "Complete Your Verification", bodyKey: "kyc_upload_submit", bodyDefault: "Upload the required documents in the Documents section above and submit for review to activate your account.", variant: "info" },
+  pending_approval:   { titleKey: "kyc_application_review", titleDefault: "Application Under Review", bodyKey: "kyc_compliance_review", bodyDefault: "Our compliance team is reviewing your documents. You'll be notified within 1–3 business days.", variant: "info" },
+  action_required:    { titleKey: "action_required", titleDefault: "Action Required", bodyKey: "kyc_action_required", bodyDefault: "One or more documents were rejected or need attention. Re-upload the flagged documents in the section above.", variant: "warning" },
+  documents_verified: { titleKey: "kyc_documents_verified", titleDefault: "Documents Verified ✓", bodyKey: "kyc_awaiting_signoff", bodyDefault: "Your documents are approved. Awaiting final compliance sign-off.", variant: "success" },
+  approved:           { titleKey: "kyc_approved", titleDefault: "Approved ✓", bodyKey: "kyc_account_approved", bodyDefault: "Your provider account is fully approved.", variant: "success" },
+  rejected:           { titleKey: "kyc_not_approved", titleDefault: "Application Not Approved", bodyKey: "kyc_application_not_approved", bodyDefault: "Your application was not approved. See the rejection reason below.", variant: "error" },
 };
 
 const BANNER_CLASSES: Record<string, string> = {
@@ -78,6 +81,7 @@ const BANNER_CLASSES: Record<string, string> = {
 };
 
 export function ProviderKYC() {
+  const { t } = useTranslation();
   const { data: provider } = useQuery<ProviderData>({ queryKey: ["/api/provider/me"] });
   const { data: docs = [] } = useQuery<KycDoc[]>({ queryKey: ["/api/provider/documents"] });
 
@@ -87,7 +91,7 @@ export function ProviderKYC() {
 
   const mandatoryStatuses = MANDATORY_DOCS.map(type => {
     const doc = docs.find(d => d.documentType === type);
-    return { type, label: MANDATORY_LABELS[type], status: doc?.verificationStatus ?? "missing", adminNote: doc?.adminNote };
+    return { type, label: t(`provider_dashboard.doc_${type}`, MANDATORY_LABELS[type]), status: doc?.verificationStatus ?? "missing", adminNote: doc?.adminNote };
   });
 
   return (
@@ -95,17 +99,17 @@ export function ProviderKYC() {
       {/* Status banner */}
       <Alert className={cn("border", BANNER_CLASSES[banner.variant])}>
         <ShieldCheck className="h-4 w-4" />
-        <AlertTitle>{banner.title}</AlertTitle>
-        <AlertDescription>{banner.body}</AlertDescription>
+        <AlertTitle>{t(`provider_dashboard.${banner.titleKey}`, banner.titleDefault)}</AlertTitle>
+        <AlertDescription>{t(`provider_dashboard.${banner.bodyKey}`, banner.bodyDefault)}</AlertDescription>
         {status === "rejected" && provider?.rejectionReason && (
-          <p className="mt-1 text-sm font-medium">Reason: {provider.rejectionReason}</p>
+          <p className="mt-1 text-sm font-medium">{t("provider_dashboard.reason", "Reason")}: {provider.rejectionReason}</p>
         )}
       </Alert>
 
       {status === "pending_approval" && (
         <div className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-700 flex items-start gap-2">
           <Info className="h-4 w-4 mt-0.5 shrink-0" />
-          <span>Your application is under review. You can still upload or replace documents — the compliance team will see your latest files.</span>
+          <span>{t("provider_dashboard.kyc_under_review_latest", "Your application is under review. You can still upload or replace documents — the compliance team will see your latest files.")}</span>
         </div>
       )}
 
@@ -115,7 +119,7 @@ export function ProviderKYC() {
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <Star className="h-4 w-4 text-amber-500" />
-              <span className="text-sm font-semibold">Profile Readiness</span>
+              <span className="text-sm font-semibold">{t("provider_dashboard.profile_readiness", "Profile Readiness")}</span>
             </div>
             <span className={cn(
               "text-sm font-bold tabular-nums",
@@ -137,7 +141,7 @@ export function ProviderKYC() {
           </div>
           {readiness.score < 100 && (
             <p className="text-xs text-muted-foreground mt-3">
-              Complete all items to maximise your profile visibility and booking rate.
+              {t("provider_dashboard.complete_all_items", "Complete all items to maximise your profile visibility and booking rate.")}
             </p>
           )}
         </CardContent>
@@ -146,7 +150,7 @@ export function ProviderKYC() {
       {/* Required document status snapshot */}
       <Card>
         <CardContent className="pt-4 pb-4">
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">Required Document Status</p>
+           <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">{t("provider_dashboard.required_document_status", "Required Document Status")}</p>
           <div className="space-y-2">
             {mandatoryStatuses.map(({ type, label, status: ds, adminNote }) => {
               const norm = ds === "pending_review" || ds === "verification_pending" ? "under_review"
@@ -167,12 +171,12 @@ export function ProviderKYC() {
                       : "bg-red-100 text-red-700 border-red-200",
                     )}>
                       {approved ? <CheckCircle2 className="h-3 w-3" /> : <XCircle className="h-3 w-3" />}
-                      {approved ? "Approved" : rejected ? "Action needed" : pending ? "Under review" : missing ? "Not uploaded" : "Pending"}
+                      {approved ? t("provider_dashboard.status_approved", "Approved") : rejected ? t("provider_dashboard.status_action_needed", "Action needed") : pending ? t("provider_dashboard.status_under_review", "Under review") : missing ? t("provider_dashboard.status_not_uploaded", "Not uploaded") : t("provider_dashboard.status_pending", "Pending")}
                     </Badge>
                   </div>
                   {rejected && adminNote && (
                     <p className="text-[11px] text-orange-700 dark:text-orange-400 bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-800 rounded px-2 py-1">
-                      <span className="font-semibold">Admin note:</span> {adminNote}
+                       <span className="font-semibold">{t("provider_dashboard.admin_note", "Admin note:")}</span> {adminNote}
                     </p>
                   )}
                 </div>
@@ -183,7 +187,7 @@ export function ProviderKYC() {
       </Card>
 
       <p className="text-xs text-muted-foreground px-1">
-        Documents are reviewed by our compliance team within 1–3 business days. You will be notified by email and in-app when the review is complete.
+         {t("provider_dashboard.documents_review_desc", "Documents are reviewed by our compliance team within 1–3 business days. You will be notified by email and in-app when the review is complete.")}
       </p>
     </div>
   );

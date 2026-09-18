@@ -3,6 +3,7 @@ import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -33,33 +34,34 @@ function normStatus(raw: string): string {
   return raw;
 }
 
-function statusBadge(raw: string) {
+function statusBadge(raw: string, t: any) {
   const s = normStatus(raw);
-  if (s === "approved")          return <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200 gap-1 text-xs"><CheckCircle className="h-3 w-3" />Approved</Badge>;
-  if (s === "rejected")          return <Badge className="bg-red-100 text-red-700 border-red-200 gap-1 text-xs"><XCircle className="h-3 w-3" />Rejected</Badge>;
-  if (s === "reupload_required") return <Badge className="bg-orange-100 text-orange-700 border-orange-200 gap-1 text-xs"><RefreshCw className="h-3 w-3" />Re-upload needed</Badge>;
-  if (s === "expired")           return <Badge className="bg-muted text-muted-foreground border-border gap-1 text-xs"><Clock className="h-3 w-3" />Expired</Badge>;
-  if (s === "expiring_soon")     return <Badge className="bg-amber-100 text-amber-700 border-amber-200 gap-1 text-xs"><AlertTriangle className="h-3 w-3" />Expiring soon</Badge>;
-  if (s === "under_review")      return <Badge className="bg-blue-100 text-blue-700 border-blue-200 gap-1 text-xs"><Clock className="h-3 w-3" />Under review</Badge>;
-  if (s === "missing")           return <Badge className="bg-red-100 text-red-700 border-red-200 gap-1 text-xs"><AlertTriangle className="h-3 w-3" />Required</Badge>;
-  return <Badge className="bg-yellow-100 text-yellow-700 border-yellow-200 gap-1 text-xs"><Clock className="h-3 w-3" />Pending</Badge>;
+  if (s === "approved")          return <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200 gap-1 text-xs"><CheckCircle className="h-3 w-3" />{t("provider_dashboard.approved", "Approved")}</Badge>;
+  if (s === "rejected")          return <Badge className="bg-red-100 text-red-700 border-red-200 gap-1 text-xs"><XCircle className="h-3 w-3" />{t("provider_dashboard.rejected", "Rejected")}</Badge>;
+  if (s === "reupload_required") return <Badge className="bg-orange-100 text-orange-700 border-orange-200 gap-1 text-xs"><RefreshCw className="h-3 w-3" />{t("provider_dashboard.reupload_needed", "Re-upload needed")}</Badge>;
+  if (s === "expired")           return <Badge className="bg-muted text-muted-foreground border-border gap-1 text-xs"><Clock className="h-3 w-3" />{t("provider_dashboard.expired", "Expired")}</Badge>;
+  if (s === "expiring_soon")     return <Badge className="bg-amber-100 text-amber-700 border-amber-200 gap-1 text-xs"><AlertTriangle className="h-3 w-3" />{t("provider_dashboard.expiring_soon", "Expiring soon")}</Badge>;
+  if (s === "under_review")      return <Badge className="bg-blue-100 text-blue-700 border-blue-200 gap-1 text-xs"><Clock className="h-3 w-3" />{t("provider_dashboard.status_under_review", "Under review")}</Badge>;
+  if (s === "missing")           return <Badge className="bg-red-100 text-red-700 border-red-200 gap-1 text-xs"><AlertTriangle className="h-3 w-3" />{t("provider_dashboard.required", "Required")}</Badge>;
+  return <Badge className="bg-yellow-100 text-yellow-700 border-yellow-200 gap-1 text-xs"><Clock className="h-3 w-3" />{t("provider_dashboard.pending", "Pending")}</Badge>;
 }
 
-function statusMessage(raw: string): string {
+function statusMessage(raw: string, t: any): string {
   const s = normStatus(raw);
-  if (s === "approved")          return "Verified by admin";
-  if (s === "rejected")          return "Please re-upload — see admin note below";
-  if (s === "reupload_required") return "Admin has requested a fresh copy";
-  if (s === "expired")           return "Document renewal required — upload a new version";
-  if (s === "expiring_soon")     return "Renew before expiry to stay compliant";
-  if (s === "under_review")      return "Under review by admin";
-  if (s === "missing")           return "This document is required to complete verification";
-  return "Waiting for admin verification";
+  if (s === "approved")          return t("provider_dashboard.verified_by_admin", "Verified by admin");
+  if (s === "rejected")          return t("provider_dashboard.reupload_admin_note", "Please re-upload — see admin note below");
+  if (s === "reupload_required") return t("provider_dashboard.fresh_copy_requested", "Admin has requested a fresh copy");
+  if (s === "expired")           return t("provider_dashboard.document_renewal_required", "Document renewal required — upload a new version");
+  if (s === "expiring_soon")     return t("provider_dashboard.renew_before_expiry", "Renew before expiry to stay compliant");
+  if (s === "under_review")      return t("provider_dashboard.under_review_admin", "Under review by admin");
+  if (s === "missing")           return t("provider_dashboard.document_required_verification", "This document is required to complete verification");
+  return t("provider_dashboard.waiting_admin_verification", "Waiting for admin verification");
 }
 
 // ── Govt Photo ID Number field (only shown for id_card slot) ──────────────────
 function GovtIdNumberField() {
   const { toast } = useToast();
+  const { t } = useTranslation();
   const { data: providerMe } = useQuery<any>({ queryKey: ["/api/provider/me"] });
   const [value, setValue] = useState<string>("");
   const [saving, setSaving] = useState(false);
@@ -77,9 +79,9 @@ function GovtIdNumberField() {
     try {
       await apiRequest("POST", "/api/provider/setup", { nationalProviderId: value.trim() || null });
       queryClient.invalidateQueries({ queryKey: ["/api/provider/me"] });
-      toast({ title: "ID number saved" });
+      toast({ title: t("provider_dashboard.id_number_saved", "ID number saved") });
     } catch (err: any) {
-      toast({ title: err?.message ?? "Save failed", variant: "destructive" });
+      toast({ title: err?.message ?? t("common.save_failed", "Save failed"), variant: "destructive" });
     } finally {
       setSaving(false);
     }
@@ -88,8 +90,8 @@ function GovtIdNumberField() {
   return (
     <div className="mt-2 rounded-lg bg-muted/30 border p-3 space-y-2">
       <Label className="text-xs font-medium">
-        ID / Document Number
-        <span className="text-muted-foreground font-normal ml-1">(passport number, national ID, driver's licence number)</span>
+         {t("provider_dashboard.id_document_number", "ID / Document Number")}
+         <span className="text-muted-foreground font-normal ml-1">({t("provider_dashboard.id_document_hint", "passport number, national ID, driver's licence number")})</span>
       </Label>
       <div className="flex gap-2 items-center">
         <Input
@@ -106,10 +108,10 @@ function GovtIdNumberField() {
           disabled={saving || !value.trim()}
           data-testid="button-save-gov-id-number"
         >
-          {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Save"}
+           {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : t("common.save", "Save")}
         </Button>
       </div>
-      <p className="text-xs text-muted-foreground">Private — only visible to admin. Never shown on your public profile.</p>
+       <p className="text-xs text-muted-foreground">{t("provider_dashboard.private_admin_only", "Private — only visible to admin. Never shown on your public profile.")}</p>
     </div>
   );
 }
@@ -220,6 +222,7 @@ const DOC_SLOTS: DocSlot[] = [
 // ── 0. Profile Photo ───────────────────────────────────────────────────────────
 function ProfilePhotoSection() {
   const { toast } = useToast();
+  const { t } = useTranslation();
   const fileRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
 
@@ -229,11 +232,11 @@ function ProfilePhotoSection() {
   async function handleUpload(file: File) {
     const ALLOWED = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
     if (!ALLOWED.includes(file.type)) {
-      toast({ title: "Use JPG, PNG, or WebP", variant: "destructive" });
+      toast({ title: t("provider_dashboard.photo_formats", "Use JPG, PNG, or WebP"), variant: "destructive" });
       return;
     }
     if (file.size > 5 * 1024 * 1024) {
-      toast({ title: "Photo must be under 5 MB", variant: "destructive" });
+      toast({ title: t("provider_dashboard.photo_size", "Photo must be under 5 MB"), variant: "destructive" });
       return;
     }
     setUploading(true);
@@ -243,14 +246,14 @@ function ProfilePhotoSection() {
       const uploadRes = await fetch("/api/upload", { method: "POST", credentials: "include", body: form });
       const uploadData = await uploadRes.json().catch(() => ({}));
       if (!uploadRes.ok) {
-        throw new Error(uploadData?.message ?? "Upload failed");
+        throw new Error(uploadData?.message ?? t("provider_dashboard.upload_failed", "Upload failed"));
       }
       const { url } = uploadData;
       await apiRequest("PATCH", "/api/auth/profile", { avatarUrl: url });
       queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
-      toast({ title: "Profile photo updated" });
+      toast({ title: t("provider_dashboard.profile_photo_updated", "Profile photo updated") });
     } catch (err: any) {
-      toast({ title: err?.message ?? "Upload failed", variant: "destructive" });
+      toast({ title: err?.message ?? t("provider_dashboard.upload_failed", "Upload failed"), variant: "destructive" });
     } finally {
       setUploading(false);
       if (fileRef.current) fileRef.current.value = "";
@@ -264,8 +267,8 @@ function ProfilePhotoSection() {
           <User className="h-4 w-4 text-primary" />
         </div>
         <div>
-          <p className="text-sm font-semibold">Profile Photo</p>
-          <p className="text-xs text-muted-foreground">Visible to patients on your booking card and public profile</p>
+           <p className="text-sm font-semibold">{t("provider_dashboard.profile_photo", "Profile Photo")}</p>
+           <p className="text-xs text-muted-foreground">{t("provider_dashboard.profile_photo_desc", "Visible to patients on your booking card and public profile")}</p>
         </div>
       </div>
       {isLoading ? (
@@ -286,12 +289,12 @@ function ProfilePhotoSection() {
             ) : (
               <div className="w-20 h-20 rounded-xl border-2 border-dashed border-muted-foreground/30 flex flex-col items-center justify-center gap-1 bg-muted/30">
                 <User className="h-7 w-7 text-muted-foreground/40" />
-                <span className="text-[9px] text-muted-foreground">No photo</span>
+                 <span className="text-[9px] text-muted-foreground">{t("provider_dashboard.no_photo", "No photo")}</span>
               </div>
             )}
           </div>
           <div className="flex flex-col gap-2">
-            <p className="text-xs text-muted-foreground">JPG, PNG or WebP · Max 5 MB · Shown to patients</p>
+             <p className="text-xs text-muted-foreground">{t("provider_dashboard.photo_constraints", "JPG, PNG or WebP · Max 5 MB · Shown to patients")}</p>
             <Button
               size="sm"
               variant={avatarUrl ? "outline" : "default"}
@@ -301,8 +304,8 @@ function ProfilePhotoSection() {
               data-testid="button-upload-profile-photo"
             >
               {uploading
-                ? <><Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />Uploading…</>
-                : <><Camera className="h-3.5 w-3.5 mr-1.5" />{avatarUrl ? "Replace photo" : "Upload photo"}</>}
+                 ? <><Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />{t("provider_dashboard.uploading", "Uploading…")}</>
+                 : <><Camera className="h-3.5 w-3.5 mr-1.5" />{avatarUrl ? t("provider_dashboard.replace_photo", "Replace photo") : t("provider_dashboard.upload_photo", "Upload photo")}</>}
             </Button>
           </div>
           <input
@@ -322,6 +325,7 @@ function ProfilePhotoSection() {
 // ── 1. Unified Documents Section ──────────────────────────────────────────────
 function UnifiedDocumentsSection() {
   const { toast } = useToast();
+  const { t } = useTranslation();
   const fileRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const [uploading, setUploading] = useState<string | null>(null);
   const [showForm, setShowForm] = useState<string | null>(null);
@@ -335,9 +339,9 @@ function UnifiedDocumentsSection() {
     mutationFn: (id: string) => apiRequest("DELETE", `/api/provider/documents/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/provider/documents"] });
-      toast({ title: "Document removed" });
+      toast({ title: t("provider_dashboard.document_removed", "Document removed") });
     },
-    onError: (err: any) => toast({ title: err?.message ?? "Failed to remove", variant: "destructive" }),
+      onError: (err: any) => toast({ title: err?.message ?? t("provider_dashboard.failed_to_remove", "Failed to remove"), variant: "destructive" }),
   });
 
   function getDocForSlot(slot: DocSlot): any | undefined {
@@ -350,7 +354,7 @@ function UnifiedDocumentsSection() {
 
   async function handleUpload(slot: DocSlot, file: File) {
     if (slot.expiryRequired === "yes" && !expiries[slot.type]) {
-      toast({ title: "Expiry date is required", description: `Please enter the expiry date for your ${slot.label} before uploading.`, variant: "destructive" });
+      toast({ title: t("provider_dashboard.expiry_required", "Expiry date is required"), description: t("provider_dashboard.enter_expiry_for", "Please enter the expiry date for your {{label}} before uploading.", { label: t(`provider_dashboard.doc_${slot.type}`, slot.label) }), variant: "destructive" });
       return;
     }
     setUploading(slot.type);
@@ -365,11 +369,11 @@ function UnifiedDocumentsSection() {
       await fetchMultipart("/api/provider/documents/upload", form);
       queryClient.invalidateQueries({ queryKey: ["/api/provider/documents"] });
       queryClient.invalidateQueries({ queryKey: ["/api/provider/me"] });
-      toast({ title: `${slot.label} uploaded — pending admin review` });
+      toast({ title: t("provider_dashboard.document_uploaded_pending", "{{label}} uploaded — pending admin review", { label: t(`provider_dashboard.doc_${slot.type}`, slot.label) }) });
       setShowForm(null);
       setExpiries(p => { const n = { ...p }; delete n[slot.type]; return n; });
     } catch (err: any) {
-      toast({ title: err?.message ?? "Upload failed", variant: "destructive" });
+      toast({ title: err?.message ?? t("provider_dashboard.upload_failed", "Upload failed"), variant: "destructive" });
     } finally {
       setUploading(null);
       if (fileRefs.current[slot.type]) fileRefs.current[slot.type]!.value = "";
@@ -416,6 +420,8 @@ function UnifiedDocumentsSection() {
   const optional  = DOC_SLOTS.filter(s => !s.mandatory);
 
   function renderSlot(slot: DocSlot) {
+    const slotLabel = t(`provider_dashboard.doc_${slot.type}`, slot.label);
+    const slotDescription = t(`provider_dashboard.doc_${slot.type}_desc`, slot.description);
     const existing = getDocForSlot(slot);
     const SlotIcon = slot.icon;
     const isUp   = uploading === slot.type;
@@ -457,29 +463,29 @@ function UnifiedDocumentsSection() {
             </div>
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2 flex-wrap">
-                <p className="text-sm font-medium leading-snug">{slot.label}</p>
+                <p className="text-sm font-medium leading-snug">{slotLabel}</p>
                 {slot.mandatory ? (
                   <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-red-50 text-red-600 border border-red-200">
-                    Required
+                     {t("provider_dashboard.required", "Required")}
                   </span>
                 ) : (
                   <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground border">
-                    Optional
+                     {t("provider_dashboard.optional", "Optional")}
                   </span>
                 )}
               </div>
-              <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{slot.description}</p>
+               <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{slotDescription}</p>
 
               {slot.type === "id_card" && <GovtIdNumberField />}
 
               {displayStatus && (
                 <div className="mt-1.5 space-y-1.5">
                   <div className="flex items-center gap-2 flex-wrap">
-                    {statusBadge(displayStatus)}
+                     {statusBadge(displayStatus, t)}
                     {existing?.expiryDate && (
                       <span className={`text-xs ${expSoon ? "text-amber-600 font-medium" : "text-muted-foreground"}`}>
-                        {days !== null && days <= 0 ? "Expired" : `Expires ${existing.expiryDate}`}
-                        {expSoon && days !== null && ` (${days}d)`}
+                         {days !== null && days <= 0 ? t("provider_dashboard.expired", "Expired") : `${t("provider_dashboard.expires", "Expires")} ${existing.expiryDate}`}
+                         {expSoon && days !== null && ` (${days}${t("provider_dashboard.days_short", "d")})`}
                       </span>
                     )}
                   </div>
@@ -487,29 +493,29 @@ function UnifiedDocumentsSection() {
                     <div className="flex items-start gap-1.5 rounded-md bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-900 px-2.5 py-1.5">
                       <AlertTriangle className="h-3.5 w-3.5 text-orange-600 dark:text-orange-400 shrink-0 mt-0.5" />
                       <p className="text-xs text-orange-700 dark:text-orange-300 font-medium">
-                        {statusMessage(displayStatus)}
+                         {statusMessage(displayStatus, t)}
                       </p>
                     </div>
                   ) : (
-                    <p className="text-xs text-muted-foreground">{statusMessage(displayStatus)}</p>
+                     <p className="text-xs text-muted-foreground">{statusMessage(displayStatus, t)}</p>
                   )}
                 </div>
               )}
 
               {existing?.adminNote && (
                 <div className="mt-1.5 rounded-md bg-muted/60 border px-2.5 py-1.5">
-                  <p className="text-xs text-muted-foreground"><span className="font-medium">Admin note:</span> {existing.adminNote}</p>
+                   <p className="text-xs text-muted-foreground"><span className="font-medium">{t("provider_dashboard.admin_note", "Admin note:")}</span> {existing.adminNote}</p>
                 </div>
               )}
               {existing?.createdAt && (
                 <p className="text-xs text-muted-foreground mt-1">
-                  Uploaded {formatDate(existing.createdAt)}
+                   {t("provider_dashboard.uploaded", "Uploaded")} {formatDate(existing.createdAt)}
                   {existing.fileName && ` · ${existing.fileName}`}
                 </p>
               )}
               {s === "approved" && existing?.verifiedAt && (
                 <p className="text-xs text-emerald-600 mt-1">
-                  Verified {formatDate(existing.verifiedAt)}
+                   {t("provider_dashboard.verified", "Verified")} {formatDate(existing.verifiedAt)}
                 </p>
               )}
             </div>
@@ -530,7 +536,7 @@ function UnifiedDocumentsSection() {
                   onClick={() => setShowForm(open ? null : slot.type)}
                   data-testid={`button-replace-doc-${slot.type}`}
                 >
-                  {needsAction ? <><Upload className="h-3.5 w-3.5 mr-1.5" />Re-upload</> : "Replace"}
+                   {needsAction ? <><Upload className="h-3.5 w-3.5 mr-1.5" />{t("provider_dashboard.reupload", "Re-upload")}</> : t("provider_dashboard.replace", "Replace")}
                 </Button>
                 <Button
                   size="icon" variant="ghost" className="h-8 w-8 text-destructive"
@@ -549,7 +555,7 @@ function UnifiedDocumentsSection() {
                 onClick={() => setShowForm(open ? null : slot.type)}
                 data-testid={`button-upload-doc-${slot.type}`}
               >
-                <Upload className="h-3.5 w-3.5 mr-1.5" />Upload
+                 <Upload className="h-3.5 w-3.5 mr-1.5" />{t("provider_dashboard.upload", "Upload")}
               </Button>
             )}
           </div>
@@ -560,9 +566,9 @@ function UnifiedDocumentsSection() {
             {slot.expiryRequired !== "no" && (
               <div className="space-y-1 max-w-[220px]">
                 <Label className="text-xs">
-                  Expiry date
+                   {t("provider_dashboard.expiry_date", "Expiry date")}
                   {slot.expiryRequired === "yes" && <span className="text-red-500 ml-1">*</span>}
-                  {slot.expiryRequired === "maybe" && <span className="text-muted-foreground ml-1">(if applicable)</span>}
+                   {slot.expiryRequired === "maybe" && <span className="text-muted-foreground ml-1">({t("provider_dashboard.if_applicable", "if applicable")})</span>}
                 </Label>
                 <Input
                   type="date"
@@ -572,7 +578,7 @@ function UnifiedDocumentsSection() {
                   data-testid={`input-doc-expiry-${slot.type}`}
                 />
                 {slot.expiryRequired === "yes" && (
-                  <p className="text-xs text-muted-foreground">You'll receive a reminder 30 days before expiry.</p>
+                   <p className="text-xs text-muted-foreground">{t("provider_dashboard.expiry_reminder", "You'll receive a reminder 30 days before expiry.")}</p>
                 )}
               </div>
             )}
@@ -582,11 +588,11 @@ function UnifiedDocumentsSection() {
                 onClick={() => fileRefs.current[slot.type]?.click()}
                 data-testid={`button-choose-doc-file-${slot.type}`}
               >
-                {isUp ? <><Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />Uploading…</> : <><Upload className="h-3.5 w-3.5 mr-1.5" />Choose file & upload</>}
+                 {isUp ? <><Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />{t("provider_dashboard.uploading", "Uploading…")}</> : <><Upload className="h-3.5 w-3.5 mr-1.5" />{t("provider_dashboard.choose_upload", "Choose file & upload")}</>}
               </Button>
-              <Button size="sm" variant="ghost" className="h-8 text-xs" onClick={() => setShowForm(null)}>Cancel</Button>
+               <Button size="sm" variant="ghost" className="h-8 text-xs" onClick={() => setShowForm(null)}>{t("common.cancel", "Cancel")}</Button>
             </div>
-            <p className="text-xs text-muted-foreground">PDF, JPG, PNG, WebP · Max 10 MB</p>
+             <p className="text-xs text-muted-foreground">{t("provider_dashboard.document_constraints", "PDF, JPG, PNG, WebP · Max 10 MB")}</p>
             <input
               ref={el => { fileRefs.current[slot.type] = el; }}
               type="file"
@@ -606,11 +612,11 @@ function UnifiedDocumentsSection() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-base">
           <FileText className="h-5 w-5 text-primary" />
-          Documents
+           {t("provider_dashboard.documents", "Documents")}
         </CardTitle>
         <CardDescription className="flex items-start gap-1.5">
           <Lock className="h-3.5 w-3.5 mt-0.5 text-amber-500 shrink-0" />
-          Private documents reviewed by admin only — never shown on your public profile or shared with patients.
+           {t("provider_dashboard.private_documents_desc", "Private documents reviewed by admin only — never shown on your public profile or shared with patients.")}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -621,12 +627,12 @@ function UnifiedDocumentsSection() {
               <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5 text-orange-600 dark:text-orange-400" />
               <div className="space-y-1.5 flex-1 min-w-0">
                 <p className="text-sm font-semibold text-orange-800 dark:text-orange-300">
-                  {needsActionDocs.length} document{needsActionDocs.length > 1 ? "s" : ""} need{needsActionDocs.length === 1 ? "s" : ""} your attention
+                   {t("provider_dashboard.documents_need_attention", "{{count}} document{{suffix}} need{{verb}} your attention", { count: needsActionDocs.length, suffix: needsActionDocs.length > 1 ? "s" : "", verb: needsActionDocs.length === 1 ? "s" : "" })}
                 </p>
                 <ul className="space-y-1">
                   {needsActionDocs.map(({ slot, doc: d }) => (
                     <li key={slot.type} className="text-xs text-orange-700 dark:text-orange-400">
-                      <span className="font-medium">• {slot.label}</span>
+                       <span className="font-medium">• {t(`provider_dashboard.doc_${slot.type}`, slot.label)}</span>
                       {d?.adminNote && (
                         <span className="block pl-3 text-orange-600 dark:text-orange-500 italic">"{d.adminNote}"</span>
                       )}
@@ -634,7 +640,7 @@ function UnifiedDocumentsSection() {
                   ))}
                 </ul>
                 <p className="text-xs text-orange-600 dark:text-orange-500">
-                  Use the <strong>Re-upload</strong> button next to each flagged document below.
+                   {t("provider_dashboard.reupload_flagged_desc", "Use the Re-upload button next to each flagged document below.")}
                 </p>
               </div>
             </div>
@@ -647,18 +653,18 @@ function UnifiedDocumentsSection() {
             <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" />
             <div className="space-y-1 flex-1 min-w-0">
               <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">
-                {expiringDocs.length} document{expiringDocs.length > 1 ? "s" : ""} expiring soon
+                 {t("provider_dashboard.documents_expiring", "{{count}} document{{suffix}} expiring soon", { count: expiringDocs.length, suffix: expiringDocs.length > 1 ? "s" : "" })}
               </p>
               <ul className="space-y-0.5">
                 {expiringDocs.map(({ slot, days }) => (
                   <li key={slot.type} className="text-xs text-amber-700 dark:text-amber-400">
                     • <span className="font-medium">{slot.label}</span>
-                    <span className="ml-1 text-amber-600">— {days} day{days === 1 ? "" : "s"} left</span>
+                     <span className="ml-1 text-amber-600">— {days} {t("provider_dashboard.days_left", "day{{suffix}} left", { suffix: days === 1 ? "" : "s" })}</span>
                   </li>
                 ))}
               </ul>
               <p className="text-xs text-amber-600 dark:text-amber-500">
-                Upload a renewed copy before expiry to stay compliant.
+                 {t("provider_dashboard.upload_renewed_copy", "Upload a renewed copy before expiry to stay compliant.")}
               </p>
             </div>
           </div>
@@ -669,23 +675,23 @@ function UnifiedDocumentsSection() {
           <div className="rounded-lg border border-red-200 bg-red-50 dark:bg-red-950/20 dark:border-red-800 p-3 text-sm text-red-700 dark:text-red-400 flex gap-2">
             <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
             <span>
-              <strong>Missing required documents:</strong>{" "}
-              {mandatoryMissing.map(s => s.label).join(", ")}.
-              Upload these to complete your verification.
+               <strong>{t("provider_dashboard.missing_required_documents", "Missing required documents:")}</strong>{" "}
+               {mandatoryMissing.map(s => t(`provider_dashboard.doc_${s.type}`, s.label)).join(", ")}.
+               {t("provider_dashboard.upload_to_verify", "Upload these to complete your verification.")}
             </span>
           </div>
         )}
 
         <div className="space-y-2">
-          <p className="text-xs font-semibold text-foreground uppercase tracking-wide">Required Documents</p>
+           <p className="text-xs font-semibold text-foreground uppercase tracking-wide">{t("provider_dashboard.required_documents", "Required Documents")}</p>
           <div className="space-y-2">
             {mandatory.map(slot => renderSlot(slot))}
           </div>
         </div>
 
         <div className="space-y-2 pt-1">
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Optional Documents</p>
-          <p className="text-xs text-muted-foreground -mt-1">Upload where applicable to strengthen your profile and meet compliance requirements.</p>
+           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{t("provider_dashboard.optional_documents", "Optional Documents")}</p>
+           <p className="text-xs text-muted-foreground -mt-1">{t("provider_dashboard.optional_documents_desc", "Upload where applicable to strengthen your profile and meet compliance requirements.")}</p>
           <div className="space-y-2">
             {optional.map(slot => renderSlot(slot))}
           </div>

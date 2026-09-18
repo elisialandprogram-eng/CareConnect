@@ -1,5 +1,6 @@
 import { useMemo, useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/lib/auth";
 import { useCurrency } from "@/lib/currency";
@@ -180,6 +181,7 @@ function AlertItem({ icon: Icon, color, label, desc, href }: {
 
 function AppointmentRow({ appt }: { appt: Appointment }) {
   const [, navigate] = useLocation();
+  const { t } = useTranslation();
   const VisitIcon = VISIT_ICON[appt.visitType ?? "clinic"] ?? MapPin;
   const statusCls = STATUS_COLOR[appt.status] ?? "bg-muted text-muted-foreground";
   const isVideo = appt.visitType === "online" && appt.videoRoomUrl;
@@ -191,7 +193,7 @@ function AppointmentRow({ appt }: { appt: Appointment }) {
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-sm font-semibold text-foreground truncate">{patientName(appt)}</p>
-        <p className="text-xs text-muted-foreground truncate">{appt.serviceName ?? "Appointment"}</p>
+        <p className="text-xs text-muted-foreground truncate">{appt.serviceName ?? t("appointments.appointment", "Appointment")}</p>
       </div>
       <div className="flex flex-col items-end gap-1 flex-shrink-0">
         <div className="flex items-center gap-1 text-xs text-muted-foreground">
@@ -209,7 +211,7 @@ function AppointmentRow({ appt }: { appt: Appointment }) {
         {isVideo && (
           <Button size="sm" variant="outline" className="h-7 px-2 text-xs rounded-lg gap-1 border-violet-300 text-violet-700 hover:bg-violet-50 dark:border-violet-700 dark:text-violet-300" asChild data-testid={`button-join-video-${appt.id}`}>
             <a href={appt.videoRoomUrl!} target="_blank" rel="noopener noreferrer">
-              <Video className="w-3 h-3" /> Join
+              <Video className="w-3 h-3" /> {t("provider_dashboard.join", "Join")}
             </a>
           </Button>
         )}
@@ -239,6 +241,7 @@ function QuickAction({ icon: Icon, label, href, color }: {
 // ── Main ──────────────────────────────────────────────────────────────────────
 export default function ProviderHome() {
   const { user } = useAuth();
+  const { t } = useTranslation();
   const { format: formatAmount } = useCurrency();
 
   // ── Queries ──────────────────────────────────────────────────────────────
@@ -332,25 +335,25 @@ export default function ProviderHome() {
   // Action required alerts
   const alerts: { icon: React.ElementType; color: string; label: string; desc: string; href?: string }[] = [];
   if (upcomingAppts.some(a => a.visitType === "online" && a.videoRoomUrl)) {
-    alerts.push({ icon: Video, color: "border-violet-200 bg-violet-50 text-violet-800 dark:border-violet-800 dark:bg-violet-950/30 dark:text-violet-300", label: "Video session ready", desc: "A video appointment is starting soon", href: "/appointments" });
+    alerts.push({ icon: Video, color: "border-violet-200 bg-violet-50 text-violet-800 dark:border-violet-800 dark:bg-violet-950/30 dark:text-violet-300", label: t("provider_dashboard.video_session_ready", "Video session ready"), desc: t("provider_dashboard.video_session_soon", "A video appointment is starting soon"), href: "/appointments" });
   }
   if ((unreadCount?.count ?? 0) > 0) {
-    alerts.push({ icon: Bell, color: "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-300", label: `${unreadCount!.count} unread notification${unreadCount!.count !== 1 ? "s" : ""}`, desc: "Check your notification center", href: "/notifications" });
+    alerts.push({ icon: Bell, color: "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-300", label: t("provider_dashboard.unread_notifications", "{{count}} unread notification{{suffix}}", { count: unreadCount!.count, suffix: unreadCount!.count !== 1 ? "s" : "" }), desc: t("provider_dashboard.check_notifications", "Check your notification center"), href: "/notifications" });
   }
   if (pendingReviewReplies > 0) {
-    alerts.push({ icon: MessageSquare, color: "border-blue-200 bg-blue-50 text-blue-800 dark:border-blue-800 dark:bg-blue-950/30 dark:text-blue-300", label: `${pendingReviewReplies} review${pendingReviewReplies !== 1 ? "s" : ""} awaiting reply`, desc: "Patients appreciate a prompt response", href: "/provider/dashboard" });
+    alerts.push({ icon: MessageSquare, color: "border-blue-200 bg-blue-50 text-blue-800 dark:border-blue-800 dark:bg-blue-950/30 dark:text-blue-300", label: t("provider_dashboard.reviews_waiting", "{{count}} review{{suffix}} awaiting reply", { count: pendingReviewReplies, suffix: pendingReviewReplies !== 1 ? "s" : "" }), desc: t("provider_dashboard.prompt_response", "Patients appreciate a prompt response"), href: "/provider/dashboard" });
   }
   if (expiredDocs.length > 0) {
-    alerts.push({ icon: AlertTriangle, color: "border-rose-200 bg-rose-50 text-rose-800 dark:border-rose-800 dark:bg-rose-950/30 dark:text-rose-300", label: `${expiredDocs.length} document${expiredDocs.length !== 1 ? "s" : ""} expired`, desc: "Upload updated documents to remain compliant", href: "/provider/dashboard" });
+    alerts.push({ icon: AlertTriangle, color: "border-rose-200 bg-rose-50 text-rose-800 dark:border-rose-800 dark:bg-rose-950/30 dark:text-rose-300", label: t("provider_dashboard.documents_expired", "{{count}} document{{suffix}} expired", { count: expiredDocs.length, suffix: expiredDocs.length !== 1 ? "s" : "" }), desc: t("provider_dashboard.upload_updated_docs", "Upload updated documents to remain compliant"), href: "/provider/dashboard" });
   }
   if (expiringSoon.length > 0) {
-    alerts.push({ icon: Clock, color: "border-orange-200 bg-orange-50 text-orange-800 dark:border-orange-800 dark:bg-orange-950/30 dark:text-orange-300", label: `${expiringSoon.length} document${expiringSoon.length !== 1 ? "s" : ""} expiring soon`, desc: "Within 60 days — schedule renewal", href: "/provider/dashboard" });
+    alerts.push({ icon: Clock, color: "border-orange-200 bg-orange-50 text-orange-800 dark:border-orange-800 dark:bg-orange-950/30 dark:text-orange-300", label: t("provider_dashboard.documents_expiring", "{{count}} document{{suffix}} expiring soon", { count: expiringSoon.length, suffix: expiringSoon.length !== 1 ? "s" : "" }), desc: t("provider_dashboard.schedule_renewal", "Within 60 days — schedule renewal"), href: "/provider/dashboard" });
   }
   if (pendingDocs.length > 0) {
-    alerts.push({ icon: FileText, color: "border-sky-200 bg-sky-50 text-sky-800 dark:border-sky-800 dark:bg-sky-950/30 dark:text-sky-300", label: `${pendingDocs.length} document${pendingDocs.length !== 1 ? "s" : ""} under review`, desc: "Admin is verifying your credentials", href: "/provider/dashboard" });
+    alerts.push({ icon: FileText, color: "border-sky-200 bg-sky-50 text-sky-800 dark:border-sky-800 dark:bg-sky-950/30 dark:text-sky-300", label: t("provider_dashboard.documents_under_review", "{{count}} document{{suffix}} under review", { count: pendingDocs.length, suffix: pendingDocs.length !== 1 ? "s" : "" }), desc: t("provider_dashboard.admin_verifying", "Admin is verifying your credentials"), href: "/provider/dashboard" });
   }
   if (last7Stats.rate >= 0.20 && last7Stats.total >= 3) {
-    alerts.push({ icon: TrendingDown, color: "border-rose-300 bg-rose-50 text-rose-800 dark:border-rose-700 dark:bg-rose-950/30 dark:text-rose-300", label: `High cancellation rate: ${Math.round(last7Stats.rate * 100)}% over the last 7 days`, desc: `${last7Stats.cancelled} of ${last7Stats.total} recent appointments were cancelled or not attended — consider reaching out to patients`, href: "/provider/dashboard" });
+    alerts.push({ icon: TrendingDown, color: "border-rose-300 bg-rose-50 text-rose-800 dark:border-rose-700 dark:bg-rose-950/30 dark:text-rose-300", label: t("provider_dashboard.high_cancellation_rate", "High cancellation rate: {{rate}}% over the last 7 days", { rate: Math.round(last7Stats.rate * 100) }), desc: t("provider_dashboard.cancelled_recent_desc", "{{cancelled}} of {{total}} recent appointments were cancelled or not attended — consider reaching out to patients", { cancelled: last7Stats.cancelled, total: last7Stats.total }), href: "/provider/dashboard" });
   }
 
   // Rotating contextual messages
@@ -374,9 +377,9 @@ export default function ProviderHome() {
 
   const providerDisplayName = user
     ? `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim()
-    : "Doctor";
+    : t("provider_dashboard.doctor", "Doctor");
 
-  const specialty = providerProfile?.specialization ?? providerProfile?.providerSubcategory ?? providerProfile?.providerCategory ?? "Healthcare Provider";
+  const specialty = providerProfile?.specialization ?? providerProfile?.providerSubcategory ?? providerProfile?.providerCategory ?? t("common.healthcare_provider", "Healthcare Provider");
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
@@ -397,7 +400,7 @@ export default function ProviderHome() {
                 </h1>
                 {providerProfile?.isVerified && (
                   <Badge className="bg-white/20 text-white border-white/30 text-xs px-2 py-0.5" data-testid="badge-verified">
-                    <Shield className="w-3 h-3 mr-1" /> Verified
+                    <Shield className="w-3 h-3 mr-1" /> {t("provider_dashboard.verified", "Verified")}
                   </Badge>
                 )}
               </div>
@@ -414,16 +417,16 @@ export default function ProviderHome() {
           </div>
           <div className="flex gap-2 mt-4 flex-wrap">
             <Badge className="bg-white/15 text-white border-white/20 text-xs">
-              <Calendar className="w-3 h-3 mr-1" /> {todayAppts.length} today
+              <Calendar className="w-3 h-3 mr-1" /> {t("provider_dashboard.today_count", "{{count}} today", { count: todayAppts.length })}
             </Badge>
             {avgRating && (
               <Badge className="bg-white/15 text-white border-white/20 text-xs">
-                <Star className="w-3 h-3 mr-1" /> {avgRating} rating
+                <Star className="w-3 h-3 mr-1" /> {t("provider_dashboard.rating_count", "{{rating}} rating", { rating: avgRating })}
               </Badge>
             )}
             {alerts.length > 0 && (
               <Badge className="bg-rose-400/30 text-white border-rose-300/30 text-xs">
-                <AlertTriangle className="w-3 h-3 mr-1" /> {alerts.length} action{alerts.length !== 1 ? "s" : ""} required
+                <AlertTriangle className="w-3 h-3 mr-1" /> {t("provider_dashboard.actions_required", "{{count}} action{{suffix}} required", { count: alerts.length, suffix: alerts.length !== 1 ? "s" : "" })}
               </Badge>
             )}
           </div>
@@ -434,7 +437,7 @@ export default function ProviderHome() {
           <div className="space-y-2">
             <div className="flex items-center gap-2 px-1">
               <AlertTriangle className="w-4 h-4 text-amber-500" />
-              <h2 className="text-sm font-bold text-foreground uppercase tracking-wide">Action Required</h2>
+              <h2 className="text-sm font-bold text-foreground uppercase tracking-wide">{t("provider_dashboard.action_required", "Action Required")}</h2>
             </div>
             {alerts.map((a, i) => (
               <AlertItem key={i} {...a} />
@@ -450,7 +453,7 @@ export default function ProviderHome() {
                 <Stethoscope className="w-4 h-4 text-primary" />
               </div>
               <div>
-                <h2 className="text-base font-bold text-foreground">Today's Clinic</h2>
+                <h2 className="text-base font-bold text-foreground">{t("provider_dashboard.todays_clinic", "Today's Clinic")}</h2>
                 <p className="text-xs text-muted-foreground">
                   {formatDate(new Date(), { weekday: "long", day: "numeric", month: "long" })}
                 </p>
@@ -458,7 +461,7 @@ export default function ProviderHome() {
             </div>
             <div className="flex items-center gap-1.5">
               <span className="text-2xl font-bold text-primary">{todayAppts.length}</span>
-              <span className="text-xs text-muted-foreground">appts</span>
+               <span className="text-xs text-muted-foreground">{t("provider_dashboard.appointments_short", "appts")}</span>
             </div>
           </div>
 
@@ -476,17 +479,17 @@ export default function ProviderHome() {
                 )}
                 <p className="text-sm font-medium text-foreground">
                   {cancelledTodayCount > 0
-                    ? `${cancelledTodayCount} appointment${cancelledTodayCount !== 1 ? "s" : ""} ${cancelledTodayCount === 1 ? "was" : "were"} cancelled today`
-                    : "No appointments scheduled today"}
+                     ? t("provider_dashboard.cancelled_today", "{{count}} appointment{{suffix}} cancelled today", { count: cancelledTodayCount, suffix: cancelledTodayCount !== 1 ? "s" : "" })
+                     : t("provider_dashboard.no_appointments_scheduled", "No appointments scheduled today")}
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
                   {cancelledTodayCount > 0
-                    ? "These slots are now open — patients may rebook."
-                    : "Enjoy the day or use this time for clinical work."}
+                     ? t("provider_dashboard.slots_open_rebook", "These slots are now open — patients may rebook.")
+                     : t("provider_dashboard.enjoy_day", "Enjoy the day or use this time for clinical work.")}
                 </p>
                 <Button className="mt-3 rounded-xl gap-2" size="sm" asChild>
                   <Link href="/provider/dashboard">
-                    <Calendar className="w-3.5 h-3.5" /> Manage Schedule
+                     <Calendar className="w-3.5 h-3.5" /> {t("provider_dashboard.manage_schedule", "Manage Schedule")}
                   </Link>
                 </Button>
               </div>
@@ -495,7 +498,7 @@ export default function ProviderHome() {
                 {upcomingAppts.length > 0 && (
                   <div>
                     <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1">
-                      <Clock className="w-3 h-3" /> Upcoming ({upcomingAppts.length})
+                       <Clock className="w-3 h-3" /> {t("provider_dashboard.tab_upcoming", "Upcoming")} ({upcomingAppts.length})
                     </p>
                     <div className="space-y-2">
                       {upcomingAppts.map(a => <AppointmentRow key={a.id} appt={a} />)}
@@ -505,7 +508,7 @@ export default function ProviderHome() {
                 {completedToday.length > 0 && (
                   <div>
                     <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1">
-                      <CheckCircle2 className="w-3 h-3" /> Completed ({completedToday.length})
+                       <CheckCircle2 className="w-3 h-3" /> {t("provider_dashboard.tab_completed", "Completed")} ({completedToday.length})
                     </p>
                     <div className="space-y-2">
                       {completedToday.slice(0, 3).map(a => <AppointmentRow key={a.id} appt={a} />)}
@@ -514,7 +517,7 @@ export default function ProviderHome() {
                 )}
                 <Button variant="outline" className="w-full rounded-xl gap-2 text-sm" asChild data-testid="button-view-all-appointments">
                   <Link href="/provider/dashboard">
-                    View all appointments <ChevronRight className="w-4 h-4" />
+                     {t("provider_dashboard.view_all_appointments", "View all appointments")} <ChevronRight className="w-4 h-4" />
                   </Link>
                 </Button>
               </div>
@@ -525,13 +528,13 @@ export default function ProviderHome() {
         {/* ── SECTION 4: Health Snapshot ── */}
         <div>
           <h2 className="text-sm font-bold text-muted-foreground uppercase tracking-wide px-1 mb-3">
-            Practice Overview
+             {t("provider_dashboard.nav_practice_overview", "Practice Overview")}
           </h2>
           <div className="grid grid-cols-2 gap-3">
-            <StatCard icon={Calendar} label="Appointments today" value={todayAppts.length} color="bg-primary/10 text-primary" />
-            <StatCard icon={CheckCircle2} label="Patients this week" value={patientsThisWeek} color="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" />
-            <StatCard icon={Star} label="Average rating" value={avgRating ?? "—"} color="bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400" href="/provider/dashboard" />
-            <StatCard icon={MessageSquare} label="Reviews awaiting reply" value={pendingReviewReplies} color="bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" href="/provider/dashboard" />
+             <StatCard icon={Calendar} label={t("provider_dashboard.appointments_today", "Appointments today")} value={todayAppts.length} color="bg-primary/10 text-primary" />
+             <StatCard icon={CheckCircle2} label={t("provider_dashboard.patients_this_week", "Patients this week")} value={patientsThisWeek} color="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" />
+             <StatCard icon={Star} label={t("provider_dashboard.average_rating", "Average rating")} value={avgRating ?? "—"} color="bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400" href="/provider/dashboard" />
+             <StatCard icon={MessageSquare} label={t("provider_dashboard.reviews_awaiting_reply", "Reviews awaiting reply")} value={pendingReviewReplies} color="bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" href="/provider/dashboard" />
           </div>
         </div>
 
@@ -541,7 +544,7 @@ export default function ProviderHome() {
             <div className="px-5 py-3.5 border-b border-border flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Star className="w-4 h-4 text-amber-500" />
-                <h2 className="text-base font-bold text-foreground">Reviews & Reputation</h2>
+                 <h2 className="text-base font-bold text-foreground">{t("provider_dashboard.reviews_reputation", "Reviews & Reputation")}</h2>
               </div>
               <div className="flex items-center gap-1.5">
                 {avgRating && (
@@ -566,7 +569,7 @@ export default function ProviderHome() {
                     {r.comment && <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{r.comment}</p>}
                     {!r.reply && (
                       <span className="inline-block mt-1 text-[10px] px-1.5 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 font-medium">
-                        Awaiting reply
+                         {t("provider_dashboard.awaiting_reply", "Awaiting reply")}
                       </span>
                     )}
                   </div>
@@ -575,7 +578,7 @@ export default function ProviderHome() {
               ))}
               <Button variant="outline" className="w-full rounded-xl gap-2 text-sm" asChild data-testid="button-view-reviews">
                 <Link href="/provider/dashboard">
-                  Manage reviews <ChevronRight className="w-4 h-4" />
+                   {t("provider_dashboard.manage_reviews", "Manage reviews")} <ChevronRight className="w-4 h-4" />
                 </Link>
               </Button>
             </div>
@@ -587,11 +590,11 @@ export default function ProviderHome() {
           <div className="px-5 py-3.5 border-b border-border flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Wallet className="w-4 h-4 text-primary" />
-              <h2 className="text-base font-bold text-foreground">Wallet & Payouts</h2>
+               <h2 className="text-base font-bold text-foreground">{t("provider_dashboard.wallet_payouts", "Wallet & Payouts")}</h2>
             </div>
             <Button variant="ghost" size="sm" className="text-xs h-7 rounded-xl gap-1" asChild>
               <Link href="/provider/earnings">
-                View earnings <ArrowRight className="w-3 h-3" />
+                 {t("provider_dashboard.view_earnings", "View earnings")} <ArrowRight className="w-3 h-3" />
               </Link>
             </Button>
           </div>
@@ -623,11 +626,11 @@ export default function ProviderHome() {
             <div className="px-5 py-3.5 border-b border-border flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Shield className="w-4 h-4 text-primary" />
-                <h2 className="text-base font-bold text-foreground">Documents & Compliance</h2>
+                 <h2 className="text-base font-bold text-foreground">{t("provider_dashboard.documents_compliance", "Documents & Compliance")}</h2>
               </div>
               {providerProfile?.isVerified && (
                 <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800 text-xs">
-                  <CheckCircle2 className="w-3 h-3 mr-1" /> Verified
+                   <CheckCircle2 className="w-3 h-3 mr-1" /> {t("provider_dashboard.verified", "Verified")}
                 </Badge>
               )}
             </div>
@@ -654,7 +657,7 @@ export default function ProviderHome() {
               })}
               <Button variant="outline" className="w-full rounded-xl gap-2 text-sm mt-1" asChild data-testid="button-manage-docs">
                 <Link href="/provider/dashboard">
-                  Manage documents <ChevronRight className="w-4 h-4" />
+                   {t("provider_dashboard.manage_documents", "Manage documents")} <ChevronRight className="w-4 h-4" />
                 </Link>
               </Button>
             </div>
@@ -667,7 +670,7 @@ export default function ProviderHome() {
             <div className="px-5 py-3.5 border-b border-border">
               <div className="flex items-center gap-2">
                 <Activity className="w-4 h-4 text-primary" />
-                <h2 className="text-base font-bold text-foreground">Recent Activity</h2>
+                 <h2 className="text-base font-bold text-foreground">{t("provider_dashboard.recent_activity", "Recent Activity")}</h2>
               </div>
             </div>
             <div className="p-4 space-y-3">
@@ -693,17 +696,17 @@ export default function ProviderHome() {
         {/* ── SECTION 9: Quick Actions ── */}
         <div>
           <h2 className="text-sm font-bold text-muted-foreground uppercase tracking-wide px-1 mb-3">
-            Quick Actions
+             {t("provider_dashboard.quick_actions", "Quick Actions")}
           </h2>
           <div className="grid grid-cols-4 gap-3">
-            <QuickAction icon={Calendar} label="Schedule" href="/provider/dashboard" color="bg-primary/10 text-primary" />
-            <QuickAction icon={ClipboardList} label="Clinical Workspace" href="/provider/dashboard" color="bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400" />
-            <QuickAction icon={Wallet} label="Wallet" href="/provider/earnings" color="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" />
-            <QuickAction icon={Star} label="Reviews" href="/provider/dashboard" color="bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400" />
-            <QuickAction icon={FileText} label="Documents" href="/provider/dashboard" color="bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-400" />
-            <QuickAction icon={TrendingUp} label="Analytics" href="/provider/dashboard" color="bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400" />
-            <QuickAction icon={Settings} label="Availability" href="/provider/dashboard" color="bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400" />
-            <QuickAction icon={User} label="Profile" href="/provider/dashboard?tab=profile" color="bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400" />
+             <QuickAction icon={Calendar} label={t("provider_dashboard.schedule", "Schedule")} href="/provider/dashboard" color="bg-primary/10 text-primary" />
+             <QuickAction icon={ClipboardList} label={t("provider_dashboard.clinical_workspace", "Clinical Workspace")} href="/provider/dashboard" color="bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400" />
+             <QuickAction icon={Wallet} label={t("wallet.title", "Wallet")} href="/provider/earnings" color="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" />
+             <QuickAction icon={Star} label={t("provider_dashboard.tab_reviews", "Reviews")} href="/provider/dashboard" color="bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400" />
+             <QuickAction icon={FileText} label={t("provider_dashboard.nav_documents", "Documents")} href="/provider/dashboard" color="bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-400" />
+             <QuickAction icon={TrendingUp} label={t("provider_dashboard.tab_analytics", "Analytics")} href="/provider/dashboard" color="bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400" />
+             <QuickAction icon={Settings} label={t("provider_dashboard.set_availability", "Availability")} href="/provider/dashboard" color="bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400" />
+             <QuickAction icon={User} label={t("provider_dashboard.my_profile", "Profile")} href="/provider/dashboard?tab=profile" color="bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400" />
           </div>
         </div>
 
@@ -714,13 +717,13 @@ export default function ProviderHome() {
               <LayoutDashboard className="w-5 h-5 text-primary" />
             </div>
             <div>
-              <p className="text-sm font-bold text-foreground">Full Provider Workspace</p>
-              <p className="text-xs text-muted-foreground">Services, availability, earnings, analytics, KYC</p>
+               <p className="text-sm font-bold text-foreground">{t("provider_dashboard.full_provider_workspace", "Full Provider Workspace")}</p>
+               <p className="text-xs text-muted-foreground">{t("provider_dashboard.workspace_desc", "Services, availability, earnings, analytics, KYC")}</p>
             </div>
           </div>
           <Button className="rounded-xl gap-2 flex-shrink-0" asChild data-testid="button-open-full-workspace">
             <Link href="/provider/dashboard">
-              Open <ArrowRight className="w-4 h-4" />
+               {t("provider_dashboard.open", "Open")} <ArrowRight className="w-4 h-4" />
             </Link>
           </Button>
         </div>
