@@ -506,7 +506,7 @@ export default function PatientDashboard() {
                     data-testid={`badge-payment-due-${appointment.id}`}
                   >
                     <Banknote className="h-3 w-3" />
-                    {p?.paymentMethod === "bank_transfer" ? "Transfer due" : "Cash due"}
+                    {p?.paymentMethod === "bank_transfer" ? t("dashboard.transfer_due", "Transfer due") : t("dashboard.cash_due", "Cash due")}
                   </Badge>
                 );
               })()}
@@ -550,8 +550,8 @@ export default function PatientDashboard() {
                   <div className="flex items-start gap-2 rounded-lg border border-orange-300 bg-orange-50 dark:bg-orange-950/30 px-3 py-2 mt-1 text-xs" data-testid={`banner-urgent-${appointment.id}`}>
                     <AlertTriangle className="h-3.5 w-3.5 text-orange-600 dark:text-orange-400 shrink-0 mt-0.5" />
                     <span className="text-orange-800 dark:text-orange-200">
-                      <span className="font-semibold">Starts in {mins} minute{mins !== 1 ? "s" : ""}.</span>
-                      {" "}Immediate attendance may be required. Please confirm you can arrive on time.
+                      <span className="font-semibold">{t(mins === 1 ? "dashboard.starts_in_one" : "dashboard.starts_in_many", { count: mins })}</span>
+                      {" "}{t("dashboard.immediate_attendance", "Immediate attendance may be required. Please confirm you can arrive on time.")}
                     </span>
                   </div>
                 );
@@ -559,8 +559,8 @@ export default function PatientDashboard() {
                   <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 dark:bg-amber-950/30 px-3 py-2 mt-1 text-xs" data-testid={`banner-soon-${appointment.id}`}>
                     <AlertTriangle className="h-3.5 w-3.5 text-amber-500 dark:text-amber-400 shrink-0" />
                     <span className="text-amber-800 dark:text-amber-200">
-                      <span className="font-semibold">This appointment begins soon.</span>
-                      {" "}Please ensure you can attend on time.
+                      <span className="font-semibold">{t("dashboard.appointment_begins_soon", "This appointment begins soon.")}</span>
+                      {" "}{t("dashboard.attend_on_time", "Please ensure you can attend on time.")}
                     </span>
                   </div>
                 );
@@ -688,36 +688,36 @@ export default function PatientDashboard() {
         {/* ── Left sidebar navigation ────────────────────────────────────────── */}
         <aside className="hidden md:flex w-[260px] shrink-0 flex-col bg-[#121420] border-r border-[#1f2235] p-4 overflow-y-auto">
           {([
-            { group: "MY APPOINTMENTS", items: [
+            { group: t("dashboard.my_appointments_group", "MY APPOINTMENTS"), items: [
               { label: t("dashboard.upcoming","Upcoming"), value: "upcoming", icon: <Calendar className="h-4 w-4" />, badge: upcomingAppointments.length },
               { label: t("dashboard.completed","Completed"), value: "completed", icon: <Star className="h-4 w-4" />, badge: completedAppointments.length },
               { label: t("dashboard.cancelled","Cancelled"), value: "cancelled", icon: <X className="h-4 w-4" />, badge: cancelledAppointments.length },
               { label: t("dashboard.all_history","All History"), value: "past", icon: <Clock className="h-4 w-4" />, badge: pastAppointments.length },
             ]},
-            { group: "MY HEALTH", items: [
+            { group: t("dashboard.my_health_group", "MY HEALTH"), items: [
               { label: t("dashboard.medical","Medical Records"), value: "medical", icon: <FileText className="h-4 w-4" />, badge: 0 },
               { label: t("dashboard.health_metrics","Health Metrics"), value: "health-metrics", icon: <Activity className="h-4 w-4" />, badge: healthMetricsCount },
               { label: t("dashboard.family","Family Members"), value: "family", icon: <Users className="h-4 w-4" />, badge: familyMemberCount },
               { label: t("dashboard.medications","Medications"), value: "medications", icon: <Pill className="h-4 w-4" />, badge: medicationsData?.length ?? 0 },
             ]},
-            { group: "PROVIDERS", items: [
+            { group: t("dashboard.providers_group", "PROVIDERS"), items: [
               { label: t("dashboard.saved","Saved Providers"), value: "saved", icon: <Heart className="h-4 w-4" />, badge: savedProviders?.length ?? 0 },
             ]},
-            { group: "BOOK CARE", items: [
-              { label: "Book Care", value: "book-care", icon: <Plus className="h-4 w-4" />, badge: 0 },
+            { group: t("dashboard.book_care_group", "BOOK CARE"), items: [
+              { label: t("dashboard.book_care", "Book Care"), value: "book-care", icon: <Plus className="h-4 w-4" />, badge: 0 },
             ]},
-            { group: "FINANCE", items: [
-              { label: "Finance Overview", value: "finance-hub", icon: <TrendingUp className="h-4 w-4" />, badge: 0 },
+            { group: t("dashboard.finance_group", "FINANCE"), items: [
+              { label: t("dashboard.finance_overview", "Finance Overview"), value: "finance-hub", icon: <TrendingUp className="h-4 w-4" />, badge: 0 },
               { label: t("dashboard.invoices","Invoices"), value: "invoices", icon: <Banknote className="h-4 w-4" />, badge: 0 },
             ]},
-            { group: "ENGAGE", items: [
-              { label: "Reviews", value: "engage", icon: <Star className="h-4 w-4" />, badge: pendingReviews.length },
-              { label: "Notifications", value: "notifications-hub", icon: <Bell className="h-4 w-4" />, badge: unreadNotifCount },
+            { group: t("dashboard.engage_group", "ENGAGE"), items: [
+              { label: t("dashboard.reviews", "Reviews"), value: "engage", icon: <Star className="h-4 w-4" />, badge: pendingReviews.length },
+              { label: t("dashboard.notifications", "Notifications"), value: "notifications-hub", icon: <Bell className="h-4 w-4" />, badge: unreadNotifCount },
             ]},
-            { group: "MY PROFILE", items: [
-              { label: "My Profile", value: "profile-hub", icon: <UserCircle className="h-4 w-4" />, badge: profileCompletion < 100 ? 1 : 0 },
+            { group: t("dashboard.my_profile_group", "MY PROFILE"), items: [
+              { label: t("dashboard.my_profile", "My Profile"), value: "profile-hub", icon: <UserCircle className="h-4 w-4" />, badge: profileCompletion < 100 ? 1 : 0 },
             ]},
-            { group: "GALLERY", items: [
+            { group: t("dashboard.gallery_group", "GALLERY"), items: [
               { label: t("dashboard.gallery","My Gallery"), value: "gallery", icon: <GalleryIcon className="h-4 w-4" />, badge: 0 },
             ]},
           ] as { group: string; items: { label: string; value: string; icon: JSX.Element; badge: number }[] }[]).map(({ group, items }) => (
@@ -742,26 +742,26 @@ export default function PatientDashboard() {
           <div className="block md:hidden mb-4" data-testid="mobile-tab-select">
             <Select value={activeTab} onValueChange={setActiveTab}>
               <SelectTrigger className="w-full" data-testid="select-tab-trigger">
-                <SelectValue placeholder="Navigate…" />
+                <SelectValue placeholder={t("dashboard.navigate", "Navigate…")} />
               </SelectTrigger>
               <SelectContent>
                 {[
-                  { label: "Upcoming", value: "upcoming" },
-                  { label: "Completed", value: "completed" },
-                  { label: "Cancelled", value: "cancelled" },
-                  { label: "All History", value: "past" },
-                  { label: "Medical Records", value: "medical" },
-                  { label: "Health Metrics", value: "health-metrics" },
-                  { label: "Family Members", value: "family" },
-                  { label: "Medications", value: "medications" },
-                  { label: "Saved Providers", value: "saved" },
-                  { label: "Book Care", value: "book-care" },
-                  { label: "Finance Overview", value: "finance-hub" },
-                  { label: "Invoices", value: "invoices" },
-                  { label: "Reviews & Referrals", value: "engage" },
-                  { label: "Notifications", value: "notifications-hub" },
-                  { label: "My Profile", value: "profile-hub" },
-                  { label: "My Gallery", value: "gallery" },
+                  { label: t("dashboard.upcoming", "Upcoming"), value: "upcoming" },
+                  { label: t("dashboard.completed", "Completed"), value: "completed" },
+                  { label: t("dashboard.cancelled", "Cancelled"), value: "cancelled" },
+                  { label: t("dashboard.all_history", "All History"), value: "past" },
+                  { label: t("dashboard.medical_records", "Medical Records"), value: "medical" },
+                  { label: t("dashboard.health_metrics", "Health Metrics"), value: "health-metrics" },
+                  { label: t("dashboard.family_members", "Family Members"), value: "family" },
+                  { label: t("dashboard.medications", "Medications"), value: "medications" },
+                  { label: t("dashboard.saved_providers", "Saved Providers"), value: "saved" },
+                  { label: t("dashboard.book_care", "Book Care"), value: "book-care" },
+                  { label: t("dashboard.finance_overview", "Finance Overview"), value: "finance-hub" },
+                  { label: t("dashboard.invoices", "Invoices"), value: "invoices" },
+                  { label: t("dashboard.reviews_referrals", "Reviews & Referrals"), value: "engage" },
+                  { label: t("dashboard.notifications", "Notifications"), value: "notifications-hub" },
+                  { label: t("dashboard.my_profile", "My Profile"), value: "profile-hub" },
+                  { label: t("dashboard.gallery", "My Gallery"), value: "gallery" },
                 ].map((opt) => (
                   <SelectItem key={opt.value} value={opt.value} data-testid={`mobile-tab-option-${opt.value}`}>
                     {opt.label}
@@ -790,12 +790,12 @@ export default function PatientDashboard() {
           <div className="mb-8 rounded-2xl border border-border/60 bg-card p-4" data-testid="section-quick-actions">
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-1.5">
               <Zap className="h-3.5 w-3.5 text-primary" />
-              Quick Actions
+              {t("dashboard.quick_actions", "Quick Actions")}
             </p>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
               {[
                 {
-                  label: "Book Appointment",
+                  label: t("dashboard.book_appointment", "Book Appointment"),
                   icon: <Calendar className="h-5 w-5" />,
                   href: "/providers",
                   color: "text-primary",
@@ -803,7 +803,7 @@ export default function PatientDashboard() {
                   testid: "qa-book",
                 },
                 {
-                  label: lastCompletedAppt ? "Rebook Last" : "Find Provider",
+                  label: lastCompletedAppt ? t("dashboard.rebook_last", "Rebook Last") : t("dashboard.find_provider", "Find Provider"),
                   icon: <RefreshCw className="h-5 w-5" />,
                   href: lastCompletedAppt
                     ? `/book?providerId=${lastCompletedAppt.providerId}${lastCompletedAppt.serviceId ? `&serviceId=${lastCompletedAppt.serviceId}` : ""}&visitType=${lastCompletedAppt.visitType}`
@@ -813,7 +813,7 @@ export default function PatientDashboard() {
                   testid: "qa-rebook",
                 },
                 {
-                  label: "Health Records",
+                  label: t("dashboard.health_records", "Health Records"),
                   icon: <Activity className="h-5 w-5" />,
                   href: "/health-records",
                   color: "text-emerald-600 dark:text-emerald-400",
@@ -821,7 +821,7 @@ export default function PatientDashboard() {
                   testid: "qa-health",
                 },
                 {
-                  label: "Wallet",
+                  label: t("dashboard.wallet", "Wallet"),
                   icon: <Wallet className="h-5 w-5" />,
                   href: "/wallet",
                   color: "text-amber-600 dark:text-amber-400",
@@ -829,7 +829,7 @@ export default function PatientDashboard() {
                   testid: "qa-wallet",
                 },
                 {
-                  label: "Add Family",
+                  label: t("dashboard.add_family", "Add Family"),
                   icon: <Users className="h-5 w-5" />,
                   href: "/family-members",
                   color: "text-violet-600 dark:text-violet-400",
@@ -837,7 +837,7 @@ export default function PatientDashboard() {
                   testid: "qa-family",
                 },
                 {
-                  label: "Refer & Earn",
+                  label: t("dashboard.refer_earn", "Refer & Earn"),
                   icon: <Gift className="h-5 w-5" />,
                   href: "/referrals",
                   color: "text-rose-600 dark:text-rose-400",
@@ -954,7 +954,7 @@ export default function PatientDashboard() {
                   <div className="flex flex-wrap gap-6">
                     <div>
                       <p className="text-sm text-muted-foreground">{t("profile.select_date")}</p>
-                      <p className="font-medium">{formatDate(nextAppointment.date)} at {nextAppointment.startTime}</p>
+                      <p className="font-medium">{formatDate(nextAppointment.date)} {t("dashboard.at", "at")} {nextAppointment.startTime}</p>
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground">{t("common.service_type")}</p>
@@ -1027,12 +1027,10 @@ export default function PatientDashboard() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="font-semibold text-amber-800 dark:text-amber-300 text-sm">
-                    {pendingCash.length === 1
-                      ? "You have 1 appointment with payment due"
-                      : `You have ${pendingCash.length} appointments with payment due`}
+                    {t(pendingCash.length === 1 ? "dashboard.payment_due_one" : "dashboard.payment_due_many", { count: pendingCash.length })}
                   </p>
                   <p className="text-xs text-amber-700 dark:text-amber-400 mt-0.5">
-                    Bring cash or complete your bank transfer before the appointment. Your reference number is shown on each booking.
+                    {t("dashboard.payment_due_desc", "Bring cash or complete your bank transfer before the appointment. Your reference number is shown on each booking.")}
                   </p>
                 </div>
                 <a
@@ -1040,7 +1038,7 @@ export default function PatientDashboard() {
                   className="text-xs font-medium text-amber-700 dark:text-amber-400 hover:text-amber-900 dark:hover:text-amber-200 underline underline-offset-2 shrink-0 mt-1"
                   data-testid="link-view-pending-payments"
                 >
-                  View all →
+                  {t("dashboard.view_all", "View all")} →
                 </a>
               </div>
             );
@@ -1134,18 +1132,18 @@ export default function PatientDashboard() {
                       <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-0.5">
                         {pkg.daysRemaining !== null && (
                           <span className="text-xs text-muted-foreground">
-                            {pkg.daysRemaining === 0 ? "Expires today" : `${pkg.daysRemaining}d left`}
+                            {pkg.daysRemaining === 0 ? t("dashboard.expires_today", "Expires today") : t(pkg.daysRemaining === 1 ? "dashboard.day_left_one" : "dashboard.days_left_many", { count: pkg.daysRemaining })}
                           </span>
                         )}
                         {hasSession && sessionsLeft !== null && (
                           <span className="text-xs text-muted-foreground">
-                            {sessionsLeft} session{sessionsLeft !== 1 ? "s" : ""} remaining
+                            {t(sessionsLeft === 1 ? "dashboard.sessions_remaining_one" : "dashboard.sessions_remaining_many", { count: sessionsLeft })}
                           </span>
                         )}
                       </div>
                       {urgent && (
                         <p className="text-xs text-amber-700 dark:text-amber-400 mt-0.5">
-                          {isLowSessions ? "Running low — book soon" : "Expiring soon — use before it's gone"}
+                          {isLowSessions ? t("dashboard.running_low_book_soon", "Running low — book soon") : t("dashboard.expiring_soon_use", "Expiring soon — use before it's gone")}
                         </p>
                       )}
                     </div>
@@ -1156,7 +1154,7 @@ export default function PatientDashboard() {
                         className="h-7 px-2 text-xs shrink-0"
                         data-testid={`button-book-package-${pkg.id}`}
                       >
-                        Book
+                        {t("dashboard.book", "Book")}
                       </Button>
                     </Link>
                   </div>
@@ -1174,7 +1172,7 @@ export default function PatientDashboard() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="font-semibold text-sm text-sky-800 dark:text-sky-300">{t("dashboard.health_records", "Health Records")}</p>
-                  <p className="text-xs text-muted-foreground">Your full care history in one place</p>
+                  <p className="text-xs text-muted-foreground">{t("dashboard.full_care_history", "Your full care history in one place")}</p>
                 </div>
                 <ChevronRight className="h-4 w-4 text-sky-400 shrink-0" />
               </div>
@@ -1186,7 +1184,7 @@ export default function PatientDashboard() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="font-semibold text-sm text-amber-800 dark:text-amber-300">{t("dashboard.refer_earn", "Refer & Earn")}</p>
-                  <p className="text-xs text-muted-foreground">Invite friends and earn wallet credit</p>
+                  <p className="text-xs text-muted-foreground">{t("dashboard.invite_earn_credit", "Invite friends and earn wallet credit")}</p>
                 </div>
                 <ChevronRight className="h-4 w-4 text-amber-400 shrink-0" />
               </div>
@@ -1205,7 +1203,7 @@ export default function PatientDashboard() {
               onClick={() => setReportBugOpen(true)}
             >
               <Bug className="h-4 w-4" />
-              Report a Problem
+              {t("dashboard.report_problem", "Report a Problem")}
             </Button>
             <Button
               variant="default"
@@ -1270,14 +1268,14 @@ export default function PatientDashboard() {
                 {t("dashboard.invoices")}
               </TabsTrigger>
               <TabsTrigger value="gallery" data-testid="tab-gallery">
-                My Gallery
+                {t("dashboard.gallery", "My Gallery")}
               </TabsTrigger>
-              <TabsTrigger value="book-care" data-testid="tab-book-care">Book Care</TabsTrigger>
-              <TabsTrigger value="finance-hub" data-testid="tab-finance-hub">Finance</TabsTrigger>
-              <TabsTrigger value="insights" data-testid="tab-insights">My Insights</TabsTrigger>
-              <TabsTrigger value="engage" data-testid="tab-engage">Engage</TabsTrigger>
-              <TabsTrigger value="notifications-hub" data-testid="tab-notifications-hub">Notifications</TabsTrigger>
-              <TabsTrigger value="profile-hub" data-testid="tab-profile-hub">Profile</TabsTrigger>
+              <TabsTrigger value="book-care" data-testid="tab-book-care">{t("dashboard.book_care", "Book Care")}</TabsTrigger>
+              <TabsTrigger value="finance-hub" data-testid="tab-finance-hub">{t("dashboard.finance", "Finance")}</TabsTrigger>
+              <TabsTrigger value="insights" data-testid="tab-insights">{t("dashboard.my_insights", "My Insights")}</TabsTrigger>
+              <TabsTrigger value="engage" data-testid="tab-engage">{t("dashboard.engage", "Engage")}</TabsTrigger>
+              <TabsTrigger value="notifications-hub" data-testid="tab-notifications-hub">{t("dashboard.notifications", "Notifications")}</TabsTrigger>
+              <TabsTrigger value="profile-hub" data-testid="tab-profile-hub">{t("dashboard.profile", "Profile")}</TabsTrigger>
             </TabsList>
 
             {/* Quick-access links that navigate away from the dashboard */}
@@ -1303,7 +1301,7 @@ export default function PatientDashboard() {
               <Link href="/membership">
                 <Button variant="outline" size="sm" className="h-8 gap-1.5 text-amber-600 dark:text-amber-400 border-amber-500/40 hover:bg-amber-500/10" data-testid="link-membership">
                   <Crown className="h-3.5 w-3.5" />
-                  My Membership
+                  {t("dashboard.my_membership", "My Membership")}
                 </Button>
               </Link>
             </div>
@@ -1619,20 +1617,20 @@ export default function PatientDashboard() {
             <TabsContent value="book-care" className="mt-6 space-y-6" data-testid="tab-content-book-care">
               {/* Book by visit type */}
               <div>
-                <h2 className="text-lg font-semibold mb-3 flex items-center gap-2"><Calendar className="h-5 w-5 text-primary" /> Book an Appointment</h2>
+                <h2 className="text-lg font-semibold mb-3 flex items-center gap-2"><Calendar className="h-5 w-5 text-primary" /> {t("dashboard.book_an_appointment", "Book an Appointment")}</h2>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   {[
-                    { label: "Clinic Visit", icon: <Building2 className="h-6 w-6" />, color: "text-sky-600 dark:text-sky-400", bg: "border-sky-200 dark:border-sky-800 bg-sky-50 dark:bg-sky-950/20 hover:border-sky-300", visitType: "clinic", testid: "book-clinic" },
-                    { label: "Video Visit", icon: <Video className="h-6 w-6" />, color: "text-violet-600 dark:text-violet-400", bg: "border-violet-200 dark:border-violet-800 bg-violet-50 dark:bg-violet-950/20 hover:border-violet-300", visitType: "online", testid: "book-video" },
-                    { label: "Home Visit", icon: <Home className="h-6 w-6" />, color: "text-emerald-600 dark:text-emerald-400", bg: "border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/20 hover:border-emerald-300", visitType: "home", testid: "book-home" },
+                    { label: t("dashboard.clinic_visit", "Clinic Visit"), icon: <Building2 className="h-6 w-6" />, color: "text-sky-600 dark:text-sky-400", bg: "border-sky-200 dark:border-sky-800 bg-sky-50 dark:bg-sky-950/20 hover:border-sky-300", visitType: "clinic", testid: "book-clinic" },
+                    { label: t("dashboard.video_visit", "Video Visit"), icon: <Video className="h-6 w-6" />, color: "text-violet-600 dark:text-violet-400", bg: "border-violet-200 dark:border-violet-800 bg-violet-50 dark:bg-violet-950/20 hover:border-violet-300", visitType: "online", testid: "book-video" },
+                    { label: t("dashboard.home_visit", "Home Visit"), icon: <Home className="h-6 w-6" />, color: "text-emerald-600 dark:text-emerald-400", bg: "border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/20 hover:border-emerald-300", visitType: "home", testid: "book-home" },
                   ].map((opt) => (
                     <Link key={opt.testid} href={`/providers?visitType=${opt.visitType}`}>
                       <div className={`rounded-2xl border p-5 flex flex-col items-center gap-3 cursor-pointer transition-all ${opt.bg}`} data-testid={opt.testid}>
                         <span className={opt.color}>{opt.icon}</span>
                         <span className="font-semibold text-sm">{opt.label}</span>
-                        <span className="text-xs text-muted-foreground text-center">Find available providers</span>
+                        <span className="text-xs text-muted-foreground text-center">{t("dashboard.find_available_providers", "Find available providers")}</span>
                         <Button size="sm" variant="outline" className="w-full" data-testid={`btn-${opt.testid}`}>
-                          Browse →
+                          {t("dashboard.browse", "Browse")} →
                         </Button>
                       </div>
                     </Link>
@@ -1646,8 +1644,8 @@ export default function PatientDashboard() {
                 <Card>
                   <CardContent className="py-8 text-center flex flex-col items-center gap-2">
                     <AlertCircle className="h-8 w-8 text-destructive opacity-60" />
-                    <p className="text-sm text-destructive font-medium">Failed to load appointment history</p>
-                    <Button size="sm" variant="outline" onClick={() => queryClient.invalidateQueries({ queryKey: QK.patientAppointments() })}>Retry</Button>
+                    <p className="text-sm text-destructive font-medium">{t("dashboard.failed_load_appointment_history", "Failed to load appointment history")}</p>
+                    <Button size="sm" variant="outline" onClick={() => queryClient.invalidateQueries({ queryKey: QK.patientAppointments() })}>{t("dashboard.retry", "Retry")}</Button>
                   </CardContent>
                 </Card>
               )}
@@ -1673,11 +1671,11 @@ export default function PatientDashboard() {
                       </div>
                       <div className="flex gap-2 shrink-0">
                         <Button variant="outline" size="sm" asChild data-testid="btn-view-last-provider">
-                          <Link href={`/provider/${lastCompletedAppt.providerId}`}>View profile</Link>
+                          <Link href={`/provider/${lastCompletedAppt.providerId}`}>{t("dashboard.view_profile", "View profile")}</Link>
                         </Button>
                         <Button size="sm" asChild data-testid="btn-rebook-last">
                           <Link href={`/book?providerId=${lastCompletedAppt.providerId}${lastCompletedAppt.serviceId ? `&serviceId=${lastCompletedAppt.serviceId}` : ""}&visitType=${lastCompletedAppt.visitType}`}>
-                            Book again
+                            {t("dashboard.book_again", "Book again")}
                           </Link>
                         </Button>
                       </div>
@@ -1696,7 +1694,7 @@ export default function PatientDashboard() {
                 }).slice(0, 3);
                 return (
                   <div data-testid="section-recently-visited">
-                    <h2 className="text-base font-semibold mb-3 flex items-center gap-2"><Clock className="h-4 w-4 text-muted-foreground" /> Recently Visited Providers</h2>
+                     <h2 className="text-base font-semibold mb-3 flex items-center gap-2"><Clock className="h-4 w-4 text-muted-foreground" /> {t("dashboard.recently_visited_providers", "Recently Visited Providers")}</h2>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                       {recent.map((appt) => (
                         <Card key={appt.providerId} className="hover-elevate" data-testid={`card-recent-provider-${appt.providerId}`}>
@@ -1707,7 +1705,7 @@ export default function PatientDashboard() {
                               <p className="text-xs text-muted-foreground truncate">{appt.provider?.specialization}</p>
                             </div>
                             <Button size="sm" variant="ghost" asChild data-testid={`btn-book-recent-${appt.providerId}`}>
-                              <Link href={`/book?providerId=${appt.providerId}&visitType=${appt.visitType}`}>Book</Link>
+                               <Link href={`/book?providerId=${appt.providerId}&visitType=${appt.visitType}`}>{t("dashboard.book", "Book")}</Link>
                             </Button>
                           </CardContent>
                         </Card>
@@ -1720,7 +1718,7 @@ export default function PatientDashboard() {
               {/* Family member booking */}
               {!isLoading && !isErrorAppointments && familyMembers && familyMembers.length > 0 && (
                 <div data-testid="section-family-booking">
-                  <h2 className="text-base font-semibold mb-3 flex items-center gap-2"><Users className="h-4 w-4 text-muted-foreground" /> Book for a Family Member</h2>
+                   <h2 className="text-base font-semibold mb-3 flex items-center gap-2"><Users className="h-4 w-4 text-muted-foreground" /> {t("dashboard.book_for_family_member", "Book for a Family Member")}</h2>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {familyMembers.map((member: any) => (
                       <Card key={member.id} data-testid={`card-family-book-${member.id}`}>
@@ -1730,7 +1728,7 @@ export default function PatientDashboard() {
                             <p className="text-xs text-muted-foreground">{member.relationship}{member.dateOfBirth ? ` • ${new Date().getFullYear() - new Date(member.dateOfBirth).getFullYear()} yrs` : ""}</p>
                           </div>
                           <Button size="sm" asChild data-testid={`btn-book-for-${member.id}`}>
-                            <Link href={`/providers?forMemberId=${member.id}`}>Book for {member.firstName}</Link>
+                             <Link href={`/providers?forMemberId=${member.id}`}>{t("dashboard.book_for", { defaultValue: "Book for {{name}}", name: member.firstName })}</Link>
                           </Button>
                         </CardContent>
                       </Card>
@@ -1743,9 +1741,9 @@ export default function PatientDashboard() {
                 <Card>
                   <CardContent className="p-10 text-center">
                     <Calendar className="h-10 w-10 mx-auto mb-3 text-muted-foreground opacity-40" />
-                    <p className="font-semibold mb-1">No booking history yet</p>
-                    <p className="text-sm text-muted-foreground mb-4">Book your first appointment to unlock rebook shortcuts.</p>
-                    <Button asChild><Link href="/providers">Find Providers</Link></Button>
+                     <p className="font-semibold mb-1">{t("dashboard.no_booking_history", "No booking history yet")}</p>
+                     <p className="text-sm text-muted-foreground mb-4">{t("dashboard.no_booking_history_desc", "Book your first appointment to unlock rebook shortcuts.")}</p>
+                     <Button asChild><Link href="/providers">{t("dashboard.find_providers", "Find Providers")}</Link></Button>
                   </CardContent>
                 </Card>
               )}
@@ -1756,18 +1754,18 @@ export default function PatientDashboard() {
               {/* Wallet balance widget */}
               <Card data-testid="card-wallet-balance">
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-base flex items-center gap-2"><Wallet className="h-5 w-5 text-emerald-500" /> Wallet</CardTitle>
-                  <Button variant="outline" size="sm" asChild data-testid="btn-go-wallet"><Link href="/wallet">Manage →</Link></Button>
+                  <CardTitle className="text-base flex items-center gap-2"><Wallet className="h-5 w-5 text-emerald-500" /> {t("dashboard.wallet", "Wallet")}</CardTitle>
+                  <Button variant="outline" size="sm" asChild data-testid="btn-go-wallet"><Link href="/wallet">{t("dashboard.manage", "Manage")} →</Link></Button>
                 </CardHeader>
                 <CardContent>
                   <div className="flex items-end gap-3">
                     <p className="text-3xl font-bold text-emerald-600 dark:text-emerald-400" data-testid="text-wallet-balance">
                       {walletData ? fmtMoney(walletData.balance) : "—"}
                     </p>
-                    <p className="text-sm text-muted-foreground mb-1">available balance</p>
+                    <p className="text-sm text-muted-foreground mb-1">{t("dashboard.available_balance", "available balance")}</p>
                   </div>
                   <Button className="mt-4" size="sm" asChild data-testid="btn-topup-finance">
-                    <Link href="/wallet">Top up wallet</Link>
+                    <Link href="/wallet">{t("dashboard.top_up_wallet", "Top up wallet")}</Link>
                   </Button>
                 </CardContent>
               </Card>
@@ -1775,10 +1773,10 @@ export default function PatientDashboard() {
               {/* Active packages / memberships */}
               <Card data-testid="card-active-packages-hub">
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-base flex items-center gap-2"><Crown className="h-5 w-5 text-violet-500" /> Active Packages & Memberships</CardTitle>
+                  <CardTitle className="text-base flex items-center gap-2"><Crown className="h-5 w-5 text-violet-500" /> {t("dashboard.active_packages_memberships", "Active Packages & Memberships")}</CardTitle>
                   <div className="flex gap-2">
-                    <Button variant="outline" size="sm" asChild data-testid="btn-go-packages"><Link href="/packages">Browse</Link></Button>
-                    <Button variant="outline" size="sm" asChild data-testid="btn-go-membership"><Link href="/membership">Membership</Link></Button>
+                    <Button variant="outline" size="sm" asChild data-testid="btn-go-packages"><Link href="/packages">{t("dashboard.browse", "Browse")}</Link></Button>
+                    <Button variant="outline" size="sm" asChild data-testid="btn-go-membership"><Link href="/membership">{t("dashboard.membership", "Membership")}</Link></Button>
                   </div>
                 </CardHeader>
                 <CardContent>
@@ -1787,8 +1785,8 @@ export default function PatientDashboard() {
                   ) : activePkgs.length === 0 ? (
                     <div className="py-6 text-center">
                       <Crown className="h-8 w-8 mx-auto mb-2 text-muted-foreground opacity-30" />
-                      <p className="text-sm text-muted-foreground mb-3">No active packages or memberships</p>
-                      <Button size="sm" variant="outline" asChild><Link href="/packages">Browse packages</Link></Button>
+                      <p className="text-sm text-muted-foreground mb-3">{t("dashboard.no_active_packages", "No active packages or memberships")}</p>
+                      <Button size="sm" variant="outline" asChild><Link href="/packages">{t("dashboard.browse_packages", "Browse packages")}</Link></Button>
                     </div>
                   ) : (
                     <div className="space-y-3">
@@ -1801,11 +1799,11 @@ export default function PatientDashboard() {
                             <div>
                               <p className="font-medium text-sm">{pkg.packageName}</p>
                               <div className="flex gap-3 mt-0.5">
-                                {pkg.daysRemaining !== null && <span className="text-xs text-muted-foreground">{pkg.daysRemaining}d left</span>}
-                                {hasSession && sessionsLeft !== null && <span className="text-xs text-muted-foreground">{sessionsLeft} sessions remaining</span>}
+                                {pkg.daysRemaining !== null && <span className="text-xs text-muted-foreground">{t(pkg.daysRemaining === 1 ? "dashboard.day_left_one" : "dashboard.days_left_many", { count: pkg.daysRemaining })}</span>}
+                                {hasSession && sessionsLeft !== null && <span className="text-xs text-muted-foreground">{t(sessionsLeft === 1 ? "dashboard.sessions_remaining_one" : "dashboard.sessions_remaining_many", { count: sessionsLeft })}</span>}
                               </div>
                             </div>
-                            {urgent && <Badge className="bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 text-xs border-amber-200 dark:border-amber-700">Expiring soon</Badge>}
+                            {urgent && <Badge className="bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 text-xs border-amber-200 dark:border-amber-700">{t("dashboard.expiring_soon", "Expiring soon")}</Badge>}
                           </div>
                         );
                       })}
@@ -1817,8 +1815,8 @@ export default function PatientDashboard() {
               {/* Gift cards */}
               <Card data-testid="card-gift-cards">
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-base flex items-center gap-2"><Gift className="h-5 w-5 text-rose-500" /> Gift Cards</CardTitle>
-                  <Button variant="outline" size="sm" asChild data-testid="btn-go-giftcards"><Link href="/gift-cards">Manage</Link></Button>
+                  <CardTitle className="text-base flex items-center gap-2"><Gift className="h-5 w-5 text-rose-500" /> {t("dashboard.gift_cards", "Gift Cards")}</CardTitle>
+                  <Button variant="outline" size="sm" asChild data-testid="btn-go-giftcards"><Link href="/gift-cards">{t("dashboard.manage", "Manage")}</Link></Button>
                 </CardHeader>
                 <CardContent>
                   {isLoadingGiftCards ? (
@@ -1826,13 +1824,13 @@ export default function PatientDashboard() {
                   ) : isErrorGiftCards ? (
                     <div className="py-4 text-center text-sm text-destructive flex flex-col items-center gap-2">
                       <AlertCircle className="h-5 w-5" />
-                      <span>Failed to load gift cards</span>
-                      <Button size="sm" variant="outline" onClick={() => queryClient.invalidateQueries({ queryKey: QK.giftCards() })}>Retry</Button>
+                      <span>{t("dashboard.failed_load_gift_cards", "Failed to load gift cards")}</span>
+                      <Button size="sm" variant="outline" onClick={() => queryClient.invalidateQueries({ queryKey: QK.giftCards() })}>{t("dashboard.retry", "Retry")}</Button>
                     </div>
                   ) : !giftCards || giftCards.length === 0 ? (
                     <div className="py-4 text-center">
-                      <p className="text-sm text-muted-foreground">No gift cards in your account</p>
-                      <Button size="sm" variant="outline" className="mt-2" asChild><Link href="/gift-cards">Redeem a gift card</Link></Button>
+                      <p className="text-sm text-muted-foreground">{t("dashboard.no_gift_cards", "No gift cards in your account")}</p>
+                      <Button size="sm" variant="outline" className="mt-2" asChild><Link href="/gift-cards">{t("dashboard.redeem_gift_card", "Redeem a gift card")}</Link></Button>
                     </div>
                   ) : (
                     <div className="space-y-2">
@@ -1840,7 +1838,7 @@ export default function PatientDashboard() {
                         <div key={gc.id} className="flex items-center justify-between rounded-lg border p-3" data-testid={`gc-${gc.id}`}>
                           <div>
                             <p className="text-sm font-medium font-mono">{gc.code}</p>
-                            <p className="text-xs text-muted-foreground">Balance: {fmtMoney(gc.balance ?? gc.remainingBalance ?? 0)}</p>
+                            <p className="text-xs text-muted-foreground">{t("dashboard.balance", "Balance")}: {fmtMoney(gc.balance ?? gc.remainingBalance ?? 0)}</p>
                           </div>
                           <Badge variant={gc.status === "active" ? "default" : "secondary"}>{gc.status}</Badge>
                         </div>
@@ -1853,10 +1851,10 @@ export default function PatientDashboard() {
               {/* Quick links to invoices */}
               <div className="flex gap-3 flex-wrap">
                 <Button variant="outline" asChild data-testid="btn-view-invoices">
-                  <Link href="#" onClick={() => setActiveTab("invoices")}><FileText className="h-4 w-4 mr-2" />View Invoices</Link>
+                  <Link href="#" onClick={() => setActiveTab("invoices")}><FileText className="h-4 w-4 mr-2" />{t("dashboard.view_invoices", "View Invoices")}</Link>
                 </Button>
                 <Button variant="outline" asChild data-testid="btn-view-payments">
-                  <Link href="#" onClick={() => setActiveTab("invoices")}><Banknote className="h-4 w-4 mr-2" />Payment History</Link>
+                  <Link href="#" onClick={() => setActiveTab("invoices")}><Banknote className="h-4 w-4 mr-2" />{t("dashboard.payment_history", "Payment History")}</Link>
                 </Button>
               </div>
             </TabsContent>
@@ -1873,12 +1871,12 @@ export default function PatientDashboard() {
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
                   <CardTitle className="text-base flex items-center gap-2">
                     <Star className="h-5 w-5 text-yellow-500" />
-                    Pending Reviews
+                     {t("dashboard.pending_reviews", "Pending Reviews")}
                     {pendingReviews.length > 0 && (
                       <Badge className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300 border-yellow-200 dark:border-yellow-700 ml-1">{pendingReviews.length}</Badge>
                     )}
                   </CardTitle>
-                  <Button variant="outline" size="sm" asChild data-testid="btn-my-reviews"><Link href="/my-reviews">All reviews →</Link></Button>
+                   <Button variant="outline" size="sm" asChild data-testid="btn-my-reviews"><Link href="/my-reviews">{t("dashboard.all_reviews", "All reviews")} →</Link></Button>
                 </CardHeader>
                 <CardContent>
                   {isLoading ? (
@@ -1886,13 +1884,13 @@ export default function PatientDashboard() {
                   ) : isErrorAppointments ? (
                     <div className="py-4 text-center text-sm text-destructive flex flex-col items-center gap-2">
                       <AlertCircle className="h-5 w-5" />
-                      <span>Failed to load appointments</span>
-                      <Button size="sm" variant="outline" onClick={() => queryClient.invalidateQueries({ queryKey: QK.patientAppointments() })}>Retry</Button>
+                       <span>{t("dashboard.failed_load_appointments", "Failed to load appointments")}</span>
+                       <Button size="sm" variant="outline" onClick={() => queryClient.invalidateQueries({ queryKey: QK.patientAppointments() })}>{t("dashboard.retry", "Retry")}</Button>
                     </div>
                   ) : pendingReviews.length === 0 ? (
                     <div className="py-6 text-center">
                       <CheckCircle className="h-8 w-8 mx-auto mb-2 text-emerald-500 opacity-60" />
-                      <p className="text-sm text-muted-foreground">You're all caught up — no pending reviews!</p>
+                       <p className="text-sm text-muted-foreground">{t("dashboard.no_pending_reviews", "You're all caught up — no pending reviews!")}</p>
                     </div>
                   ) : (
                     <div className="space-y-3">
@@ -1906,7 +1904,7 @@ export default function PatientDashboard() {
                             </div>
                           </div>
                           <Button size="sm" asChild data-testid={`btn-review-${appt.id}`}>
-                            <Link href={`/review/${appt.id}`}><Star className="h-3.5 w-3.5 mr-1" />Review</Link>
+                             <Link href={`/review/${appt.id}`}><Star className="h-3.5 w-3.5 mr-1" />{t("dashboard.review", "Review")}</Link>
                           </Button>
                         </div>
                       ))}
@@ -1922,7 +1920,7 @@ export default function PatientDashboard() {
               <Card data-testid="card-referral-widget">
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
                   <CardTitle className="text-base flex items-center gap-2"><Share2 className="h-5 w-5 text-amber-500" /> Refer & Earn</CardTitle>
-                  <Button variant="outline" size="sm" asChild data-testid="btn-referrals-page"><Link href="/referrals">Details →</Link></Button>
+                   <Button variant="outline" size="sm" asChild data-testid="btn-referrals-page"><Link href="/referrals">{t("dashboard.details", "Details")} →</Link></Button>
                 </CardHeader>
                 <CardContent>
                   {isLoadingReferrals ? (
@@ -1930,23 +1928,23 @@ export default function PatientDashboard() {
                   ) : isErrorReferrals ? (
                     <div className="py-4 text-center text-sm text-destructive flex flex-col items-center gap-2">
                       <AlertCircle className="h-5 w-5" />
-                      <span>Failed to load referral data</span>
-                      <Button size="sm" variant="outline" onClick={() => queryClient.invalidateQueries({ queryKey: QK.referrals() })}>Retry</Button>
+                       <span>{t("dashboard.failed_load_referrals", "Failed to load referral data")}</span>
+                       <Button size="sm" variant="outline" onClick={() => queryClient.invalidateQueries({ queryKey: QK.referrals() })}>{t("dashboard.retry", "Retry")}</Button>
                     </div>
                   ) : referralData ? (
                     <div className="space-y-4">
                       <div className="grid grid-cols-3 gap-3 text-center">
                         <div className="rounded-xl bg-amber-50 dark:bg-amber-950/20 p-3">
                           <p className="text-xl font-bold text-amber-700 dark:text-amber-400" data-testid="text-referral-count">{referralData.referralCount ?? referralData.count ?? 0}</p>
-                          <p className="text-xs text-muted-foreground">Referrals</p>
+                           <p className="text-xs text-muted-foreground">{t("dashboard.referrals", "Referrals")}</p>
                         </div>
                         <div className="rounded-xl bg-emerald-50 dark:bg-emerald-950/20 p-3">
                           <p className="text-xl font-bold text-emerald-700 dark:text-emerald-400" data-testid="text-referral-earned">{fmtMoney(referralData.totalEarned ?? 0)}</p>
-                          <p className="text-xs text-muted-foreground">Earned</p>
+                           <p className="text-xs text-muted-foreground">{t("dashboard.earned", "Earned")}</p>
                         </div>
                         <div className="rounded-xl bg-violet-50 dark:bg-violet-950/20 p-3">
                           <p className="text-xl font-bold text-violet-700 dark:text-violet-400" data-testid="text-referral-rank">{referralData.rank ?? "—"}</p>
-                          <p className="text-xs text-muted-foreground">Leaderboard</p>
+                           <p className="text-xs text-muted-foreground">{t("dashboard.leaderboard", "Leaderboard")}</p>
                         </div>
                       </div>
                       {referralData.code && (
@@ -1960,7 +1958,7 @@ export default function PatientDashboard() {
                             data-testid="btn-copy-referral"
                           >
                             {referralCopied ? <CheckCircle className="h-4 w-4 text-emerald-500" /> : <Copy className="h-4 w-4" />}
-                            {referralCopied ? "Copied!" : "Copy"}
+                             {referralCopied ? t("dashboard.copied", "Copied!") : t("dashboard.copy", "Copy")}
                           </Button>
                         </div>
                       )}
@@ -1968,8 +1966,8 @@ export default function PatientDashboard() {
                   ) : (
                     <div className="py-6 text-center">
                       <Gift className="h-8 w-8 mx-auto mb-2 text-muted-foreground opacity-30" />
-                      <p className="text-sm text-muted-foreground mb-3">Share your code and earn wallet credit</p>
-                      <Button size="sm" asChild><Link href="/referrals">Get your code</Link></Button>
+                       <p className="text-sm text-muted-foreground mb-3">{t("dashboard.share_code_earn_credit", "Share your code and earn wallet credit")}</p>
+                       <Button size="sm" asChild><Link href="/referrals">{t("dashboard.get_your_code", "Get your code")}</Link></Button>
                     </div>
                   )}
                 </CardContent>
@@ -1978,8 +1976,8 @@ export default function PatientDashboard() {
               {/* Waitlist widget */}
               <Card data-testid="card-waitlist-widget">
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-base flex items-center gap-2"><ListChecks className="h-5 w-5 text-sky-500" /> Active Waitlists</CardTitle>
-                  <Button variant="outline" size="sm" asChild data-testid="btn-waitlist-page"><Link href="/waitlist">Manage →</Link></Button>
+                   <CardTitle className="text-base flex items-center gap-2"><ListChecks className="h-5 w-5 text-sky-500" /> {t("dashboard.active_waitlists", "Active Waitlists")}</CardTitle>
+                   <Button variant="outline" size="sm" asChild data-testid="btn-waitlist-page"><Link href="/waitlist">{t("dashboard.manage", "Manage")} →</Link></Button>
                 </CardHeader>
                 <CardContent>
                   {isLoadingWaitlist ? (
@@ -1987,13 +1985,13 @@ export default function PatientDashboard() {
                   ) : isErrorWaitlist ? (
                     <div className="py-4 text-center text-sm text-destructive flex flex-col items-center gap-2">
                       <AlertCircle className="h-5 w-5" />
-                      <span>Failed to load waitlist</span>
-                      <Button size="sm" variant="outline" onClick={() => queryClient.invalidateQueries({ queryKey: QK.waitlist() })}>Retry</Button>
+                       <span>{t("dashboard.failed_load_waitlist", "Failed to load waitlist")}</span>
+                       <Button size="sm" variant="outline" onClick={() => queryClient.invalidateQueries({ queryKey: QK.waitlist() })}>{t("dashboard.retry", "Retry")}</Button>
                     </div>
                   ) : !waitlistData || waitlistData.length === 0 ? (
                     <div className="py-4 text-center">
                       <ListChecks className="h-8 w-8 mx-auto mb-2 text-muted-foreground opacity-30" />
-                      <p className="text-sm text-muted-foreground">You are not on any waitlists</p>
+                       <p className="text-sm text-muted-foreground">{t("dashboard.no_waitlists", "You are not on any waitlists")}</p>
                     </div>
                   ) : (
                     <div className="space-y-2">
@@ -2004,7 +2002,7 @@ export default function PatientDashboard() {
                             {entry.preferredDate && <p className="text-xs text-muted-foreground">{formatDateTz(entry.preferredDate)}</p>}
                           </div>
                           {entry.position && (
-                            <Badge variant="outline" className="text-xs" data-testid={`waitlist-position-${entry.id}`}>Position #{entry.position}</Badge>
+                           <Badge variant="outline" className="text-xs" data-testid={`waitlist-position-${entry.id}`}>{t("dashboard.position", "Position")} #{entry.position}</Badge>
                           )}
                         </div>
                       ))}
@@ -2018,10 +2016,10 @@ export default function PatientDashboard() {
             <TabsContent value="notifications-hub" className="mt-6 space-y-4" data-testid="tab-content-notifications">
               <div className="flex items-center justify-between mb-2">
                 <h2 className="text-lg font-semibold flex items-center gap-2">
-                  <Bell className="h-5 w-5 text-primary" /> Notifications
-                  {unreadNotifCount > 0 && <Badge className="ml-1">{unreadNotifCount} unread</Badge>}
+                  <Bell className="h-5 w-5 text-primary" /> {t("dashboard.notifications", "Notifications")}
+                  {unreadNotifCount > 0 && <Badge className="ml-1">{t("dashboard.unread", { defaultValue: "{{count}} unread", count: unreadNotifCount })}</Badge>}
                 </h2>
-                <Button variant="outline" size="sm" asChild data-testid="btn-all-notifications"><Link href="/notifications">View all →</Link></Button>
+                <Button variant="outline" size="sm" asChild data-testid="btn-all-notifications"><Link href="/notifications">{t("dashboard.view_all", "View all")} →</Link></Button>
               </div>
               {isLoadingNotifications ? (
                 <div className="space-y-3">{[1,2,3].map((i) => <Skeleton key={i} className="h-14 w-full" />)}</div>
@@ -2029,15 +2027,15 @@ export default function PatientDashboard() {
                 <Card>
                   <CardContent className="py-10 text-center flex flex-col items-center gap-2">
                     <AlertCircle className="h-8 w-8 text-destructive opacity-60" />
-                    <p className="text-sm text-destructive font-medium">Failed to load notifications</p>
-                    <Button size="sm" variant="outline" onClick={() => queryClient.invalidateQueries({ queryKey: QK.notifications() })}>Retry</Button>
+                    <p className="text-sm text-destructive font-medium">{t("dashboard.failed_load_notifications", "Failed to load notifications")}</p>
+                    <Button size="sm" variant="outline" onClick={() => queryClient.invalidateQueries({ queryKey: QK.notifications() })}>{t("dashboard.retry", "Retry")}</Button>
                   </CardContent>
                 </Card>
               ) : !notificationsData || notificationsData.length === 0 ? (
                 <Card>
                   <CardContent className="py-10 text-center">
                     <Bell className="h-10 w-10 mx-auto mb-3 text-muted-foreground opacity-30" />
-                    <p className="text-sm text-muted-foreground">No notifications yet</p>
+                    <p className="text-sm text-muted-foreground">{t("dashboard.no_notifications", "No notifications yet")}</p>
                   </CardContent>
                 </Card>
               ) : (
@@ -2058,7 +2056,7 @@ export default function PatientDashboard() {
                   ))}
                   {notificationsData.length > 8 && (
                     <div className="text-center pt-2">
-                      <Button variant="outline" size="sm" asChild><Link href="/notifications">View all {notificationsData.length} notifications</Link></Button>
+                      <Button variant="outline" size="sm" asChild><Link href="/notifications">{t("dashboard.view_all_notifications", { defaultValue: "View all {{count}} notifications", count: notificationsData.length })}</Link></Button>
                     </div>
                   )}
                 </div>
@@ -2070,13 +2068,13 @@ export default function PatientDashboard() {
               {/* Profile completion */}
               <Card data-testid="card-profile-completion">
                 <CardHeader className="flex flex-row items-center justify-between pb-3">
-                  <CardTitle className="text-base flex items-center gap-2"><UserCircle className="h-5 w-5 text-primary" /> Profile Completion</CardTitle>
-                  <Button variant="outline" size="sm" asChild data-testid="btn-edit-profile"><Link href="/profile">Edit Profile</Link></Button>
+                  <CardTitle className="text-base flex items-center gap-2"><UserCircle className="h-5 w-5 text-primary" /> {t("dashboard.profile_completion", "Profile Completion")}</CardTitle>
+                  <Button variant="outline" size="sm" asChild data-testid="btn-edit-profile"><Link href="/profile">{t("dashboard.edit_profile", "Edit Profile")}</Link></Button>
                 </CardHeader>
                 <CardContent>
                   <div className="mb-3">
                     <div className="flex justify-between text-sm mb-1">
-                      <span className="text-muted-foreground">Profile strength</span>
+                      <span className="text-muted-foreground">{t("dashboard.profile_strength", "Profile strength")}</span>
                       <span className="font-semibold" data-testid="text-profile-pct">{profileCompletion}%</span>
                     </div>
                     <div className="h-2 bg-muted rounded-full overflow-hidden">
@@ -2089,12 +2087,12 @@ export default function PatientDashboard() {
                   </div>
                   <div className="grid grid-cols-2 gap-2 text-sm mt-4">
                     {[
-                      { label: "Name", done: !!(user?.firstName && user?.lastName) },
-                      { label: "Email", done: !!user?.email },
-                      { label: "Mobile", done: !!(user as any)?.mobileNumber },
-                      { label: "Address", done: !!(user as any)?.address },
-                      { label: "Emergency contact", done: !!(user as any)?.emergencyContactName },
-                      { label: "Language preference", done: !!(user as any)?.languagePreference },
+                      { label: t("dashboard.name", "Name"), done: !!(user?.firstName && user?.lastName) },
+                      { label: t("dashboard.email", "Email"), done: !!user?.email },
+                      { label: t("dashboard.mobile", "Mobile"), done: !!(user as any)?.mobileNumber },
+                      { label: t("dashboard.address", "Address"), done: !!(user as any)?.address },
+                      { label: t("dashboard.emergency_contact", "Emergency contact"), done: !!(user as any)?.emergencyContactName },
+                      { label: t("dashboard.language_preference", "Language preference"), done: !!(user as any)?.languagePreference },
                     ].map((item) => (
                       <div key={item.label} className="flex items-center gap-2" data-testid={`profile-check-${item.label.toLowerCase().replace(/ /g, "-")}`}>
                         {item.done ? <CheckCircle className="h-4 w-4 text-emerald-500 shrink-0" /> : <div className="h-4 w-4 rounded-full border-2 border-muted-foreground/30 shrink-0" />}
@@ -2129,15 +2127,15 @@ export default function PatientDashboard() {
                         <Phone className="h-5 w-5 text-rose-600 dark:text-rose-400" />
                       </div>
                       <div>
-                        <p className="font-medium text-sm">Emergency Contact</p>
+                        <p className="font-medium text-sm">{t("dashboard.emergency_contact_title", "Emergency Contact")}</p>
                         {(user as any)?.emergencyContactName ? (
                           <p className="text-xs text-muted-foreground">{(user as any).emergencyContactName}</p>
                         ) : (
-                          <p className="text-xs text-amber-600 dark:text-amber-400">Not set</p>
+                          <p className="text-xs text-amber-600 dark:text-amber-400">{t("dashboard.not_set", "Not set")}</p>
                         )}
                       </div>
                     </div>
-                    <Button size="sm" variant="outline" asChild data-testid="btn-emergency-contact"><Link href="/profile">Edit</Link></Button>
+                    <Button size="sm" variant="outline" asChild data-testid="btn-emergency-contact"><Link href="/profile">{t("dashboard.edit", "Edit")}</Link></Button>
                   </CardContent>
                 </Card>
                 <Card data-testid="card-settings-shortcut">
@@ -2147,11 +2145,11 @@ export default function PatientDashboard() {
                         <Settings className="h-5 w-5 text-slate-600 dark:text-slate-400" />
                       </div>
                       <div>
-                        <p className="font-medium text-sm">Account Settings</p>
-                        <p className="text-xs text-muted-foreground">Language, notifications, privacy</p>
+                        <p className="font-medium text-sm">{t("dashboard.account_settings", "Account Settings")}</p>
+                        <p className="text-xs text-muted-foreground">{t("dashboard.account_settings_desc", "Language, notifications, privacy")}</p>
                       </div>
                     </div>
-                    <Button size="sm" variant="outline" asChild data-testid="btn-account-settings"><Link href="/settings">Open</Link></Button>
+                    <Button size="sm" variant="outline" asChild data-testid="btn-account-settings"><Link href="/settings">{t("dashboard.open", "Open")}</Link></Button>
                   </CardContent>
                 </Card>
               </div>
@@ -2164,11 +2162,11 @@ export default function PatientDashboard() {
                       <FileText className="h-5 w-5 text-sky-600 dark:text-sky-400" />
                     </div>
                     <div>
-                      <p className="font-medium text-sm">Documents & Health Records</p>
-                      <p className="text-xs text-muted-foreground">Prescriptions, history, medical files</p>
+                        <p className="font-medium text-sm">{t("dashboard.documents_health_records", "Documents & Health Records")}</p>
+                        <p className="text-xs text-muted-foreground">{t("dashboard.documents_health_records_desc", "Prescriptions, history, medical files")}</p>
                     </div>
                   </div>
-                  <Button size="sm" variant="outline" asChild data-testid="btn-health-records-shortcut"><Link href="/health-records">View</Link></Button>
+                  <Button size="sm" variant="outline" asChild data-testid="btn-health-records-shortcut"><Link href="/health-records">{t("dashboard.view", "View")}</Link></Button>
                 </CardContent>
               </Card>
             </TabsContent>
@@ -2198,6 +2196,7 @@ export default function PatientDashboard() {
 
 // ── Patient Gallery Panel ─────────────────────────────────────────────────────
 function PatientGalleryPanel() {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const fileRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
@@ -2216,9 +2215,9 @@ function PatientGalleryPanel() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QK.patientGallery() });
-      toast({ title: "Image removed" });
+       toast({ title: t("dashboard.image_removed", "Image removed") });
     },
-    onError: () => toast({ title: "Failed to delete image", variant: "destructive" }),
+    onError: () => toast({ title: t("dashboard.failed_delete_image", "Failed to delete image"), variant: "destructive" }),
   });
 
   const captionMutation = useMutation({
@@ -2234,18 +2233,18 @@ function PatientGalleryPanel() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QK.patientGallery() });
       setEditId(null);
-      toast({ title: "Caption updated" });
+       toast({ title: t("dashboard.caption_updated", "Caption updated") });
     },
   });
 
   async function handleUpload(file: File) {
     const ALLOWED = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
     if (!ALLOWED.includes(file.type)) {
-      toast({ title: "Use JPG, PNG, or WebP", variant: "destructive" });
+      toast({ title: t("dashboard.use_supported_images", "Use JPG, PNG, or WebP"), variant: "destructive" });
       return;
     }
     if (file.size > 10 * 1024 * 1024) {
-      toast({ title: "File must be under 10 MB", variant: "destructive" });
+      toast({ title: t("dashboard.file_size_limit", "File must be under 10 MB"), variant: "destructive" });
       return;
     }
     setUploading(true);
@@ -2255,9 +2254,9 @@ function PatientGalleryPanel() {
       const res = await fetch("/api/patient/gallery/upload", { method: "POST", credentials: "include", body: form });
       if (!res.ok) throw new Error((await res.json()).message || "Upload failed");
       queryClient.invalidateQueries({ queryKey: QK.patientGallery() });
-      toast({ title: "Image uploaded" });
+       toast({ title: t("dashboard.image_uploaded", "Image uploaded") });
     } catch (err: any) {
-      toast({ title: err?.message ?? "Upload failed", variant: "destructive" });
+      toast({ title: err?.message ?? t("dashboard.upload_failed", "Upload failed"), variant: "destructive" });
     } finally {
       setUploading(false);
       if (fileRef.current) fileRef.current.value = "";
@@ -2270,10 +2269,10 @@ function PatientGalleryPanel() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <FileText className="h-5 w-5 text-primary" />
-            My Medical Gallery
+             {t("dashboard.my_medical_gallery", "My Medical Gallery")}
           </CardTitle>
           <CardDescription>
-            Upload and manage your medical images, progress photos, and reports. Private — only you and authorized admins can view these.
+             {t("dashboard.medical_gallery_desc", "Upload and manage your medical images, progress photos, and reports. Private — only you and authorized admins can view these.")}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -2293,13 +2292,13 @@ function PatientGalleryPanel() {
             {uploading ? (
               <div className="flex flex-col items-center gap-2">
                 <Skeleton className="h-10 w-10 rounded-full" />
-                <p className="text-sm text-muted-foreground">Uploading…</p>
+                 <p className="text-sm text-muted-foreground">{t("dashboard.uploading", "Uploading…")}</p>
               </div>
             ) : (
               <div className="flex flex-col items-center gap-2">
                 <Plus className="h-8 w-8 text-muted-foreground" />
-                <p className="text-sm font-medium">Click or drag &amp; drop to upload</p>
-                <p className="text-xs text-muted-foreground">JPG, PNG, WebP • max 10 MB • up to 20 images</p>
+                 <p className="text-sm font-medium">{t("dashboard.click_drag_upload", "Click or drag & drop to upload")}</p>
+                 <p className="text-xs text-muted-foreground">{t("dashboard.gallery_upload_limits", "JPG, PNG, WebP • max 10 MB • up to 20 images")}</p>
               </div>
             )}
           </div>
@@ -2311,7 +2310,7 @@ function PatientGalleryPanel() {
           ) : images.length === 0 ? (
             <div className="text-center py-10 text-muted-foreground">
               <FileText className="h-10 w-10 mx-auto mb-3 opacity-30" />
-              <p className="text-sm">No images yet — upload your first one above.</p>
+               <p className="text-sm">{t("dashboard.no_images_yet", "No images yet — upload your first one above.")}</p>
             </div>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
@@ -2319,7 +2318,7 @@ function PatientGalleryPanel() {
                 <div key={img.id} className="group relative aspect-square rounded-xl overflow-hidden border bg-muted">
                   <img
                     src={img.image_url}
-                    alt={img.caption || "Gallery image"}
+                     alt={img.caption || t("dashboard.gallery_image", "Gallery image")}
                     loading="lazy"
                     className="w-full h-full object-cover cursor-pointer hover:scale-105 transition-transform duration-200"
                     onClick={() => setPreview(img.image_url)}
@@ -2345,7 +2344,7 @@ function PatientGalleryPanel() {
                           className="text-[10px] text-white/90 truncate flex-1 cursor-pointer"
                           onClick={() => { setEditId(img.id); setEditCaption(img.caption || ""); }}
                         >
-                          {img.caption || <span className="italic opacity-60">Add caption…</span>}
+                           {img.caption || <span className="italic opacity-60">{t("dashboard.add_caption", "Add caption…")}</span>}
                         </p>
                         <Button
                           size="icon"
@@ -2375,7 +2374,7 @@ function PatientGalleryPanel() {
           className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4"
           onClick={() => setPreview(null)}
         >
-          <img src={preview} alt="Preview" className="max-w-full max-h-full rounded-lg shadow-2xl" />
+           <img src={preview} alt={t("dashboard.preview", "Preview")} className="max-w-full max-h-full rounded-lg shadow-2xl" />
           <Button
             variant="ghost"
             size="icon"
