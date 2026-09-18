@@ -70,25 +70,25 @@ function BugDetailPanel({ reportId, onClose }: { reportId: string; onClose: () =
   const statusMutation = useMutation({
     mutationFn: (body: any) => apiRequest("PATCH", `/api/bug-reports/${reportId}/status`, body).then(r => r.json()),
     onSuccess: () => { refetch(); queryClient.invalidateQueries({ queryKey: QK.adminBugReports() }); },
-    onError: (err: Error) => toast({ variant: "destructive", title: "Failed", description: err.message }),
+    onError: (err: Error) => toast({ variant: "destructive", title: t("common.failed"), description: err.message }),
   });
 
   const assignMutation = useMutation({
     mutationFn: (body: any) => apiRequest("PATCH", `/api/bug-reports/${reportId}/assign`, body).then(r => r.json()),
-    onSuccess: () => { refetch(); queryClient.invalidateQueries({ queryKey: QK.adminBugReports() }); toast({ title: "Assigned" }); },
-    onError: (err: Error) => toast({ variant: "destructive", title: "Failed", description: err.message }),
+    onSuccess: () => { refetch(); queryClient.invalidateQueries({ queryKey: QK.adminBugReports() }); toast({ title: t("admin.assigned") }); },
+    onError: (err: Error) => toast({ variant: "destructive", title: t("common.failed"), description: err.message }),
   });
 
   const priorityMutation = useMutation({
     mutationFn: (priority: string) => apiRequest("PATCH", `/api/bug-reports/${reportId}/priority`, { priority }).then(r => r.json()),
     onSuccess: () => { refetch(); queryClient.invalidateQueries({ queryKey: QK.adminBugReports() }); },
-    onError: (err: Error) => toast({ variant: "destructive", title: "Failed", description: err.message }),
+    onError: (err: Error) => toast({ variant: "destructive", title: t("common.failed"), description: err.message }),
   });
 
   const commentMutation = useMutation({
     mutationFn: (message: string) => apiRequest("POST", `/api/bug-reports/${reportId}/comments`, { message }).then(r => r.json()),
     onSuccess: () => { setReplyText(""); refetch(); },
-    onError: (err: Error) => toast({ variant: "destructive", title: "Failed", description: err.message }),
+    onError: (err: Error) => toast({ variant: "destructive", title: t("common.failed"), description: err.message }),
   });
 
   if (isLoading) return <TableSkeleton rows={8} cols={1} />;
@@ -209,7 +209,7 @@ function BugDetailPanel({ reportId, onClose }: { reportId: string; onClose: () =
           <div className="pt-2 border-t space-y-2">
             <textarea
               className="w-full border rounded-lg p-2 text-sm resize-none min-h-[70px] bg-background"
-              placeholder="Reply to reporter…"
+              placeholder={t("admin.reply_to_reporter")}
               value={replyText}
               onChange={(e) => setReplyText(e.target.value)}
               data-testid="textarea-admin-bug-reply"
@@ -261,8 +261,8 @@ export default function AdminBugReports() {
   const bulkStatusMutation = useMutation({
     mutationFn: ({ id, status }: { id: string; status: string }) =>
       apiRequest("PATCH", `/api/bug-reports/${id}/status`, { status }).then(r => r.json()),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: QK.adminBugReports() }); toast({ title: "Updated" }); },
-    onError: (err: Error) => toast({ variant: "destructive", title: "Failed", description: err.message }),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: QK.adminBugReports() }); toast({ title: t("common.updated") }); },
+    onError: (err: Error) => toast({ variant: "destructive", title: t("common.failed"), description: err.message }),
   });
 
   if (selectedId) {
@@ -277,20 +277,20 @@ export default function AdminBugReports() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-6">
-      <PageBreadcrumbs items={[{ label: "Admin" }, { label: "Bug Queue" }]} />
+      <PageBreadcrumbs items={[{ label: t("admin.admin_short") }, { label: t("admin.bug_queue") }]} />
 
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
             <Bug className="h-6 w-6 text-orange-500" />
-            Bug Queue
+            {t("admin.bug_queue")}
           </h1>
           <p className="text-muted-foreground text-sm mt-1">
-            {data?.total ?? 0} report{data?.total !== 1 ? "s" : ""}
+            {t("admin.report_count", { count: data?.total ?? 0 })}
           </p>
         </div>
         <Button variant="outline" size="sm" onClick={() => refetch()} className="gap-2" data-testid="button-refresh-bugs">
-          <RefreshCw className="h-4 w-4" /> Refresh
+          <RefreshCw className="h-4 w-4" /> {t("common.refresh")}
         </Button>
       </div>
 
@@ -301,7 +301,7 @@ export default function AdminBugReports() {
             <div className="relative flex-1 min-w-[160px]">
               <Search className="absolute start-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search reports…"
+                placeholder={t("admin.search_reports")}
                 className="pl-8 h-9"
                 value={search}
                 onChange={(e) => { setSearch(e.target.value); setPage(1); }}
@@ -310,31 +310,31 @@ export default function AdminBugReports() {
             </div>
 
             {[
-              { value: statusFilter, onChange: (v: string) => { setStatusFilter(v); setPage(1); }, placeholder: "Status", options: [
-                { value: "all", label: "All statuses" },
-                { value: "new", label: "New" }, { value: "triaged", label: "Triaged" },
-                { value: "in_progress", label: "In Progress" }, { value: "waiting_for_user", label: "Waiting" },
-                { value: "resolved", label: "Resolved" }, { value: "closed", label: "Closed" },
-                { value: "duplicate", label: "Duplicate" }, { value: "rejected", label: "Rejected" },
+              { value: statusFilter, onChange: (v: string) => { setStatusFilter(v); setPage(1); }, placeholder: t("admin.status"), options: [
+                { value: "all", label: t("admin.all_statuses") },
+                { value: "new", label: t("admin.new") }, { value: "triaged", label: t("admin.triaged") },
+                { value: "in_progress", label: t("admin.in_progress") }, { value: "waiting_for_user", label: t("admin.waiting") },
+                { value: "resolved", label: t("admin.resolved") }, { value: "closed", label: t("admin.closed") },
+                { value: "duplicate", label: t("admin.duplicate") }, { value: "rejected", label: t("admin.rejected") },
               ], testId: "select-filter-status" },
-              { value: severityFilter, onChange: (v: string) => { setSeverityFilter(v); setPage(1); }, placeholder: "Severity", options: [
-                { value: "all", label: "All severity" },
-                { value: "low", label: "Low" }, { value: "medium", label: "Medium" },
-                { value: "high", label: "High" }, { value: "critical", label: "Critical" },
+              { value: severityFilter, onChange: (v: string) => { setSeverityFilter(v); setPage(1); }, placeholder: t("admin.severity"), options: [
+                { value: "all", label: t("admin.all_severity") },
+                { value: "low", label: t("admin.low") }, { value: "medium", label: t("admin.medium") },
+                { value: "high", label: t("admin.high") }, { value: "critical", label: t("admin.critical") },
               ], testId: "select-filter-severity" },
-              { value: priorityFilter, onChange: (v: string) => { setPriorityFilter(v); setPage(1); }, placeholder: "Priority", options: [
-                { value: "all", label: "All priority" },
-                { value: "low", label: "Low" }, { value: "medium", label: "Medium" },
-                { value: "high", label: "High" }, { value: "urgent", label: "Urgent" },
+              { value: priorityFilter, onChange: (v: string) => { setPriorityFilter(v); setPage(1); }, placeholder: t("admin.priority"), options: [
+                { value: "all", label: t("admin.all_priority") },
+                { value: "low", label: t("admin.low") }, { value: "medium", label: t("admin.medium") },
+                { value: "high", label: t("admin.high") }, { value: "urgent", label: t("admin.urgent") },
               ], testId: "select-filter-priority" },
-              { value: categoryFilter, onChange: (v: string) => { setCategoryFilter(v); setPage(1); }, placeholder: "Category", options: [
-                { value: "all", label: "All categories" },
-                { value: "bug", label: "Bug" }, { value: "ui_issue", label: "UI" },
-                { value: "booking_issue", label: "Booking" }, { value: "payment_issue", label: "Payment" },
-                { value: "account_issue", label: "Account" }, { value: "feature_request", label: "Feature Request" },
+              { value: categoryFilter, onChange: (v: string) => { setCategoryFilter(v); setPage(1); }, placeholder: t("admin.category"), options: [
+                { value: "all", label: t("admin.all_categories") },
+                { value: "bug", label: t("admin.bug") }, { value: "ui_issue", label: t("admin.ui") },
+                { value: "booking_issue", label: t("admin.booking") }, { value: "payment_issue", label: t("admin.payment") },
+                { value: "account_issue", label: t("admin.account") }, { value: "feature_request", label: t("admin.feature_request") },
               ], testId: "select-filter-category" },
-              ...(user?.role === "global_admin" ? [{ value: countryFilter, onChange: (v: string) => { setCountryFilter(v); setPage(1); }, placeholder: "Country", options: [
-                { value: "all", label: "All countries" }, { value: "HU", label: "Hungary" }, { value: "IR", label: "Iran" },
+              ...(user?.role === "global_admin" ? [{ value: countryFilter, onChange: (v: string) => { setCountryFilter(v); setPage(1); }, placeholder: t("admin.country"), options: [
+                { value: "all", label: t("admin.all_countries") }, { value: "HU", label: t("country.hungary") }, { value: "IR", label: t("country.iran") },
               ], testId: "select-filter-country" }] : []),
             ].map((f) => (
               <Select key={f.testId} value={f.value} onValueChange={f.onChange}>

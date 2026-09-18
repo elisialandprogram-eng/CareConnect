@@ -758,12 +758,12 @@ export default function AdminHome() {
               ) : d ? (
                 <>
                   {[
-                    { label: "Confirmed",  count: d.appointments.confirmedToday, icon: CheckCircle2, color: "text-emerald-600 dark:text-emerald-400" },
-                    { label: "Video Consultations", count: d.appointments.videoToday, icon: Video, color: "text-blue-600 dark:text-blue-400" },
-                    { label: "Completed",  count: d.appointments.completedToday, icon: CheckCheck, color: "text-teal-600 dark:text-teal-400" },
-                    { label: "Cancelled",  count: d.appointments.cancelledToday, icon: X, color: "text-red-600 dark:text-red-400" },
-                    { label: "No-shows",   count: d.appointments.noShowToday,    icon: AlertTriangle, color: "text-amber-600 dark:text-amber-400" },
-                    { label: "Pending",    count: d.platform.pendingBookings,    icon: Clock, color: "text-muted-foreground" },
+                    { label: t("admin.confirmed"),  count: d.appointments.confirmedToday, icon: CheckCircle2, color: "text-emerald-600 dark:text-emerald-400" },
+                    { label: t("admin.video_consultations"), count: d.appointments.videoToday, icon: Video, color: "text-blue-600 dark:text-blue-400" },
+                    { label: t("admin.completed"),  count: d.appointments.completedToday, icon: CheckCheck, color: "text-teal-600 dark:text-teal-400" },
+                    { label: t("admin.cancelled"),  count: d.appointments.cancelledToday, icon: X, color: "text-red-600 dark:text-red-400" },
+                    { label: t("admin.no_show"),   count: d.appointments.noShowToday,    icon: AlertTriangle, color: "text-amber-600 dark:text-amber-400" },
+                    { label: t("admin.pending"),    count: d.platform.pendingBookings,    icon: Clock, color: "text-muted-foreground" },
                   ].map(({ label, count, icon: Icon, color }) => (
                     <div key={label} className="flex items-center justify-between px-3 py-2 rounded-lg bg-muted/40 hover:bg-muted/60 transition-colors">
                       <div className="flex items-center gap-2">

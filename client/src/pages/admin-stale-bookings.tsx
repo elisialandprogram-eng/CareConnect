@@ -207,13 +207,13 @@ export default function AdminStaleBookings() {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b text-left text-muted-foreground">
-                      <th className="py-2 pr-3 font-medium">When</th>
-                      <th className="py-2 pr-3 font-medium">Booking</th>
-                      <th className="py-2 pr-3 font-medium">Visit date</th>
-                      <th className="py-2 pr-3 font-medium">Client</th>
-                      <th className="py-2 pr-3 font-medium">Provider</th>
-                      <th className="py-2 pr-3 font-medium">Status</th>
-                      <th className="py-2 pr-3 font-medium">Reason</th>
+                      <th className="py-2 pr-3 font-medium">{t("admin.when")}</th>
+                      <th className="py-2 pr-3 font-medium">{t("admin.booking")}</th>
+                      <th className="py-2 pr-3 font-medium">{t("admin.visit_date")}</th>
+                      <th className="py-2 pr-3 font-medium">{t("admin.client")}</th>
+                      <th className="py-2 pr-3 font-medium">{t("admin.provider")}</th>
+                      <th className="py-2 pr-3 font-medium">{t("admin.status")}</th>
+                      <th className="py-2 pr-3 font-medium">{t("admin.reason")}</th>
                     </tr>
                   </thead>
                   <tbody>
