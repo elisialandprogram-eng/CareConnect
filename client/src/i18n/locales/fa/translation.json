@@ -2422,8 +2422,78 @@
     "phone_number": "شماره تلفن",
     "timezone": "منطقه زمانی",
     "select_timezone": "منطقه زمانی را انتخاب کنید…",
-    "timezone_not_set": "— تنظیم نشده (پلتفرم از کشور تشخیص می‌دهد) —"
-    "optional_documents_desc": "برای تقویت پروفایل و برآورده‌کردن الزامات انطباق، مدارک مرتبط را بارگذاری کنید."
+    "timezone_not_set": "— تنظیم نشده (پلتفرم از کشور تشخیص می‌دهد) —",
+    "optional_documents_desc": "برای تقویت پروفایل و برآورده‌کردن الزامات انطباق، مدارک مرتبط را بارگذاری کنید.",
+    "cancelled": "لغوشده",
+    "clients_will_appear": "مراجعانی که از شما رزرو کرده‌اند در اینجا نمایش داده می‌شوند.",
+    "client": "مراجع",
+    "visits": "ویزیت‌ها",
+    "last_visit": "آخرین ویزیت",
+    "out_of_five": "از ۵",
+    "preferences_moved": "تنظیمات به این بخش منتقل شده است:",
+    "my_profile": "پروفایل من",
+    "open_profile_settings": "باز کردن پروفایل من ← تنظیمات",
+    "gallery_moved": "گالری به این بخش منتقل شده است:",
+    "open_profile_gallery": "باز کردن پروفایل من ← گالری",
+    "documents_moved": "مدارک به این بخش منتقل شده است:",
+    "open_profile_documents": "باز کردن پروفایل من ← مدارک",
+    "kyc_moved": "احراز هویت به این بخش منتقل شده است:",
+    "no_appointments_today": "امروز نوبتی برنامه‌ریزی نشده است — تقویم شما خالی است.",
+    "no_appointments_found": "نوبتی یافت نشد.",
+    "marketplace_locked": "قابلیت‌های بازار قفل هستند",
+    "unlocks_after_approval": "پس از تأیید انطباق فعال می‌شوند",
+    "provider_settlement": "تسویه ارائه‌دهنده",
+    "gross_earnings": "درآمد ناخالص",
+    "provider_side_commission": "کمیسیون ارائه‌دهنده",
+    "net_earnings": "درآمد خالص",
+    "rescheduled_details_hint": "این نوبت جابه‌جا شده است. برای جزئیات بیشتر صفحه کامل اطلاعات را باز کنید.",
+    "copied": "کپی شد"
+    ,"week_copied": "هفته کپی شد"
+    ,"schedule_captured": "برنامه هفته {{week}} ثبت شد."
+    ,"copied_check": "کپی شد ✓"
+    ,"copy_week": "کپی هفته"
+    ,"paste_to_week": "چسباندن به هفته"
+    ,"clipboard_week": "حافظه موقت: هفته {{week}}"
+    ,"override_open_slots": "جایگزینی زمان‌های باز هنگام انتشار (زمان‌های رزروشده حفظ می‌شوند)"
+    ,"checking_conflicts": "در حال بررسی تداخل‌ها…"
+    ,"publish_this_week": "انتشار زمان‌های این هفته"
+    ,"publish_next_week": "انتشار زمان‌های هفته آینده"
+    ,"publish_week_slots": "انتشار زمان‌ها برای {{week}}"
+    ,"clear_week_title": "دسترس‌پذیری این هفته پاک شود؟"
+    ,"clear_week_desc": "همه زمان‌های باز هفته {{week}} برای همیشه حذف می‌شوند. نوبت‌های رزروشده و نگه‌داشته‌شده هرگز تغییر نمی‌کنند."
+    ,"clear_week_confirm": "بله، هفته را پاک کن"
+    ,"paste_schedule_title": "چسباندن برنامه به هفته هدف"
+    ,"paste_schedule_desc": "زمان‌های باز هفته {{source}} به هفته هدف کپی می‌شوند. زمان‌های باز رزرو‌نشده جایگزین می‌شوند و زمان‌های رزروشده حفظ خواهند شد."
+    ,"target_week": "شروع هفته هدف (دوشنبه)"
+    ,"paste_schedule": "چسباندن برنامه"
+    ,"enable_waitlist": "فعال‌سازی فهرست انتظار"
+    ,"enable_waitlist_desc": "مراجعان وقتی همه زمان‌ها پر باشند می‌توانند در فهرست انتظار قرار بگیرند و با خالی شدن یک جایگاه، خودکار مطلع شوند."
+    ,"max_waitlist_size": "حداکثر اندازه فهرست انتظار"
+    ,"day_mon_short": "د"
+    ,"day_tue_short": "س"
+    ,"day_wed_short": "چ"
+    ,"day_thu_short": "پ"
+    ,"day_fri_short": "ج"
+    ,"day_sat_short": "ش"
+    ,"day_sun_short": "ی"
+    ,"preset_morning": "صبح"
+    ,"preset_afternoon": "بعدازظهر"
+    ,"preset_full_day": "تمام روز"
+    ,"preset_business": "ساعات کاری"
+    ,"preset_split": "دو بخشی"
+    ,"day_mon_full": "دوشنبه"
+    ,"day_tue_full": "سه‌شنبه"
+    ,"day_wed_full": "چهارشنبه"
+    ,"day_thu_full": "پنج‌شنبه"
+    ,"day_fri_full": "جمعه"
+    ,"day_sat_full": "شنبه"
+    ,"day_sun_full": "یکشنبه"
+    ,"add_clinic_address": "نشانی کلینیک خود را اضافه کنید"
+    ,"add_clinic_address_desc": "مراجعان تا زمانی که محل کلینیک را تنظیم نکنید نمی‌توانند ویزیت حضوری رزرو کنند. به بخش پروفایل بروید و «موقعیت اصلی» را تکمیل کنید."
+    ,"go_to_profile": "رفتن به پروفایل"
+    ,"bookings_by_service": "رزروها بر اساس خدمت"
+    ,"payout_notes_placeholder": "دستورهای بیشتر برای مدیر…"
+    ,"id_document_placeholder": "مثلاً A1234567 یا 123-456-789"
   },
   "patient_dashboard": {
     "visit_type": "نوع ویزیت",
@@ -3272,6 +3342,98 @@
     "invalid_link": "لینک رزرو نامعتبر است",
     "load_error": "بارگذاری این نوبت ممکن نشد. ممکن است حذف شده باشد یا دسترسی نداشته باشید.",
     "go_to_appointments": "رفتن به نوبت‌هایم"
+  },
+  "provider_dashboard_extra": {
+    "wallet_topped_up": "کیف پول ارائه‌دهنده شارژ شد",
+    "funds_added": "مبلغ به کیف پول اضافه شد.",
+    "top_up_already_added": "این شارژ قبلاً به کیف پول اضافه شده است.",
+    "payment_processing": "پرداخت همچنان در حال پردازش است",
+    "stripe_pending": "Stripe هنوز شارژ را تأیید نکرده است. لطفاً کمی بعد بازخوانی کنید.",
+    "top_up_verification_pending": "تأیید شارژ در انتظار است",
+    "confirmation_processing": "پرداخت موفق بود، اما تأیید آن هنوز در حال پردازش است.",
+    "no_checkout_session": "پرداخت موفق بود، اما نشست پرداختی بازگردانده نشد. لطفاً کمی بعد بازخوانی کنید.",
+    "top_up_cancelled": "شارژ لغو شد",
+    "no_charge": "هیچ مبلغی کسر نشد.",
+    "submitted_for_review": "برای بررسی ارسال شد!",
+    "review_timing": "تیم انطباق ما پروفایل شما را طی ۱ تا ۳ روز کاری بررسی می‌کند.",
+    "approved_setup_prompt": "تأیید شدید — برای پذیرش مراجعان تنظیمات را تکمیل کنید",
+    "approved_setup_desc": "حداقل یک خدمت فعال با قیمت اضافه کنید و سپس دسترس‌پذیری خود را تنظیم کنید. تا تکمیل هر دو مورد، مراجعان نمی‌توانند شما را رزرو کنند."
+  },
+  "provider_wallet": {
+    "income": "درآمد",
+    "top_up": "شارژ کیف پول",
+    "top_ups": "شارژها",
+    "payouts": "برداشت‌ها",
+    "settlement_deduction": "کسر تسویه ارائه‌دهنده",
+    "commission": "کمیسیون",
+    "cash_settlement_deduction": "کسر تسویه نقدی",
+    "payout_held": "برداشت در انتظار",
+    "payout_sent": "برداشت ارسال شد",
+    "returned": "برگشت داده شد",
+    "adjustment": "اصلاح",
+    "refreshed": "کیف پول بازخوانی شد",
+    "top_up_started": "شارژ آغاز شد",
+    "waiting_confirmation": "در انتظار تأیید پرداخت.",
+    "top_up_failed": "شارژ ناموفق بود",
+    "unable_top_up": "شروع شارژ کیف پول ممکن نیست.",
+    "locked_audit": "کیف پول توسط حسابرسی خودکار قفل شد",
+    "frozen_admin": "کیف پول توسط مدیر مسدود شد",
+    "audit_hold_desc": "سیستم مغایرتی در دفتر مالی شناسایی کرد و برداشت‌ها را به‌طور خودکار متوقف کرد.",
+    "admin_hold_desc": "مدیر امکان برداشت شما را متوقف کرده است.",
+    "system_message": "پیام سیستم",
+    "reason_provided": "دلیل ارائه‌شده",
+    "what_this_means": "این یعنی چه؟",
+    "audit_hold_guidance": "موجودی فعلی شما امن است و مبلغی حذف نشده است. تیم مالی مغایرت را بررسی و پس از تأیید قفل را رفع می‌کند. این فرایند معمولاً طی ۱ تا ۲ روز کاری انجام می‌شود.",
+    "admin_hold_guidance": "موجودی شما امن است. تا رفع مسدودی هیچ برداشتی پردازش نمی‌شود. برای دریافت کمک با پشتیبانی تماس بگیرید.",
+    "ready_to_withdraw": "آماده برداشت",
+    "awaiting_approval": "در انتظار تأیید مدیر",
+    "earnings_chart": "نمودار درآمد",
+    "transaction_history": "تاریخچه تراکنش‌ها",
+    "this_month": "این ماه",
+    "monthly_earnings": "درآمد ماهانه — ۱۲ ماه گذشته",
+    "no_earnings": "هنوز داده‌ای برای درآمد وجود ندارد",
+    "transaction_history_desc": "همه بستانکاری‌ها و بدهکاری‌های کیف پول",
+    "no_transactions": "هنوز تراکنشی وجود ندارد",
+    "month_breakdown": "جزئیات این ماه",
+    "month_breakdown_desc": "خلاصه درآمد، هزینه‌ها و مالیات ماه جاری",
+    "net_income": "درآمد خالص",
+    "bookings": "رزروها",
+    "cash_settlement_deductions": "کسرهای تسویه نقدی"
+    ,"date": "تاریخ",
+    "type": "نوع",
+    "description": "توضیحات",
+    "amount": "مبلغ",
+    "balance_after": "موجودی پس از آن",
+    "show_less": "نمایش کمتر",
+    "show_all": "نمایش همه {{count}} مورد",
+    "last_updated": "آخرین به‌روزرسانی"
+  },
+  "provider_earnings": {
+    "exporting": "در حال خروجی گرفتن…"
+  },
+  "provider_gallery": {
+    "caption_update_failed": "به‌روزرسانی عنوان ناموفق بود",
+    "photo_removed": "عکس حذف شد",
+    "photo_delete_failed": "حذف عکس ناموفق بود",
+    "reorder_failed": "مرتب‌سازی ناموفق بود",
+    "invalid_format": "قالب پشتیبانی نمی‌شود. از JPG، PNG یا WebP استفاده کنید",
+    "file_too_large": "حجم عکس باید کمتر از ۵ مگابایت باشد",
+    "gallery_limit": "گالری حداکثر {{count}} عکس دارد",
+    "photo_uploaded": "عکس در گالری بارگذاری شد",
+    "upload_failed": "بارگذاری ناموفق بود",
+    "title": "گالری",
+    "stored_cloudinary": "ذخیره‌شده در Cloudinary",
+    "uploading": "در حال بارگذاری…",
+    "add_photo": "افزودن عکس",
+    "drop_to_upload": "برای بارگذاری رها کنید",
+    "no_photos": "هنوز عکسی وجود ندارد",
+    "empty_desc": "حداکثر {{count}} عکس اضافه کنید (JPG، PNG، WebP · حداکثر ۵ مگابایت برای هر عکس). عکس‌ها در Cloudinary ذخیره می‌شوند.",
+    "add_first_photo": "افزودن اولین عکس",
+    "move_left": "انتقال به چپ",
+    "move_right": "انتقال به راست",
+    "edit_caption": "ویرایش عنوان",
+    "delete_photo": "حذف عکس",
+    "caption_placeholder": "افزودن عنوان…"
   },
   "patient_home": {
     "attention_required": "نیاز به توجه",

@@ -396,7 +396,7 @@ function ServicesTab({ analytics, fmtMoney }: { analytics?: AnalyticsData; fmtMo
 
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium">Bookings by Service</CardTitle>
+          <CardTitle className="text-sm font-medium">{t("provider_dashboard.bookings_by_service", "Bookings by Service")}</CardTitle>
         </CardHeader>
         <CardContent>
           <ResponsiveContainer width="100%" height={Math.min(services.length * 40 + 20, 300)}>

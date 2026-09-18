@@ -96,7 +96,7 @@ function GovtIdNumberField() {
       <div className="flex gap-2 items-center">
         <Input
           className="h-8 text-sm flex-1"
-          placeholder="e.g. A1234567 or 123-456-789"
+          placeholder={t("provider_dashboard.id_document_placeholder", "e.g. A1234567 or 123-456-789")}
           value={value}
           onChange={e => setValue(e.target.value)}
           data-testid="input-gov-id-number"

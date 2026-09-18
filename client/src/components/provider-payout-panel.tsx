@@ -335,21 +335,21 @@ export function ProviderPayoutPanel() {
               <>
                 <div className="space-y-1.5">
                    <Label htmlFor="payout-bank">{t("provider_dashboard.bank_name", "Bank Name")}</Label>
-                  <Input id="payout-bank" value={bankName} onChange={(e) => setBankName(e.target.value)} placeholder="e.g. OTP Bank" data-testid="input-payout-bank" />
+                  <Input id="payout-bank" value={bankName} onChange={(e) => setBankName(e.target.value)} placeholder={t("provider_dashboard.payout_bank_placeholder", "e.g. OTP Bank")} data-testid="input-payout-bank" />
                 </div>
                 <div className="space-y-1.5">
                    <Label htmlFor="payout-holder">{t("provider_dashboard.account_holder_name", "Account Holder Name")}</Label>
-                  <Input id="payout-holder" value={accountHolder} onChange={(e) => setAccountHolder(e.target.value)} placeholder="Full name on account" data-testid="input-payout-holder" />
+                  <Input id="payout-holder" value={accountHolder} onChange={(e) => setAccountHolder(e.target.value)} placeholder={t("provider_dashboard.payout_holder_placeholder", "Full name on account")} data-testid="input-payout-holder" />
                 </div>
                 <div className="space-y-1.5">
                    <Label htmlFor="payout-acct">{t("provider_dashboard.account_number_last4", "Account Number (last 4 digits)")}</Label>
-                  <Input id="payout-acct" value={accountNumberMasked} onChange={(e) => setAccountNumberMasked(e.target.value)} placeholder="e.g. ****1234" maxLength={10} data-testid="input-payout-account" />
+                  <Input id="payout-acct" value={accountNumberMasked} onChange={(e) => setAccountNumberMasked(e.target.value)} placeholder={t("provider_dashboard.payout_account_placeholder", "e.g. ****1234")} maxLength={10} data-testid="input-payout-account" />
                 </div>
               </>
             )}
             <div className="space-y-1.5">
                <Label htmlFor="payout-notes">{t("provider_dashboard.notes_optional", "Notes (optional)")}</Label>
-              <Textarea id="payout-notes" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Any additional instructions for admin..." rows={2} data-testid="input-payout-notes" />
+              <Textarea id="payout-notes" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder={t("provider_dashboard.payout_notes_placeholder", "Any additional instructions for admin...")} rows={2} data-testid="input-payout-notes" />
             </div>
           </div>
           <DialogFooter>

@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback } from "react";
 import { GalleryThumbnail } from "@/components/ui/provider-image";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -25,6 +26,7 @@ const MAX_BYTES = 5 * 1024 * 1024;
 const ALLOWED_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
 
 export function ProviderGalleryManager() {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -50,7 +52,7 @@ export function ProviderGalleryManager() {
       queryClient.invalidateQueries({ queryKey: ["/api/provider/gallery"] });
       setEditingId(null);
     },
-    onError: () => toast({ title: "Failed to update caption", variant: "destructive" }),
+    onError: () => toast({ title: t("provider_gallery.caption_update_failed", "Failed to update caption"), variant: "destructive" }),
   });
 
   const deleteMutation = useMutation({
@@ -64,9 +66,9 @@ export function ProviderGalleryManager() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/provider/gallery"] });
-      toast({ title: "Photo removed" });
+      toast({ title: t("provider_gallery.photo_removed", "Photo removed") });
     },
-    onError: () => toast({ title: "Failed to delete photo", variant: "destructive" }),
+    onError: () => toast({ title: t("provider_gallery.photo_delete_failed", "Failed to delete photo"), variant: "destructive" }),
   });
 
   const reorderMutation = useMutation({
@@ -80,20 +82,20 @@ export function ProviderGalleryManager() {
       return res.json();
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/provider/gallery"] }),
-    onError: () => toast({ title: "Failed to reorder", variant: "destructive" }),
+    onError: () => toast({ title: t("provider_gallery.reorder_failed", "Failed to reorder"), variant: "destructive" }),
   });
 
   async function uploadFile(file: File) {
     if (!ALLOWED_TYPES.includes(file.type)) {
-      toast({ title: "Unsupported format. Use JPG, PNG, or WebP", variant: "destructive" });
+      toast({ title: t("provider_gallery.invalid_format", "Unsupported format. Use JPG, PNG, or WebP"), variant: "destructive" });
       return;
     }
     if (file.size > MAX_BYTES) {
-      toast({ title: "Photo must be under 5 MB", variant: "destructive" });
+      toast({ title: t("provider_gallery.file_too_large", "Photo must be under 5 MB"), variant: "destructive" });
       return;
     }
     if (images.length >= MAX_IMAGES) {
-      toast({ title: `Gallery limit is ${MAX_IMAGES} photos`, variant: "destructive" });
+      toast({ title: t("provider_gallery.gallery_limit", "Gallery limit is {{count}} photos", { count: MAX_IMAGES }), variant: "destructive" });
       return;
     }
 
@@ -113,9 +115,9 @@ export function ProviderGalleryManager() {
       if (!res.ok) throw new Error(data.message ?? "Upload failed");
 
       queryClient.invalidateQueries({ queryKey: ["/api/provider/gallery"] });
-      toast({ title: "Photo uploaded to gallery" });
+      toast({ title: t("provider_gallery.photo_uploaded", "Photo uploaded to gallery") });
     } catch (err: any) {
-      toast({ title: err?.message ?? "Upload failed", variant: "destructive" });
+      toast({ title: err?.message ?? t("provider_gallery.upload_failed", "Upload failed"), variant: "destructive" });
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -163,10 +165,10 @@ export function ProviderGalleryManager() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <ImageIcon className="h-5 w-5 text-primary" />
-          <span className="font-medium">Gallery</span>
+          <span className="font-medium">{t("provider_gallery.title", "Gallery")}</span>
           <Badge variant="secondary">{images.length} / {MAX_IMAGES}</Badge>
           <span className="text-xs text-muted-foreground hidden sm:inline">
-            · Stored on Cloudinary
+            · {t("provider_gallery.stored_cloudinary", "Stored on Cloudinary")}
           </span>
         </div>
         <Button
@@ -181,7 +183,7 @@ export function ProviderGalleryManager() {
           ) : (
             <Upload className="h-4 w-4 mr-2" />
           )}
-          {uploading ? "Uploading…" : "Add Photo"}
+          {uploading ? t("provider_gallery.uploading", "Uploading…") : t("provider_gallery.add_photo", "Add Photo")}
         </Button>
         <input
           ref={fileInputRef}
@@ -205,10 +207,9 @@ export function ProviderGalleryManager() {
             <div className={`rounded-full p-3 mb-3 ${dragOver ? "bg-primary/10" : "bg-muted"}`}>
               <ImageIcon className="h-8 w-8 text-muted-foreground" />
             </div>
-            <p className="text-sm font-medium">{dragOver ? "Drop to upload" : "No photos yet"}</p>
+            <p className="text-sm font-medium">{dragOver ? t("provider_gallery.drop_to_upload", "Drop to upload") : t("provider_gallery.no_photos", "No photos yet")}</p>
             <p className="text-xs text-muted-foreground mt-1 max-w-xs">
-              Add up to {MAX_IMAGES} photos (JPG, PNG, WebP · max 5 MB each).
-              Photos are stored externally on Cloudinary.
+              {t("provider_gallery.empty_desc", "Add up to {{count}} photos (JPG, PNG, WebP · max 5 MB each). Photos are stored externally on Cloudinary.", { count: MAX_IMAGES })}
             </p>
             <Button
               size="sm"
@@ -219,7 +220,7 @@ export function ProviderGalleryManager() {
               data-testid="button-add-first-gallery-image"
             >
               {uploading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Plus className="h-4 w-4 mr-2" />}
-              {uploading ? "Uploading…" : "Add your first photo"}
+              {uploading ? t("provider_gallery.uploading", "Uploading…") : t("provider_gallery.add_first_photo", "Add your first photo")}
             </Button>
           </CardContent>
         </Card>
@@ -257,7 +258,7 @@ export function ProviderGalleryManager() {
                       className="h-7 w-7"
                       onClick={() => moveImage(idx, "up")}
                       disabled={idx === 0 || reorderMutation.isPending}
-                      title="Move left"
+                      title={t("provider_gallery.move_left", "Move left")}
                       data-testid={`button-move-up-${img.id}`}
                     >
                       <ChevronUp className="h-3 w-3" />
@@ -268,7 +269,7 @@ export function ProviderGalleryManager() {
                       className="h-7 w-7"
                       onClick={() => moveImage(idx, "down")}
                       disabled={idx === images.length - 1 || reorderMutation.isPending}
-                      title="Move right"
+                      title={t("provider_gallery.move_right", "Move right")}
                       data-testid={`button-move-down-${img.id}`}
                     >
                       <ChevronDown className="h-3 w-3" />
@@ -278,7 +279,7 @@ export function ProviderGalleryManager() {
                       variant="secondary"
                       className="h-7 w-7"
                       onClick={() => startEdit(img)}
-                      title="Edit caption"
+                      title={t("provider_gallery.edit_caption", "Edit caption")}
                       data-testid={`button-edit-caption-${img.id}`}
                     >
                       <Pencil className="h-3 w-3" />
@@ -289,7 +290,7 @@ export function ProviderGalleryManager() {
                       className="h-7 w-7"
                       onClick={() => deleteMutation.mutate(img.id)}
                       disabled={deleteMutation.isPending}
-                      title="Delete photo"
+                      title={t("provider_gallery.delete_photo", "Delete photo")}
                       data-testid={`button-delete-gallery-${img.id}`}
                     >
                       <Trash2 className="h-3 w-3" />
@@ -310,7 +311,7 @@ export function ProviderGalleryManager() {
                     <Input
                       value={editCaption}
                       onChange={e => setEditCaption(e.target.value)}
-                      placeholder="Add caption…"
+                      placeholder={t("provider_gallery.caption_placeholder", "Add caption…")}
                       className="h-7 text-xs"
                       autoFocus
                       onKeyDown={e => {
@@ -345,7 +346,7 @@ export function ProviderGalleryManager() {
                     onClick={() => startEdit(img)}
                     data-testid={`text-caption-${img.id}`}
                   >
-                    {img.caption || <span className="italic">Add caption…</span>}
+                    {img.caption || <span className="italic">{t("provider_gallery.caption_placeholder", "Add caption…")}</span>}
                   </p>
                 )}
               </div>

@@ -2580,7 +2580,77 @@
     "phone_number": "Phone Number",
     "timezone": "Timezone",
     "select_timezone": "Select your timezone…",
-    "timezone_not_set": "— Not set (platform will infer from country) —"
+    "timezone_not_set": "— Not set (platform will infer from country) —",
+    "cancelled": "cancelled",
+    "clients_will_appear": "Clients who have booked with you will appear here.",
+    "client": "Client",
+    "visits": "Visits",
+    "last_visit": "Last visit",
+    "out_of_five": "out of 5",
+    "preferences_moved": "Preferences have moved to",
+    "my_profile": "My Profile",
+    "open_profile_settings": "Open My Profile → Settings",
+    "gallery_moved": "Gallery has moved to",
+    "open_profile_gallery": "Open My Profile → Gallery",
+    "documents_moved": "Documents have moved to",
+    "open_profile_documents": "Open My Profile → Documents",
+    "kyc_moved": "KYC verification has moved to",
+    "no_appointments_today": "No appointments scheduled for today — your calendar is clear.",
+    "no_appointments_found": "No appointments found.",
+    "marketplace_locked": "Marketplace features locked",
+    "unlocks_after_approval": "Unlocks after compliance approval",
+    "provider_settlement": "Provider settlement",
+    "gross_earnings": "Gross earnings",
+    "provider_side_commission": "Provider-side commission",
+    "net_earnings": "Net earnings",
+    "rescheduled_details_hint": "This appointment has been rescheduled. Open the full details page for more information.",
+    "copied": "Copied"
+    ,"week_copied": "Week copied"
+    ,"schedule_captured": "Schedule for {{week}} captured."
+    ,"copied_check": "Copied ✓"
+    ,"copy_week": "Copy Week"
+    ,"paste_to_week": "Paste to Week"
+    ,"clipboard_week": "Clipboard: week of {{week}}"
+    ,"override_open_slots": "Override open slots when publishing (safe — keeps booked slots)"
+    ,"checking_conflicts": "Checking conflicts…"
+    ,"publish_this_week": "Publish this week's slots"
+    ,"publish_next_week": "Publish next week's slots"
+    ,"publish_week_slots": "Publish slots for {{week}}"
+    ,"clear_week_title": "Clear this week's availability?"
+    ,"clear_week_desc": "All open time slots for {{week}} will be permanently removed. Booked appointments and active holds are never touched."
+    ,"clear_week_confirm": "Yes, clear week"
+    ,"paste_schedule_title": "Paste schedule to target week"
+    ,"paste_schedule_desc": "Open slots from {{source}} will be cloned to the target week. Unbooked open slots in the target will be replaced; booked/held slots are preserved."
+    ,"target_week": "Target week starting (Monday)"
+    ,"paste_schedule": "Paste schedule"
+    ,"enable_waitlist": "Enable Waitlist"
+    ,"enable_waitlist_desc": "Clients can join a waitlist when all slots are full and get notified automatically when a spot opens."
+    ,"max_waitlist_size": "Maximum waitlist size"
+    ,"day_mon_short": "Mon"
+    ,"day_tue_short": "Tue"
+    ,"day_wed_short": "Wed"
+    ,"day_thu_short": "Thu"
+    ,"day_fri_short": "Fri"
+    ,"day_sat_short": "Sat"
+    ,"day_sun_short": "Sun"
+    ,"preset_morning": "Morning"
+    ,"preset_afternoon": "Afternoon"
+    ,"preset_full_day": "Full day"
+    ,"preset_business": "Business"
+    ,"preset_split": "Split"
+    ,"day_mon_full": "Monday"
+    ,"day_tue_full": "Tuesday"
+    ,"day_wed_full": "Wednesday"
+    ,"day_thu_full": "Thursday"
+    ,"day_fri_full": "Friday"
+    ,"day_sat_full": "Saturday"
+    ,"day_sun_full": "Sunday"
+    ,"add_clinic_address": "Add your clinic address"
+    ,"add_clinic_address_desc": "Clients can't book in-clinic visits until you set your clinic location. Open the Profile tab and fill in \"Primary location\"."
+    ,"go_to_profile": "Go to Profile"
+    ,"bookings_by_service": "Bookings by Service"
+    ,"payout_notes_placeholder": "Any additional instructions for admin..."
+    ,"id_document_placeholder": "e.g. A1234567 or 123-456-789"
   },
   "patient_dashboard": {
     "visit_type": "Visit type",
@@ -3429,6 +3499,98 @@
     "invalid_link": "Invalid booking link",
     "load_error": "We couldn't load this appointment. It may have been removed or you don't have access.",
     "go_to_appointments": "Go to my appointments"
+  },
+  "provider_dashboard_extra": {
+    "wallet_topped_up": "Provider wallet topped up",
+    "funds_added": "Your funds have been added to the wallet.",
+    "top_up_already_added": "This top-up was already added to the wallet.",
+    "payment_processing": "Payment is still processing",
+    "stripe_pending": "Stripe has not confirmed the top-up yet. Please refresh shortly.",
+    "top_up_verification_pending": "Top-up verification pending",
+    "confirmation_processing": "Payment succeeded, but confirmation is still processing. Please refresh shortly.",
+    "no_checkout_session": "Payment succeeded, but no Checkout session was returned. Please refresh shortly.",
+    "top_up_cancelled": "Top-up cancelled",
+    "no_charge": "No charge was made.",
+    "submitted_for_review": "Submitted for review!",
+    "review_timing": "Our compliance team will review your profile within 1–3 business days.",
+    "approved_setup_prompt": "You're approved — finish setting up to start accepting clients",
+    "approved_setup_desc": "Add at least one active service with pricing, then configure your availability. Clients won't be able to book you until both are done."
+  },
+  "provider_wallet": {
+    "income": "Income",
+    "top_up": "Wallet top-up",
+    "top_ups": "Top-ups",
+    "payouts": "Payouts",
+    "settlement_deduction": "Provider settlement deduction",
+    "commission": "Commission",
+    "cash_settlement_deduction": "Cash settlement deduction",
+    "payout_held": "Payout held",
+    "payout_sent": "Payout sent",
+    "returned": "Returned",
+    "adjustment": "Adjustment",
+    "refreshed": "Wallet refreshed",
+    "top_up_started": "Top-up started",
+    "waiting_confirmation": "Waiting for payment confirmation.",
+    "top_up_failed": "Top-up failed",
+    "unable_top_up": "Unable to start wallet top-up.",
+    "locked_audit": "Wallet locked by automated audit",
+    "frozen_admin": "Wallet frozen by administrator",
+    "audit_hold_desc": "The system detected a ledger discrepancy and paused payouts automatically.",
+    "admin_hold_desc": "An administrator has paused your payout capability.",
+    "system_message": "System message",
+    "reason_provided": "Reason provided",
+    "what_this_means": "What this means",
+    "audit_hold_guidance": "Your existing balance is safe — no funds have been removed. Our finance team will review the discrepancy and clear the hold once verified. This usually resolves within 1–2 business days.",
+    "admin_hold_guidance": "Your balance is secure. No withdrawals can be processed until the freeze is lifted. Please contact support for assistance.",
+    "ready_to_withdraw": "Ready to withdraw",
+    "awaiting_approval": "Awaiting admin approval",
+    "earnings_chart": "Earnings chart",
+    "transaction_history": "Transaction history",
+    "this_month": "This month",
+    "monthly_earnings": "Monthly earnings — last 12 months",
+    "no_earnings": "No earnings data yet",
+    "transaction_history_desc": "All credits and debits on your wallet",
+    "no_transactions": "No transactions yet",
+    "month_breakdown": "This month's breakdown",
+    "month_breakdown_desc": "Summary of income, fees, and tax for the current calendar month",
+    "net_income": "Net income",
+    "bookings": "Bookings",
+    "cash_settlement_deductions": "Cash settlement deductions"
+    ,"date": "Date",
+    "type": "Type",
+    "description": "Description",
+    "amount": "Amount",
+    "balance_after": "Balance after",
+    "show_less": "Show less",
+    "show_all": "Show all {{count}} entries",
+    "last_updated": "Last updated"
+  },
+  "provider_earnings": {
+    "exporting": "Exporting…"
+  },
+  "provider_gallery": {
+    "caption_update_failed": "Failed to update caption",
+    "photo_removed": "Photo removed",
+    "photo_delete_failed": "Failed to delete photo",
+    "reorder_failed": "Failed to reorder",
+    "invalid_format": "Unsupported format. Use JPG, PNG, or WebP",
+    "file_too_large": "Photo must be under 5 MB",
+    "gallery_limit": "Gallery limit is {{count}} photos",
+    "photo_uploaded": "Photo uploaded to gallery",
+    "upload_failed": "Upload failed",
+    "title": "Gallery",
+    "stored_cloudinary": "Stored on Cloudinary",
+    "uploading": "Uploading…",
+    "add_photo": "Add Photo",
+    "drop_to_upload": "Drop to upload",
+    "no_photos": "No photos yet",
+    "empty_desc": "Add up to {{count}} photos (JPG, PNG, WebP · max 5 MB each). Photos are stored externally on Cloudinary.",
+    "add_first_photo": "Add your first photo",
+    "move_left": "Move left",
+    "move_right": "Move right",
+    "edit_caption": "Edit caption",
+    "delete_photo": "Delete photo",
+    "caption_placeholder": "Add caption…"
   },
   "patient_home": {
     "attention_required": "Attention Required",

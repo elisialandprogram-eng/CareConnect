@@ -44,11 +44,12 @@ function AppointmentsListSkeleton() {
 }
 
 function CopyApptNumber({ apptNumber, apptId }: { apptNumber: string; apptId: string }) {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const handleCopy = (e: React.MouseEvent) => {
     e.stopPropagation();
     navigator.clipboard.writeText(apptNumber).catch(() => {});
-    toast({ title: "Copied", description: apptNumber, duration: 1500 });
+    toast({ title: t("provider_dashboard.copied", "Copied"), description: apptNumber, duration: 1500 });
   };
   return (
     <button
@@ -1103,19 +1104,19 @@ export function ProviderAppointmentsTabs({ providerData, highlightApptId, active
               </div>
               {(selectedAppt as any).providerFinancials && (
                 <div className="rounded-lg border bg-muted/30 p-3 space-y-1 text-sm">
-                  <p className="font-semibold">Provider settlement</p>
+                  <p className="font-semibold">{t("provider_dashboard.provider_settlement", "Provider settlement")}</p>
                   <div className="flex justify-between gap-4">
-                    <span className="text-muted-foreground">Gross earnings</span>
+                    <span className="text-muted-foreground">{t("provider_dashboard.gross_earnings", "Gross earnings")}</span>
                     <span>{formatInCurrency(Number((selectedAppt as any).providerFinancials.providerGrossPayoutLocal ?? 0), (selectedAppt as any).providerFinancials.currency ?? "USD")}</span>
                   </div>
                   {Number((selectedAppt as any).providerFinancials.providerCommissionLocal ?? 0) > 0 && (
                     <div className="flex justify-between gap-4">
-                      <span className="text-muted-foreground">Provider-side commission</span>
+                      <span className="text-muted-foreground">{t("provider_dashboard.provider_side_commission", "Provider-side commission")}</span>
                       <span>−{formatInCurrency(Number((selectedAppt as any).providerFinancials.providerCommissionLocal), (selectedAppt as any).providerFinancials.currency ?? "USD")}</span>
                     </div>
                   )}
                   <div className="flex justify-between gap-4 font-semibold border-t pt-1">
-                    <span>Net earnings</span>
+                      <span>{t("provider_dashboard.net_earnings", "Net earnings")}</span>
                     <span>{formatInCurrency(Number((selectedAppt as any).providerFinancials.providerNetEarningsLocal ?? 0), (selectedAppt as any).providerFinancials.currency ?? "USD")}</span>
                   </div>
                 </div>
@@ -1154,7 +1155,7 @@ export function ProviderAppointmentsTabs({ providerData, highlightApptId, active
                         if (m?.to?.date) steps.push({ date: m.to.date, start: m.to.startTime ?? "", end: m.to.endTime ?? "", label: i === reschedules.length - 1 ? "Current" : `Move ${i + 1}`, current: i === reschedules.length - 1 });
                       } catch { }
                     });
-                    if (steps.length === 0) return <p className="text-xs text-muted-foreground" data-testid="text-reschedule-history-empty">This appointment has been rescheduled. Open the full details page for more information.</p>;
+                    if (steps.length === 0) return <p className="text-xs text-muted-foreground" data-testid="text-reschedule-history-empty">{t("provider_dashboard.rescheduled_details_hint", "This appointment has been rescheduled. Open the full details page for more information.")}</p>;
                     return (
                       <ol className="space-y-1.5" data-testid="list-reschedule-steps-modal">
                         {steps.map((step, idx) => (

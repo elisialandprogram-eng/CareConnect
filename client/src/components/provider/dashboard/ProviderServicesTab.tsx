@@ -360,13 +360,13 @@ export function ProviderServicesTab({ providerData, providerWithServices, setAct
           <div className="rounded-lg border border-amber-300 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-700/50 p-4 flex items-start gap-3" data-testid="banner-no-clinic-address">
             <Building2 className="h-5 w-5 text-amber-700 dark:text-amber-300 mt-0.5 shrink-0" />
             <div className="flex-1 min-w-0">
-              <div className="font-medium text-amber-900 dark:text-amber-100">Add your clinic address</div>
+              <div className="font-medium text-amber-900 dark:text-amber-100">{t("provider_dashboard.add_clinic_address", "Add your clinic address")}</div>
               <p className="text-sm text-amber-800 dark:text-amber-200 mt-1">
-                Clients can't book in-clinic visits until you set your clinic location. Open the Profile tab and fill in "Primary location".
+                {t("provider_dashboard.add_clinic_address_desc", "Clients can't book in-clinic visits until you set your clinic location. Open the Profile tab and fill in \"Primary location\".")}
               </p>
               <Button size="sm" variant="outline" className="mt-2 border-amber-300 dark:border-amber-700"
                 onClick={() => setActiveTab("profile")} data-testid="button-set-clinic-address">
-                Go to Profile
+                {t("provider_dashboard.go_to_profile", "Go to Profile")}
               </Button>
             </div>
           </div>

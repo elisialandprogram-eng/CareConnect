@@ -356,10 +356,10 @@ export default function ProviderDashboard() {
           .then((result: { status?: string; credited?: boolean }) => {
             if (result.status === "paid") {
               toast({
-                title: "Provider wallet topped up",
+                title: t("provider_dashboard_extra.wallet_topped_up", "Provider wallet topped up"),
                 description: result.credited
-                  ? "Your funds have been added to the wallet."
-                  : "This top-up was already added to the wallet.",
+                  ? t("provider_dashboard_extra.funds_added", "Your funds have been added to the wallet.")
+                  : t("provider_dashboard_extra.top_up_already_added", "This top-up was already added to the wallet."),
               });
               queryClient.invalidateQueries({ queryKey: ["/api/provider/wallet"] });
               queryClient.invalidateQueries({ queryKey: ["/api/provider/wallet/ledger"] });
@@ -367,29 +367,29 @@ export default function ProviderDashboard() {
               queryClient.invalidateQueries({ queryKey: ["/api/provider/wallet/breakdown"] });
             } else {
               toast({
-                title: "Payment is still processing",
-                description: "Stripe has not confirmed the top-up yet. Please refresh shortly.",
+                title: t("provider_dashboard_extra.payment_processing", "Payment is still processing"),
+                description: t("provider_dashboard_extra.stripe_pending", "Stripe has not confirmed the top-up yet. Please refresh shortly."),
                 variant: "default",
               });
             }
           })
           .catch(() => {
             toast({
-              title: "Top-up verification pending",
-              description: "Payment succeeded, but confirmation is still processing. Please refresh shortly.",
+              title: t("provider_dashboard_extra.top_up_verification_pending", "Top-up verification pending"),
+              description: t("provider_dashboard_extra.confirmation_processing", "Payment succeeded, but confirmation is still processing. Please refresh shortly."),
             });
           });
       } else {
         toast({
-          title: "Top-up verification pending",
-          description: "Payment succeeded, but no Checkout session was returned. Please refresh shortly.",
+          title: t("provider_dashboard_extra.top_up_verification_pending", "Top-up verification pending"),
+          description: t("provider_dashboard_extra.no_checkout_session", "Payment succeeded, but no Checkout session was returned. Please refresh shortly."),
         });
       }
       window.history.replaceState({}, "", window.location.pathname);
     } else if (topupStatus === "cancelled") {
       toast({
-        title: "Top-up cancelled",
-        description: "No charge was made.",
+        title: t("provider_dashboard_extra.top_up_cancelled", "Top-up cancelled"),
+        description: t("provider_dashboard_extra.no_charge", "No charge was made."),
       });
       window.history.replaceState({}, "", window.location.pathname);
     } else if (tab) {
@@ -484,11 +484,11 @@ export default function ProviderDashboard() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QK.providerMe() });
       queryClient.invalidateQueries({ queryKey: ["/api/provider/me"] });
-      toast({ title: "Submitted for review!", description: "Our compliance team will review your profile within 1–3 business days." });
+      toast({ title: t("provider_dashboard_extra.submitted_for_review", "Submitted for review!"), description: t("provider_dashboard_extra.review_timing", "Our compliance team will review your profile within 1–3 business days.") });
     },
     onError: (e: any) => {
-      const msg = e?.message || "Submission failed";
-      toast({ title: "Submission failed", description: msg, variant: "destructive" });
+      const msg = e?.message || t("provider_dashboard.submission_failed", "Submission failed");
+      toast({ title: t("provider_dashboard.submission_failed", "Submission failed"), description: msg, variant: "destructive" });
     },
   });
 
@@ -1237,13 +1237,13 @@ export default function ProviderDashboard() {
                 <Zap className="w-5 h-5 text-blue-600 dark:text-blue-400" />
               </div>
               <div className="flex-1">
-                <p className="font-semibold text-blue-800 dark:text-blue-300 text-sm">You're approved — finish setting up to start accepting clients</p>
+                <p className="font-semibold text-blue-800 dark:text-blue-300 text-sm">{t("provider_dashboard_extra.approved_setup_prompt", "You're approved — finish setting up to start accepting clients")}</p>
                 <p className="text-blue-700 dark:text-blue-400 text-xs mt-1 leading-relaxed">
-                  Add at least one active service with pricing, then configure your availability. Clients won't be able to book you until both are done.
+                  {t("provider_dashboard_extra.approved_setup_desc", "Add at least one active service with pricing, then configure your availability. Clients won't be able to book you until both are done.")}
                 </p>
                 <div className="flex gap-2 mt-3">
-                  <Button size="sm" variant="default" onClick={() => setActiveTab("services")}><Plus className="h-3.5 w-3.5 mr-1" />Add a service</Button>
-                  <Button size="sm" variant="outline" onClick={() => setActiveTab("availability")}>Set availability</Button>
+                  <Button size="sm" variant="default" onClick={() => setActiveTab("services")}><Plus className="h-3.5 w-3.5 mr-1" />{t("provider_dashboard.add_service", "Add a service")}</Button>
+                  <Button size="sm" variant="outline" onClick={() => setActiveTab("availability")}>{t("provider_dashboard.set_availability", "Set availability")}</Button>
                 </div>
               </div>
             </div>
@@ -1254,7 +1254,7 @@ export default function ProviderDashboard() {
             <Card className="stat-card stat-amber">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between mb-1">
-                  <p className="text-xs text-muted-foreground font-medium">Rating</p>
+                  <p className="text-xs text-muted-foreground font-medium">{t("provider_dashboard.rating", "Rating")}</p>
                   <div className="stat-icon h-8 w-8"><Star className="h-3.5 w-3.5" /></div>
                 </div>
                 <p className="text-2xl font-bold" data-testid="text-rating">{Number(providerData?.rating || 0).toFixed(1)}<span className="text-sm font-normal text-muted-foreground"> / 5</span></p>
@@ -1264,7 +1264,7 @@ export default function ProviderDashboard() {
             <Card className="stat-card stat-sky">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between mb-1">
-                  <p className="text-xs text-muted-foreground font-medium">Completion</p>
+                  <p className="text-xs text-muted-foreground font-medium">{t("provider_dashboard.completion", "Completion")}</p>
                   <div className="stat-icon h-8 w-8"><ClipboardCheck className="h-3.5 w-3.5" /></div>
                 </div>
                 <p className="text-2xl font-bold" data-testid="text-completion-rate">{completionRate}%</p>
@@ -1274,11 +1274,11 @@ export default function ProviderDashboard() {
             <Card className={`stat-card ${cancellationRate > 20 ? "stat-orange" : "stat-indigo"}`}>
               <CardContent className="p-4">
                 <div className="flex items-center justify-between mb-1">
-                  <p className="text-xs text-muted-foreground font-medium">Cancellation</p>
+                  <p className="text-xs text-muted-foreground font-medium">{t("provider_dashboard.cancellation", "Cancellation")}</p>
                   <div className="stat-icon h-8 w-8"><Clock className="h-3.5 w-3.5" /></div>
                 </div>
                 <p className={`text-2xl font-bold ${cancellationRate > 20 ? "text-orange-600 dark:text-orange-400" : ""}`} data-testid="text-cancellation-rate">{cancellationRate}%</p>
-                <p className="text-xs text-muted-foreground mt-0.5">{cancelledAppointments.length} cancelled</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{cancelledAppointments.length} {t("provider_dashboard.cancelled", "cancelled")}</p>
               </CardContent>
             </Card>
           </div>
@@ -1340,7 +1340,7 @@ export default function ProviderDashboard() {
           ) : (
             <div className="flex items-center gap-3 rounded-xl border border-dashed px-5 py-4 mb-6 text-muted-foreground" data-testid="card-no-today-schedule">
               <CalendarIcon className="h-5 w-5 shrink-0 opacity-40" />
-              <p className="text-sm">No appointments scheduled for today — your calendar is clear.</p>
+              <p className="text-sm">{t("provider_dashboard.no_appointments_today", "No appointments scheduled for today — your calendar is clear.")}</p>
             </div>
           )}
 
@@ -1349,7 +1349,7 @@ export default function ProviderDashboard() {
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-semibold flex items-center gap-2">
                 <CalendarDays className="h-4 w-4 text-primary" />
-                This Week at a Glance
+                {t("provider_dashboard.this_week_glance", "This Week at a Glance")}
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-0">
@@ -1480,7 +1480,7 @@ export default function ProviderDashboard() {
                 <div className="text-center py-16 text-muted-foreground" data-testid="empty-clients">
                   <Users className="h-10 w-10 mx-auto mb-3 opacity-40" />
                   <p className="font-medium">{t("provider_dashboard.no_clients", "No clients yet")}</p>
-                  <p className="text-xs mt-1 text-muted-foreground">Clients who have booked with you will appear here.</p>
+                  <p className="text-xs mt-1 text-muted-foreground">{t("provider_dashboard.clients_will_appear", "Clients who have booked with you will appear here.")}</p>
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -1491,9 +1491,9 @@ export default function ProviderDashboard() {
                     <table className="w-full text-sm">
                       <thead className="bg-muted/50">
                         <tr>
-                          <th className="text-left px-4 py-3 font-medium text-muted-foreground">Client</th>
-                          <th className="text-right px-4 py-3 font-medium text-muted-foreground">Visits</th>
-                          <th className="text-right px-4 py-3 font-medium text-muted-foreground hidden md:table-cell">Last visit</th>
+                          <th className="text-left px-4 py-3 font-medium text-muted-foreground">{t("provider_dashboard.client", "Client")}</th>
+                          <th className="text-right px-4 py-3 font-medium text-muted-foreground">{t("provider_dashboard.visits", "Visits")}</th>
+                          <th className="text-right px-4 py-3 font-medium text-muted-foreground hidden md:table-cell">{t("provider_dashboard.last_visit", "Last visit")}</th>
                           <th className="text-right px-4 py-3 font-medium text-muted-foreground"></th>
                         </tr>
                       </thead>
@@ -1562,7 +1562,7 @@ export default function ProviderDashboard() {
                               <Star key={s} className={`h-4 w-4 ${s <= Math.round(avg) ? "fill-amber-400 text-amber-400" : "text-muted-foreground/30"}`} />
                             ))}
                           </div>
-                          <p className="text-xs text-muted-foreground mt-1">out of 5</p>
+                          <p className="text-xs text-muted-foreground mt-1">{t("provider_dashboard.out_of_five", "out of 5")}</p>
                         </div>
                         <div className="flex-1 space-y-2 w-full">
                           {[5,4,3,2,1].map(star => {
@@ -1702,9 +1702,9 @@ export default function ProviderDashboard() {
             <TabsContent value="preferences" className="mt-2">
               <div className="flex flex-col items-center gap-3 py-16 text-muted-foreground">
                 <Settings className="h-8 w-8 opacity-40" />
-                <p className="text-sm">Preferences have moved to <strong>My Profile</strong>.</p>
+                <p className="text-sm">{t("provider_dashboard.preferences_moved", "Preferences have moved to")} <strong>{t("provider_dashboard.my_profile", "My Profile")}</strong>.</p>
                 <Button size="sm" variant="outline" onClick={() => { setProfileSection("settings"); setActiveTab("profile"); }}>
-                  Open My Profile → Settings
+                  {t("provider_dashboard.open_profile_settings", "Open My Profile → Settings")}
                 </Button>
               </div>
             </TabsContent>
@@ -1712,9 +1712,9 @@ export default function ProviderDashboard() {
             <TabsContent value="gallery" className="mt-2">
               <div className="flex flex-col items-center gap-3 py-16 text-muted-foreground">
                 <ImageIcon className="h-8 w-8 opacity-40" />
-                <p className="text-sm">Gallery has moved to <strong>My Profile</strong>.</p>
+                <p className="text-sm">{t("provider_dashboard.gallery_moved", "Gallery has moved to")} <strong>{t("provider_dashboard.my_profile", "My Profile")}</strong>.</p>
                 <Button size="sm" variant="outline" onClick={() => { setProfileSection("professional"); setActiveTab("profile"); }}>
-                  Open My Profile → Gallery
+                  {t("provider_dashboard.open_profile_gallery", "Open My Profile → Gallery")}
                 </Button>
               </div>
             </TabsContent>
@@ -1722,9 +1722,9 @@ export default function ProviderDashboard() {
             <TabsContent value="documents" className="mt-2">
               <div className="flex flex-col items-center gap-3 py-16 text-muted-foreground">
                 <Shield className="h-8 w-8 opacity-40" />
-                <p className="text-sm">Documents have moved to <strong>My Profile</strong>.</p>
+                <p className="text-sm">{t("provider_dashboard.documents_moved", "Documents have moved to")} <strong>{t("provider_dashboard.my_profile", "My Profile")}</strong>.</p>
                 <Button size="sm" variant="outline" onClick={() => { setProfileSection("verification"); setActiveTab("profile"); }}>
-                  Open My Profile → Documents
+                  {t("provider_dashboard.open_profile_documents", "Open My Profile → Documents")}
                 </Button>
               </div>
             </TabsContent>
@@ -1732,9 +1732,9 @@ export default function ProviderDashboard() {
             <TabsContent value="kyc" className="mt-2">
               <div className="flex flex-col items-center gap-3 py-16 text-muted-foreground">
                 <Shield className="h-8 w-8 opacity-40" />
-                <p className="text-sm">KYC verification has moved to <strong>My Profile</strong>.</p>
+                <p className="text-sm">{t("provider_dashboard.kyc_moved", "KYC verification has moved to")} <strong>{t("provider_dashboard.my_profile", "My Profile")}</strong>.</p>
                 <Button size="sm" variant="outline" onClick={() => { setProfileSection("verification"); setActiveTab("profile"); }}>
-                  Open My Profile → Documents
+                  {t("provider_dashboard.open_profile_documents", "Open My Profile → Documents")}
                 </Button>
               </div>
             </TabsContent>
@@ -1777,7 +1777,7 @@ export default function ProviderDashboard() {
               </DialogHeader>
               <ScrollArea className="max-h-[60vh] pr-2">
                 {timelineAppts.length === 0 ? (
-                  <p className="text-center text-sm text-muted-foreground py-8">No appointments found.</p>
+                  <p className="text-center text-sm text-muted-foreground py-8">{t("provider_dashboard.no_appointments_found", "No appointments found.")}</p>
                 ) : (
                   <div className="space-y-2 pb-2">
                     {timelineAppts.map(a => {
@@ -1910,13 +1910,13 @@ export default function ProviderDashboard() {
               <div className="mx-auto mb-3 inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-white/20 backdrop-blur-sm shadow-inner">
                 <Lock className="h-8 w-8 text-white" />
               </div>
-              <h3 className="font-bold text-white text-lg leading-snug">Marketplace features locked</h3>
-              <p className="text-white/75 text-xs mt-1.5">Unlocks after compliance approval</p>
+              <h3 className="font-bold text-white text-lg leading-snug">{t("provider_dashboard.marketplace_locked", "Marketplace features locked")}</h3>
+              <p className="text-white/75 text-xs mt-1.5">{t("provider_dashboard.unlocks_after_approval", "Unlocks after compliance approval")}</p>
             </div>
 
             <div className="px-6 pt-5 pb-6">
               <p className="text-sm text-muted-foreground leading-relaxed text-center mb-5">
-                These features unlock instantly once your clinical credentials pass our compliance review — typically <span className="font-semibold text-foreground">1–3 business days</span> after you submit for review.
+                {t("provider_dashboard.marketplace_locked_desc", "These features unlock instantly once your clinical credentials pass our compliance review — typically")} <span className="font-semibold text-foreground">{t("provider_dashboard.business_days_1_3", "1–3 business days")}</span> {t("provider_dashboard.after_submission", "after you submit for review.")}
               </p>
 
               {/* What's locked checklist */}

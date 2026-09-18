@@ -31,11 +31,12 @@ import {
 const SE_DAY_KEYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] as const;
 type SEDayKey = (typeof SE_DAY_KEYS)[number];
 const SE_DAY_LABEL: Record<SEDayKey, string> = {
-  mon: "Monday", tue: "Tuesday", wed: "Wednesday", thu: "Thursday",
-  fri: "Friday", sat: "Saturday", sun: "Sunday",
+  mon: "day_mon_full", tue: "day_tue_full", wed: "day_wed_full", thu: "day_thu_full",
+  fri: "day_fri_full", sat: "day_sat_full", sun: "day_sun_full",
 };
 const SE_DAY_SHORT: Record<SEDayKey, string> = {
-  mon: "Mon", tue: "Tue", wed: "Wed", thu: "Thu", fri: "Fri", sat: "Sat", sun: "Sun",
+  mon: "day_mon_short", tue: "day_tue_short", wed: "day_wed_short", thu: "day_thu_short",
+  fri: "day_fri_short", sat: "day_sat_short", sun: "day_sun_short",
 };
 
 type SEWindow = { start: string; end: string };
@@ -43,11 +44,11 @@ type SEDayState = { enabled: boolean; windows: SEWindow[] };
 type SEState = Record<SEDayKey, SEDayState>;
 
 const SE_PRESETS = [
-  { label: "Morning",   windows: [{ start: "08:00", end: "13:00" }] },
-  { label: "Afternoon", windows: [{ start: "13:00", end: "18:00" }] },
-  { label: "Full day",  windows: [{ start: "08:00", end: "18:00" }] },
-  { label: "Business",  windows: [{ start: "09:00", end: "17:00" }] },
-  { label: "Split",     windows: [{ start: "09:00", end: "12:00" }, { start: "14:00", end: "18:00" }] },
+  { label: "preset_morning", windows: [{ start: "08:00", end: "13:00" }] },
+  { label: "preset_afternoon", windows: [{ start: "13:00", end: "18:00" }] },
+  { label: "preset_full_day", windows: [{ start: "08:00", end: "18:00" }] },
+  { label: "preset_business", windows: [{ start: "09:00", end: "17:00" }] },
+  { label: "preset_split", windows: [{ start: "09:00", end: "12:00" }, { start: "14:00", end: "18:00" }] },
 ] as const;
 
 function seParseSchedule(raw: any): Partial<WeeklySchedule> {
@@ -351,7 +352,7 @@ export function StructuredScheduleEditor({
                 <Switch checked={day.enabled} onCheckedChange={() => toggleDay(d)}
                   data-testid={`switch-day-${d}`} />
                 <span className={`text-sm font-semibold min-w-[90px] ${day.enabled ? "text-foreground" : "text-muted-foreground"}`}>
-                  {SE_DAY_LABEL[d]}
+                  {t(`provider_dashboard.${SE_DAY_LABEL[d]}`, SE_DAY_LABEL[d])}
                 </span>
                 {!day.enabled && (
                    <span className="text-xs text-muted-foreground">{t("provider_dashboard.unavailable", "Unavailable")}</span>
@@ -363,16 +364,16 @@ export function StructuredScheduleEditor({
                         className="text-[10px] px-1.5 py-0.5 rounded text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
                         onClick={() => applyPreset(d, p)}
                         data-testid={`button-preset-day-${d}-${p.label.toLowerCase().replace(/\s+/g, "-")}`}>
-                        {p.label}
+                        {t(`provider_dashboard.${p.label}`, p.label)}
                       </button>
                     ))}
                     {idx > 0 && (
                       <button type="button"
                         className="text-[10px] px-1.5 py-0.5 rounded text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
                         onClick={() => copyFromPrev(d)}
-                         title={t("provider_dashboard.same_as", "Same as {{day}}", { day: SE_DAY_SHORT[SE_DAY_KEYS[idx - 1]] })}
+                         title={t("provider_dashboard.same_as", "Same as {{day}}", { day: t(`provider_dashboard.${SE_DAY_SHORT[SE_DAY_KEYS[idx - 1]]}`, SE_DAY_SHORT[SE_DAY_KEYS[idx - 1]]) })}
                         data-testid={`button-copy-prev-${d}`}>
-                         ↑ {t("provider_dashboard.copy_day", "Copy {{day}}", { day: SE_DAY_SHORT[SE_DAY_KEYS[idx - 1]] })}
+                         ↑ {t("provider_dashboard.copy_day", "Copy {{day}}", { day: t(`provider_dashboard.${SE_DAY_SHORT[SE_DAY_KEYS[idx - 1]]}`, SE_DAY_SHORT[SE_DAY_KEYS[idx - 1]]) })}
                       </button>
                     )}
                   </div>
@@ -586,12 +587,12 @@ export function StructuredScheduleEditor({
             className="h-7 text-xs gap-1.5 rounded-lg"
             onClick={() => {
               setCopiedWeekStart(selectedWeekStart);
-              toast({ title: "Week copied", description: `Schedule for ${fmtWeekRange(selectedWeekStart)} captured.` });
+              toast({ title: t("provider_dashboard.week_copied", "Week copied"), description: t("provider_dashboard.schedule_captured", "Schedule for {{week}} captured.", { week: fmtWeekRange(selectedWeekStart) }) });
             }}
             data-testid="button-copy-schedule"
           >
             <Copy className="h-3 w-3" />
-            {copiedWeekStart === selectedWeekStart ? "Copied ✓" : "Copy Week"}
+            {copiedWeekStart === selectedWeekStart ? t("provider_dashboard.copied_check", "Copied ✓") : t("provider_dashboard.copy_week", "Copy Week")}
           </Button>
           <Button
             size="sm"
@@ -607,13 +608,13 @@ export function StructuredScheduleEditor({
             {cloneWeekMut.isPending
               ? <Loader2 className="h-3 w-3 animate-spin" />
               : <ClipboardPaste className="h-3 w-3" />}
-            Paste to Week
+            {t("provider_dashboard.paste_to_week", "Paste to Week")}
           </Button>
         </div>
 
         {copiedWeekStart && (
           <p className="text-xs text-primary/80 font-medium bg-primary/5 border border-primary/20 rounded-lg px-3 py-1.5">
-            📋 Clipboard: week of {fmtWeekRange(copiedWeekStart)}
+            📋 {t("provider_dashboard.clipboard_week", "Clipboard: week of {{week}}", { week: fmtWeekRange(copiedWeekStart) })}
           </p>
         )}
 
@@ -621,7 +622,7 @@ export function StructuredScheduleEditor({
           <Switch id="replace-existing-se" checked={replaceExisting} onCheckedChange={setReplaceExisting}
             data-testid="switch-replace-existing" />
           <Label htmlFor="replace-existing-se" className="text-xs cursor-pointer">
-            Override open slots when publishing (safe — keeps booked slots)
+            {t("provider_dashboard.override_open_slots", "Override open slots when publishing (safe — keeps booked slots)")}
           </Label>
         </div>
 
@@ -636,12 +637,12 @@ export function StructuredScheduleEditor({
             ? <Loader2 className="h-4 w-4 animate-spin" />
             : <CalendarPlus className="h-4 w-4" />}
           {previewLoading
-            ? "Checking conflicts…"
+            ? t("provider_dashboard.checking_conflicts", "Checking conflicts…")
             : publishWeekOffset === 0
-            ? "Publish this week's slots"
+            ? t("provider_dashboard.publish_this_week", "Publish this week's slots")
             : publishWeekOffset === 1
-            ? "Publish next week's slots"
-            : `Publish slots for ${fmtWeekRange(selectedWeekStart)}`}
+            ? t("provider_dashboard.publish_next_week", "Publish next week's slots")
+            : t("provider_dashboard.publish_week_slots", "Publish slots for {{week}}", { week: fmtWeekRange(selectedWeekStart) })}
         </Button>
       </div>
 
@@ -651,16 +652,15 @@ export function StructuredScheduleEditor({
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-destructive">
               <Trash2 className="h-4 w-4" />
-              Clear this week's availability?
+              {t("provider_dashboard.clear_week_title", "Clear this week's availability?")}
             </DialogTitle>
             <DialogDescription>
-              All <strong>open</strong> time slots for <strong>{fmtWeekRange(selectedWeekStart)}</strong> will be permanently removed.
-              Booked appointments and active holds are <strong>never</strong> touched.
+              {t("provider_dashboard.clear_week_desc", "All open time slots for {{week}} will be permanently removed. Booked appointments and active holds are never touched.", { week: fmtWeekRange(selectedWeekStart) })}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="gap-2">
             <Button variant="outline" onClick={() => setClearWeekDialogOpen(false)} data-testid="button-clear-week-cancel">
-              Cancel
+              {t("common.cancel", "Cancel")}
             </Button>
             <Button
               variant="destructive"
@@ -669,7 +669,7 @@ export function StructuredScheduleEditor({
               data-testid="button-clear-week-confirm"
             >
               {clearWeekMut.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
-              Yes, clear week
+              {t("provider_dashboard.clear_week_confirm", "Yes, clear week")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -681,15 +681,14 @@ export function StructuredScheduleEditor({
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <ClipboardPaste className="h-4 w-4" />
-              Paste schedule to target week
+              {t("provider_dashboard.paste_schedule_title", "Paste schedule to target week")}
             </DialogTitle>
             <DialogDescription>
-              Open slots from <strong>{copiedWeekStart ? fmtWeekRange(copiedWeekStart) : "—"}</strong> will be cloned
-              to the target week. Unbooked open slots in the target will be replaced; booked/held slots are preserved.
+              {t("provider_dashboard.paste_schedule_desc", "Open slots from {{source}} will be cloned to the target week. Unbooked open slots in the target will be replaced; booked/held slots are preserved.", { source: copiedWeekStart ? fmtWeekRange(copiedWeekStart) : "—" })}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-2 py-2">
-            <Label className="text-xs">Target week starting (Monday)</Label>
+            <Label className="text-xs">{t("provider_dashboard.target_week", "Target week starting (Monday)")}</Label>
             <Input
               type="date"
               value={pasteTargetDate}
@@ -702,7 +701,7 @@ export function StructuredScheduleEditor({
           </div>
           <DialogFooter className="gap-2">
             <Button variant="outline" onClick={() => setPasteDialogOpen(false)} data-testid="button-paste-cancel">
-              Cancel
+              {t("common.cancel", "Cancel")}
             </Button>
             <Button
               disabled={!pasteTargetDate || cloneWeekMut.isPending}
@@ -710,7 +709,7 @@ export function StructuredScheduleEditor({
               data-testid="button-paste-confirm"
             >
               {cloneWeekMut.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
-              Paste schedule
+              {t("provider_dashboard.paste_schedule", "Paste schedule")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1172,8 +1171,8 @@ export function WorkloadControlsCard({ provider }: { provider: any }) {
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium">Enable Waitlist</p>
-              <p className="text-xs text-muted-foreground">Clients can join a waitlist when all slots are full and get notified automatically when a spot opens.</p>
+              <p className="text-sm font-medium">{t("provider_dashboard.enable_waitlist", "Enable Waitlist")}</p>
+              <p className="text-xs text-muted-foreground">{t("provider_dashboard.enable_waitlist_desc", "Clients can join a waitlist when all slots are full and get notified automatically when a spot opens.")}</p>
             </div>
             <Switch
               checked={waitlistEnabled}
@@ -1183,7 +1182,7 @@ export function WorkloadControlsCard({ provider }: { provider: any }) {
           </div>
           {waitlistEnabled && (
             <div className="space-y-1">
-              <Label className="text-xs">Maximum waitlist size</Label>
+              <Label className="text-xs">{t("provider_dashboard.max_waitlist_size", "Maximum waitlist size")}</Label>
               <Input
                 type="number"
                 min={1}
@@ -1323,7 +1322,7 @@ export function ProviderTimeOffCard() {
         </Button>
 
         {isLoading ? (
-          <p className="text-sm text-muted-foreground">Loading…</p>
+          <p className="text-sm text-muted-foreground">{t("common.loading", "Loading…")}</p>
         ) : (
           <div className="space-y-2">
             {upcoming.length > 0 && (

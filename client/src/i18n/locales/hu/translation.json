@@ -2579,7 +2579,77 @@
     "phone_number": "Telefonszám",
     "timezone": "Időzóna",
     "select_timezone": "Válasszon időzónát…",
-    "timezone_not_set": "— Nincs beállítva (a platform az ország alapján állapítja meg) —"
+    "timezone_not_set": "— Nincs beállítva (a platform az ország alapján állapítja meg) —",
+    "cancelled": "lemondva",
+    "clients_will_appear": "Azok az ügyfelek jelennek meg itt, akik Önnél foglaltak.",
+    "client": "Ügyfél",
+    "visits": "Látogatások",
+    "last_visit": "Legutóbbi látogatás",
+    "out_of_five": "az 5-ből",
+    "preferences_moved": "A beállítások ide kerültek:",
+    "my_profile": "Saját profil",
+    "open_profile_settings": "Saját profil → Beállítások megnyitása",
+    "gallery_moved": "A galéria ide került:",
+    "open_profile_gallery": "Saját profil → Galéria megnyitása",
+    "documents_moved": "A dokumentumok ide kerültek:",
+    "open_profile_documents": "Saját profil → Dokumentumok megnyitása",
+    "kyc_moved": "A KYC-ellenőrzés ide került:",
+    "no_appointments_today": "Mára nincs beütemezett időpont — a naptára üres.",
+    "no_appointments_found": "Nem találhatók időpontok.",
+    "marketplace_locked": "A piactéri funkciók zárolva vannak",
+    "unlocks_after_approval": "A megfelelőségi jóváhagyás után válnak elérhetővé",
+    "provider_settlement": "Szolgáltatói elszámolás",
+    "gross_earnings": "Bruttó bevétel",
+    "provider_side_commission": "Szolgáltatói jutalék",
+    "net_earnings": "Nettó bevétel",
+    "rescheduled_details_hint": "Ezt az időpontot átütemezték. További információért nyissa meg a teljes részleteket.",
+    "copied": "Másolva"
+    ,"week_copied": "Hét másolva"
+    ,"schedule_captured": "A(z) {{week}} heti beosztás rögzítve."
+    ,"copied_check": "Másolva ✓"
+    ,"copy_week": "Hét másolása"
+    ,"paste_to_week": "Beillesztés hétre"
+    ,"clipboard_week": "Vágólap: {{week}} hete"
+    ,"override_open_slots": "A nyitott idősávok felülírása közzétételkor (a foglalt sávok megmaradnak)"
+    ,"checking_conflicts": "Ütközések ellenőrzése…"
+    ,"publish_this_week": "E heti idősávok közzététele"
+    ,"publish_next_week": "Jövő heti idősávok közzététele"
+    ,"publish_week_slots": "Idősávok közzététele: {{week}}"
+    ,"clear_week_title": "Törli az e heti elérhetőséget?"
+    ,"clear_week_desc": "A(z) {{week}} héten minden nyitott idősáv véglegesen törlődik. A foglalt időpontokat és aktív zárolásokat nem érinti."
+    ,"clear_week_confirm": "Igen, hét törlése"
+    ,"paste_schedule_title": "Beosztás beillesztése a célhétre"
+    ,"paste_schedule_desc": "A(z) {{source}} hét nyitott idősávjai a célhétre lesznek másolva. A célhét szabad sávjai lecserélődnek; a foglalt/zárolt sávok megmaradnak."
+    ,"target_week": "Célhét kezdete (hétfő)"
+    ,"paste_schedule": "Beosztás beillesztése"
+    ,"enable_waitlist": "Várólista engedélyezése"
+    ,"enable_waitlist_desc": "Az ügyfelek várólistára kerülhetnek, ha minden idősáv megtelt, és automatikus értesítést kapnak, amikor felszabadul egy hely."
+    ,"max_waitlist_size": "Várólista maximális mérete"
+    ,"day_mon_short": "H"
+    ,"day_tue_short": "K"
+    ,"day_wed_short": "Sze"
+    ,"day_thu_short": "Cs"
+    ,"day_fri_short": "P"
+    ,"day_sat_short": "Szo"
+    ,"day_sun_short": "V"
+    ,"preset_morning": "Délelőtt"
+    ,"preset_afternoon": "Délután"
+    ,"preset_full_day": "Egész nap"
+    ,"preset_business": "Munkaidő"
+    ,"preset_split": "Megosztott"
+    ,"day_mon_full": "Hétfő"
+    ,"day_tue_full": "Kedd"
+    ,"day_wed_full": "Szerda"
+    ,"day_thu_full": "Csütörtök"
+    ,"day_fri_full": "Péntek"
+    ,"day_sat_full": "Szombat"
+    ,"day_sun_full": "Vasárnap"
+    ,"add_clinic_address": "Adja meg a klinika címét"
+    ,"add_clinic_address_desc": "Az ügyfelek nem tudnak rendelői időpontot foglalni, amíg nem állítja be a klinika helyét. Nyissa meg a Profil lapot, és töltse ki az „Elsődleges helyszín” mezőt."
+    ,"go_to_profile": "Ugrás a profilhoz"
+    ,"bookings_by_service": "Foglalások szolgáltatásonként"
+    ,"payout_notes_placeholder": "További utasítások az adminisztrátornak…"
+    ,"id_document_placeholder": "pl. A1234567 vagy 123-456-789"
   },
   "patient_dashboard": {
     "visit_type": "Vizit típusa",
@@ -3428,6 +3498,98 @@
     "invalid_link": "Érvénytelen foglalási link",
     "load_error": "Nem sikerült betölteni a foglalást. Lehet, hogy eltávolították, vagy nincs hozzáférése.",
     "go_to_appointments": "Ugrás az időpontjaimhoz"
+  },
+  "provider_dashboard_extra": {
+    "wallet_topped_up": "A szolgáltatói pénztárca feltöltve",
+    "funds_added": "Az összeg hozzáadva a pénztárcához.",
+    "top_up_already_added": "Ez a feltöltés már hozzá lett adva a pénztárcához.",
+    "payment_processing": "A fizetés feldolgozása folyamatban",
+    "stripe_pending": "A Stripe még nem erősítette meg a feltöltést. Kérjük, hamarosan próbálja újra.",
+    "top_up_verification_pending": "Feltöltés visszaigazolásra vár",
+    "confirmation_processing": "A fizetés sikeres, de a visszaigazolás feldolgozása folyamatban van.",
+    "no_checkout_session": "A fizetés sikeres, de nem érkezett Checkout-munkamenet. Kérjük, hamarosan próbálja újra.",
+    "top_up_cancelled": "Feltöltés lemondva",
+    "no_charge": "Nem történt terhelés.",
+    "submitted_for_review": "Ellenőrzésre elküldve!",
+    "review_timing": "Megfelelőségi csapatunk 1–3 munkanapon belül átnézi a profilját.",
+    "approved_setup_prompt": "Jóváhagytuk — fejezze be a beállítást az ügyfelek fogadásához",
+    "approved_setup_desc": "Adjon hozzá legalább egy aktív, árazott szolgáltatást, majd állítsa be az elérhetőségét. Az ügyfelek addig nem tudnak foglalni, amíg mindkettő nincs kész."
+  },
+  "provider_wallet": {
+    "income": "Bevétel",
+    "top_up": "Pénztárca feltöltése",
+    "top_ups": "Feltöltések",
+    "payouts": "Kifizetések",
+    "settlement_deduction": "Szolgáltatói elszámolási levonás",
+    "commission": "Jutalék",
+    "cash_settlement_deduction": "Készpénzes elszámolási levonás",
+    "payout_held": "Kifizetés visszatartva",
+    "payout_sent": "Kifizetés elküldve",
+    "returned": "Visszatérítve",
+    "adjustment": "Korrekció",
+    "refreshed": "Pénztárca frissítve",
+    "top_up_started": "Feltöltés elindítva",
+    "waiting_confirmation": "Fizetési visszaigazolásra vár.",
+    "top_up_failed": "A feltöltés sikertelen",
+    "unable_top_up": "A pénztárca feltöltése nem indítható el.",
+    "locked_audit": "A pénztárcát automatizált ellenőrzés zárolta",
+    "frozen_admin": "A pénztárcát adminisztrátor zárolta",
+    "audit_hold_desc": "A rendszer eltérést talált a könyvelésben, ezért automatikusan szüneteltette a kifizetéseket.",
+    "admin_hold_desc": "Egy adminisztrátor szüneteltette a kifizetési lehetőséget.",
+    "system_message": "Rendszerüzenet",
+    "reason_provided": "Megadott indok",
+    "what_this_means": "Mit jelent ez?",
+    "audit_hold_guidance": "Meglévő egyenlege biztonságban van — nem távolítottunk el összeget. Pénzügyi csapatunk ellenőrzi az eltérést, majd feloldja a zárolást. Ez általában 1–2 munkanapon belül megoldódik.",
+    "admin_hold_guidance": "Egyenlege biztonságban van. A zárolás feloldásáig nem dolgozható fel kifizetés. Segítségért vegye fel a kapcsolatot az ügyfélszolgálattal.",
+    "ready_to_withdraw": "Kifizethető",
+    "awaiting_approval": "Adminisztrátori jóváhagyásra vár",
+    "earnings_chart": "Bevételi grafikon",
+    "transaction_history": "Tranzakcióelőzmények",
+    "this_month": "Ez a hónap",
+    "monthly_earnings": "Havi bevétel — az elmúlt 12 hónap",
+    "no_earnings": "Még nincs bevételi adat",
+    "transaction_history_desc": "A pénztárca minden jóváírása és terhelése",
+    "no_transactions": "Még nincs tranzakció",
+    "month_breakdown": "A hónap bontása",
+    "month_breakdown_desc": "Az aktuális hónap bevételének, díjainak és adójának összesítése",
+    "net_income": "Nettó bevétel",
+    "bookings": "Foglalások",
+    "cash_settlement_deductions": "Készpénzes elszámolási levonások"
+    ,"date": "Dátum",
+    "type": "Típus",
+    "description": "Leírás",
+    "amount": "Összeg",
+    "balance_after": "Egyenleg utána",
+    "show_less": "Kevesebb megjelenítése",
+    "show_all": "Mind a(z) {{count}} tétel megjelenítése",
+    "last_updated": "Utoljára frissítve"
+  },
+  "provider_earnings": {
+    "exporting": "Exportálás…"
+  },
+  "provider_gallery": {
+    "caption_update_failed": "A képaláírás frissítése sikertelen",
+    "photo_removed": "Fénykép eltávolítva",
+    "photo_delete_failed": "A fénykép törlése sikertelen",
+    "reorder_failed": "Az átrendezés sikertelen",
+    "invalid_format": "Nem támogatott formátum. JPG, PNG vagy WebP használható",
+    "file_too_large": "A fénykép legfeljebb 5 MB lehet",
+    "gallery_limit": "A galéria legfeljebb {{count}} fényképet tartalmazhat",
+    "photo_uploaded": "Fénykép feltöltve a galériába",
+    "upload_failed": "A feltöltés sikertelen",
+    "title": "Galéria",
+    "stored_cloudinary": "Cloudinaryn tárolva",
+    "uploading": "Feltöltés…",
+    "add_photo": "Fénykép hozzáadása",
+    "drop_to_upload": "Húzza ide a feltöltéshez",
+    "no_photos": "Még nincs fénykép",
+    "empty_desc": "Legfeljebb {{count}} fényképet adhat hozzá (JPG, PNG, WebP · egyenként legfeljebb 5 MB). A fényképeket külső tárhelyen, a Cloudinaryn tároljuk.",
+    "add_first_photo": "Első fénykép hozzáadása",
+    "move_left": "Balra mozgatás",
+    "move_right": "Jobbra mozgatás",
+    "edit_caption": "Képaláírás szerkesztése",
+    "delete_photo": "Fénykép törlése",
+    "caption_placeholder": "Képaláírás hozzáadása…"
   },
   "patient_home": {
     "attention_required": "Figyelmet igényel",

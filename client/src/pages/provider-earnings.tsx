@@ -352,7 +352,7 @@ export default function ProviderEarnings() {
             data-testid="button-export-earnings"
           >
             {exporting
-              ? <><Clock className="h-3.5 w-3.5 mr-1.5 animate-spin" />Exporting…</>
+              ? <><Clock className="h-3.5 w-3.5 mr-1.5 animate-spin" />{t("provider_earnings.exporting", "Exporting…")}</>
                : <><Download className="h-3.5 w-3.5 mr-1.5" />{t("provider_dashboard.export_csv", "Export CSV")}</>}
           </Button>
         </div>
