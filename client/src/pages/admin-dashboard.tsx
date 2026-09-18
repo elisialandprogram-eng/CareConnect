@@ -110,6 +110,7 @@ function PanelSkeleton() {
 
 // ── Provider Review wrapper (includes Docs Approval as inner tab) ─────────────
 function ProviderReviewPanel({ onSelectProvider }: { onSelectProvider: (id: string) => void }) {
+  const { t } = useTranslation();
   const [innerTab, setInnerTab] = useState<"review" | "docs">("review");
   return (
     <div className="space-y-4">
@@ -124,7 +125,7 @@ function ProviderReviewPanel({ onSelectProvider }: { onSelectProvider: (id: stri
           )}
           data-testid="tab-provider-review"
         >
-          Provider Review
+          {t("admin.provider_review", "Provider Review")}
         </button>
         <button
           onClick={() => setInnerTab("docs")}
@@ -136,7 +137,7 @@ function ProviderReviewPanel({ onSelectProvider }: { onSelectProvider: (id: stri
           )}
           data-testid="tab-docs-approval"
         >
-          Docs Approval
+          {t("admin.docs_approval", "Docs Approval")}
         </button>
       </div>
       {innerTab === "review" && <ProviderReviewQueue />}
@@ -152,30 +153,30 @@ type NavGroup = { label: string; icon: React.ElementType; items: NavItem[] };
 function buildNavGroups(isGlobalAdmin: boolean, t: (k: string, d?: string) => string, alertCount = 0): NavGroup[] {
   return [
     {
-      label: "Overview",
+      label: t("admin.nav_overview", "Overview"),
       icon: BarChart3,
       items: [
-        { value: "reports", label: "Reports", icon: BarChart3 },
-        { value: "custom-reports", label: "Custom Reports", icon: FileText },
+        { value: "reports", label: t("admin.reports", "Reports"), icon: BarChart3 },
+        { value: "custom-reports", label: t("admin.custom_reports", "Custom Reports"), icon: FileText },
         { value: "monitoring", label: t("admin.tab_monitoring", "Monitoring"), icon: Activity },
-        { value: "db-health", label: "DB Health", icon: Database },
+        { value: "db-health", label: t("admin.db_health", "DB Health"), icon: Database },
       ],
     },
     {
-      label: "People",
+      label: t("admin.nav_people", "People"),
       icon: Users,
       items: [
         { value: "providers", label: t("admin.providers", "Providers"), icon: Building },
-        { value: "doc-expiry", label: "Expiry Monitor", icon: AlertTriangle },
-        { value: "verification-queue", label: "Provider Review", icon: UserCheck },
-        { value: "review-moderation", label: "Patient Reviews", icon: Star },
-        { value: "users", label: "Clients", icon: Users },
+        { value: "doc-expiry", label: t("admin.expiry_monitor", "Expiry Monitor"), icon: AlertTriangle },
+        { value: "verification-queue", label: t("admin.provider_review", "Provider Review"), icon: UserCheck },
+        { value: "review-moderation", label: t("admin.patient_reviews", "Patient Reviews"), icon: Star },
+        { value: "users", label: t("admin.clients", "Clients"), icon: Users },
         { value: "staff", label: t("admin.staff", "Staff"), icon: UserCheck },
-        { value: "category-requests", label: "Category Requests", icon: Layers },
+        { value: "category-requests", label: t("admin.category_requests", "Category Requests"), icon: Layers },
       ],
     },
     {
-      label: "Operations",
+      label: t("admin.nav_operations", "Operations"),
       icon: Calendar,
       items: [
         { value: "bookings", label: t("admin.bookings", "Bookings"), icon: Calendar },
@@ -184,34 +185,34 @@ function buildNavGroups(isGlobalAdmin: boolean, t: (k: string, d?: string) => st
       ],
     },
     {
-      label: "Finance",
+      label: t("admin.nav_finance", "Finance"),
       icon: DollarSign,
       items: [
-        { value: "financial-alerts", label: "Financial Alerts", icon: AlertTriangle, badge: alertCount > 0 ? alertCount : undefined },
+        { value: "financial-alerts", label: t("admin.financial_alerts", "Financial Alerts"), icon: AlertTriangle, badge: alertCount > 0 ? alertCount : undefined },
         { value: "wallets", label: t("admin.wallets", "Wallets"), icon: WalletIcon },
-        { value: "payouts", label: "Payouts", icon: Banknote },
-        { value: "provider-wallets", label: "Provider Wallets", icon: Wallet },
+        { value: "payouts", label: t("admin.payouts", "Payouts"), icon: Banknote },
+        { value: "provider-wallets", label: t("admin.provider_wallets", "Provider Wallets"), icon: Wallet },
         { value: "invoices", label: t("admin.invoices", "Invoices"), icon: FileText },
-        { value: "financial-reports", label: "Provider Financials", icon: BarChart3 },
-        { value: "platform-revenue", label: "Platform Revenue", icon: Percent },
-        { value: "cash-fee-settlements", label: "Cash Fee Settlements", icon: Banknote },
-        { value: "ledger-overrides", label: "Ledger Overrides", icon: BookOpen },
-        { value: "refunds", label: "Refunds", icon: RotateCcw },
+        { value: "financial-reports", label: t("admin.provider_financials", "Provider Financials"), icon: BarChart3 },
+        { value: "platform-revenue", label: t("admin.platform_revenue", "Platform Revenue"), icon: Percent },
+        { value: "cash-fee-settlements", label: t("admin.cash_fee_settlements", "Cash Fee Settlements"), icon: Banknote },
+        { value: "ledger-overrides", label: t("admin.ledger_overrides", "Ledger Overrides"), icon: BookOpen },
+        { value: "refunds", label: t("admin.refunds", "Refunds"), icon: RotateCcw },
       ],
     },
     {
-      label: "Revenue & Billing",
+      label: t("admin.nav_revenue_billing", "Revenue & Billing"),
       icon: Layers,
       items: [
-        { value: "revenue-billing", label: "Revenue & Billing Center", icon: DollarSign },
+        { value: "revenue-billing", label: t("admin.revenue_billing_center", "Revenue & Billing Center"), icon: DollarSign },
         { value: "promos", label: t("admin.promo_codes", "Promo Codes"), icon: Tag },
-        { value: "packages", label: "Packages", icon: Gift },
-        { value: "payment-providers", label: "Payment Providers", icon: CreditCard },
-        { value: "currency-rates", label: "Exchange Rates", icon: TrendingUp },
+        { value: "packages", label: t("admin.packages", "Packages"), icon: Gift },
+        { value: "payment-providers", label: t("admin.payment_providers", "Payment Providers"), icon: CreditCard },
+        { value: "currency-rates", label: t("admin.exchange_rates", "Exchange Rates"), icon: TrendingUp },
       ],
     },
     {
-      label: "Catalog",
+      label: t("admin.nav_catalog", "Catalog"),
       icon: ListTree,
       items: [
         { value: "catalog", label: t("admin.service_catalog", "Service Catalog"), icon: ListTree },
@@ -219,23 +220,23 @@ function buildNavGroups(isGlobalAdmin: boolean, t: (k: string, d?: string) => st
       ],
     },
     {
-      label: "Config",
+      label: t("admin.nav_config", "Config"),
       icon: Settings,
       items: [
-        { value: "legal-compliance", label: "Legal & Compliance", icon: BookOpen },
-        { value: "circuit-breaker", label: "Circuit Breaker", icon: Zap },
-        { value: "admin-access", label: "Admin Access", icon: Shield },
+        { value: "legal-compliance", label: t("admin.legal_compliance", "Legal & Compliance"), icon: BookOpen },
+        { value: "circuit-breaker", label: t("admin.circuit_breaker", "Circuit Breaker"), icon: Zap },
+        { value: "admin-access", label: t("admin.admin_access", "Admin Access"), icon: Shield },
         { value: "rbac-matrix", label: t("admin.tab_permissions", "Permissions"), icon: Lock },
-        { value: "integrations", label: "External Services", icon: Globe },
+        { value: "integrations", label: t("admin.external_services", "External Services"), icon: Globe },
         { value: "audit-enhanced", label: t("admin.audit_logs", "Audit Logs"), icon: Activity },
         ...(isGlobalAdmin ? [{ value: "migrations", label: t("admin.migrations_tab", "Migrations"), icon: Globe }] : []),
       ],
     },
     ...(isGlobalAdmin ? [{
-      label: "Development",
+      label: t("admin.nav_development", "Development"),
       icon: Database,
       items: [
-        { value: "env-management", label: "Environment Management", icon: Database },
+        { value: "env-management", label: t("admin.environment_management", "Environment Management"), icon: Database },
       ],
     }] : []),
   ];
@@ -308,7 +309,7 @@ export default function AdminDashboard() {
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
-      <PageBreadcrumbs items={[{ label: "Admin Dashboard" }]} />
+      <PageBreadcrumbs items={[{ label: t("admin.dashboard") }]} />
       <main className="flex-1 container mx-auto px-4 py-8 overflow-x-hidden">
         {/* ── Header row ── */}
         <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
@@ -327,7 +328,7 @@ export default function AdminDashboard() {
               data-testid="link-stale-bookings"
             >
               <Clock className="h-4 w-4 me-1.5" />
-              Stale bookings
+              {t("admin.stale_bookings", "Stale bookings")}
             </Button>
             {isAdminRole(user?.role) && (
               <Button
@@ -337,7 +338,7 @@ export default function AdminDashboard() {
                 data-testid="link-admin-users"
               >
                 <Users className="h-4 w-4 me-1.5" />
-                Manage Admins
+                {t("admin.manage_admins", "Manage Admins")}
               </Button>
             )}
             <AdminNotificationCenter
@@ -353,13 +354,13 @@ export default function AdminDashboard() {
           const pendingProviders = (providers ?? []).filter((p: any) => p.status === "pending");
           const criticalAlerts = financialHealth?.alerts.bySeverity.find(s => s.severity === "critical")?.count ?? 0;
           const items = [
-            { label: "Providers pending verification", count: pendingProviders.length, tab: "providers", color: "amber" },
-            { label: "Critical financial alerts", count: criticalAlerts, tab: "financial-alerts", color: "red" },
+            { label: t("admin.providers_pending_verification", "Providers pending verification"), count: pendingProviders.length, tab: "providers", color: "amber" },
+            { label: t("admin.critical_financial_alerts", "Critical financial alerts"), count: criticalAlerts, tab: "financial-alerts", color: "red" },
           ].filter(i => i.count > 0);
           if (items.length === 0) return null;
           return (
             <div className="mb-4 flex flex-wrap gap-3" data-testid="admin-priority-queue">
-              <p className="w-full text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Priority Queue</p>
+              <p className="w-full text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">{t("admin.priority_queue", "Priority Queue")}</p>
               {items.map((item) => (
                 <button
                   key={item.tab}
@@ -578,8 +579,8 @@ export default function AdminDashboard() {
             {activeTab === "packages" && (
               <Card>
                 <CardHeader>
-                  <CardTitle>Membership Packages</CardTitle>
-                  <CardDescription>Create and manage membership packages for clients and providers. Set benefits, pricing, and country targeting.</CardDescription>
+                  <CardTitle>{t("admin.membership_packages", "Membership Packages")}</CardTitle>
+                  <CardDescription>{t("admin.membership_packages_desc", "Create and manage membership packages for clients and providers. Set benefits, pricing, and country targeting.")}</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <PackageManagement />
@@ -593,8 +594,8 @@ export default function AdminDashboard() {
             {activeTab === "financial-reports" && (
               <Card>
                 <CardHeader>
-                  <CardTitle>Provider Financial Reports</CardTitle>
-                  <CardDescription>View revenue, platform fees, net earnings, and payout status for each provider. Click any row to see a detailed monthly breakdown.</CardDescription>
+                  <CardTitle>{t("admin.provider_financial_reports_title", "Provider Financial Reports")}</CardTitle>
+                  <CardDescription>{t("admin.provider_financial_reports_desc", "View revenue, platform fees, net earnings, and payout status for each provider. Click any row to see a detailed monthly breakdown.")}</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <PanelErrorBoundary>
@@ -651,15 +652,15 @@ export default function AdminDashboard() {
             {activeTab === "integrations" && (
               <Card>
                 <CardHeader>
-                  <CardTitle>External Services</CardTitle>
-                  <CardDescription>Status of third-party services. All credentials are managed via environment secrets — nothing is configurable from this panel.</CardDescription>
+                  <CardTitle>{t("admin.external_services", "External Services")}</CardTitle>
+                  <CardDescription>{t("admin.external_services_desc", "Status of third-party services. All credentials are managed via environment secrets — nothing is configurable from this panel.")}</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <Tabs defaultValue="stripe" className="w-full">
                     <TabsList className="tabs-colorful tabs-warm grid w-full grid-cols-3">
-                      <TabsTrigger value="stripe">Stripe Status</TabsTrigger>
-                      <TabsTrigger value="google">Google Maps</TabsTrigger>
-                      <TabsTrigger value="messaging">Messaging & Push</TabsTrigger>
+                      <TabsTrigger value="stripe">{t("admin.stripe_status", "Stripe Status")}</TabsTrigger>
+                      <TabsTrigger value="google">{t("admin.google_maps", "Google Maps")}</TabsTrigger>
+                      <TabsTrigger value="messaging">{t("admin.messaging_push", "Messaging & Push")}</TabsTrigger>
                     </TabsList>
 
                     <TabsContent value="stripe" className="space-y-4 py-4">
@@ -668,8 +669,8 @@ export default function AdminDashboard() {
 
                     <TabsContent value="google" className="space-y-4 py-4">
                       <div className="rounded-md border border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950/30 p-4 text-sm text-blue-800 dark:text-blue-300 space-y-2">
-                        <p className="font-semibold">Configured via environment secrets</p>
-                        <p>Google Maps API keys are managed server-side and cannot be changed from the dashboard. Contact your deployment administrator to update the following secrets:</p>
+                        <p className="font-semibold">{t("admin.configured_via_environment_secrets", "Configured via environment secrets")}</p>
+                        <p>{t("admin.google_maps_secrets_desc", "Google Maps API keys are managed server-side and cannot be changed from the dashboard. Contact your deployment administrator to update the following secrets:")}</p>
                         <ul className="list-disc list-inside space-y-1 text-blue-700 dark:text-blue-400">
                           <li><code className="font-mono">GOOGLE_MAPS_API_KEY</code> — server-side geocoding &amp; distance calculations</li>
                           <li><code className="font-mono">VITE_GOOGLE_MAPS_API_KEY</code> — frontend Places Autocomplete</li>
@@ -679,8 +680,8 @@ export default function AdminDashboard() {
 
                     <TabsContent value="messaging" className="space-y-4 py-4">
                       <div className="rounded-md border border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950/30 p-4 text-sm text-blue-800 dark:text-blue-300 space-y-2">
-                        <p className="font-semibold">Configured via environment secrets</p>
-                        <p>Messaging and push notification credentials are managed server-side. Contact your deployment administrator to update the following secrets:</p>
+                        <p className="font-semibold">{t("admin.configured_via_environment_secrets", "Configured via environment secrets")}</p>
+                        <p>{t("admin.messaging_secrets_desc", "Messaging and push notification credentials are managed server-side. Contact your deployment administrator to update the following secrets:")}</p>
                         <ul className="list-disc list-inside space-y-1 text-blue-700 dark:text-blue-400">
                           <li><code className="font-mono">RESEND_API_KEY</code> — transactional email (OTP, booking confirmations, reminders)</li>
                           <li><code className="font-mono">TWILIO_ACCOUNT_SID</code> + <code className="font-mono">TWILIO_AUTH_TOKEN</code> + <code className="font-mono">TWILIO_FROM_NUMBER</code> — SMS notifications</li>
@@ -718,10 +719,8 @@ export default function AdminDashboard() {
                       <RotateCcw className="h-6 w-6 text-primary" />
                     </div>
                     <div>
-                      <h2 className="text-xl font-bold">Refunds</h2>
-                      <p className="text-sm text-muted-foreground">
-                        Review and process refunds, and manage refund policy rules per country and scenario.
-                      </p>
+                      <h2 className="text-xl font-bold">{t("admin.refunds", "Refunds")}</h2>
+                      <p className="text-sm text-muted-foreground">{t("admin.refunds_desc", "Review and process refunds, and manage refund policy rules per country and scenario.")}</p>
                     </div>
                   </div>
                   <RefundManagementPanel />

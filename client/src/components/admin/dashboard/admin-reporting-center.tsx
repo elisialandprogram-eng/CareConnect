@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { PanelErrorBoundary } from "@/components/global-error-boundary";
 import { AnalyticsOverview } from "./analytics-overview";
 import { useAdminCurrency } from "@/lib/currency";
+import { useTranslation } from "react-i18next";
 import {
   BarChart, Bar, AreaChart, Area, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer,
@@ -644,13 +645,18 @@ const SECTIONS = [
 type Section = (typeof SECTIONS)[number]["value"];
 
 export function AdminReportingCenter({ onNavigate }: { onNavigate?: (tab: string) => void }) {
+  const { t } = useTranslation();
   const [section, setSection] = useState<Section>("executive");
+  const sections = SECTIONS.map(s => ({
+    ...s,
+    label: t(`admin.reporting.${s.value}`, s.label),
+  }));
 
   return (
     <div className="space-y-4">
       <Tabs value={section} onValueChange={v => setSection(v as Section)}>
         <TabsList className="flex flex-wrap h-auto gap-1 p-1">
-          {SECTIONS.map(s => (
+          {sections.map(s => (
             <TabsTrigger
               key={s.value}
               value={s.value}
