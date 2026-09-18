@@ -1899,7 +1899,21 @@
     "toast_bulk_failed": "Bulk update failed",
     "toast_bulk_partial": "Updated {{ok}} of {{total}}",
     "toast_bulk_some_failed": "Some updates failed. Please retry.",
-    "vs_prev_30": "vs previous 30 days"
+    "vs_prev_30": "vs previous 30 days",
+    "meta_title": "Provider Dashboard",
+    "toast_reply_sent": "Reply sent",
+    "toast_reply_failed": "Failed to send reply",
+    "tab_active": "Active Today",
+    "tab_clients": "Clients",
+    "tab_insights": "Insights",
+    "tab_group_sessions": "Group Sessions",
+    "pending_tasks_desc": "Approve or reject client requests to keep your queue up to date.",
+    "review_pending": "Review",
+    "quick_schedule": "My Schedule",
+    "quick_patients": "Clients",
+    "quick_earnings": "Earnings",
+    "view_payouts": "View earnings & payouts",
+    "no_clients": "No clients yet"
   },
   "patient_dashboard": {
     "visit_type": "Visit type",

@@ -1899,7 +1899,21 @@
     "toast_bulk_failed": "به‌روزرسانی گروهی ناموفق بود",
     "toast_bulk_partial": "{{ok}} از {{total}} به‌روزرسانی شد",
     "toast_bulk_some_failed": "برخی به‌روزرسانی‌ها ناموفق بود. دوباره تلاش کنید.",
-    "vs_prev_30": "نسبت به ۳۰ روز قبل"
+    "vs_prev_30": "نسبت به ۳۰ روز قبل",
+    "meta_title": "داشبورد ارائه‌دهنده",
+    "toast_reply_sent": "پاسخ ارسال شد",
+    "toast_reply_failed": "ارسال پاسخ ناموفق بود",
+    "tab_active": "فعال امروز",
+    "tab_clients": "مراجعان",
+    "tab_insights": "بینش‌ها",
+    "tab_group_sessions": "جلسات گروهی",
+    "pending_tasks_desc": "برای به‌روز نگه داشتن صف خود، درخواست‌های مراجعان را تایید یا رد کنید.",
+    "review_pending": "بررسی",
+    "quick_schedule": "برنامه من",
+    "quick_patients": "مراجعان",
+    "quick_earnings": "درآمدها",
+    "view_payouts": "مشاهده درآمدها و پرداخت‌ها",
+    "no_clients": "هنوز مراجعه‌کننده‌ای وجود ندارد"
   },
   "patient_dashboard": {
     "visit_type": "نوع ویزیت",

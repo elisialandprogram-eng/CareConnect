@@ -1899,7 +1899,21 @@
     "toast_bulk_failed": "A tömeges frissítés sikertelen",
     "toast_bulk_partial": "{{ok}} / {{total}} frissítve",
     "toast_bulk_some_failed": "Néhány frissítés sikertelen. Próbálja újra.",
-    "vs_prev_30": "az előző 30 naphoz képest"
+    "vs_prev_30": "az előző 30 naphoz képest",
+    "meta_title": "Szolgáltatói vezérlőpult",
+    "toast_reply_sent": "Válasz elküldve",
+    "toast_reply_failed": "A válasz elküldése sikertelen",
+    "tab_active": "Ma aktív",
+    "tab_clients": "Ügyfelek",
+    "tab_insights": "Elemzések",
+    "tab_group_sessions": "Csoportos alkalmak",
+    "pending_tasks_desc": "Hagyja jóvá vagy utasítsa el az ügyfélkéréseket, hogy naprakész maradjon a várólistája.",
+    "review_pending": "Áttekintés",
+    "quick_schedule": "Időbeosztásom",
+    "quick_patients": "Ügyfelek",
+    "quick_earnings": "Bevételek",
+    "view_payouts": "Bevételek és kifizetések megtekintése",
+    "no_clients": "Még nincsenek ügyfelek"
   },
   "patient_dashboard": {
     "visit_type": "Vizit típusa",
