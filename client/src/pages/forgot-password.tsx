@@ -22,21 +22,22 @@ import { useToast } from "@/hooks/use-toast";
 import { showErrorModal } from "@/components/error-modal";
 import { apiRequest } from "@/lib/queryClient";
 import { Loader2, Stethoscope, Mail, ArrowLeft, CheckCircle } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
-const forgotPasswordSchema = z.object({
-  email: z.string().email("Please enter a valid email address"),
-});
-
-type ForgotPasswordFormData = z.infer<typeof forgotPasswordSchema>;
+type ForgotPasswordFormData = { email: string };
 
 export default function ForgotPassword() {
   const [, navigate] = useLocation();
+  const { t } = useTranslation();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [isSent, setIsSent] = useState(false);
   const [resetCode, setResetCode] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [isResetting, setIsResetting] = useState(false);
+  const forgotPasswordSchema = z.object({
+    email: z.string().email(t("public_pages.forgot_email_invalid")),
+  });
 
   const form = useForm<ForgotPasswordFormData>({
     resolver: zodResolver(forgotPasswordSchema),
@@ -51,17 +52,17 @@ export default function ForgotPassword() {
       const response = await apiRequest("POST", "/api/auth/forgot-password", data);
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.message || "Failed to send reset email");
+        throw new Error(error.message || t("public_pages.forgot_send_failed"));
       }
       setIsSent(true);
       toast({
-        title: "Code sent",
-        description: "If an account exists with this email, you will receive a 6-digit reset code.",
+        title: t("public_pages.forgot_code_sent_toast"),
+        description: t("public_pages.forgot_code_sent_desc"),
       });
     } catch (error: any) {
       showErrorModal({
-        title: "Couldn't send reset email",
-        description: error.message || "Failed to send reset email. Please try again.",
+        title: t("public_pages.forgot_send_error"),
+        description: error.message || t("public_pages.forgot_send_failed"),
         context: "forgot-password.sendCode",
       });
     } finally {
@@ -71,7 +72,7 @@ export default function ForgotPassword() {
 
   const handleCompleteReset = async () => {
     if (!resetCode || !newPassword) {
-      toast({ title: "Error", description: "Please fill in all fields", variant: "destructive" });
+      toast({ title: t("public_pages.forgot_error"), description: t("public_pages.forgot_fill_fields"), variant: "destructive" });
       return;
     }
 
@@ -85,18 +86,18 @@ export default function ForgotPassword() {
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.message || "Failed to reset password");
+        throw new Error(error.message || t("public_pages.forgot_reset_failed"));
       }
 
       toast({
-        title: "Success",
-        description: "Password reset successfully. You can now login.",
+        title: t("public_pages.forgot_success"),
+        description: t("public_pages.forgot_success_desc"),
       });
       navigate("/login");
     } catch (error: any) {
       showErrorModal({
-        title: "Couldn't reset password",
-        description: error.message || "Failed to reset password. Please try again.",
+        title: t("public_pages.forgot_reset_error"),
+        description: error.message || t("public_pages.forgot_reset_failed"),
         context: "forgot-password.completeReset",
       });
     } finally {
@@ -115,16 +116,16 @@ export default function ForgotPassword() {
               <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-green-100 dark:bg-green-900 shadow-lg">
                 <CheckCircle className="h-7 w-7 text-green-600 dark:text-green-400" />
               </div>
-              <CardTitle className="text-2xl font-bold">Check Your Email</CardTitle>
+              <CardTitle className="text-2xl font-bold">{t("public_pages.forgot_check_email")}</CardTitle>
               <CardDescription>
-                We've sent a 6-digit reset code to {form.getValues("email")}.
+                {t("public_pages.forgot_code_sent", { email: form.getValues("email") })}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label>Reset Code</Label>
+                <Label>{t("public_pages.forgot_reset_code")}</Label>
                 <Input 
-                  placeholder="Enter 6-digit code" 
+                  placeholder={t("public_pages.forgot_code_placeholder")}
                   value={resetCode}
                   onChange={(e) => setResetCode(e.target.value)}
                   maxLength={6}
@@ -132,10 +133,10 @@ export default function ForgotPassword() {
                 />
               </div>
               <div className="space-y-2">
-                <Label>New Password</Label>
+                <Label>{t("public_pages.forgot_new_password")}</Label>
                 <Input 
                   type="password"
-                  placeholder="Enter new password" 
+                  placeholder={t("public_pages.forgot_password_placeholder")}
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   data-testid="input-new-password"
@@ -148,12 +149,12 @@ export default function ForgotPassword() {
                 data-testid="button-complete-reset"
               >
                 {isResetting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                Reset Password
+                {isResetting ? t("public_pages.forgot_resetting") : t("public_pages.forgot_reset")}
               </Button>
             </CardContent>
             <CardFooter className="flex flex-col space-y-4">
               <Button variant="ghost" onClick={() => setIsSent(false)} className="w-full">
-                Back to Forgot Password
+                {t("public_pages.forgot_back")}
               </Button>
             </CardFooter>
           </Card>
@@ -182,16 +183,16 @@ export default function ForgotPassword() {
                 onClick={() => navigate("/login")}
               >
                 <ArrowLeft className="h-4 w-4 mr-2" />
-                Back
+                {t("public_pages.forgot_back_login")}
               </Button>
               <motion.div 
                 className="mx-auto mb-4 mt-4 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary/70 shadow-lg"
               >
                 <Stethoscope className="h-7 w-7 text-primary-foreground" />
               </motion.div>
-              <CardTitle className="text-2xl font-bold">Forgot Password</CardTitle>
+              <CardTitle className="text-2xl font-bold">{t("public_pages.forgot_title")}</CardTitle>
               <CardDescription>
-                Enter your email address and we'll send you a link to reset your password.
+                {t("public_pages.forgot_description")}
               </CardDescription>
             </CardHeader>
 
@@ -203,7 +204,7 @@ export default function ForgotPassword() {
                     name="email"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Email</FormLabel>
+                        <FormLabel>{t("public_pages.forgot_email")}</FormLabel>
                         <FormControl>
                           <div className="relative">
                             <Mail className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />

@@ -483,7 +483,7 @@ export default function FamilyMembersPage() {
                   onCheckedChange={checked => setForm(f => ({ ...f, useParentAddress: checked === true }))}
                 />
                 <Label htmlFor="fm-use-parent" className="text-sm font-normal cursor-pointer">
-                  Use my address for this family member
+                  {t("patient_sweep.family_uses_address", "Uses your address")}
                 </Label>
               </div>
 
@@ -494,18 +494,18 @@ export default function FamilyMembersPage() {
                     <PlacesAutocomplete
                       value={form.formattedAddress || form.addressLine1}
                       onChange={handleAddressChange}
-                      placeholder="Search for an address…"
+                      placeholder={t("location.search_address", "Search address")}
                       data-testid="input-fm-address"
                     />
                   </div>
 
                   <div className="space-y-1.5">
-                    <Label htmlFor="fm-address2">Apt / Floor / Unit</Label>
+                    <Label htmlFor="fm-address2">{t("public_pages.address_line_2")}</Label>
                     <Input
                       id="fm-address2"
                       value={form.addressLine2}
                       onChange={e => setForm(f => ({ ...f, addressLine2: e.target.value }))}
-                      placeholder="e.g. Apt 4B"
+                      placeholder={t("public_pages.address_line_2_placeholder")}
                       data-testid="input-fm-address2"
                     />
                   </div>
@@ -514,7 +514,7 @@ export default function FamilyMembersPage() {
                     <div className="grid grid-cols-2 gap-3">
                       {form.city && (
                         <div className="space-y-1.5">
-                          <Label htmlFor="fm-city">City</Label>
+                          <Label htmlFor="fm-city">{t("profile_page.city", "City")}</Label>
                           <Input
                             id="fm-city"
                             value={form.city}
@@ -525,7 +525,7 @@ export default function FamilyMembersPage() {
                       )}
                       {form.postalCode && (
                         <div className="space-y-1.5">
-                          <Label htmlFor="fm-postal">Postal Code</Label>
+                          <Label htmlFor="fm-postal">{t("profile_page.zip_code", "Zip Code")}</Label>
                           <Input
                             id="fm-postal"
                             value={form.postalCode}

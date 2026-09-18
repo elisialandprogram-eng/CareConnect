@@ -17,6 +17,7 @@ import { PageBreadcrumbs } from "@/components/page-breadcrumbs";
 import { useAuth } from "@/lib/auth";
 import { apiRequest } from "@/lib/queryClient";
 import { usePageTitle } from "@/hooks/use-page-title";
+import { useTranslation } from "react-i18next";
 
 interface BugReport {
   id: string;
@@ -76,6 +77,7 @@ function ReportCard({ report, onClick }: { report: BugReport; onClick: () => voi
 }
 
 function ReportDetail({ reportId, onBack }: { reportId: string; onBack: () => void }) {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const [replyText, setReplyText] = useState("");
   const [isReplying, setIsReplying] = useState(false);
@@ -105,7 +107,7 @@ function ReportDetail({ reportId, onBack }: { reportId: string; onBack: () => vo
   return (
     <div className="space-y-4">
       <Button variant="ghost" size="sm" onClick={onBack} className="gap-1 -ml-2">
-        <ArrowLeft className="h-4 w-4 mr-1" /> Back to reports
+        <ArrowLeft className="h-4 w-4 mr-1" /> {t("public_pages.reports_back")}
       </Button>
 
       <Card>
@@ -125,12 +127,12 @@ function ReportDetail({ reportId, onBack }: { reportId: string; onBack: () => vo
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <p className="text-xs font-medium text-muted-foreground mb-1">Submitted</p>
+            <p className="text-xs font-medium text-muted-foreground mb-1">{t("public_pages.reports_submitted")}</p>
             <p className="text-sm">{formatDateTime(report.created_at)}</p>
           </div>
           {report.resolution_notes && (
             <div className="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
-              <p className="text-xs font-medium text-green-700 dark:text-green-400 mb-1">Resolution</p>
+              <p className="text-xs font-medium text-green-700 dark:text-green-400 mb-1">{t("public_pages.reports_resolution")}</p>
               <p className="text-sm text-green-800 dark:text-green-300">{report.resolution_notes}</p>
             </div>
           )}
@@ -147,7 +149,7 @@ function ReportDetail({ reportId, onBack }: { reportId: string; onBack: () => vo
         </CardHeader>
         <CardContent className="space-y-3">
           {comments.length === 0 && (
-            <p className="text-sm text-muted-foreground text-center py-4">No messages yet. Add a comment below.</p>
+            <p className="text-sm text-muted-foreground text-center py-4">{t("public_pages.reports_no_messages")}</p>
           )}
           {comments.map((c) => {
             const isMe = c.user_id === user?.id;
@@ -158,7 +160,7 @@ function ReportDetail({ reportId, onBack }: { reportId: string; onBack: () => vo
                 </div>
                 <div className={`flex-1 max-w-[80%] ${isMe ? "items-end" : "items-start"} flex flex-col`}>
                   <div className={`text-xs text-muted-foreground mb-1 ${isMe ? "text-right" : ""}`}>
-                    {isMe ? "You" : c.author_name} · {c.role}
+                    {isMe ? t("public_pages.reports_you") : c.author_name} · {c.role}
                   </div>
                   <div className={`p-3 rounded-lg text-sm ${isMe ? "bg-primary text-primary-foreground" : "bg-muted"}`}>
                     {c.message}
@@ -176,13 +178,13 @@ function ReportDetail({ reportId, onBack }: { reportId: string; onBack: () => vo
             <div className="pt-3 border-t space-y-2">
               <textarea
                 className="w-full border rounded-lg p-3 text-sm resize-none min-h-[80px] bg-background"
-                placeholder="Add a reply or provide more information…"
+                placeholder={t("public_pages.reports_reply_placeholder")}
                 value={replyText}
                 onChange={(e) => setReplyText(e.target.value)}
                 data-testid="textarea-bug-reply"
               />
               <Button size="sm" onClick={handleReply} disabled={isReplying || !replyText.trim()} data-testid="button-send-bug-reply">
-                {isReplying ? "Sending…" : "Send Reply"}
+                {isReplying ? t("public_pages.reports_sending") : t("public_pages.reports_send_reply")}
               </Button>
             </div>
           )}
@@ -193,7 +195,8 @@ function ReportDetail({ reportId, onBack }: { reportId: string; onBack: () => vo
 }
 
 export default function MyBugReports() {
-  usePageTitle("My Reports");
+  const { t } = useTranslation();
+  usePageTitle(t("public_pages.reports_title"));
   const [reportOpen, setReportOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [page, setPage] = useState(1);
@@ -223,15 +226,15 @@ export default function MyBugReports() {
       <Header />
       <main className="flex-1">
       <div className="max-w-2xl mx-auto px-4 py-6">
-      <PageBreadcrumbs items={[{ label: "My Reports" }]} />
+      <PageBreadcrumbs items={[{ label: t("public_pages.reports_title") }]} />
 
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold">My Reports</h1>
-          <p className="text-muted-foreground text-sm mt-1">Track the status of your submitted reports</p>
+          <h1 className="text-2xl font-bold">{t("public_pages.reports_title")}</h1>
+          <p className="text-muted-foreground text-sm mt-1">{t("public_pages.reports_desc")}</p>
         </div>
         <Button onClick={() => setReportOpen(true)} size="sm" className="gap-2" data-testid="button-new-bug-report">
-          <Plus className="h-4 w-4" /> New Report
+          <Plus className="h-4 w-4" /> {t("public_pages.reports_new")}
         </Button>
       </div>
 
@@ -240,9 +243,9 @@ export default function MyBugReports() {
       ) : !data?.reports?.length ? (
         <EmptyState
           icon={Bug}
-          title="No reports yet"
-          description="Found a bug or have a suggestion? Let us know!"
-          action={{ label: "Report a Problem", onClick: () => setReportOpen(true) }}
+          title={t("public_pages.reports_empty")}
+          description={t("public_pages.reports_empty_desc")}
+          action={{ label: t("public_pages.reports_report_problem"), onClick: () => setReportOpen(true) }}
         />
       ) : (
         <div className="space-y-3">
@@ -253,13 +256,13 @@ export default function MyBugReports() {
           {data.totalPages > 1 && (
             <div className="flex justify-center gap-2 pt-4">
               <Button variant="outline" size="sm" disabled={page === 1} onClick={() => setPage(p => p - 1)} data-testid="button-prev-page">
-                Previous
+                {t("public_pages.reports_previous")}
               </Button>
               <span className="flex items-center text-sm text-muted-foreground px-2">
-                Page {page} of {data.totalPages}
+                {t("public_pages.reports_page_of", { page, total: data.totalPages })}
               </span>
               <Button variant="outline" size="sm" disabled={page >= data.totalPages} onClick={() => setPage(p => p + 1)} data-testid="button-next-page">
-                Next
+                {t("public_pages.reports_next")}
               </Button>
             </div>
           )}

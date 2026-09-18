@@ -3,23 +3,26 @@ import { Footer } from "@/components/footer";
 import { PageBreadcrumbs } from "@/components/page-breadcrumbs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { useTranslation } from "react-i18next";
 
 export default function Terms() {
+  const { t } = useTranslation();
+
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
-      <PageBreadcrumbs items={[{ label: "Terms & Conditions" }]} />
+      <PageBreadcrumbs items={[{ label: t("public_pages.terms_title") }]} />
       <main className="flex-1 container mx-auto px-4 py-12 max-w-4xl">
-        <h1 className="text-3xl md:text-4xl font-bold mb-8 text-center">Terms &amp; Conditions</h1>
+        <h1 className="text-3xl md:text-4xl font-bold mb-8 text-center">{t("public_pages.terms_title")}</h1>
 
         <Card className="mb-8">
           <CardHeader>
-            <CardTitle>Golden Life Appointment Booking Platform</CardTitle>
+            <CardTitle>{t("public_pages.terms_platform")}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6 [&_p+p]:mt-2 [&_section]:leading-relaxed">
             
             <section>
-              <h2 className="text-xl font-semibold mb-4">1. Service Provider</h2>
+              <h2 className="text-xl font-semibold mb-4">{t("public_pages.terms_provider")}</h2>
               <div className="space-y-2 text-muted-foreground">
                 <p><strong>Company name:</strong> Golden Life</p>
                 <p><strong>Address:</strong> Hungary, 3060 Pásztó, Semmelweis utca 10</p>
@@ -37,7 +40,7 @@ export default function Terms() {
             <Separator />
 
             <section>
-              <h2 className="text-xl font-semibold mb-4">2. Scope of Service</h2>
+              <h2 className="text-xl font-semibold mb-4">{t("public_pages.terms_scope")}</h2>
               <p className="text-muted-foreground mb-2">Golden Life provides:</p>
               <ul className="list-disc pl-6 text-muted-foreground space-y-1">
                 <li>an online appointment booking system,</li>
@@ -52,7 +55,7 @@ export default function Terms() {
             <Separator />
 
             <section>
-              <h2 className="text-xl font-semibold mb-4">3. Booking and Contract</h2>
+              <h2 className="text-xl font-semibold mb-4">{t("public_pages.terms_booking")}</h2>
               <p className="text-muted-foreground mb-2">A contract between the User and Golden Life is formed only when:</p>
               <ul className="list-disc pl-6 text-muted-foreground space-y-1">
                 <li>the User submits a booking, and</li>
@@ -68,7 +71,7 @@ export default function Terms() {
             <Separator />
 
             <section>
-              <h2 className="text-xl font-semibold mb-4">4. User Obligations</h2>
+              <h2 className="text-xl font-semibold mb-4">{t("public_pages.terms_obligations")}</h2>
               <p className="text-muted-foreground mb-2">The User must:</p>
               <ul className="list-disc pl-6 text-muted-foreground space-y-1">
                 <li>provide accurate personal information,</li>
@@ -81,7 +84,7 @@ export default function Terms() {
             <Separator />
 
             <section>
-              <h2 className="text-xl font-semibold mb-4">5. Cancellation Policy</h2>
+              <h2 className="text-xl font-semibold mb-4">{t("public_pages.terms_cancellation")}</h2>
               <ul className="list-disc pl-6 text-muted-foreground space-y-1">
                 <li>Free cancellation within 24 hours after booking.</li>
                 <li>After 24 hours, cancellation fees or restrictions may apply.</li>
@@ -93,7 +96,7 @@ export default function Terms() {
             <Separator />
 
             <section>
-              <h2 className="text-xl font-semibold mb-4">6. Prices & Payments</h2>
+              <h2 className="text-xl font-semibold mb-4">{t("public_pages.terms_prices")}</h2>
               <ul className="list-disc pl-6 text-muted-foreground space-y-1">
                 <li>Prices may change at any time.</li>
                 <li>Payments are processed by a third-party payment provider.</li>
@@ -104,7 +107,7 @@ export default function Terms() {
             <Separator />
 
             <section>
-              <h2 className="text-xl font-semibold mb-4">7. Liability</h2>
+              <h2 className="text-xl font-semibold mb-4">{t("public_pages.terms_liability")}</h2>
               <p className="text-muted-foreground mb-2">Golden Life is not liable for:</p>
               <ul className="list-disc pl-6 text-muted-foreground space-y-1">
                 <li>professional outcomes of the Worker,</li>
@@ -121,7 +124,7 @@ export default function Terms() {
             <Separator />
 
             <section>
-              <h2 className="text-xl font-semibold mb-4">8. Complaint Handling</h2>
+              <h2 className="text-xl font-semibold mb-4">{t("public_pages.terms_complaints")}</h2>
               <p className="text-muted-foreground mb-2">Complaints may be submitted by email, phone, or in writing to:</p>
               <div className="text-muted-foreground space-y-1">
                 <p><strong>Golden Life</strong></p>
@@ -134,7 +137,7 @@ export default function Terms() {
             <Separator />
 
             <section>
-              <h2 className="text-xl font-semibold mb-4">9. Amendments</h2>
+              <h2 className="text-xl font-semibold mb-4">{t("public_pages.terms_amendments")}</h2>
               <p className="text-muted-foreground">
                 Golden Life may amend the Terms at any time. Changes take effect 30 days after publication on the website.
               </p>
@@ -143,7 +146,7 @@ export default function Terms() {
             <Separator />
 
             <section>
-              <h2 className="text-xl font-semibold mb-4">10. Governing Law</h2>
+              <h2 className="text-xl font-semibold mb-4">{t("public_pages.terms_law")}</h2>
               <p className="text-muted-foreground mb-2">These Terms are governed by Hungarian law:</p>
               <ul className="list-disc pl-6 text-muted-foreground space-y-1">
                 <li>Civil Code (Ptk.)</li>
@@ -155,7 +158,7 @@ export default function Terms() {
             <Separator />
 
             <section>
-              <h2 className="text-xl font-semibold mb-4">11. Final Provisions</h2>
+              <h2 className="text-xl font-semibold mb-4">{t("public_pages.terms_final")}</h2>
               <p className="text-muted-foreground">
                 If any provision is found invalid, the remainder stays in effect.
               </p>

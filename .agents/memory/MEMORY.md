@@ -133,3 +133,4 @@
 - [Offline refund settlement](offline-refund-settlement.md) — cash refunds reverse provider wallet fee/tax/commission deductions idempotently; fully refunded payments cannot create new earnings
 - [Modality-aware scheduling](modality-aware-scheduling.md) — canonical clinic/home/online slot provenance; shared slots are null and modality edits must not erase other modes
 - [Stripe webhook idempotency schema compatibility](idempotency-schema-compat.md) — claim only portable key/scope/expiry fields with untargeted ON CONFLICT; legacy DBs differ from current idempotency schema
+- [Client localization parity](client-localization-parity.md) — keep en/fa/hu translation keys identical; page-facing literals should use useTranslation, including public/legal and patient dashboard UI

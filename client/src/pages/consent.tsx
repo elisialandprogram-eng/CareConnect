@@ -249,7 +249,7 @@ export default function ConsentPage() {
               <SelectValue placeholder={ct.language} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="en">English</SelectItem>
+              <SelectItem value="en">{t("language_english")}</SelectItem>
               <SelectItem value="hu">Magyar</SelectItem>
               <SelectItem value="fa">فارسی</SelectItem>
             </SelectContent>

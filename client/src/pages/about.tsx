@@ -3,18 +3,21 @@ import { Footer } from "@/components/footer";
 import { PageBreadcrumbs } from "@/components/page-breadcrumbs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Heart, Shield, Users, Clock, MapPin, Phone, Mail } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 export default function About() {
+  const { t } = useTranslation();
+
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
-      <PageBreadcrumbs items={[{ label: "About" }]} />
+      <PageBreadcrumbs items={[{ label: t("public_pages.about") }]} />
       <main className="flex-1">
         <section className="py-10 bg-gradient-to-b from-primary/5 to-background">
           <div className="container mx-auto px-4 text-center">
-            <h1 className="text-4xl font-bold mb-4">About Golden Life</h1>
+            <h1 className="text-4xl font-bold mb-4">{t("public_pages.about_title")}</h1>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Connecting clients with trusted healthcare professionals for quality care delivered with compassion.
+              {t("public_pages.about_intro")}
             </p>
           </div>
         </section>
@@ -22,16 +25,12 @@ export default function About() {
         <section className="py-12">
           <div className="container mx-auto px-4 max-w-4xl">
             <div>
-              <h2 className="text-2xl font-semibold mb-4">Our Mission</h2>
+              <h2 className="text-2xl font-semibold mb-4">{t("public_pages.about_mission")}</h2>
               <p className="text-muted-foreground mb-12 leading-relaxed">
-                Golden Life is dedicated to making healthcare accessible and convenient for everyone.
-                Our platform connects clients with verified Medical Doctors & Specialists, Mental Health & Behavioral Professionals,
-                Nutrition, Dietetics & Metabolic Wellness experts, Physical Therapy & Rehabilitation specialists, Dental Care Professionals,
-                Alternative, Holistic & Integrative Medicine practitioners, and Maternal, Nursing & Allied Health Support providers —
-                enabling seamless appointment booking for both online consultations and home visits.
+                {t("public_pages.about_mission_text")}
               </p>
 
-              <h2 className="text-2xl font-semibold mb-6">What We Offer</h2>
+              <h2 className="text-2xl font-semibold mb-6">{t("public_pages.about_offer")}</h2>
               <div className="grid md:grid-cols-2 gap-6 mb-12">
                 <Card>
                   <CardContent className="pt-6">
@@ -40,9 +39,9 @@ export default function About() {
                         <Heart className="h-6 w-6 text-primary" />
                       </div>
                       <div>
-                        <h3 className="font-semibold mb-2">Quality Care</h3>
+                        <h3 className="font-semibold mb-2">{t("public_pages.about_quality_title")}</h3>
                         <p className="text-sm text-muted-foreground">
-                          All our healthcare providers are verified professionals committed to delivering excellent care.
+                          {t("public_pages.about_quality_text")}
                         </p>
                       </div>
                     </div>
@@ -56,9 +55,9 @@ export default function About() {
                         <Shield className="h-6 w-6 text-primary" />
                       </div>
                       <div>
-                        <h3 className="font-semibold mb-2">Secure Platform</h3>
+                        <h3 className="font-semibold mb-2">{t("public_pages.about_secure_title")}</h3>
                         <p className="text-sm text-muted-foreground">
-                          Your data is protected with industry-standard encryption and strict privacy controls.
+                          {t("public_pages.about_secure_text")}
                         </p>
                       </div>
                     </div>
@@ -72,9 +71,9 @@ export default function About() {
                         <Users className="h-6 w-6 text-primary" />
                       </div>
                       <div>
-                        <h3 className="font-semibold mb-2">Trusted Professionals</h3>
+                        <h3 className="font-semibold mb-2">{t("public_pages.about_trusted_title")}</h3>
                         <p className="text-sm text-muted-foreground">
-                          Our network includes experienced Medical Doctors & Specialists, Mental Health & Behavioral Professionals, Nutrition & Dietetics experts, Physical Therapy & Rehabilitation practitioners, Dental Care Professionals, Alternative & Holistic Medicine practitioners, and Maternal, Nursing & Allied Health Support providers.
+                          {t("public_pages.about_trusted_text")}
                         </p>
                       </div>
                     </div>
@@ -88,9 +87,9 @@ export default function About() {
                         <Clock className="h-6 w-6 text-primary" />
                       </div>
                       <div>
-                        <h3 className="font-semibold mb-2">Convenient Booking</h3>
+                        <h3 className="font-semibold mb-2">{t("public_pages.about_convenient_title")}</h3>
                         <p className="text-sm text-muted-foreground">
-                          Book appointments online anytime, with flexible scheduling options.
+                          {t("public_pages.about_convenient_text")}
                         </p>
                       </div>
                     </div>
@@ -98,7 +97,7 @@ export default function About() {
                 </Card>
               </div>
 
-              <h2 className="text-2xl font-semibold mb-6">Contact Us</h2>
+              <h2 className="text-2xl font-semibold mb-6">{t("public_pages.about_contact")}</h2>
               <Card>
                 <CardContent className="pt-6">
                   <div className="space-y-4">

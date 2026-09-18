@@ -4,14 +4,17 @@ import { PageBreadcrumbs } from "@/components/page-breadcrumbs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { useTranslation } from "react-i18next";
 
 export default function Privacy() {
+  const { t } = useTranslation();
+
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
-      <PageBreadcrumbs items={[{ label: "Privacy Policy" }]} />
+      <PageBreadcrumbs items={[{ label: t("common.privacy_policy") }]} />
       <main className="flex-1 container mx-auto px-4 py-12 max-w-4xl">
-        <h1 className="text-3xl md:text-4xl font-bold mb-8 text-center">Privacy Policy (GDPR)</h1>
+        <h1 className="text-3xl md:text-4xl font-bold mb-8 text-center">{t("public_pages.privacy_title")}</h1>
 
         <Card className="mb-8">
           <CardHeader>
@@ -20,7 +23,7 @@ export default function Privacy() {
           <CardContent className="space-y-6 [&_p+p]:mt-2 [&_section]:leading-relaxed">
             
             <section>
-              <h2 className="text-xl font-semibold mb-4">1. Data Controller</h2>
+              <h2 className="text-xl font-semibold mb-4">{t("public_pages.privacy_controller")}</h2>
               <div className="space-y-1 text-muted-foreground">
                 <p><strong>Golden Life</strong></p>
                 <p>Hungary, 3060 Pásztó, Semmelweis utca 10</p>
@@ -32,9 +35,9 @@ export default function Privacy() {
             <Separator />
 
             <section>
-              <h2 className="text-xl font-semibold mb-4">2. Categories of Processed Data</h2>
+              <h2 className="text-xl font-semibold mb-4">{t("public_pages.privacy_categories")}</h2>
               
-              <h3 className="text-lg font-medium mb-2">Personal Data</h3>
+              <h3 className="text-lg font-medium mb-2">{t("public_pages.privacy_personal")}</h3>
               <ul className="list-disc pl-6 text-muted-foreground space-y-1 mb-4">
                 <li>Full name</li>
                 <li>Phone number</li>
@@ -43,12 +46,12 @@ export default function Privacy() {
                 <li>Payment details</li>
               </ul>
 
-              <h3 className="text-lg font-medium mb-2">Sensitive Data (GDPR Article 9)</h3>
+              <h3 className="text-lg font-medium mb-2">{t("public_pages.privacy_sensitive")}</h3>
               <p className="text-muted-foreground mb-4">
                 Health-related information voluntarily provided by the User. Stored and transmitted using encryption.
               </p>
 
-              <h3 className="text-lg font-medium mb-2">Technical Data</h3>
+              <h3 className="text-lg font-medium mb-2">{t("public_pages.privacy_technical")}</h3>
               <ul className="list-disc pl-6 text-muted-foreground space-y-1">
                 <li>IP address</li>
                 <li>Browser information</li>
@@ -61,7 +64,7 @@ export default function Privacy() {
             <Separator />
 
             <section>
-              <h2 className="text-xl font-semibold mb-4">3. Purpose of Processing</h2>
+              <h2 className="text-xl font-semibold mb-4">{t("public_pages.privacy_purpose")}</h2>
               <p className="text-muted-foreground mb-2">We process personal data to:</p>
               <ul className="list-disc pl-6 text-muted-foreground space-y-1">
                 <li>manage appointments</li>
@@ -77,7 +80,7 @@ export default function Privacy() {
             <Separator />
 
             <section>
-              <h2 className="text-xl font-semibold mb-4">4. Legal Basis</h2>
+              <h2 className="text-xl font-semibold mb-4">{t("public_pages.privacy_basis")}</h2>
               <ul className="list-disc pl-6 text-muted-foreground space-y-1">
                 <li>Contract performance (GDPR 6(1)(b))</li>
                 <li>Consent (GDPR 6(1)(a))</li>
@@ -90,7 +93,7 @@ export default function Privacy() {
             <Separator />
 
             <section>
-              <h2 className="text-xl font-semibold mb-4">5. Retention Period</h2>
+              <h2 className="text-xl font-semibold mb-4">{t("public_pages.privacy_retention")}</h2>
               <p className="text-muted-foreground mb-3">We retain your data only as long as necessary for the stated purpose or as required by law. Specific retention windows are listed below:</p>
               <div className="overflow-x-auto mb-3">
                 <table className="w-full text-sm border-collapse">
@@ -118,13 +121,13 @@ export default function Privacy() {
             <Separator />
 
             <section>
-              <h2 className="text-xl font-semibold mb-4">6. Data Transfers</h2>
+              <h2 className="text-xl font-semibold mb-4">{t("public_pages.privacy_transfers")}</h2>
               <p className="text-muted-foreground mb-4">We transfer data only to:</p>
               
-              <h3 className="text-lg font-medium mb-2">Internal</h3>
+              <h3 className="text-lg font-medium mb-2">{t("public_pages.privacy_internal")}</h3>
               <p className="text-muted-foreground mb-4">Golden Life Workers (appointment-related data only)</p>
 
-              <h3 className="text-lg font-medium mb-2">External Processors</h3>
+              <h3 className="text-lg font-medium mb-2">{t("public_pages.privacy_external")}</h3>
               <ul className="list-disc pl-6 text-muted-foreground space-y-1">
                 <li>Hosting provider</li>
                 <li>Cloud server provider</li>
@@ -142,7 +145,7 @@ export default function Privacy() {
             <Separator />
 
             <section>
-              <h2 className="text-xl font-semibold mb-4">7. User Rights</h2>
+              <h2 className="text-xl font-semibold mb-4">{t("public_pages.privacy_rights")}</h2>
               <p className="text-muted-foreground mb-2">Users may request:</p>
               <ul className="list-disc pl-6 text-muted-foreground space-y-1">
                 <li>access,</li>
@@ -161,7 +164,7 @@ export default function Privacy() {
             <Separator />
 
             <section>
-              <h2 className="text-xl font-semibold mb-4">8. Security Measures</h2>
+              <h2 className="text-xl font-semibold mb-4">{t("public_pages.privacy_security")}</h2>
               <p className="text-muted-foreground mb-2">Golden Life uses:</p>
               <ul className="list-disc pl-6 text-muted-foreground space-y-1">
                 <li>encrypted storage</li>
@@ -178,7 +181,7 @@ export default function Privacy() {
             <Separator />
 
             <section>
-              <h2 className="text-xl font-semibold mb-4">9. Marketing Emails</h2>
+              <h2 className="text-xl font-semibold mb-4">{t("public_pages.privacy_marketing")}</h2>
               <p className="text-muted-foreground mb-2">
                 Users may receive promotional or marketing emails only if they give consent.
               </p>
@@ -190,7 +193,7 @@ export default function Privacy() {
             <Separator />
 
             <section>
-              <h2 className="text-xl font-semibold mb-4">10. Complaint Rights</h2>
+              <h2 className="text-xl font-semibold mb-4">{t("public_pages.privacy_complaints")}</h2>
               <p className="text-muted-foreground mb-2">Users may lodge complaints with:</p>
               <p className="text-muted-foreground">
                 <strong>NAIH – Hungarian Data Protection Authority</strong><br />
@@ -203,12 +206,12 @@ export default function Privacy() {
 
         <Card className="mb-8">
           <CardHeader>
-            <CardTitle>Cookie Policy</CardTitle>
+            <CardTitle>{t("public_pages.privacy_cookie_title")}</CardTitle>
           </CardHeader>
           <CardContent className="prose prose-sm max-w-none dark:prose-invert space-y-6">
             
             <section>
-              <h2 className="text-xl font-semibold mb-4">1. What Are Cookies</h2>
+              <h2 className="text-xl font-semibold mb-4">{t("public_pages.privacy_cookie_what")}</h2>
               <p className="text-muted-foreground">
                 Cookies are small files stored on the User's device to improve functionality, security, and user experience.
               </p>
@@ -217,26 +220,26 @@ export default function Privacy() {
             <Separator />
 
             <section>
-              <h2 className="text-xl font-semibold mb-4">2. Types of Cookies We Use</h2>
+              <h2 className="text-xl font-semibold mb-4">{t("public_pages.privacy_cookie_types")}</h2>
               
-              <h3 className="text-lg font-medium mb-2">Strictly Necessary Cookies</h3>
+              <h3 className="text-lg font-medium mb-2">{t("public_pages.privacy_cookie_necessary")}</h3>
               <ul className="list-disc pl-6 text-muted-foreground space-y-1 mb-4">
                 <li>session cookies</li>
                 <li>security cookies</li>
                 <li>booking system cookies</li>
               </ul>
 
-              <h3 className="text-lg font-medium mb-2">Performance Cookies</h3>
+              <h3 className="text-lg font-medium mb-2">{t("public_pages.privacy_cookie_performance")}</h3>
               <p className="text-muted-foreground mb-4">Used for analytics purposes.</p>
 
-              <h3 className="text-lg font-medium mb-2">Marketing Cookies</h3>
+              <h3 className="text-lg font-medium mb-2">{t("public_pages.privacy_cookie_marketing")}</h3>
               <p className="text-muted-foreground">Used only with consent.</p>
             </section>
 
             <Separator />
 
             <section>
-              <h2 className="text-xl font-semibold mb-4">3. Cookie Duration</h2>
+              <h2 className="text-xl font-semibold mb-4">{t("public_pages.privacy_cookie_duration")}</h2>
               <ul className="list-disc pl-6 text-muted-foreground space-y-1">
                 <li>Session cookies: deleted when browser closes</li>
                 <li>Persistent cookies: stored for up to 12–24 months</li>
@@ -246,7 +249,7 @@ export default function Privacy() {
             <Separator />
 
             <section>
-              <h2 className="text-xl font-semibold mb-4">4. Cookie Consent</h2>
+              <h2 className="text-xl font-semibold mb-4">{t("public_pages.privacy_cookie_consent")}</h2>
               <p className="text-muted-foreground mb-2">Upon first visit, Users see a cookie banner allowing:</p>
               <ul className="list-disc pl-6 text-muted-foreground space-y-1">
                 <li>accept all,</li>

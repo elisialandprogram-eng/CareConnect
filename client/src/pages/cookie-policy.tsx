@@ -3,88 +3,87 @@ import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
 import { PageBreadcrumbs } from "@/components/page-breadcrumbs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useTranslation } from "react-i18next";
 
 export default function CookiePolicy() {
+  const { t } = useTranslation();
+
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
-      <PageBreadcrumbs items={[{ label: "Cookie Policy" }]} />
+      <PageBreadcrumbs items={[{ label: t("public_pages.cookie_title") }]} />
       <main className="flex-1 py-12">
         <div className="container mx-auto px-4 max-w-4xl">
-          <h1 className="text-3xl md:text-4xl font-bold mb-8 text-center">Cookie Policy</h1>
+          <h1 className="text-3xl md:text-4xl font-bold mb-8 text-center">{t("public_pages.cookie_title")}</h1>
           
           <Card className="mb-6">
             <CardHeader>
-              <CardTitle>What Are Cookies</CardTitle>
+              <CardTitle>{t("public_pages.cookie_what_title")}</CardTitle>
             </CardHeader>
             <CardContent className="prose dark:prose-invert max-w-none">
               <p>
-                Cookies are small text files that are placed on your device when you visit our website. 
-                They help us provide you with a better experience by remembering your preferences and 
-                understanding how you use our services.
+                {t("public_pages.cookie_what_text")}
               </p>
             </CardContent>
           </Card>
 
           <Card className="mb-6">
             <CardHeader>
-              <CardTitle>How We Use Cookies</CardTitle>
+              <CardTitle>{t("public_pages.cookie_use_title")}</CardTitle>
             </CardHeader>
             <CardContent className="prose dark:prose-invert max-w-none">
-              <h3>Essential Cookies</h3>
-              <p>These cookies are necessary for the website to function properly:</p>
+              <h3>{t("public_pages.cookie_essential_title")}</h3>
+              <p>{t("public_pages.cookie_essential_intro")}</p>
               <ul>
-                <li><strong>Authentication:</strong> To keep you logged in and secure your session</li>
-                <li><strong>Security:</strong> To protect against fraudulent activity and enhance security</li>
+                <li><strong>{t("public_pages.cookie_auth_label")}:</strong> {t("public_pages.cookie_auth")}</li>
+                <li><strong>{t("public_pages.cookie_security_label")}:</strong> {t("public_pages.cookie_security")}</li>
               </ul>
 
-              <h3>Functional Cookies</h3>
-              <p>These cookies enable enhanced functionality:</p>
+              <h3>{t("public_pages.cookie_functional_title")}</h3>
+              <p>{t("public_pages.cookie_functional_intro")}</p>
               <ul>
-                <li><strong>Preferences:</strong> Remember your settings like language and theme</li>
-                <li><strong>Session Management:</strong> Maintain your booking flow and cart information</li>
+                <li><strong>{t("public_pages.cookie_preferences_label")}:</strong> {t("public_pages.cookie_preferences")}</li>
+                <li><strong>{t("public_pages.cookie_session_label")}:</strong> {t("public_pages.cookie_session")}</li>
               </ul>
 
-              <h3>Analytics Cookies</h3>
-              <p>We use these to understand how visitors use our website:</p>
+              <h3>{t("public_pages.cookie_analytics_title")}</h3>
+              <p>{t("public_pages.cookie_analytics_intro")}</p>
               <ul>
-                <li>Page views and navigation patterns</li>
-                <li>Time spent on pages</li>
-                <li>Interaction with features</li>
+                <li>{t("public_pages.cookie_page_views")}</li>
+                <li>{t("public_pages.cookie_time")}</li>
+                <li>{t("public_pages.cookie_interactions")}</li>
               </ul>
             </CardContent>
           </Card>
 
           <Card className="mb-6">
             <CardHeader>
-              <CardTitle>Managing Cookies</CardTitle>
+              <CardTitle>{t("public_pages.cookie_manage_title")}</CardTitle>
             </CardHeader>
             <CardContent className="prose dark:prose-invert max-w-none">
               <p>
-                You can control and manage cookies through your browser settings. However, please note 
-                that disabling certain cookies may affect your ability to use some features of our website.
+                {t("public_pages.cookie_manage_text")}
               </p>
-              <p>Most browsers allow you to:</p>
+              <p>{t("public_pages.cookie_browsers")}</p>
               <ul>
-                <li>View and delete cookies</li>
-                <li>Block third-party cookies</li>
-                <li>Block cookies from specific websites</li>
-                <li>Clear all cookies when you close your browser</li>
+                <li>{t("public_pages.cookie_view_delete")}</li>
+                <li>{t("public_pages.cookie_block_third_party")}</li>
+                <li>{t("public_pages.cookie_block_specific")}</li>
+                <li>{t("public_pages.cookie_clear_close")}</li>
               </ul>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader>
-              <CardTitle>Updates to This Policy</CardTitle>
+              <CardTitle>{t("public_pages.cookie_updates_title")}</CardTitle>
             </CardHeader>
             <CardContent className="prose dark:prose-invert max-w-none">
               <p>
-                We may update this Cookie Policy from time to time. Any changes will be posted on this 
-                page with an updated revision date.
+                {t("public_pages.cookie_updates_text")}
               </p>
               <p className="text-sm text-muted-foreground mt-4">
-                Last updated: December 2024
+                {t("public_pages.cookie_last_updated")}
               </p>
             </CardContent>
           </Card>

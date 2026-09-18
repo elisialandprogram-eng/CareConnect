@@ -419,9 +419,9 @@ export default function Providers() {
             <div className="container mx-auto px-4">
               <div className="flex items-center gap-2 mb-4">
                 <Sparkles className="h-5 w-5 text-primary" />
-                <h2 className="text-lg font-semibold">Recommended for you</h2>
+                <h2 className="text-lg font-semibold">{t("public_pages.providers_recommended")}</h2>
                 {recData?.fallbackUsed && (
-                  <Badge variant="secondary" className="text-xs">Top rated</Badge>
+                  <Badge variant="secondary" className="text-xs">{t("public_pages.providers_top_rated")}</Badge>
                 )}
               </div>
               {recLoading ? (

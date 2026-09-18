@@ -580,6 +580,7 @@ function ActivePrescriptions({ patientId }: { patientId?: string }) {
 // ── Section 6 — Family Health ─────────────────────────────────────────────────
 
 function FamilyHealth({ familyMembers, isLoading }: { familyMembers?: any[]; isLoading: boolean }) {
+  const { t } = useTranslation();
   if (isLoading) return <CardSkeleton />;
   if (!familyMembers?.length) return null;
 
@@ -593,7 +594,7 @@ function FamilyHealth({ familyMembers, isLoading }: { familyMembers?: any[]; isL
           Family Health
         </h2>
         <Button asChild variant="ghost" size="sm" className="text-xs text-muted-foreground h-7 rounded-lg" data-testid="btn-view-all-family">
-          <Link href="/family-members">View all <ChevronRight className="h-3 w-3 ml-0.5" /></Link>
+          <Link href="/family-members">{t("home_view_all")} <ChevronRight className="h-3 w-3 ml-0.5" /></Link>
         </Button>
       </div>
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -613,11 +614,11 @@ function FamilyHealth({ familyMembers, isLoading }: { familyMembers?: any[]; isL
                 <Button asChild size="sm" variant="outline" className="h-7 text-xs rounded-lg flex-1 border-border/60" data-testid={`btn-book-family-${m.id}`}>
                   <Link href={`/book?familyMemberId=${m.id}`}>
                     <Plus className="h-3 w-3 mr-1" />
-                    Book
+                    {t("family_book")}
                   </Link>
                 </Button>
                 <Button asChild size="sm" variant="ghost" className="h-7 text-xs rounded-lg flex-1" data-testid={`btn-view-family-${m.id}`}>
-                  <Link href={`/family-members/${m.id}`}>Records</Link>
+                  <Link href={`/family-members/${m.id}`}>{t("family_records")}</Link>
                 </Button>
               </div>
             </CardContent>
