@@ -45,6 +45,23 @@ interface QuoteResponse {
   displayCurrency?: string;
 }
 
+interface AppointmentContext {
+  providerId?: string;
+  serviceId?: string | null;
+  practitionerId?: string | null;
+  visitType?: string | null;
+  patientLatitude?: number | null;
+  patientLongitude?: number | null;
+}
+
+interface AvailableSlot {
+  id: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  startAtUtc?: string;
+}
+
 interface Props {
   appointmentId: string | null;
   action: AppointmentAction;
@@ -125,7 +142,8 @@ export function AppointmentActionDialog({
   const [newStartTime, setNewStartTime] = useState("");
   const [newEndTime, setNewEndTime] = useState("");
 
-  // Reset form when dialog opens — date defaults to today, times default to 09:00/10:00
+  // Reset form when dialog opens. Times are selected from the provider's
+  // availability response; arbitrary typed times are intentionally unsupported.
   useEffect(() => {
     if (open) {
       setReasonCode("");
@@ -135,10 +153,16 @@ export function AppointmentActionDialog({
       const mm = String(today.getMonth() + 1).padStart(2, "0");
       const dd = String(today.getDate()).padStart(2, "0");
       setNewDate(`${yyyy}-${mm}-${dd}`);
-      setNewStartTime("09:00");
-      setNewEndTime("10:00");
+      setNewStartTime("");
+      setNewEndTime("");
     }
   }, [open, appointmentId, action]);
+
+  const { data: appointment } = useQuery<AppointmentContext>({
+    queryKey: ["/api/appointments", appointmentId],
+    enabled: open && !!appointmentId && (action === "reschedule" || action === "propose"),
+    staleTime: 0,
+  });
 
   const { data: quote, isLoading: quoteLoading } = useQuery<QuoteResponse>({
     queryKey: ["/api/appointments", appointmentId, "action-quote", action],
@@ -155,6 +179,49 @@ export function AppointmentActionDialog({
   });
 
   const reasonCodes = quote?.reasonCodes ?? [];
+
+  const availabilityQuery = useQuery<AvailableSlot[]>({
+    queryKey: [
+      "/api/providers",
+      appointment?.providerId,
+      "available-slots",
+      newDate,
+      appointment?.serviceId ?? "",
+      appointment?.visitType ?? "clinic",
+      appointment?.practitionerId ?? "",
+      appointment?.patientLatitude ?? "",
+      appointment?.patientLongitude ?? "",
+    ],
+    queryFn: async () => {
+      const params = new URLSearchParams({
+        date: newDate,
+        visitType: appointment?.visitType ?? "clinic",
+      });
+      if (appointment?.serviceId) params.set("serviceId", appointment.serviceId);
+      if (appointment?.practitionerId) params.set("practitionerId", appointment.practitionerId);
+      if (appointment?.patientLatitude != null) params.set("patientLatitude", String(appointment.patientLatitude));
+      if (appointment?.patientLongitude != null) params.set("patientLongitude", String(appointment.patientLongitude));
+      const res = await fetch(
+        `/api/providers/${appointment!.providerId}/available-slots?${params.toString()}`,
+        { credentials: "include" },
+      );
+      if (!res.ok) throw new Error("Failed to load available slots");
+      return res.json();
+    },
+    enabled: open
+      && (action === "reschedule" || action === "propose")
+      && !!appointment?.providerId
+      && !!newDate,
+    staleTime: 0,
+  });
+
+  const availableSlots = availabilityQuery.data ?? [];
+  useEffect(() => {
+    if (availableSlots.length > 0 && !newStartTime && !newEndTime) {
+      setNewStartTime(availableSlots[0].startTime);
+      setNewEndTime(availableSlots[0].endTime);
+    }
+  }, [availableSlots, newStartTime, newEndTime]);
 
   const mutation = useMutation({
     mutationFn: async () => {
@@ -204,7 +271,7 @@ export function AppointmentActionDialog({
   const canSubmit = (() => {
     if (mutation.isPending) return false;
     if (!quote?.canPerform) return false;
-    if (action === "reschedule") {
+    if (action === "reschedule" || action === "propose") {
       return !!newDate && !!newStartTime && !!newEndTime;
     }
     return true;
@@ -333,47 +400,62 @@ export function AppointmentActionDialog({
                   type="date"
                   value={newDate}
                   min={new Date().toISOString().split("T")[0]}
-                  onChange={(e) => setNewDate(e.target.value)}
+                  onChange={(e) => {
+                    setNewDate(e.target.value);
+                    setNewStartTime("");
+                    setNewEndTime("");
+                  }}
                   data-testid="input-new-date"
                 />
               </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div className="space-y-2">
-                  <Label htmlFor="new-start-time">{t("appt_action.start_time", "Start time")} <span className="text-xs text-muted-foreground">(HH:MM)</span></Label>
-                  <Input
-                    id="new-start-time"
-                    type="text"
-                    inputMode="numeric"
-                    placeholder="09:00"
-                    pattern="[0-2][0-9]:[0-5][0-9]"
-                    maxLength={5}
-                    value={newStartTime}
-                    onChange={(e) => {
-                      let v = e.target.value.replace(/[^0-9:]/g, "");
-                      if (v.length === 2 && !v.includes(":") && newStartTime.length === 1) v = v + ":";
-                      setNewStartTime(v);
-                    }}
-                    data-testid="input-new-start-time"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="new-end-time">{t("appt_action.end_time", "End time")} <span className="text-xs text-muted-foreground">(HH:MM)</span></Label>
-                  <Input
-                    id="new-end-time"
-                    type="text"
-                    inputMode="numeric"
-                    placeholder="10:00"
-                    pattern="[0-2][0-9]:[0-5][0-9]"
-                    maxLength={5}
-                    value={newEndTime}
-                    onChange={(e) => {
-                      let v = e.target.value.replace(/[^0-9:]/g, "");
-                      if (v.length === 2 && !v.includes(":") && newEndTime.length === 1) v = v + ":";
-                      setNewEndTime(v);
-                    }}
-                    data-testid="input-new-end-time"
-                  />
-                </div>
+              <div className="space-y-2">
+                <Label htmlFor="new-slot">{t("appt_action.available_slot", "Available time slot")}</Label>
+                <Select
+                  value={newStartTime && newEndTime ? `${newStartTime}|${newEndTime}` : undefined}
+                  onValueChange={(value) => {
+                    const [start, end] = value.split("|");
+                    setNewStartTime(start);
+                    setNewEndTime(end);
+                  }}
+                  disabled={availabilityQuery.isLoading || availableSlots.length === 0}
+                >
+                  <SelectTrigger id="new-slot" data-testid="select-new-slot">
+                    <SelectValue
+                      placeholder={
+                        availabilityQuery.isLoading
+                          ? t("appt_action.loading_slots", "Loading available slots…")
+                          : t("appt_action.select_slot", "Select an available slot")
+                      }
+                    />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableSlots.map((slot) => (
+                      <SelectItem
+                        key={`${slot.startTime}|${slot.endTime}`}
+                        value={`${slot.startTime}|${slot.endTime}`}
+                        data-testid={`option-slot-${slot.startTime}`}
+                      >
+                        {slot.startTime} – {slot.endTime}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {availabilityQuery.isLoading && (
+                  <p className="text-xs text-muted-foreground flex items-center gap-1">
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                    {t("appt_action.loading_slots", "Loading available slots…")}
+                  </p>
+                )}
+                {!availabilityQuery.isLoading && !availabilityQuery.isError && availableSlots.length === 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    {t("appt_action.no_slots", "No available slots on this date. Choose another date.")}
+                  </p>
+                )}
+                {availabilityQuery.isError && (
+                  <p className="text-xs text-destructive">
+                    {t("appt_action.slots_error", "Could not load available slots. Please choose another date.")}
+                  </p>
+                )}
               </div>
             </div>
           )}

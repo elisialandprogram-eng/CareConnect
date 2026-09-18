@@ -50,6 +50,7 @@ import {
   getBufferSettings,
   BLOCKING_STATUSES,
 } from "../conflictEngine";
+import { validateRescheduleSlot } from "../lib/rescheduleAvailability";
 import { dispatchNotification, notify } from "../services/notification-dispatcher";
 import { trackEvent } from "../services/analyticsTracker";
 import {
@@ -2692,7 +2693,7 @@ export function registerAppointmentRoutes(app: Express): void {
         ownsAppointment = !!provider && provider.id === existing.providerId;
       }
 
-      const hours = hoursUntilStart(existing.date, existing.startTime);
+      const hours = hoursUntilStart(existing.date, existing.startTime, new Date(), (existing as any).startAt);
 
       // W1: Check free_cancellations membership benefit — allows late cancellations
       let hasFreeCancel = false;
@@ -2745,9 +2746,21 @@ export function registerAppointmentRoutes(app: Express): void {
         if (!newDate || !newStartTime || !newEndTime) {
           return res.status(400).json({ message: `${action === "propose" ? "Propose" : "Reschedule"} requires newDate, newStartTime, newEndTime.` });
         }
-        const newHours = hoursUntilStart(newDate, newStartTime);
-        if (newHours !== null && newHours < 0) {
-          return res.status(400).json({ message: "New appointment time must be in the future." });
+        const slotValidation = await validateRescheduleSlot({
+          providerId: existing.providerId,
+          serviceId: (existing as any).serviceId,
+          practitionerId: (existing as any).practitionerId,
+          patientId: existing.patientId,
+          excludeAppointmentId: existing.id,
+          date: newDate,
+          startTime: newStartTime,
+          endTime: newEndTime,
+          visitType: (existing as any).visitType,
+          patientLatitude: (existing as any).patientLatitude,
+          patientLongitude: (existing as any).patientLongitude,
+        });
+        if (!slotValidation.ok) {
+          return res.status(slotValidation.status).json({ message: slotValidation.message });
         }
         // For reschedule: apply the new time immediately.
         // For propose: keep original date/time; the proposed time is stored in event metadata only.
@@ -2763,29 +2776,6 @@ export function registerAppointmentRoutes(app: Express): void {
             (updates as any).originalEndTime = existing.endTime;
           }
         }
-
-        // Vacation / time-off check for the new date.
-        try {
-          const timeOff = await storage.isProviderOnTimeOff(existing.providerId, newDate);
-          if (timeOff) {
-            return res.status(400).json({
-              message: `Provider is unavailable on ${newDate} (time off${(timeOff as any).reason ? `: ${(timeOff as any).reason}` : ""}). Please choose another date.`,
-            });
-          }
-        } catch { /* non-fatal */ }
-
-        // Single-date availability exception check.
-        try {
-          const { rows: excRows } = await pool.query(
-            `SELECT date FROM availability_exceptions WHERE provider_id = $1 AND date = $2`,
-            [existing.providerId, newDate],
-          );
-          if (excRows.length > 0) {
-            return res.status(400).json({
-              message: `Provider is not available on ${newDate}. Please choose another date.`,
-            });
-          }
-        } catch { /* non-fatal */ }
 
         // Minimum-gap enforcement — mirrors the original booking constraint.
         try {
@@ -2817,43 +2807,6 @@ export function registerAppointmentRoutes(app: Express): void {
           console.error("[reschedule] min-gap check failed (continuing):", gapErr);
         }
 
-        // Conflict check: ensure the new slot is free before committing.
-        // excludeAppointmentId prevents the appointment from blocking itself.
-        try {
-          let svcBufBefore = 0;
-          let svcBufAfter = 0;
-          if ((existing as any).serviceId) {
-            try {
-              const svc = await storage.getService((existing as any).serviceId);
-              svcBufBefore = Number(svc?.bufferBefore ?? 0);
-              svcBufAfter  = Number(svc?.bufferAfter  ?? 0);
-            } catch { /* non-fatal */ }
-          }
-          const reschedConflict = await checkConflict({
-            providerId: existing.providerId,
-            practitionerId: (existing as any).practitionerId ?? null,
-            date: newDate,
-            startTime: newStartTime,
-            endTime: newEndTime,
-            visitType: ((existing as any).visitType as "clinic" | "home" | "online") ?? "clinic",
-            serviceBufferBefore: svcBufBefore,
-            serviceBufferAfter:  svcBufAfter,
-            excludeAppointmentId: existing.id,
-          });
-          if (reschedConflict.result.hasConflict) {
-            return res.status(409).json({
-              message: reschedConflict.result.message,
-              conflictType: reschedConflict.result.conflictType,
-              effectiveStart: reschedConflict.result.effectiveStart,
-              effectiveEnd:   reschedConflict.result.effectiveEnd,
-            });
-          }
-        } catch (conflictErr) {
-          console.error("[reschedule] conflict check failed (fail-closed):", conflictErr);
-          return res.status(503).json({
-            error: "Scheduling system conflict engine is temporarily busy. Please retry in a few moments.",
-          });
-        }
       }
 
       // Compute refund quote (cancel only — reschedule/no_show return zero)
@@ -2925,22 +2878,20 @@ export function registerAppointmentRoutes(app: Express): void {
 
       // TZ Sprint — when rescheduled to a new date/time, update UTC timestamps (fire-and-forget).
       if (action === "reschedule" && newDate && newStartTime) {
-        (async () => {
-          try {
-            const prov = await storage.getProvider(existing.providerId);
-            if (prov) {
-              const provTz = await getProviderTimezone(existing.providerId, (prov as any).userId);
-              const newStartUtc = localToUTC(newDate, newStartTime, provTz);
-              const newEndUtc   = localToUTC(newDate, newEndTime || newStartTime, provTz);
-              if (!isNaN(newStartUtc.getTime())) {
-                await pool.query(
-                  `UPDATE appointments SET provider_timezone=$1, start_at=$2, end_at=$3 WHERE id=$4`,
-                  [provTz, newStartUtc.toISOString(), newEndUtc.toISOString(), updated.id],
-                );
-              }
+        try {
+          const prov = await storage.getProvider(existing.providerId);
+          if (prov) {
+            const provTz = await getProviderTimezone(existing.providerId, (prov as any).userId);
+            const newStartUtc = localToUTC(newDate, newStartTime, provTz);
+            const newEndUtc   = localToUTC(newDate, newEndTime || newStartTime, provTz);
+            if (!isNaN(newStartUtc.getTime())) {
+              await pool.query(
+                `UPDATE appointments SET provider_timezone=$1, start_at=$2, end_at=$3 WHERE id=$4`,
+                [provTz, newStartUtc.toISOString(), newEndUtc.toISOString(), updated.id],
+              );
             }
-          } catch (e: any) { console.warn("[reschedule] TZ update failed (non-fatal):", e?.message); }
-        })();
+          }
+        } catch (e: any) { console.warn("[reschedule] TZ update failed (non-fatal):", e?.message); }
       }
 
       // Free the slot when terminal (cancel / no_show)
@@ -3170,7 +3121,7 @@ export function registerAppointmentRoutes(app: Express): void {
         ownsAppointment = !!provider && provider.id === existing.providerId;
       }
 
-      const hours = hoursUntilStart(existing.date, existing.startTime);
+      const hours = hoursUntilStart(existing.date, existing.startTime, new Date(), (existing as any).startAt);
       const permit = checkAction({
         action,
         actorRole: role,
@@ -3319,6 +3270,22 @@ export function registerAppointmentRoutes(app: Express): void {
         if (!proposedTime) {
           return res.status(422).json({ message: "Proposed time not found in appointment history. Please contact support." });
         }
+        const slotValidation = await validateRescheduleSlot({
+          providerId: existing.providerId,
+          serviceId: (existing as any).serviceId,
+          practitionerId: (existing as any).practitionerId,
+          patientId: existing.patientId,
+          excludeAppointmentId: existing.id,
+          date: proposedTime.date,
+          startTime: proposedTime.startTime,
+          endTime: proposedTime.endTime,
+          visitType: (existing as any).visitType,
+          patientLatitude: (existing as any).patientLatitude,
+          patientLongitude: (existing as any).patientLongitude,
+        });
+        if (!slotValidation.ok) {
+          return res.status(slotValidation.status).json({ message: slotValidation.message });
+        }
         toStatus = "rescheduled";
         updatesAppt.date = proposedTime.date;
         updatesAppt.startTime = proposedTime.startTime;
@@ -3371,27 +3338,25 @@ export function registerAppointmentRoutes(app: Express): void {
 
       // TZ Sprint — when accept applies the proposed time, update UTC timestamps (fire-and-forget).
       if (accept && proposedTime) {
-        (async () => {
-          try {
-            const propDate  = proposedTime.date;
-            const propStart = proposedTime.startTime;
-            const propEnd   = proposedTime.endTime;
-            if (propDate && propStart) {
-              const prov = await storage.getProvider(existing.providerId);
-              if (prov) {
-                const provTz = await getProviderTimezone(existing.providerId, (prov as any).userId);
-                const newStartUtc = localToUTC(propDate, propStart, provTz);
-                const newEndUtc   = localToUTC(propDate, propEnd || propStart, provTz);
-                if (!isNaN(newStartUtc.getTime())) {
-                  await pool.query(
-                    `UPDATE appointments SET provider_timezone=$1, start_at=$2, end_at=$3 WHERE id=$4`,
-                    [provTz, newStartUtc.toISOString(), newEndUtc.toISOString(), updated.id],
-                  );
-                }
+        try {
+          const propDate  = proposedTime.date;
+          const propStart = proposedTime.startTime;
+          const propEnd   = proposedTime.endTime;
+          if (propDate && propStart) {
+            const prov = await storage.getProvider(existing.providerId);
+            if (prov) {
+              const provTz = await getProviderTimezone(existing.providerId, (prov as any).userId);
+              const newStartUtc = localToUTC(propDate, propStart, provTz);
+              const newEndUtc   = localToUTC(propDate, propEnd || propStart, provTz);
+              if (!isNaN(newStartUtc.getTime())) {
+                await pool.query(
+                  `UPDATE appointments SET provider_timezone=$1, start_at=$2, end_at=$3 WHERE id=$4`,
+                  [provTz, newStartUtc.toISOString(), newEndUtc.toISOString(), updated.id],
+                );
               }
             }
-          } catch (e: any) { console.warn("[reschedule-response] TZ update failed (non-fatal):", e?.message); }
-        })();
+          }
+        } catch (e: any) { console.warn("[reschedule-response] TZ update failed (non-fatal):", e?.message); }
       }
 
       const providerWithUser = await storage.getProviderWithUser(existing.providerId).catch(() => null);
