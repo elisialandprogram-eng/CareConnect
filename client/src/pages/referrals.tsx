@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { usePageTitle } from "@/hooks/use-page-title";
+import { useTranslation } from "react-i18next";
 import { Gift, Copy, Share2, Check, Users, Sparkles, Trophy, ChevronDown, ChevronUp, AlertCircle } from "lucide-react";
 
 
@@ -43,7 +44,8 @@ type LeaderboardRow = {
 };
 
 export default function ReferralsPage() {
-  usePageTitle("Refer a Friend | Golden Life");
+  const { t } = useTranslation();
+  usePageTitle(`${t("patient_ui.referrals.title", "Refer a friend, earn wallet credit")} | Golden Life`);
   const { toast } = useToast();
   const { format: fmtMoney } = useCurrency();
   const [copied, setCopied] = useState<"code" | "link" | null>(null);
@@ -62,10 +64,10 @@ export default function ReferralsPage() {
     try {
       await navigator.clipboard.writeText(text);
       setCopied(kind);
-      toast({ title: "Copied to clipboard" });
+       toast({ title: t("patient_ui.referrals.copied", "Copied to clipboard") });
       setTimeout(() => setCopied(null), 1500);
     } catch {
-      toast({ title: "Copy failed", variant: "destructive" });
+       toast({ title: t("patient_ui.referrals.copy_failed", "Copy failed"), variant: "destructive" });
     }
   };
 
@@ -79,8 +81,10 @@ export default function ReferralsPage() {
     if ("share" in navigator) {
       try {
         await (navigator as any).share({
-          title: "Join me on Golden Life",
-          text: `Get a wallet bonus when you book your first appointment with my referral code.`,
+           title: "Join me on Golden Life",
+           text: t("patient_ui.referrals.subtitle", "Share your code with a friend. When they finish their first appointment, you both earn {{amount}} in wallet credit.", {
+             amount: fmtMoney(data?.rewards.referrer ?? 0),
+           }),
           url: data.shareUrl,
         });
       } catch {
@@ -97,16 +101,17 @@ export default function ReferralsPage() {
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Header />
-      <PageBreadcrumbs items={[{ label: "Referrals" }]} />
+       <PageBreadcrumbs items={[{ label: t("common.referrals", "Referrals") }]} />
       <main className="flex-1 container mx-auto max-w-4xl px-4 py-8 space-y-6">
         <div className="space-y-2">
           <h1 className="text-3xl font-bold flex items-center gap-2" data-testid="heading-referrals">
             <Gift className="h-7 w-7 text-primary" />
-            Refer a friend, earn wallet credit
+             {t("patient_ui.referrals.title", "Refer a friend, earn wallet credit")}
           </h1>
           <p className="text-muted-foreground">
-            Share your code with a friend. When they finish their first appointment, you both
-            earn {fmtMoney(data?.rewards.referrer ?? 0)} in wallet credit.
+             {t("patient_ui.referrals.subtitle", "Share your code with a friend. When they finish their first appointment, you both earn {{amount}} in wallet credit.", {
+               amount: fmtMoney(data?.rewards.referrer ?? 0),
+             })}
           </p>
         </div>
 
@@ -115,10 +120,10 @@ export default function ReferralsPage() {
           <Card data-testid="card-referrals-error">
             <CardContent className="py-10 flex flex-col items-center gap-3 text-center">
               <AlertCircle className="h-10 w-10 text-destructive opacity-60" />
-              <p className="font-semibold text-destructive">Failed to load your referral data</p>
-              <p className="text-sm text-muted-foreground">Please check your connection and try again.</p>
+               <p className="font-semibold text-destructive">{t("patient_ui.referrals.load_failed", "Failed to load your referral data")}</p>
+               <p className="text-sm text-muted-foreground">{t("patient_ui.referrals.connection_retry", "Please check your connection and try again.")}</p>
               <Button variant="outline" onClick={() => queryClient.invalidateQueries({ queryKey: QK.referrals() })} data-testid="button-retry-referrals">
-                Retry
+                 {t("patient_ui.referrals.retry", "Retry")}
               </Button>
             </CardContent>
           </Card>
@@ -128,7 +133,7 @@ export default function ReferralsPage() {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <Card data-testid="card-stat-earned">
             <CardHeader className="pb-2">
-              <CardDescription>Total earned</CardDescription>
+               <CardDescription>{t("patient_ui.referrals.total_earned", "Total earned")}</CardDescription>
               <CardTitle className="text-2xl flex items-center gap-1">
                 <Sparkles className="h-5 w-5 text-amber-500" />
                 {isLoading ? <Skeleton className="h-7 w-20" /> : fmtMoney(data?.totalEarned ?? 0)}
@@ -137,7 +142,7 @@ export default function ReferralsPage() {
           </Card>
           <Card data-testid="card-stat-qualified">
             <CardHeader className="pb-2">
-              <CardDescription>Successful referrals</CardDescription>
+               <CardDescription>{t("patient_ui.referrals.successful", "Successful referrals")}</CardDescription>
               <CardTitle className="text-2xl">
                 {isLoading ? <Skeleton className="h-7 w-12" /> : qualified}
               </CardTitle>
@@ -145,7 +150,7 @@ export default function ReferralsPage() {
           </Card>
           <Card data-testid="card-stat-pending">
             <CardHeader className="pb-2">
-              <CardDescription>Pending</CardDescription>
+               <CardDescription>{t("patient_ui.referrals.pending", "Pending")}</CardDescription>
               <CardTitle className="text-2xl">
                 {isLoading ? <Skeleton className="h-7 w-12" /> : pending}
               </CardTitle>
@@ -156,10 +161,11 @@ export default function ReferralsPage() {
         {/* Code + share */}
         <Card>
           <CardHeader>
-            <CardTitle>Your referral code</CardTitle>
+             <CardTitle>{t("patient_ui.referrals.your_code", "Your referral code")}</CardTitle>
             <CardDescription>
-              Friends use this code at signup. They get {fmtMoney(data?.rewards.referred ?? 0)} as a
-              welcome bonus.
+               {t("patient_ui.referrals.code_description", "Friends use this code at signup. They get {{amount}} as a welcome bonus.", {
+                 amount: fmtMoney(data?.rewards.referred ?? 0),
+               })}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -179,7 +185,7 @@ export default function ReferralsPage() {
                   data-testid="button-copy-code"
                 >
                   {copied === "code" ? <Check className="h-4 w-4 mr-1" /> : <Copy className="h-4 w-4 mr-1" />}
-                  Copy code
+                   {t("patient_ui.referrals.copy_code", "Copy code")}
                 </Button>
               </div>
             )}
@@ -200,11 +206,11 @@ export default function ReferralsPage() {
                   data-testid="button-copy-link"
                 >
                   {copied === "link" ? <Check className="h-4 w-4 mr-1" /> : <Copy className="h-4 w-4 mr-1" />}
-                  Copy link
+                   {t("patient_ui.referrals.copy_link", "Copy link")}
                 </Button>
                 <Button onClick={handleShare} data-testid="button-share-link">
                   <Share2 className="h-4 w-4 mr-1" />
-                  Share
+                   {t("patient_ui.referrals.share", "Share")}
                 </Button>
               </div>
             )}
@@ -216,7 +222,7 @@ export default function ReferralsPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Users className="h-5 w-5" />
-              Friends you've referred
+               {t("patient_ui.referrals.friends_referred", "Friends you've referred")}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -227,7 +233,7 @@ export default function ReferralsPage() {
               </div>
             ) : !data?.referrals?.length ? (
               <p className="text-muted-foreground text-sm py-6 text-center" data-testid="text-no-referrals">
-                You haven't referred anyone yet. Share your code above to get started.
+                 {t("patient_ui.referrals.no_referrals", "You haven't referred anyone yet. Share your code above to get started.")}
               </p>
             ) : (
               <div className="divide-y">
@@ -241,10 +247,10 @@ export default function ReferralsPage() {
                       <div className="font-medium">
                         {r.referredUser
                           ? `${r.referredUser.firstName} ${r.referredUser.lastName}`
-                          : "A friend"}
+                           : t("patient_ui.referrals.friend", "A friend")}
                       </div>
                       <div className="text-xs text-muted-foreground">
-                        Joined {formatDate(r.createdAt)}
+                         {t("patient_ui.referrals.joined", "Joined {{date}}", { date: formatDate(r.createdAt) })}
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
@@ -257,7 +263,9 @@ export default function ReferralsPage() {
                         variant={r.status === "qualified" ? "default" : "secondary"}
                         data-testid={`badge-status-${r.id}`}
                       >
-                        {r.status === "qualified" ? "Rewarded" : "Pending first visit"}
+                         {r.status === "qualified"
+                           ? t("patient_ui.referrals.rewarded", "Rewarded")
+                           : t("patient_ui.referrals.pending_first_visit", "Pending first visit")}
                       </Badge>
                     </div>
                   </div>
@@ -272,7 +280,7 @@ export default function ReferralsPage() {
             <div className="flex items-center justify-between">
               <CardTitle className="flex items-center gap-2">
                 <Trophy className="h-5 w-5 text-amber-500" />
-                Referral Leaderboard
+                 {t("patient_ui.referrals.leaderboard", "Referral Leaderboard")}
               </CardTitle>
               <Button
                 variant="ghost"
@@ -281,11 +289,11 @@ export default function ReferralsPage() {
                 data-testid="button-toggle-leaderboard"
               >
                 {showLeaderboard ? <ChevronUp className="h-4 w-4 mr-1" /> : <ChevronDown className="h-4 w-4 mr-1" />}
-                {showLeaderboard ? "Hide" : "Show top referrers"}
+                 {showLeaderboard ? t("patient_ui.referrals.hide", "Hide") : t("patient_ui.referrals.show_top", "Show top referrers")}
               </Button>
             </div>
             {!showLeaderboard && (
-              <p className="text-sm text-muted-foreground mt-1">See who's referred the most friends on Golden Life.</p>
+               <p className="text-sm text-muted-foreground mt-1">{t("patient_ui.referrals.leaderboard_desc", "See who's referred the most friends on Golden Life.")}</p>
             )}
           </CardHeader>
           {showLeaderboard && (
@@ -295,7 +303,7 @@ export default function ReferralsPage() {
                   {[0, 1, 2].map(i => <Skeleton key={i} className="h-10 w-full" />)}
                 </div>
               ) : !leaderboard?.length ? (
-                <p className="text-sm text-muted-foreground text-center py-4" data-testid="text-leaderboard-empty">No data yet — be the first to refer!</p>
+                 <p className="text-sm text-muted-foreground text-center py-4" data-testid="text-leaderboard-empty">{t("patient_ui.referrals.no_leaderboard", "No data yet — be the first to refer!")}</p>
               ) : (
                 <div className="divide-y">
                   {leaderboard.map((row) => (
@@ -309,7 +317,9 @@ export default function ReferralsPage() {
                         {row.rank <= 3 ? ["🥇","🥈","🥉"][row.rank - 1] : row.rank}
                       </span>
                       <span className="flex-1 font-medium text-sm">{row.name}</span>
-                      <span className="text-sm text-muted-foreground">{row.referralCount} referral{row.referralCount !== 1 ? "s" : ""}</span>
+                       <span className="text-sm text-muted-foreground">
+                         {t(row.referralCount === 1 ? "patient_ui.referrals.referral_count_one" : "patient_ui.referrals.referral_count_other", "{{count}} referrals", { count: row.referralCount })}
+                       </span>
                       {row.totalEarned > 0 && (
                         <span className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">
                           {fmtMoney(row.totalEarned)}

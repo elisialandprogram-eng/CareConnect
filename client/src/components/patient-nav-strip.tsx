@@ -1,5 +1,6 @@
 import { Link, useLocation } from "wouter";
 import { Home, LayoutDashboard } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 /**
  * Sticky tab strip shown on both the Patient Home (/dashboard) and the
@@ -7,18 +8,19 @@ import { Home, LayoutDashboard } from "lucide-react";
  * two surfaces in one click without scrolling.
  */
 export function PatientNavStrip() {
+  const { t } = useTranslation();
   const [location] = useLocation();
 
   const tabs = [
     {
-      label: "Home",
+      label: t("patient_ui.navigation.home", "Home"),
       href: "/dashboard",
       icon: <Home className="h-4 w-4" />,
       active: location === "/dashboard",
       testId: "nav-patient-home",
     },
     {
-      label: "My Care Workspace",
+      label: t("patient_ui.navigation.care_workspace", "My Care Workspace"),
       href: "/patient/dashboard",
       icon: <LayoutDashboard className="h-4 w-4" />,
       active: location.startsWith("/patient/dashboard") || location.startsWith("/patient/workspace") || location.startsWith("/patient/records"),
@@ -29,7 +31,7 @@ export function PatientNavStrip() {
   return (
     <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-sm border-b border-border/60 shadow-sm">
       <div className="container mx-auto px-4 max-w-3xl">
-        <nav className="flex items-center gap-1 h-12" role="tablist" aria-label="Patient navigation">
+        <nav className="flex items-center gap-1 h-12" role="tablist" aria-label={t("patient_ui.navigation.patient_navigation", "Patient navigation")}>
           {tabs.map((tab) => (
             <Link key={tab.href} href={tab.href}>
               <button

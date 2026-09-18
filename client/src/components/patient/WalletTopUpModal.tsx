@@ -14,6 +14,7 @@ import { CreditCard, Loader2, Shield, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCurrency } from "@/lib/currency";
 import { formatInCurrency } from "@/lib/currency";
+import { useTranslation } from "react-i18next";
 
 const LOCAL_PRESETS_BY_CURRENCY: Record<string, number[]> = {
   HUF: [2000, 5000, 10000, 25000],
@@ -38,6 +39,7 @@ export function WalletTopUpModal({
   onTopUp,
   isPending,
 }: WalletTopUpModalProps) {
+  const { t } = useTranslation();
   const { code, symbol, convert } = useCurrency();
 
   const presets = LOCAL_PRESETS_BY_CURRENCY[code] ?? DEFAULT_PRESETS;
@@ -66,16 +68,16 @@ export function WalletTopUpModal({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-primary" />
-            Add credit to wallet
+            {t("patient_ui.wallet_top_up.title", "Add credit to wallet")}
           </DialogTitle>
           <DialogDescription>
-            Select an amount — you'll be redirected to a secure Stripe checkout page.
+            {t("patient_ui.wallet_top_up.description", "Select an amount — you'll be redirected to a secure Stripe checkout page.")}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-1">
           <div>
-            <Label className="text-xs text-muted-foreground mb-2 block">Quick amounts</Label>
+            <Label className="text-xs text-muted-foreground mb-2 block">{t("patient_ui.wallet_top_up.quick_amounts", "Quick amounts")}</Label>
             <div className="grid grid-cols-4 gap-2">
               {presets.map((amount) => (
                 <button
@@ -98,7 +100,7 @@ export function WalletTopUpModal({
 
           <div>
             <Label className="text-xs text-muted-foreground mb-1 block" htmlFor="topup-custom">
-              Or enter custom amount ({code})
+              {t("patient_ui.wallet_top_up.custom_amount", "Or enter custom amount ({{currency}})", { currency: code })}
             </Label>
             <div className="relative">
               <span className="absolute start-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground pointer-events-none select-none">
@@ -123,14 +125,14 @@ export function WalletTopUpModal({
               className="rounded-xl bg-muted/40 border px-4 py-3 flex items-center justify-between text-sm"
               data-testid="topup-summary"
             >
-              <span className="text-muted-foreground">You'll add</span>
+              <span className="text-muted-foreground">{t("patient_ui.wallet_top_up.youll_add", "You'll add")}</span>
               <span className="font-bold text-primary text-base">{fmtLocal(effectiveLocal)}</span>
             </div>
           )}
 
           <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
             <Shield className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
-            Secured by Stripe — card details are never stored on our servers.
+            {t("patient_ui.wallet_top_up.secured_by_stripe", "Secured by Stripe — card details are never stored on our servers.")}
           </div>
         </div>
 
@@ -141,7 +143,7 @@ export function WalletTopUpModal({
             disabled={isPending}
             data-testid="button-topup-cancel"
           >
-            Cancel
+            {t("patient_ui.wallet_top_up.cancel", "Cancel")}
           </Button>
           <Button
             onClick={handleConfirm}
@@ -150,7 +152,9 @@ export function WalletTopUpModal({
             data-testid="button-proceed-checkout"
           >
             {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <CreditCard className="h-4 w-4" />}
-            {isPending ? "Redirecting…" : "Proceed to checkout"}
+            {isPending
+              ? t("patient_ui.wallet_top_up.redirecting", "Redirecting…")
+              : t("patient_ui.wallet_top_up.checkout", "Proceed to checkout")}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -15,6 +15,7 @@ import { usePageTitle } from "@/hooks/use-page-title";
 import {
   Star, MessageSquare, Clock, CheckCircle2, AlertCircle, ChevronRight, PlusCircle,
 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 /* ── Types ─────────────────────────────────────────────────────────── */
 interface MyReview {
@@ -64,7 +65,8 @@ function StarRow({ rating }: { rating: number }) {
 
 /* ── Main ───────────────────────────────────────────────────────────── */
 export default function MyReviewsPage() {
-  usePageTitle("My Reviews | Golden Life");
+  const { t } = useTranslation();
+  usePageTitle(`${t("patient_ui.reviews.title", "My Reviews")} | Golden Life`);
   const { user, isLoading: authLoading } = useAuth();
   const [, navigate] = useLocation();
   const [tab, setTab] = useState<"submitted" | "pending">("submitted");
@@ -99,7 +101,7 @@ export default function MyReviewsPage() {
         <PageBreadcrumbs
           items={[
             { label: "Dashboard", href: "/patient/dashboard" },
-            { label: "My Reviews" },
+            { label: t("patient_ui.reviews.title", "My Reviews") },
           ]}
         />
 
@@ -108,16 +110,16 @@ export default function MyReviewsPage() {
             <Star className="h-5 w-5 text-white" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold">My Reviews</h1>
-            <p className="text-sm text-muted-foreground">Track your submitted and pending feedback</p>
+           <h1 className="text-2xl font-bold">{t("patient_ui.reviews.title", "My Reviews")}</h1>
+           <p className="text-sm text-muted-foreground">{t("patient_ui.reviews.subtitle", "Track your submitted and pending feedback")}</p>
           </div>
         </div>
 
         {/* Tab switcher */}
         <div className="flex gap-2 mb-6">
           {[
-            { key: "submitted" as const, label: "Submitted", count: submitted.length },
-            { key: "pending" as const, label: "Pending", count: pending.length },
+             { key: "submitted" as const, label: t("patient_ui.reviews.submitted", "Submitted"), count: submitted.length },
+             { key: "pending" as const, label: t("patient_ui.reviews.pending", "Pending"), count: pending.length },
           ].map(({ key, label, count }) => (
             <Button
               key={key}
@@ -150,10 +152,10 @@ export default function MyReviewsPage() {
             ) : submitted.length === 0 ? (
               <Card className="p-12 text-center">
                 <Star className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
-                <p className="font-medium text-muted-foreground">No reviews submitted yet</p>
+                 <p className="font-medium text-muted-foreground">{t("patient_ui.reviews.none_submitted", "No reviews submitted yet")}</p>
                 {pending.length > 0 && (
                   <Button variant="outline" className="mt-4" onClick={() => setTab("pending")}>
-                    View {pending.length} pending review{pending.length > 1 ? "s" : ""}
+                     {t("patient_ui.reviews.view_pending", "View {{count}} pending review(s)", { count: pending.length })}
                   </Button>
                 )}
               </Card>
@@ -179,7 +181,11 @@ export default function MyReviewsPage() {
                             variant={r.status === "approved" ? "default" : r.status === "rejected" ? "destructive" : "secondary"}
                             className="mt-2 text-[10px]"
                           >
-                            {r.status === "approved" ? "Published" : r.status === "rejected" ? "Not published" : "Pending moderation"}
+                             {r.status === "approved"
+                               ? t("patient_ui.reviews.published", "Published")
+                               : r.status === "rejected"
+                                 ? t("patient_ui.reviews.not_published", "Not published")
+                                 : t("patient_ui.reviews.pending_moderation", "Pending moderation")}
                           </Badge>
                           {r.comment && (
                             <p className="text-sm text-muted-foreground mt-2 leading-relaxed line-clamp-3">
@@ -188,7 +194,7 @@ export default function MyReviewsPage() {
                           )}
                           {r.reply && (
                             <div className="mt-3 pl-3 border-l-2 border-primary/30">
-                              <p className="text-xs font-medium text-primary mb-0.5">Provider's reply</p>
+                               <p className="text-xs font-medium text-primary mb-0.5">{t("patient_ui.reviews.providers_reply", "Provider's reply")}</p>
                               <p className="text-xs text-muted-foreground leading-relaxed">{r.reply}</p>
                             </div>
                           )}
@@ -198,12 +204,12 @@ export default function MyReviewsPage() {
                           {r.reply ? (
                             <Badge variant="outline" className="mt-2 text-[10px] bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20">
                               <CheckCircle2 className="h-3 w-3 mr-1" />
-                              Replied
+                               {t("patient_ui.reviews.replied", "Replied")}
                             </Badge>
                           ) : (
                             <Badge variant="outline" className="mt-2 text-[10px] text-muted-foreground">
                               <Clock className="h-3 w-3 mr-1" />
-                              Awaiting reply
+                               {t("patient_ui.reviews.awaiting_reply", "Awaiting reply")}
                             </Badge>
                           )}
                         </div>
@@ -226,19 +232,19 @@ export default function MyReviewsPage() {
             ) : pending.length === 0 ? (
               <Card className="p-12 text-center">
                 <CheckCircle2 className="h-10 w-10 text-emerald-500 mx-auto mb-3" />
-                <p className="font-medium">All caught up!</p>
-                <p className="text-sm text-muted-foreground mt-1">You have no pending reviews.</p>
+                 <p className="font-medium">{t("patient_ui.reviews.all_caught_up", "All caught up!")}</p>
+                 <p className="text-sm text-muted-foreground mt-1">{t("patient_ui.reviews.no_pending", "You have no pending reviews.")}</p>
               </Card>
             ) : (
               <div className="space-y-3">
                 <p className="text-sm text-muted-foreground mb-2">
-                  Your feedback helps other patients choose the right care.
+                   {t("patient_ui.reviews.feedback_help", "Your feedback helps other patients choose the right care.")}
                 </p>
                 {pending.map((a: any) => {
                   const providerName = a.provider
                     ? `${a.provider.firstName ?? ""} ${a.provider.lastName ?? ""}`.trim()
                     : [a.providerFirstName, a.providerLastName, a.provider_first_name, a.provider_last_name]
-                        .filter(Boolean).join(" ") || "Provider";
+                         .filter(Boolean).join(" ") || t("patient_ui.reviews.provider", "Provider");
                   const apptDate = a.scheduledAt ?? a.scheduled_at ?? "";
                   return (
                     <Card key={a.id} className="hover:shadow-md transition-shadow">
@@ -246,7 +252,7 @@ export default function MyReviewsPage() {
                         <div className="min-w-0">
                           <p className="font-semibold text-sm">{providerName}</p>
                           <p className="text-xs text-muted-foreground capitalize mt-0.5">
-                            {(a.visitType ?? a.visit_type ?? "").replace("_", " ")} visit
+                             {(a.visitType ?? a.visit_type ?? "").replace("_", " ")} {t("patient_ui.reviews.provider", "Provider").toLowerCase() === "provider" ? "visit" : ""}
                             {apptDate ? ` · ${formatDate(apptDate)}` : ""}
                           </p>
                           <div className="flex gap-0.5 mt-2">
@@ -258,7 +264,7 @@ export default function MyReviewsPage() {
                         <Link href={`/review/${a.id}`}>
                           <Button size="sm" className="gap-1.5 shrink-0" data-testid={`btn-write-review-${a.id}`}>
                             <PlusCircle className="h-4 w-4" />
-                            Write Review
+                             {t("patient_ui.reviews.write_review", "Write Review")}
                           </Button>
                         </Link>
                       </CardContent>

@@ -16,8 +16,10 @@ import { useAuth } from "@/lib/auth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Gift, CreditCard, Wallet, CheckCircle2, Loader2 } from "lucide-react";
 import { useCurrency } from "@/lib/currency";
+import { useTranslation } from "react-i18next";
 
 export default function GiftCardsPage() {
+  const { t } = useTranslation();
   const { isAuthenticated } = useAuth();
   const { toast } = useToast();
   const { format: fmtMoney, code: currencyCode } = useCurrency();
@@ -39,22 +41,22 @@ export default function GiftCardsPage() {
   const purchaseMut = useMutation({
     mutationFn: (payload: any) => apiRequest("POST", "/api/gift-cards/purchase", payload).then(r => r.json()),
     onSuccess: (data) => {
-      toast({ title: "Gift card purchased!", description: `Code: ${data.code}` });
+      toast({ title: t("patient_ui.gift_cards.purchase_success", "Gift card purchased!"), description: `Code: ${data.code}` });
       queryClient.invalidateQueries({ queryKey: QK.giftCards() });
       setAmount("50");
       setRecipientEmail("");
     },
-    onError: (e: any) => toast({ title: "Purchase failed", description: e?.message, variant: "destructive" }),
+    onError: (e: any) => toast({ title: t("patient_ui.gift_cards.purchase_failed", "Purchase failed"), description: e?.message, variant: "destructive" }),
   });
 
   const redeemMut = useMutation({
     mutationFn: (code: string) => apiRequest("POST", "/api/gift-cards/redeem", { code }).then(r => r.json()),
     onSuccess: (data) => {
-      toast({ title: "Gift card redeemed!", description: `${fmtMoney(data.amount)} added to your wallet.` });
+      toast({ title: t("patient_ui.gift_cards.redemption_success", "Gift card redeemed!"), description: t("patient_ui.gift_cards.added_to_wallet", "{{amount}} added to your wallet.", { amount: fmtMoney(data.amount) }) });
       setRedeemCode("");
       queryClient.invalidateQueries({ queryKey: QK.wallet() });
     },
-    onError: (e: any) => toast({ title: "Redemption failed", description: e?.message, variant: "destructive" }),
+    onError: (e: any) => toast({ title: t("patient_ui.gift_cards.redemption_failed", "Redemption failed"), description: e?.message, variant: "destructive" }),
   });
 
   async function handleCheckBalance() {
@@ -63,10 +65,10 @@ export default function GiftCardsPage() {
     setCheckedCard(null);
     try {
       const res = await fetch(`/api/gift-cards/${checkCode.trim().toUpperCase()}`);
-      if (!res.ok) { toast({ title: "Gift card not found", variant: "destructive" }); return; }
+      if (!res.ok) { toast({ title: t("patient_ui.gift_cards.not_found", "Gift card not found"), variant: "destructive" }); return; }
       setCheckedCard(await res.json());
     } catch {
-      toast({ title: "Could not check balance", variant: "destructive" });
+      toast({ title: t("patient_ui.gift_cards.check_failed", "Could not check balance"), variant: "destructive" });
     } finally { setCheckLoading(false); }
   }
 
@@ -74,11 +76,11 @@ export default function GiftCardsPage() {
     <div className="min-h-screen bg-background flex flex-col">
       <Header />
       <main className="flex-1 container mx-auto px-4 py-8 max-w-3xl space-y-8">
-        <PageBreadcrumbs items={[{ label: "Gift Cards" }]} />
+        <PageBreadcrumbs items={[{ label: t("patient_ui.gift_cards.title", "Gift Cards") }]} />
 
         <div>
-          <h1 className="text-3xl font-bold">Gift Cards</h1>
-          <p className="text-muted-foreground mt-1">Buy a gift card for someone special or redeem one to add credit to your wallet.</p>
+          <h1 className="text-3xl font-bold">{t("patient_ui.gift_cards.title", "Gift Cards")}</h1>
+          <p className="text-muted-foreground mt-1">{t("patient_ui.gift_cards.subtitle", "Buy a gift card for someone special or redeem one to add credit to your wallet.")}</p>
         </div>
 
         {/* Purchase */}
@@ -86,13 +88,13 @@ export default function GiftCardsPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Gift className="h-5 w-5 text-primary" />
-              Buy a gift card
+              {t("patient_ui.gift_cards.buy", "Buy a gift card")}
             </CardTitle>
-            <CardDescription>Gift cards never expire within one year and can be redeemed for any service.</CardDescription>
+            <CardDescription>{t("patient_ui.gift_cards.buy_desc", "Gift cards never expire within one year and can be redeemed for any service.")}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label>Amount</Label>
+              <Label>{t("patient_ui.gift_cards.amount", "Amount")}</Label>
               <div className="flex gap-2 flex-wrap">
                 {PRESET_AMOUNTS.map(a => (
                   <button
@@ -114,7 +116,7 @@ export default function GiftCardsPage() {
                   max={1000}
                   value={amount}
                   onChange={e => setAmount(e.target.value)}
-                  placeholder="Custom USD amount"
+                  placeholder={t("patient_ui.gift_cards.custom_amount", "Custom USD amount")}
                   data-testid="input-gift-card-amount"
                   className="flex-1"
                 />
@@ -124,15 +126,15 @@ export default function GiftCardsPage() {
               )}
             </div>
             <div className="space-y-2">
-              <Label>Recipient email (optional)</Label>
+              <Label>{t("patient_ui.gift_cards.recipient_email", "Recipient email (optional)")}</Label>
               <Input
                 type="email"
                 value={recipientEmail}
                 onChange={e => setRecipientEmail(e.target.value)}
-                placeholder="friend@example.com"
+                placeholder={t("patient_ui.gift_cards.email_placeholder", "friend@example.com")}
                 data-testid="input-gift-card-recipient"
               />
-              <p className="text-xs text-muted-foreground">We will send the code to this email address.</p>
+              <p className="text-xs text-muted-foreground">{t("patient_ui.gift_cards.email_help", "We will send the code to this email address.")}</p>
             </div>
             <Button
               disabled={!amount || Number(amount) < 1 || purchaseMut.isPending || !isAuthenticated}
@@ -141,7 +143,7 @@ export default function GiftCardsPage() {
               data-testid="button-purchase-gift-card"
             >
               {purchaseMut.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <CreditCard className="h-4 w-4 mr-2" />}
-              {isAuthenticated ? "Purchase gift card" : "Log in to purchase"}
+              {isAuthenticated ? t("patient_ui.gift_cards.purchase", "Purchase gift card") : t("patient_ui.gift_cards.log_in_purchase", "Log in to purchase")}
             </Button>
           </CardContent>
         </Card>
@@ -151,9 +153,9 @@ export default function GiftCardsPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Wallet className="h-5 w-5 text-primary" />
-              Redeem a gift card
+              {t("patient_ui.gift_cards.redeem", "Redeem a gift card")}
             </CardTitle>
-            <CardDescription>Enter your code to add the balance to your wallet.</CardDescription>
+            <CardDescription>{t("patient_ui.gift_cards.redeem_desc", "Enter your code to add the balance to your wallet.")}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="flex gap-2">
@@ -169,7 +171,7 @@ export default function GiftCardsPage() {
                 onClick={() => redeemMut.mutate(redeemCode)}
                 data-testid="button-redeem-gift-card"
               >
-                {redeemMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Redeem"}
+                {redeemMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : t("patient_ui.gift_cards.redeem", "Redeem")}
               </Button>
             </div>
           </CardContent>
@@ -178,7 +180,7 @@ export default function GiftCardsPage() {
         {/* Balance check */}
         <Card data-testid="card-check-balance">
           <CardHeader>
-            <CardTitle className="text-base">Check gift card balance</CardTitle>
+            <CardTitle className="text-base">{t("patient_ui.gift_cards.check_balance", "Check gift card balance")}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="flex gap-2">
@@ -190,19 +192,19 @@ export default function GiftCardsPage() {
                 data-testid="input-check-code"
               />
               <Button variant="outline" disabled={!checkCode.trim() || checkLoading} onClick={handleCheckBalance} data-testid="button-check-balance">
-                {checkLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Check"}
+                {checkLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : t("patient_ui.gift_cards.check", "Check")}
               </Button>
             </div>
             {checkedCard && (
               <div className="p-3 rounded-lg border bg-muted/30 space-y-1" data-testid="card-balance-result">
                 <div className="flex items-center gap-2">
                   <CheckCircle2 className="h-4 w-4 text-green-500" />
-                  <span className="text-sm font-medium">Valid gift card</span>
-                  {!checkedCard.is_active && <Badge variant="destructive">Used</Badge>}
+                  <span className="text-sm font-medium">{t("patient_ui.gift_cards.valid", "Valid gift card")}</span>
+                  {!checkedCard.is_active && <Badge variant="destructive">{t("patient_ui.gift_cards.used", "Used")}</Badge>}
                 </div>
-                <p className="text-sm">Balance: <strong>{fmtMoney(Number(checkedCard.balance))}</strong></p>
+                <p className="text-sm">{t("patient_ui.gift_cards.balance", "Balance")}: <strong>{fmtMoney(Number(checkedCard.balance))}</strong></p>
                 {checkedCard.expires_at && (
-                  <p className="text-xs text-muted-foreground">Expires: {formatDate(checkedCard.expires_at)}</p>
+                  <p className="text-xs text-muted-foreground">{t("patient_ui.gift_cards.expires", "Expires")}: {formatDate(checkedCard.expires_at)}</p>
                 )}
               </div>
             )}
@@ -213,24 +215,24 @@ export default function GiftCardsPage() {
         {isAuthenticated && (
           <Card data-testid="card-my-gift-cards">
             <CardHeader>
-              <CardTitle className="text-base">Gift cards I purchased</CardTitle>
+              <CardTitle className="text-base">{t("patient_ui.gift_cards.my_cards", "Gift cards I purchased")}</CardTitle>
             </CardHeader>
             <CardContent>
               {cardsLoading ? (
-                <p className="text-sm text-muted-foreground">Loading…</p>
+                <p className="text-sm text-muted-foreground">{t("patient_ui.gift_cards.loading", "Loading…")}</p>
               ) : (myCards as any[]).length === 0 ? (
-                <p className="text-sm text-muted-foreground">You have not purchased any gift cards yet.</p>
+                <p className="text-sm text-muted-foreground">{t("patient_ui.gift_cards.no_cards", "You have not purchased any gift cards yet.")}</p>
               ) : (
                 <div className="space-y-2">
                   {(myCards as any[]).map((c: any) => (
                     <div key={c.id} className="flex items-center justify-between p-3 rounded-lg border" data-testid={`card-gift-card-${c.id}`}>
                       <div className="space-y-0.5">
                         <p className="font-mono text-sm font-medium">{c.code}</p>
-                        <p className="text-xs text-muted-foreground">{c.recipient_email ? `To: ${c.recipient_email}` : "Personal"}</p>
+                        <p className="text-xs text-muted-foreground">{c.recipient_email ? `${t("patient_ui.gift_cards.to", "To:")} ${c.recipient_email}` : t("patient_ui.gift_cards.personal", "Personal")}</p>
                       </div>
                       <div className="text-right space-y-0.5">
                         <p className="text-sm font-semibold">{fmtMoney(Number(c.balance))}</p>
-                        <Badge variant={c.is_active ? "default" : "secondary"}>{c.is_active ? "Active" : "Used"}</Badge>
+                        <Badge variant={c.is_active ? "default" : "secondary"}>{c.is_active ? t("patient_ui.gift_cards.active", "Active") : t("patient_ui.gift_cards.used", "Used")}</Badge>
                       </div>
                     </div>
                   ))}

@@ -23,6 +23,7 @@ import { QK } from "@/lib/query-keys";
 import { clsx } from "clsx";
 import { isToday, isYesterday } from "date-fns";
 import { formatDate, formatTime } from "@/lib/datetime";
+import { useTranslation } from "react-i18next";
 
 interface AppointmentContext {
   id: string;
@@ -72,11 +73,11 @@ function initials(name: string) {
   return name.split(/\s+/).filter(Boolean).slice(0, 2).map(p => p[0]?.toUpperCase()).join("") || "?";
 }
 
-function formatListTime(iso: string | null | undefined) {
+function formatListTime(iso: string | null | undefined, t: (key: string, fallback: string) => string) {
   if (!iso) return "";
   const d = new Date(iso);
   if (isToday(d)) return formatTime(d, { hour: "2-digit", minute: "2-digit", hour12: false });
-  if (isYesterday(d)) return "Yesterday";
+  if (isYesterday(d)) return t("patient_ui.messages.yesterday", "Yesterday");
   return formatDate(d, { month: "short", day: "numeric" });
 }
 
@@ -101,10 +102,10 @@ function RoleIcon({ role }: { role: string }) {
   return <UserIcon className="h-3 w-3" />;
 }
 
-function roleLabel(role: string) {
-  if (role === "admin") return "Support";
-  if (role === "provider") return "Provider";
-  return "Patient";
+function roleLabel(role: string, t: (key: string, fallback: string) => string) {
+  if (role === "admin") return t("patient_ui.messages.support", "Support");
+  if (role === "provider") return t("patient_ui.reviews.provider", "Provider");
+  return t("common.patient", "Patient");
 }
 
 function convIsLocked(conv: RichConversation): boolean {
@@ -118,7 +119,8 @@ function canJoinVideo(appt: AppointmentContext | null): boolean {
 }
 
 export default function Messages() {
-  usePageTitle("Messages");
+  const { t } = useTranslation();
+  usePageTitle(t("patient_ui.messages.title", "Messages"));
   const { user } = useAuth();
   const { toast } = useToast();
 
@@ -208,7 +210,7 @@ export default function Messages() {
           }
           case "error":
             if (data.code === "CONVERSATION_LOCKED") {
-              toast({ title: "Conversation closed", description: data.message, variant: "destructive" });
+              toast({ title: t("patient_ui.messages.conversation_closed", "Conversation closed"), description: data.message, variant: "destructive" });
               queryClient.invalidateQueries({ queryKey: QK.conversations() });
             }
             break;
@@ -267,7 +269,7 @@ export default function Messages() {
     if ((!message.trim() && !extra) || !selectedId) return;
     const sock = socketRef.current;
     if (!sock || sock.readyState !== WebSocket.OPEN) {
-      toast({ title: "Reconnecting…", description: "Try again in a moment.", variant: "destructive" });
+      toast({ title: t("patient_ui.messages.reconnecting", "Reconnecting…"), description: t("patient_ui.messages.try_again_moment", "Try again in a moment."), variant: "destructive" });
       return;
     }
     sock.send(JSON.stringify({
@@ -281,7 +283,7 @@ export default function Messages() {
 
   const handleFile = async (file: File) => {
     if (file.size > 12 * 1024 * 1024) {
-      toast({ title: "File too large", description: "Max 12 MB.", variant: "destructive" });
+      toast({ title: t("patient_ui.messages.file_too_large", "File too large"), description: t("patient_ui.messages.max_file", "Max 12 MB."), variant: "destructive" });
       return;
     }
     try {
@@ -290,11 +292,11 @@ export default function Messages() {
         headers: { "Content-Type": file.type || "application/octet-stream", "X-Filename": encodeURIComponent(file.name) },
         body: file,
       });
-      if (!r.ok) throw new Error((await r.json()).message || "Upload failed");
+      if (!r.ok) throw new Error((await r.json()).message || t("patient_ui.messages.upload_failed", "Upload failed"));
       const j = await r.json();
       sendMessage({ attachmentUrl: j.url, attachmentType: j.mimetype, attachmentName: j.name });
     } catch (e: any) {
-      toast({ title: "Upload failed", description: e.message, variant: "destructive" });
+      toast({ title: t("patient_ui.messages.upload_failed", "Upload failed"), description: e.message, variant: "destructive" });
     }
   };
 
@@ -305,7 +307,7 @@ export default function Messages() {
       queryClient.invalidateQueries({ queryKey: QK.chatMessages(selectedId) });
       setEditingId(null);
     },
-    onError: () => toast({ title: "Edit failed", description: "Please try again.", variant: "destructive" }),
+    onError: () => toast({ title: t("patient_ui.messages.edit_failed", "Edit failed"), description: t("patient_ui.messages.please_try_again", "Please try again."), variant: "destructive" }),
   });
 
   const contactSupport = useMutation({
@@ -318,7 +320,7 @@ export default function Messages() {
       queryClient.invalidateQueries({ queryKey: QK.conversations() });
       if (convId) setSelectedId(convId);
     },
-    onError: () => toast({ title: "Could not reach support", description: "Please try again.", variant: "destructive" }),
+    onError: () => toast({ title: t("patient_ui.messages.support_failed", "Could not reach support"), description: t("patient_ui.messages.please_try_again", "Please try again."), variant: "destructive" }),
   });
 
   // ── Derived data ───────────────────────────────────────────────────────────
@@ -345,13 +347,17 @@ export default function Messages() {
     const out: Array<{ day: string; items: ChatMessage[] }> = [];
     messages.forEach(m => {
       const d = m.createdAt ? new Date(m.createdAt) : new Date();
-      const day = isToday(d) ? "Today" : isYesterday(d) ? "Yesterday" : formatDate(d, { weekday: "long", month: "short", day: "numeric", year: "numeric" });
+       const day = isToday(d)
+         ? t("patient_ui.messages.today", "Today")
+         : isYesterday(d)
+           ? t("patient_ui.messages.yesterday", "Yesterday")
+           : formatDate(d, { weekday: "long", month: "short", day: "numeric", year: "numeric" });
       const last = out[out.length - 1];
       if (last?.day === day) last.items.push(m);
       else out.push({ day, items: [m] });
     });
     return out;
-  }, [messages]);
+   }, [messages, t]);
 
   if (!user) return null;
 
@@ -359,7 +365,7 @@ export default function Messages() {
     <div className="min-h-screen flex flex-col bg-background">
       <Header />
       <main className="flex-1 container mx-auto px-4 py-4 max-w-7xl">
-        <PageBreadcrumbs items={[{ label: "Home", href: "/" }, { label: "Messages" }]} fallback="/" />
+        <PageBreadcrumbs items={[{ label: t("common.home", "Home"), href: "/" }, { label: t("patient_ui.messages.title", "Messages") }]} fallback="/" />
 
         <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-3 h-[calc(100vh-10rem)]">
 
@@ -369,7 +375,7 @@ export default function Messages() {
               <div className="flex items-center justify-between mb-2">
                 <span className="flex items-center gap-1.5 font-semibold text-sm">
                   <MessageCircle className="h-4 w-4 text-primary" />
-                  Messages
+                  {t("patient_ui.messages.title", "Messages")}
                 </span>
                 <Button
                   size="sm" variant="outline" className="h-7 text-xs gap-1 px-2"
@@ -380,13 +386,13 @@ export default function Messages() {
                   {contactSupport.isPending
                     ? <Loader2 className="h-3 w-3 animate-spin" />
                     : <Headphones className="h-3 w-3" />}
-                  Support
+                  {t("patient_ui.messages.support", "Support")}
                 </Button>
               </div>
               <div className="relative">
                 <Search className="h-3.5 w-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
                 <Input
-                  placeholder="Search conversations…"
+                  placeholder={t("patient_ui.messages.search", "Search conversations…")}
                   className="h-8 pl-8 text-xs"
                   value={searchQ}
                   onChange={e => setSearchQ(e.target.value)}
@@ -399,13 +405,13 @@ export default function Messages() {
               <ScrollArea className="h-full">
                 {loadingConvs ? (
                   <div className="flex items-center justify-center py-10 text-muted-foreground gap-2 text-sm">
-                    <Loader2 className="h-4 w-4 animate-spin" /> Loading…
+                    <Loader2 className="h-4 w-4 animate-spin" /> {t("patient_ui.messages.loading", "Loading…")}
                   </div>
                 ) : filteredConvs.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-10 px-4 text-center text-muted-foreground">
                     <MessageCircle className="h-8 w-8 opacity-15 mb-2" />
-                    <p className="text-sm font-medium">No conversations yet</p>
-                    <p className="text-xs mt-1">Tap "Support" to start a chat</p>
+                    <p className="text-sm font-medium">{t("patient_ui.messages.no_conversations", "No conversations yet")}</p>
+                    <p className="text-xs mt-1">{t("patient_ui.messages.start_support", "Tap \"Support\" to start a chat")}</p>
                   </div>
                 ) : filteredConvs.map(conv => {
                   const isActive = selectedId === conv.id;
@@ -449,7 +455,7 @@ export default function Messages() {
                                   {conv.unread > 99 ? "99+" : conv.unread}
                                 </Badge>
                               )}
-                              <span className="text-[10px] text-muted-foreground">{formatListTime(conv.lastMessageAt)}</span>
+                              <span className="text-[10px] text-muted-foreground">{formatListTime(conv.lastMessageAt, t)}</span>
                             </div>
                           </div>
 
@@ -475,16 +481,16 @@ export default function Messages() {
 
                           <p className={clsx("text-xs truncate", conv.unread > 0 ? "font-medium text-foreground" : "text-muted-foreground")}>
                             {lk
-                              ? <span className="flex items-center gap-1 opacity-70"><Lock className="h-2.5 w-2.5 shrink-0" />Closed</span>
+                              ? <span className="flex items-center gap-1 opacity-70"><Lock className="h-2.5 w-2.5 shrink-0" />{t("patient_ui.messages.closed", "Closed")}</span>
                               : conv.lastMessage
                                 ? conv.lastMessage
-                                : <span className="italic opacity-60">No messages yet</span>
+                                : <span className="italic opacity-60">{t("patient_ui.messages.no_messages", "No messages yet")}</span>
                             }
                           </p>
 
                           <span className="flex items-center gap-1 text-[10px] text-muted-foreground mt-0.5">
                             <RoleIcon role={conv.other.role} />
-                            {roleLabel(conv.other.role)}
+                            {roleLabel(conv.other.role, t)}
                           </span>
                         </div>
                       </div>
@@ -501,8 +507,8 @@ export default function Messages() {
               <div className="flex-1 flex flex-col items-center justify-center gap-3 text-muted-foreground text-center p-8">
                 <MessageCircle className="h-14 w-14 opacity-10" />
                 <div>
-                  <p className="font-semibold text-base">Select a conversation</p>
-                  <p className="text-sm mt-1">Choose one from the list to open a chat</p>
+                  <p className="font-semibold text-base">{t("patient_ui.messages.select_conversation", "Select a conversation")}</p>
+                  <p className="text-sm mt-1">{t("patient_ui.messages.choose_conversation", "Choose one from the list to open a chat")}</p>
                 </div>
               </div>
             ) : (
@@ -531,7 +537,7 @@ export default function Messages() {
                           </p>
                           <span className="flex items-center gap-1 text-[10px] text-muted-foreground shrink-0">
                             <RoleIcon role={selected.other.role} />
-                            {roleLabel(selected.other.role)}
+                            {roleLabel(selected.other.role, t)}
                           </span>
                         </div>
 
@@ -560,7 +566,7 @@ export default function Messages() {
                           </div>
                         ) : (
                           <p className="text-[10px] text-muted-foreground mt-0.5">
-                            {otherOnline ? "Online now" : "Offline"}
+                            {otherOnline ? t("common.online", "Online now") : t("common.offline", "Offline")}
                           </p>
                         )}
                       </div>
@@ -574,7 +580,7 @@ export default function Messages() {
                         data-testid="button-join-video-call"
                       >
                         <Video className="h-3.5 w-3.5" />
-                        Join Call
+                        {t("common.join_call", "Join Call")}
                       </Button>
                     )}
                   </div>
@@ -596,14 +602,14 @@ export default function Messages() {
                       </Avatar>
                       <p className="font-semibold text-sm text-foreground">{selected.other.name}</p>
                       <p className="text-xs mt-1 flex items-center gap-1">
-                        <RoleIcon role={selected.other.role} />{roleLabel(selected.other.role)}
+                        <RoleIcon role={selected.other.role} />{roleLabel(selected.other.role, t)}
                       </p>
 
                       {selected.appointment && (
                         <div className="mt-4 p-3 bg-background rounded-xl border text-left max-w-xs w-full">
                           <p className="text-xs font-semibold text-foreground mb-1.5 flex items-center gap-1">
                             <Calendar className="h-3 w-3 text-primary" />
-                            Care Appointment
+                            {t("common.care_appointment", "Care Appointment")}
                           </p>
                           <p className="text-xs text-muted-foreground">
                             {formatDate(selected.appointment.date + "T12:00:00", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
@@ -625,7 +631,7 @@ export default function Messages() {
                           </span>
                         </div>
                       )}
-                      <p className="text-xs mt-4 italic opacity-60">No messages yet — start the conversation</p>
+                      <p className="text-xs mt-4 italic opacity-60">{t("patient_ui.messages.start_conversation", "No messages yet — start the conversation")}</p>
                     </div>
                   ) : (
                     grouped.map(group => (
@@ -731,7 +737,7 @@ export default function Messages() {
                                 )}
                                 <span className="text-[9px] text-muted-foreground mt-0.5 px-1 flex items-center gap-1">
                                   {msg.createdAt ? formatTime(msg.createdAt, { hour: "2-digit", minute: "2-digit", hour12: false }) : ""}
-                                  {msg.isEdited && <><Pencil className="h-2.5 w-2.5" /><span>edited</span></>}
+                                  {msg.isEdited && <><Pencil className="h-2.5 w-2.5" /><span>{t("patient_ui.messages.edited", "edited")}</span></>}
                                   {mine && (
                                     msg.readAt
                                       ? <CheckCheck className="h-3 w-3 text-blue-500" />
@@ -765,8 +771,8 @@ export default function Messages() {
                   <div className="border-t px-4 py-3 flex items-start gap-2 bg-muted/20 shrink-0">
                     <Lock className="h-4 w-4 shrink-0 text-muted-foreground/60 mt-0.5" />
                     <div>
-                      <p className="text-xs font-medium text-foreground">Conversation closed</p>
-                      <p className="text-[11px] text-muted-foreground">The care episode has ended. No further messages can be sent.</p>
+                      <p className="text-xs font-medium text-foreground">{t("patient_ui.messages.conversation_closed", "Conversation closed")}</p>
+                      <p className="text-[11px] text-muted-foreground">{t("patient_ui.messages.episode_ended", "The care episode has ended. No further messages can be sent.")}</p>
                     </div>
                   </div>
                 ) : (
@@ -785,14 +791,14 @@ export default function Messages() {
                       size="icon" variant="ghost"
                       className="h-9 w-9 shrink-0 text-muted-foreground hover:text-foreground"
                       onClick={() => fileRef.current?.click()}
-                      title="Attach file"
+                      title={t("common.attach_file", "Attach file")}
                       data-testid="button-attach-file"
                     >
                       <Paperclip className="h-4 w-4" />
                     </Button>
                     <Input
                       className="h-9 text-sm flex-1"
-                      placeholder={isSocketReady ? "Type a message…" : "Connecting…"}
+                      placeholder={isSocketReady ? t("common.type_message", "Type a message…") : t("common.connecting", "Connecting…")}
                       value={message}
                       onChange={e => { setMessage(e.target.value); sendTyping(); }}
                       onKeyDown={e => {

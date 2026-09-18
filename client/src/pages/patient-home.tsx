@@ -49,11 +49,11 @@ import { formatDate as formatDateTz } from "@/lib/datetime";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-function getGreeting(): string {
+function getGreeting(t: (key: string, fallback: string) => string): string {
   const h = new Date().getHours();
-  if (h < 12) return "Good morning";
-  if (h < 17) return "Good afternoon";
-  return "Good evening";
+  if (h < 12) return t("patient_home.greeting_morning", "Good morning");
+  if (h < 17) return t("patient_home.greeting_afternoon", "Good afternoon");
+  return t("patient_home.greeting_evening", "Good evening");
 }
 
 const CONTEXTUAL_MESSAGES = [
@@ -123,12 +123,13 @@ function CardSkeleton() {
 // ── Section 1 — Hero Greeting ─────────────────────────────────────────────────
 
 function HeroGreeting({ user, nextAppt }: { user: any; nextAppt?: AppointmentWithDetails }) {
+  const { t } = useTranslation();
   const message = useRotating(
     nextAppt
       ? ["You have an upcoming appointment.", "Your next visit is coming up soon.", ...CONTEXTUAL_MESSAGES]
       : CONTEXTUAL_MESSAGES
   );
-  const greeting = getGreeting();
+  const greeting = getGreeting(t);
   const firstName = user?.firstName || "there";
 
   return (
@@ -157,7 +158,9 @@ function HeroGreeting({ user, nextAppt }: { user: any; nextAppt?: AppointmentWit
           <h1 className="text-2xl md:text-3xl font-bold truncate">
             {firstName} 👋
           </h1>
-          <p className="text-white/75 text-sm mt-1.5 leading-relaxed">{message}</p>
+           <p className="text-white/75 text-sm mt-1.5 leading-relaxed">
+             {t("patient_home.wellness_message", message)}
+           </p>
         </div>
       </div>
 
@@ -165,11 +168,11 @@ function HeroGreeting({ user, nextAppt }: { user: any; nextAppt?: AppointmentWit
       <div className="relative mt-8 flex flex-wrap gap-2">
         <Badge className="bg-white/20 text-white border-white/20 hover:bg-white/30 text-xs px-3 py-1.5 rounded-full backdrop-blur-sm">
           <Heart className="h-3 w-3 mr-1.5 fill-current" />
-          Healthcare dashboard
+           {t("patient_home.healthcare_dashboard", "Healthcare dashboard")}
         </Badge>
         <Badge className="bg-white/20 text-white border-white/20 hover:bg-white/30 text-xs px-3 py-1.5 rounded-full backdrop-blur-sm">
           <Sparkles className="h-3 w-3 mr-1.5" />
-          Premium care
+           {t("patient_home.premium_care", "Premium care")}
         </Badge>
       </div>
     </section>
@@ -179,6 +182,7 @@ function HeroGreeting({ user, nextAppt }: { user: any; nextAppt?: AppointmentWit
 // ── Section 2 — Today's Care ──────────────────────────────────────────────────
 
 function TodaysCare({ appointments, isLoading }: { appointments?: AppointmentWithDetails[]; isLoading: boolean }) {
+  const { t } = useTranslation();
   const [, navigate] = useLocation();
 
   const upcoming = useMemo(
@@ -216,8 +220,8 @@ function TodaysCare({ appointments, isLoading }: { appointments?: AppointmentWit
             <Calendar className="h-7 w-7 text-primary" />
           </div>
           <div>
-            <h3 className="font-semibold text-foreground mb-1">No upcoming appointments</h3>
-            <p className="text-sm text-muted-foreground">Book a visit with a verified healthcare provider.</p>
+             <h3 className="font-semibold text-foreground mb-1">{t("patient_home.no_upcoming", "No upcoming appointments")}</h3>
+             <p className="text-sm text-muted-foreground">{t("patient_home.book_verified_provider", "Book a visit with a verified healthcare provider.")}</p>
           </div>
           <Button onClick={() => navigate("/book")} className="rounded-xl gap-2" data-testid="btn-book-appointment">
             <Plus className="h-4 w-4" />
@@ -228,14 +232,14 @@ function TodaysCare({ appointments, isLoading }: { appointments?: AppointmentWit
     );
   }
 
-  const providerName = `${next.provider?.user?.firstName || ""} ${next.provider?.user?.lastName || ""}`.trim() || "Your Provider";
+  const providerName = `${next.provider?.user?.firstName || ""} ${next.provider?.user?.lastName || ""}`.trim() || t("patient_home.your_provider", "Your Provider");
   const dateLabel = next.date
     ? formatDateTz(String(next.date).slice(0, 10) + "T12:00:00", {
         weekday: "long",
         month: "long",
         day: "numeric",
       })
-    : "Date TBC";
+    : t("patient_home.date_tbc", "Date TBC");
 
   const isVideo = next.visitType === "online";
 
@@ -247,7 +251,7 @@ function TodaysCare({ appointments, isLoading }: { appointments?: AppointmentWit
             <div className="h-8 w-8 rounded-xl bg-primary/10 flex items-center justify-center">
               <Calendar className="h-4 w-4 text-primary" />
             </div>
-            <span className="font-semibold text-foreground">Today's Care</span>
+             <span className="font-semibold text-foreground">{t("patient_home.todays_care", "Today's Care")}</span>
           </div>
           <StatusBadge domain="appointment" status={next.status} />
         </div>
@@ -260,7 +264,7 @@ function TodaysCare({ appointments, isLoading }: { appointments?: AppointmentWit
           />
           <div className="min-w-0 flex-1">
             <h3 className="font-bold text-lg text-foreground leading-tight">{providerName}</h3>
-            <p className="text-muted-foreground text-sm mt-0.5">{next.service?.name || "Consultation"}</p>
+             <p className="text-muted-foreground text-sm mt-0.5">{next.service?.name || t("patient_home.consultation", "Consultation")}</p>
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mt-3 text-sm text-muted-foreground">
               <span className="flex items-center gap-1.5">
                 <Clock className="h-3.5 w-3.5 text-primary/60" />
@@ -278,7 +282,7 @@ function TodaysCare({ appointments, isLoading }: { appointments?: AppointmentWit
         <div className="flex flex-wrap gap-2 mt-5 pt-5 border-t border-border/60">
           <Button asChild size="sm" className="rounded-xl gap-1.5 flex-1 sm:flex-none" data-testid="btn-view-appointment">
             <Link href={`/appointments/${next.id}`}>
-              View Details
+               {t("patient_home.view_details", "View Details")}
               <ArrowRight className="h-3.5 w-3.5" />
             </Link>
           </Button>
@@ -292,7 +296,7 @@ function TodaysCare({ appointments, isLoading }: { appointments?: AppointmentWit
             >
               <a href={(next as any).videoRoomUrl} target="_blank" rel="noopener noreferrer">
                 <Video className="h-3.5 w-3.5" />
-                Join Video Visit
+                 {t("patient_home.join_video_visit", "Join Video Visit")}
               </a>
             </Button>
           )}
@@ -306,12 +310,12 @@ function TodaysCare({ appointments, isLoading }: { appointments?: AppointmentWit
                 rel="noopener noreferrer"
               >
                 <MapPin className="h-3.5 w-3.5" />
-                Directions
+                 {t("patient_home.directions", "Directions")}
               </a>
             </Button>
           )}
           <Button asChild size="sm" variant="ghost" className="rounded-xl text-muted-foreground hover:text-foreground" data-testid="btn-reschedule">
-            <Link href={`/appointments/${next.id}`}>Reschedule</Link>
+             <Link href={`/appointments/${next.id}`}>{t("patient_home.reschedule", "Reschedule")}</Link>
           </Button>
         </div>
 

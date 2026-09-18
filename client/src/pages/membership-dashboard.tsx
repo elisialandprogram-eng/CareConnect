@@ -19,13 +19,14 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { useTranslation } from "react-i18next";
 
-const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
-  active:    { label: "Active",    color: "bg-emerald-100 text-emerald-800 border-emerald-200",  icon: <CheckCircle2 className="h-4 w-4 text-emerald-600" /> },
-  paused:    { label: "Paused",    color: "bg-amber-100 text-amber-800 border-amber-200",        icon: <PauseCircle  className="h-4 w-4 text-amber-600"   /> },
-  expired:   { label: "Expired",   color: "bg-slate-100 text-slate-600 border-slate-200",        icon: <Clock        className="h-4 w-4 text-slate-500"   /> },
-  cancelled: { label: "Cancelled", color: "bg-red-100 text-red-700 border-red-200",              icon: <XCircle      className="h-4 w-4 text-red-600"     /> },
-  pending:   { label: "Pending",   color: "bg-blue-100 text-blue-700 border-blue-200",           icon: <Clock        className="h-4 w-4 text-blue-600"    /> },
+const STATUS_CONFIG: Record<string, { labelKey: string; fallback: string; color: string; icon: React.ReactNode }> = {
+  active:    { labelKey: "active",    fallback: "Active",    color: "bg-emerald-100 text-emerald-800 border-emerald-200",  icon: <CheckCircle2 className="h-4 w-4 text-emerald-600" /> },
+  paused:    { labelKey: "paused",    fallback: "Paused",    color: "bg-amber-100 text-amber-800 border-amber-200",        icon: <PauseCircle  className="h-4 w-4 text-amber-600"   /> },
+  expired:   { labelKey: "expired",   fallback: "Expired",   color: "bg-slate-100 text-slate-600 border-slate-200",        icon: <Clock        className="h-4 w-4 text-slate-500"   /> },
+  cancelled: { labelKey: "cancelled", fallback: "Cancelled", color: "bg-red-100 text-red-700 border-red-200",              icon: <XCircle      className="h-4 w-4 text-red-600"     /> },
+  pending:   { labelKey: "pending",   fallback: "Pending",   color: "bg-blue-100 text-blue-700 border-blue-200",           icon: <Clock        className="h-4 w-4 text-blue-600"    /> },
 };
 
 function fmtDate(d: string | Date | null | undefined) {
@@ -35,6 +36,7 @@ function fmtDate(d: string | Date | null | undefined) {
 
 
 export default function MembershipDashboard() {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const qc = useQueryClient();
 
@@ -55,20 +57,20 @@ export default function MembershipDashboard() {
 
   const pauseMut = useMutation({
     mutationFn: (id: string) => apiRequest("POST", `/api/user-packages/${id}/pause`),
-    onSuccess: () => { invalidate(); toast({ title: "Membership paused" }); },
-    onError: (e: any) => toast({ title: "Failed to pause", description: e.message, variant: "destructive" }),
+    onSuccess: () => { invalidate(); toast({ title: t("patient_ui.membership.membership_paused", "Membership paused") }); },
+    onError: (e: any) => toast({ title: t("patient_ui.membership.failed_to_pause", "Failed to pause"), description: e.message, variant: "destructive" }),
   });
 
   const resumeMut = useMutation({
     mutationFn: (id: string) => apiRequest("POST", `/api/user-packages/${id}/resume`),
-    onSuccess: () => { invalidate(); toast({ title: "Membership resumed" }); },
-    onError: (e: any) => toast({ title: "Failed to resume", description: e.message, variant: "destructive" }),
+    onSuccess: () => { invalidate(); toast({ title: t("patient_ui.membership.membership_resumed", "Membership resumed") }); },
+    onError: (e: any) => toast({ title: t("patient_ui.membership.failed_to_resume", "Failed to resume"), description: e.message, variant: "destructive" }),
   });
 
   const cancelMut = useMutation({
     mutationFn: (id: string) => apiRequest("POST", `/api/user-packages/${id}/cancel-renewal`),
-    onSuccess: () => { invalidate(); toast({ title: "Auto-renewal cancelled" }); },
-    onError: (e: any) => toast({ title: "Failed to cancel renewal", description: e.message, variant: "destructive" }),
+    onSuccess: () => { invalidate(); toast({ title: t("patient_ui.membership.auto_renewal_cancelled", "Auto-renewal cancelled") }); },
+    onError: (e: any) => toast({ title: t("patient_ui.membership.failed_to_cancel_renewal", "Failed to cancel renewal"), description: e.message, variant: "destructive" }),
   });
 
   const autoRenewMut = useMutation({
@@ -76,9 +78,11 @@ export default function MembershipDashboard() {
       apiRequest("PATCH", `/api/user-packages/${id}/auto-renew`, { autoRenew }),
     onSuccess: (_, { autoRenew }) => {
       invalidate();
-      toast({ title: autoRenew ? "Auto-renew enabled" : "Auto-renew disabled" });
+      toast({ title: autoRenew
+        ? t("patient_ui.membership.auto_renew_enabled", "Auto-renew enabled")
+        : t("patient_ui.membership.auto_renew_disabled", "Auto-renew disabled") });
     },
-    onError: (e: any) => toast({ title: "Failed to update", description: e.message, variant: "destructive" }),
+    onError: (e: any) => toast({ title: t("patient_ui.membership.failed_to_update", "Failed to update"), description: e.message, variant: "destructive" }),
   });
 
   if (isLoading) {
@@ -109,14 +113,14 @@ export default function MembershipDashboard() {
             <Crown className="h-5 w-5 text-primary" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold">My Memberships</h1>
-            <p className="text-muted-foreground text-sm">Manage your healthcare plans and benefits</p>
+            <h1 className="text-2xl font-bold">{t("patient_ui.membership.title", "My Memberships")}</h1>
+            <p className="text-muted-foreground text-sm">{t("patient_ui.membership.subtitle", "Manage your healthcare plans and benefits")}</p>
           </div>
         </div>
         <Button asChild variant="outline" size="sm">
            <Link href="/packages">
             <Package className="h-4 w-4 mr-2" />
-            Browse plans
+             {t("patient_ui.membership.browse_plans", "Browse plans")}
           </Link>
         </Button>
       </div>
@@ -125,12 +129,12 @@ export default function MembershipDashboard() {
         <Card className="text-center py-12">
           <CardContent>
             <Crown className="h-12 w-12 text-muted-foreground/40 mx-auto mb-4" />
-            <p className="font-semibold text-lg mb-1">No memberships yet</p>
+             <p className="font-semibold text-lg mb-1">{t("patient_ui.membership.no_memberships", "No memberships yet")}</p>
             <p className="text-muted-foreground text-sm mb-4">
-              Unlock exclusive benefits and discounts with a Golden Life membership.
+               {t("patient_ui.membership.no_memberships_desc", "Unlock exclusive benefits and discounts with a Golden Life membership.")}
             </p>
             <Button asChild>
-              <Link href="/packages">View available plans <ArrowRight className="h-4 w-4 ml-2" /></Link>
+               <Link href="/packages">{t("patient_ui.membership.view_available_plans", "View available plans")} <ArrowRight className="h-4 w-4 ml-2" /></Link>
             </Button>
           </CardContent>
         </Card>
@@ -159,7 +163,7 @@ export default function MembershipDashboard() {
       {/* Past plans */}
       {inactive.length > 0 && (
         <div>
-          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">Past plans</h2>
+           <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">{t("patient_ui.membership.past_plans", "Past plans")}</h2>
           <div className="space-y-3">
             {inactive.map(up => (
               <PlanCard key={up.id} up={up} past />
@@ -210,6 +214,7 @@ function PlanCard({
   onToggleAutoRenew?: (v: boolean) => void;
   isPausing?: boolean; isResuming?: boolean; isCancelling?: boolean; isAutoRenewPending?: boolean;
 }) {
+  const { t } = useTranslation();
   const cfg = STATUS_CONFIG[up.status] ?? STATUS_CONFIG.pending;
   const expiresAt = up.expiresAt ? new Date(up.expiresAt) : null;
   const isExpiringSoon = expiresAt && !isPast(expiresAt) &&
@@ -225,14 +230,14 @@ function PlanCard({
               <Shield className="h-5 w-5 text-primary" />
             </div>
             <div>
-              <CardTitle className="text-base">{up.package?.name ?? "Membership Plan"}</CardTitle>
+               <CardTitle className="text-base">{up.package?.name ?? t("patient_ui.membership.membership_plan", "Membership Plan")}</CardTitle>
               {up.package?.description && (
                 <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{up.package.description}</p>
               )}
             </div>
           </div>
           <span className={`inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full border ${cfg.color}`}>
-            {cfg.icon}{cfg.label}
+             {cfg.icon}{t(`patient_ui.membership.${cfg.labelKey}`, cfg.fallback)}
           </span>
         </div>
       </CardHeader>
@@ -241,11 +246,11 @@ function PlanCard({
         {/* Dates */}
         <div className="grid grid-cols-2 gap-3 text-sm">
           <div>
-            <p className="text-muted-foreground text-xs">Activated</p>
+             <p className="text-muted-foreground text-xs">{t("patient_ui.membership.activated", "Activated")}</p>
             <p className="font-medium">{fmtDate(up.activatedAt ?? up.purchasedAt)}</p>
           </div>
           <div>
-            <p className="text-muted-foreground text-xs">Expires</p>
+             <p className="text-muted-foreground text-xs">{t("patient_ui.membership.expires", "Expires")}</p>
             <p className={`font-medium ${isExpiringSoon ? "text-amber-600" : ""}`}>
               {fmtDate(up.expiresAt)}
               {isExpiringSoon && <span className="text-xs ml-1">({formatDistanceToNow(expiresAt!)})</span>}
@@ -253,13 +258,13 @@ function PlanCard({
           </div>
           {(up as any).pausedAt && (
             <div>
-              <p className="text-muted-foreground text-xs">Paused on</p>
+               <p className="text-muted-foreground text-xs">{t("patient_ui.membership.paused_on", "Paused on")}</p>
               <p className="font-medium">{fmtDate((up as any).pausedAt)}</p>
             </div>
           )}
           {(up as any).cancelledAt && (
             <div>
-              <p className="text-muted-foreground text-xs">Cancelled on</p>
+               <p className="text-muted-foreground text-xs">{t("patient_ui.membership.cancelled_on", "Cancelled on")}</p>
               <p className="font-medium">{fmtDate((up as any).cancelledAt)}</p>
             </div>
           )}
@@ -268,14 +273,14 @@ function PlanCard({
         {isExpiringSoon && up.status === "active" && (
           <div className="flex items-center gap-2 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-md px-3 py-2">
             <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
-            Expiring soon — renew to avoid service interruption.
+             {t("patient_ui.membership.expiring_soon", "Expiring soon — renew to avoid service interruption.")}
           </div>
         )}
 
         {/* Benefits tracker */}
         {benefits.length > 0 && (
           <div className="space-y-2">
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Benefits</p>
+             <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t("patient_ui.membership.benefits", "Benefits")}</p>
             <div className="space-y-2">
               {benefits.map((b: any) => (
                 <div key={b.id} className="flex items-center gap-2 text-sm">
@@ -283,7 +288,7 @@ function PlanCard({
                   <span>{b.description ?? b.benefitType}</span>
                   {b.allowancePerPeriod && (
                     <Badge variant="secondary" className="ml-auto text-xs">
-                      {b.allowancePerPeriod} / {b.periodUnit ?? "period"}
+                       {b.allowancePerPeriod} / {b.periodUnit ?? t("patient_ui.membership.period", "period")}
                     </Badge>
                   )}
                 </div>
@@ -300,14 +305,14 @@ function PlanCard({
               onClick={onToggleUsage}
             >
               <Clock className="h-3.5 w-3.5" />
-              {usageOpen ? "Hide" : "Show"} usage history
+               {usageOpen ? t("patient_ui.membership.hide", "Hide") : t("patient_ui.membership.show", "Show")} {t("patient_ui.membership.usage_history", "usage history")}
               <ChevronRight className={`h-3.5 w-3.5 transition-transform ${usageOpen ? "rotate-90" : ""}`} />
             </button>
             {usageOpen && (
               <div className="mt-2 rounded-lg border bg-muted/30 p-3 space-y-1">
                 {usageLoading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground mx-auto" />}
                 {!usageLoading && (usage ?? []).length === 0 && (
-                  <p className="text-xs text-muted-foreground text-center">No usage recorded yet</p>
+                   <p className="text-xs text-muted-foreground text-center">{t("patient_ui.membership.no_usage", "No usage recorded yet")}</p>
                 )}
                 {(usage ?? []).map((u: any) => (
                   <div key={u.id} className="flex justify-between text-xs">
@@ -337,9 +342,9 @@ function PlanCard({
                   />
                   <Label htmlFor={`ar-${up.id}`} className="text-sm cursor-pointer">
                     {(up as any).autoRenew ? (
-                      <span className="flex items-center gap-1"><ToggleRight className="h-4 w-4 text-primary" />Auto-renew on</span>
+                       <span className="flex items-center gap-1"><ToggleRight className="h-4 w-4 text-primary" />{t("patient_ui.membership.auto_renew_on", "Auto-renew on")}</span>
                     ) : (
-                      <span className="flex items-center gap-1"><ToggleLeft className="h-4 w-4 text-muted-foreground" />Auto-renew off</span>
+                       <span className="flex items-center gap-1"><ToggleLeft className="h-4 w-4 text-muted-foreground" />{t("patient_ui.membership.auto_renew_off", "Auto-renew off")}</span>
                     )}
                   </Label>
                 </div>
@@ -349,19 +354,19 @@ function PlanCard({
                 {up.status === "active" && onPause && (
                   <Button variant="outline" size="sm" onClick={onPause} disabled={isPausing}>
                     {isPausing ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <PauseCircle className="h-4 w-4 mr-1.5" />}
-                    Pause
+                     {t("patient_ui.membership.pause", "Pause")}
                   </Button>
                 )}
                 {up.status === "paused" && onResume && (
                   <Button variant="outline" size="sm" onClick={onResume} disabled={isResuming}>
                     {isResuming ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <PlayCircle className="h-4 w-4 mr-1.5" />}
-                    Resume
+                     {t("patient_ui.membership.resume", "Resume")}
                   </Button>
                 )}
                 {["active", "paused"].includes(up.status) && onCancelRenewal && (
                   <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={onCancelRenewal} disabled={isCancelling}>
                     {isCancelling ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <XCircle className="h-4 w-4 mr-1.5" />}
-                    Cancel
+                     {t("patient_ui.membership.cancel", "Cancel")}
                   </Button>
                 )}
               </div>
@@ -373,7 +378,7 @@ function PlanCard({
         {!past && up.status === "active" && (up as any).autoRenew && (
           <div className="flex items-center gap-1.5 text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-md px-3 py-1.5">
             <RefreshCw className="h-3 w-3" />
-            Auto-renewal active{expiresAt ? ` — renews ${fmtDate(expiresAt)}` : ""}
+             {t("patient_ui.membership.auto_renewal_active", "Auto-renewal active")}{expiresAt ? ` — ${t("patient_ui.membership.renews", "renews")} ${fmtDate(expiresAt)}` : ""}
           </div>
         )}
       </CardContent>

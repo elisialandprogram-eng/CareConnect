@@ -50,6 +50,7 @@ import {
   FilePlus,
   FileCheck,
 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 type PatientDoc = {
   id: string;
@@ -97,6 +98,7 @@ function fileSize(bytes: number | null) {
 }
 
 export default function MyDocumentsPage() {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const qc = useQueryClient();
   const fileRef = useRef<HTMLInputElement>(null);
@@ -125,29 +127,29 @@ export default function MyDocumentsPage() {
   const deleteMutation = useMutation({
     mutationFn: (id: string) => apiRequest("DELETE", `/api/patient/documents/${id}`),
     onSuccess: () => {
-      toast({ title: "Document deleted" });
+      toast({ title: t("patient_ui.documents.document_deleted", "Document deleted") });
       qc.invalidateQueries({ queryKey: QK.patientDocuments() });
       setDeleteId(null);
     },
-    onError: () => toast({ title: "Failed to delete", variant: "destructive" }),
+    onError: () => toast({ title: t("patient_ui.documents.delete_failed", "Failed to delete"), variant: "destructive" }),
   });
 
   const shareMutation = useMutation({
     mutationFn: ({ docId, providerId, shared }: { docId: string; providerId: string; shared: boolean }) =>
       apiRequest("PATCH", `/api/patient/documents/${docId}/share`, { providerId, shared }),
     onSuccess: () => {
-      toast({ title: "Sharing updated" });
+      toast({ title: t("patient_ui.documents.sharing_updated", "Sharing updated") });
       qc.invalidateQueries({ queryKey: QK.patientDocuments() });
       setShareDoc(null);
       setShareProviderId("");
     },
-    onError: () => toast({ title: "Failed to update sharing", variant: "destructive" }),
+    onError: () => toast({ title: t("patient_ui.documents.sharing_failed", "Failed to update sharing"), variant: "destructive" }),
   });
 
   async function handleUpload() {
     if (!uploadFile) return;
     if (!uploadTitle.trim()) {
-      toast({ title: "Please enter a document title", variant: "destructive" });
+      toast({ title: t("patient_ui.documents.title_required", "Please enter a document title"), variant: "destructive" });
       return;
     }
     setUploading(true);
@@ -163,9 +165,9 @@ export default function MyDocumentsPage() {
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        throw new Error(err.message || "Upload failed");
+        throw new Error(err.message || t("patient_ui.documents.upload_failed", "Upload failed"));
       }
-      toast({ title: "Document uploaded" });
+      toast({ title: t("patient_ui.documents.uploaded_success", "Document uploaded") });
       qc.invalidateQueries({ queryKey: QK.patientDocuments() });
       setUploadOpen(false);
       setUploadFile(null);
@@ -173,7 +175,7 @@ export default function MyDocumentsPage() {
       setUploadType("other");
       if (fileRef.current) fileRef.current.value = "";
     } catch (e: any) {
-      toast({ title: "Upload failed", description: e.message, variant: "destructive" });
+      toast({ title: t("patient_ui.documents.upload_failed", "Upload failed"), description: e.message, variant: "destructive" });
     } finally {
       setUploading(false);
     }
@@ -186,7 +188,7 @@ export default function MyDocumentsPage() {
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Header />
-      <PageBreadcrumbs items={[{ label: "My Documents" }]} />
+      <PageBreadcrumbs items={[{ label: t("patient_ui.documents.title", "My Documents") }]} />
       <main className="flex-1 container mx-auto max-w-4xl px-4 py-8 space-y-6">
 
         {/* Header row */}
@@ -194,15 +196,15 @@ export default function MyDocumentsPage() {
           <div>
             <h1 className="text-3xl font-bold flex items-center gap-2" data-testid="heading-my-documents">
               <FileText className="h-7 w-7 text-primary" />
-              My Documents
+              {t("patient_ui.documents.title", "My Documents")}
             </h1>
             <p className="text-muted-foreground mt-1">
-              Upload and manage your medical documents. Control which providers can see them.
+              {t("patient_ui.documents.subtitle", "Upload and manage your medical documents. Control which providers can see them.")}
             </p>
           </div>
           <Button onClick={() => setUploadOpen(true)} data-testid="button-upload-document">
             <FilePlus className="h-4 w-4 mr-2" />
-            Upload Document
+            {t("patient_ui.documents.upload_document", "Upload Document")}
           </Button>
         </div>
 
@@ -213,7 +215,7 @@ export default function MyDocumentsPage() {
             <Input
               value={search}
               onChange={e => setSearch(e.target.value)}
-              placeholder="Search documents…"
+              placeholder={t("patient_ui.documents.search", "Search documents…")}
               className="pl-9"
               data-testid="input-document-search"
             />
@@ -238,7 +240,7 @@ export default function MyDocumentsPage() {
         <Card>
           <CardHeader>
             <CardTitle>
-              {typeFilter === "all" ? "All Documents" : typeLabel(typeFilter)}
+              {typeFilter === "all" ? t("patient_ui.documents.all_documents", "All Documents") : typeLabel(typeFilter)}
               {!isLoading && (
                 <span className="ml-2 text-sm font-normal text-muted-foreground">
                   ({filtered.length})
@@ -246,7 +248,7 @@ export default function MyDocumentsPage() {
               )}
             </CardTitle>
             <CardDescription>
-              Click the share button to give a provider read-only access to a document.
+              {t("patient_ui.documents.list_desc", "Click the share button to give a provider read-only access to a document.")}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -259,8 +261,8 @@ export default function MyDocumentsPage() {
             ) : filtered.length === 0 ? (
               <div className="text-center py-12 text-muted-foreground" data-testid="text-no-documents">
                 <FileCheck className="h-12 w-12 mx-auto mb-3 opacity-20" />
-                <p className="font-medium">No documents yet</p>
-                <p className="text-sm mt-1">Upload your first medical document to get started.</p>
+                <p className="font-medium">{t("patient_ui.documents.no_documents", "No documents yet")}</p>
+                <p className="text-sm mt-1">{t("patient_ui.documents.no_documents_desc", "Upload your first medical document to get started.")}</p>
               </div>
             ) : (
               <div className="divide-y">
@@ -281,18 +283,18 @@ export default function MyDocumentsPage() {
                         {doc.sharedWithProviderIds?.length > 0 && (
                           <Badge variant="outline" className="text-xs text-emerald-700 border-emerald-300">
                             <Share2 className="h-3 w-3 mr-1" />
-                            Shared ({doc.sharedWithProviderIds.length})
+                            {t("patient_ui.documents.shared", "Shared ({{count}})", { count: doc.sharedWithProviderIds.length })}
                           </Badge>
                         )}
                       </div>
                       <div className="text-xs text-muted-foreground flex flex-wrap gap-x-3">
-                        <span>Uploaded {formatDate(doc.createdAt)}</span>
+                        <span>{t("patient_ui.documents.uploaded", "Uploaded {{date}}", { date: formatDate(doc.createdAt) })}</span>
                         {doc.mimeType && (
                           <span>{doc.mimeType.split("/")[1]?.toUpperCase()}</span>
                         )}
                         {doc.fileSizeBytes && <span>{fileSize(doc.fileSizeBytes)}</span>}
                         {doc.appointmentId && (
-                          <span className="text-blue-600">Linked to appointment</span>
+                          <span className="text-blue-600">{t("patient_ui.documents.linked_appointment", "Linked to appointment")}</span>
                         )}
                       </div>
                     </div>
@@ -340,24 +342,24 @@ export default function MyDocumentsPage() {
       <Dialog open={uploadOpen} onOpenChange={o => { if (!o && !uploading) { setUploadOpen(false); setUploadFile(null); setUploadTitle(""); setUploadType("other"); } }}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Upload Document</DialogTitle>
+            <DialogTitle>{t("patient_ui.documents.upload_title", "Upload Document")}</DialogTitle>
             <DialogDescription>
-              Supported formats: PDF, JPG, PNG, WebP. Maximum 10 MB.
+              {t("patient_ui.documents.upload_desc", "Supported formats: PDF, JPG, PNG, WebP. Maximum 10 MB.")}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-1.5">
-              <Label htmlFor="doc-title">Document title</Label>
+              <Label htmlFor="doc-title">{t("patient_ui.documents.document_title", "Document title")}</Label>
               <Input
                 id="doc-title"
                 value={uploadTitle}
                 onChange={e => setUploadTitle(e.target.value)}
-                placeholder="e.g. Blood test results June 2026"
+                placeholder={t("patient_ui.documents.document_title_placeholder", "e.g. Blood test results June 2026")}
                 data-testid="input-upload-title"
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="doc-type">Document type</Label>
+              <Label htmlFor="doc-type">{t("patient_ui.documents.document_type", "Document type")}</Label>
               <Select value={uploadType} onValueChange={setUploadType}>
                 <SelectTrigger id="doc-type" data-testid="select-upload-type">
                   <SelectValue />
@@ -370,7 +372,7 @@ export default function MyDocumentsPage() {
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="doc-file">File</Label>
+              <Label htmlFor="doc-file">{t("patient_ui.documents.file", "File")}</Label>
               <input
                 ref={fileRef}
                 id="doc-file"
@@ -387,7 +389,7 @@ export default function MyDocumentsPage() {
           </div>
           <DialogFooter>
             <Button variant="outline" disabled={uploading} onClick={() => setUploadOpen(false)}>
-              Cancel
+              {t("patient_ui.documents.cancel", "Cancel")}
             </Button>
             <Button
               onClick={handleUpload}
@@ -395,9 +397,9 @@ export default function MyDocumentsPage() {
               data-testid="button-confirm-upload"
             >
               {uploading ? (
-                <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Uploading…</>
+                <><Loader2 className="h-4 w-4 mr-2 animate-spin" />{t("patient_ui.documents.uploading", "Uploading…")}</>
               ) : (
-                <><Upload className="h-4 w-4 mr-2" />Upload</>
+                <><Upload className="h-4 w-4 mr-2" />{t("patient_ui.documents.upload", "Upload")}</>
               )}
             </Button>
           </DialogFooter>
@@ -408,20 +410,20 @@ export default function MyDocumentsPage() {
       <AlertDialog open={!!deleteId} onOpenChange={o => { if (!o) setDeleteId(null); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete document?</AlertDialogTitle>
+          <AlertDialogTitle>{t("patient_ui.documents.delete_title", "Delete document?")}</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently remove the file. Any providers you shared it with will lose access immediately.
+              {t("patient_ui.documents.delete_desc", "This will permanently remove the file. Any providers you shared it with will lose access immediately.")}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel data-testid="button-cancel-delete">Cancel</AlertDialogCancel>
+            <AlertDialogCancel data-testid="button-cancel-delete">{t("patient_ui.documents.cancel", "Cancel")}</AlertDialogCancel>
             <AlertDialogAction
               className="bg-red-600 hover:bg-red-700 text-white"
               onClick={() => deleteId && deleteMutation.mutate(deleteId)}
               disabled={deleteMutation.isPending}
               data-testid="button-confirm-delete-document"
             >
-              {deleteMutation.isPending ? "Deleting…" : "Delete"}
+              {deleteMutation.isPending ? t("patient_ui.documents.deleting", "Deleting…") : t("patient_ui.documents.delete", "Delete")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -431,15 +433,15 @@ export default function MyDocumentsPage() {
       <Dialog open={!!shareDoc} onOpenChange={o => { if (!o) { setShareDoc(null); setShareProviderId(""); } }}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle>Share Document</DialogTitle>
+            <DialogTitle>{t("patient_ui.documents.share_title", "Share Document")}</DialogTitle>
             <DialogDescription>
-              Enter a provider ID to share "<strong>{shareDoc?.title}</strong>" with them. They'll get read-only access.
+              {t("patient_ui.documents.share_desc", "Enter a provider ID to share \"{{title}}\" with them. They'll get read-only access.", { title: shareDoc?.title ?? "" })}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
             {shareDoc && shareDoc.sharedWithProviderIds?.length > 0 && (
               <div className="space-y-2">
-                <p className="text-sm font-medium">Currently shared with:</p>
+                <p className="text-sm font-medium">{t("patient_ui.documents.currently_shared", "Currently shared with:")}</p>
                 {shareDoc.sharedWithProviderIds.map(pid => (
                   <div key={pid} className="flex items-center justify-between text-sm bg-muted rounded px-3 py-1.5">
                     <span className="font-mono text-xs truncate">{pid}</span>
@@ -458,24 +460,24 @@ export default function MyDocumentsPage() {
               </div>
             )}
             <div className="space-y-1.5">
-              <Label htmlFor="share-provider-id">Provider ID to share with</Label>
+              <Label htmlFor="share-provider-id">{t("patient_ui.documents.provider_id", "Provider ID to share with")}</Label>
               <Input
                 id="share-provider-id"
                 value={shareProviderId}
                 onChange={e => setShareProviderId(e.target.value)}
-                placeholder="Provider ID…"
+                placeholder={t("patient_ui.documents.provider_id", "Provider ID to share with")}
                 data-testid="input-share-provider-id"
               />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => { setShareDoc(null); setShareProviderId(""); }}>Cancel</Button>
+            <Button variant="outline" onClick={() => { setShareDoc(null); setShareProviderId(""); }}>{t("patient_ui.documents.cancel", "Cancel")}</Button>
             <Button
               onClick={() => shareDoc && shareProviderId && shareMutation.mutate({ docId: shareDoc.id, providerId: shareProviderId, shared: true })}
               disabled={!shareProviderId.trim() || shareMutation.isPending}
               data-testid="button-confirm-share"
             >
-              {shareMutation.isPending ? "Sharing…" : "Share"}
+              {shareMutation.isPending ? t("patient_ui.documents.sharing", "Sharing…") : t("patient_ui.documents.share", "Share")}
             </Button>
           </DialogFooter>
         </DialogContent>

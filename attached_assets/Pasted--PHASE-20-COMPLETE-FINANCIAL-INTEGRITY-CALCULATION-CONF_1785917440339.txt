@@ -1,0 +1,754 @@
+# PHASE 20 — COMPLETE FINANCIAL INTEGRITY, CALCULATION & CONFIGURATION AUDIT
+
+IMPORTANT
+
+Before doing ANY work:
+
+Read ONLY:
+
+- ops/sprint-history.md
+- ops/PHASE-19-FINANCIAL-ENGINE-SIMPLIFICATION-REPORT.md
+
+Do NOT read Feature Completion Audit.
+
+Update sprint-history.md after completion.
+
+=========================================================
+OBJECTIVE
+=========================================================
+
+This is NOT a feature implementation sprint.
+
+This is a COMPLETE repository-wide financial integrity audit.
+
+The purpose is to verify that every monetary calculation across the entire GoldenLife platform is consistent.
+
+The audit must identify and immediately fix every inconsistency found.
+
+Do NOT redesign architecture.
+
+Do NOT create new financial engines.
+
+Do NOT introduce new abstractions.
+
+Use the existing simplified Financial Engine as the calculation authority.
+
+=========================================================
+AUDIT EVERY FINANCIAL FLOW
+=========================================================
+
+Audit every place where money is:
+
+Calculated
+
+Displayed
+
+Stored
+
+Updated
+
+Transferred
+
+Reported
+
+Refunded
+
+Allocated
+
+Converted
+
+Reserved
+
+Released
+
+Settled
+
+Reversed
+
+=========================================================
+BOOKING
+=========================================================
+
+Audit:
+
+Appointment booking
+
+Clinic booking
+
+Home Visit booking
+
+Online consultation
+
+Emergency booking
+
+Family booking
+
+Group booking
+
+Package booking
+
+Membership booking
+
+Repeat booking
+
+Rescheduled booking
+
+Cancelled booking
+
+Provider initiated booking
+
+Admin booking
+
+Verify:
+
+Base price
+
+Sub service price
+
+Duration pricing
+
+Travel fee
+
+Emergency fee
+
+Platform fee
+
+Tax
+
+Discount
+
+Membership
+
+Promotion
+
+Referral
+
+Gift card
+
+Wallet deduction
+
+Gateway fee
+
+Currency conversion
+
+Rounding
+
+Grand total
+
+Snapshot values
+
+Stored values
+
+Displayed values
+
+Invoice values
+
+Payment values
+
+Report values
+
+Everything must match.
+
+=========================================================
+FINANCIAL ENGINE
+=========================================================
+
+Verify every calculation reads ONLY from the simplified configuration.
+
+Confirm there are NO:
+
+Hardcoded percentages
+
+Hardcoded taxes
+
+Hardcoded platform fees
+
+Hardcoded commissions
+
+Hardcoded travel fees
+
+Hardcoded gateway fees
+
+Hardcoded discounts
+
+Hardcoded wallet logic
+
+Hardcoded referral rewards
+
+Hardcoded currency rates
+
+Hardcoded rounding
+
+Hardcoded payout values
+
+=========================================================
+SERVICE PRICING
+=========================================================
+
+Audit:
+
+Service
+
+Sub Service
+
+Provider overrides
+
+Home visit pricing
+
+Travel pricing
+
+Emergency pricing
+
+Duration pricing
+
+Package pricing
+
+Membership pricing
+
+Promotional pricing
+
+Verify:
+
+One pricing path.
+
+=========================================================
+TAX
+=========================================================
+
+Audit:
+
+Tax classifications
+
+Platform tax mappings
+
+Booking tax
+
+Invoice tax
+
+Wallet tax
+
+Gift card tax
+
+Membership tax
+
+Promotion tax
+
+Travel tax
+
+Platform fee tax
+
+Gateway fee tax
+
+Reports
+
+Simulator
+
+Verify:
+
+Every tax is resolved ONLY through Tax Classification.
+
+No duplicated tax logic.
+
+No duplicated tax names.
+
+No independent tax calculations.
+
+=========================================================
+PROMOTIONS
+=========================================================
+
+Audit:
+
+Promo codes
+
+Automatic promotions
+
+Campaigns
+
+Packages
+
+Memberships
+
+Referral rewards
+
+Gift cards
+
+Wallet credits
+
+Stacking
+
+Priority
+
+Eligibility
+
+Verify:
+
+No duplicated calculations.
+
+=========================================================
+WALLETS
+=========================================================
+
+Audit:
+
+Credits
+
+Debits
+
+Reservations
+
+Releases
+
+Refunds
+
+Referral credits
+
+Gift card
+
+Membership
+
+Package
+
+Booking payment
+
+Cancellation
+
+Verify:
+
+Ledger
+
+Balance
+
+Transactions
+
+Reports
+
+Everything matches.
+
+=========================================================
+PAYMENTS
+=========================================================
+
+Audit:
+
+Payment methods
+
+Gateway fees
+
+Capture
+
+Partial payment
+
+Wallet payment
+
+Mixed payment
+
+Refund
+
+Retry
+
+Failure
+
+Verify:
+
+Stored amount
+
+Captured amount
+
+Snapshot
+
+Reports
+
+=========================================================
+SETTLEMENTS
+=========================================================
+
+Audit:
+
+Provider payable
+
+Commission
+
+Platform fee
+
+Settlement
+
+Payout
+
+Recovery
+
+Hold
+
+Reserve
+
+Verify:
+
+Provider earnings
+
+Admin reports
+
+Settlement reports
+
+Payout reports
+
+Everything reconciles.
+
+=========================================================
+REPORTS
+=========================================================
+
+Audit every financial report.
+
+Verify:
+
+Revenue
+
+Tax
+
+Wallet
+
+Commission
+
+Platform fee
+
+Settlement
+
+Payout
+
+Gift card
+
+Referral
+
+Membership
+
+Promotion
+
+Package
+
+Invoice
+
+Refund
+
+Every report must match the stored financial records.
+
+No recalculation.
+
+No different totals.
+
+=========================================================
+SIMULATOR
+=========================================================
+
+Verify simulator uses EXACTLY the same calculation path as live booking.
+
+No duplicate calculation logic.
+
+=========================================================
+INVOICES
+=========================================================
+
+Audit:
+
+Invoice generation
+
+Invoice display
+
+Invoice export
+
+Invoice PDF
+
+Verify every amount matches booking snapshot.
+
+=========================================================
+EMAILS
+=========================================================
+
+Audit financial emails.
+
+Booking confirmation
+
+Payment receipt
+
+Invoice
+
+Refund
+
+Wallet
+
+Verify displayed amounts.
+
+=========================================================
+ADMIN DASHBOARD
+=========================================================
+
+Audit:
+
+Revenue
+
+Tax
+
+Wallet
+
+Commission
+
+Platform fee
+
+Settlement
+
+Payout
+
+Outstanding
+
+Profit
+
+Verify dashboard values reconcile with reports.
+
+=========================================================
+PROVIDER DASHBOARD
+=========================================================
+
+Audit:
+
+Revenue
+
+Commission
+
+Settlement
+
+Payout
+
+Wallet
+
+Verify totals.
+
+=========================================================
+PATIENT DASHBOARD
+=========================================================
+
+Audit:
+
+Wallet
+
+Invoices
+
+Payments
+
+Refunds
+
+Gift cards
+
+Packages
+
+Memberships
+
+Verify totals.
+
+=========================================================
+CONFIGURATION
+=========================================================
+
+Verify every configuration page.
+
+Ensure:
+
+No duplicate configuration.
+
+No duplicated dropdowns.
+
+Every selector comes from shared master data.
+
+Countries
+
+Currencies
+
+Tax Classification
+
+Provider Categories
+
+Service Categories
+
+Visit Types
+
+Payment Methods
+
+Wallet Types
+
+Referral Types
+
+Gift Cards
+
+Memberships
+
+Packages
+
+Promotions
+
+=========================================================
+ROUNDING
+=========================================================
+
+Verify every calculation uses identical rounding.
+
+=========================================================
+MULTI CURRENCY
+=========================================================
+
+Verify:
+
+Booking
+
+Wallet
+
+Reports
+
+Invoices
+
+Payments
+
+Settlements
+
+Use identical exchange rates.
+
+=========================================================
+SEARCH ENTIRE REPOSITORY FOR
+=========================================================
+
+Hardcoded %
+
+Hardcoded Tax
+
+Hardcoded GST
+
+Hardcoded VAT
+
+Hardcoded Commission
+
+Hardcoded Platform Fee
+
+Hardcoded Wallet Credit
+
+Hardcoded Referral
+
+Hardcoded Discount
+
+Hardcoded Currency
+
+Hardcoded Rounding
+
+Math calculations outside Financial Engine
+
+Duplicate pricing helpers
+
+Duplicate tax helpers
+
+Duplicate wallet helpers
+
+Duplicate report calculations
+
+Fix every confirmed issue.
+
+=========================================================
+TEST
+=========================================================
+
+Run comprehensive validation covering:
+
+Booking
+
+Payment
+
+Wallet
+
+Gift Card
+
+Promotion
+
+Membership
+
+Referral
+
+Refund
+
+Settlement
+
+Payout
+
+Reports
+
+Invoices
+
+Simulator
+
+Provider Earnings
+
+Admin Dashboard
+
+Patient Dashboard
+
+=========================================================
+DELIVERABLES
+=========================================================
+
+Create:
+
+ops/PHASE-20-COMPLETE-FINANCIAL-INTEGRITY-AUDIT-REPORT.md
+
+Include:
+
+Repository-wide audit coverage
+
+Issues found
+
+Issues fixed
+
+Remaining intentional exceptions
+
+Calculation consistency verification
+
+Financial reconciliation results
+
+Configuration consistency verification
+
+Report consistency verification
+
+=========================================================
+VALIDATION
+=========================================================
+
+Run:
+
+npm run check
+
+npm run build
+
+Financial Engine tests
+
+Booking tests
+
+Wallet tests
+
+Payment tests
+
+Settlement tests
+
+Refund tests
+
+Report tests
+
+Simulator tests
+
+git diff --check
+
+Restart application.
+
+Verify preview.
+
+=========================================================
+SUCCESS CRITERIA
+=========================================================
+
+After this phase there must be ONE consistent financial calculation path across the entire platform.
+
+Every monetary amount displayed anywhere in GoldenLife must reconcile with booking snapshots, financial records, reports, wallets, settlements, payouts, and invoices.
+
+No duplicate financial calculations, no hardcoded monetary values, and no configuration inconsistencies should remain.
