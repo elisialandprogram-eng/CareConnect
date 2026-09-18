@@ -100,7 +100,7 @@ const CustomReportsBuilder = lazy(() =>
 // ── Suspense fallback ─────────────────────────────────────────────────────────
 function PanelSkeleton() {
   return (
-    <div className="space-y-3 p-1" aria-busy="true" aria-label="Loading panel">
+    <div className="space-y-3 p-1" aria-busy="true" aria-label={useTranslation().t("common.loading")}>
       <div className="h-8 rounded-lg bg-muted animate-pulse w-1/3" />
       <div className="h-4 rounded bg-muted animate-pulse w-2/3" />
       <div className="h-48 rounded-xl bg-muted animate-pulse" />
@@ -564,7 +564,7 @@ export default function AdminDashboard() {
               <Card>
                 <CardHeader>
                   <CardTitle>{t("admin.promo_codes")}</CardTitle>
-                  <CardDescription>{t("admin.promo_codes_desc") || "Create and manage promotional codes"}</CardDescription>
+                  <CardDescription>{t("admin.promo_codes_desc", "Create and manage promotional codes")}</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <PanelErrorBoundary>

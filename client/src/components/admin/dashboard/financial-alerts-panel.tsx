@@ -7,6 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { apiRequest } from "@/lib/queryClient";
 import { AlertTriangle, AlertCircle, Info, CheckCircle2, RefreshCw, Bell } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -92,6 +93,7 @@ function formatRelative(iso: string) {
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export function FinancialAlertsPanel() {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const qc = useQueryClient();
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("open");
@@ -120,17 +122,17 @@ export function FinancialAlertsPanel() {
       qc.invalidateQueries({ queryKey: ["/api/admin/financial/alerts"] });
       qc.invalidateQueries({ queryKey: ["/api/admin/health/financial"] });
     },
-    onError: () => toast({ title: "Failed to update alert", variant: "destructive" }),
+     onError: () => toast({ title: t("admin.failed_update_alert"), variant: "destructive" }),
   });
 
   const generateMutation = useMutation({
     mutationFn: () => apiRequest("POST", "/api/admin/financial/alerts/generate", {}).then(r => r.json()),
     onSuccess: (d: any) => {
-      toast({ title: `Generated ${d.generated} new alert(s)` });
+       toast({ title: `${d.generated} ${t("admin.info").toLowerCase()}` });
       qc.invalidateQueries({ queryKey: ["/api/admin/financial/alerts"] });
       qc.invalidateQueries({ queryKey: ["/api/admin/health/financial"] });
     },
-    onError: () => toast({ title: "Failed to generate alerts", variant: "destructive" }),
+     onError: () => toast({ title: t("admin.failed_generate_alerts"), variant: "destructive" }),
   });
 
   const alerts = alertsData?.alerts ?? [];
@@ -142,16 +144,16 @@ export function FinancialAlertsPanel() {
 
   const statCards = [
     { label: "Unresolved",  value: unresolved,                 color: unresolved > 0 ? "text-red-600 dark:text-red-400" : "text-foreground" },
-    { label: "Critical",    value: bySeverity["critical"] ?? 0, color: (bySeverity["critical"] ?? 0) > 0 ? "text-red-600 dark:text-red-400" : "text-foreground" },
-    { label: "Errors",      value: bySeverity["error"] ?? 0,    color: (bySeverity["error"] ?? 0) > 0 ? "text-orange-600 dark:text-orange-400" : "text-foreground" },
-    { label: "Warnings",    value: bySeverity["warning"] ?? 0,  color: "text-amber-600 dark:text-amber-400" },
+    { label: t("admin.critical"), value: bySeverity["critical"] ?? 0, color: (bySeverity["critical"] ?? 0) > 0 ? "text-red-600 dark:text-red-400" : "text-foreground" },
+    { label: t("admin.error"), value: bySeverity["error"] ?? 0, color: (bySeverity["error"] ?? 0) > 0 ? "text-orange-600 dark:text-orange-400" : "text-foreground" },
+    { label: t("admin.warning"), value: bySeverity["warning"] ?? 0, color: "text-amber-600 dark:text-amber-400" },
   ];
 
   const STATUS_TABS: { value: StatusFilter; label: string }[] = [
-    { value: "open",         label: "Open" },
-    { value: "acknowledged", label: "Acknowledged" },
-    { value: "resolved",     label: "Resolved" },
-    { value: "all",          label: "All" },
+    { value: "open",         label: t("admin.open") },
+    { value: "acknowledged", label: t("admin.acknowledged") },
+    { value: "resolved",     label: t("admin.resolved") },
+    { value: "all",          label: t("admin.all_statuses") },
   ];
 
   const SEVERITY_FILTERS = ["all", "critical", "error", "warning", "info"];
@@ -163,7 +165,7 @@ export function FinancialAlertsPanel() {
         <div>
           <h2 className="text-xl font-semibold flex items-center gap-2">
             <Bell className="h-5 w-5" />
-            Financial Alerts
+            {t("admin.financial_alerts_title")}
             {unresolved > 0 && (
               <Badge className="bg-red-500 text-white text-xs px-1.5 py-0.5">
                 {unresolved}
@@ -171,7 +173,7 @@ export function FinancialAlertsPanel() {
             )}
           </h2>
           <p className="text-sm text-muted-foreground mt-0.5">
-            Anomalies detected by the financial reconciliation engine
+            {t("admin.financial_alerts_desc")}
           </p>
         </div>
         <div className="flex gap-2">
@@ -182,7 +184,7 @@ export function FinancialAlertsPanel() {
             data-testid="button-refresh-alerts"
           >
             <RefreshCw className="h-3.5 w-3.5 me-1.5" />
-            Refresh
+            {t("admin.refresh")}
           </Button>
           <Button
             size="sm"
@@ -190,7 +192,7 @@ export function FinancialAlertsPanel() {
             disabled={generateMutation.isPending}
             data-testid="button-generate-alerts"
           >
-            {generateMutation.isPending ? "Generating…" : "Generate from Reconciliation"}
+            {generateMutation.isPending ? t("common.loading") : t("admin.generate_alerts")}
           </Button>
         </div>
       </div>
@@ -254,11 +256,11 @@ export function FinancialAlertsPanel() {
       <Card>
         <CardContent className="p-0">
           {isLoading ? (
-            <div className="p-8 text-center text-muted-foreground text-sm">Loading alerts…</div>
+            <div className="p-8 text-center text-muted-foreground text-sm">{t("common.loading")}</div>
           ) : alerts.length === 0 ? (
             <div className="p-12 text-center space-y-2">
               <CheckCircle2 className="h-10 w-10 mx-auto text-green-500" />
-              <p className="text-sm font-medium">No alerts found</p>
+              <p className="text-sm font-medium">{t("admin.no_alerts_found", "No alerts found")}</p>
               <p className="text-xs text-muted-foreground">
                 {statusFilter === "open"
                   ? "All financial checks are passing — no open alerts."

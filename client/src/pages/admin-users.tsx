@@ -103,7 +103,8 @@ const MODULE_COLORS: Record<string, string> = {
 };
 
 function RoleBadge({ roleName, displayName }: { roleName: string | null; displayName?: string | null }) {
-  if (!roleName) return <span className="text-muted-foreground text-xs">No role</span>;
+  const { t } = useTranslation();
+  if (!roleName) return <span className="text-muted-foreground text-xs">{t("admin.admin_users_no_role", "No role")}</span>;
   return (
     <span className={`inline-flex items-center px-2 py-0.5 rounded border text-xs font-medium ${ROLE_COLORS[roleName] ?? "bg-muted text-foreground border-border"}`}>
       {displayName ?? roleName}
@@ -129,6 +130,7 @@ function CreateAdminDialog({
   onCreated: () => void;
 }) {
   const { toast } = useToast();
+  const { t } = useTranslation();
   const qc = useQueryClient();
   const [form, setForm] = useState({
     firstName: "", lastName: "", email: "", password: "",
@@ -142,7 +144,7 @@ function CreateAdminDialog({
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!form.firstName || !form.lastName || !form.email || !form.password || !form.roleName) {
-      toast({ title: "All required fields must be filled", variant: "destructive" });
+      toast({ title: t("admin.admin_users_required"), variant: "destructive" });
       return;
     }
     setLoading(true);
@@ -151,12 +153,12 @@ function CreateAdminDialog({
         ...form,
         countryCode: isGlobal ? undefined : form.countryCode,
       });
-      toast({ title: "Admin created successfully" });
+      toast({ title: t("admin.admin_users_created") });
       qc.invalidateQueries({ queryKey: QK.adminAdminUsers() });
       onCreated();
       setForm({ firstName: "", lastName: "", email: "", password: "", roleName: "", countryCode: "HU", notes: "" });
     } catch (err: any) {
-      toast({ title: err?.message ?? "Failed to create admin", variant: "destructive" });
+      toast({ title: err?.message ?? t("admin.admin_users_failed"), variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -166,32 +168,32 @@ function CreateAdminDialog({
     <Dialog open={open} onOpenChange={v => { if (!v) onClose(); }}>
       <DialogContent className="max-w-lg" data-testid="dialog-create-admin">
         <DialogHeader>
-          <DialogTitle>Create Admin User</DialogTitle>
+          <DialogTitle>{t("admin.admin_users_create_title")}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
-              <Label>First Name *</Label>
+              <Label>{t("admin.admin_users_first_name")}</Label>
               <Input data-testid="input-first-name" value={form.firstName} onChange={e => setForm(p => ({ ...p, firstName: e.target.value }))} placeholder="John" />
             </div>
             <div className="space-y-1">
-              <Label>Last Name *</Label>
+              <Label>{t("admin.admin_users_last_name")}</Label>
               <Input data-testid="input-last-name" value={form.lastName} onChange={e => setForm(p => ({ ...p, lastName: e.target.value }))} placeholder="Doe" />
             </div>
           </div>
           <div className="space-y-1">
-            <Label>Email *</Label>
+             <Label>{t("admin.admin_users_email")}</Label>
             <Input data-testid="input-email" type="email" value={form.email} onChange={e => setForm(p => ({ ...p, email: e.target.value }))} placeholder="admin@example.com" />
           </div>
           <div className="space-y-1">
-            <Label>Password * (min 8 chars)</Label>
+             <Label>{t("admin.admin_users_password")}</Label>
             <Input data-testid="input-password" type="password" value={form.password} onChange={e => setForm(p => ({ ...p, password: e.target.value }))} placeholder="••••••••" />
           </div>
           <div className="space-y-1">
-            <Label>Role *</Label>
+             <Label>{t("admin.admin_users_role")}</Label>
             <Select value={form.roleName} onValueChange={v => setForm(p => ({ ...p, roleName: v }))}>
               <SelectTrigger data-testid="select-role">
-                <SelectValue placeholder="Choose a role" />
+                 <SelectValue placeholder={t("admin.admin_users_choose_role")} />
               </SelectTrigger>
               <SelectContent>
                 {roles.map(r => (
@@ -205,36 +207,36 @@ function CreateAdminDialog({
               </SelectContent>
             </Select>
             {selectedRole && (
-              <p className="text-xs text-muted-foreground mt-1">{selectedRole.permissions.length} permissions</p>
+               <p className="text-xs text-muted-foreground mt-1">{t("admin.admin_users_permissions_count", { count: selectedRole.permissions.length })}</p>
             )}
           </div>
           {!isGlobal && (
             <div className="space-y-1">
-              <Label>Country Scope</Label>
+               <Label>{t("admin.admin_users_country_scope")}</Label>
               <Select value={form.countryCode} onValueChange={v => setForm(p => ({ ...p, countryCode: v }))}>
                 <SelectTrigger data-testid="select-country">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="HU">Hungary (HU)</SelectItem>
-                  <SelectItem value="IR">Iran (IR)</SelectItem>
+                   <SelectItem value="HU">{t("country.hungary", "Hungary")} (HU)</SelectItem>
+                   <SelectItem value="IR">{t("country.iran", "Iran")} (IR)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
           )}
           {isGlobal && (
             <p className="text-xs text-muted-foreground flex items-center gap-1">
-              <Globe className="h-3 w-3" /> Super admins have global scope (all countries).
+               <Globe className="h-3 w-3" /> {t("admin.admin_users_global_scope")}
             </p>
           )}
           <div className="space-y-1">
-            <Label>Notes (optional)</Label>
-            <Input data-testid="input-notes" value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))} placeholder="Reason for access…" />
+             <Label>{t("admin.admin_users_notes")}</Label>
+             <Input data-testid="input-notes" value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))} placeholder={t("admin.admin_users_reason_placeholder")} />
           </div>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
+             <Button type="button" variant="outline" onClick={onClose}>{t("common.cancel")}</Button>
             <Button type="submit" disabled={loading} data-testid="button-create-admin">
-              {loading ? "Creating…" : "Create Admin"}
+               {loading ? t("admin.admin_users_creating") : t("admin.admin_users_create")}
             </Button>
           </DialogFooter>
         </form>
@@ -255,6 +257,7 @@ function EditRoleDialog({
   onClose: () => void;
 }) {
   const { toast } = useToast();
+  const { t } = useTranslation();
   const qc = useQueryClient();
   const [roleName, setRoleName] = useState(user?.role_name ?? "");
   const [countryCode, setCountryCode] = useState(user?.assignment_country ?? user?.country_code ?? "HU");
@@ -270,11 +273,11 @@ function EditRoleDialog({
         roleName,
         countryCode: isGlobal ? null : countryCode,
       });
-      toast({ title: "Role updated" });
+       toast({ title: t("admin.admin_users_role_updated") });
       qc.invalidateQueries({ queryKey: QK.adminAdminUsers() });
       onClose();
     } catch (err: any) {
-      toast({ title: err?.message ?? "Failed to update role", variant: "destructive" });
+       toast({ title: err?.message ?? t("admin.admin_users_failed"), variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -284,14 +287,14 @@ function EditRoleDialog({
     <Dialog open={!!user} onOpenChange={v => { if (!v) onClose(); }}>
       <DialogContent data-testid="dialog-edit-role">
         <DialogHeader>
-          <DialogTitle>Change Role — {user?.first_name} {user?.last_name}</DialogTitle>
+          <DialogTitle>{t("admin.admin_users_change_role_title", { name: `${user?.first_name ?? ""} ${user?.last_name ?? ""}` })}</DialogTitle>
         </DialogHeader>
         <div className="space-y-4 py-2">
           <div className="space-y-1">
-            <Label>Role</Label>
+             <Label>{t("admin.admin_users_role")}</Label>
             <Select value={roleName} onValueChange={setRoleName}>
               <SelectTrigger data-testid="select-edit-role">
-                <SelectValue placeholder="Choose role" />
+                 <SelectValue placeholder={t("admin.admin_users_choose_role")} />
               </SelectTrigger>
               <SelectContent>
                 {roles.map(r => (
@@ -302,23 +305,23 @@ function EditRoleDialog({
           </div>
           {!isGlobal && (
             <div className="space-y-1">
-              <Label>Country Scope</Label>
+               <Label>{t("admin.admin_users_country_scope")}</Label>
               <Select value={countryCode} onValueChange={setCountryCode}>
                 <SelectTrigger data-testid="select-edit-country">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="HU">Hungary (HU)</SelectItem>
-                  <SelectItem value="IR">Iran (IR)</SelectItem>
+                 <SelectItem value="HU">{t("country.hungary", "Hungary")} (HU)</SelectItem>
+                 <SelectItem value="IR">{t("country.iran", "Iran")} (IR)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
           )}
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={onClose}>Cancel</Button>
+           <Button variant="outline" onClick={onClose}>{t("common.cancel")}</Button>
           <Button onClick={handleSave} disabled={loading} data-testid="button-save-role">
-            {loading ? "Saving…" : "Save"}
+             {loading ? t("admin.admin_users_saving") : t("admin.admin_users_save")}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -346,9 +349,9 @@ export default function AdminUsersPage() {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3">
         <ShieldCheck className="h-12 w-12 text-muted-foreground" />
-        <p className="text-muted-foreground">Global admin access required.</p>
+        <p className="text-muted-foreground">{t("admin.admin_users_access_required")}</p>
         <Button variant="outline" onClick={() => navigate("/admin")} data-testid="button-back-admin">
-          Back to Dashboard
+          {t("admin.admin_users_back_dashboard")}
         </Button>
       </div>
     );
@@ -371,30 +374,30 @@ export default function AdminUsersPage() {
     mutationFn: ({ id, isActive }: { id: string; isActive: boolean }) =>
       apiRequest("PATCH", `/api/admin/admin-users/${id}/deactivate`, { isActive }),
     onSuccess: () => {
-      toast({ title: "Admin status updated" });
+       toast({ title: t("admin.admin_users_status_updated") });
       qc.invalidateQueries({ queryKey: QK.adminAdminUsers() });
     },
-    onError: (e: any) => toast({ title: e?.message ?? "Failed", variant: "destructive" }),
+     onError: (e: any) => toast({ title: e?.message ?? t("admin.admin_users_failed"), variant: "destructive" }),
   });
 
   const revokeMutation = useMutation({
     mutationFn: (userId: string) =>
       apiRequest("POST", `/api/admin/session-revoke/${userId}`, {}),
     onSuccess: () => {
-      toast({ title: "All sessions revoked" });
+       toast({ title: t("admin.admin_users_sessions_revoked") });
       setRevokeTarget(null);
     },
-    onError: (e: any) => toast({ title: e?.message ?? "Failed", variant: "destructive" }),
+     onError: (e: any) => toast({ title: e?.message ?? t("admin.admin_users_failed"), variant: "destructive" }),
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => apiRequest("DELETE", `/api/admin/admin-users/${id}`),
     onSuccess: () => {
-      toast({ title: "Admin deleted" });
+       toast({ title: t("admin.admin_users_deleted") });
       qc.invalidateQueries({ queryKey: QK.adminAdminUsers() });
       setDeleteTarget(null);
     },
-    onError: (e: any) => toast({ title: e?.message ?? "Failed", variant: "destructive" }),
+     onError: (e: any) => toast({ title: e?.message ?? t("admin.admin_users_failed"), variant: "destructive" }),
   });
 
   const filtered = adminUsers.filter(u => {
@@ -428,18 +431,18 @@ export default function AdminUsersPage() {
             <ChevronLeft className="h-4 w-4" />
           </Button>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">Admin Management</h1>
-            <p className="text-sm text-muted-foreground">Manage admin users, roles, and permissions</p>
+            <h1 className="text-2xl font-bold tracking-tight">{t("admin.admin_users_title")}</h1>
+            <p className="text-sm text-muted-foreground">{t("admin.admin_users_description")}</p>
           </div>
         </div>
 
         {/* Stats */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           {[
-            { label: "Total Admins", value: adminUsers.length, icon: Users },
-            { label: "Active", value: adminUsers.filter(u => !u.is_suspended).length, icon: UserCheck },
-            { label: "Suspended", value: adminUsers.filter(u => u.is_suspended).length, icon: UserX },
-            { label: "Roles Defined", value: roles.length, icon: ShieldCheck },
+             { label: t("admin.admin_users_total"), value: adminUsers.length, icon: Users },
+             { label: t("admin.admin_users_active"), value: adminUsers.filter(u => !u.is_suspended).length, icon: UserCheck },
+             { label: t("admin.admin_users_suspended"), value: adminUsers.filter(u => u.is_suspended).length, icon: UserX },
+             { label: t("admin.admin_users_roles_defined"), value: roles.length, icon: ShieldCheck },
           ].map(s => (
             <Card key={s.label}>
               <CardContent className="pt-4 pb-3 flex items-center gap-3">
@@ -457,13 +460,13 @@ export default function AdminUsersPage() {
         <Tabs value={tab} onValueChange={setTab}>
           <TabsList>
             <TabsTrigger value="admins" data-testid="tab-admins">
-              <Users className="h-4 w-4 mr-1.5" /> Admin Users
+              <Users className="h-4 w-4 mr-1.5" /> {t("admin.admin_users_tab_users")}
             </TabsTrigger>
             <TabsTrigger value="roles" data-testid="tab-roles">
-              <ShieldCheck className="h-4 w-4 mr-1.5" /> Roles & Permissions
+              <ShieldCheck className="h-4 w-4 mr-1.5" /> {t("admin.admin_users_tab_roles")}
             </TabsTrigger>
             <TabsTrigger value="audit" data-testid="tab-audit">
-              <Activity className="h-4 w-4 mr-1.5" /> Audit Log
+              <Activity className="h-4 w-4 mr-1.5" /> {t("admin.admin_users_tab_audit")}
             </TabsTrigger>
           </TabsList>
 
@@ -472,13 +475,13 @@ export default function AdminUsersPage() {
             <div className="flex items-center justify-between gap-3 flex-wrap">
               <Input
                 className="max-w-xs"
-                placeholder="Search by name, email, or role…"
+                placeholder={t("admin.admin_users_search")}
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 data-testid="input-search-admins"
               />
               <Button onClick={() => setShowCreate(true)} data-testid="button-add-admin">
-                <Plus className="h-4 w-4 mr-1.5" /> New Admin
+                <Plus className="h-4 w-4 mr-1.5" /> {t("admin.admin_users_new")}
               </Button>
             </div>
 
@@ -488,23 +491,23 @@ export default function AdminUsersPage() {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead scope="col">Name / Email</TableHead>
+                        <TableHead scope="col">{t("admin.admin_users_name_email")}</TableHead>
                         <TableHead scope="col">Role</TableHead>
-                        <TableHead scope="col">Scope</TableHead>
-                        <TableHead scope="col">Status</TableHead>
-                        <TableHead scope="col">Last Login</TableHead>
-                        <TableHead scope="col" className="text-right">Actions</TableHead>
+                        <TableHead scope="col">{t("admin.admin_users_scope")}</TableHead>
+                        <TableHead scope="col">{t("admin.admin_users_status")}</TableHead>
+                        <TableHead scope="col">{t("admin.admin_users_last_login")}</TableHead>
+                        <TableHead scope="col" className="text-right">{t("admin.admin_users_actions")}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {loadingUsers && (
                         <TableRow>
-                          <TableCell colSpan={6} className="text-center text-muted-foreground py-8">Loading…</TableCell>
+                          <TableCell colSpan={6} className="text-center text-muted-foreground py-8">{t("admin.admin_users_loading")}</TableCell>
                         </TableRow>
                       )}
                       {!loadingUsers && filtered.length === 0 && (
                         <TableRow>
-                          <TableCell colSpan={6} className="text-center text-muted-foreground py-8">No admin users found.</TableCell>
+                          <TableCell colSpan={6} className="text-center text-muted-foreground py-8">{t("admin.admin_users_empty")}</TableCell>
                         </TableRow>
                       )}
                       {filtered.map(u => (
@@ -525,19 +528,19 @@ export default function AdminUsersPage() {
                               </span>
                             ) : (
                               <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                                <Globe className="h-3 w-3" /> Global
+                                <Globe className="h-3 w-3" /> {t("admin.admin_users_global")}
                               </span>
                             )}
                           </TableCell>
                           <TableCell>
                             {u.is_suspended
-                              ? <Badge variant="destructive" className="text-xs">Suspended</Badge>
-                              : <Badge variant="secondary" className="text-xs bg-green-50 text-green-700">Active</Badge>
+                               ? <Badge variant="destructive" className="text-xs">{t("admin.admin_users_suspended")}</Badge>
+                               : <Badge variant="secondary" className="text-xs bg-green-50 text-green-700">{t("admin.admin_users_active")}</Badge>
                             }
                           </TableCell>
                           <TableCell>
                             <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                              <Clock className="h-3 w-3" /> {u.last_login_at ? formatDate(u.last_login_at) : "Never"}
+                               <Clock className="h-3 w-3" /> {u.last_login_at ? formatDate(u.last_login_at) : t("admin.admin_users_never")}
                             </span>
                           </TableCell>
                           <TableCell className="text-right">
@@ -545,7 +548,7 @@ export default function AdminUsersPage() {
                               <Button
                                 size="sm" variant="ghost"
                                 onClick={() => setEditUser(u)}
-                                title="Change role"
+                                 title={t("admin.admin_users_change_role")}
                                 data-testid={`button-edit-role-${u.id}`}
                               >
                                 <Pencil className="h-3.5 w-3.5" />
@@ -553,7 +556,7 @@ export default function AdminUsersPage() {
                               <Button
                                 size="sm" variant="ghost"
                                 onClick={() => deactivateMutation.mutate({ id: u.id, isActive: !!u.is_suspended })}
-                                title={u.is_suspended ? "Activate" : "Deactivate"}
+                                 title={u.is_suspended ? t("admin.admin_users_activate") : t("admin.admin_users_deactivate")}
                                 data-testid={`button-toggle-${u.id}`}
                               >
                                 {u.is_suspended ? <UserCheck className="h-3.5 w-3.5" /> : <UserX className="h-3.5 w-3.5" />}
@@ -561,7 +564,7 @@ export default function AdminUsersPage() {
                               <Button
                                 size="sm" variant="ghost"
                                 onClick={() => setRevokeTarget(u)}
-                                title="Revoke all sessions"
+                                 title={t("admin.admin_users_revoke_sessions")}
                                 data-testid={`button-revoke-${u.id}`}
                               >
                                 <Key className="h-3.5 w-3.5" />
@@ -570,7 +573,7 @@ export default function AdminUsersPage() {
                                 <Button
                                   size="sm" variant="ghost" className="text-destructive hover:text-destructive"
                                   onClick={() => setDeleteTarget(u)}
-                                  title="Delete admin"
+                                   title={t("admin.admin_users_delete")}
                                   data-testid={`button-delete-${u.id}`}
                                 >
                                   <Trash2 className="h-3.5 w-3.5" />
@@ -599,10 +602,10 @@ export default function AdminUsersPage() {
                         <div className="flex items-center gap-3">
                           <RoleBadge roleName={role.name} displayName={role.displayName} />
                           {role.isSystem && (
-                            <span className="text-xs text-muted-foreground border rounded px-1.5 py-0.5">system</span>
+                             <span className="text-xs text-muted-foreground border rounded px-1.5 py-0.5">{t("admin.admin_users_system")}</span>
                           )}
                         </div>
-                        <span className="text-xs text-muted-foreground">{role.permissions.length} permissions</span>
+                        <span className="text-xs text-muted-foreground">{t("admin.admin_users_permissions_count", { count: role.permissions.length })}</span>
                       </div>
                       {role.description && (
                         <CardDescription className="text-sm mt-1">{role.description}</CardDescription>
@@ -625,7 +628,7 @@ export default function AdminUsersPage() {
                           </div>
                         ))}
                         {role.permissions.length === 0 && (
-                          <p className="text-xs text-muted-foreground">No permissions assigned.</p>
+                           <p className="text-xs text-muted-foreground">{t("admin.admin_users_no_permissions")}</p>
                         )}
                       </div>
                     </CardContent>
@@ -639,31 +642,31 @@ export default function AdminUsersPage() {
           <TabsContent value="audit" className="pt-4">
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">Admin Activity Log</CardTitle>
-                <CardDescription>All admin account changes, role assignments, and session events.</CardDescription>
+                <CardTitle className="text-base">{t("admin.admin_users_activity_title")}</CardTitle>
+                <CardDescription>{t("admin.admin_users_activity_desc")}</CardDescription>
               </CardHeader>
               <CardContent className="p-0">
                 <div className="overflow-x-auto">
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead scope="col">Actor</TableHead>
-                        <TableHead scope="col">Action</TableHead>
-                        <TableHead scope="col">Target</TableHead>
-                        <TableHead scope="col">Details</TableHead>
-                        <TableHead scope="col">IP</TableHead>
-                        <TableHead scope="col">When</TableHead>
+                        <TableHead scope="col">{t("admin.admin_users_actor")}</TableHead>
+                        <TableHead scope="col">{t("admin.admin_users_action")}</TableHead>
+                        <TableHead scope="col">{t("admin.admin_users_target")}</TableHead>
+                        <TableHead scope="col">{t("admin.admin_users_details")}</TableHead>
+                        <TableHead scope="col">{t("admin.admin_users_ip")}</TableHead>
+                        <TableHead scope="col">{t("admin.admin_users_when")}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {!auditData && (
                         <TableRow>
-                          <TableCell colSpan={6} className="text-center text-muted-foreground py-8">Loading…</TableCell>
+                          <TableCell colSpan={6} className="text-center text-muted-foreground py-8">{t("admin.admin_users_loading")}</TableCell>
                         </TableRow>
                       )}
                       {auditData?.logs.length === 0 && (
                         <TableRow>
-                          <TableCell colSpan={6} className="text-center text-muted-foreground py-8">No audit entries found.</TableCell>
+                          <TableCell colSpan={6} className="text-center text-muted-foreground py-8">{t("admin.admin_users_no_audit")}</TableCell>
                         </TableRow>
                       )}
                       {auditData?.logs.map(log => {
@@ -692,7 +695,7 @@ export default function AdminUsersPage() {
                 </div>
                 {auditData && (
                   <div className="px-4 py-3 border-t text-xs text-muted-foreground">
-                    Showing {auditData.logs.length} of {auditData.total} entries
+                     {t("admin.admin_users_showing", { shown: auditData.logs.length, total: auditData.total })}
                   </div>
                 )}
               </CardContent>
@@ -719,19 +722,18 @@ export default function AdminUsersPage() {
       <AlertDialog open={!!revokeTarget} onOpenChange={v => { if (!v) setRevokeTarget(null); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Revoke All Sessions</AlertDialogTitle>
+            <AlertDialogTitle>{t("admin.admin_users_revoke_title")}</AlertDialogTitle>
             <AlertDialogDescription>
-              All active sessions for <strong>{revokeTarget?.email}</strong> will be immediately invalidated.
-              They will need to log in again.
+              {t("admin.admin_users_revoke_desc", { email: revokeTarget?.email })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => revokeTarget && revokeMutation.mutate(revokeTarget.id)}
               data-testid="button-confirm-revoke"
             >
-              Revoke Sessions
+              {t("admin.admin_users_revoke_action")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -741,19 +743,19 @@ export default function AdminUsersPage() {
       <AlertDialog open={!!deleteTarget} onOpenChange={v => { if (!v) setDeleteTarget(null); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Admin User</AlertDialogTitle>
+            <AlertDialogTitle>{t("admin.admin_users_delete_title")}</AlertDialogTitle>
             <AlertDialogDescription>
-              Permanently delete <strong>{deleteTarget?.email}</strong>? This cannot be undone.
+              {t("admin.admin_users_delete_desc", { email: deleteTarget?.email })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive hover:bg-destructive/90"
               onClick={() => deleteTarget && deleteMutation.mutate(deleteTarget.id)}
               data-testid="button-confirm-delete"
             >
-              Delete
+              {t("common.delete")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

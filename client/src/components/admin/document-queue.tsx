@@ -17,6 +17,7 @@ import {
 import { format, differenceInDays } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
 
 interface DocQueueItem {
   id: string | null;
@@ -292,6 +293,7 @@ export function DocumentQueue({ onSelectProvider }: { onSelectProvider: (id: str
   const [note, setNote] = useState("");
   const [previewDoc, setPreviewDoc] = useState<DocQueueItem | null>(null);
   const { toast } = useToast();
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
 
   const { data, isLoading, refetch } = useQuery<DocQueueData>({
@@ -317,7 +319,7 @@ export function DocumentQueue({ onSelectProvider }: { onSelectProvider: (id: str
         vars.status === "rejected"          ? "rejected" :
         vars.status === "expired"           ? "marked as expired" :
         "marked for re-upload";
-      toast({ title: `Document ${label}` });
+      toast({ title: `${t("admin.document", "Document")} ${label}` });
       setDialog(null);
       setNote("");
     },
@@ -370,15 +372,15 @@ export function DocumentQueue({ onSelectProvider }: { onSelectProvider: (id: str
         <div>
           <h2 className="text-lg font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-2">
             <Shield className="h-5 w-5 text-blue-500" />
-            Docs Approval
+            {t("admin.docs_approval")}
             {totalActionable > 0 && (
               <Badge className="bg-blue-500 hover:bg-blue-600 text-white text-xs">
                 {totalActionable} need action
               </Badge>
             )}
           </h2>
-          <p className="text-sm text-slate-500 mt-0.5">
-            Review, approve, and reject provider documents. This is the single source of truth for document decisions.
+             <p className="text-sm text-slate-500 mt-0.5">
+             {t("admin.docs_approval_desc", "Review, approve, and reject provider documents. This is the single source of truth for document decisions.")}
           </p>
         </div>
         <Button
@@ -388,7 +390,7 @@ export function DocumentQueue({ onSelectProvider }: { onSelectProvider: (id: str
           data-testid="button-refresh-queue"
         >
           <RefreshCw className="h-4 w-4 mr-1.5" />
-          Refresh
+           {t("admin.refresh")}
         </Button>
       </div>
 

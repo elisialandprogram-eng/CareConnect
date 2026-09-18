@@ -16,6 +16,7 @@ import {
   RefreshCw, Settings2, Shield, Zap,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
 
 interface PaymentProvider {
   id: string;
@@ -95,6 +96,7 @@ function ProviderCard({ provider, onUpdate, onTest, isUpdating, isTesting }: {
   isUpdating: boolean;
   isTesting: boolean;
 }) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [localCountries, setLocalCountries] = useState(provider.countryCodes?.join(", ") ?? "");
   const [localCurrencies, setLocalCurrencies] = useState(provider.currencyCodes?.join(", ") ?? "");
@@ -194,7 +196,7 @@ function ProviderCard({ provider, onUpdate, onTest, isUpdating, isTesting }: {
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             {provider.countryCodes
               ? <span className="flex items-center gap-1"><Globe className="h-3 w-3" />{provider.countryCodes.join(", ")}</span>
-              : <span className="flex items-center gap-1"><Globe className="h-3 w-3" />All countries</span>}
+              : <span className="flex items-center gap-1"><Globe className="h-3 w-3" />{t("admin.all_countries")}</span>}
           </div>
           <div className="flex gap-2">
             <Button
@@ -216,7 +218,7 @@ function ProviderCard({ provider, onUpdate, onTest, isUpdating, isTesting }: {
                 data-testid={`btn-config-${provider.key}`}
               >
                 <Settings2 className="h-3 w-3" />
-                Config
+                {t("admin.config")}
                 <ChevronDown className={cn("h-3 w-3 transition-transform", open && "rotate-180")} />
               </Button>
             </CollapsibleTrigger>
@@ -227,7 +229,7 @@ function ProviderCard({ provider, onUpdate, onTest, isUpdating, isTesting }: {
           <div className="border-t border-border/60 px-4 py-4 space-y-4 bg-muted/20">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <Label className="text-xs">Environment</Label>
+                <Label className="text-xs">{t("admin.environment")}</Label>
                 <Select
                   value={provider.environment}
                   onValueChange={v => onUpdate(provider.key, { environment: v as "sandbox" | "production" })}
@@ -236,13 +238,13 @@ function ProviderCard({ provider, onUpdate, onTest, isUpdating, isTesting }: {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="sandbox">Sandbox</SelectItem>
-                    <SelectItem value="production">Production</SelectItem>
+                    <SelectItem value="sandbox">{t("admin.sandbox")}</SelectItem>
+                    <SelectItem value="production">{t("admin.production")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-1.5">
-                <Label className="text-xs">Priority (lower = shown first)</Label>
+                <Label className="text-xs">{t("admin.priority_first")}</Label>
                 <Input
                   type="number"
                   min={1}
@@ -257,7 +259,7 @@ function ProviderCard({ provider, onUpdate, onTest, isUpdating, isTesting }: {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <Label className="text-xs">Country restriction (comma-separated ISO codes, blank = all)</Label>
+                <Label className="text-xs">{t("admin.country_restriction")}</Label>
                 <Input
                   placeholder="e.g. HU, US, IN"
                   value={localCountries}
@@ -267,7 +269,7 @@ function ProviderCard({ provider, onUpdate, onTest, isUpdating, isTesting }: {
                 />
               </div>
               <div className="space-y-1.5">
-                <Label className="text-xs">Currency restriction (comma-separated, blank = all)</Label>
+                <Label className="text-xs">{t("admin.currency_restriction")}</Label>
                 <Input
                   placeholder="e.g. HUF, USD, EUR"
                   value={localCurrencies}
@@ -286,14 +288,14 @@ function ProviderCard({ provider, onUpdate, onTest, isUpdating, isTesting }: {
                 data-testid={`toggle-maintenance-${provider.key}`}
               />
               <Label htmlFor={`maint-${provider.key}`} className="text-xs cursor-pointer">
-                Maintenance mode (hides from checkout even when enabled)
+                {t("admin.maintenance_mode")}
               </Label>
             </div>
 
             {credFields.length > 0 && (
               <div className="space-y-3">
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
-                  <Shield className="h-3 w-3" /> Credentials
+                  <Shield className="h-3 w-3" /> {t("admin.credentials")}
                 </p>
                 {credFields.map(f => (
                   <div key={f.key} className="space-y-1.5">
@@ -315,7 +317,7 @@ function ProviderCard({ provider, onUpdate, onTest, isUpdating, isTesting }: {
                           className="h-8 text-xs shrink-0"
                           onClick={() => setShowSecrets(s => ({ ...s, [f.key]: !s[f.key] }))}
                         >
-                          {showSecrets[f.key] ? "Hide" : "Show"}
+                          {showSecrets[f.key] ? t("admin.hide") : t("admin.show")}
                         </Button>
                       )}
                     </div>
@@ -333,7 +335,7 @@ function ProviderCard({ provider, onUpdate, onTest, isUpdating, isTesting }: {
                 data-testid={`btn-save-${provider.key}`}
               >
                 {isUpdating ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
-                Save configuration
+                {t("admin.save_configuration")}
               </Button>
             </div>
           </div>
@@ -345,6 +347,7 @@ function ProviderCard({ provider, onUpdate, onTest, isUpdating, isTesting }: {
 
 export function PaymentProvidersPanel() {
   const { toast } = useToast();
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
 
   const { data: providers, isLoading } = useQuery<PaymentProvider[]>({
@@ -366,27 +369,27 @@ export function PaymentProvidersPanel() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/payment-providers"] });
       queryClient.invalidateQueries({ queryKey: ["/api/payment-providers/available"] });
-      toast({ title: "Provider updated" });
+      toast({ title: t("admin.provider_updated") });
     },
-    onError: (e: Error) => toast({ title: "Update failed", description: e.message, variant: "destructive" }),
+    onError: (e: Error) => toast({ title: t("admin.update_failed"), description: e.message, variant: "destructive" }),
     onSettled: () => setUpdatingKey(null),
   });
 
   const testMutation = useMutation({
     mutationFn: async (key: string) => {
       const res = await apiRequest("POST", `/api/admin/payment-providers/${key}/test`, {});
-      if (!res.ok) throw new Error("Test failed");
+      if (!res.ok) throw new Error(t("admin.test_failed"));
       return res.json();
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/payment-providers"] });
       toast({
-        title: data.testResult.success ? "Connection OK" : "Connection Failed",
+        title: data.testResult.success ? t("admin.connection_ok") : t("admin.connection_failed"),
         description: data.testResult.message,
         variant: data.testResult.success ? "default" : "destructive",
       });
     },
-    onError: () => toast({ title: "Test failed", variant: "destructive" }),
+    onError: () => toast({ title: t("admin.test_failed"), variant: "destructive" }),
     onSettled: () => setTestingKey(null),
   });
 
@@ -418,21 +421,20 @@ export function PaymentProvidersPanel() {
       <div>
         <h2 className="text-xl font-bold flex items-center gap-2">
           <CreditCard className="h-5 w-5" />
-          Payment Provider Registry
+          {t("admin.payment_registry_title")}
         </h2>
         <p className="text-sm text-muted-foreground mt-1">
-          Enable, configure, and prioritize payment methods that appear in booking checkout.
-          Changes take effect immediately — no deployment required.
+          {t("admin.payment_registry_desc")}
         </p>
       </div>
 
       {/* Summary row */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        {[
-          { label: "Active providers", value: enabled.length, color: "text-emerald-600" },
-          { label: "Disabled / maintenance", value: disabled.length, color: "text-muted-foreground" },
-          { label: "Healthy connections", value: providers?.filter(p => p.healthStatus === "ok").length ?? 0, color: "text-emerald-600" },
-          { label: "Connection errors", value: providers?.filter(p => p.healthStatus === "error").length ?? 0, color: "text-red-600" },
+          {[
+           { label: t("admin.active_providers"), value: enabled.length, color: "text-emerald-600" },
+           { label: t("admin.disabled_maintenance"), value: disabled.length, color: "text-muted-foreground" },
+           { label: t("admin.healthy_connections"), value: providers?.filter(p => p.healthStatus === "ok").length ?? 0, color: "text-emerald-600" },
+           { label: t("admin.connection_errors"), value: providers?.filter(p => p.healthStatus === "error").length ?? 0, color: "text-red-600" },
         ].map(stat => (
           <Card key={stat.label} className="p-3">
             <p className={cn("text-2xl font-bold", stat.color)}>{stat.value}</p>
@@ -443,11 +445,11 @@ export function PaymentProvidersPanel() {
 
       {/* Active providers */}
       <div className="space-y-3">
-        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Active in checkout</p>
+         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t("admin.active_in_checkout")}</p>
         {enabled.length === 0 && (
           <div className="rounded-xl border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/20 p-4 text-sm text-amber-700 dark:text-amber-400 flex items-center gap-2">
             <AlertTriangle className="h-4 w-4 shrink-0" />
-            No payment methods enabled — patients cannot complete checkout!
+             {t("admin.no_payment_enabled")}
           </div>
         )}
         {enabled.map(p => (
@@ -465,7 +467,7 @@ export function PaymentProvidersPanel() {
       {/* Disabled / future providers */}
       {disabled.length > 0 && (
         <div className="space-y-3">
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Disabled / future-ready</p>
+           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t("admin.disabled_future_ready")}</p>
           {disabled.map(p => (
             <ProviderCard
               key={p.key}
@@ -483,11 +485,11 @@ export function PaymentProvidersPanel() {
         <CardHeader className="pb-2">
           <CardTitle className="text-sm text-blue-800 dark:text-blue-300 flex items-center gap-2">
             <Shield className="h-4 w-4" />
-            Country-based payment routing
+             {t("admin.country_payment_routing")}
           </CardTitle>
         </CardHeader>
         <CardContent className="text-xs text-blue-700 dark:text-blue-400 space-y-1.5">
-          <p>Booking checkout dynamically shows only the enabled providers that match the patient's country.</p>
+           <p>{t("admin.checkout_country_desc")}</p>
           <div className="grid sm:grid-cols-3 gap-2 mt-2">
             {[
               { country: "Hungary (HU)", methods: "Stripe, Bank Transfer, Wallet, Cash" },
@@ -500,7 +502,7 @@ export function PaymentProvidersPanel() {
               </div>
             ))}
           </div>
-          <p className="mt-1 opacity-70">Set country codes in each provider's Config panel. Leave blank to allow globally.</p>
+           <p className="mt-1 opacity-70">{t("admin.country_codes_hint")}</p>
         </CardContent>
       </Card>
     </div>

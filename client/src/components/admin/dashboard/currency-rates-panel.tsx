@@ -12,6 +12,7 @@ import {
   TrendingUp, Loader2, RotateCcw, Info,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
 
 interface CurrencyRate {
   code: string;
@@ -54,6 +55,7 @@ function formatRelativeTime(isoString: string | null): string {
 
 export function CurrencyRatesPanel() {
   const { toast } = useToast();
+  const { t } = useTranslation();
   const qc = useQueryClient();
   const [editingCode, setEditingCode] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
@@ -66,9 +68,9 @@ export function CurrencyRatesPanel() {
     mutationFn: () => apiRequest("POST", "/api/admin/currency-rates/sync").then(r => r.json()),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["/api/admin/currency-rates"] });
-      toast({ title: "Rates synced", description: "Live rates fetched from open.er-api.com" });
+      toast({ title: t("admin.rates_synced"), description: t("admin.rates_sync_desc") });
     },
-    onError: () => toast({ title: "Sync failed", description: "Could not reach the exchange rate API", variant: "destructive" }),
+    onError: () => toast({ title: t("admin.sync_failed"), description: t("admin.rates_sync_failed_desc"), variant: "destructive" }),
   });
 
   const overrideMutation = useMutation({
@@ -77,9 +79,9 @@ export function CurrencyRatesPanel() {
     onSuccess: (_, { code }) => {
       qc.invalidateQueries({ queryKey: ["/api/admin/currency-rates"] });
       setEditingCode(null);
-      toast({ title: "Rate overridden", description: `${code} rate updated and cache cleared` });
+      toast({ title: t("admin.rate_overridden"), description: t("admin.rate_override_desc", { code }) });
     },
-    onError: () => toast({ title: "Override failed", description: "Could not save the rate override", variant: "destructive" }),
+    onError: () => toast({ title: t("admin.override_failed"), description: t("admin.override_save_failed"), variant: "destructive" }),
   });
 
   const resetMutation = useMutation({
@@ -87,9 +89,9 @@ export function CurrencyRatesPanel() {
       apiRequest("POST", `/api/admin/currency-rates/${code}/reset`).then(r => r.json()),
     onSuccess: (_, code) => {
       qc.invalidateQueries({ queryKey: ["/api/admin/currency-rates"] });
-      toast({ title: "Override cleared", description: `${code} will use live rates on next sync` });
+      toast({ title: t("admin.override_cleared"), description: t("admin.override_cleared_desc", { code }) });
     },
-    onError: () => toast({ title: "Reset failed", variant: "destructive" }),
+    onError: () => toast({ title: t("admin.reset_failed"), variant: "destructive" }),
   });
 
   function startEdit(rate: CurrencyRate) {
@@ -105,7 +107,7 @@ export function CurrencyRatesPanel() {
   function confirmEdit(code: string) {
     const parsed = parseFloat(editValue);
     if (!Number.isFinite(parsed) || parsed <= 0) {
-      toast({ title: "Invalid rate", description: "Enter a positive number", variant: "destructive" });
+      toast({ title: t("admin.invalid_rate"), description: t("admin.positive_number"), variant: "destructive" });
       return;
     }
     overrideMutation.mutate({ code, rate: parsed });
@@ -122,10 +124,9 @@ export function CurrencyRatesPanel() {
             <TrendingUp className="h-6 w-6 text-primary" />
           </div>
           <div>
-            <h2 className="text-xl font-bold">Exchange Rates</h2>
+            <h2 className="text-xl font-bold">{t("admin.exchange_rates_title")}</h2>
             <p className="text-sm text-muted-foreground">
-              Manage USD-based exchange rates used for wallet debiting and revenue calculations.
-              Rates sync automatically every hour from open.er-api.com.
+              {t("admin.exchange_rates_desc")}
             </p>
           </div>
         </div>
@@ -140,7 +141,7 @@ export function CurrencyRatesPanel() {
           ) : (
             <RefreshCw className="h-4 w-4 me-2" />
           )}
-          Sync Now
+          {t("admin.sync_now")}
         </Button>
       </div>
 
@@ -148,7 +149,7 @@ export function CurrencyRatesPanel() {
         <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800">
           <AlertTriangle className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
           <p className="text-sm text-amber-700 dark:text-amber-400">
-            One or more rates have manual overrides active. Live sync will not update these until the override is cleared.
+            {t("admin.manual_overrides_warning")}
           </p>
         </div>
       )}

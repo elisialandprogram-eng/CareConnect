@@ -144,14 +144,14 @@ export default function Login() {
       const data = await res.json().catch(() => ({}));
 
       if (!res.ok) {
-        setMfaState((s) => ({ ...s, submitting: false, error: data.error || "Invalid code. Try again." }));
+        setMfaState((s) => ({ ...s, submitting: false, error: data.error || t("admin.admin_login_invalid_code") }));
         return;
       }
 
-      toast({ title: "Signed in", description: "Welcome back!" });
+      toast({ title: t("admin.admin_login_signed_in"), description: t("common.welcome_back") });
       navigate(redirectUrl);
     } catch {
-      setMfaState((s) => ({ ...s, submitting: false, error: "Network error. Please try again." }));
+      setMfaState((s) => ({ ...s, submitting: false, error: t("admin.admin_login_network_error") }));
     }
   };
 
@@ -188,19 +188,19 @@ export default function Login() {
                       <ShieldCheck className="h-7 w-7 text-white" />
                     </div>
                     <h1 className="text-2xl tracking-tight font-bold text-zinc-100">
-                      Two-Factor Auth
+                      {t("admin.admin_login_two_factor")}
                     </h1>
                     <p className="mt-1.5 text-sm text-zinc-400 text-center">
                       {mfaState.isRecovery
-                        ? "Enter one of your backup recovery codes"
-                        : "Enter the 6-digit code from your authenticator app"}
+                        ? t("admin.admin_login_recovery_prompt")
+                        : t("admin.admin_login_authenticator_prompt")}
                     </p>
                   </div>
 
                   <div className="space-y-4">
                     <div>
                       <label className="text-zinc-300 text-sm font-medium block mb-1.5">
-                        {mfaState.isRecovery ? "Recovery Code" : "Authentication Code"}
+                        {mfaState.isRecovery ? t("admin.admin_login_recovery_code") : t("admin.admin_login_authentication_code")}
                       </label>
                       <Input
                         autoFocus
@@ -224,8 +224,8 @@ export default function Login() {
                       className="w-full bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-medium rounded-lg shadow-lg h-10 transition-all duration-200 border-0"
                     >
                       {mfaState.submitting ? (
-                        <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Verifying…</>
-                      ) : "Verify"}
+                        <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> {t("admin.admin_login_verifying")}</>
+                      ) : t("admin.admin_login_verify")}
                     </Button>
 
                     <div className="flex items-center justify-between pt-1">
@@ -236,7 +236,7 @@ export default function Login() {
                         className="inline-flex items-center gap-1.5 text-sm text-zinc-500 hover:text-zinc-300 transition-colors"
                       >
                         <ArrowLeft className="h-3.5 w-3.5" />
-                        Back to login
+                        {t("admin.admin_login_back")}
                       </button>
                       <button
                         type="button"
@@ -244,7 +244,7 @@ export default function Login() {
                         onClick={() => setMfaState((s) => ({ ...s, isRecovery: !s.isRecovery, code: "", error: null }))}
                         className="text-sm text-zinc-500 hover:text-zinc-300 transition-colors"
                       >
-                        {mfaState.isRecovery ? "Use authenticator code" : "Use recovery code"}
+                        {mfaState.isRecovery ? t("admin.admin_login_use_authenticator") : t("admin.admin_login_use_recovery")}
                       </button>
                     </div>
                   </div>
@@ -387,10 +387,10 @@ export default function Login() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-zinc-100">
               <Mail className="h-5 w-5 text-amber-400" />
-              Verify Your Email
+              {t("admin.admin_login_verify_email")}
             </DialogTitle>
             <DialogDescription className="text-zinc-400">
-              Your account isn't verified yet. Please check your email for a verification code.
+              {t("admin.admin_login_unverified_desc")}
             </DialogDescription>
           </DialogHeader>
           <div className="flex gap-3 mt-2">
@@ -400,7 +400,7 @@ export default function Login() {
               className="flex-1 border-zinc-700 text-zinc-300"
               data-testid="button-cancel-unverified"
             >
-              Cancel
+              {t("common.cancel")}
             </Button>
             <Button
               onClick={handleResendCode}
@@ -408,7 +408,7 @@ export default function Login() {
               className="flex-1 bg-violet-600 hover:bg-violet-500"
               data-testid="button-resend-verification"
             >
-              {resending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Resend Code"}
+              {resending ? <Loader2 className="h-4 w-4 animate-spin" /> : t("admin.admin_login_resend")}
             </Button>
           </div>
         </DialogContent>

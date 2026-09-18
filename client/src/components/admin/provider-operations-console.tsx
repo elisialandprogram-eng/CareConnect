@@ -1,5 +1,6 @@
 import { formatDateTime } from "@/lib/datetime";
 import { useState, useMemo, useCallback, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { useAdminCurrency, formatInCurrency } from "@/lib/currency";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
@@ -392,6 +393,7 @@ function ProviderDirectory({
   selectedId: string | null;
   onSelect: (id: string) => void;
 }) {
+  const { t } = useTranslation();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
@@ -434,7 +436,7 @@ function ProviderDirectory({
       <div className="p-4 border-b border-slate-200 dark:border-slate-800 space-y-3">
         <div className="flex items-center justify-between">
           <h2 className="font-semibold text-sm text-slate-900 dark:text-slate-100">
-            Providers <span className="text-slate-400 font-normal">({filtered.length})</span>
+            {t("admin.providers")} <span className="text-slate-400 font-normal">({filtered.length})</span>
           </h2>
           <Button size="sm" variant="ghost" onClick={() => setShowFilters(!showFilters)} className="h-7 w-7 p-0">
             <Filter className="h-4 w-4" />
@@ -443,7 +445,7 @@ function ProviderDirectory({
         <div className="relative">
           <Search className="absolute start-2.5 top-2.5 h-3.5 w-3.5 text-slate-400" />
           <Input
-            placeholder="Search providers…"
+            placeholder={t("admin.search_providers")}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-8 h-8 text-xs"
@@ -452,9 +454,9 @@ function ProviderDirectory({
         {showFilters && (
           <div className="space-y-2">
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="h-7 text-xs"><SelectValue placeholder="Status" /></SelectTrigger>
+               <SelectTrigger className="h-7 text-xs"><SelectValue placeholder={t("admin.status")} /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All statuses</SelectItem>
+                 <SelectItem value="all">{t("admin.all_statuses")}</SelectItem>
                 <SelectItem value="approved">Approved</SelectItem>
                 <SelectItem value="submitted">Submitted</SelectItem>
                 <SelectItem value="under_review">Under Review</SelectItem>
@@ -478,9 +480,9 @@ function ProviderDirectory({
               </SelectContent>
             </Select>
             <Select value={countryFilter} onValueChange={setCountryFilter}>
-              <SelectTrigger className="h-7 text-xs"><SelectValue placeholder="Country" /></SelectTrigger>
+               <SelectTrigger className="h-7 text-xs"><SelectValue placeholder={t("admin.country")} /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All countries</SelectItem>
+                 <SelectItem value="all">{t("admin.all_countries")}</SelectItem>
                 <SelectItem value="HU">Hungary</SelectItem>
                 <SelectItem value="IR">Iran</SelectItem>
               </SelectContent>
@@ -503,7 +505,7 @@ function ProviderDirectory({
       <ScrollArea className="flex-1">
         <div className="divide-y divide-slate-100 dark:divide-slate-800">
           {filtered.length === 0 && (
-            <div className="p-6 text-center text-slate-400 text-sm">No providers match</div>
+            <div className="p-6 text-center text-slate-400 text-sm">{t("admin.no_providers_match")}</div>
           )}
           {filtered.map((p) => {
             const Icon = typeIcon(p.providerType);

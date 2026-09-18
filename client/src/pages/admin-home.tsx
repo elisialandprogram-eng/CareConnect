@@ -23,6 +23,7 @@ import { cn } from "@/lib/utils";
 import { isAdminRole } from "@/lib/roles";
 import { formatInCurrency } from "@/lib/currency";
 import { formatTime } from "@/lib/datetime";
+import { useTranslation } from "react-i18next";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface HomeSummary {
@@ -109,22 +110,22 @@ interface HomeSummary {
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-function getGreeting(): string {
+function getGreeting(t: (key: string) => string): string {
   const h = new Date().getHours();
-  if (h < 12) return "Good Morning";
-  if (h < 17) return "Good Afternoon";
-  return "Good Evening";
+  if (h < 12) return t("admin.admin_home_greeting_morning");
+  if (h < 17) return t("admin.admin_home_greeting_afternoon");
+  return t("admin.admin_home_greeting_evening");
 }
 
-function timeAgo(iso: string): string {
+function timeAgo(iso: string, t: (key: string, options?: any) => string): string {
   const diff = Date.now() - new Date(iso).getTime();
   const mins = Math.floor(diff / 60000);
-  if (mins < 1) return "just now";
-  if (mins < 60) return `${mins}m ago`;
+  if (mins < 1) return t("admin.admin_home_just_now");
+  if (mins < 60) return `${mins}m`;
   const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
+  if (hrs < 24) return `${hrs}h`;
   const days = Math.floor(hrs / 24);
-  return `${days}d ago`;
+  return `${days}d`;
 }
 
 
@@ -233,7 +234,7 @@ function ActionItem({
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
           <span className="font-semibold text-sm text-foreground">{title}</span>
-          {urgent && <Badge className="bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400 text-xs border-0 px-1.5 py-0">Urgent</Badge>}
+           {urgent && <Badge className="bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400 text-xs border-0 px-1.5 py-0">Urgent</Badge>}
         </div>
         <p className="text-xs text-muted-foreground mt-0.5 truncate">{description}</p>
       </div>
@@ -287,16 +288,17 @@ function QuickAction({ icon: Icon, label, href, color }: { icon: React.ElementTy
 
 // ── Rotating operational messages ─────────────────────────────────────────────
 function useOperationalMessage(data: HomeSummary | undefined): string {
+  const { t } = useTranslation();
   const [idx, setIdx] = useState(0);
 
   const messages = useMemo(() => {
-    if (!data) return ["Loading platform status…"];
+    if (!data) return [t("common.loading")];
     const msgs: string[] = [];
 
     if (data.totalActionsRequired === 0) {
-      msgs.push("All critical systems are operational.");
-      msgs.push("Platform activity is running smoothly.");
-      msgs.push("No pending actions — great work.");
+      msgs.push(t("admin.admin_home_platform_healthy"));
+      msgs.push(t("admin.admin_home_running_smoothly"));
+      msgs.push(t("admin.admin_home_all_clear"));
     }
     if (data.providers.totalNeedsReview > 0)
       msgs.push(`${data.providers.totalNeedsReview} provider${data.providers.totalNeedsReview !== 1 ? "s" : ""} ${data.providers.totalNeedsReview !== 1 ? "require" : "requires"} review.`);
@@ -315,9 +317,9 @@ function useOperationalMessage(data: HomeSummary | undefined): string {
     if (data.scheduler.failingJobs > 0)
       msgs.push(`${data.scheduler.failingJobs} background job${data.scheduler.failingJobs !== 1 ? "s" : ""} ${data.scheduler.failingJobs !== 1 ? "are" : "is"} failing.`);
 
-    if (msgs.length === 0) msgs.push("Platform operations are healthy.");
+     if (msgs.length === 0) msgs.push(t("admin.admin_home_platform_healthy"));
     return msgs;
-  }, [data]);
+  }, [data, t]);
 
   useEffect(() => {
     if (messages.length <= 1) return;
@@ -330,7 +332,8 @@ function useOperationalMessage(data: HomeSummary | undefined): string {
 
 // ── Main page ─────────────────────────────────────────────────────────────────
 export default function AdminHome() {
-  usePageTitle("Command Center | Golden Life Admin");
+  const { t } = useTranslation();
+  usePageTitle(`${t("admin.admin_home_full_dashboard")} | Golden Life Admin`);
   const { user, isLoading: authLoading } = useAuth();
   const [, navigate] = useLocation();
 
@@ -420,7 +423,7 @@ export default function AdminHome() {
                   </div>
                   <div>
                     <h1 className="text-xl sm:text-2xl font-bold text-white leading-tight">
-                      {getGreeting()}, {user.firstName} 👋
+                      {getGreeting(t)}, {user.firstName} 👋
                     </h1>
                     <p className="text-slate-400 text-sm capitalize">{user.role?.replace(/_/g, " ")}</p>
                   </div>
@@ -449,7 +452,7 @@ export default function AdminHome() {
                       : "bg-amber-500/10 text-amber-400 border-amber-500/30"
                   )}>
                     {platformHealthy ? <CheckCircle2 className="h-4 w-4" /> : <AlertTriangle className="h-4 w-4" />}
-                    {platformHealthy ? "Platform Healthy" : "Needs Attention"}
+                    {platformHealthy ? t("admin.admin_home_platform_healthy") : t("admin.admin_home_needs_attention")}
                   </div>
                 )}
                 <div className="flex items-center gap-2">
@@ -457,11 +460,11 @@ export default function AdminHome() {
                     onClick={() => refetch()}
                     data-testid="button-refresh-summary"
                     className="p-2 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-700/60 transition-colors"
-                    title="Refresh"
+                     title={t("admin.admin_home_refresh")}
                   >
                     <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />
                   </button>
-                  {lastUpdated && <span className="text-xs text-slate-500">Updated {lastUpdated}</span>}
+                   {lastUpdated && <span className="text-xs text-slate-500">{t("admin.admin_home_updated", { time: lastUpdated })}</span>}
                 </div>
               </div>
             </div>
@@ -469,11 +472,11 @@ export default function AdminHome() {
             {/* Quick navigation bar */}
             <div className="flex flex-wrap gap-2 mt-6">
               {[
-                { label: "Full Dashboard", href: "/admin", icon: LayoutDashboard },
-                { label: "Providers", href: "/admin?tab=providers", icon: UserCheck },
-                { label: "Bookings", href: "/admin?tab=bookings", icon: Calendar },
-                { label: "Finance", href: "/admin?tab=finance", icon: DollarSign },
-                { label: "Support", href: "/admin?tab=support", icon: Ticket },
+                 { label: t("admin.admin_home_full_dashboard"), href: "/admin", icon: LayoutDashboard },
+                 { label: t("admin.providers"), href: "/admin?tab=providers", icon: UserCheck },
+                 { label: t("admin.bookings"), href: "/admin?tab=bookings", icon: Calendar },
+                 { label: t("admin.admin_home_finance"), href: "/admin?tab=finance", icon: DollarSign },
+                 { label: t("admin.support_tickets"), href: "/admin?tab=support", icon: Ticket },
               ].map(({ label, href, icon: Icon }) => (
                 <Link key={label} href={href}>
                   <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-700/50 hover:bg-slate-700 border border-slate-600/50 text-slate-300 hover:text-white text-xs font-medium transition-colors">
@@ -490,10 +493,10 @@ export default function AdminHome() {
         <div>
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
-              <h2 className="text-base font-semibold text-foreground">Action Required</h2>
+               <h2 className="text-base font-semibold text-foreground">{t("admin.admin_home_action_required")}</h2>
               {d && d.totalActionsRequired > 0 && (
                 <Badge className="bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400 border-0 text-xs">
-                  {d.totalActionsRequired} items
+                   {t("admin.admin_home_items", { count: d.totalActionsRequired })}
                 </Badge>
               )}
             </div>
@@ -507,7 +510,7 @@ export default function AdminHome() {
             <Card className="border-destructive/30 bg-destructive/5">
               <CardContent className="p-4 flex items-center gap-3 text-destructive text-sm">
                 <AlertCircle className="h-4 w-4 shrink-0" />
-                Failed to load action items. <button className="underline ml-1" onClick={() => refetch()}>Retry</button>
+                 {t("admin.admin_home_failed_actions")} <button className="underline ml-1" onClick={() => refetch()}>{t("admin.admin_home_retry")}</button>
               </CardContent>
             </Card>
           ) : d && d.totalActionsRequired === 0 ? (
@@ -517,8 +520,8 @@ export default function AdminHome() {
                   <CheckCheck className="h-5 w-5" />
                 </div>
                 <div>
-                  <p className="font-semibold text-emerald-800 dark:text-emerald-300 text-sm">All clear — no actions required</p>
-                  <p className="text-xs text-emerald-600 dark:text-emerald-500 mt-0.5">Platform is running smoothly. Check back later.</p>
+                   <p className="font-semibold text-emerald-800 dark:text-emerald-300 text-sm">{t("admin.admin_home_all_clear")}</p>
+                   <p className="text-xs text-emerald-600 dark:text-emerald-500 mt-0.5">{t("admin.admin_home_running_smoothly")}</p>
                 </div>
               </CardContent>
             </Card>
@@ -527,71 +530,71 @@ export default function AdminHome() {
               <ActionItem
                 icon={UserCheck}
                 iconColor="bg-violet-100 dark:bg-violet-900/40 text-violet-600 dark:text-violet-400"
-                title="Providers Awaiting Review"
+                 title={t("admin.admin_home_providers_review")}
                 count={d.providers.totalNeedsReview}
-                description="Pending approval or requiring action"
+                 description={t("admin.admin_home_providers_review_desc")}
                 href="/admin?tab=verification-queue"
                 urgent={d.providers.totalNeedsReview >= 5}
               />
               <ActionItem
                 icon={FileText}
                 iconColor="bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400"
-                title="Documents Pending Approval"
+                 title={t("admin.admin_home_documents_pending")}
                 count={d.providers.docsPending}
-                description="Provider documents awaiting verification"
+                 description={t("admin.admin_home_documents_pending_desc")}
                 href="/admin?tab=doc-queue"
               />
               <ActionItem
                 icon={Ticket}
                 iconColor="bg-orange-100 dark:bg-orange-900/40 text-orange-600 dark:text-orange-400"
-                title="Urgent Support Tickets"
+                 title={t("admin.admin_home_urgent_support")}
                 count={d.support.urgentTickets}
-                description="High-priority tickets requiring response"
+                 description={t("admin.admin_home_urgent_support_desc")}
                 href="/admin?tab=support"
                 urgent={d.support.urgentTickets >= 3}
               />
               <ActionItem
                 icon={CreditCard}
                 iconColor="bg-rose-100 dark:bg-rose-900/40 text-rose-600 dark:text-rose-400"
-                title="Pending Refund Requests"
+                 title={t("admin.admin_home_pending_refunds")}
                 count={d.financial.pendingRefunds}
-                description="Customer refunds awaiting resolution"
+                 description={t("admin.admin_home_pending_refunds_desc")}
                 href="/admin?tab=refunds"
                 urgent={d.financial.pendingRefunds >= 5}
               />
               <ActionItem
                 icon={AlertTriangle}
                 iconColor="bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400"
-                title="Failed Payments"
+                 title={t("admin.admin_home_failed_payments")}
                 count={d.financial.failedPayments}
-                description="Payment failures in the past 7 days"
+                 description={t("admin.admin_home_failed_payments_desc")}
                 href="/admin?tab=financial"
                 urgent={d.financial.failedPayments >= 3}
               />
               <ActionItem
                 icon={Bug}
                 iconColor="bg-pink-100 dark:bg-pink-900/40 text-pink-600 dark:text-pink-400"
-                title="Critical Bug Reports"
+                 title={t("admin.admin_home_critical_bugs")}
                 count={d.bugs.criticalBugs}
-                description="High-severity bugs requiring immediate attention"
+                 description={t("admin.admin_home_critical_bugs_desc")}
                 href="/admin/bug-reports"
                 urgent={d.bugs.criticalBugs >= 2}
               />
               <ActionItem
                 icon={Shield}
                 iconColor="bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400"
-                title="Expiring Credentials"
+                 title={t("admin.admin_home_expiring_credentials")}
                 count={d.compliance.expiringCredentials}
-                description="Provider credentials expiring within 30 days"
+                 description={t("admin.admin_home_expiring_credentials_desc")}
                 href="/admin/compliance-queue"
               />
               {d.scheduler.failingJobs > 0 && (
                 <ActionItem
                   icon={Server}
                   iconColor="bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400"
-                  title="Background Jobs Failing"
+                   title={t("admin.admin_home_background_jobs_failing")}
                   count={d.scheduler.failingJobs}
-                  description="Scheduled jobs with consecutive failures"
+                   description={t("admin.admin_home_background_jobs_failing_desc")}
                   href="/admin?tab=monitoring"
                   urgent
                 />
@@ -602,14 +605,14 @@ export default function AdminHome() {
 
         {/* ── SECTION 3: Platform Overview ─────────────────────────────────── */}
         <div>
-          <h2 className="text-base font-semibold text-foreground mb-3">Platform Overview</h2>
+           <h2 className="text-base font-semibold text-foreground mb-3">{t("admin.platform_overview")}</h2>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-            <StatCard label="Total Patients"      value={d?.platform.totalPatients ?? 0}     icon={Users}       color="blue"   loading={loading} />
-            <StatCard label="Total Providers"     value={d?.platform.totalProviders ?? 0}    icon={UserCheck}   color="purple" loading={loading} />
-            <StatCard label="Appointments Today"  value={d?.appointments.totalToday ?? 0}    icon={Calendar}    color="teal"   loading={loading} />
-            <StatCard label="Active Memberships"  value={d?.platform.activeMemberships ?? 0} icon={Package}     color="green"  loading={loading} />
-            <StatCard label="Open Support Tickets" value={d?.support.openTickets ?? 0}       icon={Ticket}      color={d?.support.urgentTickets ? "amber" : "blue"} loading={loading} />
-            <StatCard label="Pending Reviews"     value={d?.providers.totalNeedsReview ?? 0} icon={AlertCircle} color={d?.providers.totalNeedsReview ? "red" : "green"} loading={loading} />
+             <StatCard label={t("admin.admin_home_total_patients")}      value={d?.platform.totalPatients ?? 0}     icon={Users}       color="blue"   loading={loading} />
+             <StatCard label={t("admin.admin_home_total_providers")}     value={d?.platform.totalProviders ?? 0}    icon={UserCheck}   color="purple" loading={loading} />
+             <StatCard label={t("admin.admin_home_appointments_today")}  value={d?.appointments.totalToday ?? 0}    icon={Calendar}    color="teal"   loading={loading} />
+             <StatCard label={t("admin.admin_home_active_memberships")}  value={d?.platform.activeMemberships ?? 0} icon={Package}     color="green"  loading={loading} />
+             <StatCard label={t("admin.admin_home_open_support")} value={d?.support.openTickets ?? 0}       icon={Ticket}      color={d?.support.urgentTickets ? "amber" : "blue"} loading={loading} />
+             <StatCard label={t("admin.admin_home_pending_reviews")}     value={d?.providers.totalNeedsReview ?? 0} icon={AlertCircle} color={d?.providers.totalNeedsReview ? "red" : "green"} loading={loading} />
           </div>
         </div>
 
@@ -621,11 +624,11 @@ export default function AdminHome() {
                 <div className="p-1.5 rounded-lg bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400">
                   <UserCheck className="h-4 w-4" />
                 </div>
-                Provider Lifecycle Dashboard
+                 {t("admin.admin_home_provider_lifecycle")}
               </CardTitle>
               <Link href="/admin?tab=providers">
                 <Button variant="ghost" size="sm" className="h-7 text-xs gap-1">
-                  Manage Providers <ArrowRight className="h-3 w-3" />
+                   {t("admin.admin_home_manage_providers")} <ArrowRight className="h-3 w-3" />
                 </Button>
               </Link>
             </div>
@@ -639,13 +642,13 @@ export default function AdminHome() {
               <div className="space-y-3">
                 <div className="grid grid-cols-4 sm:grid-cols-7 gap-2">
                   {[
-                    { label: "Draft",          count: d.providers.lifecycle.draft,          color: "bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700", text: "text-slate-600 dark:text-slate-400", dot: "bg-slate-400" },
-                    { label: "Submitted",      count: d.providers.lifecycle.submitted,      color: "bg-yellow-50 dark:bg-yellow-950/20 border-yellow-200 dark:border-yellow-800", text: "text-yellow-700 dark:text-yellow-400", dot: "bg-yellow-400" },
-                    { label: "Under Review",   count: d.providers.lifecycle.underReview,    color: "bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800", text: "text-blue-700 dark:text-blue-400", dot: "bg-blue-400" },
-                    { label: "Action Req'd",   count: d.providers.lifecycle.actionRequired, color: "bg-orange-50 dark:bg-orange-950/20 border-orange-200 dark:border-orange-800", text: "text-orange-700 dark:text-orange-400", dot: "bg-orange-400" },
-                    { label: "Approved",       count: d.providers.lifecycle.approved,       color: "bg-emerald-50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800", text: "text-emerald-700 dark:text-emerald-400", dot: "bg-emerald-400" },
-                    { label: "Suspended",      count: d.providers.lifecycle.suspended,      color: "bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800", text: "text-red-700 dark:text-red-400", dot: "bg-red-400" },
-                    { label: "Deactivated",    count: d.providers.lifecycle.deactivated,    color: "bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-700", text: "text-gray-500 dark:text-gray-500", dot: "bg-gray-400" },
+                     { label: t("admin.admin_home_lifecycle_draft"),          count: d.providers.lifecycle.draft,          color: "bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700", text: "text-slate-600 dark:text-slate-400", dot: "bg-slate-400" },
+                     { label: t("admin.admin_home_lifecycle_submitted"),      count: d.providers.lifecycle.submitted,      color: "bg-yellow-50 dark:bg-yellow-950/20 border-yellow-200 dark:border-yellow-800", text: "text-yellow-700 dark:text-yellow-400", dot: "bg-yellow-400" },
+                     { label: t("admin.admin_home_lifecycle_under_review"),   count: d.providers.lifecycle.underReview,    color: "bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800", text: "text-blue-700 dark:text-blue-400", dot: "bg-blue-400" },
+                     { label: t("admin.admin_home_lifecycle_action_required"), count: d.providers.lifecycle.actionRequired, color: "bg-orange-50 dark:bg-orange-950/20 border-orange-200 dark:border-orange-800", text: "text-orange-700 dark:text-orange-400", dot: "bg-orange-400" },
+                     { label: t("admin.admin_home_lifecycle_approved"),       count: d.providers.lifecycle.approved,       color: "bg-emerald-50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800", text: "text-emerald-700 dark:text-emerald-400", dot: "bg-emerald-400" },
+                     { label: t("admin.admin_home_lifecycle_suspended"),      count: d.providers.lifecycle.suspended,      color: "bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800", text: "text-red-700 dark:text-red-400", dot: "bg-red-400" },
+                     { label: t("admin.admin_home_lifecycle_deactivated"),    count: d.providers.lifecycle.deactivated,    color: "bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-700", text: "text-gray-500 dark:text-gray-500", dot: "bg-gray-400" },
                   ].map(({ label, count, color, text, dot }) => (
                     <div key={label} className={cn("rounded-xl border p-3 text-center", color)}>
                       <div className={cn("text-2xl font-bold tabular-nums", text)}>{count}</div>
@@ -673,7 +676,7 @@ export default function AdminHome() {
                 )}
               </div>
             ) : (
-              <p className="text-sm text-muted-foreground text-center py-4">Lifecycle data unavailable</p>
+               <p className="text-sm text-muted-foreground text-center py-4">{t("admin.admin_home_lifecycle_unavailable")}</p>
             )}
           </CardContent>
         </Card>
@@ -689,11 +692,11 @@ export default function AdminHome() {
                   <div className="p-1.5 rounded-lg bg-violet-100 dark:bg-violet-900/40 text-violet-600 dark:text-violet-400">
                     <UserCheck className="h-4 w-4" />
                   </div>
-                  Provider Review Center
+                   {t("admin.admin_home_provider_review_center")}
                 </CardTitle>
                 <Link href="/admin?tab=provider-review">
                   <Button variant="ghost" size="sm" className="h-7 text-xs gap-1" data-testid="button-view-provider-review">
-                    View All <ArrowRight className="h-3 w-3" />
+                     {t("admin.admin_home_view_all")} <ArrowRight className="h-3 w-3" />
                   </Button>
                 </Link>
               </div>
@@ -704,10 +707,10 @@ export default function AdminHome() {
               ) : d ? (
                 <>
                   {[
-                    { label: "Awaiting Approval",       count: d.providers.pendingApproval, color: "text-amber-600 dark:text-amber-400",  bg: "bg-amber-50 dark:bg-amber-950/30" },
-                    { label: "Action Required",          count: d.providers.actionRequired,  color: "text-red-600 dark:text-red-400",     bg: "bg-red-50 dark:bg-red-950/30" },
-                    { label: "Documents Pending",        count: d.providers.docsPending,     color: "text-indigo-600 dark:text-indigo-400", bg: "bg-indigo-50 dark:bg-indigo-950/30" },
-                    { label: "Documents Rejected",       count: d.providers.docsRejected,    color: "text-rose-600 dark:text-rose-400",   bg: "bg-rose-50 dark:bg-rose-950/30" },
+                     { label: t("admin.awaiting_approval"),       count: d.providers.pendingApproval, color: "text-amber-600 dark:text-amber-400",  bg: "bg-amber-50 dark:bg-amber-950/30" },
+                     { label: t("admin.admin_home_action_required"),          count: d.providers.actionRequired,  color: "text-red-600 dark:text-red-400",     bg: "bg-red-50 dark:bg-red-950/30" },
+                     { label: t("admin.admin_home_documents_pending"),        count: d.providers.docsPending,     color: "text-indigo-600 dark:text-indigo-400", bg: "bg-indigo-50 dark:bg-indigo-950/30" },
+                     { label: t("admin.rejected"),       count: d.providers.docsRejected,    color: "text-rose-600 dark:text-rose-400",   bg: "bg-rose-50 dark:bg-rose-950/30" },
                   ].map(({ label, count, color, bg }) => (
                     <div key={label} className={cn("flex items-center justify-between px-3 py-2.5 rounded-lg", bg)}>
                       <span className="text-sm text-foreground">{label}</span>
@@ -717,12 +720,12 @@ export default function AdminHome() {
                   <div className="flex gap-2 pt-1">
                     <Link href="/admin?tab=provider-review" className="flex-1">
                       <Button size="sm" variant="outline" className="w-full h-8 text-xs" data-testid="button-review-providers">
-                        Review Providers
+                         {t("admin.admin_home_review_providers")}
                       </Button>
                     </Link>
                     <Link href="/admin?tab=documents" className="flex-1">
                       <Button size="sm" className="w-full h-8 text-xs bg-violet-600 hover:bg-violet-700 text-white" data-testid="button-approve-documents">
-                        Approve Docs
+                         {t("admin.admin_home_approve_docs")}
                       </Button>
                     </Link>
                   </div>
@@ -739,11 +742,11 @@ export default function AdminHome() {
                   <div className="p-1.5 rounded-lg bg-teal-100 dark:bg-teal-900/40 text-teal-600 dark:text-teal-400">
                     <Calendar className="h-4 w-4" />
                   </div>
-                  Today's Operations
+                   {t("admin.admin_home_todays_operations")}
                 </CardTitle>
                 <Link href="/admin?tab=bookings">
                   <Button variant="ghost" size="sm" className="h-7 text-xs gap-1" data-testid="button-view-bookings">
-                    View All <ArrowRight className="h-3 w-3" />
+                     {t("admin.admin_home_view_all")} <ArrowRight className="h-3 w-3" />
                   </Button>
                 </Link>
               </div>
@@ -782,11 +785,11 @@ export default function AdminHome() {
                   <div className="p-1.5 rounded-lg bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400">
                     <DollarSign className="h-4 w-4" />
                   </div>
-                  Financial Watchlist
+                   {t("admin.admin_home_financial_watchlist")}
                 </CardTitle>
                 <Link href="/admin?tab=finance">
                   <Button variant="ghost" size="sm" className="h-7 text-xs gap-1" data-testid="button-view-finance">
-                    View Finance <ArrowRight className="h-3 w-3" />
+                     {t("admin.admin_home_view_finance")} <ArrowRight className="h-3 w-3" />
                   </Button>
                 </Link>
               </div>
@@ -798,17 +801,17 @@ export default function AdminHome() {
                 <>
                   <div className="grid grid-cols-2 gap-2.5">
                     <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-900/50">
-                      <p className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">Revenue Today</p>
+                       <p className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">{t("admin.admin_home_revenue_today")}</p>
                       <p className="text-lg font-bold text-emerald-700 dark:text-emerald-300 mt-0.5">{formatInCurrency(d.financial.revenueToday, "USD")}</p>
                     </div>
                     <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-100 dark:border-amber-900/50">
-                      <p className="text-xs text-amber-600 dark:text-amber-400 font-medium">Pending Payouts</p>
+                       <p className="text-xs text-amber-600 dark:text-amber-400 font-medium">{t("admin.admin_home_pending_payouts")}</p>
                       <p className="text-lg font-bold text-amber-700 dark:text-amber-300 mt-0.5">{d.financial.pendingPayouts}</p>
                     </div>
                   </div>
                   {[
-                    { label: "Pending Refund Requests", count: d.financial.pendingRefunds, urgent: d.financial.pendingRefunds >= 5, color: "text-rose-600 dark:text-rose-400" },
-                    { label: "Failed Payments (7d)",     count: d.financial.failedPayments, urgent: d.financial.failedPayments >= 3, color: "text-red-600 dark:text-red-400" },
+                     { label: t("admin.admin_home_pending_refunds"), count: d.financial.pendingRefunds, urgent: d.financial.pendingRefunds >= 5, color: "text-rose-600 dark:text-rose-400" },
+                     { label: t("admin.admin_home_failed_payments_7d"),     count: d.financial.failedPayments, urgent: d.financial.failedPayments >= 3, color: "text-red-600 dark:text-red-400" },
                   ].map(({ label, count, urgent, color }) => (
                     <div key={label} className={cn(
                       "flex items-center justify-between px-3 py-2.5 rounded-lg",
@@ -821,12 +824,12 @@ export default function AdminHome() {
                   <div className="flex gap-2 pt-1">
                     <Link href="/admin?tab=refunds" className="flex-1">
                       <Button size="sm" variant="outline" className="w-full h-8 text-xs" data-testid="button-resolve-refunds">
-                        Resolve Refunds
+                         {t("admin.admin_home_resolve_refunds")}
                       </Button>
                     </Link>
                     <Link href="/admin?tab=payouts" className="flex-1">
                       <Button size="sm" variant="outline" className="w-full h-8 text-xs" data-testid="button-review-payouts">
-                        Review Payouts
+                         {t("admin.admin_home_review_payouts")}
                       </Button>
                     </Link>
                   </div>
@@ -843,11 +846,11 @@ export default function AdminHome() {
                   <div className="p-1.5 rounded-lg bg-orange-100 dark:bg-orange-900/40 text-orange-600 dark:text-orange-400">
                     <Ticket className="h-4 w-4" />
                   </div>
-                  Support &amp; Incidents
+                   {t("admin.admin_home_support_incidents")}
                 </CardTitle>
                 <Link href="/admin?tab=support">
                   <Button variant="ghost" size="sm" className="h-7 text-xs gap-1" data-testid="button-view-support">
-                    View Tickets <ArrowRight className="h-3 w-3" />
+                     {t("admin.admin_home_view_tickets")} <ArrowRight className="h-3 w-3" />
                   </Button>
                 </Link>
               </div>
@@ -858,11 +861,11 @@ export default function AdminHome() {
               ) : d ? (
                 <>
                   {[
-                    { label: "Open Tickets",      count: d.support.openTickets,   color: "text-orange-600 dark:text-orange-400", bg: "bg-orange-50 dark:bg-orange-950/20" },
-                    { label: "Urgent Tickets",    count: d.support.urgentTickets, color: "text-red-600 dark:text-red-400",    bg: "bg-red-50 dark:bg-red-950/20" },
-                    { label: "New Today",         count: d.support.newToday,      color: "text-blue-600 dark:text-blue-400",  bg: "bg-blue-50 dark:bg-blue-950/20" },
-                    { label: "Open Bug Reports",  count: d.bugs.openBugs,         color: "text-pink-600 dark:text-pink-400",  bg: "bg-pink-50 dark:bg-pink-950/20" },
-                    { label: "Critical Bugs",     count: d.bugs.criticalBugs,     color: "text-rose-600 dark:text-rose-400",  bg: "bg-rose-50 dark:bg-rose-950/20" },
+                     { label: t("admin.admin_home_open_tickets"),      count: d.support.openTickets,   color: "text-orange-600 dark:text-orange-400", bg: "bg-orange-50 dark:bg-orange-950/20" },
+                     { label: t("admin.admin_home_urgent_tickets"),    count: d.support.urgentTickets, color: "text-red-600 dark:text-red-400",    bg: "bg-red-50 dark:bg-red-950/20" },
+                     { label: t("admin.admin_home_new_today"),         count: d.support.newToday,      color: "text-blue-600 dark:text-blue-400",  bg: "bg-blue-50 dark:bg-blue-950/20" },
+                     { label: t("admin.admin_home_open_bugs"),  count: d.bugs.openBugs,         color: "text-pink-600 dark:text-pink-400",  bg: "bg-pink-50 dark:bg-pink-950/20" },
+                     { label: t("admin.admin_home_critical_bugs"),     count: d.bugs.criticalBugs,     color: "text-rose-600 dark:text-rose-400",  bg: "bg-rose-50 dark:bg-rose-950/20" },
                   ].map(({ label, count, color, bg }) => (
                     <div key={label} className={cn("flex items-center justify-between px-3 py-2.5 rounded-lg", bg)}>
                       <span className="text-sm text-foreground">{label}</span>
@@ -872,12 +875,12 @@ export default function AdminHome() {
                   <div className="flex gap-2 pt-1">
                     <Link href="/admin?tab=support" className="flex-1">
                       <Button size="sm" className="w-full h-8 text-xs bg-orange-500 hover:bg-orange-600 text-white" data-testid="button-manage-tickets">
-                        Manage Tickets
+                         {t("admin.admin_home_manage_tickets")}
                       </Button>
                     </Link>
                     <Link href="/admin/bug-reports" className="flex-1">
                       <Button size="sm" variant="outline" className="w-full h-8 text-xs" data-testid="button-view-bug-reports">
-                        Bug Reports
+                         {t("admin.admin_home_bug_reports")}
                       </Button>
                     </Link>
                   </div>
@@ -896,11 +899,11 @@ export default function AdminHome() {
                 <div className="p-1.5 rounded-lg bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400">
                   <Shield className="h-4 w-4" />
                 </div>
-                Compliance &amp; Risk
+                 {t("admin.admin_home_compliance_risk")}
               </CardTitle>
               <Link href="/admin/compliance-queue">
                 <Button variant="ghost" size="sm" className="h-7 text-xs gap-1" data-testid="button-view-compliance">
-                  View Queue <ArrowRight className="h-3 w-3" />
+                   {t("admin.admin_home_view_queue")} <ArrowRight className="h-3 w-3" />
                 </Button>
               </Link>
             </div>
@@ -920,12 +923,12 @@ export default function AdminHome() {
                 )}>
                   <div className="flex items-center gap-2 mb-1">
                     <Clock className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-                    <span className="text-xs font-medium text-muted-foreground">Expiring Soon</span>
+                     <span className="text-xs font-medium text-muted-foreground">{t("admin.admin_home_expiring_soon")}</span>
                   </div>
                   <p className={cn("text-2xl font-bold", d.compliance.expiringCredentials > 0 ? "text-amber-700 dark:text-amber-300" : "text-foreground")}>
                     {d.compliance.expiringCredentials}
                   </p>
-                  <p className="text-xs text-muted-foreground mt-0.5">Provider credentials (30 days)</p>
+                   <p className="text-xs text-muted-foreground mt-0.5">{t("admin.admin_home_provider_credentials_30d")}</p>
                 </div>
 
                 <div className={cn(
@@ -936,12 +939,12 @@ export default function AdminHome() {
                 )}>
                   <div className="flex items-center gap-2 mb-1">
                     <AlertTriangle className="h-4 w-4 text-red-600 dark:text-red-400" />
-                    <span className="text-xs font-medium text-muted-foreground">Already Expired</span>
+                     <span className="text-xs font-medium text-muted-foreground">{t("admin.admin_home_already_expired")}</span>
                   </div>
                   <p className={cn("text-2xl font-bold", d.compliance.expiredCredentials > 0 ? "text-red-700 dark:text-red-300" : "text-foreground")}>
                     {d.compliance.expiredCredentials}
                   </p>
-                  <p className="text-xs text-muted-foreground mt-0.5">Provider credentials</p>
+                   <p className="text-xs text-muted-foreground mt-0.5">{t("admin.admin_home_provider_credentials")}</p>
                 </div>
 
                 <div className={cn(
@@ -952,12 +955,12 @@ export default function AdminHome() {
                 )}>
                   <div className="flex items-center gap-2 mb-1">
                     <AlertCircle className="h-4 w-4 text-violet-600 dark:text-violet-400" />
-                    <span className="text-xs font-medium text-muted-foreground">Unverified Active</span>
+                     <span className="text-xs font-medium text-muted-foreground">{t("admin.admin_home_unverified_active")}</span>
                   </div>
                   <p className={cn("text-2xl font-bold", d.compliance.unverifiedActive > 0 ? "text-violet-700 dark:text-violet-300" : "text-foreground")}>
                     {d.compliance.unverifiedActive}
                   </p>
-                  <p className="text-xs text-muted-foreground mt-0.5">Providers without verification</p>
+                   <p className="text-xs text-muted-foreground mt-0.5">{t("admin.admin_home_providers_without_verification")}</p>
                 </div>
               </div>
             ) : null}
@@ -971,7 +974,7 @@ export default function AdminHome() {
               <div className="p-1.5 rounded-lg bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400">
                 <Activity className="h-4 w-4" />
               </div>
-              System Health
+               {t("admin.admin_home_system_health")}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -982,17 +985,17 @@ export default function AdminHome() {
             ) : d ? (
               <div className="space-y-4">
                 <div className="flex flex-wrap gap-2">
-                  <HealthPill label="Database" status="ok" />
-                  <HealthPill label="API Server" status="ok" />
+                   <HealthPill label={t("admin.admin_home_database")} status="ok" />
+                   <HealthPill label={t("admin.admin_home_api_server")} status="ok" />
                   <HealthPill label={`Scheduler (${d.scheduler.totalJobs} jobs)`} status={schedulerHealth} />
-                  <HealthPill label="Notifications" status="ok" />
-                  <HealthPill label="Video Service" status="ok" />
-                  <HealthPill label="Email Queue" status="ok" />
+                   <HealthPill label={t("admin.admin_home_notifications")} status="ok" />
+                   <HealthPill label={t("admin.admin_home_video_service")} status="ok" />
+                   <HealthPill label={t("admin.admin_home_email_queue")} status="ok" />
                 </div>
 
                 {d.scheduler.jobs.length > 0 && (
                   <div>
-                    <p className="text-xs font-medium text-muted-foreground mb-2">Background Jobs</p>
+                     <p className="text-xs font-medium text-muted-foreground mb-2">{t("admin.admin_home_background_jobs")}</p>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
                       {d.scheduler.jobs.map(job => (
                         <div key={job.name} className="flex items-center justify-between px-3 py-2 rounded-lg bg-muted/40 gap-2">
@@ -1018,7 +1021,7 @@ export default function AdminHome() {
                 <div className="flex justify-end">
                   <Link href="/admin?tab=monitoring">
                     <Button variant="ghost" size="sm" className="h-7 text-xs gap-1" data-testid="button-full-monitoring">
-                      Full Monitoring <ArrowRight className="h-3 w-3" />
+                       {t("admin.admin_home_full_monitoring")} <ArrowRight className="h-3 w-3" />
                     </Button>
                   </Link>
                 </div>
@@ -1035,11 +1038,11 @@ export default function AdminHome() {
                 <div className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
                   <Activity className="h-4 w-4" />
                 </div>
-                Recent Platform Activity
+                 {t("admin.admin_home_recent_activity")}
               </CardTitle>
               <Link href="/admin?tab=audit">
                 <Button variant="ghost" size="sm" className="h-7 text-xs gap-1" data-testid="button-view-audit">
-                  Full Log <ArrowRight className="h-3 w-3" />
+                   {t("admin.admin_home_full_log")} <ArrowRight className="h-3 w-3" />
                 </Button>
               </Link>
             </div>
@@ -1073,36 +1076,36 @@ export default function AdminHome() {
                           <span className="text-xs font-medium text-foreground">{actionLabel(event.action)}</span>
                         </div>
                         <p className="text-xs text-muted-foreground mt-0.5">
-                          by <span className="font-medium text-foreground/80">{event.actorName}</span>
+                           {t("admin.admin_home_by")} <span className="font-medium text-foreground/80">{event.actorName}</span>
                           {event.actorRole && <span className="capitalize"> ({event.actorRole.replace(/_/g, " ")})</span>}
                         </p>
                       </div>
 
                       <span className="text-xs text-muted-foreground shrink-0 mt-0.5">
-                        {timeAgo(event.createdAt)}
+                         {timeAgo(event.createdAt, t)}
                       </span>
                     </div>
                   ))}
                 </div>
               </div>
             ) : (
-              <p className="text-sm text-muted-foreground text-center py-4">No recent activity recorded.</p>
+               <p className="text-sm text-muted-foreground text-center py-4">{t("admin.admin_home_no_activity")}</p>
             )}
           </CardContent>
         </Card>
 
         {/* ── SECTION 11: Quick Actions ────────────────────────────────────── */}
         <div>
-          <h2 className="text-base font-semibold text-foreground mb-3">Quick Actions</h2>
+           <h2 className="text-base font-semibold text-foreground mb-3">{t("admin.admin_home_quick_actions")}</h2>
           <div className="grid grid-cols-4 sm:grid-cols-8 gap-2.5">
-            <QuickAction icon={UserCheck}    label="Provider Review"  href="/admin?tab=provider-review" color="bg-violet-100 dark:bg-violet-900/40 text-violet-600 dark:text-violet-400" />
-            <QuickAction icon={Users}        label="Users"            href="/admin/users"               color="bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400" />
-            <QuickAction icon={Calendar}     label="Appointments"     href="/admin?tab=bookings"        color="bg-teal-100 dark:bg-teal-900/40 text-teal-600 dark:text-teal-400" />
-            <QuickAction icon={DollarSign}   label="Payments"         href="/admin?tab=finance"         color="bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400" />
-            <QuickAction icon={Ticket}       label="Support"          href="/admin?tab=support"         color="bg-orange-100 dark:bg-orange-900/40 text-orange-600 dark:text-orange-400" />
-            <QuickAction icon={BarChart3}    label="Analytics"        href="/admin?tab=analytics"       color="bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400" />
-            <QuickAction icon={Settings}     label="Settings"         href="/admin?tab=settings"        color="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400" />
-            <QuickAction icon={Monitor}      label="Monitoring"       href="/admin?tab=monitoring"      color="bg-cyan-100 dark:bg-cyan-900/40 text-cyan-600 dark:text-cyan-400" />
+             <QuickAction icon={UserCheck}    label={t("admin.provider_review")}  href="/admin?tab=provider-review" color="bg-violet-100 dark:bg-violet-900/40 text-violet-600 dark:text-violet-400" />
+             <QuickAction icon={Users}        label={t("admin.clients")}            href="/admin/users"               color="bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400" />
+             <QuickAction icon={Calendar}     label={t("admin.bookings")}     href="/admin?tab=bookings"        color="bg-teal-100 dark:bg-teal-900/40 text-teal-600 dark:text-teal-400" />
+             <QuickAction icon={DollarSign}   label={t("admin.admin_home_finance")}         href="/admin?tab=finance"         color="bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400" />
+             <QuickAction icon={Ticket}       label={t("admin.support_tickets")}          href="/admin?tab=support"         color="bg-orange-100 dark:bg-orange-900/40 text-orange-600 dark:text-orange-400" />
+             <QuickAction icon={BarChart3}    label={t("admin.admin_home_analytics")}        href="/admin?tab=analytics"       color="bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400" />
+             <QuickAction icon={Settings}     label={t("admin.settings")}         href="/admin?tab=settings"        color="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400" />
+             <QuickAction icon={Monitor}      label={t("admin.tab_monitoring")}       href="/admin?tab=monitoring"      color="bg-cyan-100 dark:bg-cyan-900/40 text-cyan-600 dark:text-cyan-400" />
           </div>
         </div>
 
@@ -1114,7 +1117,7 @@ export default function AdminHome() {
                 <div className="p-1.5 rounded-lg bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400">
                   <Zap className="h-4 w-4" />
                 </div>
-                Admin Insights
+                 {t("admin.admin_home_admin_insights")}
               </CardTitle>
             </CardHeader>
             <CardContent>

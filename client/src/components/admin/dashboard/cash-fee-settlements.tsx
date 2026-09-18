@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAdminCurrency } from "@/lib/currency";
+import { useTranslation } from "react-i18next";
 
 type SettlementRow = {
   id: string;
@@ -25,6 +26,7 @@ type SettlementRow = {
 };
 
 export function CashFeeSettlementsPanel() {
+  const { t } = useTranslation();
   const { format } = useAdminCurrency();
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
@@ -49,33 +51,33 @@ export function CashFeeSettlementsPanel() {
       <CardHeader>
         <div className="flex items-start justify-between gap-3 flex-wrap">
           <div>
-            <CardTitle>Cash-fee settlements</CardTitle>
-            <CardDescription>Platform fees from cash and bank-transfer bookings, settled from provider wallets at payout request time.</CardDescription>
+            <CardTitle>{t("admin.cash_fee_title")}</CardTitle>
+            <CardDescription>{t("admin.cash_fee_desc")}</CardDescription>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={() => refetch()}><RefreshCw className="h-4 w-4 mr-1" />Refresh</Button>
-            <Button variant="outline" size="sm" asChild><a href={exportUrl} download><Download className="h-4 w-4 mr-1" />CSV</a></Button>
+            <Button variant="outline" size="sm" onClick={() => refetch()}><RefreshCw className="h-4 w-4 mr-1" />{t("admin.refresh")}</Button>
+            <Button variant="outline" size="sm" asChild><a href={exportUrl} download><Download className="h-4 w-4 mr-1" />{t("admin.csv")}</a></Button>
           </div>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2 pt-3">
-          <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} aria-label="Date from" />
-          <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} aria-label="Date to" />
-          <Select value={paymentMethod} onValueChange={setPaymentMethod}><SelectTrigger><SelectValue placeholder="Payment method" /></SelectTrigger><SelectContent><SelectItem value="all">All methods</SelectItem><SelectItem value="cash">Cash</SelectItem><SelectItem value="bank_transfer">Bank transfer</SelectItem></SelectContent></Select>
-          <Select value={status} onValueChange={setStatus}><SelectTrigger><SelectValue placeholder="Deduction status" /></SelectTrigger><SelectContent><SelectItem value="all">All statuses</SelectItem><SelectItem value="pending">Pending</SelectItem><SelectItem value="applied">Applied</SelectItem></SelectContent></Select>
+          <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} aria-label={t("admin.date_from")} />
+          <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} aria-label={t("admin.date_to")} />
+          <Select value={paymentMethod} onValueChange={setPaymentMethod}><SelectTrigger><SelectValue placeholder={t("admin.payment_method")} /></SelectTrigger><SelectContent><SelectItem value="all">{t("admin.all_methods")}</SelectItem><SelectItem value="cash">{t("admin.cash")}</SelectItem><SelectItem value="bank_transfer">{t("admin.bank_transfer")}</SelectItem></SelectContent></Select>
+          <Select value={status} onValueChange={setStatus}><SelectTrigger><SelectValue placeholder={t("admin.deduction_status")} /></SelectTrigger><SelectContent><SelectItem value="all">{t("admin.all_statuses")}</SelectItem><SelectItem value="pending">{t("status.pending")}</SelectItem><SelectItem value="applied">{t("admin.applied")}</SelectItem></SelectContent></Select>
         </div>
       </CardHeader>
       <CardContent>
         <div className="flex gap-5 text-sm mb-4">
-          <span>Fee due: <strong>{format(totalFee)}</strong></span>
-          <span>Applied: <strong className="text-emerald-700">{format(appliedFee)}</strong></span>
-          <span>Rows: <strong>{rows.length}</strong></span>
+          <span>{t("admin.fee_due")}: <strong>{format(totalFee)}</strong></span>
+          <span>{t("admin.applied")}: <strong className="text-emerald-700">{format(appliedFee)}</strong></span>
+          <span>{t("admin.rows")}: <strong>{rows.length}</strong></span>
         </div>
         {isLoading ? <div className="h-32 rounded-lg bg-muted animate-pulse" /> : rows.length === 0 ? (
-          <p className="text-sm text-muted-foreground py-8 text-center">No cash-fee settlements match these filters.</p>
+          <p className="text-sm text-muted-foreground py-8 text-center">{t("admin.cash_fee_empty")}</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead><tr className="border-b text-left text-muted-foreground"><th className="p-2">Provider</th><th className="p-2">Appointment</th><th className="p-2">Method</th><th className="p-2 text-right">Service</th><th className="p-2 text-right">Tax passed through</th><th className="p-2 text-right">Fee</th><th className="p-2 text-right">Final settlement</th><th className="p-2">Status</th></tr></thead>
+              <thead><tr className="border-b text-left text-muted-foreground"><th className="p-2">{t("admin.provider")}</th><th className="p-2">{t("admin.appointment")}</th><th className="p-2">{t("admin.method")}</th><th className="p-2 text-right">{t("admin.service")}</th><th className="p-2 text-right">{t("admin.tax_passed_through")}</th><th className="p-2 text-right">{t("admin.fee")}</th><th className="p-2 text-right">{t("admin.final_settlement")}</th><th className="p-2">{t("admin.status")}</th></tr></thead>
               <tbody>{rows.map((row) => (
                 <tr key={row.id} className="border-b last:border-0">
                   <td className="p-2"><div className="font-medium">{row.provider_name}</div><div className="text-xs text-muted-foreground">{row.country_code}</div></td>

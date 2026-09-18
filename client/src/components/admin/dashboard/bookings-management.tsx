@@ -28,6 +28,7 @@ import {
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
+import { useTranslation } from "react-i18next";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import {
   Search, Filter, X, Columns, Download, Printer, Save,
@@ -475,6 +476,7 @@ function ExpandedRow({ row, fmt }: { row: BookingRow; fmt: (n: number) => string
 export function BookingsManagementComponent() {
   const { format: fmt } = useAdminCurrency();
   const { toast } = useToast();
+  const { t } = useTranslation();
 
   // Filters
   const [search, setSearch]                   = useState("");
@@ -601,7 +603,7 @@ export function BookingsManagementComponent() {
     if (typeFilter !== "all") p.set("visitType", typeFilter);
     if (refundFilter !== "all") p.set("refundStatus", refundFilter);
     const resp = await fetch(`/api/admin/financial/master-report/export/csv?${p}`, { headers: { Authorization: `Bearer ${TOKEN()}` } });
-    if (!resp.ok) { toast({ title: "Export failed", variant: "destructive" }); return; }
+    if (!resp.ok) { toast({ title: t("admin.export_failed"), variant: "destructive" }); return; }
     const blob = await resp.blob();
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -633,25 +635,25 @@ export function BookingsManagementComponent() {
       {/* Toolbar */}
       <div className="flex flex-wrap items-center justify-between gap-2 no-print">
         <div>
-          <h2 className="text-xl font-bold">Operations Bookings Center</h2>
-          <p className="text-xs text-muted-foreground">Full operational view of all platform bookings</p>
+           <h2 className="text-xl font-bold">{t("admin.bookings_center_title")}</h2>
+           <p className="text-xs text-muted-foreground">{t("admin.bookings_center_desc")}</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" size="sm" onClick={() => refetch()} data-testid="button-ops-refresh">
-            <RefreshCw className="h-4 w-4 me-1.5" />Refresh
+             <RefreshCw className="h-4 w-4 me-1.5" />{t("admin.refresh")}
           </Button>
 
           {/* Saved Views */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="sm" data-testid="button-saved-views">
-                <BookOpen className="h-4 w-4 me-1.5" />Views
+                 <BookOpen className="h-4 w-4 me-1.5" />{t("admin.views", "Views")}
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-52">
-              <DropdownMenuLabel>Saved Views</DropdownMenuLabel>
+               <DropdownMenuLabel>{t("admin.saved_views")}</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              {savedViews.length === 0 && <p className="text-xs text-muted-foreground px-2 py-1">No saved views</p>}
+               {savedViews.length === 0 && <p className="text-xs text-muted-foreground px-2 py-1">{t("admin.no_saved_views")}</p>}
               {savedViews.map(v => (
                 <div key={v.name} className="flex items-center justify-between px-2">
                   <DropdownMenuItem onClick={() => applyView(v)} className="flex-1 cursor-pointer">{v.name}</DropdownMenuItem>
@@ -661,15 +663,15 @@ export function BookingsManagementComponent() {
               <DropdownMenuSeparator />
               {showSaveView ? (
                 <div className="p-2 space-y-1.5">
-                  <Input value={viewName} onChange={e => setViewName(e.target.value)} placeholder="View name…" className="h-7 text-xs" onKeyDown={e => e.key === "Enter" && saveCurrentView()} />
+                   <Input value={viewName} onChange={e => setViewName(e.target.value)} placeholder={t("admin.view_name")} className="h-7 text-xs" onKeyDown={e => e.key === "Enter" && saveCurrentView()} />
                   <div className="flex gap-1">
-                    <Button size="sm" className="h-6 text-xs flex-1" onClick={saveCurrentView}>Save</Button>
+                     <Button size="sm" className="h-6 text-xs flex-1" onClick={saveCurrentView}>{t("common.save")}</Button>
                     <Button size="sm" variant="ghost" className="h-6 text-xs" onClick={() => setShowSaveView(false)}>×</Button>
                   </div>
                 </div>
               ) : (
                 <DropdownMenuItem onClick={() => setShowSaveView(true)}>
-                  <Save className="h-3.5 w-3.5 me-1.5" />Save current view
+                   <Save className="h-3.5 w-3.5 me-1.5" />{t("admin.save_current_view")}
                 </DropdownMenuItem>
               )}
             </DropdownMenuContent>

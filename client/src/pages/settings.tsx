@@ -92,7 +92,7 @@ export default function Settings() {
   const updatePrefs = useMutation({
     mutationFn: async (patch: Record<string, any>) => apiRequest("PATCH", "/api/notification-preferences", patch),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: QK.notificationPreferences() }),
-    onError: () => showErrorModal({ title: "Failed to save preference", context: "settings.updatePrefs" }),
+    onError: () => showErrorModal({ title: t("settings_page.preference_save_failed"), context: "settings.updatePrefs" }),
   });
 
   const updateCurrency = useMutation({
@@ -103,7 +103,7 @@ export default function Settings() {
       toast({ title: t("settings_page.currency_updated"), description: t("settings_page.currency_updated_desc") });
     },
     onError: (e: any) =>
-      showErrorModal({ title: "Failed to update currency", description: e?.message, context: "settings.currency" }),
+      showErrorModal({ title: t("settings_page.currency_update_failed"), description: e?.message, context: "settings.currency" }),
   });
 
   // Country switcher: PATCH the user's profile so all listing/search calls
@@ -117,7 +117,7 @@ export default function Settings() {
       toast({ title: t("country.switcher_title"), description: t("country.switcher_help") });
     },
     onError: (e: any) =>
-      showErrorModal({ title: "Failed to switch country", description: e?.message, context: "settings.country" }),
+      showErrorModal({ title: t("settings_page.country_switch_failed"), description: e?.message, context: "settings.country" }),
   });
 
   const updateTimezone = useMutation({
@@ -128,7 +128,7 @@ export default function Settings() {
       toast({ title: "Time zone updated", description: "Appointment times will now be shown in your chosen time zone." });
     },
     onError: (e: any) =>
-      showErrorModal({ title: "Failed to update time zone", description: e?.message, context: "settings.timezone" }),
+      showErrorModal({ title: t("settings_page.timezone_update_failed"), description: e?.message, context: "settings.timezone" }),
   });
 
   const togglePush = async (on: boolean) => {
@@ -136,7 +136,7 @@ export default function Settings() {
       if (on) {
         const r = await subscribeToPush();
         if (!r.ok) {
-          showErrorModal({ title: "Push not enabled", description: r.reason, context: "settings.subscribePush" });
+          showErrorModal({ title: t("settings_page.push_not_enabled"), description: r.reason, context: "settings.subscribePush" });
           return;
         }
         setPushSubscribed(true);
@@ -149,7 +149,7 @@ export default function Settings() {
         toast({ title: t("settings_page.push_disabled") });
       }
     } catch (e: any) {
-      showErrorModal({ title: "Push toggle failed", description: e?.message, context: "settings.togglePush" });
+      showErrorModal({ title: t("settings_page.push_toggle_failed"), description: e?.message, context: "settings.togglePush" });
     }
   };
 
@@ -207,16 +207,16 @@ export default function Settings() {
     e.preventDefault();
     if (passwordForm.newPassword !== passwordForm.confirmPassword) {
       showErrorModal({
-        title: "Passwords don't match",
-        description: "New passwords do not match.",
+        title: t("settings_page.password_mismatch"),
+        description: t("settings_page.password_mismatch"),
         context: "settings.passwordMismatch",
       });
       return;
     }
     if (passwordForm.newPassword.length < 8) {
       showErrorModal({
-        title: "Password too short",
-        description: "Password must be at least 8 characters long.",
+        title: t("settings_page.password_too_short"),
+        description: t("settings_page.password_too_short"),
         context: "settings.passwordTooShort",
       });
       return;
@@ -254,7 +254,7 @@ export default function Settings() {
           <Button variant="outline" size="sm" asChild data-testid="link-go-to-profile">
             <Link href="/profile">
               <UserIcon className="h-4 w-4 mr-2" />
-              View Profile
+               {t("settings_page.view_profile")}
             </Link>
           </Button>
         </div>
