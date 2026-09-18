@@ -111,7 +111,8 @@ function EmptyState({ icon: Icon, message }: { icon: React.ElementType; message:
 }
 
 function OverviewTab({ analytics, insights, fmtMoney }: { analytics?: AnalyticsData; insights?: InsightsData; fmtMoney: (v: number) => string }) {
-  if (!analytics && !insights) return <EmptyState icon={BarChart3} message="Complete some appointments to see your overview." />;
+  const { t } = useTranslation();
+  if (!analytics && !insights) return <EmptyState icon={BarChart3} message={t("provider_dashboard.reporting_complete_appointments", "Complete some appointments to see your overview.")} />;
 
   const kpi = insights?.kpi;
   const totalRevenue = (analytics?.monthlyTrend ?? []).reduce((s, m) => s + m.revenue, 0);
@@ -119,17 +120,17 @@ function OverviewTab({ analytics, insights, fmtMoney }: { analytics?: AnalyticsD
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <KpiCard icon={DollarSign} label="Total Revenue (12mo)" value={fmtMoney(totalRevenue)} color="text-emerald-600" />
-        <KpiCard icon={Calendar} label="Completed" value={String(kpi?.totalCompleted ?? 0)} sub="appointments" color="text-blue-600" />
-        <KpiCard icon={Users} label="Repeat Patients" value={`${(kpi?.repeatPatientPct ?? 0).toFixed(1)}%`} sub="come back" color="text-violet-600" />
-        <KpiCard icon={Activity} label="Utilization" value={`${(kpi?.utilizationPct ?? 0).toFixed(1)}%`} sub="of slots filled" color="text-amber-600" />
+        <KpiCard icon={DollarSign} label={t("provider_dashboard.reporting_total_revenue", "Total Revenue (12mo)")} value={fmtMoney(totalRevenue)} color="text-emerald-600" />
+        <KpiCard icon={Calendar} label={t("provider_dashboard.reporting_completed", "Completed")} value={String(kpi?.totalCompleted ?? 0)} sub={t("provider_dashboard.reporting_appointments", "appointments")} color="text-blue-600" />
+        <KpiCard icon={Users} label={t("provider_dashboard.reporting_repeat_patients", "Repeat Patients")} value={`${(kpi?.repeatPatientPct ?? 0).toFixed(1)}%`} sub={t("provider_dashboard.reporting_come_back", "come back")} color="text-violet-600" />
+        <KpiCard icon={Activity} label={t("provider_dashboard.reporting_utilization", "Utilization")} value={`${(kpi?.utilizationPct ?? 0).toFixed(1)}%`} sub={t("provider_dashboard.reporting_slots_filled", "of slots filled")} color="text-amber-600" />
       </div>
 
       {(analytics?.monthlyTrend ?? []).length > 0 && (
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <TrendingUp className="h-4 w-4" /> Monthly Performance (12 months)
+              <TrendingUp className="h-4 w-4" /> {t("provider_dashboard.reporting_monthly_performance", "Monthly Performance (12 months)")}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -145,7 +146,7 @@ function OverviewTab({ analytics, insights, fmtMoney }: { analytics?: AnalyticsD
                 <XAxis dataKey="month" tick={{ fontSize: 10 }} />
                 <YAxis tick={{ fontSize: 10 }} tickFormatter={v => fmtMoney(v)} width={65} />
                 <Tooltip formatter={(v: number, name: string) => [name === "revenue" ? fmtMoney(v) : v, name]} />
-                <Area type="monotone" dataKey="revenue" name="Revenue" stroke="#10b981" fill="url(#revOvGrad)" strokeWidth={2} />
+                <Area type="monotone" dataKey="revenue" name={t("provider_dashboard.analytics_revenue", "Revenue")} stroke="#10b981" fill="url(#revOvGrad)" strokeWidth={2} />
               </AreaChart>
             </ResponsiveContainer>
           </CardContent>
@@ -155,7 +156,7 @@ function OverviewTab({ analytics, insights, fmtMoney }: { analytics?: AnalyticsD
       {(insights?.growthTips ?? []).length > 0 && (
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Growth Recommendations</CardTitle>
+            <CardTitle className="text-sm font-medium">{t("provider_dashboard.growth_recommendations", "Growth Recommendations")}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
@@ -174,7 +175,8 @@ function OverviewTab({ analytics, insights, fmtMoney }: { analytics?: AnalyticsD
 }
 
 function RevenueTab({ analytics, insights, fmtMoney }: { analytics?: AnalyticsData; insights?: InsightsData; fmtMoney: (v: number) => string }) {
-  if (!analytics) return <EmptyState icon={DollarSign} message="No revenue data yet." />;
+  const { t } = useTranslation();
+  if (!analytics) return <EmptyState icon={DollarSign} message={t("provider_dashboard.reporting_no_revenue", "No revenue data yet.")} />;
 
   const trend = analytics.monthlyTrend ?? [];
   const totalRevenue = trend.reduce((s, m) => s + m.revenue, 0);
@@ -184,15 +186,15 @@ function RevenueTab({ analytics, insights, fmtMoney }: { analytics?: AnalyticsDa
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-        <KpiCard icon={DollarSign} label="Total Revenue (12mo)" value={fmtMoney(totalRevenue)} color="text-emerald-600" />
-        <KpiCard icon={TrendingUp} label="Avg / Month" value={fmtMoney(avgMonthly)} color="text-blue-600" />
-        <KpiCard icon={BarChart3} label="Best Month" value={bestMonth.month} sub={fmtMoney(bestMonth.revenue)} color="text-violet-600" />
+        <KpiCard icon={DollarSign} label={t("provider_dashboard.reporting_total_revenue", "Total Revenue (12mo)")} value={fmtMoney(totalRevenue)} color="text-emerald-600" />
+        <KpiCard icon={TrendingUp} label={t("provider_dashboard.reporting_avg_month", "Avg / Month")} value={fmtMoney(avgMonthly)} color="text-blue-600" />
+        <KpiCard icon={BarChart3} label={t("provider_dashboard.reporting_best_month", "Best Month")} value={bestMonth.month} sub={fmtMoney(bestMonth.revenue)} color="text-violet-600" />
       </div>
 
       {trend.length > 0 && (
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Monthly Revenue Trend</CardTitle>
+            <CardTitle className="text-sm font-medium">{t("provider_dashboard.reporting_monthly_revenue", "Monthly Revenue Trend")}</CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={220}>
@@ -200,7 +202,7 @@ function RevenueTab({ analytics, insights, fmtMoney }: { analytics?: AnalyticsDa
                 <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.3} />
                 <XAxis dataKey="month" tick={{ fontSize: 10 }} />
                 <YAxis tick={{ fontSize: 10 }} tickFormatter={v => fmtMoney(v)} width={65} />
-                <Tooltip formatter={(v: number) => [fmtMoney(v), "Revenue"]} />
+                <Tooltip formatter={(v: number) => [fmtMoney(v), t("provider_dashboard.analytics_revenue", "Revenue")]} />
                 <Bar dataKey="revenue" fill="#10b981" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
@@ -211,7 +213,7 @@ function RevenueTab({ analytics, insights, fmtMoney }: { analytics?: AnalyticsDa
       {(insights?.weeklyRevenue ?? []).length > 0 && (
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">12-Week Revenue</CardTitle>
+            <CardTitle className="text-sm font-medium">{t("provider_dashboard.reporting_12_week_revenue", "12-Week Revenue")}</CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={180}>
@@ -225,7 +227,7 @@ function RevenueTab({ analytics, insights, fmtMoney }: { analytics?: AnalyticsDa
                 <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.3} />
                 <XAxis dataKey="week" tick={{ fontSize: 10 }} />
                 <YAxis tick={{ fontSize: 10 }} tickFormatter={v => fmtMoney(v)} width={65} />
-                <Tooltip formatter={(v: number) => [fmtMoney(v), "Revenue"]} />
+                <Tooltip formatter={(v: number) => [fmtMoney(v), t("provider_dashboard.analytics_revenue", "Revenue")]} />
                 <Area type="monotone" dataKey="revenue" stroke="#6366f1" fill="url(#wkRevGrad)" strokeWidth={2} />
               </AreaChart>
             </ResponsiveContainer>
@@ -236,7 +238,7 @@ function RevenueTab({ analytics, insights, fmtMoney }: { analytics?: AnalyticsDa
       {(analytics.serviceBreakdown ?? []).length > 0 && (
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Revenue by Service</CardTitle>
+            <CardTitle className="text-sm font-medium">{t("provider_dashboard.reporting_revenue_by_service", "Revenue by Service")}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
@@ -255,16 +257,17 @@ function RevenueTab({ analytics, insights, fmtMoney }: { analytics?: AnalyticsDa
 }
 
 function PatientsTab({ insights, fmtMoney }: { insights?: InsightsData; fmtMoney: (v: number) => string }) {
-  if (!insights) return <EmptyState icon={Users} message="No patient data yet." />;
+  const { t } = useTranslation();
+  if (!insights) return <EmptyState icon={Users} message={t("provider_dashboard.reporting_no_patient_data", "No patient data yet.")} />;
 
   const kpi = insights.kpi;
 
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-        <KpiCard icon={Users} label="Total Patients" value={String(kpi.totalBookings)} sub="unique visits" color="text-blue-600" />
-        <KpiCard icon={TrendingUp} label="Repeat Rate" value={`${kpi.repeatPatientPct.toFixed(1)}%`} sub="return patients" color="text-emerald-600" />
-        <KpiCard icon={Activity} label="Lost Bookings" value={String(kpi.lostBookings)} sub="cancelled / rejected" color="text-rose-600" />
+        <KpiCard icon={Users} label={t("provider_dashboard.reporting_total_patients", "Total Patients")} value={String(kpi.totalBookings)} sub={t("provider_dashboard.reporting_unique_visits", "unique visits")} color="text-blue-600" />
+        <KpiCard icon={TrendingUp} label={t("provider_dashboard.reporting_repeat_rate", "Repeat Rate")} value={`${kpi.repeatPatientPct.toFixed(1)}%`} sub={t("provider_dashboard.reporting_return_patients", "return patients")} color="text-emerald-600" />
+        <KpiCard icon={Activity} label={t("provider_dashboard.reporting_lost_bookings", "Lost Bookings")} value={String(kpi.lostBookings)} sub={t("provider_dashboard.reporting_cancelled_rejected", "cancelled / rejected")} color="text-rose-600" />
       </div>
 
       <Card>
@@ -277,7 +280,7 @@ function PatientsTab({ insights, fmtMoney }: { insights?: InsightsData; fmtMoney
         </CardHeader>
         <CardContent>
           {insights.repeatPatients.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-4 text-center">No repeat patients yet.</p>
+            <p className="text-sm text-muted-foreground py-4 text-center">{t("provider_dashboard.reporting_no_repeat_patients", "No repeat patients yet.")}</p>
           ) : (
             <div className="space-y-2 max-h-80 overflow-y-auto">
               {insights.repeatPatients.map(p => (
@@ -300,7 +303,8 @@ function PatientsTab({ insights, fmtMoney }: { insights?: InsightsData; fmtMoney
 }
 
 function BookingsTab({ analytics, fmtMoney }: { analytics?: AnalyticsData; fmtMoney: (v: number) => string }) {
-  if (!analytics) return <EmptyState icon={Calendar} message="No booking data yet." />;
+  const { t } = useTranslation();
+  if (!analytics) return <EmptyState icon={Calendar} message={t("provider_dashboard.reporting_no_booking_data", "No booking data yet.")} />;
 
   const trend = analytics.monthlyTrend ?? [];
   const totalBookings = trend.reduce((s, m) => s + m.bookings, 0);
@@ -311,16 +315,16 @@ function BookingsTab({ analytics, fmtMoney }: { analytics?: AnalyticsData; fmtMo
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <KpiCard icon={Calendar} label="Total Bookings" value={String(totalBookings)} sub="12 months" color="text-blue-600" />
-        <KpiCard icon={Activity} label="Cancellations" value={String(totalCancellations)} sub={`${cancelRate}% cancel rate`} color="text-rose-600" />
-        <KpiCard icon={Clock} label="No-Shows" value={String(totalNoShows)} color="text-amber-600" />
-        <KpiCard icon={TrendingUp} label="Avg/Month" value={(totalBookings / Math.max(trend.length, 1)).toFixed(1)} color="text-emerald-600" />
+        <KpiCard icon={Calendar} label={t("provider_dashboard.reporting_total_bookings", "Total Bookings")} value={String(totalBookings)} sub={t("provider_dashboard.reporting_12_months", "12 months")} color="text-blue-600" />
+        <KpiCard icon={Activity} label={t("provider_dashboard.reporting_cancellations", "Cancellations")} value={String(totalCancellations)} sub={t("provider_dashboard.reporting_cancel_rate", "{{rate}}% cancel rate", { rate: cancelRate })} color="text-rose-600" />
+        <KpiCard icon={Clock} label={t("provider_dashboard.reporting_no_shows", "No-Shows")} value={String(totalNoShows)} color="text-amber-600" />
+        <KpiCard icon={TrendingUp} label={t("provider_dashboard.reporting_avg_month", "Avg/Month")} value={(totalBookings / Math.max(trend.length, 1)).toFixed(1)} color="text-emerald-600" />
       </div>
 
       {trend.length > 0 && (
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Bookings Trend (12 months)</CardTitle>
+            <CardTitle className="text-sm font-medium">{t("provider_dashboard.reporting_bookings_trend", "Bookings Trend (12 months)")}</CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={220}>
@@ -329,9 +333,9 @@ function BookingsTab({ analytics, fmtMoney }: { analytics?: AnalyticsData; fmtMo
                 <XAxis dataKey="month" tick={{ fontSize: 10 }} />
                 <YAxis tick={{ fontSize: 10 }} />
                 <Tooltip />
-                <Bar dataKey="bookings" name="Bookings" fill="#6366f1" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="cancellations" name="Cancellations" fill="#f43f5e" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="noShows" name="No-Shows" fill="#f59e0b" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="bookings" name={t("provider_dashboard.analytics_bookings", "Bookings")} fill="#6366f1" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="cancellations" name={t("provider_dashboard.reporting_cancellations", "Cancellations")} fill="#f43f5e" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="noShows" name={t("provider_dashboard.reporting_no_shows", "No-Shows")} fill="#f59e0b" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
@@ -342,8 +346,9 @@ function BookingsTab({ analytics, fmtMoney }: { analytics?: AnalyticsData; fmtMo
 }
 
 function ServicesTab({ analytics, fmtMoney }: { analytics?: AnalyticsData; fmtMoney: (v: number) => string }) {
+  const { t } = useTranslation();
   if (!analytics || !(analytics.serviceBreakdown ?? []).length) {
-    return <EmptyState icon={Briefcase} message="No service data yet. Complete appointments to see performance." />;
+    return <EmptyState icon={Briefcase} message={t("provider_dashboard.reporting_no_service_data", "No service data yet. Complete appointments to see performance.")} />;
   }
 
   const services = analytics.serviceBreakdown;
@@ -352,17 +357,17 @@ function ServicesTab({ analytics, fmtMoney }: { analytics?: AnalyticsData; fmtMo
     <div className="space-y-6">
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium">Service Performance</CardTitle>
+          <CardTitle className="text-sm font-medium">{t("provider_dashboard.analytics_service_performance", "Service Performance")}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b text-xs text-muted-foreground">
-                  <th className="text-start py-2">Service</th>
-                  <th className="text-end py-2">Bookings</th>
-                  <th className="text-end py-2">Revenue</th>
-                  <th className="text-end py-2">Avg Rating</th>
+                  <th className="text-start py-2">{t("provider_dashboard.service", "Service")}</th>
+                  <th className="text-end py-2">{t("provider_dashboard.analytics_bookings", "Bookings")}</th>
+                  <th className="text-end py-2">{t("provider_dashboard.analytics_revenue", "Revenue")}</th>
+                  <th className="text-end py-2">{t("provider_dashboard.analytics_avg_rating", "Avg Rating")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -410,10 +415,11 @@ function ServicesTab({ analytics, fmtMoney }: { analytics?: AnalyticsData; fmtMo
 }
 
 function ScheduleTab({ analytics, insights, fmtMoney }: { analytics?: AnalyticsData; insights?: InsightsData; fmtMoney: (v: number) => string }) {
+  const { t } = useTranslation();
   const health = analytics?.scheduleHealth;
   const heatmap = insights?.heatmap;
 
-  if (!health && !heatmap) return <EmptyState icon={Clock} message="No schedule data yet." />;
+  if (!health && !heatmap) return <EmptyState icon={Clock} message={t("provider_dashboard.reporting_no_schedule_data", "No schedule data yet.")} />;
 
   const peakHour = (() => {
     if (!heatmap) return null;
@@ -431,19 +437,19 @@ function ScheduleTab({ analytics, insights, fmtMoney }: { analytics?: AnalyticsD
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
         {health && (
           <>
-            <KpiCard icon={Activity} label="Slot Utilization" value={`${(health.utilizationPct ?? 0).toFixed(1)}%`} color="text-blue-600" />
-            <KpiCard icon={Calendar} label="Booked Slots" value={String(health.bookedSlots ?? 0)} sub={`of ${health.totalSlots ?? 0} total`} color="text-emerald-600" />
+            <KpiCard icon={Activity} label={t("provider_dashboard.analytics_slot_utilization", "Slot Utilization")} value={`${(health.utilizationPct ?? 0).toFixed(1)}%`} color="text-blue-600" />
+            <KpiCard icon={Calendar} label={t("provider_dashboard.reporting_booked_slots", "Booked Slots")} value={String(health.bookedSlots ?? 0)} sub={t("provider_dashboard.reporting_of_total", "of {{count}} total", { count: health.totalSlots ?? 0 })} color="text-emerald-600" />
           </>
         )}
         {peakHour && (
-          <KpiCard icon={Clock} label="Peak Hour" value={peakHour} sub="busiest slot" color="text-amber-600" />
+          <KpiCard icon={Clock} label={t("provider_dashboard.reporting_peak_hour", "Peak Hour")} value={peakHour} sub={t("provider_dashboard.reporting_busiest_slot", "busiest slot")} color="text-amber-600" />
         )}
       </div>
 
       {heatmap && (
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Busy Hours Heatmap (last 6 months)</CardTitle>
+            <CardTitle className="text-sm font-medium">{t("provider_dashboard.reporting_busy_heatmap", "Busy Hours Heatmap (last 6 months)")}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="overflow-x-auto">
@@ -480,8 +486,9 @@ function ScheduleTab({ analytics, insights, fmtMoney }: { analytics?: AnalyticsD
 }
 
 function ReviewsTab({ analytics }: { analytics?: AnalyticsData }) {
+  const { t } = useTranslation();
   const dist = analytics?.ratingDistribution ?? [];
-  if (!dist.length) return <EmptyState icon={Star} message="No reviews yet." />;
+  if (!dist.length) return <EmptyState icon={Star} message={t("provider_dashboard.analytics_no_reviews", "No reviews yet.")} />;
 
   const total = dist.reduce((s, d) => s + d.count, 0);
   const weighted = dist.reduce((s, d) => s + d.star * d.count, 0);
@@ -490,13 +497,13 @@ function ReviewsTab({ analytics }: { analytics?: AnalyticsData }) {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 gap-3">
-        <KpiCard icon={Star} label="Avg Rating" value={avgRating.toFixed(2)} sub={`from ${total} reviews`} color="text-yellow-600" />
-        <KpiCard icon={Activity} label="Total Reviews" value={String(total)} color="text-blue-600" />
+        <KpiCard icon={Star} label={t("provider_dashboard.analytics_avg_rating", "Avg Rating")} value={avgRating.toFixed(2)} sub={t("provider_dashboard.reporting_from_reviews", "from {{count}} reviews", { count: total })} color="text-yellow-600" />
+        <KpiCard icon={Activity} label={t("provider_dashboard.reporting_total_reviews", "Total Reviews")} value={String(total)} color="text-blue-600" />
       </div>
 
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium">Rating Distribution</CardTitle>
+          <CardTitle className="text-sm font-medium">{t("provider_dashboard.analytics_rating_distribution", "Rating Distribution")}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
@@ -521,11 +528,11 @@ function ReviewsTab({ analytics }: { analytics?: AnalyticsData }) {
 
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium">Rating by Service</CardTitle>
+          <CardTitle className="text-sm font-medium">{t("provider_dashboard.reporting_rating_by_service", "Rating by Service")}</CardTitle>
         </CardHeader>
         <CardContent>
           {(analytics?.serviceBreakdown ?? []).filter(s => s.avgRating > 0).length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-4">No service ratings yet.</p>
+            <p className="text-sm text-muted-foreground text-center py-4">{t("provider_dashboard.reporting_no_service_ratings", "No service ratings yet.")}</p>
           ) : (
             <div className="space-y-2">
               {(analytics?.serviceBreakdown ?? [])
@@ -549,38 +556,39 @@ function ReviewsTab({ analytics }: { analytics?: AnalyticsData }) {
 }
 
 function FinancialsTab({ fmtMoney, enabled }: { fmtMoney: (v: number) => string; enabled: boolean }) {
+  const { t } = useTranslation();
   const { data, isLoading } = useQuery<EarningsData>({
     queryKey: QK.providerEarnings(),
     enabled,
   });
 
   if (isLoading) return <PanelLoader />;
-  if (!data) return <EmptyState icon={DollarSign} message="No earnings data yet." />;
+  if (!data) return <EmptyState icon={DollarSign} message={t("provider_dashboard.reporting_no_earnings", "No earnings data yet.")} />;
 
   const s = data.summary ?? {};
 
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <KpiCard icon={DollarSign} label="Actual Net Payout" value={fmtMoney(s.totalEarnings ?? 0)} color="text-emerald-600" />
-        <KpiCard icon={TrendingUp} label="Gross Provider Payout" value={fmtMoney(s.grossProviderPayout ?? s.totalEarnings ?? 0)} color="text-blue-600" />
-        <KpiCard icon={Clock} label="Pending Net Payout" value={fmtMoney(s.pendingAmount ?? s.pendingEarnings ?? 0)} sub="not yet paid" color="text-amber-600" />
+        <KpiCard icon={DollarSign} label={t("provider_dashboard.reporting_actual_net_payout", "Actual Net Payout")} value={fmtMoney(s.totalEarnings ?? 0)} color="text-emerald-600" />
+        <KpiCard icon={TrendingUp} label={t("provider_dashboard.reporting_gross_payout", "Gross Provider Payout")} value={fmtMoney(s.grossProviderPayout ?? s.totalEarnings ?? 0)} color="text-blue-600" />
+        <KpiCard icon={Clock} label={t("provider_dashboard.reporting_pending_payout", "Pending Net Payout")} value={fmtMoney(s.pendingAmount ?? s.pendingEarnings ?? 0)} sub={t("provider_dashboard.reporting_not_paid", "not yet paid")} color="text-amber-600" />
       </div>
 
       {(data.earnings ?? []).length > 0 && (
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Recent Earnings</CardTitle>
+            <CardTitle className="text-sm font-medium">{t("provider_dashboard.reporting_recent_earnings", "Recent Earnings")}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b text-xs text-muted-foreground">
-                    <th className="text-start py-2">Date</th>
-                    <th className="text-start py-2">Service</th>
-                    <th className="text-end py-2">Provider Earning</th>
-                    <th className="text-end py-2">Payment status</th>
+                    <th className="text-start py-2">{t("provider_dashboard.date", "Date")}</th>
+                    <th className="text-start py-2">{t("provider_dashboard.service", "Service")}</th>
+                    <th className="text-end py-2">{t("provider_dashboard.reporting_provider_earning", "Provider Earning")}</th>
+                    <th className="text-end py-2">{t("provider_dashboard.payment_status", "Payment status")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -607,6 +615,7 @@ function FinancialsTab({ fmtMoney, enabled }: { fmtMoney: (v: number) => string;
 }
 
 function PayoutsTab({ fmtMoney, enabled }: { fmtMoney: (v: number) => string; enabled: boolean }) {
+  const { t } = useTranslation();
   const { data: wallet, isLoading: walletLoading } = useQuery<WalletData>({
     queryKey: QK.providerWallet(),
     enabled,
@@ -622,24 +631,24 @@ function PayoutsTab({ fmtMoney, enabled }: { fmtMoney: (v: number) => string; en
     <div className="space-y-6">
       {wallet && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <KpiCard icon={DollarSign} label="Available Balance" value={fmtMoney(Number(wallet.available_balance ?? 0))} color="text-emerald-600" />
-          <KpiCard icon={Clock} label="Held" value={fmtMoney(Number(wallet.held_balance ?? 0))} sub="in escrow" color="text-amber-600" />
-          <KpiCard icon={Activity} label="Pending" value={fmtMoney(Number(wallet.pending_balance ?? 0))} color="text-blue-600" />
-          <KpiCard icon={TrendingUp} label="Lifetime Earned" value={fmtMoney(Number(wallet.lifetime_earnings ?? 0))} color="text-violet-600" />
+          <KpiCard icon={DollarSign} label={t("provider_dashboard.reporting_available_balance", "Available Balance")} value={fmtMoney(Number(wallet.available_balance ?? 0))} color="text-emerald-600" />
+          <KpiCard icon={Clock} label={t("provider_dashboard.reporting_held", "Held")} value={fmtMoney(Number(wallet.held_balance ?? 0))} sub={t("provider_dashboard.reporting_in_escrow", "in escrow")} color="text-amber-600" />
+          <KpiCard icon={Activity} label={t("provider_dashboard.reporting_pending", "Pending")} value={fmtMoney(Number(wallet.pending_balance ?? 0))} color="text-blue-600" />
+          <KpiCard icon={TrendingUp} label={t("provider_dashboard.reporting_lifetime_earned", "Lifetime Earned")} value={fmtMoney(Number(wallet.lifetime_earnings ?? 0))} color="text-violet-600" />
         </div>
       )}
 
       {payout && (
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-          <KpiCard icon={CreditCard} label="In-Flight Payouts" value={fmtMoney(payout.inFlight ?? 0)} sub={`${payout.pendingCount ?? 0} pending`} color="text-blue-600" />
-          <KpiCard icon={TrendingUp} label="Lifetime Paid" value={fmtMoney(payout.lifetimePaid ?? 0)} sub={`${payout.completedCount ?? 0} completed`} color="text-emerald-600" />
+          <KpiCard icon={CreditCard} label={t("provider_dashboard.reporting_in_flight", "In-Flight Payouts")} value={fmtMoney(payout.inFlight ?? 0)} sub={t("provider_dashboard.reporting_pending_count", "{{count}} pending", { count: payout.pendingCount ?? 0 })} color="text-blue-600" />
+          <KpiCard icon={TrendingUp} label={t("provider_dashboard.reporting_lifetime_paid", "Lifetime Paid")} value={fmtMoney(payout.lifetimePaid ?? 0)} sub={t("provider_dashboard.reporting_completed_count", "{{count}} completed", { count: payout.completedCount ?? 0 })} color="text-emerald-600" />
         </div>
       )}
 
       {(wallet?.monthly ?? []).length > 0 && (
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Monthly Wallet Credits (12 months)</CardTitle>
+            <CardTitle className="text-sm font-medium">{t("provider_dashboard.reporting_wallet_credits", "Monthly Wallet Credits (12 months)")}</CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={180}>
@@ -648,7 +657,7 @@ function PayoutsTab({ fmtMoney, enabled }: { fmtMoney: (v: number) => string; en
                 <XAxis dataKey="month" tick={{ fontSize: 10 }} />
                 <YAxis tick={{ fontSize: 10 }} tickFormatter={v => fmtMoney(v)} width={65} />
                 <Tooltip formatter={(v: number) => [fmtMoney(v), "Net Credits"]} />
-                <Bar dataKey="net" name="Credits" fill="#10b981" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="net" name={t("provider_dashboard.reporting_credits", "Credits")} fill="#10b981" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
@@ -659,22 +668,23 @@ function PayoutsTab({ fmtMoney, enabled }: { fmtMoney: (v: number) => string; en
 }
 
 function GrowthTab({ insights, fmtMoney }: { insights?: InsightsData; fmtMoney: (v: number) => string }) {
-  if (!insights) return <EmptyState icon={TrendingUp} message="No growth data yet." />;
+  const { t } = useTranslation();
+  if (!insights) return <EmptyState icon={TrendingUp} message={t("provider_dashboard.reporting_no_growth", "No growth data yet.")} />;
 
   const kpi = insights.kpi;
 
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-        <KpiCard icon={Activity} label="Cancellation Rate" value={`${kpi.cancellationRate.toFixed(1)}%`} color={kpi.cancellationRate > 20 ? "text-rose-600" : "text-amber-600"} />
-        <KpiCard icon={Users} label="Repeat Patients" value={`${kpi.repeatPatientPct.toFixed(1)}%`} color="text-emerald-600" />
-        <KpiCard icon={Clock} label="Lost Bookings" value={String(kpi.lostBookings)} sub="last 12 months" color="text-rose-600" />
+        <KpiCard icon={Activity} label={t("provider_dashboard.reporting_cancellation_rate", "Cancellation Rate")} value={`${kpi.cancellationRate.toFixed(1)}%`} color={kpi.cancellationRate > 20 ? "text-rose-600" : "text-amber-600"} />
+        <KpiCard icon={Users} label={t("provider_dashboard.reporting_repeat_patients", "Repeat Patients")} value={`${kpi.repeatPatientPct.toFixed(1)}%`} color="text-emerald-600" />
+        <KpiCard icon={Clock} label={t("provider_dashboard.reporting_lost_bookings", "Lost Bookings")} value={String(kpi.lostBookings)} sub={t("provider_dashboard.analytics_last_12_months", "last 12 months")} color="text-rose-600" />
       </div>
 
       {insights.weeklyRevenue.length > 0 && (
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">12-Week Revenue Trend</CardTitle>
+            <CardTitle className="text-sm font-medium">{t("provider_dashboard.reporting_12_week_trend", "12-Week Revenue Trend")}</CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={200}>
@@ -688,7 +698,7 @@ function GrowthTab({ insights, fmtMoney }: { insights?: InsightsData; fmtMoney: 
                 <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.3} />
                 <XAxis dataKey="week" tick={{ fontSize: 10 }} />
                 <YAxis tick={{ fontSize: 10 }} tickFormatter={v => fmtMoney(v)} width={65} />
-                <Tooltip formatter={(v: number) => [fmtMoney(v), "Revenue"]} />
+                <Tooltip formatter={(v: number) => [fmtMoney(v), t("provider_dashboard.analytics_revenue", "Revenue")]} />
                 <Area type="monotone" dataKey="revenue" stroke="#6366f1" fill="url(#growthGrad)" strokeWidth={2} />
               </AreaChart>
             </ResponsiveContainer>
@@ -699,7 +709,7 @@ function GrowthTab({ insights, fmtMoney }: { insights?: InsightsData; fmtMoney: 
       {insights.popularServices.length > 0 && (
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Popular Services</CardTitle>
+            <CardTitle className="text-sm font-medium">{t("provider_dashboard.reporting_popular_services", "Popular Services")}</CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={Math.min(insights.popularServices.length * 40 + 20, 240)}>
@@ -708,7 +718,7 @@ function GrowthTab({ insights, fmtMoney }: { insights?: InsightsData; fmtMoney: 
                 <XAxis type="number" tick={{ fontSize: 10 }} />
                 <YAxis dataKey="name" type="category" tick={{ fontSize: 10 }} width={110} />
                 <Tooltip />
-                <Bar dataKey="count" name="Bookings" fill="#10b981" radius={[0, 4, 4, 0]} />
+                <Bar dataKey="count" name={t("provider_dashboard.analytics_bookings", "Bookings")} fill="#10b981" radius={[0, 4, 4, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
@@ -718,7 +728,7 @@ function GrowthTab({ insights, fmtMoney }: { insights?: InsightsData; fmtMoney: 
       {insights.growthTips.length > 0 && (
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Growth Recommendations</CardTitle>
+            <CardTitle className="text-sm font-medium">{t("provider_dashboard.growth_recommendations", "Growth Recommendations")}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
@@ -737,17 +747,18 @@ function GrowthTab({ insights, fmtMoney }: { insights?: InsightsData; fmtMoney: 
 }
 
 function ExportsTab({ fmtMoney }: { fmtMoney: (v: number) => string }) {
+  const { t } = useTranslation();
   return (
     <div className="space-y-4">
       <div>
-        <h3 className="font-semibold text-sm">My Reports</h3>
-        <p className="text-xs text-muted-foreground mt-1">Download your earnings and appointment data. All amounts shown in your display currency.</p>
+        <h3 className="font-semibold text-sm">{t("provider_dashboard.reporting_my_reports", "My Reports")}</h3>
+        <p className="text-xs text-muted-foreground mt-1">{t("provider_dashboard.reporting_download_desc", "Download your earnings and appointment data. All amounts shown in your display currency.")}</p>
       </div>
       <Card>
         <CardContent className="p-4 flex items-center justify-between gap-4">
           <div>
-            <p className="text-sm font-medium">Earnings CSV</p>
-            <p className="text-xs text-muted-foreground mt-0.5">Provider-only earnings and settlement columns.</p>
+            <p className="text-sm font-medium">{t("provider_dashboard.reporting_earnings_csv", "Earnings CSV")}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">{t("provider_dashboard.reporting_earnings_csv_desc", "Provider-only earnings and settlement columns.")}</p>
           </div>
           <a href="/api/provider/earnings/export" download data-testid="export-provider-earnings-csv">
             <Button size="sm" variant="outline" className="gap-1.5 shrink-0">

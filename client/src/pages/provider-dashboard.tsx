@@ -207,6 +207,7 @@ function ProfileCompletenessCard({
 
 // ── Provider Insights Tab ─────────────────────────────────────────────────────
 function ProviderInsightsTab({ data, fmtMoney }: { data: InsightsData; fmtMoney: (v: number) => string; }) {
+  const { t } = useTranslation();
   const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
   const BUSINESS_HOURS = Array.from({ length: 14 }, (_, i) => i + 7);
   const heatMax = Math.max(1, ...(data.heatmap ?? []).flatMap((row) => row));
@@ -215,29 +216,29 @@ function ProviderInsightsTab({ data, fmtMoney }: { data: InsightsData; fmtMoney:
     <div className="space-y-4">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <Card data-testid="kpi-completion-rate"><CardContent className="pt-5 pb-4">
-          <p className="text-xs text-muted-foreground">Completion rate</p>
+          <p className="text-xs text-muted-foreground">{t("provider_dashboard.insights_completion_rate", "Completion rate")}</p>
           <p className="text-2xl font-bold mt-1">{data.kpi.utilizationPct}%</p>
-          <p className="text-xs text-muted-foreground mt-1">{data.kpi.totalCompleted} of {data.kpi.totalBookings} bookings</p>
+          <p className="text-xs text-muted-foreground mt-1">{t("provider_dashboard.insights_bookings_count", "{{completed}} of {{total}} bookings", { completed: data.kpi.totalCompleted, total: data.kpi.totalBookings })}</p>
         </CardContent></Card>
         <Card data-testid="kpi-cancellation-rate"><CardContent className="pt-5 pb-4">
-          <p className="text-xs text-muted-foreground">Cancellation rate</p>
+          <p className="text-xs text-muted-foreground">{t("provider_dashboard.insights_cancellation_rate", "Cancellation rate")}</p>
           <p className="text-2xl font-bold mt-1 text-rose-600 dark:text-rose-400">{data.kpi.cancellationRate}%</p>
-          <p className="text-xs text-muted-foreground mt-1">Lost: {data.kpi.lostBookings} bookings</p>
+          <p className="text-xs text-muted-foreground mt-1">{t("provider_dashboard.insights_lost_bookings", "Lost: {{count}} bookings", { count: data.kpi.lostBookings })}</p>
         </CardContent></Card>
         <Card data-testid="kpi-repeat-patients"><CardContent className="pt-5 pb-4">
-          <p className="text-xs text-muted-foreground">Repeat clients</p>
+          <p className="text-xs text-muted-foreground">{t("provider_dashboard.insights_repeat_clients", "Repeat clients")}</p>
           <p className="text-2xl font-bold mt-1 text-emerald-600 dark:text-emerald-400">{data.kpi.repeatPatientPct}%</p>
-          <p className="text-xs text-muted-foreground mt-1">{data.repeatPatients.length} loyal clients</p>
+          <p className="text-xs text-muted-foreground mt-1">{t("provider_dashboard.insights_loyal_clients", "{{count}} loyal clients", { count: data.repeatPatients.length })}</p>
         </CardContent></Card>
         <Card data-testid="kpi-conversion-rate"><CardContent className="pt-5 pb-4">
-          <p className="text-xs text-muted-foreground">Booking conversion</p>
+          <p className="text-xs text-muted-foreground">{t("provider_dashboard.insights_booking_conversion", "Booking conversion")}</p>
           <p className="text-2xl font-bold mt-1">{data.kpi.bookingConversionRate}%</p>
-          <p className="text-xs text-muted-foreground mt-1">Last 12 months</p>
+          <p className="text-xs text-muted-foreground mt-1">{t("provider_dashboard.analytics_last_12_months", "Last 12 months")}</p>
         </CardContent></Card>
       </div>
 
       <Card>
-        <CardHeader><CardTitle className="text-base flex items-center gap-2"><TrendingUp className="h-4 w-4" /> Revenue · last 12 weeks</CardTitle></CardHeader>
+        <CardHeader><CardTitle className="text-base flex items-center gap-2"><TrendingUp className="h-4 w-4" /> {t("provider_dashboard.insights_revenue_12_weeks", "Revenue · last 12 weeks")}</CardTitle></CardHeader>
         <CardContent style={{ height: 260 }}>
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={data.weeklyRevenue}>
@@ -250,16 +251,16 @@ function ProviderInsightsTab({ data, fmtMoney }: { data: InsightsData; fmtMoney:
 
       {data.repeatPatients.length > 0 && (
         <Card>
-          <CardHeader><CardTitle className="text-base flex items-center gap-2"><Users className="h-4 w-4" /> Loyal clients</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-base flex items-center gap-2"><Users className="h-4 w-4" /> {t("provider_dashboard.insights_loyal_clients_title", "Loyal clients")}</CardTitle></CardHeader>
           <CardContent>
             <div className="space-y-2">
               {data.repeatPatients.slice(0, 10).map((p) => (
                 <div key={p.patientId} className="flex items-center justify-between py-2 border-b border-border/50 last:border-0" data-testid={`row-repeat-patient-${p.patientId}`}>
                   <div>
                     <span className="font-medium text-sm">{p.name}</span>
-                    <span className="text-xs text-muted-foreground ml-2">· {p.visitCount} visits</span>
+                    <span className="text-xs text-muted-foreground ml-2">· {t("provider_dashboard.insights_visits", "{{count}} visits", { count: p.visitCount })}</span>
                   </div>
-                  <div className="text-right text-xs text-muted-foreground">Last: {p.lastVisit}</div>
+                  <div className="text-right text-xs text-muted-foreground">{t("provider_dashboard.insights_last_visit", "Last: {{date}}", { date: p.lastVisit })}</div>
                 </div>
               ))}
             </div>
@@ -272,7 +273,7 @@ function ProviderInsightsTab({ data, fmtMoney }: { data: InsightsData; fmtMoney:
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
               <TrendingUp className="h-4 w-4 text-emerald-500" />
-              Growth Recommendations
+              {t("provider_dashboard.growth_recommendations", "Growth Recommendations")}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -290,7 +291,7 @@ function ProviderInsightsTab({ data, fmtMoney }: { data: InsightsData; fmtMoney:
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Busy periods · last 6 months</CardTitle>
+          <CardTitle className="text-base">{t("provider_dashboard.insights_busy_periods", "Busy periods · last 6 months")}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
@@ -304,7 +305,7 @@ function ProviderInsightsTab({ data, fmtMoney }: { data: InsightsData; fmtMoney:
                     const cnt = data.heatmap[dow]?.[hour] ?? 0;
                     const intensity = cnt === 0 ? 0 : Math.max(0.1, cnt / heatMax);
                     return (
-                      <div key={`${dow}-${hour}`} title={cnt > 0 ? `${cnt} appointment${cnt > 1 ? "s" : ""}` : "No appointments"}
+                      <div key={`${dow}-${hour}`} title={cnt > 0 ? t("provider_dashboard.insights_appointments", "{{count}} appointments", { count: cnt }) : t("provider_dashboard.insights_no_appointments", "No appointments")}
                         className="h-6 rounded-sm border border-border/40" data-testid={`heatmap-cell-${dow}-${hour}`}
                         style={{ backgroundColor: cnt === 0 ? "hsl(var(--muted))" : `hsl(var(--primary) / ${Math.round(intensity * 100)}%)` }} />
                     );
@@ -1398,8 +1399,8 @@ export default function ProviderDashboard() {
 
           {/* ── Support / bug-report row ──────────────────────── */}
           <div className="flex justify-end mb-4 gap-2 flex-wrap">
-            <Button variant="outline" size="sm" className="gap-2" data-testid="button-provider-report-bug" onClick={() => setReportBugOpen(true)}>
-              <Bug className="h-4 w-4" />Report a Problem
+              <Button variant="outline" size="sm" className="gap-2" data-testid="button-provider-report-bug" onClick={() => setReportBugOpen(true)}>
+              <Bug className="h-4 w-4" />{t("provider_dashboard.report_problem", "Report a Problem")}
             </Button>
             <Button variant="default" size="sm" className="gap-2" data-testid="button-provider-new-ticket" onClick={() => setNewTicketOpen(true)}>
               <Plus className="h-4 w-4" />{t("support.new_ticket", "New ticket")}
@@ -1417,7 +1418,7 @@ export default function ProviderDashboard() {
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <div className="tabs-scroll-wrapper">
               <TabsList className="hidden">
-                <TabsTrigger value="overview" data-testid="tab-overview">Practice Overview</TabsTrigger>
+                <TabsTrigger value="overview" data-testid="tab-overview">{t("provider_dashboard.nav_practice_overview", "Practice Overview")}</TabsTrigger>
                 <TabsTrigger value="upcoming" data-testid="tab-upcoming">
                   {t("provider_dashboard.tab_upcoming", "Upcoming")}
                   {upcomingAppointments.length > 0 && <Badge variant="secondary" className="ml-2">{upcomingAppointments.length}</Badge>}
@@ -1443,7 +1444,7 @@ export default function ProviderDashboard() {
                 </TabsTrigger>
                 <TabsTrigger value="availability" data-testid="tab-availability">{t("provider_dashboard.tab_availability", "Availability")}</TabsTrigger>
                 <TabsTrigger value="time-engine" data-testid="tab-time-engine">
-                  <Zap className="h-4 w-4 mr-1" />Time Engine
+                  <Zap className="h-4 w-4 mr-1" />{t("provider_dashboard.nav_time_engine", "Time Engine")}
                 </TabsTrigger>
                 <TabsTrigger value="analytics" data-testid="tab-analytics">
                   <TrendingUp className="h-4 w-4 mr-1" />{t("provider_dashboard.tab_analytics", "Analytics")}

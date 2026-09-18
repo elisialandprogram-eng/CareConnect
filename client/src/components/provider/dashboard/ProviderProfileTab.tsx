@@ -196,6 +196,7 @@ function ProfileStrength({
   locked?: boolean;
 }) {
   const [expanded, setExpanded] = useState<boolean | null>(null);
+  const { t } = useTranslation();
   const { toast } = useToast();
   // Always pull the freshest provider data directly — don't rely solely on the
   // prop which may be an older snapshot passed down before the cache updated.
@@ -226,11 +227,11 @@ function ProfileStrength({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QK.providerMe() });
       void invalidateProviderProfile();
-      toast({ title: "Submitted for review!", description: "Our team will review your profile within 1–3 business days." });
+      toast({ title: t("provider_dashboard.profile_submitted", "Submitted for review!"), description: t("provider_dashboard.profile_submitted_desc", "Our team will review your profile within 1–3 business days.") });
     },
     onError: (e: any) => {
-      const msg = e?.message || "Submission failed";
-      toast({ title: "Submission failed", description: msg, variant: "destructive" });
+    const msg = e?.message || t("provider_dashboard.submission_failed", "Submission failed");
+    toast({ title: t("provider_dashboard.submission_failed", "Submission failed"), description: msg, variant: "destructive" });
     },
   });
 
@@ -275,8 +276,8 @@ function ProfileStrength({
       <div className={`rounded-xl border ${borderColor} ${cardBg} px-4 py-3 flex items-center gap-3`} data-testid="profile-strength-complete">
         <CheckCircle className="h-5 w-5 text-emerald-500 shrink-0" />
         <div>
-          <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-300">Profile 100% complete</p>
-          <p className="text-xs text-muted-foreground mt-0.5">All required information has been filled in. You're ready to submit for review.</p>
+          <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-300">{t("provider_dashboard.profile_complete", "Profile 100% complete")}</p>
+          <p className="text-xs text-muted-foreground mt-0.5">{t("provider_dashboard.profile_complete_desc", "All required information has been filled in. You're ready to submit for review.")}</p>
         </div>
       </div>
     );
@@ -301,7 +302,7 @@ function ProfileStrength({
             </div>
           </div>
           <div>
-            <p className="text-sm font-semibold">Profile Strength: <span className={ringColor}>{strengthLabel}</span></p>
+            <p className="text-sm font-semibold">{t("provider_dashboard.profile_strength", "Profile Strength")}: <span className={ringColor}>{t(`provider_dashboard.strength_${strengthLabel.toLowerCase().replace(" ", "_")}`, strengthLabel)}</span></p>
             <p className="text-xs text-muted-foreground mt-0.5">
               {incomplete.length === 0 ? "All complete!" : `${incomplete.length} item${incomplete.length !== 1 ? "s" : ""} still need${incomplete.length === 1 ? "s" : ""} attention`}
             </p>
@@ -335,7 +336,7 @@ function ProfileStrength({
 
           <div className="mt-4 pt-3 border-t border-border/60">
             <div className="flex items-center justify-between text-xs text-muted-foreground mb-1.5">
-              <span>Overall progress</span>
+              <span>{t("provider_dashboard.overall_progress", "Overall progress")}</span>
               <span className={`font-semibold tabular-nums ${ringColor}`}>{earnedPts} / {totalPts} pts</span>
             </div>
             <div className="h-2 rounded-full bg-muted overflow-hidden">
@@ -358,7 +359,7 @@ function ProfileStrength({
                       />
                       <span className="text-xs leading-snug text-muted-foreground">
                         I agree to the{" "}
-                        <a href="/legal/provider-agreement" target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-2 font-medium">Provider Agreement</a>
+                        <a href="/legal/provider-agreement" target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-2 font-medium">{t("provider_dashboard.provider_agreement", "Provider Agreement")}</a>
                       </span>
                     </label>
                     <label className="flex items-start gap-2.5 cursor-pointer select-none" data-testid="label-strength-consent-data">
@@ -371,7 +372,7 @@ function ProfileStrength({
                       />
                       <span className="text-xs leading-snug text-muted-foreground">
                         I agree to the{" "}
-                        <a href="/legal/data-processing-agreement" target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-2 font-medium">Data Processing Agreement</a>
+                        <a href="/legal/data-processing-agreement" target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-2 font-medium">{t("provider_dashboard.data_processing_agreement", "Data Processing Agreement")}</a>
                       </span>
                     </label>
                   </div>
@@ -385,12 +386,12 @@ function ProfileStrength({
                     Submit Profile for Review
                   </Button>
                   {!consentComplete && (
-                    <p className="text-[10px] text-center text-muted-foreground">Accept both agreements above to enable submission.</p>
+                    <p className="text-[10px] text-center text-muted-foreground">{t("provider_dashboard.accept_agreements", "Accept both agreements above to enable submission.")}</p>
                   )}
                 </>
               ) : (
                 <p className="text-xs text-center text-muted-foreground">
-                  Complete more sections to reach 60% and unlock the <span className="font-medium">Submit for Review</span> button.
+                  {t("provider_dashboard.complete_sections_to_submit", "Complete more sections to reach 60% and unlock the")} <span className="font-medium">{t("provider_dashboard.submit_review", "Submit for Review")}</span> {t("provider_dashboard.button", "button")}.
                 </p>
               )}
             </div>
@@ -413,6 +414,7 @@ function OverviewPanel({
   locked: boolean;
   onNavigate: (section: ProfileSubSection) => void;
 }) {
+  const { t } = useTranslation();
   const statusColors: Record<string, string> = {
     draft: "bg-muted text-muted-foreground",
     action_required: "bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400",
@@ -426,15 +428,15 @@ function OverviewPanel({
   };
 
   const statusLabels: Record<string, string> = {
-    draft: "Draft",
-    action_required: "Action Required",
-    pending_approval: "Under Review",
-    under_review: "Documents Approved",
-    approved: "Approved",
-    active: "Active",
-    rejected: "Changes Required",
-    suspended: "Suspended",
-    deactivated: "Deactivated",
+    draft: t("provider_dashboard.status_draft", "Draft"),
+    action_required: t("provider_dashboard.status_action_required", "Action Required"),
+    pending_approval: t("provider_dashboard.status_under_review", "Under Review"),
+    under_review: t("provider_dashboard.status_documents_approved", "Documents Approved"),
+    approved: t("provider_dashboard.status_approved", "Approved"),
+    active: t("provider_dashboard.status_active", "Active"),
+    rejected: t("provider_dashboard.status_changes_required", "Changes Required"),
+    suspended: t("provider_dashboard.status_suspended", "Suspended"),
+    deactivated: t("provider_dashboard.status_deactivated", "Deactivated"),
   };
 
   const status = provider?.status ?? "draft";
@@ -446,12 +448,12 @@ function OverviewPanel({
     description: string;
     color: string;
   }[] = [
-    { id: "personal", icon: User, label: "Personal Info", description: "Name, phone, photo, city", color: "bg-blue-500/10 text-blue-600 dark:text-blue-400" },
-    { id: "professional", icon: Briefcase, label: "Professional", description: "Bio, category, experience, languages", color: "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400" },
-    { id: "workplace", icon: MapPin, label: "Workplace", description: "Clinic address, location", color: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" },
-    { id: "services", icon: Stethoscope, label: "Services", description: "Service modes & delivery", color: "bg-cyan-500/10 text-cyan-600 dark:text-cyan-400" },
-    { id: "verification", icon: FileCheck, label: "Documents", description: "KYC, license, identity", color: "bg-rose-500/10 text-rose-600 dark:text-rose-400" },
-    { id: "settings", icon: Settings2, label: "Settings", description: "Notifications, currency, security", color: "bg-slate-500/10 text-slate-600 dark:text-slate-400" },
+    { id: "personal", icon: User, label: t("provider_dashboard.profile_personal", "Personal Info"), description: t("provider_dashboard.profile_personal_desc", "Name, phone, photo, city"), color: "bg-blue-500/10 text-blue-600 dark:text-blue-400" },
+    { id: "professional", icon: Briefcase, label: t("provider_dashboard.profile_professional", "Professional"), description: t("provider_dashboard.profile_professional_desc", "Bio, category, experience, languages"), color: "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400" },
+    { id: "workplace", icon: MapPin, label: t("provider_dashboard.profile_workplace", "Workplace"), description: t("provider_dashboard.profile_workplace_desc", "Clinic address, location"), color: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" },
+    { id: "services", icon: Stethoscope, label: t("provider_dashboard.services", "Services"), description: t("provider_dashboard.profile_services_desc", "Service modes & delivery"), color: "bg-cyan-500/10 text-cyan-600 dark:text-cyan-400" },
+    { id: "verification", icon: FileCheck, label: t("provider_dashboard.documents", "Documents"), description: t("provider_dashboard.profile_documents_desc", "KYC, license, identity"), color: "bg-rose-500/10 text-rose-600 dark:text-rose-400" },
+    { id: "settings", icon: Settings2, label: t("provider_dashboard.settings_button", "Settings"), description: t("provider_dashboard.profile_settings_desc", "Notifications, currency, security"), color: "bg-slate-500/10 text-slate-600 dark:text-slate-400" },
   ];
 
   return (
@@ -521,7 +523,7 @@ function OverviewPanel({
 
       {/* Quick section navigation */}
       <div>
-        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Profile Sections</p>
+        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">{t("provider_dashboard.profile_sections", "Profile Sections")}</p>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
           {quickSections.map((sec) => (
             <button
@@ -561,7 +563,7 @@ export function ProviderProfileTab({
   openSection?: ProfileSection;
 }) {
   const { user, refreshUser } = useAuth();
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { toast } = useToast();
 
   const { data: providerMe } = useQuery<any>({ queryKey: QK.providerMe(), staleTime: 30_000 });
@@ -620,9 +622,9 @@ export function ProviderProfileTab({
     onSuccess: async () => {
       await refreshUser();
       setPersonalDraft(null);
-      toast({ title: "Personal info saved" });
+      toast({ title: t("provider_dashboard.personal_saved", "Personal info saved") });
     },
-    onError: (e: any) => showErrorModal({ title: "Couldn't save personal info", description: e?.message, context: "profile.personal" }),
+    onError: (e: any) => showErrorModal({ title: t("provider_dashboard.personal_save_failed", "Couldn't save personal info"), description: e?.message, context: "profile.personal" }),
   });
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -658,9 +660,9 @@ export function ProviderProfileTab({
       await refreshUser();
       queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
       setMobileDraft(null);
-      toast({ title: "Mobile number saved" });
+      toast({ title: t("provider_dashboard.mobile_saved", "Mobile number saved") });
     },
-    onError: (e: any) => toast({ title: "Couldn't save mobile number", description: e?.message, variant: "destructive" }),
+    onError: (e: any) => toast({ title: t("provider_dashboard.mobile_save_failed", "Couldn't save mobile number"), description: e?.message, variant: "destructive" }),
   });
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -729,9 +731,9 @@ export function ProviderProfileTab({
       void invalidateProviderProfile();
       setCategoryUnlocked(false);
       setCategoryChangeDraft({ newCategory: "", newSubcategory: "", newSpecialization: "", newDisplayTitle: "", reason: "" });
-      toast({ title: "Change request submitted", description: "An admin will review and respond within 1–3 business days." });
+      toast({ title: t("provider_dashboard.change_request_submitted", "Change request submitted"), description: t("provider_dashboard.change_request_desc", "An admin will review and respond within 1–3 business days.") });
     },
-    onError: (e: any) => toast({ title: "Request failed", description: e?.message, variant: "destructive" }),
+    onError: (e: any) => toast({ title: t("provider_dashboard.request_failed", "Request failed"), description: e?.message, variant: "destructive" }),
   });
 
   const saveCategoryMutation = useMutation({
@@ -751,9 +753,9 @@ export function ProviderProfileTab({
     onSuccess: () => {
       void invalidateProviderProfile();
       setCategoryDraft(null);
-      toast({ title: "Category & specialization saved" });
+      toast({ title: t("provider_dashboard.category_saved", "Category & specialization saved") });
     },
-    onError: (e: any) => toast({ title: "Couldn't save category", description: e?.message, variant: "destructive" }),
+    onError: (e: any) => toast({ title: t("provider_dashboard.category_save_failed", "Couldn't save category"), description: e?.message, variant: "destructive" }),
   });
 
   const saveProfessionalMutation = useMutation({
@@ -772,14 +774,14 @@ export function ProviderProfileTab({
         variables.licenseExpiryDate !== (provider?.licenseExpiryDate ?? "");
       if (credentialsChanged) {
         toast({
-          title: "Professional info & credentials saved",
-          description: "License credential changes have been recorded and the admin team will be informed.",
+          title: t("provider_dashboard.professional_saved", "Professional info & credentials saved"),
+          description: t("provider_dashboard.professional_saved_desc", "License credential changes have been recorded and the admin team will be informed."),
         });
       } else {
-        toast({ title: "Professional info saved" });
+        toast({ title: t("provider_dashboard.professional_saved_short", "Professional info saved") });
       }
     },
-    onError: (e: any) => showErrorModal({ title: "Couldn't save professional info", description: e?.message, context: "profile.professional" }),
+    onError: (e: any) => showErrorModal({ title: t("provider_dashboard.professional_save_failed", "Couldn't save professional info"), description: e?.message, context: "profile.professional" }),
   });
 
   const toggleLanguage = (lang: string) => {
@@ -838,9 +840,9 @@ export function ProviderProfileTab({
     onSuccess: async () => {
       void invalidateProviderProfile();
       setWorkplaceDraft(null);
-      toast({ title: "Workplace & location saved" });
+      toast({ title: t("provider_dashboard.workplace_saved", "Workplace & location saved") });
     },
-    onError: (e: any) => showErrorModal({ title: "Couldn't save workplace", description: e?.message, context: "profile.workplace" }),
+    onError: (e: any) => showErrorModal({ title: t("provider_dashboard.workplace_save_failed", "Couldn't save workplace"), description: e?.message, context: "profile.workplace" }),
   });
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -862,9 +864,9 @@ export function ProviderProfileTab({
     onSuccess: async () => {
       void invalidateProviderProfile();
       setServicesDraft(null);
-      toast({ title: "Service delivery settings saved" });
+      toast({ title: t("provider_dashboard.service_delivery_saved", "Service delivery settings saved") });
     },
-    onError: (e: any) => showErrorModal({ title: "Couldn't save service delivery", description: e?.message, context: "profile.services" }),
+    onError: (e: any) => showErrorModal({ title: t("provider_dashboard.service_delivery_failed", "Couldn't save service delivery"), description: e?.message, context: "profile.services" }),
   });
 
   const toggleServiceMode = (mode: string) => {
@@ -911,16 +913,16 @@ export function ProviderProfileTab({
     onSuccess: async () => {
       await refreshUser();
       void invalidateProviderProfile();
-      toast({ title: "Practice settings saved" });
+      toast({ title: t("provider_dashboard.practice_settings_saved", "Practice settings saved") });
       setPrefDraft(null);
     },
-    onError: (err: any) => toast({ title: "Error", description: err?.message || "Failed to save preferences", variant: "destructive" }),
+    onError: (err: any) => toast({ title: t("common.error", "Error"), description: err?.message || t("provider_dashboard.preferences_save_failed", "Failed to save preferences"), variant: "destructive" }),
   });
 
   const updateNotifPrefs = useMutation({
     mutationFn: async (patch: Record<string, any>) => apiRequest("PATCH", "/api/notification-preferences", patch),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: QK.notificationPreferences() }),
-    onError: () => showErrorModal({ title: "Failed to save notification preference", context: "provider.updateNotifPrefs" }),
+    onError: () => showErrorModal({ title: t("provider_dashboard.notification_save_failed", "Failed to save notification preference"), context: "provider.updateNotifPrefs" }),
   });
 
   // Display currency — users.preferredCurrency is the single authority
@@ -928,36 +930,36 @@ export function ProviderProfileTab({
     mutationFn: async (preferredCurrency: string) => apiRequest("PATCH", "/api/auth/profile", { preferredCurrency }),
     onSuccess: async () => {
       await refreshUser();
-      toast({ title: "Display currency updated" });
+      toast({ title: t("provider_dashboard.currency_updated", "Display currency updated") });
     },
-    onError: (e: any) => showErrorModal({ title: "Failed to update currency", description: e?.message, context: "provider.updateCurrency" }),
+    onError: (e: any) => showErrorModal({ title: t("provider_dashboard.currency_update_failed", "Failed to update currency"), description: e?.message, context: "provider.updateCurrency" }),
   });
 
   const updateCountryMutation = useMutation({
     mutationFn: async (countryCode: "HU" | "IR") => apiRequest("PATCH", "/api/auth/profile", { countryCode }),
     onSuccess: () => {
       queryClient.invalidateQueries();
-      toast({ title: "Country updated" });
+      toast({ title: t("provider_dashboard.country_updated", "Country updated") });
     },
-    onError: (e: any) => showErrorModal({ title: "Failed to switch country", description: e?.message, context: "provider.updateCountry" }),
+    onError: (e: any) => showErrorModal({ title: t("provider_dashboard.country_update_failed", "Failed to switch country"), description: e?.message, context: "provider.updateCountry" }),
   });
 
   const togglePush = async (on: boolean) => {
     try {
       if (on) {
         const r = await subscribeToPush();
-        if (!r.ok) { showErrorModal({ title: "Push not enabled", description: r.reason, context: "provider.subscribePush" }); return; }
+        if (!r.ok) { showErrorModal({ title: t("provider_dashboard.push_not_enabled", "Push not enabled"), description: r.reason, context: "provider.subscribePush" }); return; }
         setPushSubscribed(true);
         updateNotifPrefs.mutate({ pushEnabled: true });
-        toast({ title: "Push notifications enabled" });
+        toast({ title: t("provider_dashboard.push_enabled", "Push notifications enabled") });
       } else {
         await unsubscribeFromPush();
         setPushSubscribed(false);
         updateNotifPrefs.mutate({ pushEnabled: false });
-        toast({ title: "Push notifications disabled" });
+        toast({ title: t("provider_dashboard.push_disabled", "Push notifications disabled") });
       }
     } catch (e: any) {
-      showErrorModal({ title: "Push toggle failed", description: e?.message, context: "provider.togglePush" });
+      showErrorModal({ title: t("provider_dashboard.push_toggle_failed", "Push toggle failed"), description: e?.message, context: "provider.togglePush" });
     }
   };
 
@@ -980,19 +982,19 @@ export function ProviderProfileTab({
     },
     onSuccess: () => {
       setPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
-      toast({ title: "Password changed", description: "Your password has been updated." });
+      toast({ title: t("provider_dashboard.password_changed", "Password changed"), description: t("provider_dashboard.password_changed_desc", "Your password has been updated.") });
     },
-    onError: (error: any) => showErrorModal({ title: "Couldn't change password", description: error.message, context: "provider.changePassword" }),
+    onError: (error: any) => showErrorModal({ title: t("provider_dashboard.password_change_failed", "Couldn't change password"), description: error.message, context: "provider.changePassword" }),
   });
 
   const handlePasswordSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-      showErrorModal({ title: "Passwords don't match", description: "New passwords do not match.", context: "provider.passwordMismatch" });
+      showErrorModal({ title: t("provider_dashboard.passwords_mismatch", "Passwords don't match"), description: t("provider_dashboard.passwords_mismatch_desc", "New passwords do not match."), context: "provider.passwordMismatch" });
       return;
     }
     if (passwordForm.newPassword.length < 8) {
-      showErrorModal({ title: "Password too short", description: "Password must be at least 8 characters.", context: "provider.passwordTooShort" });
+      showErrorModal({ title: t("provider_dashboard.password_too_short", "Password too short"), description: t("provider_dashboard.password_too_short_desc", "Password must be at least 8 characters."), context: "provider.passwordTooShort" });
       return;
     }
     changePasswordMutation.mutate(passwordForm);
@@ -1008,9 +1010,9 @@ export function ProviderProfileTab({
     <div className="flex items-start gap-3 rounded-xl border border-blue-500/40 bg-blue-500/8 px-4 py-3.5 text-sm mb-4" data-testid="banner-profile-review">
       <Info className="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5 shrink-0" />
       <div>
-        <p className="font-semibold text-blue-700 dark:text-blue-300">Profile is under review</p>
+        <p className="font-semibold text-blue-700 dark:text-blue-300">{t("provider_dashboard.profile_under_review", "Profile is under review")}</p>
         <p className="text-blue-700/80 dark:text-blue-400/80 text-xs mt-0.5">
-          You can still update any section. Changes you make will be flagged for the admin team to re-check.
+          {t("provider_dashboard.profile_under_review_desc", "You can still update any section. Changes you make will be flagged for the admin team to re-check.")}
         </p>
       </div>
     </div>
@@ -1022,7 +1024,7 @@ export function ProviderProfileTab({
 
   const renderPersonal = () => (
     <div>
-      <SectionHeader icon={User} color="bg-blue-500/10 text-blue-600" title="Personal Information" description="Your name, contact details, profile photo, and city" />
+      <SectionHeader icon={User} color="bg-blue-500/10 text-blue-600" title={t("provider_dashboard.personal_information", "Personal Information")} description={t("provider_dashboard.personal_information_desc", "Your name, contact details, profile photo, and city")} />
       <div className="space-y-5">
         {/* Avatar — display only; upload via Documents → Profile Photo */}
         <div className="flex items-center gap-4">
@@ -1034,37 +1036,37 @@ export function ProviderProfileTab({
           <div>
             <p className="text-sm font-medium">{user?.firstName} {user?.lastName}</p>
             <p className="text-xs text-muted-foreground">{user?.email}</p>
-            <p className="text-xs text-muted-foreground mt-1">To change your photo, go to <strong>Documents → Profile Photo</strong></p>
+            <p className="text-xs text-muted-foreground mt-1">{t("provider_dashboard.change_photo_hint", "To change your photo, go to")} <strong>{t("provider_dashboard.documents_profile_photo", "Documents → Profile Photo")}</strong></p>
           </div>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-1.5">
-            <Label htmlFor="firstName">First Name</Label>
+            <Label htmlFor="firstName">{t("provider_dashboard.first_name", "First Name")}</Label>
             <Input id="firstName" value={personalData.firstName}
               onChange={(e) => setPersonalDraft((d) => ({ ...(d ?? personalData), firstName: e.target.value }))}
               data-testid="input-first-name" />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="lastName">Last Name</Label>
+            <Label htmlFor="lastName">{t("provider_dashboard.last_name", "Last Name")}</Label>
             <Input id="lastName" value={personalData.lastName}
               onChange={(e) => setPersonalDraft((d) => ({ ...(d ?? personalData), lastName: e.target.value }))}
               data-testid="input-last-name" />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="phone">Phone Number</Label>
+            <Label htmlFor="phone">{t("provider_dashboard.phone_number", "Phone Number")}</Label>
             <Input id="phone" value={personalData.phone}
               onChange={(e) => setPersonalDraft((d) => ({ ...(d ?? personalData), phone: e.target.value }))}
               placeholder="+1 555 000 0000" data-testid="input-phone" />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="city">City</Label>
+            <Label htmlFor="city">{t("provider_dashboard.city", "City")}</Label>
             <Input id="city" value={personalData.city}
               onChange={(e) => setPersonalDraft((d) => ({ ...(d ?? personalData), city: e.target.value }))}
               placeholder="Budapest" data-testid="input-city" />
           </div>
           <div className="space-y-1.5 sm:col-span-2">
-            <Label htmlFor="timezone">Timezone</Label>
+            <Label htmlFor="timezone">{t("provider_dashboard.timezone", "Timezone")}</Label>
             <p className="text-xs text-muted-foreground">
               Used for accurate slot scheduling and appointment times. Select the timezone where you practice.
             </p>
@@ -1075,10 +1077,10 @@ export function ProviderProfileTab({
               }
             >
               <SelectTrigger id="timezone" data-testid="select-timezone">
-                <SelectValue placeholder="Select your timezone…" />
+                <SelectValue placeholder={t("provider_dashboard.select_timezone", "Select your timezone…")} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="_none">— Not set (platform will infer from country) —</SelectItem>
+                <SelectItem value="_none">{t("provider_dashboard.timezone_not_set", "— Not set (platform will infer from country) —")}</SelectItem>
                 <SelectItem value="Europe/Budapest">Europe/Budapest — Hungary (CEST/CET)</SelectItem>
                 <SelectItem value="Asia/Tehran">Asia/Tehran — Iran (IRST/IRDT)</SelectItem>
                 <SelectItem value="UTC">UTC — Coordinated Universal Time</SelectItem>

@@ -43,6 +43,7 @@ function RequestServiceEditDialog({
   subServices: any[];
   onClose: () => void;
 }) {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const { code } = useCurrency();
   const editCurrency: SupportedCurrency = (code as SupportedCurrency) || "USD";
@@ -85,13 +86,13 @@ function RequestServiceEditDialog({
       return res.json();
     },
     onSuccess: () => {
-      toast({ title: "Changes submitted", description: "Your edits are pending admin approval." });
+      toast({ title: t("provider_dashboard.changes_submitted", "Changes submitted"), description: t("provider_dashboard.changes_pending_approval", "Your edits are pending admin approval.") });
       void invalidateProviderProfile();
       queryClient.invalidateQueries({ queryKey: ["/api/provider/services"] });
       onClose();
     },
     onError: (err: any) => {
-      toast({ title: "Submission failed", description: err?.message || "Try again.", variant: "destructive" });
+      toast({ title: t("provider_dashboard.submission_failed", "Submission failed"), description: err?.message || t("provider_dashboard.try_again", "Try again."), variant: "destructive" });
     },
   });
 
@@ -101,20 +102,20 @@ function RequestServiceEditDialog({
     <Dialog open={!!service} onOpenChange={(o) => { if (!o) onClose(); }}>
       <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto" data-testid="dialog-request-service-edit">
         <DialogHeader>
-          <DialogTitle>Request edit · {service.name}</DialogTitle>
+          <DialogTitle>{t("provider_dashboard.request_edit", "Request edit")} · {service.name}</DialogTitle>
           <DialogDescription>
-            Edits to admin-managed services need approval. The service will be unavailable for booking until approved.
+            {t("provider_dashboard.request_edit_desc", "Edits to admin-managed services need approval. The service will be unavailable for booking until approved.")}
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-3">
           <div>
-            <Label>Category</Label>
+            <Label>{t("provider_dashboard.category", "Category")}</Label>
             <Select
               value={draft.subServiceId || ""}
               onValueChange={(v) => setDraft((prev: any) => ({ ...prev, subServiceId: v }))}
             >
               <SelectTrigger data-testid="select-edit-sub-service">
-                <SelectValue placeholder="Select category" />
+                <SelectValue placeholder={t("provider_dashboard.select_category", "Select category")} />
               </SelectTrigger>
               <SelectContent>
                 {(subServices || []).map((s: any) => (
@@ -124,55 +125,55 @@ function RequestServiceEditDialog({
             </Select>
           </div>
           <div>
-            <Label>Service name</Label>
+            <Label>{t("provider_dashboard.service_name", "Service name")}</Label>
             <Input
               value={service.name || ""}
               disabled
               className="bg-muted text-muted-foreground cursor-not-allowed"
               data-testid="input-edit-name"
             />
-            <p className="text-xs text-muted-foreground mt-1">Service name cannot be changed via edit request.</p>
+            <p className="text-xs text-muted-foreground mt-1">{t("provider_dashboard.service_name_locked", "Service name cannot be changed via edit request.")}</p>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label>Duration (min)</Label>
+              <Label>{t("provider_dashboard.duration", "Duration (min)")}</Label>
               <Input type="number" min={1} value={draft.duration ?? 0}
                 onChange={(e) => setDraft((prev: any) => ({ ...prev, duration: e.target.value }))}
                 data-testid="input-edit-duration" />
             </div>
             <div>
-              <Label>Base price ({editSymbol})</Label>
+              <Label>{t("provider_dashboard.base_price", "Base price")} ({editSymbol})</Label>
               <Input type="number" step={editStep} min={0} value={draft.price ?? "0"}
                 onChange={(e) => setDraft((prev: any) => ({ ...prev, price: e.target.value }))}
                 data-testid="input-edit-price" />
             </div>
           </div>
           <div className="grid grid-cols-3 gap-3">
-            <div><Label>Home fee ({editSymbol})</Label>
+            <div><Label>{t("provider_dashboard.fee_home", "Home")} ({editSymbol})</Label>
               <Input type="number" step={editStep} min={0} value={draft.homeVisitFee ?? "0"}
                 onChange={(e) => setDraft((prev: any) => ({ ...prev, homeVisitFee: e.target.value }))}
                 data-testid="input-edit-home-fee" /></div>
-            <div><Label>Clinic fee ({editSymbol})</Label>
+            <div><Label>{t("provider_dashboard.fee_clinic", "Clinic")} ({editSymbol})</Label>
               <Input type="number" step={editStep} min={0} value={draft.clinicFee ?? "0"}
                 onChange={(e) => setDraft((prev: any) => ({ ...prev, clinicFee: e.target.value }))}
                 data-testid="input-edit-clinic-fee" /></div>
-            <div><Label>Online fee ({editSymbol})</Label>
+            <div><Label>{t("provider_dashboard.fee_online", "Online")} ({editSymbol})</Label>
               <Input type="number" step={editStep} min={0} value={draft.telemedicineFee ?? "0"}
                 onChange={(e) => setDraft((prev: any) => ({ ...prev, telemedicineFee: e.target.value }))}
                 data-testid="input-edit-telemedicine-fee" /></div>
           </div>
           <div>
-            <Label>Reason for change (optional)</Label>
+            <Label>{t("provider_dashboard.reason_change", "Reason for change (optional)")}</Label>
             <Textarea
               value={reason}
               onChange={(e) => setReason(e.target.value)}
-              placeholder="Why are you requesting this change?"
+              placeholder={t("provider_dashboard.reason_change_placeholder", "Why are you requesting this change?")}
               data-testid="textarea-edit-reason"
             />
           </div>
         </div>
         <DialogFooter className="gap-2">
-          <Button variant="outline" onClick={onClose}>Cancel</Button>
+          <Button variant="outline" onClick={onClose}>{t("provider_dashboard.cancel", "Cancel")}</Button>
           <Button
             disabled={submit.isPending}
             onClick={() => submit.mutate()}
@@ -469,22 +470,22 @@ export function ProviderServicesTab({ providerData, providerWithServices, setAct
                           </Button>
                         ) : (s as any).subServiceId ? (
                           <div className="flex items-center justify-between w-full gap-2 flex-wrap">
-                            <span className="text-[11px] text-muted-foreground italic" data-testid={`text-assigned-service-${s.id}`}>Managed by Admin</span>
+                            <span className="text-[11px] text-muted-foreground italic" data-testid={`text-assigned-service-${s.id}`}>{t("provider_dashboard.managed_by_admin", "Managed by Admin")}</span>
                             <div className="flex items-center gap-2">
                               {sa.pendingChangeStatus === "pending" ? (
-                                <Badge variant="outline" className="text-[10px] border-amber-500/60 text-amber-700 dark:text-amber-400">Pending approval</Badge>
+                                <Badge variant="outline" className="text-[10px] border-amber-500/60 text-amber-700 dark:text-amber-400">{t("provider_dashboard.pending_approval", "Pending approval")}</Badge>
                               ) : null}
                               <Button size="sm" variant="ghost" className="h-8"
                                 disabled={sa.pendingChangeStatus === "pending"}
                                 onClick={() => setEditRequestService(s)}
                                 data-testid={`button-request-edit-service-${s.id}`}>
-                                <Pencil className="h-3.5 w-3.5 mr-1" /> Request edit
+                                <Pencil className="h-3.5 w-3.5 mr-1" /> {t("provider_dashboard.request_edit", "Request edit")}
                               </Button>
                             </div>
                           </div>
                         ) : sa.pendingChangeStatus === "pending" ? (
                           <div className="flex items-center justify-between w-full">
-                            <span className="text-[11px] text-amber-600 dark:text-amber-400 italic">Awaiting admin approval</span>
+                            <span className="text-[11px] text-amber-600 dark:text-amber-400 italic">{t("provider_dashboard.awaiting_admin_approval", "Awaiting admin approval")}</span>
                           </div>
                         ) : (
                           <>
@@ -496,7 +497,7 @@ export function ProviderServicesTab({ providerData, providerWithServices, setAct
                             <Button size="sm" variant="ghost" className="h-8"
                               onClick={() => { setPricingService(s); setPricingDraft({ price: s.price, homeVisitFee: s.homeVisitFee, clinicFee: s.clinicFee, telemedicineFee: s.telemedicineFee, duration: s.duration, maxPatientsPerDay: s.maxPatientsPerDay }); }}
                               data-testid={`button-pricing-service-${s.id}`}>
-                              <DollarSign className="h-3.5 w-3.5 mr-1" /> Pricing
+                              <DollarSign className="h-3.5 w-3.5 mr-1" /> {t("provider_dashboard.pricing", "Pricing")}
                             </Button>
                             <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive"
                               onClick={() => {

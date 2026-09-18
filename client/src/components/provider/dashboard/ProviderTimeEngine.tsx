@@ -100,6 +100,7 @@ function DaySlotRow({
   onChange: (updated: DaySlot) => void;
   onRemove: () => void;
 }) {
+  const { t } = useTranslation();
   const set = (k: keyof DaySlot, v: any) => onChange({ ...slot, [k]: v });
 
   return (
@@ -111,7 +112,7 @@ function DaySlotRow({
     >
       {/* Start time */}
       <div>
-        <Label className="text-xs mb-1 block">Start</Label>
+        <Label className="text-xs mb-1 block">{t("provider_dashboard.time_start", "Start")}</Label>
         <Input
           type="time"
           value={slot.startTime}
@@ -122,7 +123,7 @@ function DaySlotRow({
       </div>
       {/* End time */}
       <div>
-        <Label className="text-xs mb-1 block">End</Label>
+        <Label className="text-xs mb-1 block">{t("provider_dashboard.time_end", "End")}</Label>
         <Input
           type="time"
           value={slot.endTime}
@@ -133,7 +134,7 @@ function DaySlotRow({
       </div>
       {/* Duration */}
       <div>
-        <Label className="text-xs mb-1 block">Slot (min)</Label>
+        <Label className="text-xs mb-1 block">{t("provider_dashboard.time_slot_min", "Slot (min)")}</Label>
         <Input
           type="number"
           min={5}
@@ -146,7 +147,7 @@ function DaySlotRow({
       </div>
       {/* Buffer before */}
       <div>
-        <Label className="text-xs mb-1 block">Buf ↑</Label>
+        <Label className="text-xs mb-1 block">{t("provider_dashboard.time_buffer_before", "Buf ↑")}</Label>
         <Input
           type="number"
           min={0}
@@ -159,7 +160,7 @@ function DaySlotRow({
       </div>
       {/* Buffer after */}
       <div>
-        <Label className="text-xs mb-1 block">Buf ↓</Label>
+        <Label className="text-xs mb-1 block">{t("provider_dashboard.time_buffer_after", "Buf ↓")}</Label>
         <Input
           type="number"
           min={0}
@@ -172,15 +173,15 @@ function DaySlotRow({
       </div>
       {/* Pricing tier */}
       <div>
-        <Label className="text-xs mb-1 block">Pricing tier</Label>
+        <Label className="text-xs mb-1 block">{t("provider_dashboard.time_pricing_tier", "Pricing tier")}</Label>
         <Select value={slot.pricingTier} onValueChange={(v) => set("pricingTier", v as PricingTier)}>
           <SelectTrigger className="h-8 text-xs" data-testid={`select-pricing-${slot.dayOfWeek}-${index}`}>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="standard">Standard</SelectItem>
-            <SelectItem value="peak">Peak (+20%)</SelectItem>
-            <SelectItem value="off_peak">Off-Peak (−15%)</SelectItem>
+            <SelectItem value="standard">{t("provider_dashboard.time_standard", "Standard")}</SelectItem>
+            <SelectItem value="peak">{t("provider_dashboard.time_peak", "Peak (+20%)")}</SelectItem>
+            <SelectItem value="off_peak">{t("provider_dashboard.time_off_peak", "Off-Peak (−15%)")}</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -200,6 +201,7 @@ function DaySlotRow({
 
 // ── Part 1: Weekly Base Template tab ─────────────────────────────────────────
 function WeeklyTemplateTab() {
+  const { t } = useTranslation();
   const { toast } = useToast();
 
   const { data: rawTemplates = [], isLoading } = useQuery<any[]>({
@@ -242,10 +244,10 @@ function WeeklyTemplateTab() {
       }
     },
     onSuccess: () => {
-      toast({ title: "Schedule saved", description: "Rolling cron will generate slots automatically." });
+      toast({ title: t("provider_dashboard.time_schedule_saved", "Schedule saved"), description: t("provider_dashboard.time_schedule_saved_desc", "Rolling cron will generate slots automatically.") });
       queryClient.invalidateQueries({ queryKey: ["/api/provider/schedule-templates"] });
     },
-    onError: (e: any) => toast({ title: "Save failed", description: e?.message, variant: "destructive" }),
+    onError: (e: any) => toast({ title: t("provider_dashboard.save_failed", "Save failed"), description: e?.message, variant: "destructive" }),
   });
 
   const updateSlot = (idx: number, updated: DaySlot) => {
@@ -265,7 +267,7 @@ function WeeklyTemplateTab() {
   const applyMondayToWeekdays = () => {
     const mondaySlots = slotsForDay(slots, 1); // dow 1 = Monday
     if (mondaySlots.length === 0) {
-      toast({ title: "No Monday template", description: "Set a Monday schedule first.", variant: "destructive" });
+      toast({ title: t("provider_dashboard.time_no_monday", "No Monday template"), description: t("provider_dashboard.time_set_monday", "Set a Monday schedule first."), variant: "destructive" });
       return;
     }
     const withoutWeekdays = slots.filter((s) => s.dayOfWeek < 1 || s.dayOfWeek > 5);
@@ -274,14 +276,14 @@ function WeeklyTemplateTab() {
       mondaySlots.forEach((ms) => copies.push({ ...ms, id: undefined, dayOfWeek: dow }));
     }
     syncLocal([...withoutWeekdays, ...copies]);
-    toast({ title: "Applied", description: "Monday's template was copied to Tue–Fri." });
+    toast({ title: t("provider_dashboard.applied", "Applied"), description: t("provider_dashboard.time_monday_copied", "Monday's template was copied to Tue–Fri.") });
   };
 
   const saveDay = (dow: number) => {
     const daySlots = slotsForDay(slots, dow);
     const overlapIdx = detectOverlaps(daySlots);
     if (overlapIdx.size > 0) {
-      toast({ title: "Overlap detected", description: "Fix overlapping time windows before saving.", variant: "destructive" });
+      toast({ title: t("provider_dashboard.time_overlap_detected", "Overlap detected"), description: t("provider_dashboard.time_fix_overlap", "Fix overlapping time windows before saving."), variant: "destructive" });
       return;
     }
     saveMut.mutate({ dow, slots: daySlots });
@@ -308,7 +310,7 @@ function WeeklyTemplateTab() {
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h3 className="font-semibold">Weekly Base Template</h3>
+          <h3 className="font-semibold">{t("provider_dashboard.time_weekly_base", "Weekly Base Template")}</h3>
           <p className="text-sm text-muted-foreground">
             Configure recurring daily windows. The rolling cron generates bookable slots 30 days ahead automatically.
           </p>
@@ -344,14 +346,14 @@ function WeeklyTemplateTab() {
             <CardHeader className="pb-2 pt-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <span className="font-medium text-sm">{DAY_NAMES[dow]}</span>
+                    <span className="font-medium text-sm">{t(`provider_dashboard.day_${dow}`, DAY_NAMES[dow])}</span>
                   {daySlots.length > 0 ? (
-                    <Badge variant="secondary" className="text-xs">{daySlots.length} window{daySlots.length !== 1 ? "s" : ""}</Badge>
+                    <Badge variant="secondary" className="text-xs">{t("provider_dashboard.time_windows", "{{count}} window", { count: daySlots.length })}</Badge>
                   ) : (
-                    <Badge variant="outline" className="text-xs text-muted-foreground">Off</Badge>
+                    <Badge variant="outline" className="text-xs text-muted-foreground">{t("provider_dashboard.time_off", "Off")}</Badge>
                   )}
                   {hasOverlap && (
-                    <Badge variant="destructive" className="text-xs">Overlap!</Badge>
+                    <Badge variant="destructive" className="text-xs">{t("provider_dashboard.time_overlap", "Overlap!")}</Badge>
                   )}
                 </div>
                 <div className="flex gap-2">
@@ -362,7 +364,7 @@ function WeeklyTemplateTab() {
                     className="h-7 text-xs gap-1"
                     data-testid={`button-add-slot-${dow}`}
                   >
-                    <Plus className="h-3 w-3" /> Add window
+                    <Plus className="h-3 w-3" /> {t("provider_dashboard.time_add_window", "Add window")}
                   </Button>
                   <Button
                     size="sm"
@@ -371,20 +373,20 @@ function WeeklyTemplateTab() {
                     className="h-7 text-xs"
                     data-testid={`button-save-day-${dow}`}
                   >
-                    {saveMut.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : "Save"}
+                    {saveMut.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : t("provider_dashboard.save", "Save")}
                   </Button>
                 </div>
               </div>
             </CardHeader>
             <CardContent className="pb-4">
               {daySlots.length === 0 ? (
-                <p className="text-sm text-muted-foreground italic">No windows — not available this day</p>
+                <p className="text-sm text-muted-foreground italic">{t("provider_dashboard.time_no_windows", "No windows — not available this day")}</p>
               ) : (
                 <div className="space-y-2">
                   <div className="overflow-x-auto">
                   {/* Column headers */}
                   <div className="grid grid-cols-[1fr_1fr_80px_80px_80px_140px_36px] gap-2 px-3 text-xs text-muted-foreground font-medium min-w-[560px]">
-                    <span>Start</span><span>End</span><span>Slot min</span><span>Buf ↑</span><span>Buf ↓</span><span>Tier</span><span />
+                    <span>{t("provider_dashboard.time_start", "Start")}</span><span>{t("provider_dashboard.time_end", "End")}</span><span>{t("provider_dashboard.time_slot_min_short", "Slot min")}</span><span>{t("provider_dashboard.time_buffer_before", "Buf ↑")}</span><span>{t("provider_dashboard.time_buffer_after", "Buf ↓")}</span><span>{t("provider_dashboard.time_tier", "Tier")}</span><span />
                   </div>
                   {daySlots.map((slot, relIdx) => {
                     const absIdx = slots.indexOf(slot);
@@ -412,6 +414,7 @@ function WeeklyTemplateTab() {
 
 // ── Part 2: Leaves & Exceptions tab ──────────────────────────────────────────
 function LeavesTab() {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const [form, setForm] = useState({ startDate: "", endDate: "", reason: "" });
 
@@ -421,8 +424,8 @@ function LeavesTab() {
 
   const addMut = useMutation({
     mutationFn: async () => {
-      if (!form.startDate || !form.endDate) throw new Error("Start and end date required");
-      if (form.endDate < form.startDate) throw new Error("End date must be after start date");
+      if (!form.startDate || !form.endDate) throw new Error(t("provider_dashboard.time_dates_required", "Start and end date required"));
+      if (form.endDate < form.startDate) throw new Error(t("provider_dashboard.time_end_after_start", "End date must be after start date"));
       const res = await apiRequest("POST", "/api/provider/time-off", {
         startDate: form.startDate,
         endDate: form.endDate,
@@ -431,11 +434,11 @@ function LeavesTab() {
       return res.json();
     },
     onSuccess: () => {
-      toast({ title: "Leave logged", description: "Slots will not be generated for this range." });
+      toast({ title: t("provider_dashboard.time_leave_logged", "Leave logged"), description: t("provider_dashboard.time_leave_logged_desc", "Slots will not be generated for this range.") });
       setForm({ startDate: "", endDate: "", reason: "" });
       queryClient.invalidateQueries({ queryKey: ["/api/provider/time-off"] });
     },
-    onError: (e: any) => toast({ title: "Failed", description: e?.message, variant: "destructive" }),
+    onError: (e: any) => toast({ title: t("common.error", "Error"), description: e?.message, variant: "destructive" }),
   });
 
   const deleteMut = useMutation({
@@ -443,25 +446,25 @@ function LeavesTab() {
       await apiRequest("DELETE", `/api/provider/time-off/${id}`);
     },
     onSuccess: () => {
-      toast({ title: "Leave removed" });
+      toast({ title: t("provider_dashboard.time_leave_removed", "Leave removed") });
       queryClient.invalidateQueries({ queryKey: ["/api/provider/time-off"] });
     },
-    onError: (e: any) => toast({ title: "Failed", description: e?.message, variant: "destructive" }),
+    onError: (e: any) => toast({ title: t("common.error", "Error"), description: e?.message, variant: "destructive" }),
   });
 
   return (
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Log a vacation / blackout</CardTitle>
+          <CardTitle className="text-base">{t("provider_dashboard.time_log_leave", "Log a vacation / blackout")}</CardTitle>
           <CardDescription>
-            Dates in this range will be skipped by the rolling schedule cron — no slots will be generated.
+            {t("provider_dashboard.time_leave_desc", "Dates in this range will be skipped by the rolling schedule cron — no slots will be generated.")}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
             <div>
-              <Label className="mb-1 block text-sm">From</Label>
+              <Label className="mb-1 block text-sm">{t("provider_dashboard.from", "From")}</Label>
               <Input
                 type="date"
                 value={form.startDate}
@@ -470,7 +473,7 @@ function LeavesTab() {
               />
             </div>
             <div>
-              <Label className="mb-1 block text-sm">To</Label>
+              <Label className="mb-1 block text-sm">{t("provider_dashboard.to", "To")}</Label>
               <Input
                 type="date"
                 value={form.endDate}
@@ -479,9 +482,9 @@ function LeavesTab() {
               />
             </div>
             <div>
-              <Label className="mb-1 block text-sm">Reason (optional)</Label>
+              <Label className="mb-1 block text-sm">{t("provider_dashboard.reason_optional", "Reason (optional)")}</Label>
               <Input
-                placeholder="Holiday, personal leave…"
+                placeholder={t("provider_dashboard.time_leave_placeholder", "Holiday, personal leave…")}
                 value={form.reason}
                 onChange={(e) => setForm((f) => ({ ...f, reason: e.target.value }))}
                 data-testid="input-leave-reason"
@@ -502,13 +505,13 @@ function LeavesTab() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Logged leaves</CardTitle>
+          <CardTitle className="text-base">{t("provider_dashboard.time_logged_leaves", "Logged leaves")}</CardTitle>
         </CardHeader>
         <CardContent>
           {isLoading ? (
             <div className="flex justify-center py-8"><Loader2 className="h-5 w-5 animate-spin" /></div>
           ) : (leaves as any[]).length === 0 ? (
-            <p className="text-sm text-muted-foreground italic">No leave periods logged.</p>
+            <p className="text-sm text-muted-foreground italic">{t("provider_dashboard.time_no_leaves", "No leave periods logged.")}</p>
           ) : (
             <div className="space-y-2">
               {(leaves as any[]).map((leave: any) => (
@@ -550,6 +553,7 @@ function LeavesTab() {
 
 // ── Part 3: Surge Pricing Matrix tab ─────────────────────────────────────────
 function SurgePricingTab() {
+  const { t } = useTranslation();
   const { toast } = useToast();
 
   const { data: prefs, isLoading } = useQuery<any>({
@@ -581,10 +585,10 @@ function SurgePricingTab() {
       return res.json();
     },
     onSuccess: () => {
-      toast({ title: "Base fees saved", description: "Tier prices update automatically." });
+      toast({ title: t("provider_dashboard.time_base_fees_saved", "Base fees saved"), description: t("provider_dashboard.time_tier_prices_update", "Tier prices update automatically.") });
       queryClient.invalidateQueries({ queryKey: ["/api/provider/profile"] });
     },
-    onError: (e: any) => toast({ title: "Save failed", description: e?.message, variant: "destructive" }),
+    onError: (e: any) => toast({ title: t("provider_dashboard.save_failed", "Save failed"), description: e?.message, variant: "destructive" }),
   });
 
   const PriceRow = ({
@@ -624,7 +628,7 @@ function SurgePricingTab() {
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="font-semibold">Surge Pricing Matrix</h3>
+        <h3 className="font-semibold">{t("provider_dashboard.time_surge_matrix", "Surge Pricing Matrix")}</h3>
         <p className="text-sm text-muted-foreground">
           Set your base fees. Peak and Off-Peak rates are computed automatically. Assign tiers to time windows in the Weekly Template tab.
         </p>
@@ -636,28 +640,28 @@ function SurgePricingTab() {
             <table className="w-full">
               <thead>
                 <tr className="border-b text-xs text-muted-foreground uppercase tracking-wide">
-                  <th className="text-left py-2 pr-4">Service type</th>
-                  <th className="text-left py-2 pr-4">Base (USD)</th>
-                  <th className="text-left py-2 pr-4 text-blue-600">Standard</th>
-                  <th className="text-left py-2 pr-4 text-amber-600">Peak (+20%)</th>
-                  <th className="text-left py-2 text-emerald-600">Off-Peak (−15%)</th>
+                  <th className="text-left py-2 pr-4">{t("provider_dashboard.time_service_type", "Service type")}</th>
+                  <th className="text-left py-2 pr-4">{t("provider_dashboard.time_base_usd", "Base (USD)")}</th>
+                  <th className="text-left py-2 pr-4 text-blue-600">{t("provider_dashboard.time_standard", "Standard")}</th>
+                  <th className="text-left py-2 pr-4 text-amber-600">{t("provider_dashboard.time_peak", "Peak (+20%)")}</th>
+                  <th className="text-left py-2 text-emerald-600">{t("provider_dashboard.time_off_peak", "Off-Peak (−15%)")}</th>
                 </tr>
               </thead>
               <tbody>
                 <PriceRow
-                  label="Clinic / Consultation"
+                label={t("provider_dashboard.time_clinic_consultation", "Clinic / Consultation")}
                   base={consultFee}
                   onChange={setBaseConsultation}
                   testPrefix="consult"
                 />
                 <PriceRow
-                  label="Home Visit"
+                label={t("provider_dashboard.time_home_visit", "Home Visit")}
                   base={homeFee}
                   onChange={setBaseHomeVisit}
                   testPrefix="home"
                 />
                 <PriceRow
-                  label="Telemedicine"
+                label={t("provider_dashboard.time_telemedicine", "Telemedicine")}
                   base={teleFee}
                   onChange={setBaseTelemedicine}
                   testPrefix="tele"
@@ -674,7 +678,7 @@ function SurgePricingTab() {
               className="gap-1.5"
             >
               {saveMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
-              Save base fees
+              {t("provider_dashboard.time_save_base_fees", "Save base fees")}
             </Button>
           </div>
         </CardContent>
@@ -683,7 +687,7 @@ function SurgePricingTab() {
       <Alert>
         <Clock className="h-4 w-4" />
         <AlertDescription className="text-sm">
-          <strong>How tiers work:</strong> Assign a pricing tier to each time window in the Weekly Template tab. When a client books a slot in a Peak window, the system automatically applies the +20% surcharge to the slot price. Off-Peak windows receive a −15% discount to fill slower hours.
+          <strong>{t("provider_dashboard.time_how_tiers_work", "How tiers work:")}</strong> {t("provider_dashboard.time_tiers_desc", "Assign a pricing tier to each time window in the Weekly Template tab. When a client books a slot in a Peak window, the system automatically applies the +20% surcharge to the slot price. Off-Peak windows receive a −15% discount to fill slower hours.")}
         </AlertDescription>
       </Alert>
     </div>
@@ -692,20 +696,21 @@ function SurgePricingTab() {
 
 // ── Root export ───────────────────────────────────────────────────────────────
 export function ProviderTimeEngine() {
+  const { t } = useTranslation();
   return (
     <div className="space-y-4">
       <div>
-        <h2 className="text-xl font-bold">Time & Revenue Command Center</h2>
+        <h2 className="text-xl font-bold">{t("provider_dashboard.time_title", "Time & Revenue Command Center")}</h2>
         <p className="text-sm text-muted-foreground">
-          Manage recurring availability windows, vacation blocks, and dynamic pricing tiers.
+          {t("provider_dashboard.time_desc", "Manage recurring availability windows, vacation blocks, and dynamic pricing tiers.")}
         </p>
       </div>
 
       <Tabs defaultValue="template">
         <TabsList className="mb-4">
-          <TabsTrigger value="template" data-testid="tab-time-engine-template">Weekly Template</TabsTrigger>
-          <TabsTrigger value="leaves" data-testid="tab-time-engine-leaves">Leaves & Exceptions</TabsTrigger>
-          <TabsTrigger value="surge" data-testid="tab-time-engine-surge">Surge Pricing</TabsTrigger>
+          <TabsTrigger value="template" data-testid="tab-time-engine-template">{t("provider_dashboard.time_tab_template", "Weekly Template")}</TabsTrigger>
+          <TabsTrigger value="leaves" data-testid="tab-time-engine-leaves">{t("provider_dashboard.time_tab_leaves", "Leaves & Exceptions")}</TabsTrigger>
+          <TabsTrigger value="surge" data-testid="tab-time-engine-surge">{t("provider_dashboard.time_tab_surge", "Surge Pricing")}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="template">

@@ -293,10 +293,10 @@ export function TreatmentPlansPanel({
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="active">Active</SelectItem>
-                              <SelectItem value="completed">Completed</SelectItem>
-                              <SelectItem value="on_hold">On Hold</SelectItem>
-                              <SelectItem value="cancelled">Cancelled</SelectItem>
+                              <SelectItem value="active">{t("provider_dashboard.status_active", "Active")}</SelectItem>
+                              <SelectItem value="completed">{t("provider_dashboard.status_completed", "Completed")}</SelectItem>
+                              <SelectItem value="on_hold">{t("provider_dashboard.status_on_hold", "On Hold")}</SelectItem>
+                              <SelectItem value="cancelled">{t("provider_dashboard.status_cancelled", "Cancelled")}</SelectItem>
                             </SelectContent>
                           </Select>
                         </>

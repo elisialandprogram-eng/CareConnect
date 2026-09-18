@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import { useCurrency } from "@/lib/currency";
 import { QK } from "@/lib/query-keys";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -108,6 +109,7 @@ function RatingStars({ value, max = 5 }: { value: number; max?: number }) {
 }
 
 export function ProviderAnalyticsTabContent() {
+  const { t } = useTranslation();
   const { format: fmt } = useCurrency();
 
   const { data, isLoading, isError } = useQuery<AnalyticsData>({
@@ -134,7 +136,7 @@ export function ProviderAnalyticsTabContent() {
     return (
       <div className="flex items-center justify-center py-16 text-muted-foreground">
         <TrendingUp className="h-8 w-8 mr-3 opacity-30" />
-        <p className="text-sm">Analytics unavailable. Complete some appointments to see data here.</p>
+        <p className="text-sm">{t("provider_dashboard.analytics_unavailable", "Analytics unavailable. Complete some appointments to see data here.")}</p>
       </div>
     );
   }
@@ -152,28 +154,28 @@ export function ProviderAnalyticsTabContent() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <KpiCard
           icon={<TrendingUp className="h-3.5 w-3.5" />}
-          label="12-month Revenue"
+          label={t("provider_dashboard.analytics_revenue_12mo", "12-month Revenue")}
           value={fmt(totalRevenue)}
-          sub="completed sessions only"
+          sub={t("provider_dashboard.analytics_completed_only", "completed sessions only")}
         />
         <KpiCard
           icon={<CalendarCheck2 className="h-3.5 w-3.5" />}
-          label="Completed Sessions"
+          label={t("provider_dashboard.analytics_completed_sessions", "Completed Sessions")}
           value={String(totalBookings)}
-          sub="last 12 months"
+          sub={t("provider_dashboard.analytics_last_12_months", "last 12 months")}
         />
         <KpiCard
           icon={<Star className="h-3.5 w-3.5 text-amber-500" />}
-          label="Avg Rating"
+          label={t("provider_dashboard.analytics_avg_rating", "Avg Rating")}
           value={ratingDistribution.avg > 0 ? ratingDistribution.avg.toFixed(1) : "—"}
-          sub={`${ratingDistribution.total} review${ratingDistribution.total !== 1 ? "s" : ""}`}
+          sub={t("provider_dashboard.analytics_reviews", "{{count}} review", { count: ratingDistribution.total })}
           accent="text-amber-600 dark:text-amber-400"
         />
         <KpiCard
           icon={<LayoutGrid className="h-3.5 w-3.5 text-violet-500" />}
-          label="Slot Utilization"
+          label={t("provider_dashboard.analytics_slot_utilization", "Slot Utilization")}
           value={`${scheduleHealth.utilizationPct}%`}
-          sub="last 30 days"
+          sub={t("provider_dashboard.analytics_last_30_days", "last 30 days")}
           accent="text-violet-600 dark:text-violet-400"
         />
       </div>
@@ -183,9 +185,9 @@ export function ProviderAnalyticsTabContent() {
         <CardHeader className="pb-2">
           <CardTitle className="text-base flex items-center gap-2">
             <TrendingUp className="h-4 w-4 text-primary" />
-            Monthly Performance · last 12 months
+            {t("provider_dashboard.analytics_monthly_performance", "Monthly Performance · last 12 months")}
           </CardTitle>
-          <CardDescription>Revenue (area) and completed bookings (bars) per month</CardDescription>
+          <CardDescription>{t("provider_dashboard.analytics_monthly_desc", "Revenue (area) and completed bookings (bars) per month")}</CardDescription>
         </CardHeader>
         <CardContent style={{ height: 280 }}>
           <ResponsiveContainer width="100%" height="100%">
@@ -202,7 +204,7 @@ export function ProviderAnalyticsTabContent() {
               <YAxis yAxisId="bkg" orientation="right" tick={{ fontSize: 11 }} allowDecimals={false} />
               <Tooltip
                 formatter={(v: any, name: string) =>
-                  name === "revenue" ? [fmt(Number(v)), "Revenue"] : [v, name === "bookings" ? "Completed" : name]
+                  name === "revenue" ? [fmt(Number(v)), t("provider_dashboard.analytics_revenue", "Revenue")] : [v, name === "bookings" ? t("provider_dashboard.analytics_completed", "Completed") : name]
                 }
               />
               <Legend wrapperStyle={{ fontSize: 12 }} />
@@ -227,10 +229,10 @@ export function ProviderAnalyticsTabContent() {
         <CardHeader className="pb-2">
           <CardTitle className="text-base flex items-center gap-2">
             <XCircle className="h-4 w-4 text-rose-500" />
-            Cancellations &amp; No-shows · last 12 months
+            {t("provider_dashboard.analytics_cancellations_no_shows", "Cancellations & No-shows · last 12 months")}
           </CardTitle>
           <CardDescription>
-            {totalCancellations} total lost bookings in the period
+            {t("provider_dashboard.analytics_lost_bookings", "{{count}} total lost bookings in the period", { count: totalCancellations })}
           </CardDescription>
         </CardHeader>
         <CardContent style={{ height: 220 }}>
@@ -255,14 +257,14 @@ export function ProviderAnalyticsTabContent() {
           <CardHeader className="pb-2">
             <CardTitle className="text-base flex items-center gap-2">
               <CalendarCheck2 className="h-4 w-4 text-emerald-500" />
-              Service Performance
+              {t("provider_dashboard.analytics_service_performance", "Service Performance")}
             </CardTitle>
-            <CardDescription>Revenue and bookings per service · last 12 months</CardDescription>
+            <CardDescription>{t("provider_dashboard.analytics_service_desc", "Revenue and bookings per service · last 12 months")}</CardDescription>
           </CardHeader>
           <CardContent className="p-0">
             {serviceBreakdown.length === 0 ? (
               <div className="py-10 text-center text-sm text-muted-foreground">
-                No completed sessions yet.
+                {t("provider_dashboard.analytics_no_completed", "No completed sessions yet.")}
               </div>
             ) : (
               <div className="divide-y divide-border">
@@ -271,7 +273,7 @@ export function ProviderAnalyticsTabContent() {
                     <div className="flex-1 min-w-0 mr-3">
                       <p className="text-sm font-medium truncate">{svc.name}</p>
                       <div className="flex items-center gap-2 mt-0.5">
-                        <Badge variant="secondary" className="text-xs">{svc.bookings} session{svc.bookings !== 1 ? "s" : ""}</Badge>
+                        <Badge variant="secondary" className="text-xs">{t("provider_dashboard.analytics_sessions", "{{count}} session", { count: svc.bookings })}</Badge>
                         {svc.avgRating !== null && (
                           <span className="flex items-center gap-1 text-xs text-muted-foreground">
                             <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
@@ -295,16 +297,16 @@ export function ProviderAnalyticsTabContent() {
           <CardHeader className="pb-2">
             <CardTitle className="text-base flex items-center gap-2">
               <Star className="h-4 w-4 text-amber-500" />
-              Rating Distribution
+              {t("provider_dashboard.analytics_rating_distribution", "Rating Distribution")}
             </CardTitle>
             <CardDescription>
-              {ratingDistribution.total} reviews · avg {ratingDistribution.avg > 0 ? ratingDistribution.avg.toFixed(1) : "—"} / 5
+              {t("provider_dashboard.analytics_rating_summary", "{{count}} reviews · avg {{avg}} / 5", { count: ratingDistribution.total, avg: ratingDistribution.avg > 0 ? ratingDistribution.avg.toFixed(1) : "—" })}
             </CardDescription>
           </CardHeader>
           <CardContent>
             {ratingDistribution.total === 0 ? (
               <div className="py-8 text-center text-sm text-muted-foreground">
-                No reviews yet.
+                {t("provider_dashboard.analytics_no_reviews", "No reviews yet.")}
               </div>
             ) : (
               <div className="space-y-3">
@@ -314,7 +316,7 @@ export function ProviderAnalyticsTabContent() {
                       {ratingDistribution.avg.toFixed(1)}
                     </p>
                     <RatingStars value={ratingDistribution.avg} />
-                    <p className="text-xs text-muted-foreground mt-1">{ratingDistribution.total} total reviews</p>
+                    <p className="text-xs text-muted-foreground mt-1">{t("provider_dashboard.analytics_total_reviews", "{{count}} total reviews", { count: ratingDistribution.total })}</p>
                   </div>
                 </div>
                 {[5, 4, 3, 2, 1].map((star) => {
@@ -340,29 +342,29 @@ export function ProviderAnalyticsTabContent() {
         <CardHeader className="pb-2">
           <CardTitle className="text-base flex items-center gap-2">
             <Gift className="h-4 w-4 text-indigo-500" />
-            Referral Performance
+            {t("provider_dashboard.analytics_referral_performance", "Referral Performance")}
           </CardTitle>
-          <CardDescription>Patients you have referred to the platform</CardDescription>
+          <CardDescription>{t("provider_dashboard.analytics_referral_desc", "Patients you have referred to the platform")}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-3 gap-4 text-center">
             <div data-testid="analytics-referral-total">
               <p className="text-2xl font-bold">{referralStats.total}</p>
-              <p className="text-xs text-muted-foreground mt-0.5">Total Referrals</p>
+              <p className="text-xs text-muted-foreground mt-0.5">{t("provider_dashboard.analytics_total_referrals", "Total Referrals")}</p>
             </div>
             <div data-testid="analytics-referral-converted">
               <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{referralStats.converted}</p>
-              <p className="text-xs text-muted-foreground mt-0.5">Converted</p>
+              <p className="text-xs text-muted-foreground mt-0.5">{t("provider_dashboard.analytics_converted", "Converted")}</p>
             </div>
             <div data-testid="analytics-referral-earned">
               <p className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">{fmt(referralStats.totalEarned)}</p>
-              <p className="text-xs text-muted-foreground mt-0.5">Referral Earnings</p>
+              <p className="text-xs text-muted-foreground mt-0.5">{t("provider_dashboard.analytics_referral_earnings", "Referral Earnings")}</p>
             </div>
           </div>
           {referralStats.total > 0 && (
             <div className="mt-4">
               <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
-                <span>Conversion rate</span>
+                <span>{t("provider_dashboard.analytics_conversion_rate", "Conversion rate")}</span>
                 <span>{referralStats.total > 0 ? Math.round((referralStats.converted / referralStats.total) * 100) : 0}%</span>
               </div>
               <Progress
@@ -381,9 +383,9 @@ export function ProviderAnalyticsTabContent() {
           <CardHeader className="pb-2">
             <CardTitle className="text-base flex items-center gap-2">
               <Package className="h-4 w-4 text-teal-500" />
-              Package &amp; Membership Usage
+              {t("provider_dashboard.analytics_package_usage", "Package & Membership Usage")}
             </CardTitle>
-            <CardDescription>Which packages drive bookings · last 12 months</CardDescription>
+            <CardDescription>{t("provider_dashboard.analytics_package_desc", "Which packages drive bookings · last 12 months")}</CardDescription>
           </CardHeader>
           <CardContent className="p-0">
             <div className="divide-y divide-border">
@@ -396,14 +398,14 @@ export function ProviderAnalyticsTabContent() {
                   <div className="flex-1 min-w-0 mr-3">
                     <p className="text-sm font-medium truncate">{pkg.name}</p>
                     <Badge variant="secondary" className="text-xs mt-0.5">
-                      {pkg.bookingsUsed} booking{pkg.bookingsUsed !== 1 ? "s" : ""}
+                      {t("provider_dashboard.analytics_bookings", "{{count}} booking", { count: pkg.bookingsUsed })}
                     </Badge>
                   </div>
                   <div className="text-right">
                     <p className="text-sm font-semibold text-teal-600 dark:text-teal-400 tabular-nums">
-                      {fmt(pkg.totalDiscount)} saved
+                      {t("provider_dashboard.analytics_saved", "{{amount}} saved", { amount: fmt(pkg.totalDiscount) })}
                     </p>
-                    <p className="text-xs text-muted-foreground">for patients</p>
+                    <p className="text-xs text-muted-foreground">{t("provider_dashboard.analytics_for_patients", "for patients")}</p>
                   </div>
                 </div>
               ))}
@@ -417,9 +419,9 @@ export function ProviderAnalyticsTabContent() {
         <CardHeader className="pb-2">
           <CardTitle className="text-base flex items-center gap-2">
             <Users className="h-4 w-4 text-violet-500" />
-            Schedule Health · last 30 days
+            {t("provider_dashboard.analytics_schedule_health", "Schedule Health · last 30 days")}
           </CardTitle>
-          <CardDescription>How much of your available time is booked</CardDescription>
+          <CardDescription>{t("provider_dashboard.analytics_schedule_desc", "How much of your available time is booked")}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex items-end gap-4 mb-3">
@@ -427,16 +429,16 @@ export function ProviderAnalyticsTabContent() {
               {scheduleHealth.utilizationPct}%
             </p>
             <p className="text-sm text-muted-foreground pb-1">
-              {scheduleHealth.bookedSlots} / {scheduleHealth.totalSlots} slots booked
+              {t("provider_dashboard.analytics_slots_booked", "{{booked}} / {{total}} slots booked", { booked: scheduleHealth.bookedSlots, total: scheduleHealth.totalSlots })}
             </p>
           </div>
           <Progress value={scheduleHealth.utilizationPct} className="h-3" data-testid="analytics-utilization-bar" />
           <p className="text-xs text-muted-foreground mt-2">
             {scheduleHealth.utilizationPct < 40
-              ? "Consider opening more availability or promoting your services to improve utilization."
+              ? t("provider_dashboard.analytics_utilization_low", "Consider opening more availability or promoting your services to improve utilization.")
               : scheduleHealth.utilizationPct >= 80
-              ? "Excellent utilization! Consider adding more availability windows."
-              : "Good utilization. Keep your schedule updated to maximize bookings."}
+              ? t("provider_dashboard.analytics_utilization_high", "Excellent utilization! Consider adding more availability windows.")
+              : t("provider_dashboard.analytics_utilization_good", "Good utilization. Keep your schedule updated to maximize bookings.")}
           </p>
         </CardContent>
       </Card>
