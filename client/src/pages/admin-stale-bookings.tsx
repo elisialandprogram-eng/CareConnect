@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/select";
 import { useAuth } from "@/lib/auth";
 import { isAdminRole } from "@/lib/roles";
+import { useTranslation } from "react-i18next";
 import { ClockAlert, Loader2, RefreshCw, ShieldAlert } from "lucide-react";
 
 interface StaleBookingItem {
@@ -56,6 +57,7 @@ function fmtDt(iso: string | null): string {
 }
 
 export default function AdminStaleBookings() {
+  const { t } = useTranslation();
   const { user, isLoading: authLoading } = useAuth();
   const [days, setDays] = useState<string>("7");
 
@@ -93,10 +95,10 @@ export default function AdminStaleBookings() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <ShieldAlert className="h-5 w-5 text-destructive" />
-                Admin access required
+                {t("admin.access_required", "Admin access required")}
               </CardTitle>
               <CardDescription>
-                You need to be signed in as an administrator to view this page.
+                {t("admin.admin_access_required_desc", "You need to be signed in as an administrator to view this page.")}
               </CardDescription>
             </CardHeader>
           </Card>
@@ -111,8 +113,8 @@ export default function AdminStaleBookings() {
       <Header />
       <PageBreadcrumbs
         items={[
-          { label: "Admin Dashboard", href: "/admin" },
-          { label: "Stale Bookings" },
+          { label: t("admin.dashboard", "Admin Dashboard"), href: "/admin" },
+          { label: t("admin.stale_bookings", "Stale Bookings") },
         ]}
         fallback="/admin"
       />
@@ -121,11 +123,10 @@ export default function AdminStaleBookings() {
           <div className="flex-1 min-w-[200px]">
             <h1 className="text-3xl font-bold flex items-center gap-2" data-testid="text-stale-title">
               <ClockAlert className="h-7 w-7 text-amber-500" />
-              Stale Bookings
+              {t("admin.stale_bookings", "Stale Bookings")}
             </h1>
             <p className="text-muted-foreground">
-              Appointments the system auto-expired or auto-cancelled. Useful for spotting providers
-              who never respond or visits that never get marked completed.
+              {t("admin.stale_bookings_desc", "Appointments the system auto-expired or auto-cancelled. Useful for spotting providers who never respond or visits that never get marked completed.")}
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -134,10 +135,10 @@ export default function AdminStaleBookings() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="1">Last 24 hours</SelectItem>
-                <SelectItem value="7">Last 7 days</SelectItem>
-                <SelectItem value="30">Last 30 days</SelectItem>
-                <SelectItem value="90">Last 90 days</SelectItem>
+               <SelectItem value="1">{t("admin.last_24_hours", "Last 24 hours")}</SelectItem>
+               <SelectItem value="7">{t("admin.last_7_days", "Last 7 days")}</SelectItem>
+               <SelectItem value="30">{t("admin.last_30_days", "Last 30 days")}</SelectItem>
+               <SelectItem value="90">{t("admin.last_90_days", "Last 90 days")}</SelectItem>
               </SelectContent>
             </Select>
             <Button
@@ -146,7 +147,7 @@ export default function AdminStaleBookings() {
               onClick={() => refetch()}
               disabled={isFetching}
               data-testid="button-refresh"
-              aria-label="Refresh"
+               aria-label={t("common.refresh", "Refresh")}
             >
               <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
             </Button>
@@ -156,13 +157,13 @@ export default function AdminStaleBookings() {
         <div className="grid gap-4 md:grid-cols-3">
           <Card>
             <CardHeader className="pb-2">
-              <CardDescription>Total auto actions</CardDescription>
+              <CardDescription>{t("admin.total_auto_actions", "Total auto actions")}</CardDescription>
               <CardTitle className="text-3xl" data-testid="stat-total">{grouped.total}</CardTitle>
             </CardHeader>
           </Card>
           <Card>
             <CardHeader className="pb-2">
-              <CardDescription>Auto-expired (no provider response)</CardDescription>
+              <CardDescription>{t("admin.auto_expired_no_response", "Auto-expired (no provider response)")}</CardDescription>
               <CardTitle className="text-3xl text-amber-600 dark:text-amber-400" data-testid="stat-expired">
                 {grouped.expired.length}
               </CardTitle>
@@ -170,7 +171,7 @@ export default function AdminStaleBookings() {
           </Card>
           <Card>
             <CardHeader className="pb-2">
-              <CardDescription>Auto-cancelled (visit lapsed)</CardDescription>
+              <CardDescription>{t("admin.auto_cancelled_visit_lapsed", "Auto-cancelled (visit lapsed)")}</CardDescription>
               <CardTitle className="text-3xl text-red-600 dark:text-red-400" data-testid="stat-cancelled">
                 {grouped.autoCancelled.length}
               </CardTitle>
@@ -180,25 +181,25 @@ export default function AdminStaleBookings() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Recent activity</CardTitle>
+            <CardTitle>{t("admin.recent_activity", "Recent activity")}</CardTitle>
             <CardDescription>
-              Showing up to 500 entries from the last {data?.days ?? days} day(s), most recent first.
+              {t("admin.stale_showing_entries", "Showing up to 500 entries from the last {{days}} day(s), most recent first.", { days: data?.days ?? days })}
             </CardDescription>
           </CardHeader>
           <CardContent>
             {isLoading ? (
               <div className="flex items-center justify-center py-12 text-muted-foreground">
                 <Loader2 className="h-5 w-5 animate-spin mr-2" />
-                Loading…
+                {t("common.loading")}
               </div>
             ) : error ? (
               <p className="text-destructive text-sm" data-testid="text-error">
-                Couldn't load stale bookings. Please try again.
+                {t("admin.stale_load_failed", "Couldn't load stale bookings. Please try again.")}
               </p>
             ) : !data?.items.length ? (
               <EmptyState
-                title="Nothing to report"
-                description="No automated cleanups in this window."
+                title={t("admin.nothing_to_report", "Nothing to report")}
+                description={t("admin.no_automated_cleanups", "No automated cleanups in this window.")}
                 data-testid="text-empty"
               />
             ) : (

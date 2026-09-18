@@ -492,7 +492,7 @@ export default function AdminUsersPage() {
                     <TableHeader>
                       <TableRow>
                         <TableHead scope="col">{t("admin.admin_users_name_email")}</TableHead>
-                        <TableHead scope="col">Role</TableHead>
+                         <TableHead scope="col">{t("admin.role", "Role")}</TableHead>
                         <TableHead scope="col">{t("admin.admin_users_scope")}</TableHead>
                         <TableHead scope="col">{t("admin.admin_users_status")}</TableHead>
                         <TableHead scope="col">{t("admin.admin_users_last_login")}</TableHead>

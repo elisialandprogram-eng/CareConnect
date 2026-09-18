@@ -1,5 +1,6 @@
 import { formatDateTime } from "@/lib/datetime";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Bug, Search, RefreshCw, UserCheck, CheckCircle, XCircle, Archive } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -53,6 +54,7 @@ const CATEGORY_LABELS: Record<string, string> = {
 };
 
 function BugDetailPanel({ reportId, onClose }: { reportId: string; onClose: () => void }) {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -148,26 +150,26 @@ function BugDetailPanel({ reportId, onClose }: { reportId: string; onClose: () =
 
           {/* Priority change */}
           <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground">Priority:</span>
+            <span className="text-xs text-muted-foreground">{t("admin.priority", "Priority")}:</span>
             <Select value={report.priority} onValueChange={(v) => priorityMutation.mutate(v)}>
               <SelectTrigger className="h-7 w-28 text-xs" data-testid="select-bug-priority-admin">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="low">Low</SelectItem>
-                <SelectItem value="medium">Medium</SelectItem>
-                <SelectItem value="high">High</SelectItem>
-                <SelectItem value="urgent">Urgent</SelectItem>
+                 <SelectItem value="low">{t("admin.low", "Low")}</SelectItem>
+                 <SelectItem value="medium">{t("admin.medium", "Medium")}</SelectItem>
+                 <SelectItem value="high">{t("admin.high", "High")}</SelectItem>
+                 <SelectItem value="urgent">{t("admin.urgent", "Urgent")}</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           {/* Resolution notes field */}
           <div>
-            <label className="text-xs font-medium text-muted-foreground">Resolution note (shown to user)</label>
+            <label className="text-xs font-medium text-muted-foreground">{t("admin.resolution_note_user", "Resolution note (shown to user)")}</label>
             <textarea
               className="w-full border rounded-md p-2 text-sm mt-1 min-h-[60px] bg-background"
-              placeholder="Briefly explain what was done…"
+              placeholder={t("admin.resolution_note_placeholder", "Briefly explain what was done…")}
               value={resolutionNote}
               onChange={(e) => setResolutionNote(e.target.value)}
               data-testid="textarea-resolution-notes"
@@ -179,11 +181,11 @@ function BugDetailPanel({ reportId, onClose }: { reportId: string; onClose: () =
       {/* Comments */}
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-base">Conversation ({comments.length})</CardTitle>
+            <CardTitle className="text-base">{t("admin.conversation_count", "Conversation ({{count}})", { count: comments.length })}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           {comments.length === 0 && (
-            <p className="text-sm text-muted-foreground py-2">No messages yet.</p>
+            <p className="text-sm text-muted-foreground py-2">{t("admin.no_messages_yet", "No messages yet.")}</p>
           )}
           {comments.map((c) => {
             const isMe = c.user_id === user?.id;
@@ -223,6 +225,7 @@ function BugDetailPanel({ reportId, onClose }: { reportId: string; onClose: () =
 }
 
 export default function AdminBugReports() {
+  const { t } = useTranslation();
   usePageTitle("Bug Queue — Admin");
   const { user } = useAuth();
   const { toast } = useToast();
@@ -353,8 +356,8 @@ export default function AdminBugReports() {
       ) : !reports.length ? (
         <EmptyState
           icon={Bug}
-          title="No bug reports found"
-          description="No reports match the current filters."
+           title={t("admin.no_bug_reports", "No bug reports found")}
+           description={t("admin.no_reports_match", "No reports match the current filters.")}
         />
       ) : (
         <Card>
@@ -362,15 +365,15 @@ export default function AdminBugReports() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-24">ID</TableHead>
-                  <TableHead>Reporter</TableHead>
-                  {user?.role === "global_admin" && <TableHead className="w-16">Country</TableHead>}
-                  <TableHead className="w-24">Category</TableHead>
-                  <TableHead className="w-24">Severity</TableHead>
-                  <TableHead className="w-20">Status</TableHead>
-                  <TableHead>Assigned</TableHead>
-                  <TableHead className="w-32">Last Activity</TableHead>
-                  <TableHead className="w-28">Actions</TableHead>
+                   <TableHead className="w-24">{t("admin.id", "ID")}</TableHead>
+                   <TableHead>{t("admin.reporter", "Reporter")}</TableHead>
+                   {user?.role === "global_admin" && <TableHead className="w-16">{t("admin.country", "Country")}</TableHead>}
+                   <TableHead className="w-24">{t("admin.category", "Category")}</TableHead>
+                   <TableHead className="w-24">{t("admin.severity", "Severity")}</TableHead>
+                   <TableHead className="w-20">{t("admin.status", "Status")}</TableHead>
+                   <TableHead>{t("admin.assigned", "Assigned")}</TableHead>
+                   <TableHead className="w-32">{t("admin.last_activity", "Last Activity")}</TableHead>
+                   <TableHead className="w-28">{t("admin.actions", "Actions")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -403,10 +406,10 @@ export default function AdminBugReports() {
                     <TableCell onClick={(e) => e.stopPropagation()}>
                       <div className="flex gap-1">
                         <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={(e) => { e.stopPropagation(); bulkStatusMutation.mutate({ id: r.id, status: "triaged" }); }} data-testid={`button-quick-triage-${r.id}`}>
-                          Triage
+                           {t("admin.triage", "Triage")}
                         </Button>
                         <Button size="sm" variant="ghost" className="h-7 px-2 text-xs text-green-600" onClick={(e) => { e.stopPropagation(); bulkStatusMutation.mutate({ id: r.id, status: "resolved" }); }} data-testid={`button-quick-resolve-${r.id}`}>
-                          Resolve
+                           {t("admin.resolve", "Resolve")}
                         </Button>
                       </div>
                     </TableCell>
@@ -421,9 +424,9 @@ export default function AdminBugReports() {
       {/* Pagination */}
       {data?.totalPages > 1 && (
         <div className="flex justify-center gap-2 pt-4">
-          <Button variant="outline" size="sm" disabled={page === 1} onClick={() => setPage(p => p - 1)} data-testid="button-prev-page">Previous</Button>
-          <span className="flex items-center text-sm text-muted-foreground px-2">Page {page} of {data.totalPages}</span>
-          <Button variant="outline" size="sm" disabled={page >= data.totalPages} onClick={() => setPage(p => p + 1)} data-testid="button-next-page">Next</Button>
+           <Button variant="outline" size="sm" disabled={page === 1} onClick={() => setPage(p => p - 1)} data-testid="button-prev-page">{t("common.previous", "Previous")}</Button>
+           <span className="flex items-center text-sm text-muted-foreground px-2">{t("common.page_of", "Page {{page}} of {{total}}", { page, total: data.totalPages })}</span>
+           <Button variant="outline" size="sm" disabled={page >= data.totalPages} onClick={() => setPage(p => p + 1)} data-testid="button-next-page">{t("common.next", "Next")}</Button>
         </div>
       )}
     </div>

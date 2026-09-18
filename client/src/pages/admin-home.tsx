@@ -216,6 +216,7 @@ function ActionItem({
   urgent?: boolean;
 }) {
   const [, navigate] = useLocation();
+  const { t } = useTranslation();
   if (count === 0) return null;
   return (
     <button
@@ -234,7 +235,7 @@ function ActionItem({
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
           <span className="font-semibold text-sm text-foreground">{title}</span>
-           {urgent && <Badge className="bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400 text-xs border-0 px-1.5 py-0">Urgent</Badge>}
+           {urgent && <Badge className="bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400 text-xs border-0 px-1.5 py-0">{t("admin.urgent", "Urgent")}</Badge>}
         </div>
         <p className="text-xs text-muted-foreground mt-0.5 truncate">{description}</p>
       </div>

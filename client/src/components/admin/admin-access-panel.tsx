@@ -1,5 +1,6 @@
 import { formatDate } from "@/lib/datetime";
 import { useState, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { useAuth } from "@/lib/auth";
@@ -93,6 +94,7 @@ function AddAdminDialog({
   onSaved: () => void;
 }) {
   const { toast } = useToast();
+  const { t } = useTranslation();
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
@@ -109,11 +111,11 @@ function AddAdminDialog({
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!form.firstName || !form.lastName || !form.email || !form.password || !form.roleName) {
-      toast({ title: "Please fill all required fields", variant: "destructive" });
+       toast({ title: t("admin.fill_required_fields", "Please fill all required fields"), variant: "destructive" });
       return;
     }
     if (form.password.length < 8) {
-      toast({ title: "Password must be at least 8 characters", variant: "destructive" });
+       toast({ title: t("admin.password_min_admin", "Password must be at least 8 characters"), variant: "destructive" });
       return;
     }
     setLoading(true);
@@ -128,11 +130,11 @@ function AddAdminDialog({
         countryCode: isGlobalRole ? undefined : (form.countryCode || undefined),
         notes:     form.notes || undefined,
       });
-      toast({ title: "Admin user created successfully" });
+       toast({ title: t("admin.admin_created", "Admin user created successfully") });
       setForm({ firstName: "", lastName: "", email: "", password: "", phone: "", roleName: "", countryCode: "", notes: "" });
       onSaved();
     } catch (err: any) {
-      toast({ title: err?.message ?? "Failed to create admin", variant: "destructive" });
+       toast({ title: err?.message ?? t("admin.create_admin_failed", "Failed to create admin"), variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -142,25 +144,25 @@ function AddAdminDialog({
     <Dialog open={open} onOpenChange={v => { if (!v) onClose(); }}>
       <DialogContent className="max-w-md" data-testid="dialog-add-admin">
         <DialogHeader>
-          <DialogTitle>Add Admin User</DialogTitle>
+         <DialogTitle>{t("admin.add_admin_user", "Add Admin User")}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-3 py-1">
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
-              <Label>First Name *</Label>
+               <Label>{t("admin.first_name_required", "First Name *")}</Label>
               <Input data-testid="input-admin-firstname" value={form.firstName} onChange={e => set("firstName", e.target.value)} placeholder="Jane" />
             </div>
             <div className="space-y-1">
-              <Label>Last Name *</Label>
+               <Label>{t("admin.last_name_required", "Last Name *")}</Label>
               <Input data-testid="input-admin-lastname" value={form.lastName} onChange={e => set("lastName", e.target.value)} placeholder="Smith" />
             </div>
           </div>
           <div className="space-y-1">
-            <Label>Email Address *</Label>
+             <Label>{t("admin.email_required", "Email Address *")}</Label>
             <Input data-testid="input-admin-email" type="email" value={form.email} onChange={e => set("email", e.target.value)} placeholder="admin@example.com" />
           </div>
           <div className="space-y-1">
-            <Label>Password * (min. 8 characters)</Label>
+             <Label>{t("admin.password_required", "Password * (min. 8 characters)")}</Label>
             <div className="relative">
               <Input
                 data-testid="input-admin-password"
@@ -181,14 +183,14 @@ function AddAdminDialog({
             </div>
           </div>
           <div className="space-y-1">
-            <Label>Phone (optional)</Label>
+             <Label>{t("admin.phone_optional", "Phone (optional)")}</Label>
             <Input data-testid="input-admin-phone" value={form.phone} onChange={e => set("phone", e.target.value)} placeholder="+36 20 123 4567" />
           </div>
           <div className="space-y-1">
-            <Label>Access Level / Role *</Label>
+             <Label>{t("admin.access_level_role_required", "Access Level / Role *")}</Label>
             <Select value={form.roleName} onValueChange={v => set("roleName", v)}>
               <SelectTrigger data-testid="select-admin-role">
-                <SelectValue placeholder="Select a role…" />
+                 <SelectValue placeholder={t("admin.select_role", "Select a role…")} />
               </SelectTrigger>
               <SelectContent>
                 {roles.map(r => (
@@ -208,26 +210,26 @@ function AddAdminDialog({
           </div>
           {!isGlobalRole && (
             <div className="space-y-1">
-              <Label>Country Scope</Label>
+               <Label>{t("admin.country_scope", "Country Scope")}</Label>
               <Select value={form.countryCode || "__global__"} onValueChange={v => set("countryCode", v === "__global__" ? "" : v)}>
                 <SelectTrigger data-testid="select-admin-country">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="__global__">Global (all countries)</SelectItem>
-                  <SelectItem value="HU">Hungary (HU)</SelectItem>
-                  <SelectItem value="IR">Iran (IR)</SelectItem>
+                   <SelectItem value="__global__">{t("admin.global_all_countries", "Global (all countries)")}</SelectItem>
+                   <SelectItem value="HU">{t("country.hungary", "Hungary")} (HU)</SelectItem>
+                   <SelectItem value="IR">{t("country.iran", "Iran")} (IR)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
           )}
           {isGlobalRole && (
             <p className="text-xs text-muted-foreground flex items-center gap-1">
-              <Globe className="h-3 w-3" /> Super admins have global scope — access to all countries.
+               <Globe className="h-3 w-3" /> {t("admin.super_admin_global_scope", "Super admins have global scope — access to all countries.")}
             </p>
           )}
           <div className="space-y-1">
-            <Label>Notes (optional)</Label>
+             <Label>{t("admin.notes_optional", "Notes (optional)")}</Label>
             <Textarea
               data-testid="input-admin-notes"
               value={form.notes}
@@ -237,9 +239,9 @@ function AddAdminDialog({
             />
           </div>
           <DialogFooter className="pt-2">
-            <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
+             <Button type="button" variant="outline" onClick={onClose}>{t("common.cancel", "Cancel")}</Button>
             <Button type="submit" disabled={loading} data-testid="button-create-admin">
-              {loading ? "Creating…" : "Create Admin"}
+               {loading ? t("admin.creating", "Creating…") : t("admin.create_admin", "Create Admin")}
             </Button>
           </DialogFooter>
         </form>
@@ -259,6 +261,7 @@ function EditRoleDialog({
   onSaved: () => void;
 }) {
   const { toast } = useToast();
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [roleName, setRoleName] = useState(user?.role_name ?? "");
   const [countryCode, setCountryCode] = useState(user?.assignment_country ?? "");
@@ -277,10 +280,10 @@ function EditRoleDialog({
         notes: notes || undefined,
         isActive: true,
       });
-      toast({ title: "Access level updated" });
+       toast({ title: t("admin.access_level_updated", "Access level updated") });
       onSaved();
     } catch (err: any) {
-      toast({ title: err?.message ?? "Failed to update", variant: "destructive" });
+       toast({ title: err?.message ?? t("admin.update_failed", "Failed to update"), variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -290,7 +293,7 @@ function EditRoleDialog({
     <Dialog open={!!user} onOpenChange={v => { if (!v) onClose(); }}>
       <DialogContent className="max-w-sm" data-testid="dialog-edit-role">
         <DialogHeader>
-          <DialogTitle>Edit Access Level</DialogTitle>
+           <DialogTitle>{t("admin.edit_access_level", "Edit Access Level")}</DialogTitle>
         </DialogHeader>
         {user && (
           <form onSubmit={handleSave} className="space-y-3 py-1">
@@ -298,10 +301,10 @@ function EditRoleDialog({
               Editing access for <strong>{user.first_name} {user.last_name}</strong>
             </p>
             <div className="space-y-1">
-              <Label>Role</Label>
+               <Label>{t("admin.role", "Role")}</Label>
               <Select value={roleName} onValueChange={setRoleName}>
                 <SelectTrigger data-testid="select-edit-role">
-                  <SelectValue placeholder="Choose role…" />
+                 <SelectValue placeholder={t("admin.choose_role", "Choose role…")} />
                 </SelectTrigger>
                 <SelectContent>
                   {roles.map(r => (
@@ -312,27 +315,27 @@ function EditRoleDialog({
             </div>
             {!isGlobalRole && (
               <div className="space-y-1">
-                <Label>Country Scope</Label>
+                 <Label>{t("admin.country_scope", "Country Scope")}</Label>
                 <Select value={countryCode || "__global__"} onValueChange={v => setCountryCode(v === "__global__" ? "" : v)}>
                   <SelectTrigger data-testid="select-edit-country">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="__global__">Global</SelectItem>
-                    <SelectItem value="HU">Hungary (HU)</SelectItem>
-                    <SelectItem value="IR">Iran (IR)</SelectItem>
+                     <SelectItem value="__global__">{t("admin.global", "Global")}</SelectItem>
+                     <SelectItem value="HU">{t("country.hungary", "Hungary")} (HU)</SelectItem>
+                     <SelectItem value="IR">{t("country.iran", "Iran")} (IR)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             )}
             <div className="space-y-1">
-              <Label>Notes</Label>
+               <Label>{t("admin.notes", "Notes")}</Label>
               <Textarea value={notes} onChange={e => setNotes(e.target.value)} rows={2} data-testid="input-edit-notes" />
             </div>
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
+               <Button type="button" variant="outline" onClick={onClose}>{t("common.cancel", "Cancel")}</Button>
               <Button type="submit" disabled={loading} data-testid="button-save-role">
-                {loading ? "Saving…" : "Save Changes"}
+                 {loading ? t("common.saving", "Saving…") : t("admin.save_changes", "Save Changes")}
               </Button>
             </DialogFooter>
           </form>
@@ -345,6 +348,7 @@ function EditRoleDialog({
 // ── Main panel ─────────────────────────────────────────────────────────────────
 
 export default function AdminAccessPanel() {
+  const { t } = useTranslation();
   const { user: currentUser } = useAuth();
   const [, navigate] = useLocation();
   const { toast } = useToast();
@@ -367,7 +371,7 @@ export default function AdminAccessPanel() {
     mutationFn: ({ id, isActive }: { id: string; isActive: boolean }) =>
       apiRequest("PATCH", `/api/admin/admin-users/${id}/deactivate`, { isActive }),
     onSuccess: (_, vars) => {
-      toast({ title: vars.isActive ? "Admin activated" : "Admin deactivated" });
+       toast({ title: vars.isActive ? t("admin.admin_activated", "Admin activated") : t("admin.admin_deactivated", "Admin deactivated") });
       qc.invalidateQueries({ queryKey: ["/api/admin/admin-users"] });
       setToggleTarget(null);
     },
@@ -405,11 +409,11 @@ export default function AdminAccessPanel() {
           ))}
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => navigate("/admin/users")} data-testid="link-full-admin-page">
-            <ExternalLink className="h-4 w-4 mr-1.5" /> Full Page
+       <Button variant="outline" size="sm" onClick={() => navigate("/admin/users")} data-testid="link-full-admin-page">
+             <ExternalLink className="h-4 w-4 mr-1.5" /> {t("admin.full_page", "Full Page")}
           </Button>
           <Button onClick={() => setShowAdd(true)} data-testid="button-add-admin">
-            <Plus className="h-4 w-4 mr-1.5" /> Add Admin User
+             <Plus className="h-4 w-4 mr-1.5" /> {t("admin.add_admin_user", "Add Admin User")}
           </Button>
         </div>
       </div>
@@ -417,17 +421,17 @@ export default function AdminAccessPanel() {
       <Tabs value={innerTab} onValueChange={setInnerTab}>
         <TabsList>
           <TabsTrigger value="users" data-testid="tab-rbac-users">
-            <Users className="h-4 w-4 mr-1.5" /> Admin Users
+             <Users className="h-4 w-4 mr-1.5" /> {t("admin.admin_users", "Admin Users")}
           </TabsTrigger>
           <TabsTrigger value="roles" data-testid="tab-rbac-roles">
-            <Shield className="h-4 w-4 mr-1.5" /> Roles & Permissions
+             <Shield className="h-4 w-4 mr-1.5" /> {t("admin.roles_permissions", "Roles & Permissions")}
           </TabsTrigger>
         </TabsList>
 
         {/* ── Users list ── */}
         <TabsContent value="users" className="pt-4 space-y-4">
           <Input
-            placeholder="Search by name or email…"
+             placeholder={t("admin.search_admins", "Search by name or email…")}
             className="w-64"
             value={search}
             onChange={e => setSearch(e.target.value)}
@@ -439,20 +443,20 @@ export default function AdminAccessPanel() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>User</TableHead>
-                      <TableHead>Access Level</TableHead>
-                      <TableHead>Scope</TableHead>
-                      <TableHead>Last Login</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
+                       <TableHead>{t("admin.user", "User")}</TableHead>
+                       <TableHead>{t("admin.access_level", "Access Level")}</TableHead>
+                       <TableHead>{t("admin.scope", "Scope")}</TableHead>
+                       <TableHead>{t("admin.last_login", "Last Login")}</TableHead>
+                       <TableHead>{t("admin.status", "Status")}</TableHead>
+                       <TableHead className="text-right">{t("admin.actions", "Actions")}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {isLoading && (
-                      <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-10">Loading…</TableCell></TableRow>
+                       <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-10">{t("common.loading", "Loading…")}</TableCell></TableRow>
                     )}
                     {!isLoading && filtered.length === 0 && (
-                      <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-10">No admin users found. Add one above.</TableCell></TableRow>
+                       <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-10">{t("admin.no_admin_users", "No admin users found. Add one above.")}</TableCell></TableRow>
                     )}
                     {filtered.map(u => {
                       const isSelf = u.id === currentUser?.id;
@@ -469,7 +473,7 @@ export default function AdminAccessPanel() {
                               <div>
                                 <p className="font-medium text-sm leading-tight">
                                   {u.first_name} {u.last_name}
-                                  {isSelf && <span className="ml-1 text-xs text-primary">(you)</span>}
+                                   {isSelf && <span className="ml-1 text-xs text-primary">({t("common.you", "you")})</span>}
                                 </p>
                                 <p className="text-xs text-muted-foreground">{u.email}</p>
                               </div>
@@ -479,7 +483,7 @@ export default function AdminAccessPanel() {
                           <TableCell>
                             {u.assignment_country
                               ? <span className="flex items-center gap-1 text-xs"><MapPin className="h-3 w-3" />{u.assignment_country}</span>
-                              : <span className="flex items-center gap-1 text-xs text-muted-foreground"><Globe className="h-3 w-3" />Global</span>
+                               : <span className="flex items-center gap-1 text-xs text-muted-foreground"><Globe className="h-3 w-3" />{t("admin.global", "Global")}</span>
                             }
                           </TableCell>
                           <TableCell className="text-xs text-muted-foreground">{fmtDate(u.last_login_at)}</TableCell>
@@ -496,7 +500,7 @@ export default function AdminAccessPanel() {
                                 onClick={() => setEditUser(u)}
                                 disabled={isSelf}
                                 data-testid={`button-edit-admin-${u.id}`}
-                                title="Edit access level"
+                                 title={t("admin.edit_access_level", "Edit access level")}
                               >
                                 <Pencil className="h-3.5 w-3.5" />
                               </Button>
@@ -506,7 +510,7 @@ export default function AdminAccessPanel() {
                                 onClick={() => setToggleTarget({ user: u, activate: !isActive })}
                                 disabled={isSelf}
                                 data-testid={`button-toggle-admin-${u.id}`}
-                                title={isActive ? "Deactivate" : "Activate"}
+                                 title={isActive ? t("admin.deactivate", "Deactivate") : t("admin.activate", "Activate")}
                               >
                                 <Power className="h-3.5 w-3.5" />
                               </Button>
@@ -530,13 +534,13 @@ export default function AdminAccessPanel() {
                 <CardHeader className="pb-2">
                   <div className="flex items-start justify-between">
                     <CardTitle className="text-sm font-semibold">{r.displayName}</CardTitle>
-                    {r.isSystem && <Badge variant="outline" className="text-[10px] text-muted-foreground">System</Badge>}
+                     {r.isSystem && <Badge variant="outline" className="text-[10px] text-muted-foreground">{t("admin.system", "System")}</Badge>}
                   </div>
                   {r.description && <CardDescription className="text-xs">{r.description}</CardDescription>}
                 </CardHeader>
                 <CardContent className="pt-0">
                   <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">
-                    {r.permissions.length} permission{r.permissions.length !== 1 ? "s" : ""}
+                     {r.permissions.length} {t("admin.permissions", "permission")}{r.permissions.length !== 1 ? "s" : ""}
                   </p>
                   <div className="flex flex-wrap gap-1">
                     {r.permissions.slice(0, 6).map(p => {
@@ -555,7 +559,7 @@ export default function AdminAccessPanel() {
               </Card>
             ))}
             {roles.length === 0 && (
-              <div className="col-span-3 text-center text-muted-foreground py-10">No roles loaded.</div>
+               <div className="col-span-3 text-center text-muted-foreground py-10">{t("admin.no_roles_loaded", "No roles loaded.")}</div>
             )}
           </div>
         </TabsContent>

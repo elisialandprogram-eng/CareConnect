@@ -6,6 +6,7 @@ import { formatCount } from "@/lib/format-utils";
  * payment, travel, wallet, payout, and revenue-sharing configuration.
  */
 import { useState, lazy, Suspense } from "react";
+import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -57,9 +58,10 @@ const LazyPromoCodeManagement = lazy(() =>
 );
 
 function PanelLoader() {
+  const { t } = useTranslation();
   return (
     <div className="py-10 flex items-center justify-center gap-2 text-muted-foreground text-sm">
-      <Loader2 className="h-4 w-4 animate-spin" />Loading…
+      <Loader2 className="h-4 w-4 animate-spin" />{t("common.loading", "Loading…")}
     </div>
   );
 }
@@ -75,14 +77,15 @@ const fmtPct = (v: string | number | undefined) => {
 };
 
 function StatusBadge({ enabled, maintenanceMode }: { enabled: boolean; maintenanceMode?: boolean }) {
+  const { t } = useTranslation();
   if (maintenanceMode) return (
     <Badge variant="outline" className="text-amber-600 border-amber-400 gap-1">
-      <AlertCircle className="h-3 w-3" />Maintenance
+       <AlertCircle className="h-3 w-3" />{t("admin.maintenance", "Maintenance")}
     </Badge>
   );
   return enabled
-    ? <Badge variant="outline" className="text-emerald-600 border-emerald-400 gap-1"><CheckCircle2 className="h-3 w-3" />Active</Badge>
-    : <Badge variant="outline" className="text-muted-foreground gap-1"><XCircle className="h-3 w-3" />Disabled</Badge>;
+     ? <Badge variant="outline" className="text-emerald-600 border-emerald-400 gap-1"><CheckCircle2 className="h-3 w-3" />{t("admin.active", "Active")}</Badge>
+     : <Badge variant="outline" className="text-muted-foreground gap-1"><XCircle className="h-3 w-3" />{t("admin.disabled", "Disabled")}</Badge>;
 }
 
 // ── Overview ──────────────────────────────────────────────────────────────────
@@ -92,26 +95,27 @@ interface Overview {
 }
 
 function OverviewPanel() {
+  const { t } = useTranslation();
   const { data: overview, isLoading } = useQuery<Overview>({ queryKey: ["/api/admin/revenue/overview"] });
-  if (isLoading) return <div className="h-48 flex items-center justify-center text-muted-foreground">Loading…</div>;
+  if (isLoading) return <div className="h-48 flex items-center justify-center text-muted-foreground">{t("common.loading", "Loading…")}</div>;
   const metrics = overview?.metrics;
   const rules = overview?.rules ?? {};
   const ruleSections = [
-    { key: "platformFee",   label: "Platform Fee Rules",  icon: Percent },
-    { key: "commission",    label: "Commission Rules",     icon: TrendingUp },
-    { key: "paymentMethod", label: "Payment Rules",        icon: CreditCard },
-    { key: "travelFee",     label: "Travel Fee Rules",     icon: Car },
-    { key: "payoutConfig",  label: "Payout Config",        icon: Clock },
-    { key: "revenueShare",  label: "Revenue Share Rules",  icon: Users },
-    { key: "walletRules",   label: "Wallet Rules",         icon: Wallet },
+     { key: "platformFee",   label: t("admin.platform_fee_rules", "Platform Fee Rules"),  icon: Percent },
+     { key: "commission",    label: t("admin.commission_rules", "Commission Rules"),     icon: TrendingUp },
+     { key: "paymentMethod", label: t("admin.payment_rules", "Payment Rules"),        icon: CreditCard },
+     { key: "travelFee",     label: t("admin.travel_fee_rules", "Travel Fee Rules"),     icon: Car },
+     { key: "payoutConfig",  label: t("admin.payout_config", "Payout Config"),        icon: Clock },
+     { key: "revenueShare",  label: t("admin.revenue_share_rules", "Revenue Share Rules"),  icon: Users },
+     { key: "walletRules",   label: t("admin.wallet_rules", "Wallet Rules"),         icon: Wallet },
   ];
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {[
-          { label: "Total Revenue",  value: fmt(metrics?.totalRevenue) },
-          { label: "Total Payments", value: metrics?.totalPayments != null ? formatCount(metrics.totalPayments) : "—" },
-          { label: "Total Bookings", value: metrics?.totalBookings != null ? formatCount(metrics.totalBookings) : "—" },
+           { label: t("admin.total_revenue", "Total Revenue"),  value: fmt(metrics?.totalRevenue) },
+           { label: t("admin.total_payments", "Total Payments"), value: metrics?.totalPayments != null ? formatCount(metrics.totalPayments) : "—" },
+           { label: t("admin.total_bookings", "Total Bookings"), value: metrics?.totalBookings != null ? formatCount(metrics.totalBookings) : "—" },
         ].map(c => (
           <Card key={c.label}>
             <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">{c.label}</CardTitle></CardHeader>
@@ -120,7 +124,7 @@ function OverviewPanel() {
         ))}
       </div>
       <div>
-        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">Rule Engine Status</h3>
+         <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">{t("admin.rule_engine_status", "Rule Engine Status")}</h3>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
           {ruleSections.map(({ key, label, icon: Icon }) => {
             const s = rules[key] ?? { total: 0, active: 0 };
@@ -132,7 +136,7 @@ function OverviewPanel() {
                 </div>
                 <div className="flex items-end gap-1">
                   <span className="text-lg font-bold text-emerald-600">{s.active}</span>
-                  <span className="text-xs text-muted-foreground mb-0.5">/ {s.total} active</span>
+                   <span className="text-xs text-muted-foreground mb-0.5">/ {s.total} {t("admin.active", "active").toLowerCase()}</span>
                 </div>
               </Card>
             );
@@ -152,16 +156,17 @@ function DeleteDialog({
   onConfirm: () => void;
   isPending: boolean;
 }) {
+  const { t } = useTranslation();
   return (
     <Dialog open={!!target} onOpenChange={v => !v && onClose()}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Delete Rule</DialogTitle>
-          <DialogDescription>Delete <strong>{target?.name}</strong>? This cannot be undone.</DialogDescription>
+           <DialogTitle>{t("admin.delete_rule", "Delete Rule")}</DialogTitle>
+           <DialogDescription>{t("admin.delete_rule_confirm", "Delete")} <strong>{target?.name}</strong>? {t("admin.cannot_undone", "This cannot be undone.")}</DialogDescription>
         </DialogHeader>
         <DialogFooter>
-          <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button variant="destructive" onClick={onConfirm} disabled={isPending}>Delete</Button>
+           <Button variant="outline" onClick={onClose}>{t("common.cancel", "Cancel")}</Button>
+           <Button variant="destructive" onClick={onConfirm} disabled={isPending}>{t("common.delete", "Delete")}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

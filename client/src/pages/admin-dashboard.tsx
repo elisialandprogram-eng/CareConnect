@@ -672,8 +672,8 @@ export default function AdminDashboard() {
                         <p className="font-semibold">{t("admin.configured_via_environment_secrets", "Configured via environment secrets")}</p>
                         <p>{t("admin.google_maps_secrets_desc", "Google Maps API keys are managed server-side and cannot be changed from the dashboard. Contact your deployment administrator to update the following secrets:")}</p>
                         <ul className="list-disc list-inside space-y-1 text-blue-700 dark:text-blue-400">
-                          <li><code className="font-mono">GOOGLE_MAPS_API_KEY</code> — server-side geocoding &amp; distance calculations</li>
-                          <li><code className="font-mono">VITE_GOOGLE_MAPS_API_KEY</code> — frontend Places Autocomplete</li>
+                           <li><code className="font-mono">GOOGLE_MAPS_API_KEY</code> — {t("admin.server_geocoding_distance", "server-side geocoding & distance calculations")}</li>
+                           <li><code className="font-mono">VITE_GOOGLE_MAPS_API_KEY</code> — {t("admin.frontend_places_autocomplete", "frontend Places Autocomplete")}</li>
                         </ul>
                       </div>
                     </TabsContent>
@@ -683,10 +683,10 @@ export default function AdminDashboard() {
                         <p className="font-semibold">{t("admin.configured_via_environment_secrets", "Configured via environment secrets")}</p>
                         <p>{t("admin.messaging_secrets_desc", "Messaging and push notification credentials are managed server-side. Contact your deployment administrator to update the following secrets:")}</p>
                         <ul className="list-disc list-inside space-y-1 text-blue-700 dark:text-blue-400">
-                          <li><code className="font-mono">RESEND_API_KEY</code> — transactional email (OTP, booking confirmations, reminders)</li>
-                          <li><code className="font-mono">TWILIO_ACCOUNT_SID</code> + <code className="font-mono">TWILIO_AUTH_TOKEN</code> + <code className="font-mono">TWILIO_FROM_NUMBER</code> — SMS notifications</li>
-                          <li><code className="font-mono">TWILIO_WHATSAPP_FROM</code> — WhatsApp Business notifications</li>
-                          <li><code className="font-mono">VAPID_PUBLIC_KEY</code> + <code className="font-mono">VAPID_PRIVATE_KEY</code> — Web Push (browser notifications)</li>
+                           <li><code className="font-mono">RESEND_API_KEY</code> — {t("admin.transactional_email", "transactional email (OTP, booking confirmations, reminders)")}</li>
+                           <li><code className="font-mono">TWILIO_ACCOUNT_SID</code> + <code className="font-mono">TWILIO_AUTH_TOKEN</code> + <code className="font-mono">TWILIO_FROM_NUMBER</code> — {t("admin.sms_notifications", "SMS notifications")}</li>
+                           <li><code className="font-mono">TWILIO_WHATSAPP_FROM</code> — {t("admin.whatsapp_notifications", "WhatsApp Business notifications")}</li>
+                           <li><code className="font-mono">VAPID_PUBLIC_KEY</code> + <code className="font-mono">VAPID_PRIVATE_KEY</code> — {t("admin.web_push_notifications", "Web Push (browser notifications)")}</li>
                         </ul>
                       </div>
                     </TabsContent>

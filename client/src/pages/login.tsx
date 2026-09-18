@@ -324,7 +324,7 @@ export default function Login() {
                                 <button
                                   type="button"
                                   tabIndex={-1}
-                                  aria-label={showPassword ? "Hide password" : "Show password"}
+                                  aria-label={showPassword ? t("admin.admin_login_hide_password", "Hide password") : t("admin.admin_login_show_password", "Show password")}
                                   className="absolute end-2 top-1/2 -translate-y-1/2 inline-flex items-center justify-center h-8 w-8 rounded-md text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/60 transition-colors"
                                   onClick={() => setShowPassword(!showPassword)}
                                   data-testid="button-toggle-password"
