@@ -109,7 +109,7 @@ export default function GiftCardsPage() {
                 ))}
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground font-mono">USD</span>
+                <span className="text-sm text-muted-foreground font-mono">{t("patient_sweep.gift_card_currency", "USD")}</span>
                 <Input
                   type="number"
                   min={1}

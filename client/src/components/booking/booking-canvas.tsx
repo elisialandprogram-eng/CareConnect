@@ -235,7 +235,6 @@ function formatDate(dateStr: string): string {
 }
 
 /* ── Step labels ─────────────────────────────────────────────────── */
-const STEPS = ["Intent", "Details", "Payment"] as const;
 type Step = 0 | 1 | 2;
 
 /* ── Slide variants ──────────────────────────────────────────────── */
@@ -404,7 +403,7 @@ export function BookingCanvas({
       setAddError("");
     },
     onError: (e: any) => {
-      setAddError(e?.message ?? "Failed to add family member. Please try again.");
+      setAddError(e?.message ?? t("patient_sweep.booking_failed_add_member", "Failed to add family member. Please try again."));
     },
   });
 
@@ -425,7 +424,7 @@ export function BookingCanvas({
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
-        throw new Error((body as any).message || "Invalid promo code");
+        throw new Error((body as any).message || t("patient_sweep.booking_invalid_promo", "Invalid promo code"));
       }
       return res.json();
     },
@@ -437,7 +436,7 @@ export function BookingCanvas({
     },
     onError: (e: any) => {
       setPromoResult(null);
-      setPromoError(e?.message ?? "Invalid promo code");
+      setPromoError(e?.message ?? t("patient_sweep.booking_invalid_promo", "Invalid promo code"));
       setValues(v => ({ ...v, promoCode: undefined }));
       onPromoCodeChange?.(undefined);
     },
@@ -452,7 +451,7 @@ export function BookingCanvas({
       const res = await apiRequest("POST", "/api/wallet/topup", { amount: amountUSD, returnPath });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
-        throw new Error((body as any).message || "Failed to start top-up");
+        throw new Error((body as any).message || t("patient_sweep.booking_topup_failed", "Failed to start top-up"));
       }
       return res.json() as Promise<{ url: string }>;
     },
@@ -460,7 +459,11 @@ export function BookingCanvas({
       if (data.url) window.location.href = data.url;
     },
     onError: (e: any) => {
-      toast({ title: "Top-up unavailable", description: e?.message ?? "Please try again later.", variant: "destructive" });
+      toast({
+        title: t("patient_sweep.booking_topup_unavailable", "Top-up unavailable"),
+        description: e?.message ?? t("patient_sweep.booking_try_again_later", "Please try again later."),
+        variant: "destructive",
+      });
     },
   });
 
@@ -471,7 +474,10 @@ export function BookingCanvas({
     const params = new URLSearchParams(window.location.search);
     const status = params.get("topup");
     if (status === "success") {
-      toast({ title: "Wallet topped up!", description: "Your balance has been updated. You can now pay with your wallet." });
+      toast({
+        title: t("patient_sweep.booking_wallet_topped_up", "Wallet topped up!"),
+        description: t("patient_sweep.booking_balance_updated", "Your balance has been updated. You can now pay with your wallet."),
+      });
       const tries = [800, 2500, 5000];
       tries.forEach(ms => setTimeout(() => {
         queryClient.invalidateQueries({ queryKey: QK.wallet() });
@@ -481,7 +487,11 @@ export function BookingCanvas({
       const clean = window.location.pathname + window.location.search.replace(/[?&]topup=[^&]*/g, "").replace(/\?$/, "");
       window.history.replaceState({}, "", clean);
     } else if (status === "cancelled") {
-      toast({ title: "Top-up cancelled", description: "No charge was made.", variant: "destructive" });
+      toast({
+        title: t("patient_sweep.booking_topup_cancelled", "Top-up cancelled"),
+        description: t("patient_sweep.booking_no_charge", "No charge was made."),
+        variant: "destructive",
+      });
       const clean = window.location.pathname + window.location.search.replace(/[?&]topup=[^&]*/g, "").replace(/\?$/, "");
       window.history.replaceState({}, "", clean);
     }
@@ -624,7 +634,7 @@ export function BookingCanvas({
   const handleAddMemberSubmit = () => {
     setAddError("");
     if (!newMember.firstName.trim() || !newMember.lastName.trim() || !newMember.relationship) {
-      setAddError("First name, last name, and relationship are required.");
+      setAddError(t("patient_sweep.booking_member_required", "First name, last name, and relationship are required."));
       return;
     }
     addMemberMut.mutate(newMember);
@@ -679,8 +689,10 @@ export function BookingCanvas({
             <Timer className="h-3 w-3 animate-pulse" />
           )}
           {holdExpired
-            ? "Hold expired — please reselect a slot"
-            : `Slot reserved · ${formatCountdown(secsLeft)} remaining`}
+            ? t("patient_sweep.booking_hold_expired", "Hold expired — please reselect a slot")
+            : t("patient_sweep.booking_slot_reserved", "Slot reserved · {{time}} remaining", {
+                time: formatCountdown(secsLeft),
+              })}
         </div>
       )}
     </div>
@@ -689,7 +701,11 @@ export function BookingCanvas({
   /* ── Step progress ─────────────────────────────────────────────── */
   const renderStepProgress = () => (
     <div className="flex items-center gap-2 mb-5">
-      {STEPS.map((label, i) => (
+      {([
+        t("patient_sweep.booking_step_intent", "Intent"),
+        t("patient_sweep.booking_step_details", "Details"),
+        t("patient_sweep.booking_step_payment", "Payment"),
+      ] as const).map((label, i) => (
         <div key={label} className="flex items-center gap-2 flex-1">
           <button
             onClick={() => i < step && go(i as Step)}
@@ -717,7 +733,7 @@ export function BookingCanvas({
             </span>
             <span className="hidden sm:inline">{label}</span>
           </button>
-          {i < STEPS.length - 1 && (
+          {i < 2 && (
             <div
               className={cn(
                 "flex-1 h-px",
@@ -735,10 +751,10 @@ export function BookingCanvas({
     <div className="space-y-4">
       <div>
         <Label className="text-sm font-medium mb-1.5 block">
-          Reason for visit <span className="text-destructive">*</span>
+          {t("patient_sweep.booking_reason_label", "Reason for visit")} <span className="text-destructive">*</span>
         </Label>
         <Textarea
-          placeholder="Briefly describe what you'd like to be seen for…"
+          placeholder={t("patient_sweep.booking_reason_placeholder", "Briefly describe what you'd like to be seen for…")}
           value={values.reason}
           onChange={e => setValues(v => ({ ...v, reason: e.target.value }))}
           rows={4}
@@ -746,7 +762,9 @@ export function BookingCanvas({
           data-testid="input-booking-reason"
         />
         <p className="text-xs text-muted-foreground mt-1">
-          {values.reason.trim().length}/3 characters minimum
+          {t("patient_sweep.booking_char_min", "{{count}}/3 characters minimum", {
+            count: values.reason.trim().length,
+          })}
         </p>
       </div>
 
@@ -754,7 +772,7 @@ export function BookingCanvas({
       {intakeFields.length > 0 && (
         <div className="space-y-3 rounded-lg border border-border/60 bg-muted/30 p-3">
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-            Service intake questions
+            {t("patient_sweep.booking_intake_questions", "Service intake questions")}
           </p>
           {intakeFields.map(field => {
             const fieldVal = values.intakeResponses[field.id];
@@ -814,7 +832,7 @@ export function BookingCanvas({
                       data-testid={`intake-${field.id}`}
                     />
                     <label htmlFor={`intake-${field.id}`} className="text-sm text-muted-foreground">
-                      {field.placeholder ?? "Yes"}
+                      {field.placeholder ?? t("patient_sweep.booking_yes", "Yes")}
                     </label>
                   </div>
                 )}
@@ -825,7 +843,9 @@ export function BookingCanvas({
       )}
 
       <div>
-        <Label className="text-sm font-medium mb-1.5 block">Visit type</Label>
+        <Label className="text-sm font-medium mb-1.5 block">
+          {t("patient_sweep.booking_visit_type", "Visit type")}
+        </Label>
         <div className="grid grid-cols-3 gap-2">
           {(["clinic", "home", "online"] as const).filter(vt => {
             if (!serviceLocationMode) return true;
@@ -853,9 +873,11 @@ export function BookingCanvas({
       </div>
 
       <div>
-        <Label className="text-sm font-medium mb-1.5 block">Additional notes</Label>
+        <Label className="text-sm font-medium mb-1.5 block">
+          {t("patient_sweep.booking_additional_notes", "Additional notes")}
+        </Label>
         <Textarea
-          placeholder="Anything else the provider should know (optional)…"
+          placeholder={t("patient_sweep.booking_notes_placeholder", "Anything else the provider should know (optional)…")}
           value={values.notes}
           onChange={e => setValues(v => ({ ...v, notes: e.target.value }))}
           rows={3}
@@ -867,7 +889,7 @@ export function BookingCanvas({
       {values.visitType === "home" && (
         <div className="space-y-3">
           <Label className="text-sm font-medium mb-1.5 block">
-            Home address <span className="text-destructive">*</span>
+            {t("patient_sweep.booking_home_address", "Home address")} <span className="text-destructive">*</span>
           </Label>
           {/* Saved-address picker — lets returning patients reuse a stored address */}
           <SavedAddressesPicker
@@ -904,11 +926,13 @@ export function BookingCanvas({
               }));
               onLocationChange?.({ latitude: structured?.latitude, longitude: structured?.longitude });
             }}
-            placeholder={selectedSavedAddressId ? "Or type a different address…" : "Full address for home visit"}
+            placeholder={selectedSavedAddressId
+              ? t("patient_sweep.booking_different_address", "Or type a different address…")
+              : t("patient_sweep.booking_full_home_address", "Full address for home visit")}
             data-testid="input-patient-address"
           />
           <p className="text-xs text-muted-foreground">
-            We'll share this with your provider once the booking is confirmed.
+            {t("patient_sweep.booking_address_shared", "We'll share this with your provider once the booking is confirmed.")}
           </p>
 
           {/* Coverage status banner — shown once an address with coords is selected */}
@@ -917,7 +941,7 @@ export function BookingCanvas({
               {coverageChecking && (
                 <div className="flex items-center gap-2 text-xs text-muted-foreground py-1">
                   <Loader2 className="h-3 w-3 animate-spin" />
-                  Checking coverage…
+                  {t("patient_sweep.booking_checking_coverage", "Checking coverage…")}
                 </div>
               )}
               {!coverageChecking && coverageResult && coverageResult.isEligible && (
@@ -927,15 +951,22 @@ export function BookingCanvas({
                 >
                   <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
                   <div className="text-xs text-emerald-700 dark:text-emerald-400">
-                    <p className="font-medium">Provider covers your location</p>
+                    <p className="font-medium">
+                      {t("patient_sweep.booking_coverage_ok", "Provider covers your location")}
+                    </p>
                     {coverageResult.distanceKm > 0 && coverageResult.providerRadiusKm > 0 && (
                       <p className="text-emerald-600/80 dark:text-emerald-500">
-                        {coverageResult.distanceKm.toFixed(1)} km away · within {coverageResult.providerRadiusKm} km service area
+                        {t("patient_sweep.booking_within_area", "{{distance}} km away · within {{radius}} km service area", {
+                          distance: coverageResult.distanceKm.toFixed(1),
+                          radius: coverageResult.providerRadiusKm,
+                        })}
                       </p>
                     )}
                     {coverageResult.providerRadiusKm === 0 && coverageResult.distanceKm > 0 && (
                       <p className="text-emerald-600/80 dark:text-emerald-500">
-                        {coverageResult.distanceKm.toFixed(1)} km away · no distance restriction
+                        {t("patient_sweep.booking_no_distance_limit", "{{distance}} km away · no distance restriction", {
+                          distance: coverageResult.distanceKm.toFixed(1),
+                        })}
                       </p>
                     )}
                   </div>
@@ -948,9 +979,12 @@ export function BookingCanvas({
                 >
                   <AlertCircle className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
                   <div className="text-xs text-destructive">
-                    <p className="font-medium">Outside provider's service area</p>
+                    <p className="font-medium">{t("patient_sweep.booking_outside_area", "Outside provider's service area")}</p>
                     <p className="text-destructive/80">
-                      You are {coverageResult.distanceKm.toFixed(1)} km away — this provider covers up to {coverageResult.providerRadiusKm} km. Please enter a closer address or choose a different provider.
+                      {t("patient_sweep.booking_outside_area_desc", "You are {{distance}} km away — this provider covers up to {{radius}} km. Please enter a closer address or choose a different provider.", {
+                        distance: coverageResult.distanceKm.toFixed(1),
+                        radius: coverageResult.providerRadiusKm,
+                      })}
                     </p>
                   </div>
                 </div>
@@ -969,20 +1003,20 @@ export function BookingCanvas({
       <div className="rounded-xl bg-muted/50 border border-border/60 p-4 space-y-3">
         <div className="flex items-center gap-2 mb-1">
           <Stethoscope className="h-4 w-4 text-primary" />
-          <h3 className="text-sm font-semibold">Booking Summary</h3>
+          <h3 className="text-sm font-semibold">{t("patient_sweep.booking_summary", "Booking summary")}</h3>
         </div>
         <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs text-muted-foreground">
-          <span>Provider</span>
+          <span>{t("patient_sweep.booking_provider", "Provider")}</span>
           <span className="text-foreground font-medium truncate">{provider?.displayName}</span>
           {slot && <>
-            <span>Date</span>
+            <span>{t("patient_sweep.booking_date", "Date")}</span>
             <span className="text-foreground font-medium">{formatDate(slot.date)}</span>
-            <span>Time</span>
+            <span>{t("patient_sweep.booking_time", "Time")}</span>
             <span className="text-foreground font-medium">{slot.startTime} – {slot.endTime}</span>
           </>}
-          <span>Visit type</span>
+          <span>{t("patient_sweep.booking_visit_type", "Visit type")}</span>
           <span className="text-foreground font-medium capitalize">{values.visitType}</span>
-          <span>Reason</span>
+          <span>{t("patient_sweep.booking_reason", "Reason")}</span>
           <span className="text-foreground font-medium truncate">{values.reason}</span>
         </div>
       </div>
@@ -991,13 +1025,13 @@ export function BookingCanvas({
       <div className="space-y-2">
         <h3 className="text-sm font-semibold flex items-center gap-2">
           <Users className="h-4 w-4 text-primary" />
-          Who is this appointment for?
+          {t("patient_sweep.booking_for", "Who is this appointment for?")}
         </h3>
 
         {familyLoading ? (
           <div className="flex items-center gap-2 text-xs text-muted-foreground py-2">
             <Loader2 className="h-3 w-3 animate-spin" />
-            Loading profiles…
+            {t("patient_sweep.booking_loading_profiles", "Loading profiles…")}
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-2">
@@ -1018,7 +1052,7 @@ export function BookingCanvas({
               )}>
                 <User className="h-4 w-4" />
               </div>
-              <p className="text-xs font-semibold mt-0.5">Myself</p>
+              <p className="text-xs font-semibold mt-0.5">{t("patient_sweep.booking_myself", "Myself")}</p>
               {defaultContactName && (
                 <p className="text-[10px] text-muted-foreground truncate w-full">{defaultContactName}</p>
               )}
@@ -1069,7 +1103,9 @@ export function BookingCanvas({
             >
               <UserPlus className="h-5 w-5" />
               <p className="text-xs font-medium text-center leading-tight">
-                {showAddForm ? "Cancel" : "+ Add New\nFamily Member"}
+                {showAddForm
+                  ? t("patient_sweep.booking_cancel", "Cancel")
+                  : t("patient_sweep.booking_add_family", "+ Add new family member")}
               </p>
             </button>
           </div>
@@ -1087,15 +1123,17 @@ export function BookingCanvas({
               className="overflow-hidden"
             >
               <div className="rounded-xl border border-primary/30 bg-primary/5 p-4 space-y-3 mt-2">
-                <p className="text-xs font-semibold text-primary">New Family Member</p>
+                <p className="text-xs font-semibold text-primary">
+                  {t("patient_sweep.booking_new_family", "New family member")}
+                </p>
 
                 <div className="grid grid-cols-2 gap-2">
                   <div>
                     <Label className="text-xs text-muted-foreground mb-1 block">
-                      First name <span className="text-destructive">*</span>
+                      {t("patient_sweep.booking_first_name", "First name")} <span className="text-destructive">*</span>
                     </Label>
                     <Input
-                      placeholder="First name"
+                      placeholder={t("patient_sweep.booking_first_name", "First name")}
                       value={newMember.firstName}
                       onChange={e => setNewMember(m => ({ ...m, firstName: e.target.value }))}
                       data-testid="input-new-member-firstname"
@@ -1103,10 +1141,10 @@ export function BookingCanvas({
                   </div>
                   <div>
                     <Label className="text-xs text-muted-foreground mb-1 block">
-                      Last name <span className="text-destructive">*</span>
+                      {t("patient_sweep.booking_last_name", "Last name")} <span className="text-destructive">*</span>
                     </Label>
                     <Input
-                      placeholder="Last name"
+                      placeholder={t("patient_sweep.booking_last_name", "Last name")}
                       value={newMember.lastName}
                       onChange={e => setNewMember(m => ({ ...m, lastName: e.target.value }))}
                       data-testid="input-new-member-lastname"
@@ -1116,7 +1154,9 @@ export function BookingCanvas({
 
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <Label className="text-xs text-muted-foreground mb-1 block">Date of birth</Label>
+                  <Label className="text-xs text-muted-foreground mb-1 block">
+                    {t("patient_sweep.booking_date_of_birth", "Date of birth")}
+                  </Label>
                     <Input
                       type="date"
                       value={newMember.dateOfBirth}
@@ -1125,7 +1165,9 @@ export function BookingCanvas({
                     />
                   </div>
                   <div>
-                    <Label className="text-xs text-muted-foreground mb-1 block">Gender</Label>
+                  <Label className="text-xs text-muted-foreground mb-1 block">
+                    {t("patient_sweep.booking_gender", "Gender")}
+                  </Label>
                     {/* Native select avoids Radix SelectItem empty-value crash */}
                     <select
                       value={newMember.gender}
@@ -1133,17 +1175,17 @@ export function BookingCanvas({
                       data-testid="select-new-member-gender"
                       className="w-full h-9 rounded-md border border-input bg-background px-3 text-xs ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring"
                     >
-                      <option value="">Select…</option>
-                      <option value="male">Male</option>
-                      <option value="female">Female</option>
-                      <option value="other">Other</option>
+                      <option value="">{t("patient_sweep.booking_select", "Select…")}</option>
+                      <option value="male">{t("patient_sweep.booking_male", "Male")}</option>
+                      <option value="female">{t("patient_sweep.booking_female", "Female")}</option>
+                      <option value="other">{t("patient_sweep.booking_other", "Other")}</option>
                     </select>
                   </div>
                 </div>
 
                 <div>
                   <Label className="text-xs text-muted-foreground mb-1 block">
-                    Relationship <span className="text-destructive">*</span>
+                    {t("patient_sweep.booking_relationship", "Relationship")} <span className="text-destructive">*</span>
                   </Label>
                   <select
                     value={newMember.relationship}
@@ -1151,10 +1193,10 @@ export function BookingCanvas({
                     data-testid="select-new-member-relationship"
                     className="w-full h-9 rounded-md border border-input bg-background px-3 text-xs ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring"
                   >
-                    <option value="spouse">Spouse</option>
-                    <option value="child">Child</option>
-                    <option value="parent">Parent</option>
-                    <option value="dependent">Dependent</option>
+                    <option value="spouse">{t("patient_sweep.booking_spouse", "Spouse")}</option>
+                    <option value="child">{t("patient_sweep.booking_child", "Child")}</option>
+                    <option value="parent">{t("patient_sweep.booking_parent", "Parent")}</option>
+                    <option value="dependent">{t("patient_sweep.booking_dependent", "Dependent")}</option>
                   </select>
                 </div>
 
@@ -1170,9 +1212,9 @@ export function BookingCanvas({
                   data-testid="btn-save-new-member"
                 >
                   {addMemberMut.isPending ? (
-                    <><Loader2 className="h-3 w-3 animate-spin mr-2" />Saving…</>
+                    <><Loader2 className="h-3 w-3 animate-spin mr-2" />{t("common.saving", "Saving…")}</>
                   ) : (
-                    <><CheckCircle2 className="h-3 w-3 mr-2" />Save & Select</>
+                    <><CheckCircle2 className="h-3 w-3 mr-2" />{t("patient_sweep.booking_save_select", "Save & select")}</>
                   )}
                 </Button>
               </div>
@@ -1183,21 +1225,25 @@ export function BookingCanvas({
 
       {/* Contact information — autofilled by selection, still editable */}
       <div className="space-y-3">
-        <h3 className="text-sm font-semibold">Contact Information</h3>
+        <h3 className="text-sm font-semibold">
+          {t("patient_sweep.booking_contact_information", "Contact information")}
+        </h3>
         <div className="grid grid-cols-2 gap-3">
           <div>
             <Label className="text-xs text-muted-foreground mb-1 block">
-              Full name <span className="text-destructive">*</span>
+              {t("patient_sweep.booking_full_name", "Full name")} <span className="text-destructive">*</span>
             </Label>
             <Input
-              placeholder="Your full name"
+              placeholder={t("patient_sweep.booking_your_full_name", "Your full name")}
               value={values.contactName}
               onChange={e => setValues(v => ({ ...v, contactName: e.target.value }))}
               data-testid="input-contact-name"
             />
           </div>
           <div>
-            <Label className="text-xs text-muted-foreground mb-1 block">Mobile number</Label>
+            <Label className="text-xs text-muted-foreground mb-1 block">
+              {t("patient_sweep.booking_mobile_number", "Mobile number")}
+            </Label>
             <Input
               placeholder="+1 555 000 0000"
               value={values.contactMobile}
@@ -1209,11 +1255,11 @@ export function BookingCanvas({
         {selectedFor !== "self" && (
           <p className="text-xs text-primary/80 flex items-center gap-1">
             <CheckCircle2 className="h-3 w-3" />
-            Booking on behalf of{" "}
+            {t("patient_sweep.booking_on_behalf", "Booking on behalf of")}{" "}
             <span className="font-semibold">
               {familyMembers.find(m => m.id === selectedFor)
                 ? `${familyMembers.find(m => m.id === selectedFor)!.firstName} ${familyMembers.find(m => m.id === selectedFor)!.lastName}`
-                : "family member"}
+                : t("patient_sweep.booking_family_member", "family member")}
             </span>
           </p>
         )}
@@ -1221,7 +1267,9 @@ export function BookingCanvas({
 
       {/* Consent */}
       <div className="space-y-3">
-        <h3 className="text-sm font-semibold">Consent & Agreements</h3>
+        <h3 className="text-sm font-semibold">
+          {t("patient_sweep.booking_consent_agreements", "Consent & agreements")}
+        </h3>
 
         <label className="flex items-start gap-3 cursor-pointer group" data-testid="check-consent-terms">
           <Checkbox
@@ -1230,11 +1278,11 @@ export function BookingCanvas({
             className="mt-0.5 shrink-0"
           />
           <span className="text-sm text-muted-foreground group-hover:text-foreground transition-colors leading-snug">
-            I agree to the{" "}
+            {t("patient_sweep.booking_agree_to", "I agree to the")}{" "}
             <a href="/terms" target="_blank" className="text-primary underline underline-offset-2">
-              Terms of Service
+              {t("patient_sweep.booking_terms", "Terms of Service")}
             </a>{" "}
-            and cancellation policy for this appointment.
+            {t("patient_sweep.booking_cancellation_policy", "and cancellation policy for this appointment.")}
           </span>
         </label>
 
@@ -1245,9 +1293,9 @@ export function BookingCanvas({
             className="mt-0.5 shrink-0"
           />
           <span className="text-sm text-muted-foreground group-hover:text-foreground transition-colors leading-snug">
-            I consent to my health information being shared with this provider for the purpose of this appointment, in accordance with our{" "}
+            {t("patient_sweep.booking_health_consent", "I consent to my health information being shared with this provider for the purpose of this appointment, in accordance with our")}{" "}
             <a href="/privacy" target="_blank" className="text-primary underline underline-offset-2">
-              Privacy Policy
+              {t("patient_sweep.booking_privacy", "Privacy Policy")}
             </a>.
           </span>
         </label>
@@ -1277,20 +1325,24 @@ export function BookingCanvas({
             <div className="flex items-center gap-1.5 text-xs">
               <Crown className="h-3.5 w-3.5 text-violet-600 dark:text-violet-400 shrink-0" />
               <span className="font-medium text-violet-700 dark:text-violet-300">{activePkgs[0].packageName}</span>
-              <span className="text-violet-500 dark:text-violet-400">— active membership</span>
+              <span className="text-violet-500 dark:text-violet-400">
+                {t("patient_sweep.booking_active_membership", "— active membership")}
+              </span>
             </div>
             {activePkgs[0].benefits && activePkgs[0].benefits.length > 0 && (
               <ul className="pl-5 space-y-0.5">
                 {activePkgs[0].benefits.map((b) => {
                   const val = Number(b.value);
                   const label =
-                    b.key === "service_discount_percent" ? `${val}% service discount` :
-                    b.key === "platform_fee_discount"    ? `${val}% platform fee discount` :
+                    b.key === "service_discount_percent"
+                      ? t("patient_sweep.booking_service_discount", "{{value}}% service discount", { value: val }) :
+                    b.key === "platform_fee_discount"
+                      ? `${val}% ${t("patient_sweep.booking_fee_discount", "platform fee discount")}` :
                     b.key === "wallet_bonus"             ? `${fmt(val)} wallet bonus` :
                     b.key === "reduced_commission"       ? `${val}% reduced commission` :
-                    b.key === "free_cancellations"       ? `Free cancellations` :
-                    b.key === "priority_support"         ? `Priority support` :
-                    b.key === "featured_provider"        ? `Featured listing` :
+                    b.key === "free_cancellations"       ? t("common.free_cancellations", "Free cancellations") :
+                    b.key === "priority_support"         ? t("common.priority_support", "Priority support") :
+                    b.key === "featured_provider"        ? t("common.featured_listing", "Featured listing") :
                     `${b.key}: ${b.value}`;
                   return (
                     <li key={b.key} className="text-[11px] text-violet-600 dark:text-violet-400 list-disc">
@@ -1325,31 +1377,37 @@ export function BookingCanvas({
                   isDiscount && "font-medium",
                   isZero && "italic",
                 )}>
-                  {isZero ? "Included" : `${isDiscount ? "−" : ""}${fmt(Math.abs(amount))}`}
+                  {isZero
+                    ? t("patient_sweep.booking_included", "Included")
+                    : `${isDiscount ? "−" : ""}${fmt(Math.abs(amount))}`}
                 </span>
               </div>
             );
           }) : (
             <>
               <div className="flex items-center justify-between text-xs text-muted-foreground">
-                <span>Base price</span>
+                <span>{t("patient_sweep.booking_base_price", "Base price")}</span>
                 <span>{fmt(breakdown?.base ?? totalDue)}</span>
               </div>
               {(breakdown?.platformFee ?? 0) > 0 && (
                 <div className="flex items-center justify-between text-xs text-muted-foreground">
-                  <span>Platform fee</span>
+                  <span>{t("patient_sweep.booking_platform_fee", "Platform fee")}</span>
                   <span>{fmt(breakdown!.platformFee!)}</span>
                 </div>
               )}
               {(breakdown?.serviceTaxAmount ?? 0) > 0 && (
                 <div className="flex items-center justify-between text-xs text-muted-foreground">
-                  <span>Service tax ({Number(breakdown?.serviceTaxRate ?? 0)}%)</span>
+                  <span>{t("patient_sweep.booking_service_tax", "Service tax ({{rate}}%)", {
+                    rate: Number(breakdown?.serviceTaxRate ?? 0),
+                  })}</span>
                   <span>{fmt(breakdown!.serviceTaxAmount!)}</span>
                 </div>
               )}
               {(breakdown?.platformTaxAmount ?? 0) > 0 && (
                 <div className="flex items-center justify-between text-xs text-muted-foreground">
-                  <span>Platform tax ({Number(breakdown?.platformTaxRate ?? 0)}%)</span>
+                  <span>{t("patient_sweep.booking_platform_tax", "Platform tax ({{rate}}%)", {
+                    rate: Number(breakdown?.platformTaxRate ?? 0),
+                  })}</span>
                   <span>{fmt(breakdown!.platformTaxAmount!)}</span>
                 </div>
               )}
@@ -1357,7 +1415,7 @@ export function BookingCanvas({
                 (breakdown?.serviceTaxAmount ?? 0) === 0 &&
                 (breakdown?.platformTaxAmount ?? 0) === 0 && (
                   <div className="flex items-center justify-between text-xs text-muted-foreground">
-                    <span>Total tax</span>
+                    <span>{t("patient_sweep.booking_total_tax", "Total tax")}</span>
                     <span>{fmt(breakdown!.tax!)}</span>
                   </div>
                 )}
@@ -1369,7 +1427,9 @@ export function BookingCanvas({
           )}
           {/* Total due */}
           <div className="flex items-center justify-between">
-            <span className="text-sm font-semibold">Total due</span>
+            <span className="text-sm font-semibold">
+              {t("patient_sweep.booking_total_due", "Total due")}
+            </span>
             <span className="text-lg font-bold text-primary">
               {fmt(totalDue)}
             </span>
@@ -1378,7 +1438,7 @@ export function BookingCanvas({
 
         <div className="flex items-center justify-between text-xs text-muted-foreground">
           <span>
-            Wallet balance:{" "}
+            {t("patient_sweep.booking_wallet_balance", "Wallet balance")}:{" "}
             {/* walletBalance is always in USD — always convert from USD regardless of pricing mode */}
             {formatPrice ? formatPrice(walletBalance) : formatInCurrency(walletBalance, "USD")}
           </span>
@@ -1389,15 +1449,19 @@ export function BookingCanvas({
             data-testid="button-topup-wallet"
           >
             <PlusCircle className="h-3.5 w-3.5" />
-            Top up
+            {t("patient_sweep.booking_top_up", "Top up")}
           </button>
         </div>
         {walletInUnits < discountedTotal && discountedTotal > 0 && (
           <div className="rounded-lg border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/30 px-3 py-2.5 flex items-center justify-between gap-3">
             <div className="text-xs text-amber-800 dark:text-amber-300">
-              <p className="font-medium">Not enough balance to cover this booking</p>
+            <p className="font-medium">
+              {t("patient_sweep.booking_not_enough_balance", "Not enough balance to cover this booking")}
+            </p>
               <p className="mt-0.5 text-amber-700 dark:text-amber-400">
-                You need {fmt(discountedTotal - walletInUnits)} more to pay fully with wallet.
+              {t("patient_sweep.booking_need_more", "You need {{amount}} more to pay fully with wallet.", {
+                amount: fmt(discountedTotal - walletInUnits),
+              })}
               </p>
             </div>
             <button
@@ -1407,18 +1471,18 @@ export function BookingCanvas({
               data-testid="button-topup-wallet-nudge"
             >
               <PlusCircle className="h-3.5 w-3.5" />
-              Top up
+              {t("patient_sweep.booking_top_up", "Top up")}
             </button>
           </div>
         )}
         {selectedFor !== "self" && (
           <div className="mt-1 text-xs text-primary/80 flex items-center gap-1">
             <Users className="h-3 w-3" />
-            Booking for:{" "}
+            {t("patient_sweep.booking_for_label", "Booking for:")}{" "}
             <span className="font-semibold">
               {familyMembers.find(m => m.id === selectedFor)
                 ? `${familyMembers.find(m => m.id === selectedFor)!.firstName} ${familyMembers.find(m => m.id === selectedFor)!.lastName}`
-                : "family member"}
+                : t("patient_sweep.booking_family_member", "family member")}
             </span>
           </div>
         )}
@@ -1426,13 +1490,19 @@ export function BookingCanvas({
 
       {/* Promo code input */}
       <div className="space-y-1.5">
-        <p className="text-sm font-medium">Promo code</p>
+        <p className="text-sm font-medium">
+          {t("patient_sweep.booking_promo_code", "Promo code")}
+        </p>
         {promoResult ? (
           <div className="flex items-center gap-2 rounded-lg border border-emerald-300 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-950/30 px-3 py-2">
             <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
             <span className="text-sm font-medium text-emerald-700 dark:text-emerald-300 flex-1">
-              Code <span className="font-mono">{promoResult.code}</span> — saving{" "}
-              {quoteIncludesPromo ? fmt(promoDiscount) : "recalculating…"}
+              {quoteIncludesPromo
+                ? t("patient_sweep.booking_code_saving", "Code {{code}} — saving {{amount}}", {
+                    code: promoResult.code,
+                    amount: fmt(promoDiscount),
+                  })
+                : t("patient_sweep.booking_recalculating", "recalculating…")}
             </span>
             <button
               type="button"
@@ -1445,7 +1515,7 @@ export function BookingCanvas({
               }}
               className="text-emerald-600 dark:text-emerald-400 hover:text-emerald-800 dark:hover:text-emerald-200"
               data-testid="button-remove-promo"
-              aria-label="Remove promo code"
+              aria-label={t("patient_sweep.booking_remove_promo", "Remove promo code")}
             >
               <X className="h-4 w-4" />
             </button>
@@ -1453,7 +1523,7 @@ export function BookingCanvas({
         ) : (
           <div className="flex gap-2">
             <Input
-              placeholder="Enter promo code"
+              placeholder={t("patient_sweep.booking_enter_promo", "Enter promo code")}
               value={promoEntry}
               onChange={e => { setPromoEntry(e.target.value.toUpperCase()); setPromoError(""); }}
               className="font-mono uppercase tracking-widest"
@@ -1468,7 +1538,9 @@ export function BookingCanvas({
               onClick={() => validatePromoMut.mutate(promoEntry.trim())}
               data-testid="button-apply-promo"
             >
-              {validatePromoMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Apply"}
+              {validatePromoMut.isPending
+                ? <Loader2 className="h-4 w-4 animate-spin" />
+                : t("patient_sweep.booking_apply", "Apply")}
             </Button>
           </div>
         )}
@@ -1481,7 +1553,9 @@ export function BookingCanvas({
       </div>
 
       <div className="space-y-2">
-        <h3 className="text-sm font-semibold">Payment method</h3>
+        <h3 className="text-sm font-semibold">
+          {t("patient_sweep.booking_payment_method", "Payment method")}
+        </h3>
 
         {/* Registry-driven payment methods */}
         {registryProviders.map(provider => {
@@ -1498,16 +1572,20 @@ export function BookingCanvas({
 
           const Icon = isWallet ? Wallet : isCard ? CreditCard : isCash ? Tag : AlertCircle;
           const title = isWallet
-            ? "Pay with Wallet"
+            ? t("patient_sweep.booking_pay_wallet", "Pay with Wallet")
             : isCash
-            ? "Pay Cash"
+            ? t("patient_sweep.booking_pay_cash", "Pay Cash")
             : isBankTransfer
-            ? "Bank Transfer"
+            ? t("patient_sweep.booking_bank_transfer", "Bank Transfer")
             : provider.label;
           const subtitle = isWallet
             ? walletInUnits >= discountedTotal
-              ? `Use ${fmt(discountedTotal)} from your balance — instant confirmation`
-              : `Apply ${fmt(walletInUnits)} wallet credit — remainder via card`
+              ? t("patient_sweep.booking_wallet_use", "Use {{amount}} from your balance — instant confirmation", {
+                  amount: fmt(discountedTotal),
+                })
+              : t("patient_sweep.booking_wallet_apply", "Apply {{amount}} wallet credit — remainder via card", {
+                  amount: fmt(walletInUnits),
+                })
             : provider.description;
 
           return (
@@ -1565,11 +1643,17 @@ export function BookingCanvas({
               <Wallet className="h-4 w-4" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium">Pay with Wallet</p>
+              <p className="text-sm font-medium">
+                {t("patient_sweep.booking_pay_wallet", "Pay with Wallet")}
+              </p>
               <p className="text-xs text-muted-foreground truncate">
                 {walletInUnits >= discountedTotal
-                  ? `Use ${fmt(discountedTotal)} from your balance — instant confirmation`
-                  : `Apply ${fmt(walletInUnits)} wallet credit — remainder via card`}
+                  ? t("patient_sweep.booking_wallet_use", "Use {{amount}} from your balance — instant confirmation", {
+                      amount: fmt(discountedTotal),
+                    })
+                  : t("patient_sweep.booking_wallet_apply", "Apply {{amount}} wallet credit — remainder via card", {
+                      amount: fmt(walletInUnits),
+                    })}
               </p>
             </div>
             {values.payMethod === "wallet" && (
@@ -1600,8 +1684,12 @@ export function BookingCanvas({
               <CreditCard className="h-4 w-4" />
             </div>
             <div>
-              <p className="text-sm font-medium">Pay by Card</p>
-              <p className="text-xs text-muted-foreground">Secure checkout</p>
+              <p className="text-sm font-medium">
+                {t("patient_sweep.booking_pay_card", "Pay by Card")}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {t("patient_sweep.booking_secure_checkout", "Secure checkout")}
+              </p>
             </div>
             {values.payMethod === "card" && (
               <CheckCircle2 className="h-4 w-4 text-primary ml-auto shrink-0" />
@@ -1613,7 +1701,7 @@ export function BookingCanvas({
       {values.payMethod === "cash" && (
         <div className="text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 rounded-lg p-3 flex items-start gap-2">
           <AlertCircle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
-          <span>Your booking will be pending until the provider confirms receipt of payment at the appointment.</span>
+          <span>{t("patient_sweep.booking_cash_pending", "Your booking will be pending until the provider confirms receipt of payment at the appointment.")}</span>
         </div>
       )}
 
@@ -1621,17 +1709,27 @@ export function BookingCanvas({
         <div className="text-xs text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/30 rounded-lg p-3 flex items-start gap-2">
           <AlertCircle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
           <div className="space-y-1">
-            <p className="font-medium">Bank Transfer Instructions</p>
-            <p>Transfer {fmt(discountedTotal)} to the bank account details that will be provided in your booking confirmation. Your appointment will be confirmed once the provider verifies receipt of payment.</p>
-            <p className="text-amber-600 dark:text-amber-400 font-medium">⚠ Your slot is reserved for 48 hours — please transfer promptly to secure your appointment.</p>
+            <p className="font-medium">
+              {t("patient_sweep.booking_bank_instructions", "Bank Transfer Instructions")}
+            </p>
+            <p>{t("patient_sweep.booking_bank_details", "Transfer {{amount}} to the bank account details that will be provided in your booking confirmation. Your appointment will be confirmed once the provider verifies receipt of payment.", {
+              amount: fmt(discountedTotal),
+            })}</p>
+            <p className="text-amber-600 dark:text-amber-400 font-medium">
+              ⚠ {t("patient_sweep.booking_bank_reserved", "Your slot is reserved for 48 hours — please transfer promptly to secure your appointment.")}
+            </p>
           </div>
         </div>
       )}
 
       {values.payMethod === "wallet" && walletInUnits < discountedTotal && (
         <div className="text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 rounded-lg p-3">
-          Your wallet covers {fmt(walletInUnits)} of the total.
-          The remaining {fmt(remainder)} will be charged by card.
+          {t("patient_sweep.booking_wallet_covers", "Your wallet covers {{amount}} of the total.", {
+            amount: fmt(walletInUnits),
+          })}{" "}
+          {t("patient_sweep.booking_remaining_card", "The remaining {{amount}} will be charged by card.", {
+            amount: fmt(remainder),
+          })}
         </div>
       )}
     </div>
@@ -1650,7 +1748,7 @@ export function BookingCanvas({
       >
         <SheetHeader className="px-5 pt-5 pb-4 border-b border-border/60 shrink-0">
           <SheetTitle className="text-base font-semibold">
-            Confirm Appointment
+            {t("patient_sweep.booking_confirm_title", "Confirm appointment")}
           </SheetTitle>
         </SheetHeader>
 
@@ -1685,7 +1783,9 @@ export function BookingCanvas({
             data-testid="btn-booking-back"
           >
             <ChevronLeft className="h-4 w-4 mr-1" />
-            {step === 0 ? "Cancel" : "Back"}
+            {step === 0
+              ? t("patient_sweep.booking_cancel", "Cancel")
+              : t("patient_sweep.booking_back", "Back")}
           </Button>
 
           {step < 2 ? (
@@ -1695,7 +1795,7 @@ export function BookingCanvas({
               disabled={!canAdvance(step)}
               data-testid="btn-booking-next"
             >
-              Continue
+              {t("patient_sweep.booking_continue", "Continue")}
               <ChevronRight className="h-4 w-4 ml-1" />
             </Button>
           ) : (
@@ -1706,10 +1806,10 @@ export function BookingCanvas({
               data-testid="btn-booking-confirm"
             >
                {isSubmitting
-                 ? "Confirming…"
+                 ? t("patient_sweep.booking_confirming", "Confirming…")
                  : quoteLoading
-                   ? "Updating price…"
-                   : "Confirm Booking"}
+                   ? t("patient_sweep.booking_updating_price", "Updating price…")
+                   : t("patient_sweep.booking_confirm", "Confirm booking")}
               {!isSubmitting && <CheckCircle2 className="h-4 w-4 ml-1" />}
             </Button>
           )}

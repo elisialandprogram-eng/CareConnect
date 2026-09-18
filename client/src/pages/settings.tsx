@@ -125,7 +125,10 @@ export default function Settings() {
       apiRequest("PATCH", "/api/auth/profile", { timezone: timezone || null }),
     onSuccess: async () => {
       await refreshUser();
-      toast({ title: "Time zone updated", description: "Appointment times will now be shown in your chosen time zone." });
+      toast({
+        title: t("patient_sweep.settings_timezone_updated", "Time zone updated"),
+        description: t("patient_sweep.settings_timezone_updated_desc", "Appointment times will now be shown in your chosen time zone."),
+      });
     },
     onError: (e: any) =>
       showErrorModal({ title: t("settings_page.timezone_update_failed"), description: e?.message, context: "settings.timezone" }),
@@ -183,7 +186,7 @@ export default function Settings() {
       });
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.message || "Failed to change password");
+        throw new Error(error.message || t("patient_sweep.settings_change_password_failed", "Couldn't change password"));
       }
       return response.json();
     },
@@ -196,7 +199,7 @@ export default function Settings() {
     },
     onError: (error: Error) => {
       showErrorModal({
-        title: "Couldn't change password",
+        title: t("patient_sweep.settings_change_password_failed", "Couldn't change password"),
         description: error.message,
         context: "settings.changePassword",
       });
@@ -405,9 +408,9 @@ export default function Settings() {
                     apiRequest("PATCH", "/api/auth/profile", { languagePreference: lng }).then(() => refreshUser());
                   }}
                 >
-                  <option value="en">English</option>
-                  <option value="hu">Magyar (Hungarian)</option>
-                  <option value="fa">فارسی (Persian)</option>
+                  <option value="en">{t("patient_sweep.language_english", "English")}</option>
+                  <option value="hu">Magyar ({t("patient_sweep.language_hungarian", "Hungarian")})</option>
+                  <option value="fa">فارسی ({t("patient_sweep.language_persian", "Persian")})</option>
                 </select>
               </div>
             </CardContent>
@@ -478,14 +481,14 @@ export default function Settings() {
               <CardHeader>
                 <div className="flex items-center gap-2">
                   <Clock className="h-5 w-5 text-primary" />
-                  <CardTitle className="text-lg">Time Zone</CardTitle>
+                  <CardTitle className="text-lg">{t("patient_sweep.settings_timezone_title", "Time zone")}</CardTitle>
                 </div>
                 <CardDescription>
                   Used to display appointment times and send reminders in your local time.
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <p className="font-medium mb-2">Your time zone</p>
+                <p className="font-medium mb-2">{t("patient_sweep.settings_timezone_label", "Your time zone")}</p>
                 <select
                   data-testid="select-timezone"
                   className="w-full border border-input rounded-md h-10 px-3 bg-background"
@@ -647,12 +650,12 @@ export default function Settings() {
               {user?.role === "patient" && (
                 <div className="pt-2 border-t">
                   <p className="text-sm text-muted-foreground mb-3">
-                    Manage your consent, authorization, and data permissions.
+                    {t("patient_sweep.settings_manage_consent_desc", "Manage your consent, authorization, and data permissions.")}
                   </p>
                   <Button variant="outline" size="sm" asChild data-testid="button-manage-consent">
                     <a href="/consent">
                       <Shield className="h-4 w-4 mr-2" />
-                      Manage Patient Consent
+                      {t("patient_sweep.settings_manage_consent", "Manage patient consent")}
                     </a>
                   </Button>
                 </div>

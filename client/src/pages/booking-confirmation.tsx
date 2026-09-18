@@ -494,7 +494,7 @@ export default function BookingConfirmation() {
                   <Link href="/appointments">{t("booking_confirmation.go_to_appointments", "Go to my appointments")}</Link>
                 </Button>
                 <Button variant="outline" asChild data-testid="button-go-home">
-                  <Link href="/">Home</Link>
+                  <Link href="/">{t("patient_sweep.confirmation_home", "Home")}</Link>
                 </Button>
               </div>
             </CardContent>
@@ -663,7 +663,7 @@ export default function BookingConfirmation() {
           <Card className="md:col-span-2" data-testid="card-appointment-details">
             <CardHeader>
               <div className="flex items-start justify-between gap-3">
-                <CardTitle>Appointment details</CardTitle>
+                <CardTitle>{t("patient_sweep.confirmation_details", "Appointment details")}</CardTitle>
                 <Badge
                   variant={
                     appt.status === "confirmed"
@@ -760,7 +760,7 @@ export default function BookingConfirmation() {
                 <div className="flex items-center justify-between bg-emerald-50 border border-emerald-300 rounded-lg px-4 py-3 mb-4" data-testid="banner-total-savings">
                   <div className="flex items-center gap-2">
                     <span className="text-lg">🎉</span>
-                    <span className="text-emerald-800 font-semibold text-sm">You saved on this booking!</span>
+                    <span className="text-emerald-800 font-semibold text-sm">{t("patient_sweep.confirmation_saved", "You saved on this booking!")}</span>
                   </div>
                   <span className="text-emerald-700 font-bold text-base">{fmtAmt(totalSavings)}</span>
                 </div>
@@ -783,7 +783,7 @@ export default function BookingConfirmation() {
                       {isDiscount
                         ? `−${fmtAmt(Math.abs(line.amount))}`
                         : isZero
-                        ? <span className="text-xs italic text-muted-foreground">Included</span>
+                        ? <span className="text-xs italic text-muted-foreground">{t("patient_sweep.confirmation_included", "Included")}</span>
                         : fmtAmt(line.amount)}
                     </span>
                   </div>
@@ -791,7 +791,7 @@ export default function BookingConfirmation() {
               })}
               <Separator className="my-3" />
               <div className="flex justify-between font-bold text-base">
-                <span>Total</span>
+                <span>{t("patient_sweep.confirmation_total", "Total")}</span>
                 <span data-testid="price-total" className="text-primary">{fmtAmt(total)}</span>
               </div>
               {displayPaymentStatus && (

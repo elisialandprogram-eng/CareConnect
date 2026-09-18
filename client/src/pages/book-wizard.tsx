@@ -101,19 +101,16 @@ function providerAvatarUrl(p?: Provider | null): string | undefined {
 
 const VISIT_ICONS = { clinic: Building2, home: Home, online: Video };
 
-const MODE_LABELS: Record<string, string> = {
-  clinic: "Clinic only", home: "Home only", online: "Online only",
-  home_clinic: "Home & Clinic", clinic_online: "Clinic & Online",
-  home_online: "Home & Online", all: "All modes",
-};
-
 /* ── Step indicator ──────────────────────────────────────────────── */
-const STEP_LABELS = ["Choose provider", "Choose service", "Pick a time"];
-
-function StepBar({ step }: { step: number }) {
+function StepBar({ step, t }: { step: number; t: (key: string, fallback: string) => string }) {
+  const stepLabels = [
+    t("patient_sweep.booking_step_provider", "Choose provider"),
+    t("patient_sweep.booking_step_service", "Choose service"),
+    t("patient_sweep.booking_step_time", "Pick a time"),
+  ];
   return (
     <div className="flex items-center gap-1 mb-8">
-      {STEP_LABELS.map((label, i) => (
+      {stepLabels.map((label, i) => (
         <div key={i} className="flex items-center gap-1.5">
           <div
             className={cn(
@@ -135,7 +132,7 @@ function StepBar({ step }: { step: number }) {
           >
             {label}
           </span>
-          {i < STEP_LABELS.length - 1 && (
+          {i < stepLabels.length - 1 && (
             <ChevronRight className="h-3.5 w-3.5 text-muted-foreground mx-1" />
           )}
         </div>
@@ -704,7 +701,7 @@ export default function BookWizard() {
 
         {/* Single-column content */}
         <div className="max-w-3xl mx-auto px-4 py-8">
-          <StepBar step={step} />
+          <StepBar step={step} t={t} />
 
           {/* ───────────── Step 0: Choose provider ───────────── */}
           {step === 0 && (
@@ -815,7 +812,7 @@ export default function BookWizard() {
                               </span>
                             )}
                             <span className="font-medium text-foreground">
-                              {fee ?? <span className="text-muted-foreground italic text-xs">Price varies</span>}
+                              {fee ?? <span className="text-muted-foreground italic text-xs">{t("patient_sweep.booking_price_varies", "Price varies")}</span>}
                             </span>
                           </div>
                         </div>
@@ -863,10 +860,16 @@ export default function BookWizard() {
                     const svcLocMode: string = (svc as any).locationMode ?? svc.subService?.locationMode ?? "both";
                     const modeLabel = (() => {
                       const parts: string[] = [];
-                      if (svcLocMode === "both" || svcLocMode === "all" || svcLocMode.includes("clinic")) parts.push("Clinic");
-                      if (svcLocMode === "both" || svcLocMode === "all" || svcLocMode.includes("home")) parts.push("Home");
-                      if (svcLocMode === "all" || svcLocMode.includes("online")) parts.push("Online");
-                      return parts.length > 0 ? parts.join(" · ") : (MODE_LABELS[svcLocMode] ?? svcLocMode);
+                      if (svcLocMode === "both" || svcLocMode === "all" || svcLocMode.includes("clinic")) {
+                        parts.push(t("patient_sweep.booking_mode_clinic", "Clinic"));
+                      }
+                      if (svcLocMode === "both" || svcLocMode === "all" || svcLocMode.includes("home")) {
+                        parts.push(t("patient_sweep.booking_mode_home", "Home"));
+                      }
+                      if (svcLocMode === "all" || svcLocMode.includes("online")) {
+                        parts.push(t("patient_sweep.booking_mode_online", "Online"));
+                      }
+                      return parts.length > 0 ? parts.join(" · ") : svcLocMode;
                     })();
                     return (
                       <button

@@ -141,6 +141,7 @@ function PackageCard({
   walletBalanceUSD?: number;
 }) {
   const { format: fmtMoney } = useCurrency();
+  const { t } = useTranslation();
   const price = Number(pkg.price);
   const isFree = price === 0;
 
@@ -153,7 +154,7 @@ function PackageCard({
     <Card className={`relative flex flex-col ${owned ? "ring-2 ring-green-400" : ""}`} data-testid={`card-pkg-${pkg.id}`}>
       {owned && (
         <div className="absolute top-3 right-3">
-          <Badge className="bg-green-500 text-white text-xs">Active</Badge>
+          <Badge className="bg-green-500 text-white text-xs">{t("patient_sweep.packages_active", "Active")}</Badge>
         </div>
       )}
       <CardHeader className="pb-3">
@@ -166,7 +167,7 @@ function PackageCard({
         <div className="flex items-center gap-2 flex-wrap mt-2">
           {pkg.countryCode
             ? <span className="flex items-center gap-1 text-xs text-muted-foreground"><MapPin className="h-3 w-3" />{pkg.countryCode}</span>
-            : <span className="flex items-center gap-1 text-xs text-muted-foreground"><Globe className="h-3 w-3" />Global</span>
+            : <span className="flex items-center gap-1 text-xs text-muted-foreground"><Globe className="h-3 w-3" />{t("patient_sweep.packages_global", "Global")}</span>
           }
           <span className="flex items-center gap-1 text-xs text-muted-foreground"><Clock className="h-3 w-3" />{pkg.durationDays} days</span>
         </div>
@@ -175,7 +176,7 @@ function PackageCard({
         {/* Benefits */}
         <div className="flex flex-wrap gap-1.5">
           {pkg.benefits.length === 0
-            ? <span className="text-xs text-muted-foreground">No specific benefits listed.</span>
+            ? <span className="text-xs text-muted-foreground">{t("patient_sweep.packages_no_benefits", "No specific benefits listed.")}</span>
             : pkg.benefits.map((b, i) => <BenefitPill key={i} benefit={b} />)
           }
         </div>
@@ -183,7 +184,7 @@ function PackageCard({
         {/* Price & buy */}
         <div className="mt-auto pt-3 border-t space-y-2">
           <p className="text-2xl font-bold tabular-nums">
-            {isFree ? <span className="text-green-600">Free</span> : fmtMoney(price)}
+            {isFree ? <span className="text-green-600">{t("patient_sweep.packages_free", "Free")}</span> : fmtMoney(price)}
           </p>
           {!owned && (
             <div className="flex gap-2 flex-wrap">
@@ -193,7 +194,9 @@ function PackageCard({
                 data-testid={`button-buy-card-${pkg.id}`}
               >
                 <CreditCard className="h-4 w-4 mr-1.5" />
-                {isFree ? "Get Free" : "Pay by Card"}
+                {isFree
+                  ? t("patient_sweep.packages_get_free", "Get free")
+                  : t("patient_sweep.booking_pay_card", "Pay by Card")}
               </Button>
               {!isFree && (
                 <div className="flex-1 space-y-1">

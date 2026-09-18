@@ -652,7 +652,7 @@ export default function AppointmentDetails() {
                 <div className="flex items-center justify-between bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-700 rounded-lg px-3 py-2.5 mt-3" data-testid="banner-total-savings">
                   <div className="flex items-center gap-2">
                     <span>🎉</span>
-                    <span className="text-emerald-700 dark:text-emerald-400 font-semibold text-sm">You saved on this booking</span>
+                    <span className="text-emerald-700 dark:text-emerald-400 font-semibold text-sm">{t("patient_sweep.appointment_saved", "You saved on this booking")}</span>
                   </div>
                   <span className="text-emerald-700 dark:text-emerald-400 font-bold text-sm">{fmtAmt(totalSavings)}</span>
                 </div>
@@ -902,25 +902,25 @@ export default function AppointmentDetails() {
               <Phone className="h-4 w-4" />
               Patient Contact Information
             </CardTitle>
-            <CardDescription>Contact details shared by the patient for this appointment.</CardDescription>
+            <CardDescription>{t("patient_sweep.appointment_contact_desc", "Contact details shared by the patient for this appointment.")}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="grid sm:grid-cols-2 gap-4 text-sm">
               {(appt as any).patientContact.mobileNumber && (
                 <div className="space-y-1">
-                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Mobile Number</p>
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t("patient_sweep.appointment_mobile", "Mobile number")}</p>
                   <p className="font-medium" data-testid="text-patient-mobile">{(appt as any).patientContact.mobileNumber}</p>
                 </div>
               )}
               {(appt as any).patientContact.phone && (
                 <div className="space-y-1">
-                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Phone</p>
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t("patient_sweep.appointment_phone", "Phone")}</p>
                   <p className="font-medium" data-testid="text-patient-phone">{(appt as any).patientContact.phone}</p>
                 </div>
               )}
               {(appt as any).patientContact.emergencyContactName && (
                 <div className="space-y-1">
-                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Emergency Contact</p>
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t("patient_sweep.appointment_emergency_contact", "Emergency contact")}</p>
                   <p className="font-medium" data-testid="text-patient-emergency-name">
                     {(appt as any).patientContact.emergencyContactName}
                     {(appt as any).patientContact.emergencyContactRelation && (
@@ -931,13 +931,13 @@ export default function AppointmentDetails() {
               )}
               {(appt as any).patientContact.emergencyContactPhone && (
                 <div className="space-y-1">
-                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Emergency Phone</p>
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t("patient_sweep.appointment_emergency_phone", "Emergency phone")}</p>
                   <p className="font-medium" data-testid="text-patient-emergency-phone">{(appt as any).patientContact.emergencyContactPhone}</p>
                 </div>
               )}
             </div>
             {!(appt as any).patientContact.mobileNumber && !(appt as any).patientContact.emergencyContactName && (
-              <p className="text-sm text-muted-foreground">The patient has not added contact details yet.</p>
+              <p className="text-sm text-muted-foreground">{t("patient_sweep.appointment_no_contact", "The patient has not added contact details yet.")}</p>
             )}
           </CardContent>
         </Card>
@@ -965,8 +965,8 @@ export default function AppointmentDetails() {
                         data-testid="textarea-edit-note"
                       />
                       <div className="flex gap-2">
-                        <Button size="sm" onClick={() => editNoteMut.mutate({ id: note.id, content: editNoteContent })} disabled={editNoteMut.isPending} data-testid="button-save-note-edit">Save</Button>
-                        <Button size="sm" variant="ghost" onClick={() => setEditingNoteId(null)}>Cancel</Button>
+                        <Button size="sm" onClick={() => editNoteMut.mutate({ id: note.id, content: editNoteContent })} disabled={editNoteMut.isPending} data-testid="button-save-note-edit">{t("patient_sweep.appointment_save", "Save")}</Button>
+                        <Button size="sm" variant="ghost" onClick={() => setEditingNoteId(null)}>{t("patient_sweep.appointment_cancel", "Cancel")}</Button>
                       </div>
                     </div>
                   ) : (
@@ -983,7 +983,7 @@ export default function AppointmentDetails() {
               ))}
             </div>
             <div className="space-y-2">
-              <Label className="text-sm">Add a note</Label>
+              <Label className="text-sm">{t("patient_sweep.appointment_add_note", "Add a note")}</Label>
               <Textarea
                 placeholder="Write a private note about this client or appointment..."
                 value={noteContent}
@@ -1015,26 +1015,26 @@ export default function AppointmentDetails() {
       <Dialog open={disputeOpen} onOpenChange={setDisputeOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>File a dispute</DialogTitle>
+            <DialogTitle>{t("patient_sweep.appointment_file_dispute", "File a dispute")}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label>Reason</Label>
+              <Label>{t("patient_sweep.appointment_reason", "Reason")}</Label>
               <Select value={disputeReason} onValueChange={setDisputeReason}>
                 <SelectTrigger data-testid="select-dispute-reason">
-                  <SelectValue placeholder="Select a reason" />
+                  <SelectValue placeholder={t("patient_sweep.appointment_reason_placeholder", "Select a reason")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="no_show">Provider did not show up</SelectItem>
-                  <SelectItem value="wrong_service">Wrong or incomplete service</SelectItem>
-                  <SelectItem value="refund_requested">Refund requested</SelectItem>
-                  <SelectItem value="technical_issue">Technical issue (video call)</SelectItem>
-                  <SelectItem value="other">Other</SelectItem>
+                  <SelectItem value="no_show">{t("patient_sweep.appointment_no_show", "Provider did not show up")}</SelectItem>
+                  <SelectItem value="wrong_service">{t("patient_sweep.appointment_wrong_service", "Wrong or incomplete service")}</SelectItem>
+                  <SelectItem value="refund_requested">{t("patient_sweep.appointment_refund_requested", "Refund requested")}</SelectItem>
+                  <SelectItem value="technical_issue">{t("patient_sweep.appointment_technical_issue", "Technical issue (video call)")}</SelectItem>
+                  <SelectItem value="other">{t("patient_sweep.appointment_other", "Other")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Additional details</Label>
+              <Label>{t("patient_sweep.appointment_additional_details", "Additional details")}</Label>
               <Textarea
                 placeholder="Please describe the issue..."
                 value={disputeDesc}
@@ -1044,7 +1044,7 @@ export default function AppointmentDetails() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setDisputeOpen(false)}>Cancel</Button>
+            <Button variant="ghost" onClick={() => setDisputeOpen(false)}>{t("patient_sweep.appointment_cancel", "Cancel")}</Button>
             <Button
               disabled={!disputeReason || disputeMut.isPending}
               onClick={() => disputeMut.mutate({ appointmentId: appt?.id, reason: disputeReason, description: disputeDesc })}

@@ -107,7 +107,7 @@ export default function FamilyMembersPage() {
       toast({ title: "Family member added" });
       closeDialog();
     },
-    onError: (err: any) => toast({ title: "Failed to save", description: err?.message, variant: "destructive" }),
+    onError: (err: any) => toast({ title: t("common.failed", "Failed"), description: err?.message, variant: "destructive" }),
   });
 
   const updateMut = useMutation({
@@ -118,7 +118,7 @@ export default function FamilyMembersPage() {
       toast({ title: "Family member updated" });
       closeDialog();
     },
-    onError: (err: any) => toast({ title: "Failed to update", description: err?.message, variant: "destructive" }),
+    onError: (err: any) => toast({ title: t("common.failed", "Failed"), description: err?.message, variant: "destructive" }),
   });
 
   const deleteMut = useMutation({
@@ -128,7 +128,7 @@ export default function FamilyMembersPage() {
       toast({ title: "Family member removed" });
       setDeleteTarget(null);
     },
-    onError: (err: any) => toast({ title: "Failed to remove", description: err?.message, variant: "destructive" }),
+    onError: (err: any) => toast({ title: t("common.failed", "Failed"), description: err?.message, variant: "destructive" }),
   });
 
   function openAdd() {
@@ -241,7 +241,7 @@ export default function FamilyMembersPage() {
           </div>
           <Button onClick={openAdd} data-testid="button-add-family-member">
             <Plus className="h-4 w-4 mr-1" />
-            Add Member
+            {t("family_members.add_member", "Add member")}
           </Button>
         </div>
 
@@ -253,9 +253,9 @@ export default function FamilyMembersPage() {
           <Card className="text-center py-16">
             <CardContent>
               <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-muted-foreground">No family members added yet.</p>
+              <p className="text-muted-foreground">{t("patient_sweep.family_no_members", "No family members added yet.")}</p>
               <Button onClick={openAdd} variant="outline" className="mt-4" data-testid="button-add-first-member">
-                Add your first member
+                {t("patient_sweep.family_add_first", "Add your first member")}
               </Button>
             </CardContent>
           </Card>
@@ -337,7 +337,7 @@ export default function FamilyMembersPage() {
                     {m.useParentAddress && (
                       <span className="flex items-center gap-1.5 col-span-2 text-xs">
                         <Home className="h-3.5 w-3.5 shrink-0" />
-                        Uses your address
+                        {t("patient_sweep.family_uses_address", "Uses your address")}
                       </span>
                     )}
                     {!m.useParentAddress && m.formattedAddress && (
@@ -355,12 +355,14 @@ export default function FamilyMembersPage() {
                     {m.allergies && (
                       <span className="flex items-center gap-1.5 col-span-2">
                         <AlertCircle className="h-3.5 w-3.5 text-amber-500 shrink-0" />
-                        <span className="text-amber-700 dark:text-amber-400">Allergies: {m.allergies}</span>
+                        <span className="text-amber-700 dark:text-amber-400">
+                          {t("patient_sweep.family_allergies_label", "Allergies")}: {m.allergies}
+                        </span>
                       </span>
                     )}
                     {m.medicalConditions && (
                       <span className="text-xs col-span-2 mt-1 text-muted-foreground">
-                        Conditions: {m.medicalConditions}
+                        {t("patient_sweep.family_conditions_label", "Conditions")}: {m.medicalConditions}
                       </span>
                     )}
                   </div>
@@ -375,9 +377,15 @@ export default function FamilyMembersPage() {
       <Dialog open={dialogOpen} onOpenChange={open => { if (!open) closeDialog(); }}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{editing ? "Edit Family Member" : "Add Family Member"}</DialogTitle>
+          <DialogTitle>
+            {editing
+              ? t("patient_sweep.family_edit_title", "Edit family member")
+              : t("patient_sweep.family_add_title", "Add family member")}
+          </DialogTitle>
             <DialogDescription>
-              {editing ? "Update the health profile for this family member." : "Add a new health profile to your family."}
+              {editing
+                ? t("patient_sweep.family_edit_desc", "Update the health profile for this family member.")
+                : t("patient_sweep.family_add_desc", "Add a new health profile to your family.")}
             </DialogDescription>
           </DialogHeader>
 
@@ -385,11 +393,11 @@ export default function FamilyMembersPage() {
             {/* Name */}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label htmlFor="fm-first">First Name *</Label>
+                <Label htmlFor="fm-first">{t("common.first_name", "First name")} *</Label>
                 <Input id="fm-first" value={form.firstName} onChange={e => setForm(f => ({ ...f, firstName: e.target.value }))} data-testid="input-fm-first-name" />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="fm-last">Last Name *</Label>
+                <Label htmlFor="fm-last">{t("common.last_name", "Last name")} *</Label>
                 <Input id="fm-last" value={form.lastName} onChange={e => setForm(f => ({ ...f, lastName: e.target.value }))} data-testid="input-fm-last-name" />
               </div>
             </div>
@@ -397,7 +405,7 @@ export default function FamilyMembersPage() {
             {/* Relationship / Gender */}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label>Relationship</Label>
+                <Label>{t("patient_sweep.family_relationship", "Relationship")}</Label>
                 <Select value={form.relationship} onValueChange={v => setForm(f => ({ ...f, relationship: v }))}>
                   <SelectTrigger data-testid="select-fm-relationship">
                     <SelectValue />
@@ -410,13 +418,13 @@ export default function FamilyMembersPage() {
                 </Select>
               </div>
               <div className="space-y-1.5">
-                <Label>Gender</Label>
+                <Label>{t("patient_sweep.family_gender", "Gender")}</Label>
                 <Select value={form.gender || "__none__"} onValueChange={v => setForm(f => ({ ...f, gender: v === "__none__" ? "" : v }))}>
                   <SelectTrigger data-testid="select-fm-gender">
-                    <SelectValue placeholder="Not specified" />
+                    <SelectValue placeholder={t("patient_sweep.family_not_specified", "Not specified")} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="__none__">Not specified</SelectItem>
+                    <SelectItem value="__none__">{t("patient_sweep.family_not_specified", "Not specified")}</SelectItem>
                     {GENDERS.map(g => (
                       <SelectItem key={g} value={g}>{g.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase())}</SelectItem>
                     ))}
@@ -428,17 +436,17 @@ export default function FamilyMembersPage() {
             {/* DOB / Blood type */}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label htmlFor="fm-dob">Date of Birth</Label>
+                <Label htmlFor="fm-dob">{t("patient_sweep.family_date_of_birth", "Date of birth")}</Label>
                 <Input id="fm-dob" type="date" value={form.dateOfBirth} onChange={e => setForm(f => ({ ...f, dateOfBirth: e.target.value }))} data-testid="input-fm-dob" />
               </div>
               <div className="space-y-1.5">
-                <Label>Blood Type</Label>
+                <Label>{t("patient_sweep.family_blood_type", "Blood type")}</Label>
                 <Select value={form.bloodType || "__none__"} onValueChange={v => setForm(f => ({ ...f, bloodType: v === "__none__" ? "" : v }))}>
                   <SelectTrigger data-testid="select-fm-blood-type">
-                    <SelectValue placeholder="Unknown" />
+                    <SelectValue placeholder={t("patient_sweep.family_unknown", "Unknown")} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="__none__">Unknown</SelectItem>
+                    <SelectItem value="__none__">{t("patient_sweep.family_unknown", "Unknown")}</SelectItem>
                     {BLOOD_TYPES.map(bt => <SelectItem key={bt} value={bt}>{bt}</SelectItem>)}
                   </SelectContent>
                 </Select>
@@ -448,11 +456,11 @@ export default function FamilyMembersPage() {
             {/* Phone / Email */}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label htmlFor="fm-phone">Phone</Label>
+              <Label htmlFor="fm-phone">{t("patient_sweep.family_phone", "Phone")}</Label>
                 <Input id="fm-phone" type="tel" value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} data-testid="input-fm-phone" />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="fm-email">Email</Label>
+              <Label htmlFor="fm-email">{t("patient_sweep.family_email", "Email")}</Label>
                 <Input id="fm-email" type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} data-testid="input-fm-email" />
               </div>
             </div>
@@ -482,7 +490,7 @@ export default function FamilyMembersPage() {
               {!form.useParentAddress && (
                 <div className="space-y-3 pl-0">
                   <div className="space-y-1.5">
-                    <Label htmlFor="fm-address">Street Address</Label>
+              <Label htmlFor="fm-address">{t("patient_ui.family_members.street_address", "Street address")}</Label>
                     <PlacesAutocomplete
                       value={form.formattedAddress || form.addressLine1}
                       onChange={handleAddressChange}
@@ -536,28 +544,28 @@ export default function FamilyMembersPage() {
 
             {/* Medical info */}
             <div className="space-y-1.5">
-              <Label htmlFor="fm-allergies">Allergies</Label>
-              <Input id="fm-allergies" value={form.allergies} onChange={e => setForm(f => ({ ...f, allergies: e.target.value }))} placeholder="e.g. penicillin, peanuts" data-testid="input-fm-allergies" />
+              <Label htmlFor="fm-allergies">{t("patient_sweep.family_allergies_label", "Allergies")}</Label>
+              <Input id="fm-allergies" value={form.allergies} onChange={e => setForm(f => ({ ...f, allergies: e.target.value }))} placeholder={t("patient_sweep.family_allergies_placeholder", "e.g. penicillin, peanuts")} data-testid="input-fm-allergies" />
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="fm-conditions">Medical Conditions</Label>
-              <Textarea id="fm-conditions" value={form.medicalConditions} onChange={e => setForm(f => ({ ...f, medicalConditions: e.target.value }))} placeholder="e.g. Type 2 diabetes, hypertension" rows={2} data-testid="input-fm-conditions" />
+              <Label htmlFor="fm-conditions">{t("patient_sweep.family_conditions", "Chronic conditions")}</Label>
+              <Textarea id="fm-conditions" value={form.medicalConditions} onChange={e => setForm(f => ({ ...f, medicalConditions: e.target.value }))} placeholder={t("patient_sweep.family_conditions_placeholder", "e.g. Type 2 diabetes, hypertension")} rows={2} data-testid="input-fm-conditions" />
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="fm-notes">Notes</Label>
-              <Textarea id="fm-notes" value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} placeholder="Any other relevant information" rows={2} data-testid="input-fm-notes" />
+              <Label htmlFor="fm-notes">{t("patient_sweep.family_notes", "Notes")}</Label>
+              <Textarea id="fm-notes" value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} placeholder={t("patient_sweep.family_notes_placeholder", "Any other relevant information")} rows={2} data-testid="input-fm-notes" />
             </div>
           </div>
 
           <DialogFooter>
             <Button variant="outline" onClick={closeDialog} disabled={isSaving} data-testid="button-fm-cancel">
-              Cancel
+              {t("patient_sweep.family_cancel", "Cancel")}
             </Button>
             <Button onClick={handleSubmit} disabled={isSaving} data-testid="button-fm-save">
               {isSaving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-              {editing ? "Save Changes" : "Add Member"}
+              {editing ? t("common.save", "Save") : t("family_members.add_member", "Add member")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -567,14 +575,16 @@ export default function FamilyMembersPage() {
       <Dialog open={!!deleteTarget} onOpenChange={open => { if (!open) setDeleteTarget(null); }}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Remove Family Member</DialogTitle>
+            <DialogTitle>{t("patient_sweep.family_remove_title", "Remove family member")}</DialogTitle>
             <DialogDescription>
-              Are you sure you want to remove {deleteTarget?.firstName} {deleteTarget?.lastName}? Their health profile will be deactivated.
+              {t("patient_sweep.family_delete_confirm", "Are you sure you want to remove {{name}}? Their health profile will be deactivated.", {
+                name: `${deleteTarget?.firstName ?? ""} ${deleteTarget?.lastName ?? ""}`.trim(),
+              })}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDeleteTarget(null)} data-testid="button-delete-cancel">
-              Cancel
+              {t("patient_sweep.family_cancel", "Cancel")}
             </Button>
             <Button
               variant="destructive"

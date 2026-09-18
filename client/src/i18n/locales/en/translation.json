@@ -4021,5 +4021,287 @@
     "join_video_visit": "Join Video Visit",
     "directions": "Directions",
     "reschedule": "Reschedule"
+  },
+  "patient_sweep": {
+    "settings_timezone_title": "Time zone",
+    "settings_timezone_label": "Your time zone",
+    "settings_timezone_updated": "Time zone updated",
+    "settings_timezone_updated_desc": "Appointment times will now be shown in your chosen time zone.",
+    "settings_change_password_failed": "Couldn't change password",
+    "settings_manage_consent_desc": "Manage your consent, authorization, and data permissions.",
+    "settings_manage_consent": "Manage patient consent",
+    "language_english": "English",
+    "language_hungarian": "Hungarian",
+    "language_persian": "Persian",
+    "booking_step_provider": "Choose provider",
+    "booking_step_service": "Choose service",
+    "booking_step_time": "Pick a time",
+    "booking_price_varies": "Price varies",
+    "booking_mode_clinic": "Clinic only",
+    "booking_mode_home": "Home only",
+    "booking_mode_online": "Online only",
+    "booking_mode_home_clinic": "Home & Clinic",
+    "booking_mode_clinic_online": "Clinic & Online",
+    "booking_mode_home_online": "Home & Online",
+    "booking_mode_all": "All modes",
+    "booking_confirm_title": "Confirm appointment",
+    "booking_continue": "Continue",
+    "booking_confirming": "Confirming…",
+    "booking_updating_price": "Updating price…",
+    "booking_confirm": "Confirm booking",
+    "booking_cancel": "Cancel",
+    "booking_back": "Back",
+    "waitlist_title": "My waitlist",
+    "waitlist_description": "We'll notify you the moment a slot opens up with a provider you're waiting for.",
+    "waitlist_active": "Active",
+    "waitlist_active_desc": "You'll get an in-app and email notification when a slot frees up.",
+    "waitlist_history": "History",
+    "waitlist_load_failed": "Failed to load waitlist",
+    "waitlist_book_now": "Book now",
+    "waitlist_removed": "Removed from waitlist",
+    "waitlist_leave_failed": "Couldn't leave waitlist",
+    "family_loading": "Loading member profile…",
+    "family_allergies": "Allergies",
+    "family_conditions": "Chronic conditions",
+    "family_notes": "Notes",
+    "family_record_consent": "Record new consent",
+    "family_select_consent": "Select consent type…",
+    "family_cancel": "Cancel",
+    "profile_saved_addresses": "Saved addresses",
+    "profile_saved_addresses_desc": "Store frequently used addresses for quick booking.",
+    "appointment_saved": "You saved on this booking",
+    "appointment_contact_desc": "Contact details shared by the patient for this appointment.",
+    "appointment_mobile": "Mobile number",
+    "appointment_phone": "Phone",
+    "appointment_emergency_contact": "Emergency contact",
+    "appointment_emergency_phone": "Emergency phone",
+    "appointment_no_contact": "The patient has not added contact details yet.",
+    "appointment_save": "Save",
+    "appointment_cancel": "Cancel",
+    "appointment_add_note": "Add a note",
+    "appointment_file_dispute": "File a dispute",
+    "appointment_reason": "Reason",
+    "appointment_reason_placeholder": "Select a reason",
+    "appointment_no_show": "Provider did not show up",
+    "appointment_wrong_service": "Wrong or incomplete service",
+    "appointment_refund_requested": "Refund requested",
+    "appointment_technical_issue": "Technical issue (video call)",
+    "appointment_other": "Other",
+    "appointment_additional_details": "Additional details",
+    "confirmation_home": "Home",
+    "confirmation_details": "Appointment details",
+    "confirmation_saved": "You saved on this booking!",
+    "confirmation_included": "Included",
+    "confirmation_total": "Total",
+    "family_remove_title": "Remove family member",
+    "family_no_members": "No family members added yet.",
+    "dashboard_rebook": "Rebook last provider",
+    "dashboard_refer": "Refer & earn",
+    "packages_active": "Active",
+    "packages_global": "Global",
+    "packages_no_benefits": "No specific benefits listed.",
+    "packages_free": "Free",
+    "gift_card_currency": "USD",
+    "report_no_activity": "No activity data yet. Book your first appointment to get started.",
+    "report_total_spent": "Total spent",
+    "report_completed": "Completed",
+    "report_upcoming": "Upcoming",
+    "report_scheduled": "scheduled appointments",
+    "report_monthly_spending": "Monthly spending (12 months)",
+    "report_no_spending": "No spending data yet.",
+    "report_spend": "Spend",
+    "report_avg": "Avg",
+    "report_peak": "Peak",
+    "report_provider_prompt": "Complete an appointment to see your providers.",
+    "report_health_activity": "Monthly health activity (12 months)",
+    "report_no_activity_short": "No activity yet.",
+    "report_provider_activity": "Provider activity",
+    "report_last": "Last",
+    "report_total": "Total",
+    "report_rate": "rate",
+    "report_cancelled": "Cancelled",
+    "report_booking_trends": "Booking trends (12 months)",
+    "booking_step_intent": "Intent",
+    "booking_step_details": "Details",
+    "booking_step_payment": "Payment",
+    "booking_hold_expired": "Hold expired — please reselect a slot",
+    "booking_slot_reserved": "Slot reserved · {{time}} remaining",
+    "booking_failed_add_member": "Failed to add family member. Please try again.",
+    "booking_invalid_promo": "Invalid promo code",
+    "booking_topup_failed": "Failed to start top-up",
+    "booking_topup_unavailable": "Top-up unavailable",
+    "booking_try_again_later": "Please try again later.",
+    "booking_wallet_topped_up": "Wallet topped up!",
+    "booking_balance_updated": "Your balance has been updated. You can now pay with your wallet.",
+    "booking_topup_cancelled": "Top-up cancelled",
+    "booking_no_charge": "No charge was made.",
+    "booking_member_required": "First name, last name, and relationship are required.",
+    "booking_reason_label": "Reason for visit",
+    "booking_reason_placeholder": "Briefly describe what you'd like to be seen for…",
+    "booking_char_min": "{{count}}/3 characters minimum",
+    "booking_intake_questions": "Service intake questions",
+    "booking_yes": "Yes",
+    "booking_visit_type": "Visit type",
+    "booking_additional_notes": "Additional notes",
+    "booking_notes_placeholder": "Anything else the provider should know (optional)…",
+    "booking_home_address": "Home address",
+    "booking_outside_area": "Outside provider's service area",
+    "booking_outside_area_desc": "You are {{distance}} km away — this provider covers up to {{radius}} km. Please enter a closer address or choose a different provider.",
+    "booking_summary": "Booking summary",
+    "booking_provider": "Provider",
+    "booking_date": "Date",
+    "booking_time": "Time",
+    "booking_reason": "Reason",
+    "booking_for": "Who is this appointment for?",
+    "booking_loading_profiles": "Loading profiles…",
+    "booking_myself": "Myself",
+    "booking_add_family": "+ Add new family member",
+    "booking_new_family": "New family member",
+    "booking_first_name": "First name",
+    "booking_last_name": "Last name",
+    "booking_date_of_birth": "Date of birth",
+    "booking_gender": "Gender",
+    "booking_select": "Select…",
+    "booking_male": "Male",
+    "booking_female": "Female",
+    "booking_other": "Other",
+    "booking_relationship": "Relationship",
+    "booking_spouse": "Spouse",
+    "booking_child": "Child",
+    "booking_parent": "Parent",
+    "booking_dependent": "Dependent",
+    "booking_saving": "Saving",
+    "booking_save_select": "Save & select",
+    "booking_contact_information": "Contact information",
+    "booking_full_name": "Full name",
+    "booking_your_full_name": "Your full name",
+    "booking_mobile_number": "Mobile number",
+    "booking_on_behalf": "Booking on behalf of",
+    "booking_family_member": "family member",
+    "booking_consent_agreements": "Consent & agreements",
+    "booking_agree_to": "I agree to the",
+    "booking_terms": "Terms of Service",
+    "booking_cancellation_policy": "and cancellation policy for this appointment.",
+    "booking_health_consent": "I consent to my health information being shared with this provider for the purpose of this appointment, in accordance with our",
+    "booking_privacy": "Privacy Policy",
+    "booking_included": "Included",
+    "booking_base_price": "Base price",
+    "booking_platform_fee": "Platform fee",
+    "booking_service_tax": "Service tax ({{rate}}%)",
+    "booking_platform_tax": "Platform tax ({{rate}}%)",
+    "booking_total_tax": "Total tax",
+    "booking_total_due": "Total due",
+    "booking_wallet_balance": "Wallet balance",
+    "booking_top_up": "Top up",
+    "booking_not_enough_balance": "Not enough balance to cover this booking",
+    "booking_need_more": "You need {{amount}} more to pay fully with wallet.",
+    "booking_for_label": "Booking for:",
+    "booking_promo_code": "Promo code",
+    "booking_code_saving": "Code {{code}} — saving {{amount}}",
+    "booking_recalculating": "recalculating…",
+    "booking_remove_promo": "Remove promo code",
+    "booking_enter_promo": "Enter promo code",
+    "booking_apply": "Apply",
+    "booking_payment_method": "Payment method",
+    "booking_pay_wallet": "Pay with Wallet",
+    "booking_pay_cash": "Pay Cash",
+    "booking_bank_transfer": "Bank Transfer",
+    "booking_wallet_use": "Use {{amount}} from your balance — instant confirmation",
+    "booking_wallet_apply": "Apply {{amount}} wallet credit — remainder via card",
+    "booking_pay_card": "Pay by Card",
+    "booking_secure_checkout": "Secure checkout",
+    "booking_cash_pending": "Your booking will be pending until the provider confirms receipt of payment at the appointment.",
+    "booking_bank_instructions": "Bank Transfer Instructions",
+    "booking_bank_details": "Transfer {{amount}} to the bank account details that will be provided in your booking confirmation. Your appointment will be confirmed once the provider verifies receipt of payment.",
+    "booking_bank_reserved": "Your slot is reserved for 48 hours — please transfer promptly to secure your appointment.",
+    "booking_wallet_covers": "Your wallet covers {{amount}} of the total.",
+    "booking_remaining_card": "The remaining {{amount}} will be charged by card.",
+    "booking_active_membership": "— active membership",
+    "booking_service_discount": "{{value}}% service discount",
+    "booking_fee_discount": "Platform fee discount",
+    "waitlist_retry": "Retry",
+    "waitlist_no_active": "You're not waitlisted for anyone right now. Visit a provider's page and click \"Join waitlist\".",
+    "waitlist_provider": "Provider",
+    "waitlist_any_date": "any date",
+    "waitlist_waiting": "Waiting",
+    "waitlist_slot_available": "Slot available!",
+    "waitlist_booked": "Booked",
+    "waitlist_cancelled": "Cancelled",
+    "waitlist_expired": "Expired",
+    "waitlist_joined": "Joined {{date}}",
+    "family_back": "Back",
+    "family_book_appointment": "Book appointment",
+    "family_dob": "DOB",
+    "family_medical_summary": "Medical summary",
+    "family_appointments": "Appointments",
+    "family_documents": "Documents",
+    "family_consents": "Consents",
+    "family_no_appointments": "No appointments yet",
+    "family_no_appointments_desc": "{{name}} hasn't had any appointments yet.",
+    "family_book_first": "Book first appointment",
+    "family_appointment": "Appointment",
+    "family_no_documents": "No documents yet",
+    "family_no_documents_desc": "No documents have been uploaded for {{name}}.",
+    "family_document": "Document",
+    "family_view": "View",
+    "family_no_consents": "No consents recorded",
+    "family_no_consents_desc": "No consent records have been created yet.",
+    "family_accepted": "Accepted",
+    "family_declined": "Declined",
+    "family_accept": "Accept",
+    "family_decline": "Decline",
+    "family_record": "Record consent"
+    ,"family_recorded": "Consent recorded"
+    ,"family_consent_terms": "Terms & Conditions"
+    ,"family_consent_privacy": "Privacy Policy"
+    ,"family_consent_medical": "Medical Data Processing"
+    ,"family_consent_treatment": "Treatment Consent"
+    ,"family_consent_photo": "Photo / Video Consent"
+    ,"packages_get_free": "Get free"
+    ,"booking_different_address": "Or type a different address…"
+    ,"booking_full_home_address": "Full address for home visit"
+    ,"booking_address_shared": "We'll share this with your provider once the booking is confirmed."
+    ,"booking_checking_coverage": "Checking coverage…"
+    ,"booking_coverage_ok": "Provider covers your location"
+    ,"booking_within_area": "{{distance}} km away · within {{radius}} km service area"
+    ,"booking_no_distance_limit": "{{distance}} km away · no distance restriction"
+    ,"family_add_first": "Add your first member"
+    ,"family_uses_address": "Uses your address"
+    ,"family_allergies_label": "Allergies"
+    ,"family_conditions_label": "Conditions"
+    ,"family_edit_title": "Edit family member"
+    ,"family_add_title": "Add family member"
+    ,"family_edit_desc": "Update the health profile for this family member."
+    ,"family_add_desc": "Add a new health profile to your family."
+    ,"family_relationship": "Relationship"
+    ,"family_gender": "Gender"
+    ,"family_not_specified": "Not specified"
+    ,"family_date_of_birth": "Date of birth"
+    ,"family_blood_type": "Blood type"
+    ,"family_unknown": "Unknown"
+    ,"family_phone": "Phone"
+    ,"family_email": "Email"
+    ,"family_allergies_placeholder": "e.g. penicillin, peanuts"
+    ,"family_conditions_placeholder": "e.g. Type 2 diabetes, hypertension"
+    ,"family_notes_placeholder": "Any other relevant information"
+    ,"family_delete_confirm": "Are you sure you want to remove {{name}}? Their health profile will be deactivated."
+    ,"home_upcoming_visits": "Upcoming visits"
+    ,"home_completed_visits": "Completed visits"
+    ,"home_active_prescriptions": "Active prescriptions"
+    ,"home_family_members": "Family members"
+    ,"home_health_snapshot": "Health snapshot"
+    ,"home_view_all": "View all"
+    ,"home_active": "Active"
+    ,"home_health_tip": "Health tip of the day"
+    ,"home_book_appointment": "Book appointment"
+    ,"home_health_records": "Health records"
+    ,"home_upload_documents": "Upload documents"
+    ,"home_add_family": "Add family member"
+    ,"home_refer_earn": "Refer & earn"
+    ,"home_view_wallet": "View wallet"
+    ,"home_quick_actions": "Quick actions"
+    ,"home_manage_everything": "Manage everything"
+    ,"home_manage_desc": "Full appointments, invoices, documents & more"
+    ,"home_open": "Open"
   }
 }

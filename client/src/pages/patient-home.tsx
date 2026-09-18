@@ -454,6 +454,7 @@ function HealthSnapshot({
   familyMembers?: any[];
   prescriptions?: any[];
 }) {
+  const { t } = useTranslation();
   const upcoming = (appointments ?? []).filter(
     (a) => a.status === "pending" || a.status === "approved" || a.status === "confirmed" || a.status === "rescheduled"
   ).length;
@@ -463,7 +464,7 @@ function HealthSnapshot({
     {
       id: "upcoming",
       icon: <Calendar className="h-5 w-5 text-primary" />,
-      label: "Upcoming Visits",
+      label: t("patient_sweep.home_upcoming_visits", "Upcoming visits"),
       value: upcoming,
       bg: "bg-primary/8",
       href: "/appointments",
@@ -471,7 +472,7 @@ function HealthSnapshot({
     {
       id: "completed",
       icon: <CheckCircle className="h-5 w-5 text-emerald-500" />,
-      label: "Completed Visits",
+      label: t("patient_sweep.home_completed_visits", "Completed visits"),
       value: completed,
       bg: "bg-emerald-500/8",
       href: "/appointments",
@@ -479,7 +480,7 @@ function HealthSnapshot({
     {
       id: "prescriptions",
       icon: <Pill className="h-5 w-5 text-violet-500" />,
-      label: "Active Prescriptions",
+      label: t("patient_sweep.home_active_prescriptions", "Active prescriptions"),
       value: prescriptions?.length ?? 0,
       bg: "bg-violet-500/8",
       href: "/health-records",
@@ -487,7 +488,7 @@ function HealthSnapshot({
     {
       id: "family",
       icon: <Users className="h-5 w-5 text-blue-500" />,
-      label: "Family Members",
+      label: t("patient_sweep.home_family_members", "Family members"),
       value: familyMembers?.length ?? 0,
       bg: "bg-blue-500/8",
       href: "/family-members",
@@ -496,7 +497,9 @@ function HealthSnapshot({
 
   return (
     <section>
-      <h2 className="text-base font-semibold text-foreground mb-3">Health Snapshot</h2>
+      <h2 className="text-base font-semibold text-foreground mb-3">
+        {t("patient_sweep.home_health_snapshot", "Health snapshot")}
+      </h2>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {snapshots.map((s) => (
           <Link key={s.id} href={s.href}>
@@ -522,6 +525,7 @@ function HealthSnapshot({
 // ── Section 5 — Active Prescriptions ─────────────────────────────────────────
 
 function ActivePrescriptions({ patientId }: { patientId?: string }) {
+  const { t } = useTranslation();
   const { data: prescriptions, isLoading } = useQuery<Prescription[]>({
     queryKey: QK.patientPrescriptions(patientId),
     enabled: !!patientId,
@@ -538,10 +542,12 @@ function ActivePrescriptions({ patientId }: { patientId?: string }) {
       <div className="flex items-center justify-between mb-3">
         <h2 className="text-base font-semibold text-foreground flex items-center gap-2">
           <Pill className="h-4 w-4 text-violet-500" />
-          Active Prescriptions
+          {t("patient_sweep.home_active_prescriptions", "Active prescriptions")}
         </h2>
         <Button asChild variant="ghost" size="sm" className="text-xs text-muted-foreground h-7 rounded-lg" data-testid="btn-view-all-prescriptions">
-          <Link href="/health-records">View all <ChevronRight className="h-3 w-3 ml-0.5" /></Link>
+          <Link href="/health-records">
+            {t("patient_sweep.home_view_all", "View all")} <ChevronRight className="h-3 w-3 ml-0.5" />
+          </Link>
         </Button>
       </div>
       <div className="flex flex-col gap-2">
@@ -559,7 +565,9 @@ function ActivePrescriptions({ patientId }: { patientId?: string }) {
               </div>
               <div className="text-right flex-shrink-0">
                 <p className="text-xs text-muted-foreground">{p.duration}</p>
-                <Badge variant="secondary" className="text-xs mt-1 rounded-full px-2">Active</Badge>
+                <Badge variant="secondary" className="text-xs mt-1 rounded-full px-2">
+                  {t("patient_sweep.home_active", "Active")}
+                </Badge>
               </div>
             </CardContent>
           </Card>
@@ -797,6 +805,7 @@ function RecentActivity({ appointments }: { appointments?: AppointmentWithDetail
 // ── Section 9 — Health Tip ────────────────────────────────────────────────────
 
 function HealthTip() {
+  const { t } = useTranslation();
   const tip = useRotating(HEALTH_TIPS, 12000);
   return (
     <Card className="rounded-2xl border border-emerald-200/60 bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950/20 dark:to-teal-950/20 dark:border-emerald-900/30">
@@ -805,7 +814,9 @@ function HealthTip() {
           <Heart className="h-5 w-5 text-emerald-600" />
         </div>
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-400 mb-1">Health Tip of the Day</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-400 mb-1">
+            {t("patient_sweep.home_health_tip", "Health tip of the day")}
+          </p>
           <p className="text-sm text-foreground leading-relaxed">{tip}</p>
         </div>
       </CardContent>
@@ -816,18 +827,21 @@ function HealthTip() {
 // ── Section 10 — Quick Actions ────────────────────────────────────────────────
 
 function QuickActions() {
+  const { t } = useTranslation();
   const actions = [
-    { id: "book", icon: <Calendar className="h-5 w-5" />, label: "Book Appointment", href: "/book", color: "text-primary bg-primary/10 group-hover:bg-primary group-hover:text-white" },
-    { id: "records", icon: <FileText className="h-5 w-5" />, label: "Health Records", href: "/health-records", color: "text-violet-600 bg-violet-500/10 group-hover:bg-violet-500 group-hover:text-white" },
-    { id: "upload", icon: <Upload className="h-5 w-5" />, label: "Upload Documents", href: "/my-documents", color: "text-blue-600 bg-blue-500/10 group-hover:bg-blue-500 group-hover:text-white" },
-    { id: "family", icon: <Users className="h-5 w-5" />, label: "Add Family Member", href: "/family-members", color: "text-indigo-600 bg-indigo-500/10 group-hover:bg-indigo-500 group-hover:text-white" },
-    { id: "refer", icon: <Share2 className="h-5 w-5" />, label: "Refer & Earn", href: "/referrals", color: "text-emerald-600 bg-emerald-500/10 group-hover:bg-emerald-500 group-hover:text-white" },
-    { id: "wallet", icon: <Wallet className="h-5 w-5" />, label: "View Wallet", href: "/wallet", color: "text-amber-600 bg-amber-500/10 group-hover:bg-amber-500 group-hover:text-white" },
+    { id: "book", icon: <Calendar className="h-5 w-5" />, label: t("patient_sweep.home_book_appointment", "Book appointment"), href: "/book", color: "text-primary bg-primary/10 group-hover:bg-primary group-hover:text-white" },
+    { id: "records", icon: <FileText className="h-5 w-5" />, label: t("patient_sweep.home_health_records", "Health records"), href: "/health-records", color: "text-violet-600 bg-violet-500/10 group-hover:bg-violet-500 group-hover:text-white" },
+    { id: "upload", icon: <Upload className="h-5 w-5" />, label: t("patient_sweep.home_upload_documents", "Upload documents"), href: "/my-documents", color: "text-blue-600 bg-blue-500/10 group-hover:bg-blue-500 group-hover:text-white" },
+    { id: "family", icon: <Users className="h-5 w-5" />, label: t("patient_sweep.home_add_family", "Add family member"), href: "/family-members", color: "text-indigo-600 bg-indigo-500/10 group-hover:bg-indigo-500 group-hover:text-white" },
+    { id: "refer", icon: <Share2 className="h-5 w-5" />, label: t("patient_sweep.home_refer_earn", "Refer & earn"), href: "/referrals", color: "text-emerald-600 bg-emerald-500/10 group-hover:bg-emerald-500 group-hover:text-white" },
+    { id: "wallet", icon: <Wallet className="h-5 w-5" />, label: t("patient_sweep.home_view_wallet", "View wallet"), href: "/wallet", color: "text-amber-600 bg-amber-500/10 group-hover:bg-amber-500 group-hover:text-white" },
   ];
 
   return (
     <section>
-      <h2 className="text-base font-semibold text-foreground mb-3">Quick Actions</h2>
+      <h2 className="text-base font-semibold text-foreground mb-3">
+        {t("patient_sweep.home_quick_actions", "Quick actions")}
+      </h2>
       <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
         {actions.map((a) => (
           <Link key={a.id} href={a.href}>
@@ -852,6 +866,7 @@ function QuickActions() {
 // ── Full Dashboard Link ───────────────────────────────────────────────────────
 
 function ManageSection() {
+  const { t } = useTranslation();
   return (
     <Card className="rounded-2xl border border-border/50 bg-muted/30">
       <CardContent className="p-5 flex items-center justify-between gap-4">
@@ -860,13 +875,17 @@ function ManageSection() {
             <Stethoscope className="h-5 w-5 text-primary" />
           </div>
           <div>
-            <p className="font-semibold text-sm text-foreground">Manage Everything</p>
-            <p className="text-xs text-muted-foreground">Full appointments, invoices, documents & more</p>
+            <p className="font-semibold text-sm text-foreground">
+              {t("patient_sweep.home_manage_everything", "Manage everything")}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {t("patient_sweep.home_manage_desc", "Full appointments, invoices, documents & more")}
+            </p>
           </div>
         </div>
         <Button asChild variant="outline" size="sm" className="rounded-xl flex-shrink-0 border-border/60" data-testid="btn-full-dashboard">
           <Link href="/patient/dashboard">
-            Open <ArrowRight className="h-3.5 w-3.5 ml-1" />
+            {t("patient_sweep.home_open", "Open")} <ArrowRight className="h-3.5 w-3.5 ml-1" />
           </Link>
         </Button>
       </CardContent>

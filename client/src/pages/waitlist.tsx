@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { usePageTitle } from "@/hooks/use-page-title";
+import { useTranslation } from "react-i18next";
 import { apiRequest, queryClient as qc } from "@/lib/queryClient";
 import { Bell, Calendar, Clock, X, AlertCircle } from "lucide-react";
 import { Link } from "wouter";
@@ -29,16 +30,17 @@ type WaitlistRow = {
   service: { id: string; name: string } | null;
 };
 
-const statusBadge: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
-  active: { label: "Waiting", variant: "secondary" },
-  notified: { label: "Slot available!", variant: "default" },
-  fulfilled: { label: "Booked", variant: "outline" },
-  cancelled: { label: "Cancelled", variant: "outline" },
-  expired: { label: "Expired", variant: "outline" },
+const statusBadge: Record<string, { key: string; fallback: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
+  active: { key: "waitlist_waiting", fallback: "Waiting", variant: "secondary" },
+  notified: { key: "waitlist_slot_available", fallback: "Slot available!", variant: "default" },
+  fulfilled: { key: "waitlist_booked", fallback: "Booked", variant: "outline" },
+  cancelled: { key: "waitlist_cancelled", fallback: "Cancelled", variant: "outline" },
+  expired: { key: "waitlist_expired", fallback: "Expired", variant: "outline" },
 };
 
 export default function WaitlistPage() {
-  usePageTitle("My Waitlist | Golden Life");
+  const { t } = useTranslation();
+  usePageTitle(`${t("patient_sweep.waitlist_title", "My waitlist")} | Golden Life`);
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const { data, isLoading, isError } = useQuery<WaitlistRow[]>({
@@ -50,9 +52,9 @@ export default function WaitlistPage() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: QK.waitlist() });
       queryClient.invalidateQueries({ queryKey: QK.waitlist() });
-      toast({ title: "Removed from waitlist" });
+      toast({ title: t("patient_sweep.waitlist_removed", "Removed from waitlist") });
     },
-    onError: () => toast({ title: "Couldn't leave waitlist", variant: "destructive" }),
+    onError: () => toast({ title: t("patient_sweep.waitlist_leave_failed", "Couldn't leave waitlist"), variant: "destructive" }),
   });
 
   const active = (data || []).filter((r) => r.status === "active" || r.status === "notified");
@@ -61,23 +63,23 @@ export default function WaitlistPage() {
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Header />
-      <PageBreadcrumbs items={[{ label: "My Waitlist" }]} />
+      <PageBreadcrumbs items={[{ label: t("patient_sweep.waitlist_title", "My waitlist") }]} />
       <main className="flex-1 container mx-auto max-w-3xl px-4 py-8 space-y-6">
         <div className="space-y-2">
           <h1 className="text-3xl font-bold flex items-center gap-2" data-testid="heading-waitlist">
             <Bell className="h-7 w-7 text-primary" />
-            My waitlist
+            {t("patient_sweep.waitlist_title", "My waitlist")}
           </h1>
           <p className="text-muted-foreground">
-            We'll notify you the moment a slot opens up with a provider you're waiting for.
+            {t("patient_sweep.waitlist_description", "We'll notify you the moment a slot opens up with a provider you're waiting for.")}
           </p>
         </div>
 
         {/* Active */}
         <Card>
           <CardHeader>
-            <CardTitle>Active</CardTitle>
-            <CardDescription>You'll get an in-app and email notification when a slot frees up.</CardDescription>
+            <CardTitle>{t("patient_sweep.waitlist_active", "Active")}</CardTitle>
+            <CardDescription>{t("patient_sweep.waitlist_active_desc", "You'll get an in-app and email notification when a slot frees up.")}</CardDescription>
           </CardHeader>
           <CardContent>
             {isLoading ? (
@@ -88,14 +90,14 @@ export default function WaitlistPage() {
             ) : isError ? (
               <div className="flex flex-col items-center gap-3 py-8 text-center" data-testid="card-waitlist-error">
                 <AlertCircle className="h-8 w-8 text-destructive opacity-60" />
-                <p className="font-medium text-destructive text-sm">Failed to load waitlist</p>
+                <p className="font-medium text-destructive text-sm">{t("patient_sweep.waitlist_load_failed", "Failed to load waitlist")}</p>
                 <Button variant="outline" size="sm" onClick={() => qc.invalidateQueries({ queryKey: QK.waitlist() })} data-testid="button-retry-waitlist">
-                  Retry
+                  {t("patient_sweep.waitlist_retry", "Retry")}
                 </Button>
               </div>
             ) : active.length === 0 ? (
               <p className="text-muted-foreground text-sm py-6 text-center" data-testid="text-no-active-waitlist">
-                You're not waitlisted for anyone right now. Visit a provider's page and click "Join waitlist".
+                {t("patient_sweep.waitlist_no_active", "You're not waitlisted for anyone right now. Visit a provider's page and click \"Join waitlist\".")}
               </p>
             ) : (
               <div className="divide-y">
@@ -107,7 +109,7 @@ export default function WaitlistPage() {
                   >
                     <div className="space-y-1 min-w-0">
                       <Link href={r.provider ? `/provider/${r.provider.id}` : "#"} className="font-semibold hover-elevate inline-block">
-                        {r.provider?.businessName || "Provider"}
+                        {r.provider?.businessName || t("patient_sweep.waitlist_provider", "Provider")}
                       </Link>
                       {r.service && (
                         <span className="text-sm text-muted-foreground">· {r.service.name}</span>
@@ -125,17 +127,19 @@ export default function WaitlistPage() {
                             {r.preferredStartTime || "—"} – {r.preferredEndTime || "—"}
                           </span>
                         )}
-                        <span>Joined {formatDate(r.createdAt)}</span>
+                        <span>{t("patient_sweep.waitlist_joined", "Joined {{date}}", { date: formatDate(r.createdAt) })}</span>
                       </div>
                       {r.notes && <p className="text-xs italic text-muted-foreground">"{r.notes}"</p>}
                     </div>
                     <div className="flex items-center gap-2">
                       <Badge variant={statusBadge[r.status]?.variant || "secondary"}>
-                        {statusBadge[r.status]?.label || r.status}
+                        {statusBadge[r.status]
+                          ? t(`patient_sweep.${statusBadge[r.status].key}`, statusBadge[r.status].fallback)
+                          : r.status}
                       </Badge>
                       {r.status === "notified" && r.provider && (
                         <Link href={`/provider/${r.provider.id}`}>
-                          <Button size="sm" data-testid={`button-book-now-${r.id}`}>Book now</Button>
+                          <Button size="sm" data-testid={`button-book-now-${r.id}`}>{t("patient_sweep.waitlist_book_now", "Book now")}</Button>
                         </Link>
                       )}
                       <Button
@@ -159,20 +163,22 @@ export default function WaitlistPage() {
         {history.length > 0 && (
           <Card>
             <CardHeader>
-              <CardTitle>History</CardTitle>
+              <CardTitle>{t("patient_sweep.waitlist_history", "History")}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="divide-y">
                 {history.map((r) => (
                   <div key={r.id} className="flex items-center justify-between py-2 text-sm">
                     <div>
-                      <span className="font-medium">{r.provider?.businessName || "Provider"}</span>
+                      <span className="font-medium">{r.provider?.businessName || t("patient_sweep.waitlist_provider", "Provider")}</span>
                       <span className="text-muted-foreground ml-2">
-                        {r.preferredDate || "any date"}
+                        {r.preferredDate || t("patient_sweep.waitlist_any_date", "any date")}
                       </span>
                     </div>
                     <Badge variant={statusBadge[r.status]?.variant || "outline"}>
-                      {statusBadge[r.status]?.label || r.status}
+                      {statusBadge[r.status]
+                        ? t(`patient_sweep.${statusBadge[r.status].key}`, statusBadge[r.status].fallback)
+                        : r.status}
                     </Badge>
                   </div>
                 ))}

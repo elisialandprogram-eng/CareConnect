@@ -915,8 +915,8 @@ export default function Profile() {
 
                 <Card>
                   <CardHeader>
-                    <CardTitle className="text-base">Saved Addresses</CardTitle>
-                    <CardDescription>Store frequently used addresses for quick booking.</CardDescription>
+                    <CardTitle className="text-base">{t("patient_sweep.profile_saved_addresses", "Saved addresses")}</CardTitle>
+                    <CardDescription>{t("patient_sweep.profile_saved_addresses_desc", "Store frequently used addresses for quick booking.")}</CardDescription>
                   </CardHeader>
                   <CardContent>
                     <SavedAddressesPicker

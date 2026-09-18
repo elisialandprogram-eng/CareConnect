@@ -1654,7 +1654,7 @@ export default function PatientDashboard() {
               {!isLoading && !isErrorAppointments && lastCompletedAppt && (
                 <Card data-testid="card-rebook-last">
                   <CardHeader>
-                    <CardTitle className="text-base flex items-center gap-2"><RefreshCw className="h-4 w-4 text-sky-500" /> Rebook Last Provider</CardTitle>
+                    <CardTitle className="text-base flex items-center gap-2"><RefreshCw className="h-4 w-4 text-sky-500" /> {t("patient_sweep.dashboard_rebook", "Rebook last provider")}</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="flex items-center justify-between gap-4">
@@ -1919,7 +1919,7 @@ export default function PatientDashboard() {
               {/* Referral widget */}
               <Card data-testid="card-referral-widget">
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-base flex items-center gap-2"><Share2 className="h-5 w-5 text-amber-500" /> Refer & Earn</CardTitle>
+                  <CardTitle className="text-base flex items-center gap-2"><Share2 className="h-5 w-5 text-amber-500" /> {t("patient_sweep.dashboard_refer", "Refer & earn")}</CardTitle>
                    <Button variant="outline" size="sm" asChild data-testid="btn-referrals-page"><Link href="/referrals">{t("dashboard.details", "Details")} →</Link></Button>
                 </CardHeader>
                 <CardContent>

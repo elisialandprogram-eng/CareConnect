@@ -4020,5 +4020,287 @@
     "join_video_visit": "ورود به ویزیت ویدیویی",
     "directions": "مسیریابی",
     "reschedule": "تغییر زمان"
+  },
+  "patient_sweep": {
+    "settings_timezone_title": "منطقه زمانی",
+    "settings_timezone_label": "منطقه زمانی شما",
+    "settings_timezone_updated": "منطقه زمانی به‌روزرسانی شد",
+    "settings_timezone_updated_desc": "زمان نوبت‌ها از این پس در منطقه زمانی انتخابی شما نمایش داده می‌شود.",
+    "settings_change_password_failed": "تغییر رمز عبور ناموفق بود",
+    "settings_manage_consent_desc": "رضایت‌ها، مجوزها و دسترسی‌های داده خود را مدیریت کنید.",
+    "settings_manage_consent": "مدیریت رضایت بیمار",
+    "language_english": "انگلیسی",
+    "language_hungarian": "مجاری",
+    "language_persian": "فارسی",
+    "booking_step_provider": "انتخاب ارائه‌دهنده",
+    "booking_step_service": "انتخاب خدمت",
+    "booking_step_time": "انتخاب زمان",
+    "booking_price_varies": "قیمت متغیر است",
+    "booking_mode_clinic": "فقط کلینیک",
+    "booking_mode_home": "فقط منزل",
+    "booking_mode_online": "فقط آنلاین",
+    "booking_mode_home_clinic": "منزل و کلینیک",
+    "booking_mode_clinic_online": "کلینیک و آنلاین",
+    "booking_mode_home_online": "منزل و آنلاین",
+    "booking_mode_all": "همه حالت‌ها",
+    "booking_reason_label": "دلیل مراجعه",
+    "booking_reason_placeholder": "به‌اختصار توضیح دهید برای چه مشکلی مراجعه می‌کنید…",
+    "booking_char_min": "حداقل {{count}}/3 نویسه",
+    "booking_intake_questions": "سؤالات پذیرش خدمت",
+    "booking_yes": "بله",
+    "booking_confirm_title": "تأیید نوبت",
+    "booking_continue": "ادامه",
+    "booking_confirming": "در حال تأیید…",
+    "booking_updating_price": "در حال به‌روزرسانی قیمت…",
+    "booking_confirm": "تأیید رزرو",
+    "booking_cancel": "لغو",
+    "booking_back": "بازگشت",
+    "waitlist_title": "فهرست انتظار من",
+    "waitlist_description": "به محض باز شدن نوبت نزد ارائه‌دهنده موردنظر به شما اطلاع می‌دهیم.",
+    "waitlist_active": "فعال",
+    "waitlist_active_desc": "هنگام آزاد شدن نوبت، اعلان درون‌برنامه‌ای و ایمیل دریافت می‌کنید.",
+    "waitlist_history": "سوابق",
+    "waitlist_load_failed": "بارگذاری فهرست انتظار ناموفق بود",
+    "waitlist_book_now": "رزرو الآن",
+    "waitlist_removed": "از فهرست انتظار حذف شد",
+    "waitlist_leave_failed": "خروج از فهرست انتظار ناموفق بود",
+    "family_loading": "در حال بارگذاری پروفایل عضو…",
+    "family_allergies": "حساسیت‌ها",
+    "family_conditions": "بیماری‌های مزمن",
+    "family_notes": "یادداشت‌ها",
+    "family_record_consent": "ثبت رضایت جدید",
+    "family_select_consent": "نوع رضایت را انتخاب کنید…",
+    "family_cancel": "لغو",
+    "profile_saved_addresses": "آدرس‌های ذخیره‌شده",
+    "profile_saved_addresses_desc": "آدرس‌های پرکاربرد را برای رزرو سریع ذخیره کنید.",
+    "appointment_saved": "در این رزرو صرفه‌جویی کردید",
+    "appointment_contact_desc": "اطلاعات تماس درج‌شده توسط بیمار برای این نوبت.",
+    "appointment_mobile": "شماره همراه",
+    "appointment_phone": "تلفن",
+    "appointment_emergency_contact": "مخاطب اضطراری",
+    "appointment_emergency_phone": "تلفن اضطراری",
+    "appointment_no_contact": "بیمار هنوز اطلاعات تماس وارد نکرده است.",
+    "appointment_save": "ذخیره",
+    "appointment_cancel": "لغو",
+    "appointment_add_note": "افزودن یادداشت",
+    "appointment_file_dispute": "ثبت اعتراض",
+    "appointment_reason": "دلیل",
+    "appointment_reason_placeholder": "یک دلیل انتخاب کنید",
+    "appointment_no_show": "ارائه‌دهنده حاضر نشد",
+    "appointment_wrong_service": "خدمت اشتباه یا ناقص",
+    "appointment_refund_requested": "درخواست بازپرداخت",
+    "appointment_technical_issue": "مشکل فنی (تماس ویدیویی)",
+    "appointment_other": "سایر",
+    "appointment_additional_details": "جزئیات بیشتر",
+    "confirmation_home": "خانه",
+    "confirmation_details": "جزئیات نوبت",
+    "confirmation_saved": "در این رزرو صرفه‌جویی کردید!",
+    "confirmation_included": "شامل",
+    "confirmation_total": "مجموع",
+    "family_remove_title": "حذف عضو خانواده",
+    "family_no_members": "هنوز عضوی از خانواده اضافه نشده است.",
+    "dashboard_rebook": "رزرو دوباره آخرین ارائه‌دهنده",
+    "dashboard_refer": "معرفی و دریافت پاداش",
+    "packages_active": "فعال",
+    "packages_global": "عمومی",
+    "packages_no_benefits": "مزیت خاصی ثبت نشده است.",
+    "packages_free": "رایگان",
+    "gift_card_currency": "USD",
+    "report_no_activity": "هنوز داده‌ای از فعالیت وجود ندارد. برای شروع اولین نوبت خود را رزرو کنید.",
+    "report_total_spent": "کل هزینه",
+    "report_completed": "تکمیل‌شده",
+    "report_upcoming": "پیش‌رو",
+    "report_scheduled": "نوبت برنامه‌ریزی‌شده",
+    "report_monthly_spending": "هزینه ماهانه (۱۲ ماه)",
+    "report_no_spending": "هنوز داده‌ای از هزینه وجود ندارد.",
+    "report_spend": "هزینه",
+    "report_avg": "میانگین",
+    "report_peak": "بیشینه",
+    "report_provider_prompt": "برای مشاهده ارائه‌دهندگان یک نوبت را تکمیل کنید.",
+    "report_health_activity": "فعالیت سلامت ماهانه (۱۲ ماه)",
+    "report_no_activity_short": "هنوز فعالیتی وجود ندارد.",
+    "report_provider_activity": "فعالیت ارائه‌دهندگان",
+    "report_last": "آخرین",
+    "report_total": "مجموع",
+    "report_rate": "نرخ",
+    "report_cancelled": "لغوشده",
+    "report_booking_trends": "روند رزرو (۱۲ ماه)",
+    "booking_step_intent": "هدف",
+    "booking_step_details": "جزئیات",
+    "booking_step_payment": "پرداخت",
+    "booking_hold_expired": "مهلت نگه‌داشتن تمام شد — لطفاً نوبت دیگری انتخاب کنید",
+    "booking_slot_reserved": "نوبت رزرو شد · {{time}} باقی‌مانده",
+    "booking_failed_add_member": "افزودن عضو خانواده ناموفق بود. دوباره تلاش کنید.",
+    "booking_invalid_promo": "کد تخفیف نامعتبر است",
+    "booking_topup_failed": "شروع شارژ ناموفق بود",
+    "booking_topup_unavailable": "شارژ در دسترس نیست",
+    "booking_try_again_later": "لطفاً بعداً دوباره تلاش کنید.",
+    "booking_wallet_topped_up": "کیف پول شارژ شد!",
+    "booking_balance_updated": "موجودی شما به‌روزرسانی شد. اکنون می‌توانید با کیف پول پرداخت کنید.",
+    "booking_topup_cancelled": "شارژ لغو شد",
+    "booking_no_charge": "هزینه‌ای دریافت نشد.",
+    "booking_member_required": "نام، نام خانوادگی و نسبت الزامی است.",
+    "booking_visit_type": "نوع مراجعه",
+    "booking_additional_notes": "یادداشت‌های بیشتر",
+    "booking_notes_placeholder": "آیا نکته دیگری هست که ارائه‌دهنده باید بداند (اختیاری)…",
+    "booking_home_address": "آدرس منزل",
+    "booking_outside_area": "خارج از محدوده خدمات ارائه‌دهنده",
+    "booking_outside_area_desc": "{{distance}} کیلومتر فاصله دارید — این ارائه‌دهنده تا {{radius}} کیلومتر پوشش می‌دهد. آدرس نزدیک‌تری وارد کنید یا ارائه‌دهنده دیگری انتخاب کنید.",
+    "booking_summary": "خلاصه رزرو",
+    "booking_provider": "ارائه‌دهنده",
+    "booking_date": "تاریخ",
+    "booking_time": "زمان",
+    "booking_reason": "دلیل",
+    "booking_for": "این نوبت برای چه کسی است؟",
+    "booking_loading_profiles": "در حال بارگذاری پروفایل‌ها…",
+    "booking_myself": "برای خودم",
+    "booking_add_family": "+ افزودن عضو جدید خانواده",
+    "booking_new_family": "عضو جدید خانواده",
+    "booking_first_name": "نام",
+    "booking_last_name": "نام خانوادگی",
+    "booking_date_of_birth": "تاریخ تولد",
+    "booking_gender": "جنسیت",
+    "booking_select": "انتخاب کنید…",
+    "booking_male": "مرد",
+    "booking_female": "زن",
+    "booking_other": "سایر",
+    "booking_relationship": "نسبت",
+    "booking_spouse": "همسر",
+    "booking_child": "فرزند",
+    "booking_parent": "والد",
+    "booking_dependent": "وابسته",
+    "booking_saving": "صرفه‌جویی",
+    "booking_save_select": "ذخیره و انتخاب",
+    "booking_contact_information": "اطلاعات تماس",
+    "booking_full_name": "نام کامل",
+    "booking_your_full_name": "نام کامل شما",
+    "booking_mobile_number": "شماره همراه",
+    "booking_on_behalf": "رزرو به نمایندگی از",
+    "booking_family_member": "عضو خانواده",
+    "booking_consent_agreements": "رضایت‌ها و توافق‌ها",
+    "booking_agree_to": "با",
+    "booking_terms": "شرایط استفاده",
+    "booking_cancellation_policy": "و سیاست لغو این نوبت موافقم.",
+    "booking_health_consent": "با اشتراک‌گذاری اطلاعات سلامت خود با این ارائه‌دهنده برای این نوبت، مطابق",
+    "booking_privacy": "سیاست حفظ حریم خصوصی",
+    "booking_included": "شامل",
+    "booking_base_price": "قیمت پایه",
+    "booking_platform_fee": "هزینه پلتفرم",
+    "booking_service_tax": "مالیات خدمت ({{rate}}٪)",
+    "booking_platform_tax": "مالیات پلتفرم ({{rate}}٪)",
+    "booking_total_tax": "مالیات کل",
+    "booking_total_due": "مبلغ قابل پرداخت",
+    "booking_wallet_balance": "موجودی کیف پول",
+    "booking_top_up": "شارژ",
+    "booking_not_enough_balance": "موجودی برای پوشش این رزرو کافی نیست",
+    "booking_need_more": "برای پرداخت کامل با کیف پول، {{amount}} بیشتر نیاز دارید.",
+    "booking_for_label": "رزرو برای:",
+    "booking_promo_code": "کد تخفیف",
+    "booking_code_saving": "کد {{code}} — صرفه‌جویی {{amount}}",
+    "booking_recalculating": "در حال محاسبه مجدد…",
+    "booking_remove_promo": "حذف کد تخفیف",
+    "booking_enter_promo": "کد تخفیف را وارد کنید",
+    "booking_apply": "اعمال",
+    "booking_payment_method": "روش پرداخت",
+    "booking_pay_wallet": "پرداخت با کیف پول",
+    "booking_pay_cash": "پرداخت نقدی",
+    "booking_bank_transfer": "انتقال بانکی",
+    "booking_wallet_use": "استفاده از {{amount}} موجودی — تأیید فوری",
+    "booking_wallet_apply": "اعمال اعتبار {{amount}} کیف پول — باقی‌مانده با کارت",
+    "booking_pay_card": "پرداخت با کارت",
+    "booking_secure_checkout": "پرداخت امن",
+    "booking_cash_pending": "رزرو تا زمانی که ارائه‌دهنده دریافت وجه را در زمان نوبت تأیید کند، در حالت انتظار می‌ماند.",
+    "booking_bank_instructions": "راهنمای انتقال بانکی",
+    "booking_bank_details": "{{amount}} را به اطلاعات حساب بانکی درج‌شده در تأییدیه رزرو واریز کنید. نوبت پس از تأیید دریافت وجه توسط ارائه‌دهنده تأیید می‌شود.",
+    "booking_bank_reserved": "نوبت شما ۴۸ ساعت نگه داشته می‌شود — برای قطعی شدن، سریع انتقال دهید.",
+    "booking_wallet_covers": "کیف پول شما {{amount}} از مبلغ کل را پوشش می‌دهد.",
+    "booking_remaining_card": "{{amount}} باقی‌مانده با کارت دریافت می‌شود.",
+    "booking_active_membership": "— عضویت فعال",
+    "booking_service_discount": "{{value}}٪ تخفیف خدمت",
+    "booking_fee_discount": "تخفیف هزینه پلتفرم",
+    "waitlist_retry": "تلاش دوباره",
+    "waitlist_no_active": "در حال حاضر در فهرست انتظار کسی نیستید. به صفحه یک ارائه‌دهنده بروید و روی «عضویت در فهرست انتظار» بزنید.",
+    "waitlist_provider": "ارائه‌دهنده",
+    "waitlist_any_date": "هر تاریخی",
+    "waitlist_waiting": "در انتظار",
+    "waitlist_slot_available": "نوبت موجود است!",
+    "waitlist_booked": "رزروشده",
+    "waitlist_cancelled": "لغوشده",
+    "waitlist_expired": "منقضی‌شده",
+    "waitlist_joined": "عضویت در {{date}}",
+    "family_back": "بازگشت",
+    "family_book_appointment": "رزرو نوبت",
+    "family_dob": "تاریخ تولد",
+    "family_medical_summary": "خلاصه پزشکی",
+    "family_appointments": "نوبت‌ها",
+    "family_documents": "مدارک",
+    "family_consents": "رضایت‌ها",
+    "family_no_appointments": "هنوز نوبتی وجود ندارد",
+    "family_no_appointments_desc": "هنوز نوبتی برای {{name}} ثبت نشده است.",
+    "family_book_first": "رزرو اولین نوبت",
+    "family_appointment": "نوبت",
+    "family_no_documents": "هنوز مدرکی وجود ندارد",
+    "family_no_documents_desc": "هنوز مدرکی برای {{name}} بارگذاری نشده است.",
+    "family_document": "مدرک",
+    "family_view": "مشاهده",
+    "family_no_consents": "رضایتی ثبت نشده است",
+    "family_no_consents_desc": "هنوز رکورد رضایتی ایجاد نشده است.",
+    "family_accepted": "پذیرفته‌شده",
+    "family_declined": "ردشده",
+    "family_accept": "پذیرش",
+    "family_decline": "رد",
+    "family_record": "ثبت رضایت"
+    ,"family_recorded": "رضایت ثبت شد"
+    ,"family_consent_terms": "شرایط و ضوابط"
+    ,"family_consent_privacy": "سیاست حفظ حریم خصوصی"
+    ,"family_consent_medical": "پردازش داده‌های پزشکی"
+    ,"family_consent_treatment": "رضایت درمان"
+    ,"family_consent_photo": "رضایت عکس و ویدیو"
+    ,"packages_get_free": "دریافت رایگان"
+    ,"booking_different_address": "یا آدرس دیگری وارد کنید…"
+    ,"booking_full_home_address": "آدرس کامل برای مراجعه در منزل"
+    ,"booking_address_shared": "پس از تأیید رزرو، این اطلاعات را با ارائه‌دهنده به اشتراک می‌گذاریم."
+    ,"booking_checking_coverage": "در حال بررسی پوشش…"
+    ,"booking_coverage_ok": "ارائه‌دهنده موقعیت شما را پوشش می‌دهد"
+    ,"booking_within_area": "{{distance}} کیلومتر فاصله · در محدوده {{radius}} کیلومتری"
+    ,"booking_no_distance_limit": "{{distance}} کیلومتر فاصله · بدون محدودیت مسافت"
+    ,"family_add_first": "اولین عضو خانواده را اضافه کنید"
+    ,"family_uses_address": "از آدرس شما استفاده می‌کند"
+    ,"family_allergies_label": "حساسیت‌ها"
+    ,"family_conditions_label": "بیماری‌ها"
+    ,"family_edit_title": "ویرایش عضو خانواده"
+    ,"family_add_title": "افزودن عضو خانواده"
+    ,"family_edit_desc": "پروفایل سلامت این عضو خانواده را به‌روزرسانی کنید."
+    ,"family_add_desc": "یک پروفایل سلامت جدید به خانواده اضافه کنید."
+    ,"family_relationship": "نسبت"
+    ,"family_gender": "جنسیت"
+    ,"family_not_specified": "مشخص نشده"
+    ,"family_date_of_birth": "تاریخ تولد"
+    ,"family_blood_type": "گروه خونی"
+    ,"family_unknown": "نامشخص"
+    ,"family_phone": "تلفن"
+    ,"family_email": "ایمیل"
+    ,"family_allergies_placeholder": "مثلاً پنی‌سیلین، بادام‌زمینی"
+    ,"family_conditions_placeholder": "مثلاً دیابت نوع ۲، فشار خون بالا"
+    ,"family_notes_placeholder": "هر اطلاعات مرتبط دیگری"
+    ,"family_delete_confirm": "آیا از حذف {{name}} مطمئن هستید؟ پروفایل سلامت او غیرفعال می‌شود."
+    ,"home_upcoming_visits": "ویزیت‌های پیش‌رو"
+    ,"home_completed_visits": "ویزیت‌های تکمیل‌شده"
+    ,"home_active_prescriptions": "نسخه‌های فعال"
+    ,"home_family_members": "اعضای خانواده"
+    ,"home_health_snapshot": "نمای کلی سلامت"
+    ,"home_view_all": "مشاهده همه"
+    ,"home_active": "فعال"
+    ,"home_health_tip": "نکته سلامت روز"
+    ,"home_book_appointment": "رزرو نوبت"
+    ,"home_health_records": "سوابق سلامت"
+    ,"home_upload_documents": "بارگذاری مدارک"
+    ,"home_add_family": "افزودن عضو خانواده"
+    ,"home_refer_earn": "معرفی و کسب درآمد"
+    ,"home_view_wallet": "مشاهده کیف پول"
+    ,"home_quick_actions": "اقدامات سریع"
+    ,"home_manage_everything": "مدیریت همه‌چیز"
+    ,"home_manage_desc": "نوبت‌ها، فاکتورها، مدارک و موارد دیگر"
+    ,"home_open": "باز کردن"
   }
 }

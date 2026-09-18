@@ -4020,5 +4020,287 @@
     "join_video_visit": "Belépés a videós vizitre",
     "directions": "Útvonalterv",
     "reschedule": "Átfoglalás"
+  },
+  "patient_sweep": {
+    "settings_timezone_title": "Időzóna",
+    "settings_timezone_label": "Az Ön időzónája",
+    "settings_timezone_updated": "Időzóna frissítve",
+    "settings_timezone_updated_desc": "Az időpontok mostantól a választott időzónában jelennek meg.",
+    "settings_change_password_failed": "A jelszó módosítása sikertelen",
+    "settings_manage_consent_desc": "Kezelje hozzájárulásait, engedélyeit és adatvédelmi beállításait.",
+    "settings_manage_consent": "Páciens-hozzájárulás kezelése",
+    "language_english": "Angol",
+    "language_hungarian": "Magyar",
+    "language_persian": "Perzsa",
+    "booking_step_provider": "Szolgáltató választása",
+    "booking_step_service": "Szolgáltatás választása",
+    "booking_step_time": "Időpont választása",
+    "booking_price_varies": "Az ár változó",
+    "booking_mode_clinic": "Csak klinika",
+    "booking_mode_home": "Csak otthoni",
+    "booking_mode_online": "Csak online",
+    "booking_mode_home_clinic": "Otthoni és klinikai",
+    "booking_mode_clinic_online": "Klinikai és online",
+    "booking_mode_home_online": "Otthoni és online",
+    "booking_mode_all": "Minden mód",
+    "booking_confirm_title": "Időpont megerősítése",
+    "booking_continue": "Folytatás",
+    "booking_confirming": "Megerősítés…",
+    "booking_updating_price": "Ár frissítése…",
+    "booking_confirm": "Foglalás megerősítése",
+    "booking_cancel": "Mégse",
+    "booking_back": "Vissza",
+    "waitlist_title": "Várólistám",
+    "waitlist_description": "Értesítjük, amint felszabadul egy időpont a kiválasztott szolgáltatónál.",
+    "waitlist_active": "Aktív",
+    "waitlist_active_desc": "Alkalmazáson belüli és e-mailes értesítést kap, amikor felszabadul egy időpont.",
+    "waitlist_history": "Előzmények",
+    "waitlist_load_failed": "A várólista betöltése sikertelen",
+    "waitlist_book_now": "Foglalás most",
+    "waitlist_removed": "Eltávolítva a várólistáról",
+    "waitlist_leave_failed": "Nem sikerült kilépni a várólistáról",
+    "family_loading": "Családtagi profil betöltése…",
+    "family_allergies": "Allergiák",
+    "family_conditions": "Krónikus betegségek",
+    "family_notes": "Megjegyzések",
+    "family_record_consent": "Új hozzájárulás rögzítése",
+    "family_select_consent": "Válasszon hozzájárulási típust…",
+    "family_cancel": "Mégse",
+    "profile_saved_addresses": "Mentett címek",
+    "profile_saved_addresses_desc": "Mentse gyakran használt címeit a gyors foglaláshoz.",
+    "appointment_saved": "Megtakarítás ezen a foglaláson",
+    "appointment_contact_desc": "A páciens által megadott kapcsolattartási adatok ehhez az időponthoz.",
+    "appointment_mobile": "Mobilszám",
+    "appointment_phone": "Telefon",
+    "appointment_emergency_contact": "Vészhelyzeti kapcsolattartó",
+    "appointment_emergency_phone": "Vészhelyzeti telefon",
+    "appointment_no_contact": "A páciens még nem adott meg kapcsolattartási adatokat.",
+    "appointment_save": "Mentés",
+    "appointment_cancel": "Mégse",
+    "appointment_add_note": "Megjegyzés hozzáadása",
+    "appointment_file_dispute": "Vita bejelentése",
+    "appointment_reason": "Indok",
+    "appointment_reason_placeholder": "Válasszon indokot",
+    "appointment_no_show": "A szolgáltató nem jelent meg",
+    "appointment_wrong_service": "Hibás vagy hiányos szolgáltatás",
+    "appointment_refund_requested": "Visszatérítés kérése",
+    "appointment_technical_issue": "Technikai probléma (videóhívás)",
+    "appointment_other": "Egyéb",
+    "appointment_additional_details": "További részletek",
+    "confirmation_home": "Kezdőlap",
+    "confirmation_details": "Időpont részletei",
+    "confirmation_saved": "Megtakarítás ezen a foglaláson!",
+    "confirmation_included": "Tartalmazza",
+    "confirmation_total": "Összesen",
+    "family_remove_title": "Családtag eltávolítása",
+    "family_no_members": "Még nincs hozzáadott családtag.",
+    "dashboard_rebook": "Utolsó szolgáltató újrafoglalása",
+    "dashboard_refer": "Ajánlás és jutalom",
+    "packages_active": "Aktív",
+    "packages_global": "Globális",
+    "packages_no_benefits": "Nincsenek konkrét előnyök felsorolva.",
+    "packages_free": "Ingyenes",
+    "gift_card_currency": "USD",
+    "report_no_activity": "Még nincs aktivitási adat. Kezdésként foglalja le első időpontját.",
+    "report_total_spent": "Teljes költés",
+    "report_completed": "Befejezett",
+    "report_upcoming": "Közelgő",
+    "report_scheduled": "ütemezett időpont",
+    "report_monthly_spending": "Havi költés (12 hónap)",
+    "report_no_spending": "Még nincs költési adat.",
+    "report_spend": "Költés",
+    "report_avg": "Átlag",
+    "report_peak": "Csúcs",
+    "report_provider_prompt": "Foglaljon le egy időpontot a szolgáltatók megtekintéséhez.",
+    "report_health_activity": "Havi egészségügyi aktivitás (12 hónap)",
+    "report_no_activity_short": "Még nincs aktivitás.",
+    "report_provider_activity": "Szolgáltatói aktivitás",
+    "report_last": "Utolsó",
+    "report_total": "Összesen",
+    "report_rate": "arány",
+    "report_cancelled": "Lemondva",
+    "report_booking_trends": "Foglalási trendek (12 hónap)",
+    "booking_step_intent": "Szándék",
+    "booking_step_details": "Részletek",
+    "booking_step_payment": "Fizetés",
+    "booking_hold_expired": "A foglalás lejárt — válasszon új időpontot",
+    "booking_slot_reserved": "Időpont lefoglalva · {{time}} van hátra",
+    "booking_failed_add_member": "Nem sikerült hozzáadni a családtagot. Próbálja újra.",
+    "booking_invalid_promo": "Érvénytelen promóciós kód",
+    "booking_topup_failed": "Nem sikerült elindítani a feltöltést",
+    "booking_topup_unavailable": "A feltöltés nem érhető el",
+    "booking_try_again_later": "Próbálja újra később.",
+    "booking_wallet_topped_up": "A pénztárca feltöltve!",
+    "booking_balance_updated": "Az egyenlege frissült. Most már fizethet a pénztárcájával.",
+    "booking_topup_cancelled": "A feltöltés megszakítva",
+    "booking_no_charge": "Nem történt terhelés.",
+    "booking_member_required": "A keresztnév, vezetéknév és rokonsági kapcsolat megadása kötelező.",
+    "booking_reason_label": "A látogatás oka",
+    "booking_reason_placeholder": "Röviden írja le, milyen panasszal érkezik…",
+    "booking_char_min": "{{count}}/3 karakter minimum",
+    "booking_intake_questions": "Szolgáltatási kérdések",
+    "booking_yes": "Igen",
+    "booking_visit_type": "Látogatás típusa",
+    "booking_additional_notes": "További megjegyzések",
+    "booking_notes_placeholder": "Van még valami, amit a szolgáltatónak tudnia kell (nem kötelező)…",
+    "booking_home_address": "Otthoni cím",
+    "booking_outside_area": "A szolgáltató ellátási területén kívül",
+    "booking_outside_area_desc": "{{distance}} km-re van — a szolgáltató legfeljebb {{radius}} km-t vállal. Adjon meg közelebbi címet, vagy válasszon másik szolgáltatót.",
+    "booking_summary": "Foglalás összefoglalója",
+    "booking_provider": "Szolgáltató",
+    "booking_date": "Dátum",
+    "booking_time": "Idő",
+    "booking_reason": "Indok",
+    "booking_for": "Kinek szól ez az időpont?",
+    "booking_loading_profiles": "Profilok betöltése…",
+    "booking_myself": "Magamnak",
+    "booking_add_family": "+ Új családtag hozzáadása",
+    "booking_new_family": "Új családtag",
+    "booking_first_name": "Keresztnév",
+    "booking_last_name": "Vezetéknév",
+    "booking_date_of_birth": "Születési dátum",
+    "booking_gender": "Nem",
+    "booking_select": "Válasszon…",
+    "booking_male": "Férfi",
+    "booking_female": "Nő",
+    "booking_other": "Egyéb",
+    "booking_relationship": "Rokonsági kapcsolat",
+    "booking_spouse": "Házastárs",
+    "booking_child": "Gyermek",
+    "booking_parent": "Szülő",
+    "booking_dependent": "Eltartott",
+    "booking_saving": "Megtakarítás",
+    "booking_save_select": "Mentés és kiválasztás",
+    "booking_contact_information": "Kapcsolattartási adatok",
+    "booking_full_name": "Teljes név",
+    "booking_your_full_name": "Az Ön teljes neve",
+    "booking_mobile_number": "Mobilszám",
+    "booking_on_behalf": "Foglalás a következő nevében:",
+    "booking_family_member": "családtag",
+    "booking_consent_agreements": "Hozzájárulások és megállapodások",
+    "booking_agree_to": "Elfogadom a",
+    "booking_terms": "Szolgáltatási feltételeket",
+    "booking_cancellation_policy": "és az időpontra vonatkozó lemondási feltételeket.",
+    "booking_health_consent": "Hozzájárulok, hogy egészségügyi adataimat megosszam a szolgáltatóval ezen időpont céljából, az alábbiak szerint:",
+    "booking_privacy": "Adatvédelmi irányelvek",
+    "booking_included": "Tartalmazza",
+    "booking_base_price": "Alapár",
+    "booking_platform_fee": "Platformdíj",
+    "booking_service_tax": "Szolgáltatási adó ({{rate}}%)",
+    "booking_platform_tax": "Platformadó ({{rate}}%)",
+    "booking_total_tax": "Teljes adó",
+    "booking_total_due": "Fizetendő összesen",
+    "booking_wallet_balance": "Pénztárcaegyenleg",
+    "booking_top_up": "Feltöltés",
+    "booking_not_enough_balance": "Nincs elegendő egyenleg a foglalás fedezésére",
+    "booking_need_more": "Még {{amount}} szükséges a teljes pénztárcás fizetéshez.",
+    "booking_for_label": "Foglalás részére:",
+    "booking_promo_code": "Promóciós kód",
+    "booking_code_saving": "Kód: {{code}} — megtakarítás: {{amount}}",
+    "booking_recalculating": "újraszámítás…",
+    "booking_remove_promo": "Promóciós kód eltávolítása",
+    "booking_enter_promo": "Adja meg a promóciós kódot",
+    "booking_apply": "Alkalmazás",
+    "booking_payment_method": "Fizetési mód",
+    "booking_pay_wallet": "Fizetés pénztárcával",
+    "booking_pay_cash": "Készpénzes fizetés",
+    "booking_bank_transfer": "Banki átutalás",
+    "booking_wallet_use": "{{amount}} felhasználása az egyenlegből — azonnali visszaigazolás",
+    "booking_wallet_apply": "{{amount}} pénztárcajóváírás alkalmazása — a fennmaradó összeg kártyával",
+    "booking_pay_card": "Fizetés kártyával",
+    "booking_secure_checkout": "Biztonságos fizetés",
+    "booking_cash_pending": "A foglalás függőben marad, amíg a szolgáltató vissza nem igazolja a fizetést az időpontban.",
+    "booking_bank_instructions": "Banki átutalási útmutató",
+    "booking_bank_details": "Utaljon {{amount}} összeget a foglalási visszaigazolásban megadott bankszámlára. Az időpont visszaigazolása a szolgáltató általi ellenőrzés után történik.",
+    "booking_bank_reserved": "Az időpont 48 óráig van fenntartva — a biztosításhoz mielőbb utaljon.",
+    "booking_wallet_covers": "A pénztárcája {{amount}} összeget fedez.",
+    "booking_remaining_card": "A fennmaradó {{amount}} összeg a kártyáját terheli.",
+    "booking_active_membership": "— aktív tagság",
+    "booking_service_discount": "{{value}}% szolgáltatási kedvezmény",
+    "booking_fee_discount": "Platformdíj-kedvezmény",
+    "waitlist_retry": "Újra",
+    "waitlist_no_active": "Jelenleg senki várólistáján nem szerepel. Látogasson el egy szolgáltató oldalára, és kattintson a „Várólistára jelentkezés” gombra.",
+    "waitlist_provider": "Szolgáltató",
+    "waitlist_any_date": "bármelyik dátum",
+    "waitlist_waiting": "Várakozik",
+    "waitlist_slot_available": "Időpont elérhető!",
+    "waitlist_booked": "Lefoglalva",
+    "waitlist_cancelled": "Lemondva",
+    "waitlist_expired": "Lejárt",
+    "waitlist_joined": "Csatlakozás: {{date}}",
+    "family_back": "Vissza",
+    "family_book_appointment": "Időpont foglalása",
+    "family_dob": "Szül. idő",
+    "family_medical_summary": "Orvosi összefoglaló",
+    "family_appointments": "Időpontok",
+    "family_documents": "Dokumentumok",
+    "family_consents": "Hozzájárulások",
+    "family_no_appointments": "Még nincs időpont",
+    "family_no_appointments_desc": "{{name}}nak még nem volt időpontja.",
+    "family_book_first": "Első időpont foglalása",
+    "family_appointment": "Időpont",
+    "family_no_documents": "Még nincs dokumentum",
+    "family_no_documents_desc": "Még nem töltöttek fel dokumentumot {{name}} számára.",
+    "family_document": "Dokumentum",
+    "family_view": "Megtekintés",
+    "family_no_consents": "Nincs rögzített hozzájárulás",
+    "family_no_consents_desc": "Még nem hoztak létre hozzájárulási rekordot.",
+    "family_accepted": "Elfogadva",
+    "family_declined": "Elutasítva",
+    "family_accept": "Elfogadás",
+    "family_decline": "Elutasítás",
+    "family_record": "Hozzájárulás rögzítése"
+    ,"family_recorded": "Hozzájárulás rögzítve"
+    ,"family_consent_terms": "Általános szerződési feltételek"
+    ,"family_consent_privacy": "Adatvédelmi irányelvek"
+    ,"family_consent_medical": "Egészségügyi adatok kezelése"
+    ,"family_consent_treatment": "Kezelési hozzájárulás"
+    ,"family_consent_photo": "Fotó- és videó-hozzájárulás"
+    ,"packages_get_free": "Ingyenes igénylés"
+    ,"booking_different_address": "Vagy adjon meg másik címet…"
+    ,"booking_full_home_address": "Teljes cím az otthoni látogatáshoz"
+    ,"booking_address_shared": "A foglalás visszaigazolása után megosztjuk ezt a szolgáltatóval."
+    ,"booking_checking_coverage": "Lefedettség ellenőrzése…"
+    ,"booking_coverage_ok": "A szolgáltató lefedi az Ön tartózkodási helyét"
+    ,"booking_within_area": "{{distance}} km-re · a {{radius}} km-es ellátási területen belül"
+    ,"booking_no_distance_limit": "{{distance}} km-re · nincs távolsági korlátozás"
+    ,"family_add_first": "Adja hozzá első családtagját"
+    ,"family_uses_address": "Az Ön címét használja"
+    ,"family_allergies_label": "Allergiák"
+    ,"family_conditions_label": "Állapotok"
+    ,"family_edit_title": "Családtag szerkesztése"
+    ,"family_add_title": "Családtag hozzáadása"
+    ,"family_edit_desc": "Frissítse a családtag egészségügyi profilját."
+    ,"family_add_desc": "Adjon új egészségügyi profilt a családjához."
+    ,"family_relationship": "Rokonsági kapcsolat"
+    ,"family_gender": "Nem"
+    ,"family_not_specified": "Nincs megadva"
+    ,"family_date_of_birth": "Születési dátum"
+    ,"family_blood_type": "Vércsoport"
+    ,"family_unknown": "Ismeretlen"
+    ,"family_phone": "Telefon"
+    ,"family_email": "E-mail"
+    ,"family_allergies_placeholder": "pl. penicillin, mogyoró"
+    ,"family_conditions_placeholder": "pl. 2-es típusú cukorbetegség, magas vérnyomás"
+    ,"family_notes_placeholder": "Bármilyen egyéb fontos információ"
+    ,"family_delete_confirm": "Biztosan eltávolítja {{name}} nevű családtagot? Az egészségügyi profil deaktiválva lesz."
+    ,"home_upcoming_visits": "Közelgő vizitek"
+    ,"home_completed_visits": "Befejezett vizitek"
+    ,"home_active_prescriptions": "Aktív receptek"
+    ,"home_family_members": "Családtagok"
+    ,"home_health_snapshot": "Egészségügyi áttekintés"
+    ,"home_view_all": "Összes megtekintése"
+    ,"home_active": "Aktív"
+    ,"home_health_tip": "A nap egészségügyi tippje"
+    ,"home_book_appointment": "Időpont foglalása"
+    ,"home_health_records": "Egészségügyi nyilvántartás"
+    ,"home_upload_documents": "Dokumentumok feltöltése"
+    ,"home_add_family": "Családtag hozzáadása"
+    ,"home_refer_earn": "Ajánlás és jutalom"
+    ,"home_view_wallet": "Tárca megtekintése"
+    ,"home_quick_actions": "Gyors műveletek"
+    ,"home_manage_everything": "Minden kezelése"
+    ,"home_manage_desc": "Időpontok, számlák, dokumentumok és egyebek"
+    ,"home_open": "Megnyitás"
   }
 }
