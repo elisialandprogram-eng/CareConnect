@@ -10,6 +10,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -297,20 +298,21 @@ interface SlotSettingsPanelProps {
 }
 
 function SlotSettingsPanel({ slotDuration, setSlotDuration, bufferBefore, setBufferBefore, bufferAfter, setBufferAfter }: SlotSettingsPanelProps) {
+  const { t } = useTranslation();
   return (
     <Card>
       <CardHeader>
         <CardTitle className="text-sm flex items-center gap-2">
-          <Settings className="h-4 w-4 text-primary" /> Appointment Slot Settings
+          <Settings className="h-4 w-4 text-primary" /> {t("provider_dashboard.scheduler_slot_settings", "Appointment Slot Settings")}
         </CardTitle>
         <CardDescription className="text-xs">
-          These defaults are applied when you save or update your schedule.
+          {t("provider_dashboard.scheduler_slot_settings_desc", "These defaults are applied when you save or update your schedule.")}
         </CardDescription>
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="space-y-1.5">
-            <Label className="text-xs font-medium">Slot Duration</Label>
+            <Label className="text-xs font-medium">{t("provider_dashboard.scheduler_slot_duration", "Slot Duration")}</Label>
             <Select value={String(slotDuration)} onValueChange={v => setSlotDuration(Number(v))}>
               <SelectTrigger className="h-8 text-sm" data-testid="select-slot-duration">
                 <SelectValue />
@@ -321,10 +323,10 @@ function SlotSettingsPanel({ slotDuration, setSlotDuration, bufferBefore, setBuf
                 ))}
               </SelectContent>
             </Select>
-            <p className="text-[10px] text-muted-foreground">Length of each appointment slot</p>
+            <p className="text-[10px] text-muted-foreground">{t("provider_dashboard.scheduler_slot_duration_desc", "Length of each appointment slot")}</p>
           </div>
           <div className="space-y-1.5">
-            <Label className="text-xs font-medium">Buffer Before</Label>
+            <Label className="text-xs font-medium">{t("provider_dashboard.scheduler_buffer_before", "Buffer Before")}</Label>
             <Select value={String(bufferBefore)} onValueChange={v => setBufferBefore(Number(v))}>
               <SelectTrigger className="h-8 text-sm" data-testid="select-buffer-before">
                 <SelectValue />
@@ -335,10 +337,10 @@ function SlotSettingsPanel({ slotDuration, setSlotDuration, bufferBefore, setBuf
                 ))}
               </SelectContent>
             </Select>
-            <p className="text-[10px] text-muted-foreground">Preparation time before each slot</p>
+            <p className="text-[10px] text-muted-foreground">{t("provider_dashboard.scheduler_buffer_before_desc", "Preparation time before each slot")}</p>
           </div>
           <div className="space-y-1.5">
-            <Label className="text-xs font-medium">Buffer After</Label>
+            <Label className="text-xs font-medium">{t("provider_dashboard.scheduler_buffer_after", "Buffer After")}</Label>
             <Select value={String(bufferAfter)} onValueChange={v => setBufferAfter(Number(v))}>
               <SelectTrigger className="h-8 text-sm" data-testid="select-buffer-after">
                 <SelectValue />
@@ -349,7 +351,7 @@ function SlotSettingsPanel({ slotDuration, setSlotDuration, bufferBefore, setBuf
                 ))}
               </SelectContent>
             </Select>
-            <p className="text-[10px] text-muted-foreground">Wrap-up time after each slot</p>
+            <p className="text-[10px] text-muted-foreground">{t("provider_dashboard.scheduler_buffer_after_desc", "Wrap-up time after each slot")}</p>
           </div>
         </div>
       </CardContent>
@@ -367,6 +369,7 @@ interface InsightsPanelProps {
 }
 
 function InsightsPanel({ weekMatrix, weekSummary, totalHours, enabledDays }: InsightsPanelProps) {
+  const { t } = useTranslation();
   const totalSlots   = weekSummary?.totalSlots   ?? 0;
   const bookedSlots  = weekSummary?.bookedSlots  ?? 0;
   const availSlots   = weekSummary?.availableSlots ?? (totalSlots - bookedSlots);
@@ -383,13 +386,13 @@ function InsightsPanel({ weekMatrix, weekSummary, totalHours, enabledDays }: Ins
         <Card>
           <CardContent className="py-4 text-center">
             <p className="text-2xl font-bold text-primary">{enabledDays}</p>
-            <p className="text-xs text-muted-foreground mt-1">Active days / wk</p>
+            <p className="text-xs text-muted-foreground mt-1">{t("provider_dashboard.scheduler_active_days", "Active days / wk")}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="py-4 text-center">
             <p className="text-2xl font-bold text-primary">{totalHours}h</p>
-            <p className="text-xs text-muted-foreground mt-1">Scheduled / wk</p>
+            <p className="text-xs text-muted-foreground mt-1">{t("provider_dashboard.scheduler_scheduled", "Scheduled / wk")}</p>
           </CardContent>
         </Card>
         <Card>
@@ -397,7 +400,7 @@ function InsightsPanel({ weekMatrix, weekSummary, totalHours, enabledDays }: Ins
             <p className={`text-2xl font-bold ${hasData ? "text-primary" : "text-muted-foreground"}`}>
               {hasData ? `${utilPct}%` : "–"}
             </p>
-            <p className="text-xs text-muted-foreground mt-1">Utilisation this wk</p>
+            <p className="text-xs text-muted-foreground mt-1">{t("provider_dashboard.scheduler_utilization", "Utilisation this wk")}</p>
           </CardContent>
         </Card>
         <Card>
@@ -405,7 +408,7 @@ function InsightsPanel({ weekMatrix, weekSummary, totalHours, enabledDays }: Ins
             <p className={`text-2xl font-bold ${hasData ? "text-primary" : "text-muted-foreground"}`}>
               {hasData ? availSlots : "–"}
             </p>
-            <p className="text-xs text-muted-foreground mt-1">Slots available</p>
+            <p className="text-xs text-muted-foreground mt-1">{t("provider_dashboard.scheduler_slots_available", "Slots available")}</p>
           </CardContent>
         </Card>
       </div>
@@ -414,13 +417,13 @@ function InsightsPanel({ weekMatrix, weekSummary, totalHours, enabledDays }: Ins
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-sm flex items-center gap-2">
-            <BarChart3 className="h-4 w-4 text-primary" /> This Week — Slot Breakdown
+            <BarChart3 className="h-4 w-4 text-primary" /> {t("provider_dashboard.scheduler_week_breakdown", "This Week — Slot Breakdown")}
           </CardTitle>
         </CardHeader>
         <CardContent>
           {!hasData ? (
             <p className="text-xs text-muted-foreground text-center py-6">
-              No data yet. Book some appointments to see insights here.
+              {t("provider_dashboard.scheduler_no_data", "No data yet. Book some appointments to see insights here.")}
             </p>
           ) : dayBreakdown.length > 0 ? (
             <div className="space-y-2">

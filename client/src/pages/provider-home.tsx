@@ -203,7 +203,7 @@ function AppointmentRow({ appt }: { appt: Appointment }) {
         <div className="flex items-center gap-1">
           <VisitIcon className="w-3 h-3 text-muted-foreground/60" />
           <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${statusCls}`}>
-            {appt.status.replace(/_/g, " ")}
+            {t(`provider_dashboard.status_${appt.status}`, appt.status.replace(/_/g, " "))}
           </span>
         </div>
       </div>
@@ -606,9 +606,9 @@ export default function ProviderHome() {
             ) : (
               <div className="grid grid-cols-3 gap-3">
                 {[
-                  { label: "Available", value: formatAmount(payoutSummary.availableBalance), color: "text-emerald-600 dark:text-emerald-400" },
-                  { label: "Pending payout", value: formatAmount(payoutSummary.pendingPayouts), color: "text-amber-600 dark:text-amber-400" },
-                  { label: "Total earned", value: formatAmount(payoutSummary.lifetimePaidEarnings), color: "text-primary" },
+                  { label: t("provider_dashboard.available", "Available"), value: formatAmount(payoutSummary.availableBalance), color: "text-emerald-600 dark:text-emerald-400" },
+                  { label: t("provider_dashboard.pending_payouts", "Pending payouts"), value: formatAmount(payoutSummary.pendingPayouts), color: "text-amber-600 dark:text-amber-400" },
+                  { label: t("provider_dashboard.reporting_lifetime_earned", "Lifetime earned"), value: formatAmount(payoutSummary.lifetimePaidEarnings), color: "text-primary" },
                 ].map(({ label, value, color }) => (
                   <div key={label} className="rounded-xl bg-muted/40 p-3 text-center">
                     <p className={`text-base font-bold leading-none ${color}`}>{value}</p>

@@ -40,18 +40,18 @@ const MANDATORY_LABELS: Record<string, string> = {
   address_proof:   "Proof of Residential Address",
 };
 
-function computeReadinessScore(provider: ProviderData | undefined, docs: KycDoc[]) {
+function computeReadinessScore(provider: ProviderData | undefined, docs: KycDoc[], translate: (key: string, fallback: string) => string) {
   const uploaded = new Set(docs.filter(d => d.documentUrl).map(d => d.documentType));
   const approved = new Set(docs.filter(d => d.verificationStatus === "approved").map(d => d.documentType));
 
   const checks = [
-    { label: "Medical / Professional Licence uploaded",  done: uploaded.has("medical_license") },
-    { label: "Primary Medical Degree uploaded",          done: uploaded.has("degree") },
-    { label: "Government-Issued Photo ID uploaded",      done: uploaded.has("id_card") },
-    { label: "Proof of Residential Address uploaded",    done: uploaded.has("address_proof") },
-    { label: "Bio / description added",                  done: !!(provider?.bio || provider?.description) },
-    { label: "Specialization set",                       done: !!(provider?.specialization || provider?.providerSubcategory || provider?.specialty || provider?.practitionerType) },
-    { label: "Clinic / location set",                    done: !!(provider?.clinicName || provider?.location) },
+    { label: translate("provider_dashboard.readiness_license_uploaded", "Medical / Professional Licence uploaded"), done: uploaded.has("medical_license") },
+    { label: translate("provider_dashboard.readiness_degree_uploaded", "Primary Medical Degree uploaded"), done: uploaded.has("degree") },
+    { label: translate("provider_dashboard.readiness_id_uploaded", "Government-Issued Photo ID uploaded"), done: uploaded.has("id_card") },
+    { label: translate("provider_dashboard.readiness_address_uploaded", "Proof of Residential Address uploaded"), done: uploaded.has("address_proof") },
+    { label: translate("provider_dashboard.readiness_bio_added", "Bio / description added"), done: !!(provider?.bio || provider?.description) },
+    { label: translate("provider_dashboard.readiness_specialization_set", "Specialization set"), done: !!(provider?.specialization || provider?.providerSubcategory || provider?.specialty || provider?.practitionerType) },
+    { label: translate("provider_dashboard.readiness_clinic_set", "Clinic / location set"), done: !!(provider?.clinicName || provider?.location) },
   ];
   const done = checks.filter(c => c.done).length;
   return { checks, score: Math.round((done / checks.length) * 100), done, total: checks.length, approved };
@@ -87,7 +87,7 @@ export function ProviderKYC() {
 
   const status = provider?.status ?? "draft";
   const banner = BANNERS[status] ?? BANNERS.draft;
-  const readiness = computeReadinessScore(provider, docs);
+  const readiness = computeReadinessScore(provider, docs, t);
 
   const mandatoryStatuses = MANDATORY_DOCS.map(type => {
     const doc = docs.find(d => d.documentType === type);
