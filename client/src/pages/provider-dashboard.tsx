@@ -837,7 +837,7 @@ export default function ProviderDashboard() {
                   </h1>
                   <p className="text-white/70 text-sm mt-0.5">
                     {(providerData as any)?.accountType === "clinic"
-                      ? "Manage your practitioners and the services assigned to your clinic."
+                       ? t("provider_dashboard.manage_clinic_desc", "Manage your practitioners and the services assigned to your clinic.")
                       : t("dashboard.provider_desc")}
                   </p>
                 </div>
@@ -847,7 +847,7 @@ export default function ProviderDashboard() {
                   <Link href={`/provider/${providerData?.id}`}><FileText className="h-4 w-4" />{t("provider_dashboard.profile_button", "Public Profile")}</Link>
                 </Button>
                 <Button variant="secondary" size="sm" className="gap-2 bg-white/20 hover:bg-white/30 text-white border-white/30 border" onClick={() => setActiveTab("profile")} data-testid="button-dashboard-edit-profile">
-                  <UserRound className="h-4 w-4" />My Profile
+                  <UserRound className="h-4 w-4" />{t("provider_dashboard.my_profile", "My Profile")}
                 </Button>
                 <Button variant="secondary" size="sm" className="gap-2 bg-white/20 hover:bg-white/30 text-white border-white/30 border" onClick={() => { setProfileSection("settings"); setActiveTab("profile"); }} data-testid="button-dashboard-preferences">
                   <Settings className="h-4 w-4" />{t("provider_dashboard.settings_button", "Settings")}
@@ -879,9 +879,9 @@ export default function ProviderDashboard() {
             const hasAvailability = ((providerData as any)?.hasAvailability ?? false);
             const hasPhoto = !!(providerData as any)?.profileImageUrl || !!(providerData as any)?.profileImage;
             const nextSteps = [
-              { done: hasServices, label: "Add your services & pricing", action: () => setActiveTab("services") },
-              { done: hasAvailability, label: "Set your availability", action: () => setActiveTab("availability") },
-              { done: hasPhoto, label: "Add a profile photo", action: () => setActiveTab("gallery") },
+              { done: hasServices, label: t("provider_dashboard.add_services_pricing", "Add your services & pricing"), action: () => setActiveTab("services") },
+              { done: hasAvailability, label: t("provider_dashboard.set_availability", "Set your availability"), action: () => setActiveTab("availability") },
+              { done: hasPhoto, label: t("provider_dashboard.add_profile_photo", "Add a profile photo"), action: () => setActiveTab("gallery") },
             ].filter(s => !s.done);
             return (
               <div className="mb-6 rounded-2xl border border-emerald-200 dark:border-emerald-800 bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-950/30 dark:to-teal-950/20 p-5" data-testid="banner-approved">
