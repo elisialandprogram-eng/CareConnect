@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { useAdminCurrency } from "@/lib/currency";
+import { useTranslation } from "react-i18next";
 
 type ReportRow = {
   id: string;
@@ -82,11 +83,27 @@ function dateLabel(value: string) {
   });
 }
 
-function statusLabel(value: string | null | undefined) {
-  return value ? value.replace(/_/g, " ") : "unpaid";
+function statusLabel(value: string | null | undefined, t: (key: string, fallback: string) => string) {
+  if (!value) return t("unpaid", "Unpaid");
+  const normalized = value.toLowerCase();
+  const known: Record<string, string> = {
+    paid: t("paid", "Paid"),
+    pending: t("pending", "Pending"),
+    refunded: t("refunded", "Refunded"),
+    partially_refunded: t("partially_refunded", "Partially refunded"),
+    disputed: t("disputed", "Disputed"),
+    cash: t("cash", "Cash"),
+    card: t("card", "Card"),
+    wallet: t("wallet", "Wallet"),
+    bank_transfer: t("bank_transfer", "Bank transfer"),
+  };
+  return known[normalized] ?? value.replace(/_/g, " ");
 }
 
 export function PlatformRevenueReport() {
+  const { t: translate } = useTranslation();
+  const t = (key: string, fallback: string, options?: Record<string, unknown>): string =>
+    String(translate(`admin.platform_revenue_report.${key}`, { defaultValue: fallback, ...options }));
   const { toast } = useToast();
   const { format } = useAdminCurrency();
   const [providerId, setProviderId] = useState("");
@@ -159,19 +176,19 @@ export function PlatformRevenueReport() {
       URL.revokeObjectURL(url);
     }).catch(error => {
       console.error("[platform-revenue-export]", error);
-      toast({ title: "Export failed", description: "The report could not be downloaded.", variant: "destructive" });
+       toast({ title: t("export_failed", "Export failed"), description: t("export_failed_description", "The report could not be downloaded."), variant: "destructive" });
     });
   }
 
   const cards = summary ? [
-    { label: "Platform commission", value: summary.commissionUsd, icon: Percent, tone: "text-violet-600" },
-    { label: "Platform fee", value: summary.platformFeeUsd, icon: DollarSign, tone: "text-blue-600" },
-    { label: "Gateway fee / tax", value: summary.gatewayFeeTaxUsd, icon: Landmark, tone: "text-amber-600" },
-    { label: "Service tax", value: summary.serviceTaxUsd, icon: Receipt, tone: "text-orange-600" },
-    { label: "Platform tax", value: summary.platformTaxUsd, icon: Receipt, tone: "text-orange-600" },
-    { label: "Other tax", value: summary.otherTaxUsd, icon: Receipt, tone: "text-orange-600" },
-    { label: "All taxes", value: summary.totalTaxesUsd, icon: Receipt, tone: "text-red-600" },
-    { label: "Platform income (excl. taxes)", value: summary.totalPlatformEarningsUsd, icon: DollarSign, tone: "text-emerald-600" },
+    { label: t("platform_commission", "Platform commission"), value: summary.commissionUsd, icon: Percent, tone: "text-violet-600" },
+    { label: t("platform_fee", "Platform fee"), value: summary.platformFeeUsd, icon: DollarSign, tone: "text-blue-600" },
+    { label: t("gateway_fee_tax", "Gateway fee / tax"), value: summary.gatewayFeeTaxUsd, icon: Landmark, tone: "text-amber-600" },
+    { label: t("service_tax", "Service tax"), value: summary.serviceTaxUsd, icon: Receipt, tone: "text-orange-600" },
+    { label: t("platform_tax", "Platform tax"), value: summary.platformTaxUsd, icon: Receipt, tone: "text-orange-600" },
+    { label: t("other_tax", "Other tax"), value: summary.otherTaxUsd, icon: Receipt, tone: "text-orange-600" },
+    { label: t("all_taxes", "All taxes"), value: summary.totalTaxesUsd, icon: Receipt, tone: "text-red-600" },
+    { label: t("platform_income_excl_taxes", "Platform income (excl. taxes)"), value: summary.totalPlatformEarningsUsd, icon: DollarSign, tone: "text-emerald-600" },
   ] : [];
 
   return (
@@ -180,20 +197,20 @@ export function PlatformRevenueReport() {
         <div>
           <h2 className="text-xl font-bold flex items-center gap-2">
             <Receipt className="h-5 w-5 text-primary" />
-            Platform Revenue by Booking
+             {t("title", "Platform Revenue by Booking")}
           </h2>
           <p className="text-sm text-muted-foreground mt-1">
-            Commission, platform fee, gateway fee/tax, and tax snapshots normalized to USD.
+             {t("description", "Commission, platform fee, gateway fee/tax, and tax snapshots normalized to USD.")}
           </p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
             <RefreshCw className={`h-4 w-4 me-2 ${isFetching ? "animate-spin" : ""}`} />
-            Refresh
+             {t("refresh", "Refresh")}
           </Button>
           <Button size="sm" onClick={exportCsv} disabled={isLoading}>
             <Download className="h-4 w-4 me-2" />
-            Download CSV
+             {t("download_csv", "Download CSV")}
           </Button>
         </div>
       </div>
@@ -219,19 +236,19 @@ export function PlatformRevenueReport() {
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2">
             <Filter className="h-4 w-4" />
-            Report filters
+             {t("report_filters", "Report filters")}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
             <div className="space-y-1 xl:col-span-2">
-              <label className="text-xs font-medium">Provider</label>
+               <label className="text-xs font-medium">{t("provider", "Provider")}</label>
               <select
                 value={providerId}
                 onChange={event => { setProviderId(event.target.value); setPage(1); }}
                 className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
               >
-                <option value="">All providers</option>
+                 <option value="">{t("all_providers", "All providers")}</option>
                 {(filterOptions?.providers ?? []).map(option => (
                   <option key={option.id} value={option.id}>
                     {option.name || option.email || option.id}
@@ -241,13 +258,13 @@ export function PlatformRevenueReport() {
               </select>
             </div>
             <div className="space-y-1 xl:col-span-2">
-              <label className="text-xs font-medium">Client</label>
+               <label className="text-xs font-medium">{t("client", "Client")}</label>
               <select
                 value={clientId}
                 onChange={event => { setClientId(event.target.value); setPage(1); }}
                 className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
               >
-                <option value="">All clients</option>
+                 <option value="">{t("all_clients", "All clients")}</option>
                 {(filterOptions?.clients ?? []).map(option => (
                   <option key={option.id} value={option.id}>
                     {option.name || option.email || option.id}
@@ -257,41 +274,41 @@ export function PlatformRevenueReport() {
               </select>
             </div>
             <div className="space-y-1">
-              <label className="text-xs font-medium">Month</label>
+               <label className="text-xs font-medium">{t("month", "Month")}</label>
               <Input type="month" value={month} onChange={event => { setMonth(event.target.value); setPage(1); }} />
             </div>
             <div className="space-y-1">
-              <label className="text-xs font-medium">Payment status</label>
+               <label className="text-xs font-medium">{t("payment_status", "Payment status")}</label>
               <select
                 value={paymentStatus}
                 onChange={event => { setPaymentStatus(event.target.value); setPage(1); }}
                 className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
               >
-                <option value="all">All payment statuses</option>
-                <option value="paid">Paid</option>
-                <option value="partially_refunded">Partially refunded</option>
-                <option value="refunded">Refunded</option>
-                <option value="disputed">Disputed</option>
-                <option value="pending">Pending</option>
+                 <option value="all">{t("all_payment_statuses", "All payment statuses")}</option>
+                 <option value="paid">{t("paid", "Paid")}</option>
+                 <option value="partially_refunded">{t("partially_refunded", "Partially refunded")}</option>
+                 <option value="refunded">{t("refunded", "Refunded")}</option>
+                 <option value="disputed">{t("disputed", "Disputed")}</option>
+                 <option value="pending">{t("pending", "Pending")}</option>
               </select>
             </div>
             <div className="space-y-1">
-              <label className="text-xs font-medium">From date</label>
+               <label className="text-xs font-medium">{t("from_date", "From date")}</label>
               <Input type="date" value={dateFrom} onChange={event => { setDateFrom(event.target.value); setPage(1); }} />
             </div>
             <div className="space-y-1">
-              <label className="text-xs font-medium">To date</label>
+               <label className="text-xs font-medium">{t("to_date", "To date")}</label>
               <Input type="date" value={dateTo} onChange={event => { setDateTo(event.target.value); setPage(1); }} />
             </div>
           </div>
           <div className="flex flex-wrap items-center justify-between gap-2 mt-4">
             <p className="text-xs text-muted-foreground">
-              Date range takes precedence over month when both are supplied. Totals include paid and refunded payment records.
+               {t("filter_note", "Date range takes precedence over month when both are supplied. Totals include paid and refunded payment records.")}
             </p>
             {(providerId || clientId || dateFrom || dateTo || month || paymentStatus !== "all") && (
               <Button variant="ghost" size="sm" onClick={clearFilters}>
                 <X className="h-4 w-4 me-1" />
-                Clear filters
+                 {t("clear_filters", "Clear filters")}
               </Button>
             )}
           </div>
@@ -302,12 +319,12 @@ export function PlatformRevenueReport() {
         <CardHeader className="pb-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <CardTitle className="text-base">
-              Booking earnings
-              {data && <span className="text-muted-foreground font-normal ms-2">({data.total.toLocaleString()} bookings)</span>}
+               {t("booking_earnings", "Booking earnings")}
+               {data && <span className="text-muted-foreground font-normal ms-2">({data.total.toLocaleString()} {t("bookings", "bookings")})</span>}
             </CardTitle>
             {summary && (
               <Badge variant="secondary">
-                {summary.earnedBookingCount.toLocaleString()} with recognized payment
+                 {summary.earnedBookingCount.toLocaleString()} {t("recognized_payment", "with recognized payment")}
               </Badge>
             )}
           </div>
@@ -317,28 +334,28 @@ export function PlatformRevenueReport() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-y bg-muted/40 text-xs text-muted-foreground">
-                  <th className="text-start font-medium p-3 whitespace-nowrap">Booking</th>
-                  <th className="text-start font-medium p-3 whitespace-nowrap">Provider</th>
-                  <th className="text-start font-medium p-3 whitespace-nowrap">Client</th>
-                  <th className="text-start font-medium p-3 whitespace-nowrap">Payment</th>
-                  <th className="text-end font-medium p-3 whitespace-nowrap">Commission</th>
-                  <th className="text-end font-medium p-3 whitespace-nowrap">Platform fee</th>
-                  <th className="text-end font-medium p-3 whitespace-nowrap">Gateway fee/tax</th>
-                  <th className="text-end font-medium p-3 whitespace-nowrap">Service tax</th>
-                  <th className="text-end font-medium p-3 whitespace-nowrap">Platform tax</th>
-                  <th className="text-end font-medium p-3 whitespace-nowrap">Other tax</th>
-                  <th className="text-end font-medium p-3 whitespace-nowrap">Admin fee</th>
-                  <th className="text-end font-medium p-3 whitespace-nowrap">Platform income</th>
+                   <th className="text-start font-medium p-3 whitespace-nowrap">{t("booking", "Booking")}</th>
+                   <th className="text-start font-medium p-3 whitespace-nowrap">{t("provider", "Provider")}</th>
+                   <th className="text-start font-medium p-3 whitespace-nowrap">{t("client", "Client")}</th>
+                   <th className="text-start font-medium p-3 whitespace-nowrap">{t("payment", "Payment")}</th>
+                   <th className="text-end font-medium p-3 whitespace-nowrap">{t("commission", "Commission")}</th>
+                   <th className="text-end font-medium p-3 whitespace-nowrap">{t("platform_fee", "Platform fee")}</th>
+                   <th className="text-end font-medium p-3 whitespace-nowrap">{t("gateway_fee_tax", "Gateway fee/tax")}</th>
+                   <th className="text-end font-medium p-3 whitespace-nowrap">{t("service_tax", "Service tax")}</th>
+                   <th className="text-end font-medium p-3 whitespace-nowrap">{t("platform_tax", "Platform tax")}</th>
+                   <th className="text-end font-medium p-3 whitespace-nowrap">{t("other_tax", "Other tax")}</th>
+                   <th className="text-end font-medium p-3 whitespace-nowrap">{t("admin_fee", "Admin fee")}</th>
+                   <th className="text-end font-medium p-3 whitespace-nowrap">{t("platform_income", "Platform income")}</th>
                 </tr>
               </thead>
               <tbody>
                 {isLoading && (
                   <tr><td colSpan={12} className="p-10 text-center text-muted-foreground">
-                    <Loader2 className="h-5 w-5 animate-spin inline me-2" />Loading report…
+                     <Loader2 className="h-5 w-5 animate-spin inline me-2" />{t("loading_report", "Loading report…")}
                   </td></tr>
                 )}
                 {!isLoading && rows.length === 0 && (
-                  <tr><td colSpan={12} className="p-10 text-center text-muted-foreground">No bookings match these filters.</td></tr>
+                   <tr><td colSpan={12} className="p-10 text-center text-muted-foreground">{t("no_bookings_match", "No bookings match these filters.")}</td></tr>
                 )}
                 {!isLoading && rows.map(row => {
                   const totalPlatform = amount(row.commission_usd) + amount(row.platform_fee_usd)
@@ -358,8 +375,8 @@ export function PlatformRevenueReport() {
                         <div className="text-xs text-muted-foreground truncate max-w-[180px]">{row.patient_email || row.patient_id}</div>
                       </td>
                       <td className="p-3 whitespace-nowrap">
-                        <Badge variant="outline" className="capitalize">{statusLabel(row.payment_status)}</Badge>
-                        <div className="text-xs text-muted-foreground mt-1 capitalize">{statusLabel(row.payment_method)}</div>
+                         <Badge variant="outline" className="capitalize">{statusLabel(row.payment_status, t)}</Badge>
+                         <div className="text-xs text-muted-foreground mt-1 capitalize">{statusLabel(row.payment_method, t)}</div>
                       </td>
                       <td className="p-3 text-end font-medium">{format(amount(row.commission_usd))}</td>
                       <td className="p-3 text-end">{format(amount(row.platform_fee_usd))}</td>
@@ -377,15 +394,15 @@ export function PlatformRevenueReport() {
           </div>
           <div className="flex items-center justify-between border-t px-4 py-3">
             <span className="text-xs text-muted-foreground">
-              {data ? `Page ${data.page} of ${Math.max(1, data.totalPages)}` : "—"}
+               {data ? `${t("page", "Page")} ${data.page} ${t("of", "of")} ${Math.max(1, data.totalPages)}` : "—"}
             </span>
             <div className="flex gap-2">
               <Button variant="outline" size="sm" disabled={!data || page <= 1 || isFetching} onClick={() => setPage(value => value - 1)}>
                 <ChevronLeft className="h-4 w-4" />
-                Previous
+                 {t("previous", "Previous")}
               </Button>
               <Button variant="outline" size="sm" disabled={!data || page >= data.totalPages || isFetching} onClick={() => setPage(value => value + 1)}>
-                Next
+                 {t("next", "Next")}
                 <ChevronRight className="h-4 w-4" />
               </Button>
             </div>
@@ -395,8 +412,8 @@ export function PlatformRevenueReport() {
 
       {summary && (
         <p className="text-xs text-muted-foreground">
-          Tax detail: service {format(summary.serviceTaxUsd)}, platform {format(summary.platformTaxUsd)}, other {format(summary.otherTaxUsd)}.
-          Stored booking-currency snapshots are converted proportionally against the authoritative final USD booking total.
+           {t("tax_detail", "Tax detail")}: {t("service_tax_lower", "service")} {format(summary.serviceTaxUsd)}, {t("platform_tax_lower", "platform")} {format(summary.platformTaxUsd)}, {t("other_tax_lower", "other")} {format(summary.otherTaxUsd)}.
+           {t("tax_note", "Stored booking-currency snapshots are converted proportionally against the authoritative final USD booking total.")}
         </p>
       )}
     </div>

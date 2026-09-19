@@ -66,6 +66,12 @@ function PanelLoader() {
   );
 }
 
+function useRevenueCenterText() {
+  const { t } = useTranslation();
+  return (key: string, fallback: string, options?: Record<string, unknown>): string =>
+    String(t(`admin.revenue_center.${key}`, { defaultValue: fallback, ...options }));
+}
+
 // ── Simple helpers ────────────────────────────────────────────────────────────
 const fmt = (v: string | number | undefined, fallback = "—") => {
   const n = Number(v);
@@ -199,6 +205,7 @@ const pfDefaults: PfForm = {
 };
 
 function PlatformFeeRulesPanel() {
+  const tr = useRevenueCenterText();
   const qc = useQueryClient(); const { toast } = useToast();
   const { data: rules = [], isLoading } = useQuery<any[]>({ queryKey: ["/api/admin/revenue/platform-fee-rules"] });
   const [showForm, setShowForm] = useState(false);
@@ -215,16 +222,16 @@ function PlatformFeeRulesPanel() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["/api/admin/revenue/platform-fee-rules"] });
       qc.invalidateQueries({ queryKey: ["/api/admin/revenue/overview"] });
-      toast({ title: "Saved" }); setShowForm(false); setEditingId(null); form.reset(pfDefaults);
+      toast({ title: tr("saved", "Saved") }); setShowForm(false); setEditingId(null); form.reset(pfDefaults);
     },
-    onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+    onError: (e: any) => toast({ title: tr("error", "Error"), description: e.message, variant: "destructive" }),
   });
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => (await apiRequest("DELETE", `/api/admin/revenue/platform-fee-rules/${id}`)).json(),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["/api/admin/revenue/platform-fee-rules"] });
       qc.invalidateQueries({ queryKey: ["/api/admin/revenue/overview"] });
-      toast({ title: "Deleted" }); setDelTarget(null);
+      toast({ title: tr("deleted", "Deleted") }); setDelTarget(null);
     },
   });
 
@@ -247,22 +254,22 @@ function PlatformFeeRulesPanel() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="font-semibold">Platform Fee Rules</h3>
-          <p className="text-sm text-muted-foreground">Percent, fixed, or hybrid fees with optional min/max caps</p>
+          <h3 className="font-semibold">{tr("platform_fee_rules_title", "Platform Fee Rules")}</h3>
+          <p className="text-sm text-muted-foreground">{tr("platform_fee_rules_description", "Percent, fixed, or hybrid fees with optional min/max caps")}</p>
         </div>
         <Button size="sm" onClick={() => { setEditingId(null); form.reset(pfDefaults); setShowForm(true); }} data-testid="button-add-platform-fee-rule">
-          <Plus className="h-4 w-4 mr-1" />Add Rule
+          <Plus className="h-4 w-4 mr-1" />{tr("add_rule", "Add Rule")}
         </Button>
       </div>
 
-      {isLoading ? <div className="h-24 flex items-center justify-center text-muted-foreground">Loading…</div> : (
+      {isLoading ? <div className="h-24 flex items-center justify-center text-muted-foreground">{tr("loading", "Loading…")}</div> : (
         <Table>
           <TableHeader><TableRow>
-            <TableHead>Name</TableHead><TableHead>Type</TableHead><TableHead>Value</TableHead>
-            <TableHead>Scope</TableHead><TableHead>Priority</TableHead><TableHead>Status</TableHead><TableHead className="w-20" />
+            <TableHead>{tr("name", "Name")}</TableHead><TableHead>{tr("type", "Type")}</TableHead><TableHead>{tr("value", "Value")}</TableHead>
+            <TableHead>{tr("scope", "Scope")}</TableHead><TableHead>{tr("priority", "Priority")}</TableHead><TableHead>{tr("status", "Status")}</TableHead><TableHead className="w-20" />
           </TableRow></TableHeader>
           <TableBody>
-            {rules.length === 0 && <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">No rules yet.</TableCell></TableRow>}
+            {rules.length === 0 && <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">{tr("no_rules_yet", "No rules yet.")}</TableCell></TableRow>}
             {rules.map((r: any) => (
               <TableRow key={r.id}>
                 <TableCell className="font-medium">{r.name}<br /><span className="text-xs text-muted-foreground">{r.description}</span></TableCell>
@@ -290,50 +297,50 @@ function PlatformFeeRulesPanel() {
 
       <Dialog open={showForm} onOpenChange={v => { if (!v) { setShowForm(false); setEditingId(null); } }}>
         <DialogContent className="max-w-lg">
-          <DialogHeader><DialogTitle>{editingId ? "Edit" : "Add"} Platform Fee Rule</DialogTitle></DialogHeader>
-          <form onSubmit={form.handleSubmit(d => saveMutation.mutate(d), () => toast({ title: "Name is required", variant: "destructive" }))} className="space-y-4">
+          <DialogHeader><DialogTitle>{tr(editingId ? "edit_platform_fee_rule" : "add_platform_fee_rule", editingId ? "Edit Platform Fee Rule" : "Add Platform Fee Rule")}</DialogTitle></DialogHeader>
+          <form onSubmit={form.handleSubmit(d => saveMutation.mutate(d), () => toast({ title: tr("name_required", "Name is required"), variant: "destructive" }))} className="space-y-4">
             <div className="grid grid-cols-2 gap-3">
               <div className="col-span-2">
-                <Label>Name *</Label>
+                <Label>{tr("name_required_label", "Name *")}</Label>
                 <Input {...form.register("name")} className={form.formState.errors.name ? "border-destructive" : ""} />
-                {form.formState.errors.name && <p className="text-xs text-destructive mt-1">Name is required</p>}
+                {form.formState.errors.name && <p className="text-xs text-destructive mt-1">{tr("name_required", "Name is required")}</p>}
               </div>
-              <div className="col-span-2"><Label>Description</Label><Input {...form.register("description")} /></div>
+              <div className="col-span-2"><Label>{tr("description_label", "Description")}</Label><Input {...form.register("description")} /></div>
               <div>
-                <Label>Fee Type</Label>
+                <Label>{tr("fee_type", "Fee Type")}</Label>
                 <Select value={form.watch("feeType")} onValueChange={v => form.setValue("feeType", v as PfForm["feeType"])}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="percent">Percent</SelectItem>
-                    <SelectItem value="fixed">Fixed</SelectItem>
-                    <SelectItem value="hybrid">Hybrid (% + Fixed)</SelectItem>
+                    <SelectItem value="percent">{tr("percent", "Percent")}</SelectItem>
+                    <SelectItem value="fixed">{tr("fixed", "Fixed")}</SelectItem>
+                    <SelectItem value="hybrid">{tr("hybrid_percent_fixed", "Hybrid (% + Fixed)")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div>
-                <Label>Target Scope</Label>
+                <Label>{tr("target_scope", "Target Scope")}</Label>
                 <Select value={form.watch("targetScope")} onValueChange={v => form.setValue("targetScope", v)}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="global">Global</SelectItem>
-                    <SelectItem value="country">Country</SelectItem>
-                    <SelectItem value="category">Category</SelectItem>
-                    <SelectItem value="provider_type">Provider Type</SelectItem>
-                    <SelectItem value="modality">Modality</SelectItem>
+                    <SelectItem value="global">{tr("global", "Global")}</SelectItem>
+                    <SelectItem value="country">{tr("country", "Country")}</SelectItem>
+                    <SelectItem value="category">{tr("category", "Category")}</SelectItem>
+                    <SelectItem value="provider_type">{tr("provider_type", "Provider Type")}</SelectItem>
+                    <SelectItem value="modality">{tr("modality", "Modality")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-              {(form.watch("feeType") !== "fixed") && <div><Label>Percent (%)</Label><Input type="number" step="0.01" {...form.register("percentValue")} /></div>}
-              {(form.watch("feeType") !== "percent") && <div><Label>Fixed ($)</Label><Input type="number" step="0.01" {...form.register("fixedAmount")} /></div>}
-              <div><Label>Min Fee ($)</Label><Input type="number" step="0.01" {...form.register("minFee")} placeholder="Optional" /></div>
-              <div><Label>Max Fee ($)</Label><Input type="number" step="0.01" {...form.register("maxFee")} placeholder="Optional" /></div>
-              <div><Label>Country Code</Label><Input {...form.register("countryCode")} placeholder="HU, IR… (blank = all)" /></div>
-              <div><Label>Priority</Label><Input type="number" {...form.register("priority")} /></div>
-              <div className="col-span-2 flex items-center gap-2"><Switch checked={form.watch("enabled")} onCheckedChange={v => form.setValue("enabled", v)} /><Label>Enabled</Label></div>
+              {(form.watch("feeType") !== "fixed") && <div><Label>{tr("percent_label", "Percent (%)")}</Label><Input type="number" step="0.01" {...form.register("percentValue")} /></div>}
+              {(form.watch("feeType") !== "percent") && <div><Label>{tr("fixed_dollar", "Fixed ($)")}</Label><Input type="number" step="0.01" {...form.register("fixedAmount")} /></div>}
+              <div><Label>{tr("min_fee", "Min Fee ($)")}</Label><Input type="number" step="0.01" {...form.register("minFee")} placeholder={tr("optional", "Optional")} /></div>
+              <div><Label>{tr("max_fee", "Max Fee ($)")}</Label><Input type="number" step="0.01" {...form.register("maxFee")} placeholder={tr("optional", "Optional")} /></div>
+              <div><Label>{tr("country_code", "Country Code")}</Label><Input {...form.register("countryCode")} placeholder={tr("country_code_placeholder", "HU, IR… (blank = all)")} /></div>
+              <div><Label>{tr("priority", "Priority")}</Label><Input type="number" {...form.register("priority")} /></div>
+              <div className="col-span-2 flex items-center gap-2"><Switch checked={form.watch("enabled")} onCheckedChange={v => form.setValue("enabled", v)} /><Label>{tr("enabled", "Enabled")}</Label></div>
             </div>
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setShowForm(false)}>Cancel</Button>
-              <Button type="submit" disabled={saveMutation.isPending}>{saveMutation.isPending ? "Saving…" : "Save"}</Button>
+              <Button type="button" variant="outline" onClick={() => setShowForm(false)}>{tr("cancel", "Cancel")}</Button>
+              <Button type="submit" disabled={saveMutation.isPending}>{saveMutation.isPending ? tr("saving", "Saving…") : tr("save", "Save")}</Button>
             </DialogFooter>
           </form>
         </DialogContent>
@@ -366,6 +373,7 @@ const crDefaults: CrForm = {
 };
 
 function CommissionRulesPanel() {
+  const tr = useRevenueCenterText();
   const qc = useQueryClient(); const { toast } = useToast();
   const { data: rules = [], isLoading } = useQuery<any[]>({ queryKey: ["/api/admin/revenue/commission-rules"] });
   const [showForm, setShowForm] = useState(false);
@@ -382,15 +390,15 @@ function CommissionRulesPanel() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["/api/admin/revenue/commission-rules"] });
       qc.invalidateQueries({ queryKey: ["/api/admin/revenue/overview"] });
-      toast({ title: "Saved" }); setShowForm(false); setEditingId(null); form.reset(crDefaults);
+      toast({ title: tr("saved", "Saved") }); setShowForm(false); setEditingId(null); form.reset(crDefaults);
     },
-    onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+    onError: (e: any) => toast({ title: tr("error", "Error"), description: e.message, variant: "destructive" }),
   });
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => (await apiRequest("DELETE", `/api/admin/revenue/commission-rules/${id}`)).json(),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["/api/admin/revenue/commission-rules"] });
-      toast({ title: "Deleted" }); setDelTarget(null);
+      toast({ title: tr("deleted", "Deleted") }); setDelTarget(null);
     },
   });
 
@@ -406,23 +414,26 @@ function CommissionRulesPanel() {
     setShowForm(true);
   }
 
-  const CT_LABELS: Record<string, string> = { global: "Global", tier: "Tier", provider_specific: "Provider", category_specific: "Category", promotional: "Promotional" };
+  const CT_LABELS: Record<string, string> = {
+    global: tr("global", "Global"), tier: tr("tier", "Tier"), provider_specific: tr("provider", "Provider"),
+    category_specific: tr("category", "Category"), promotional: tr("promotional", "Promotional"),
+  };
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <div><h3 className="font-semibold">Commission Rules</h3><p className="text-sm text-muted-foreground">Provider commission rates — global, tier, provider, or category</p></div>
-        <Button size="sm" onClick={() => { setEditingId(null); form.reset(crDefaults); setShowForm(true); }} data-testid="button-add-commission-rule"><Plus className="h-4 w-4 mr-1" />Add Rule</Button>
+        <div><h3 className="font-semibold">{tr("commission_rules_title", "Commission Rules")}</h3><p className="text-sm text-muted-foreground">{tr("commission_rules_description", "Provider commission rates — global, tier, provider, or category")}</p></div>
+        <Button size="sm" onClick={() => { setEditingId(null); form.reset(crDefaults); setShowForm(true); }} data-testid="button-add-commission-rule"><Plus className="h-4 w-4 mr-1" />{tr("add_rule", "Add Rule")}</Button>
       </div>
 
-      {isLoading ? <div className="h-24 flex items-center justify-center text-muted-foreground">Loading…</div> : (
+      {isLoading ? <div className="h-24 flex items-center justify-center text-muted-foreground">{tr("loading", "Loading…")}</div> : (
         <Table>
           <TableHeader><TableRow>
-            <TableHead>Name</TableHead><TableHead>Type</TableHead><TableHead>Rate</TableHead>
-            <TableHead>Scope</TableHead><TableHead>Priority</TableHead><TableHead>Status</TableHead><TableHead className="w-20" />
+            <TableHead>{tr("name", "Name")}</TableHead><TableHead>{tr("type", "Type")}</TableHead><TableHead>{tr("rate", "Rate")}</TableHead>
+            <TableHead>{tr("scope", "Scope")}</TableHead><TableHead>{tr("priority", "Priority")}</TableHead><TableHead>{tr("status", "Status")}</TableHead><TableHead className="w-20" />
           </TableRow></TableHeader>
           <TableBody>
-            {rules.length === 0 && <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">No rules. Default 10% seeded on first boot.</TableCell></TableRow>}
+            {rules.length === 0 && <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">{tr("no_commission_rules", "No rules. Default 10% seeded on first boot.")}</TableCell></TableRow>}
             {rules.map((r: any) => (
               <TableRow key={r.id}>
                 <TableCell className="font-medium">{r.name}<br /><span className="text-xs text-muted-foreground">{r.description}</span></TableCell>
@@ -445,39 +456,39 @@ function CommissionRulesPanel() {
 
       <Dialog open={showForm} onOpenChange={v => { if (!v) { setShowForm(false); setEditingId(null); } }}>
         <DialogContent className="max-w-lg">
-          <DialogHeader><DialogTitle>{editingId ? "Edit" : "Add"} Commission Rule</DialogTitle></DialogHeader>
-          <form onSubmit={form.handleSubmit(d => saveMutation.mutate(d), () => toast({ title: "Name is required", variant: "destructive" }))} className="space-y-4">
+          <DialogHeader><DialogTitle>{tr(editingId ? "edit_commission_rule" : "add_commission_rule", editingId ? "Edit Commission Rule" : "Add Commission Rule")}</DialogTitle></DialogHeader>
+          <form onSubmit={form.handleSubmit(d => saveMutation.mutate(d), () => toast({ title: tr("name_required", "Name is required"), variant: "destructive" }))} className="space-y-4">
             <div className="grid grid-cols-2 gap-3">
               <div className="col-span-2">
-                <Label>Name *</Label>
+                <Label>{tr("name_required_label", "Name *")}</Label>
                 <Input {...form.register("name")} className={form.formState.errors.name ? "border-destructive" : ""} />
-                {form.formState.errors.name && <p className="text-xs text-destructive mt-1">Name is required</p>}
+                {form.formState.errors.name && <p className="text-xs text-destructive mt-1">{tr("name_required", "Name is required")}</p>}
               </div>
-              <div className="col-span-2"><Label>Description</Label><Input {...form.register("description")} /></div>
+              <div className="col-span-2"><Label>{tr("description_label", "Description")}</Label><Input {...form.register("description")} /></div>
               <div>
-                <Label>Type</Label>
+                <Label>{tr("type", "Type")}</Label>
                 <Select value={form.watch("commissionType")} onValueChange={v => form.setValue("commissionType", v)}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="global">Global</SelectItem>
-                    <SelectItem value="tier">Provider Tier</SelectItem>
-                    <SelectItem value="provider_specific">Provider-Specific</SelectItem>
-                    <SelectItem value="category_specific">Category</SelectItem>
-                    <SelectItem value="promotional">Promotional</SelectItem>
+                    <SelectItem value="global">{tr("global", "Global")}</SelectItem>
+                    <SelectItem value="tier">{tr("provider_tier", "Provider Tier")}</SelectItem>
+                    <SelectItem value="provider_specific">{tr("provider_specific", "Provider-Specific")}</SelectItem>
+                    <SelectItem value="category_specific">{tr("category", "Category")}</SelectItem>
+                    <SelectItem value="promotional">{tr("promotional", "Promotional")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-              <div><Label>Commission %</Label><Input type="number" step="0.01" {...form.register("commissionPercent")} /></div>
-              <div><Label>Fixed ($)</Label><Input type="number" step="0.01" {...form.register("fixedAmount")} /></div>
-              <div><Label>Provider Type</Label><Input {...form.register("providerType")} placeholder="physician, nursing, rehabilitation…" /></div>
-              <div><Label>Category</Label><Input {...form.register("serviceCategory")} placeholder="Optional" /></div>
-              <div><Label>Country Code</Label><Input {...form.register("countryCode")} placeholder="HU, IR… (blank = all)" /></div>
-              <div><Label>Priority</Label><Input type="number" {...form.register("priority")} /></div>
-              <div className="col-span-2 flex items-center gap-2"><Switch checked={form.watch("enabled")} onCheckedChange={v => form.setValue("enabled", v)} /><Label>Enabled</Label></div>
+              <div><Label>{tr("commission_percent", "Commission %")}</Label><Input type="number" step="0.01" {...form.register("commissionPercent")} /></div>
+              <div><Label>{tr("fixed_dollar", "Fixed ($)")}</Label><Input type="number" step="0.01" {...form.register("fixedAmount")} /></div>
+              <div><Label>{tr("provider_type", "Provider Type")}</Label><Input {...form.register("providerType")} placeholder={tr("provider_type_placeholder", "physician, nursing, rehabilitation…")} /></div>
+              <div><Label>{tr("category", "Category")}</Label><Input {...form.register("serviceCategory")} placeholder={tr("optional", "Optional")} /></div>
+              <div><Label>{tr("country_code", "Country Code")}</Label><Input {...form.register("countryCode")} placeholder={tr("country_code_placeholder", "HU, IR… (blank = all)")} /></div>
+              <div><Label>{tr("priority", "Priority")}</Label><Input type="number" {...form.register("priority")} /></div>
+              <div className="col-span-2 flex items-center gap-2"><Switch checked={form.watch("enabled")} onCheckedChange={v => form.setValue("enabled", v)} /><Label>{tr("enabled", "Enabled")}</Label></div>
             </div>
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setShowForm(false)}>Cancel</Button>
-              <Button type="submit" disabled={saveMutation.isPending}>{saveMutation.isPending ? "Saving…" : "Save"}</Button>
+              <Button type="button" variant="outline" onClick={() => setShowForm(false)}>{tr("cancel", "Cancel")}</Button>
+              <Button type="submit" disabled={saveMutation.isPending}>{saveMutation.isPending ? tr("saving", "Saving…") : tr("save", "Save")}</Button>
             </DialogFooter>
           </form>
         </DialogContent>
@@ -490,6 +501,7 @@ function CommissionRulesPanel() {
 
 // ── Payment Method Rules ──────────────────────────────────────────────────────
 function PaymentMethodRulesPanel() {
+  const tr = useRevenueCenterText();
   const qc = useQueryClient(); const { toast } = useToast();
   const { data: rules = [], isLoading } = useQuery<any[]>({ queryKey: ["/api/admin/revenue/payment-method-rules"] });
   const [editing, setEditing] = useState<any | null>(null);
@@ -503,14 +515,14 @@ function PaymentMethodRulesPanel() {
   const toggleMutation = useMutation({
     mutationFn: async ({ id, enabled }: { id: string; enabled: boolean }) =>
       (await apiRequest("PATCH", `/api/admin/revenue/payment-method-rules/${id}`, { enabled })).json(),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["/api/admin/revenue/payment-method-rules"] }); toast({ title: "Updated" }); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["/api/admin/revenue/payment-method-rules"] }); toast({ title: tr("updated", "Updated") }); },
   });
   const saveMutation = useMutation({
     mutationFn: async (data: Record<string, unknown>) => {
       const { id, ...rest } = data as { id: string } & Record<string, unknown>;
       return (await apiRequest("PATCH", `/api/admin/revenue/payment-method-rules/${id}`, rest)).json();
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["/api/admin/revenue/payment-method-rules"] }); toast({ title: "Saved" }); setEditing(null); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["/api/admin/revenue/payment-method-rules"] }); toast({ title: tr("saved", "Saved") }); setEditing(null); },
   });
 
   function openEdit(r: any) {
@@ -521,12 +533,12 @@ function PaymentMethodRulesPanel() {
 
   return (
     <div className="space-y-4">
-      <div><h3 className="font-semibold">Payment Method Rules</h3><p className="text-sm text-muted-foreground">Surcharges and discounts per payment method. Toggle availability and maintenance mode.</p></div>
-      {isLoading ? <div className="h-24 flex items-center justify-center text-muted-foreground">Loading…</div> : (
+      <div><h3 className="font-semibold">{tr("payment_method_rules_title", "Payment Method Rules")}</h3><p className="text-sm text-muted-foreground">{tr("payment_method_rules_description", "Surcharges and discounts per payment method. Toggle availability and maintenance mode.")}</p></div>
+      {isLoading ? <div className="h-24 flex items-center justify-center text-muted-foreground">{tr("loading", "Loading…")}</div> : (
         <Table>
           <TableHeader><TableRow>
-            <TableHead>Method</TableHead><TableHead>Surcharge</TableHead><TableHead>Discount</TableHead>
-            <TableHead>Status</TableHead><TableHead>Active</TableHead><TableHead className="w-20" />
+            <TableHead>{tr("method", "Method")}</TableHead><TableHead>{tr("surcharge", "Surcharge")}</TableHead><TableHead>{tr("discount", "Discount")}</TableHead>
+            <TableHead>{tr("status", "Status")}</TableHead><TableHead>{tr("active", "Active")}</TableHead><TableHead className="w-20" />
           </TableRow></TableHeader>
           <TableBody>
             {rules.map((r: any) => (
@@ -548,28 +560,28 @@ function PaymentMethodRulesPanel() {
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label>Surcharge Type</Label>
+                <Label>{tr("surcharge_type", "Surcharge Type")}</Label>
                 <Select value={surchargeType} onValueChange={setSurchargeType}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent><SelectItem value="none">None</SelectItem><SelectItem value="percent">Percent</SelectItem><SelectItem value="fixed">Fixed</SelectItem></SelectContent>
+                  <SelectContent><SelectItem value="none">{tr("none", "None")}</SelectItem><SelectItem value="percent">{tr("percent", "Percent")}</SelectItem><SelectItem value="fixed">{tr("fixed", "Fixed")}</SelectItem></SelectContent>
                 </Select>
               </div>
-              <div><Label>Surcharge Value</Label><Input type="number" step="0.01" value={surchargeValue} onChange={e => setSurchargeValue(e.target.value)} disabled={surchargeType === "none"} /></div>
+              <div><Label>{tr("surcharge_value", "Surcharge Value")}</Label><Input type="number" step="0.01" value={surchargeValue} onChange={e => setSurchargeValue(e.target.value)} disabled={surchargeType === "none"} /></div>
               <div>
-                <Label>Discount Type</Label>
+                <Label>{tr("discount_type", "Discount Type")}</Label>
                 <Select value={discountType} onValueChange={setDiscountType}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent><SelectItem value="none">None</SelectItem><SelectItem value="percent">Percent</SelectItem><SelectItem value="fixed">Fixed</SelectItem></SelectContent>
+                  <SelectContent><SelectItem value="none">{tr("none", "None")}</SelectItem><SelectItem value="percent">{tr("percent", "Percent")}</SelectItem><SelectItem value="fixed">{tr("fixed", "Fixed")}</SelectItem></SelectContent>
                 </Select>
               </div>
-              <div><Label>Discount Value</Label><Input type="number" step="0.01" value={discountValue} onChange={e => setDiscountValue(e.target.value)} disabled={discountType === "none"} /></div>
+              <div><Label>{tr("discount_value", "Discount Value")}</Label><Input type="number" step="0.01" value={discountValue} onChange={e => setDiscountValue(e.target.value)} disabled={discountType === "none"} /></div>
             </div>
-            <div className="flex items-center gap-2"><Switch checked={maintenance} onCheckedChange={setMaintenance} /><Label>Maintenance Mode</Label></div>
-            <div><Label>Notes</Label><Input value={notes} onChange={e => setNotes(e.target.value)} /></div>
+            <div className="flex items-center gap-2"><Switch checked={maintenance} onCheckedChange={setMaintenance} /><Label>{tr("maintenance_mode", "Maintenance Mode")}</Label></div>
+            <div><Label>{tr("notes", "Notes")}</Label><Input value={notes} onChange={e => setNotes(e.target.value)} /></div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setEditing(null)}>Cancel</Button>
-            <Button onClick={() => editing && saveMutation.mutate({ id: editing.id, surchargeType, surchargeValue, discountType, discountValue, maintenanceMode: maintenance, notes })} disabled={saveMutation.isPending}>Save</Button>
+            <Button variant="outline" onClick={() => setEditing(null)}>{tr("cancel", "Cancel")}</Button>
+            <Button onClick={() => editing && saveMutation.mutate({ id: editing.id, surchargeType, surchargeValue, discountType, discountValue, maintenanceMode: maintenance, notes })} disabled={saveMutation.isPending}>{tr("save", "Save")}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -593,6 +605,7 @@ const tfDefaults: TfForm = {
 };
 
 function TravelFeeRulesPanel() {
+  const tr = useRevenueCenterText();
   const qc = useQueryClient(); const { toast } = useToast();
   const { data: rules = [], isLoading } = useQuery<any[]>({ queryKey: ["/api/admin/revenue/travel-fee-rules"] });
   const [showForm, setShowForm] = useState(false);
@@ -609,13 +622,13 @@ function TravelFeeRulesPanel() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["/api/admin/revenue/travel-fee-rules"] });
       qc.invalidateQueries({ queryKey: ["/api/admin/revenue/overview"] });
-      toast({ title: "Saved" }); setShowForm(false); setEditingId(null); form.reset(tfDefaults);
+      toast({ title: tr("saved", "Saved") }); setShowForm(false); setEditingId(null); form.reset(tfDefaults);
     },
-    onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+    onError: (e: any) => toast({ title: tr("error", "Error"), description: e.message, variant: "destructive" }),
   });
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => (await apiRequest("DELETE", `/api/admin/revenue/travel-fee-rules/${id}`)).json(),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["/api/admin/revenue/travel-fee-rules"] }); toast({ title: "Deleted" }); setDelTarget(null); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["/api/admin/revenue/travel-fee-rules"] }); toast({ title: tr("deleted", "Deleted") }); setDelTarget(null); },
   });
 
   function openEdit(r: any) {
@@ -624,22 +637,22 @@ function TravelFeeRulesPanel() {
     setShowForm(true);
   }
 
-  const FT_LABELS: Record<string, string> = { flat: "Flat", distance: "Per km", zone: "Zone", radius: "Radius", provider_defined: "Provider", platform_defined: "Platform" };
+  const FT_LABELS: Record<string, string> = { flat: tr("flat", "Flat"), distance: tr("per_km", "Per km"), zone: tr("zone", "Zone"), radius: tr("radius", "Radius"), provider_defined: tr("provider", "Provider"), platform_defined: tr("platform", "Platform") };
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <div><h3 className="font-semibold">Travel & Home Visit Fee Rules</h3><p className="text-sm text-muted-foreground">Flat, distance-based, zone, or radius fees for home visits</p></div>
-        <Button size="sm" onClick={() => { setEditingId(null); form.reset(tfDefaults); setShowForm(true); }} data-testid="button-add-travel-rule"><Plus className="h-4 w-4 mr-1" />Add Rule</Button>
+        <div><h3 className="font-semibold">{tr("travel_fee_rules_title", "Travel & Home Visit Fee Rules")}</h3><p className="text-sm text-muted-foreground">{tr("travel_fee_rules_description", "Flat, distance-based, zone, or radius fees for home visits")}</p></div>
+        <Button size="sm" onClick={() => { setEditingId(null); form.reset(tfDefaults); setShowForm(true); }} data-testid="button-add-travel-rule"><Plus className="h-4 w-4 mr-1" />{tr("add_rule", "Add Rule")}</Button>
       </div>
-      {isLoading ? <div className="h-24 flex items-center justify-center text-muted-foreground">Loading…</div> : (
+      {isLoading ? <div className="h-24 flex items-center justify-center text-muted-foreground">{tr("loading", "Loading…")}</div> : (
         <Table>
           <TableHeader><TableRow>
-            <TableHead>Name</TableHead><TableHead>Type</TableHead><TableHead>Amount</TableHead>
-            <TableHead>Scope</TableHead><TableHead>Priority</TableHead><TableHead>Status</TableHead><TableHead className="w-20" />
+            <TableHead>{tr("name", "Name")}</TableHead><TableHead>{tr("type", "Type")}</TableHead><TableHead>{tr("amount", "Amount")}</TableHead>
+            <TableHead>{tr("scope", "Scope")}</TableHead><TableHead>{tr("priority", "Priority")}</TableHead><TableHead>{tr("status", "Status")}</TableHead><TableHead className="w-20" />
           </TableRow></TableHeader>
           <TableBody>
-            {rules.length === 0 && <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">No travel fee rules.</TableCell></TableRow>}
+            {rules.length === 0 && <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">{tr("no_travel_fee_rules", "No travel fee rules.")}</TableCell></TableRow>}
             {rules.map((r: any) => (
               <TableRow key={r.id}>
                 <TableCell className="font-medium">{r.name}</TableCell>
@@ -661,38 +674,38 @@ function TravelFeeRulesPanel() {
       )}
       <Dialog open={showForm} onOpenChange={v => { if (!v) { setShowForm(false); setEditingId(null); } }}>
         <DialogContent className="max-w-lg">
-          <DialogHeader><DialogTitle>{editingId ? "Edit" : "Add"} Travel Fee Rule</DialogTitle></DialogHeader>
-          <form onSubmit={form.handleSubmit(d => saveMutation.mutate(d), () => toast({ title: "Name is required", variant: "destructive" }))} className="space-y-4">
+          <DialogHeader><DialogTitle>{tr(editingId ? "edit_travel_fee_rule" : "add_travel_fee_rule", editingId ? "Edit Travel Fee Rule" : "Add Travel Fee Rule")}</DialogTitle></DialogHeader>
+          <form onSubmit={form.handleSubmit(d => saveMutation.mutate(d), () => toast({ title: tr("name_required", "Name is required"), variant: "destructive" }))} className="space-y-4">
             <div className="grid grid-cols-2 gap-3">
               <div className="col-span-2">
-                <Label>Name *</Label>
+                <Label>{tr("name_required_label", "Name *")}</Label>
                 <Input {...form.register("name")} className={form.formState.errors.name ? "border-destructive" : ""} />
-                {form.formState.errors.name && <p className="text-xs text-destructive mt-1">Name is required</p>}
+                {form.formState.errors.name && <p className="text-xs text-destructive mt-1">{tr("name_required", "Name is required")}</p>}
               </div>
               <div>
-                <Label>Fee Type</Label>
+                <Label>{tr("fee_type", "Fee Type")}</Label>
                 <Select value={form.watch("feeType")} onValueChange={v => form.setValue("feeType", v)}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="flat">Flat Fee</SelectItem>
-                    <SelectItem value="distance">Per KM</SelectItem>
-                    <SelectItem value="radius">Radius (free zone + per km beyond)</SelectItem>
-                    <SelectItem value="zone">Zone</SelectItem>
-                    <SelectItem value="provider_defined">Provider Defined</SelectItem>
-                    <SelectItem value="platform_defined">Platform Defined</SelectItem>
+                    <SelectItem value="flat">{tr("flat_fee", "Flat Fee")}</SelectItem>
+                    <SelectItem value="distance">{tr("per_km_upper", "Per KM")}</SelectItem>
+                    <SelectItem value="radius">{tr("radius_description", "Radius (free zone + per km beyond)")}</SelectItem>
+                    <SelectItem value="zone">{tr("zone", "Zone")}</SelectItem>
+                    <SelectItem value="provider_defined">{tr("provider_defined", "Provider Defined")}</SelectItem>
+                    <SelectItem value="platform_defined">{tr("platform_defined", "Platform Defined")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-              <div><Label>Priority</Label><Input type="number" {...form.register("priority")} /></div>
-              <div><Label>Flat Amount ($)</Label><Input type="number" step="0.01" {...form.register("flatAmount")} /></div>
-              <div><Label>Per KM Rate ($)</Label><Input type="number" step="0.01" {...form.register("perKmRate")} /></div>
-              <div><Label>Free Radius (km)</Label><Input type="number" step="0.1" {...form.register("radiusKm")} placeholder="Optional" /></div>
-              <div><Label>Country Code</Label><Input {...form.register("countryCode")} placeholder="HU, IR… (blank = all)" /></div>
-              <div className="col-span-2 flex items-center gap-2"><Switch checked={form.watch("enabled")} onCheckedChange={v => form.setValue("enabled", v)} /><Label>Enabled</Label></div>
+              <div><Label>{tr("priority", "Priority")}</Label><Input type="number" {...form.register("priority")} /></div>
+              <div><Label>{tr("flat_amount", "Flat Amount ($)")}</Label><Input type="number" step="0.01" {...form.register("flatAmount")} /></div>
+              <div><Label>{tr("per_km_rate", "Per KM Rate ($)")}</Label><Input type="number" step="0.01" {...form.register("perKmRate")} /></div>
+              <div><Label>{tr("free_radius", "Free Radius (km)")}</Label><Input type="number" step="0.1" {...form.register("radiusKm")} placeholder={tr("optional", "Optional")} /></div>
+              <div><Label>{tr("country_code", "Country Code")}</Label><Input {...form.register("countryCode")} placeholder={tr("country_code_placeholder", "HU, IR… (blank = all)")} /></div>
+              <div className="col-span-2 flex items-center gap-2"><Switch checked={form.watch("enabled")} onCheckedChange={v => form.setValue("enabled", v)} /><Label>{tr("enabled", "Enabled")}</Label></div>
             </div>
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setShowForm(false)}>Cancel</Button>
-              <Button type="submit" disabled={saveMutation.isPending}>{saveMutation.isPending ? "Saving…" : "Save"}</Button>
+              <Button type="button" variant="outline" onClick={() => setShowForm(false)}>{tr("cancel", "Cancel")}</Button>
+              <Button type="submit" disabled={saveMutation.isPending}>{saveMutation.isPending ? tr("saving", "Saving…") : tr("save", "Save")}</Button>
             </DialogFooter>
           </form>
         </DialogContent>
@@ -719,6 +732,7 @@ const pcDefaults: PcForm = {
 };
 
 function PayoutConfigPanel() {
+  const tr = useRevenueCenterText();
   const qc = useQueryClient(); const { toast } = useToast();
   const { data: configs = [], isLoading } = useQuery<any[]>({ queryKey: ["/api/admin/revenue/payout-config"] });
   const [showForm, setShowForm] = useState(false);
@@ -734,13 +748,13 @@ function PayoutConfigPanel() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["/api/admin/revenue/payout-config"] });
-      toast({ title: "Saved" }); setShowForm(false); setEditingId(null); form.reset(pcDefaults);
+      toast({ title: tr("saved", "Saved") }); setShowForm(false); setEditingId(null); form.reset(pcDefaults);
     },
-    onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+    onError: (e: any) => toast({ title: tr("error", "Error"), description: e.message, variant: "destructive" }),
   });
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => (await apiRequest("DELETE", `/api/admin/revenue/payout-config/${id}`)).json(),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["/api/admin/revenue/payout-config"] }); toast({ title: "Deleted" }); setDelTarget(null); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["/api/admin/revenue/payout-config"] }); toast({ title: tr("deleted", "Deleted") }); setDelTarget(null); },
   });
 
   function openEdit(c: any) {
@@ -758,17 +772,17 @@ function PayoutConfigPanel() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <div><h3 className="font-semibold">Payout Configuration</h3><p className="text-sm text-muted-foreground">Payout schedules, reserve %, holdback %, and refund protection</p></div>
-        <Button size="sm" onClick={() => { setEditingId(null); form.reset(pcDefaults); setShowForm(true); }} data-testid="button-add-payout-config"><Plus className="h-4 w-4 mr-1" />Add Config</Button>
+        <div><h3 className="font-semibold">{tr("payout_configuration_title", "Payout Configuration")}</h3><p className="text-sm text-muted-foreground">{tr("payout_configuration_description", "Payout schedules, reserve %, holdback %, and refund protection")}</p></div>
+        <Button size="sm" onClick={() => { setEditingId(null); form.reset(pcDefaults); setShowForm(true); }} data-testid="button-add-payout-config"><Plus className="h-4 w-4 mr-1" />{tr("add_config", "Add Config")}</Button>
       </div>
-      {isLoading ? <div className="h-24 flex items-center justify-center text-muted-foreground">Loading…</div> : (
+      {isLoading ? <div className="h-24 flex items-center justify-center text-muted-foreground">{tr("loading", "Loading…")}</div> : (
         <Table>
           <TableHeader><TableRow>
-            <TableHead>Name</TableHead><TableHead>Schedule</TableHead><TableHead>Reserve</TableHead>
-            <TableHead>Holdback</TableHead><TableHead>Refund Protect</TableHead><TableHead>Min Payout</TableHead><TableHead>Status</TableHead><TableHead className="w-20" />
+            <TableHead>{tr("name", "Name")}</TableHead><TableHead>{tr("schedule", "Schedule")}</TableHead><TableHead>{tr("reserve", "Reserve")}</TableHead>
+            <TableHead>{tr("holdback", "Holdback")}</TableHead><TableHead>{tr("refund_protect", "Refund Protect")}</TableHead><TableHead>{tr("min_payout", "Min Payout")}</TableHead><TableHead>{tr("status", "Status")}</TableHead><TableHead className="w-20" />
           </TableRow></TableHeader>
           <TableBody>
-            {configs.length === 0 && <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">No configs. Default seeded on first boot.</TableCell></TableRow>}
+            {configs.length === 0 && <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">{tr("no_payout_configs", "No configs. Default seeded on first boot.")}</TableCell></TableRow>}
             {configs.map((c: any) => (
               <TableRow key={c.id}>
                 <TableCell className="font-medium">{c.name}<br /><span className="text-xs text-muted-foreground">{c.countryCode ? c.countryCode : "Global"}{c.providerType ? ` · ${c.providerType}` : ""}</span></TableCell>
@@ -791,39 +805,39 @@ function PayoutConfigPanel() {
       )}
       <Dialog open={showForm} onOpenChange={v => { if (!v) { setShowForm(false); setEditingId(null); } }}>
         <DialogContent className="max-w-lg">
-          <DialogHeader><DialogTitle>{editingId ? "Edit" : "Add"} Payout Config</DialogTitle></DialogHeader>
-          <form onSubmit={form.handleSubmit(d => saveMutation.mutate(d), () => toast({ title: "Name is required", variant: "destructive" }))} className="space-y-4">
+          <DialogHeader><DialogTitle>{tr(editingId ? "edit_payout_config" : "add_payout_config", editingId ? "Edit Payout Config" : "Add Payout Config")}</DialogTitle></DialogHeader>
+          <form onSubmit={form.handleSubmit(d => saveMutation.mutate(d), () => toast({ title: tr("name_required", "Name is required"), variant: "destructive" }))} className="space-y-4">
             <div className="grid grid-cols-2 gap-3">
               <div className="col-span-2">
-                <Label>Name *</Label>
+                <Label>{tr("name_required_label", "Name *")}</Label>
                 <Input {...form.register("name")} className={form.formState.errors.name ? "border-destructive" : ""} />
-                {form.formState.errors.name && <p className="text-xs text-destructive mt-1">Name is required</p>}
+                {form.formState.errors.name && <p className="text-xs text-destructive mt-1">{tr("name_required", "Name is required")}</p>}
               </div>
               <div>
-                <Label>Schedule</Label>
+                <Label>{tr("schedule", "Schedule")}</Label>
                 <Select value={form.watch("schedule")} onValueChange={v => form.setValue("schedule", v)}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="instant">Instant</SelectItem>
-                    <SelectItem value="manual">Manual</SelectItem>
-                    <SelectItem value="weekly">Weekly</SelectItem>
-                    <SelectItem value="biweekly">Biweekly</SelectItem>
-                    <SelectItem value="monthly">Monthly</SelectItem>
+                    <SelectItem value="instant">{tr("instant", "Instant")}</SelectItem>
+                    <SelectItem value="manual">{tr("manual", "Manual")}</SelectItem>
+                    <SelectItem value="weekly">{tr("weekly", "Weekly")}</SelectItem>
+                    <SelectItem value="biweekly">{tr("biweekly", "Biweekly")}</SelectItem>
+                    <SelectItem value="monthly">{tr("monthly", "Monthly")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-              <div><Label>Min Payout ($)</Label><Input type="number" step="0.01" {...form.register("minPayoutAmount")} /></div>
-              <div><Label>Reserve %</Label><Input type="number" step="0.01" {...form.register("reservePercent")} /></div>
-              <div><Label>Holdback %</Label><Input type="number" step="0.01" {...form.register("holdbackPercent")} /></div>
-              <div><Label>Refund Protection %</Label><Input type="number" step="0.01" {...form.register("refundProtectionPercent")} /></div>
-              <div><Label>Max Payout ($)</Label><Input type="number" step="0.01" {...form.register("maxPayoutAmount")} placeholder="Optional" /></div>
-              <div><Label>Country Code</Label><Input {...form.register("countryCode")} placeholder="HU, IR… (blank = all)" /></div>
-              <div><Label>Provider Type</Label><Input {...form.register("providerType")} placeholder="Optional" /></div>
-              <div className="col-span-2 flex items-center gap-2"><Switch checked={form.watch("enabled")} onCheckedChange={v => form.setValue("enabled", v)} /><Label>Enabled</Label></div>
+              <div><Label>{tr("min_payout_dollar", "Min Payout ($)")}</Label><Input type="number" step="0.01" {...form.register("minPayoutAmount")} /></div>
+              <div><Label>{tr("reserve_percent", "Reserve %")}</Label><Input type="number" step="0.01" {...form.register("reservePercent")} /></div>
+              <div><Label>{tr("holdback_percent", "Holdback %")}</Label><Input type="number" step="0.01" {...form.register("holdbackPercent")} /></div>
+              <div><Label>{tr("refund_protection_percent", "Refund Protection %")}</Label><Input type="number" step="0.01" {...form.register("refundProtectionPercent")} /></div>
+              <div><Label>{tr("max_payout_dollar", "Max Payout ($)")}</Label><Input type="number" step="0.01" {...form.register("maxPayoutAmount")} placeholder={tr("optional", "Optional")} /></div>
+              <div><Label>{tr("country_code", "Country Code")}</Label><Input {...form.register("countryCode")} placeholder={tr("country_code_placeholder", "HU, IR… (blank = all)")} /></div>
+              <div><Label>{tr("provider_type", "Provider Type")}</Label><Input {...form.register("providerType")} placeholder={tr("optional", "Optional")} /></div>
+              <div className="col-span-2 flex items-center gap-2"><Switch checked={form.watch("enabled")} onCheckedChange={v => form.setValue("enabled", v)} /><Label>{tr("enabled", "Enabled")}</Label></div>
             </div>
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setShowForm(false)}>Cancel</Button>
-              <Button type="submit" disabled={saveMutation.isPending}>{saveMutation.isPending ? "Saving…" : "Save"}</Button>
+              <Button type="button" variant="outline" onClick={() => setShowForm(false)}>{tr("cancel", "Cancel")}</Button>
+              <Button type="submit" disabled={saveMutation.isPending}>{saveMutation.isPending ? tr("saving", "Saving…") : tr("save", "Save")}</Button>
             </DialogFooter>
           </form>
         </DialogContent>
@@ -1886,45 +1900,46 @@ function GiftCardsAdminPanel() {
 }
 
 export function RevenueBillingCenter() {
+  const { t } = useTranslation();
   const sections = [
-    { value: "overview",        label: "Overview",         icon: BarChart3,  component: <OverviewPanel /> },
-    { value: "platform-fees",   label: "Platform Fees",    icon: Percent,    component: <PlatformFeeRulesPanel /> },
-    { value: "commissions",     label: "Commissions",      icon: TrendingUp, component: <CommissionRulesPanel /> },
-    { value: "payment-rules",   label: "Payment Rules",    icon: CreditCard, component: <PaymentMethodRulesPanel /> },
-    { value: "travel-fees",     label: "Travel Fees",      icon: Car,        component: <TravelFeeRulesPanel /> },
-    { value: "payout-rules",    label: "Payout Rules",     icon: Clock,      component: <PayoutConfigPanel /> },
-    { value: "revenue-sharing", label: "Revenue Sharing",  icon: Users,      component: <RevenueSharePanel /> },
-    { value: "wallet-rules",    label: "Wallet Rules",     icon: Wallet,     component: <WalletRulesPanel /> },
-    { value: "simulator",       label: "Simulator",        icon: Play,       component: <RevenueSimulatorPanel /> },
-    { value: "tax-settings",    label: "Tax / VAT",        icon: Receipt,    component: <TaxSettingsPanel /> },
-    { value: "gift-cards",      label: "Gift Cards",       icon: Gift,       component: <GiftCardsAdminPanel /> },
+    { value: "overview",        label: t("admin.revenue_center.tab_overview", "Overview"),         icon: BarChart3,  component: <OverviewPanel /> },
+    { value: "platform-fees",   label: t("admin.revenue_center.tab_platform_fees", "Platform Fees"),    icon: Percent,    component: <PlatformFeeRulesPanel /> },
+    { value: "commissions",     label: t("admin.revenue_center.tab_commissions", "Commissions"),      icon: TrendingUp, component: <CommissionRulesPanel /> },
+    { value: "payment-rules",   label: t("admin.revenue_center.tab_payment_rules", "Payment Rules"),    icon: CreditCard, component: <PaymentMethodRulesPanel /> },
+    { value: "travel-fees",     label: t("admin.revenue_center.tab_travel_fees", "Travel Fees"),      icon: Car,        component: <TravelFeeRulesPanel /> },
+    { value: "payout-rules",    label: t("admin.revenue_center.tab_payout_rules", "Payout Rules"),     icon: Clock,      component: <PayoutConfigPanel /> },
+    { value: "revenue-sharing", label: t("admin.revenue_center.tab_revenue_sharing", "Revenue Sharing"),  icon: Users,      component: <RevenueSharePanel /> },
+    { value: "wallet-rules",    label: t("admin.revenue_center.tab_wallet_rules", "Wallet Rules"),     icon: Wallet,     component: <WalletRulesPanel /> },
+    { value: "simulator",       label: t("admin.revenue_center.tab_simulator", "Simulator"),        icon: Play,       component: <RevenueSimulatorPanel /> },
+    { value: "tax-settings",    label: t("admin.revenue_center.tab_tax_settings", "Tax / VAT"),        icon: Receipt,    component: <TaxSettingsPanel /> },
+    { value: "gift-cards",      label: t("admin.revenue_center.tab_gift_cards", "Gift Cards"),       icon: Gift,       component: <GiftCardsAdminPanel /> },
     {
       value: "invoices",
-      label: "Invoices",
+      label: t("admin.revenue_center.tab_invoices", "Invoices"),
       icon: FileText,
       component: <Suspense fallback={<PanelLoader />}><LazyInvoiceManagement /></Suspense>,
     },
     {
       value: "patient-wallets",
-      label: "Patient Wallets",
+      label: t("admin.revenue_center.tab_patient_wallets", "Patient Wallets"),
       icon: Wallet,
       component: <Suspense fallback={<PanelLoader />}><LazyAdminWallets /></Suspense>,
     },
     {
       value: "payouts",
-      label: "Payouts",
+      label: t("admin.revenue_center.tab_payouts", "Payouts"),
       icon: Banknote,
       component: <Suspense fallback={<PanelLoader />}><LazyAdminPayoutsPanel /></Suspense>,
     },
     {
       value: "provider-wallets",
-      label: "Provider Wallets",
+      label: t("admin.revenue_center.tab_provider_wallets", "Provider Wallets"),
       icon: Building2,
       component: <Suspense fallback={<PanelLoader />}><LazyAdminProviderWalletsPanel /></Suspense>,
     },
     {
       value: "promo-codes",
-      label: "Promo Codes",
+      label: t("admin.revenue_center.tab_promo_codes", "Promo Codes"),
       icon: Tag,
       component: <Suspense fallback={<PanelLoader />}><LazyPromoCodeManagement /></Suspense>,
     },
@@ -1937,9 +1952,9 @@ export function RevenueBillingCenter() {
           <Layers className="h-6 w-6 text-primary" />
         </div>
         <div>
-          <h2 className="text-xl font-bold">Revenue &amp; Billing Center</h2>
+          <h2 className="text-xl font-bold">{t("admin.revenue_center.title", "Revenue & Billing Center")}</h2>
           <p className="text-sm text-muted-foreground">
-            Unified control panel — pricing rules, fees, commissions, payment surcharges, travel fees, payouts, and revenue sharing. No hardcoded values.
+            {t("admin.revenue_center.description", "Unified control panel — pricing rules, fees, commissions, payment surcharges, travel fees, payouts, and revenue sharing. No hardcoded values.")}
           </p>
         </div>
       </div>
