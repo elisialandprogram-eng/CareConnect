@@ -61,49 +61,49 @@ const DOW_SHORT  = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
 const ORDERED_DAYS = [1,2,3,4,5,6,0]; // Mon–Sun display order
 
 const QUICK_TEMPLATES = [
-  { id:"mf9to5",  label:"Mon–Fri 9–5",  desc:"Standard business week", icon:Briefcase, days:[1,2,3,4,5], start:"09:00", end:"17:00",
+  { id:"mf9to5",  labelKey:"scheduler_template_mf9to5", descKey:"scheduler_template_mf9to5_desc", icon:Briefcase, days:[1,2,3,4,5], start:"09:00", end:"17:00",
     cls:"bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100 dark:bg-blue-950 dark:border-blue-800 dark:text-blue-300" },
-  { id:"ms9to5",  label:"Mon–Sat 9–5",  desc:"Extended working week",   icon:Calendar,  days:[1,2,3,4,5,6], start:"09:00", end:"17:00",
+  { id:"ms9to5",  labelKey:"scheduler_template_ms9to5", descKey:"scheduler_template_ms9to5_desc", icon:Calendar,  days:[1,2,3,4,5,6], start:"09:00", end:"17:00",
     cls:"bg-violet-50 border-violet-200 text-violet-700 hover:bg-violet-100 dark:bg-violet-950 dark:border-violet-800 dark:text-violet-300" },
-  { id:"mf8to4",  label:"Mon–Fri 8–4",  desc:"Early shift",             icon:Coffee,    days:[1,2,3,4,5], start:"08:00", end:"16:00",
+  { id:"mf8to4",  labelKey:"scheduler_template_mf8to4", descKey:"scheduler_template_mf8to4_desc", icon:Coffee,    days:[1,2,3,4,5], start:"08:00", end:"16:00",
     cls:"bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100 dark:bg-amber-950 dark:border-amber-800 dark:text-amber-300" },
-  { id:"weekends",label:"Weekends",      desc:"Sat & Sun only",          icon:Sun,       days:[0,6], start:"09:00", end:"17:00",
+  { id:"weekends",labelKey:"scheduler_template_weekends", descKey:"scheduler_template_weekends_desc", icon:Sun,       days:[0,6], start:"09:00", end:"17:00",
     cls:"bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-950 dark:border-emerald-800 dark:text-emerald-300" },
-  { id:"evenings",label:"Evenings",      desc:"Weekday evenings",        icon:Moon,      days:[1,2,3,4,5], start:"17:00", end:"21:00",
+  { id:"evenings",labelKey:"scheduler_template_evenings", descKey:"scheduler_template_evenings_desc", icon:Moon,      days:[1,2,3,4,5], start:"17:00", end:"21:00",
     cls:"bg-indigo-50 border-indigo-200 text-indigo-700 hover:bg-indigo-100 dark:bg-indigo-950 dark:border-indigo-800 dark:text-indigo-300" },
 ] as const;
 
-const MODALITY_OPTS: Array<{ value: Modality; label: string; icon: React.ElementType }> = [
-  { value:"none",       label:"All Appointments",  icon:Globe },
-  { value:"clinic",     label:"Clinic Visits",     icon:Stethoscope },
-  { value:"home_visit", label:"Home Visits",        icon:Home },
-  { value:"video",      label:"Video Consults",    icon:Video },
+const MODALITY_OPTS: Array<{ value: Modality; labelKey: string; icon: React.ElementType }> = [
+  { value:"none",       labelKey:"scheduler_modality_all",    icon:Globe },
+  { value:"clinic",     labelKey:"scheduler_modality_clinic", icon:Stethoscope },
+  { value:"home_visit", labelKey:"scheduler_modality_home",   icon:Home },
+  { value:"video",      labelKey:"scheduler_modality_video",  icon:Video },
 ];
 
-const TIME_OFF_REASONS: Array<{ value: string; label: string }> = [
-  { value:"vacation",       label:"Vacation" },
-  { value:"training",       label:"Training / Course" },
-  { value:"conference",     label:"Conference" },
-  { value:"public_holiday", label:"Public Holiday" },
-  { value:"sick_leave",     label:"Sick Leave" },
-  { value:"emergency",      label:"Emergency" },
-  { value:"personal",       label:"Personal" },
-  { value:"other",          label:"Other" },
+const TIME_OFF_REASONS: Array<{ value: string; labelKey: string }> = [
+  { value:"vacation",       labelKey:"scheduler_reason_vacation" },
+  { value:"training",       labelKey:"scheduler_reason_training" },
+  { value:"conference",     labelKey:"scheduler_reason_conference" },
+  { value:"public_holiday", labelKey:"scheduler_reason_public_holiday" },
+  { value:"sick_leave",     labelKey:"scheduler_reason_sick_leave" },
+  { value:"emergency",      labelKey:"scheduler_reason_emergency" },
+  { value:"personal",       labelKey:"scheduler_reason_personal" },
+  { value:"other",          labelKey:"scheduler_reason_other" },
 ];
 
 const DURATION_OPTS = [
-  { value:15, label:"15 min" },
-  { value:20, label:"20 min" },
-  { value:30, label:"30 min" },
-  { value:45, label:"45 min" },
-  { value:60, label:"60 min" },
+  { value:15, labelKey:"scheduler_duration_15" },
+  { value:20, labelKey:"scheduler_duration_20" },
+  { value:30, labelKey:"scheduler_duration_30" },
+  { value:45, labelKey:"scheduler_duration_45" },
+  { value:60, labelKey:"scheduler_duration_60" },
 ];
 
 const BUFFER_OPTS = [
-  { value:0,  label:"None" },
-  { value:5,  label:"5 min" },
-  { value:10, label:"10 min" },
-  { value:15, label:"15 min" },
+  { value:0,  labelKey:"scheduler_buffer_none" },
+  { value:5,  labelKey:"scheduler_buffer_5" },
+  { value:10, labelKey:"scheduler_buffer_10" },
+  { value:15, labelKey:"scheduler_buffer_15" },
 ];
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
@@ -168,6 +168,7 @@ function formatHm(totalMins: number) {
 // ── Time-off Manager ───────────────────────────────────────────────────────────
 
 function TimeOffManagerPanel() {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate]     = useState("");
@@ -185,12 +186,12 @@ function TimeOffManagerPanel() {
       return res.json();
     },
     onSuccess: () => {
-      toast({ title: "Time off added" });
+      toast({ title: t("provider_dashboard.scheduler_timeoff_added", "Time off added") });
       setStartDate("");
       setEndDate("");
       queryClient.invalidateQueries({ queryKey: ["/api/provider/time-off"] });
     },
-    onError: (e: any) => toast({ title: "Failed", description: e.message, variant: "destructive" }),
+    onError: (e: any) => toast({ title: t("common.error", "Error"), description: e.message, variant: "destructive" }),
   });
 
   const delMut = useMutation({
@@ -198,10 +199,10 @@ function TimeOffManagerPanel() {
       await apiRequest("DELETE", `/api/provider/time-off/${id}`);
     },
     onSuccess: () => {
-      toast({ title: "Time off removed" });
+      toast({ title: t("provider_dashboard.scheduler_timeoff_removed", "Time off removed") });
       queryClient.invalidateQueries({ queryKey: ["/api/provider/time-off"] });
     },
-    onError: (e: any) => toast({ title: "Failed", description: e.message, variant: "destructive" }),
+    onError: (e: any) => toast({ title: t("common.error", "Error"), description: e.message, variant: "destructive" }),
   });
 
   const canAdd = startDate && endDate && endDate >= startDate;
@@ -210,34 +211,34 @@ function TimeOffManagerPanel() {
     <Card>
       <CardHeader>
         <CardTitle className="text-sm flex items-center gap-2">
-          <Clock className="h-4 w-4 text-primary" /> Add Time Off / Block
+          <Clock className="h-4 w-4 text-primary" /> {t("provider_dashboard.scheduler_add_timeoff", "Add Time Off / Block")}
         </CardTitle>
         <CardDescription className="text-xs">
-          Block out a date range. Patients won't be able to book during blocked periods.
+          {t("provider_dashboard.scheduler_timeoff_desc", "Block out a date range. Patients won't be able to book during blocked periods.")}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Add form */}
         <div className="flex flex-wrap gap-3 items-end">
           <div>
-            <Label className="text-xs">From</Label>
+            <Label className="text-xs">{t("provider_dashboard.from", "From")}</Label>
             <Input type="date" value={startDate} onChange={e => setStartDate(e.target.value)}
               className="h-8 text-sm w-36" data-testid="input-timeoff-start" />
           </div>
           <div>
-            <Label className="text-xs">To</Label>
+            <Label className="text-xs">{t("provider_dashboard.to", "To")}</Label>
             <Input type="date" value={endDate} onChange={e => setEndDate(e.target.value)}
               min={startDate} className="h-8 text-sm w-36" data-testid="input-timeoff-end" />
           </div>
           <div className="min-w-[160px]">
-            <Label className="text-xs">Category</Label>
+            <Label className="text-xs">{t("provider_dashboard.scheduler_category", "Category")}</Label>
             <Select value={reason} onValueChange={setReason}>
               <SelectTrigger className="h-8 text-sm" data-testid="select-timeoff-reason">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 {TIME_OFF_REASONS.map(r => (
-                  <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>
+                  <SelectItem key={r.value} value={r.value}>{t(`provider_dashboard.${r.labelKey}`, r.value)}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -245,7 +246,7 @@ function TimeOffManagerPanel() {
           <Button size="sm" onClick={() => addMut.mutate()} disabled={!canAdd || addMut.isPending}
             data-testid="btn-add-timeoff">
             {addMut.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Plus className="h-4 w-4 mr-1" />}
-            Add Block
+            {t("provider_dashboard.scheduler_add_block", "Add Block")}
           </Button>
         </div>
 
@@ -257,11 +258,12 @@ function TimeOffManagerPanel() {
             {[0,1].map(i => <Skeleton key={i} className="h-10 w-full" />)}
           </div>
         ) : blocks.length === 0 ? (
-          <p className="text-xs text-muted-foreground text-center py-4">No upcoming time-off blocks.</p>
+          <p className="text-xs text-muted-foreground text-center py-4">{t("provider_dashboard.scheduler_no_timeoff", "No upcoming time-off blocks.")}</p>
         ) : (
           <div className="space-y-2">
             {blocks.map((b: any) => {
-              const label = TIME_OFF_REASONS.find(r => r.value === b.reason)?.label ?? b.reason ?? "Block";
+              const reasonKey = TIME_OFF_REASONS.find(r => r.value === b.reason)?.labelKey;
+              const label = reasonKey ? t(`provider_dashboard.${reasonKey}`, b.reason) : b.reason ?? t("provider_dashboard.scheduler_block", "Block");
               const sameDay = b.startDate === b.endDate;
               return (
                 <div key={b.id} className="flex items-center justify-between gap-2 rounded-lg border px-3 py-2">
@@ -319,7 +321,7 @@ function SlotSettingsPanel({ slotDuration, setSlotDuration, bufferBefore, setBuf
               </SelectTrigger>
               <SelectContent>
                 {DURATION_OPTS.map(o => (
-                  <SelectItem key={o.value} value={String(o.value)}>{o.label}</SelectItem>
+                  <SelectItem key={o.value} value={String(o.value)}>{t(`provider_dashboard.${o.labelKey}`, `${o.value} min`)}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -333,7 +335,7 @@ function SlotSettingsPanel({ slotDuration, setSlotDuration, bufferBefore, setBuf
               </SelectTrigger>
               <SelectContent>
                 {BUFFER_OPTS.map(o => (
-                  <SelectItem key={o.value} value={String(o.value)}>{o.label}</SelectItem>
+                  <SelectItem key={o.value} value={String(o.value)}>{t(`provider_dashboard.${o.labelKey}`, o.value === 0 ? "None" : `${o.value} min`)}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -347,7 +349,7 @@ function SlotSettingsPanel({ slotDuration, setSlotDuration, bufferBefore, setBuf
               </SelectTrigger>
               <SelectContent>
                 {BUFFER_OPTS.map(o => (
-                  <SelectItem key={o.value} value={String(o.value)}>{o.label}</SelectItem>
+                  <SelectItem key={o.value} value={String(o.value)}>{t(`provider_dashboard.${o.labelKey}`, o.value === 0 ? "None" : `${o.value} min`)}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -468,7 +470,7 @@ function InsightsPanel({ weekMatrix, weekSummary, totalHours, enabledDays }: Ins
                       )}
                     </div>
                     <span className="text-xs text-muted-foreground w-16 text-right">
-                      {isActive ? formatHm(hrs) : "Day off"}
+                      {isActive ? formatHm(hrs) : t("provider_dashboard.scheduler_day_off", "Day off")}
                     </span>
                   </div>
                 );
@@ -484,6 +486,7 @@ function InsightsPanel({ weekMatrix, weekSummary, totalHours, enabledDays }: Ins
 // ── Main Component ─────────────────────────────────────────────────────────────
 
 export function SmartScheduler({ provider }: { provider?: any }) {
+  const { t } = useTranslation();
   const { toast } = useToast();
 
   // ── State ──────────────────────────────────────────────────────────────────
@@ -593,8 +596,11 @@ export function SmartScheduler({ provider }: { provider?: any }) {
     }
     setMatrix(newMatrix);
     setDirtyDays(new Set([0,1,2,3,4,5,6]));
-    toast({ title: `Template applied: ${tpl.label}`, description: "Review the schedule below, then click Save." });
-  }, [matrix, slotDuration, bufferBefore, bufferAfter, toast]);
+    toast({
+      title: t(`provider_dashboard.${tpl.labelKey}`, tpl.id),
+      description: t("provider_dashboard.scheduler_template_applied_desc", "Review the schedule below, then click Save."),
+    });
+  }, [matrix, slotDuration, bufferBefore, bufferAfter, toast, t]);
 
   // ── Bulk apply ─────────────────────────────────────────────────────────────
   const applyBulk = useCallback(() => {
@@ -610,8 +616,8 @@ export function SmartScheduler({ provider }: { provider?: any }) {
     setDirtyDays(s => new Set([...s, ...bulkDays]));
     setBulkDays([]);
     setBulkOpen(false);
-    toast({ title: `Hours applied to ${bulkDays.length} day(s)` });
-  }, [bulkDays, bulkStart, bulkEnd, slotDuration, bufferBefore, bufferAfter, matrix, toast]);
+    toast({ title: t("provider_dashboard.scheduler_hours_applied", "Hours applied to {{count}} day(s)", { count: bulkDays.length }) });
+  }, [bulkDays, bulkStart, bulkEnd, slotDuration, bufferBefore, bufferAfter, matrix, toast, t]);
 
   // ── Save ───────────────────────────────────────────────────────────────────
   const saveSchedule = useCallback(async () => {
@@ -680,21 +686,21 @@ export function SmartScheduler({ provider }: { provider?: any }) {
                 <Calendar className="h-5 w-5 text-primary" />
               </div>
               <div>
-                <p className="font-semibold text-sm leading-none">Smart Scheduler</p>
+                <p className="font-semibold text-sm leading-none">{t("provider_dashboard.scheduler_title", "Smart Scheduler")}</p>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  {enabledDays} day{enabledDays !== 1 ? "s" : ""} active · {totalHours}h/wk
+                  {t("provider_dashboard.scheduler_summary", "{{count}} active day(s) · {{hours}}h/wk", { count: enabledDays, hours: totalHours })}
                 </p>
               </div>
             </div>
             <div className="flex items-center gap-2 flex-wrap">
               {hasChanges && (
                 <Badge variant="outline" className="border-amber-300 text-amber-700 bg-amber-50 text-xs">
-                  <AlertCircle className="h-3 w-3 mr-1" /> Unsaved changes
+                  <AlertCircle className="h-3 w-3 mr-1" /> {t("provider_dashboard.scheduler_unsaved", "Unsaved changes")}
                 </Badge>
               )}
               {insightUtilPct !== null && (
                 <Badge variant="outline" className="border-emerald-300 text-emerald-700 bg-emerald-50 text-xs">
-                  <TrendingUp className="h-3 w-3 mr-1" /> {insightUtilPct}% utilised this week
+                  <TrendingUp className="h-3 w-3 mr-1" /> {t("provider_dashboard.scheduler_utilised_week", "{{percent}}% utilised this week", { percent: insightUtilPct })}
                 </Badge>
               )}
             </div>
@@ -705,16 +711,16 @@ export function SmartScheduler({ provider }: { provider?: any }) {
       <Tabs defaultValue="schedule" className="space-y-4">
         <TabsList className="h-auto flex-wrap">
           <TabsTrigger value="schedule" data-testid="tab-scheduler-schedule" className="gap-1.5">
-            <Calendar className="h-3.5 w-3.5" /> Schedule
+            <Calendar className="h-3.5 w-3.5" /> {t("provider_dashboard.scheduler_tab_schedule", "Schedule")}
           </TabsTrigger>
           <TabsTrigger value="timeoff" data-testid="tab-scheduler-timeoff" className="gap-1.5">
-            <Clock className="h-3.5 w-3.5" /> Time Off
+            <Clock className="h-3.5 w-3.5" /> {t("provider_dashboard.scheduler_tab_timeoff", "Time Off")}
           </TabsTrigger>
           <TabsTrigger value="settings" data-testid="tab-scheduler-settings" className="gap-1.5">
-            <Settings className="h-3.5 w-3.5" /> Settings
+            <Settings className="h-3.5 w-3.5" /> {t("provider_dashboard.scheduler_tab_settings", "Settings")}
           </TabsTrigger>
           <TabsTrigger value="insights" data-testid="tab-scheduler-insights" className="gap-1.5">
-            <TrendingUp className="h-3.5 w-3.5" /> Insights
+            <TrendingUp className="h-3.5 w-3.5" /> {t("provider_dashboard.scheduler_tab_insights", "Insights")}
           </TabsTrigger>
         </TabsList>
 
@@ -725,10 +731,10 @@ export function SmartScheduler({ provider }: { provider?: any }) {
           <Card>
             <CardContent className="pt-4 pb-3">
               <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide mb-2">
-                Appointment Type Schedule
+                {t("provider_dashboard.scheduler_appointment_type_schedule", "Appointment Type Schedule")}
               </p>
               <div className="flex flex-wrap gap-2">
-                {MODALITY_OPTS.map(({ value, label, icon: Icon }) => (
+                {MODALITY_OPTS.map(({ value, labelKey, icon: Icon }) => (
                   <button
                     key={value}
                     onClick={() => setModality(value)}
@@ -740,14 +746,15 @@ export function SmartScheduler({ provider }: { provider?: any }) {
                     }`}
                   >
                     <Icon className="h-3.5 w-3.5" />
-                    {label}
+                    {t(`provider_dashboard.${labelKey}`, labelKey)}
                   </button>
                 ))}
               </div>
               {modality !== "none" && (
                 <p className="text-xs text-muted-foreground mt-2 leading-relaxed">
-                  Editing schedule for <strong>{MODALITY_OPTS.find(m => m.value === modality)?.label}</strong> only.
-                  The general schedule (All Appointments) applies when no modality-specific schedule is set.
+                  {t("provider_dashboard.scheduler_modality_editing", "Editing schedule for {{modality}} only. The general schedule (All Appointments) applies when no modality-specific schedule is set.", {
+                    modality: t(`provider_dashboard.${MODALITY_OPTS.find(m => m.value === modality)?.labelKey}`, modality),
+                  })}
                 </p>
               )}
             </CardContent>
@@ -758,10 +765,10 @@ export function SmartScheduler({ provider }: { provider?: any }) {
             <CardHeader className="pb-2">
               <div className="flex items-center gap-2">
                 <Wand2 className="h-4 w-4 text-primary" />
-                <CardTitle className="text-sm">Quick Templates</CardTitle>
+                <CardTitle className="text-sm">{t("provider_dashboard.scheduler_quick_templates", "Quick Templates")}</CardTitle>
               </div>
               <CardDescription className="text-xs">
-                One-click presets — click to populate the schedule, then review and save.
+                {t("provider_dashboard.scheduler_quick_templates_desc", "One-click presets — click to populate the schedule, then review and save.")}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -777,9 +784,9 @@ export function SmartScheduler({ provider }: { provider?: any }) {
                     >
                       <div className="flex items-center gap-1.5">
                         <Icon className="h-3.5 w-3.5" />
-                        <span className="font-semibold text-xs">{tpl.label}</span>
+                        <span className="font-semibold text-xs">{t(`provider_dashboard.${tpl.labelKey}`, tpl.id)}</span>
                       </div>
-                      <span className="text-[10px] opacity-70">{tpl.desc}</span>
+                      <span className="text-[10px] opacity-70">{t(`provider_dashboard.${tpl.descKey}`, tpl.id)}</span>
                       <span className="text-[10px] font-medium opacity-90">{tpl.start}–{tpl.end}</span>
                     </button>
                   );
@@ -799,20 +806,20 @@ export function SmartScheduler({ provider }: { provider?: any }) {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Zap className="h-4 w-4 text-amber-500" />
-                    <CardTitle className="text-sm">Bulk Apply Hours</CardTitle>
+                    <CardTitle className="text-sm">{t("provider_dashboard.scheduler_bulk_apply", "Bulk Apply Hours")}</CardTitle>
                   </div>
                   {bulkOpen
                     ? <ChevronUp className="h-4 w-4 text-muted-foreground" />
                     : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
                 </div>
                 {!bulkOpen && (
-                  <p className="text-xs text-muted-foreground">Apply the same hours to multiple days at once</p>
+                  <p className="text-xs text-muted-foreground">{t("provider_dashboard.scheduler_bulk_apply_desc", "Apply the same hours to multiple days at once")}</p>
                 )}
               </CardHeader>
             </button>
             {bulkOpen && (
               <CardContent className="pt-0 space-y-3">
-                <p className="text-xs text-muted-foreground">Select days:</p>
+                <p className="text-xs text-muted-foreground">{t("provider_dashboard.scheduler_select_days", "Select days:")}</p>
                 <div className="flex flex-wrap gap-2">
                   {ORDERED_DAYS.map(dow => (
                     <button
@@ -831,12 +838,12 @@ export function SmartScheduler({ provider }: { provider?: any }) {
                 </div>
                 <div className="flex flex-wrap items-end gap-3">
                   <div className="space-y-1">
-                    <Label className="text-xs">Start time</Label>
+                    <Label className="text-xs">{t("provider_dashboard.time_start", "Start time")}</Label>
                     <Input type="time" value={bulkStart} onChange={e => setBulkStart(e.target.value)}
                       className="w-32 h-8 text-sm" data-testid="input-bulk-start" />
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-xs">End time</Label>
+                    <Label className="text-xs">{t("provider_dashboard.time_end", "End time")}</Label>
                     <Input type="time" value={bulkEnd} onChange={e => setBulkEnd(e.target.value)}
                       className="w-32 h-8 text-sm" data-testid="input-bulk-end" />
                   </div>
@@ -846,7 +853,7 @@ export function SmartScheduler({ provider }: { provider?: any }) {
                     disabled={!bulkDays.length}
                     data-testid="btn-bulk-apply"
                   >
-                    Apply to {bulkDays.length || 0} day{bulkDays.length !== 1 ? "s" : ""}
+                    {t("provider_dashboard.scheduler_apply_to_days", "Apply to {{count}} day(s)", { count: bulkDays.length || 0 })}
                   </Button>
                 </div>
               </CardContent>
@@ -856,9 +863,9 @@ export function SmartScheduler({ provider }: { provider?: any }) {
           {/* Weekly schedule grid */}
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm">Weekly Schedule</CardTitle>
+              <CardTitle className="text-sm">{t("provider_dashboard.scheduler_weekly_schedule", "Weekly Schedule")}</CardTitle>
               <CardDescription className="text-xs">
-                Enable days and set hours. Add multiple windows per day to create breaks.
+                {t("provider_dashboard.scheduler_weekly_schedule_desc", "Enable days and set hours. Add multiple windows per day to create breaks.")}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-2 p-3 sm:p-6">
@@ -884,7 +891,7 @@ export function SmartScheduler({ provider }: { provider?: any }) {
 
                       {/* Content */}
                       {!day.enabled ? (
-                        <span className="text-xs text-muted-foreground italic pt-0.5">Day off</span>
+                        <span className="text-xs text-muted-foreground italic pt-0.5">{t("provider_dashboard.scheduler_day_off", "Day off")}</span>
                       ) : (
                         <div className="flex-1 min-w-0 space-y-1.5">
                           {day.windows.map((w, idx) => (
@@ -910,7 +917,7 @@ export function SmartScheduler({ provider }: { provider?: any }) {
                                 value={String(w.slotDurationMins)}
                                 onValueChange={v => updateWindow(dow, idx, "slotDurationMins", Number(v))}
                               >
-                                <SelectTrigger className="w-[72px] h-7 text-xs" title="Slot duration" data-testid={`select-dur-${dow}-${idx}`}>
+                                <SelectTrigger className="w-[72px] h-7 text-xs" title={t("provider_dashboard.scheduler_slot_duration", "Slot duration")} data-testid={`select-dur-${dow}-${idx}`}>
                                   <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -924,7 +931,7 @@ export function SmartScheduler({ provider }: { provider?: any }) {
                                 value={String(w.bufferBeforeMins)}
                                 onValueChange={v => updateWindow(dow, idx, "bufferBeforeMins", Number(v))}
                               >
-                                <SelectTrigger className="w-[58px] h-7 text-xs" title="Buffer before slot" data-testid={`select-buf-before-${dow}-${idx}`}>
+                                <SelectTrigger className="w-[58px] h-7 text-xs" title={t("provider_dashboard.scheduler_buffer_before", "Buffer before slot")} data-testid={`select-buf-before-${dow}-${idx}`}>
                                   <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -938,7 +945,7 @@ export function SmartScheduler({ provider }: { provider?: any }) {
                                 value={String(w.bufferAfterMins)}
                                 onValueChange={v => updateWindow(dow, idx, "bufferAfterMins", Number(v))}
                               >
-                                <SelectTrigger className="w-[58px] h-7 text-xs" title="Buffer after slot" data-testid={`select-buf-after-${dow}-${idx}`}>
+                                <SelectTrigger className="w-[58px] h-7 text-xs" title={t("provider_dashboard.scheduler_buffer_after", "Buffer after slot")} data-testid={`select-buf-after-${dow}-${idx}`}>
                                   <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -951,9 +958,9 @@ export function SmartScheduler({ provider }: { provider?: any }) {
                               <Badge
                                 variant="outline"
                                 className="text-xs shrink-0 text-emerald-600 border-emerald-200 dark:border-emerald-800 dark:text-emerald-400"
-                                title="Estimated slots generated for this window"
+                                title={t("provider_dashboard.scheduler_estimated_slots", "Estimated slots generated for this window")}
                               >
-                                ~{calcSlotCount(w.start, w.end, w.slotDurationMins, w.bufferBeforeMins, w.bufferAfterMins)} slots
+                                {t("provider_dashboard.scheduler_slots_count", "~{{count}} slots", { count: calcSlotCount(w.start, w.end, w.slotDurationMins, w.bufferBeforeMins, w.bufferAfterMins) })}
                               </Badge>
                               {day.windows.length > 1 && (
                                 <button
@@ -971,7 +978,7 @@ export function SmartScheduler({ provider }: { provider?: any }) {
                             data-testid={`btn-add-break-${dow}`}
                             className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-primary transition-colors px-2 py-0.5 rounded border border-dashed border-border hover:border-primary"
                           >
-                            <Plus className="h-3 w-3" /> Add break
+                            <Plus className="h-3 w-3" /> {t("provider_dashboard.scheduler_add_break", "Add break")}
                           </button>
                         </div>
                       )}
@@ -986,8 +993,8 @@ export function SmartScheduler({ provider }: { provider?: any }) {
           <div className="flex items-center justify-between gap-3">
             <p className="text-xs text-muted-foreground">
               {hasChanges
-                ? `${dirtyDays.size} day${dirtyDays.size !== 1 ? "s" : ""} modified`
-                : "No pending changes"}
+                ? t("provider_dashboard.scheduler_days_modified", "{{count}} day(s) modified", { count: dirtyDays.size })
+                : t("provider_dashboard.scheduler_no_pending_changes", "No pending changes")}
             </p>
             <Button
               onClick={saveSchedule}
@@ -996,8 +1003,8 @@ export function SmartScheduler({ provider }: { provider?: any }) {
               className="min-w-[130px]"
             >
               {isSaving
-                ? <><Loader2 className="h-4 w-4 animate-spin mr-2" /> Saving…</>
-                : <><Save className="h-4 w-4 mr-2" /> Save Schedule</>}
+                ? <><Loader2 className="h-4 w-4 animate-spin mr-2" /> {t("provider_dashboard.scheduler_saving", "Saving…")}</>
+                : <><Save className="h-4 w-4 mr-2" /> {t("provider_dashboard.scheduler_save", "Save Schedule")}</>}
             </Button>
           </div>
         </TabsContent>

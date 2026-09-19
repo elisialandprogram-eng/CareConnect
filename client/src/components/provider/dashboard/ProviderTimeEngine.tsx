@@ -312,7 +312,7 @@ function WeeklyTemplateTab() {
         <div>
           <h3 className="font-semibold">{t("provider_dashboard.time_weekly_base", "Weekly Base Template")}</h3>
           <p className="text-sm text-muted-foreground">
-            Configure recurring daily windows. The rolling cron generates bookable slots 30 days ahead automatically.
+            {t("provider_dashboard.time_weekly_base_desc", "Configure recurring daily windows. The rolling schedule generates bookable slots 30 days ahead automatically.")}
           </p>
         </div>
         <Button
@@ -323,7 +323,7 @@ function WeeklyTemplateTab() {
           className="gap-1.5"
         >
           <Copy className="h-3.5 w-3.5" />
-          Apply Monday → Tue–Fri
+          {t("provider_dashboard.time_apply_monday", "Apply Monday → Tue–Fri")}
         </Button>
       </div>
 
@@ -331,7 +331,7 @@ function WeeklyTemplateTab() {
         <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription>
-            Overlapping time windows detected. Highlighted rows must be fixed before saving.
+            {t("provider_dashboard.time_overlap_desc", "Overlapping time windows detected. Highlighted rows must be fixed before saving.")}
           </AlertDescription>
         </Alert>
       )}
@@ -498,7 +498,7 @@ function LeavesTab() {
             className="gap-1.5"
           >
             {addMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <CalendarOff className="h-4 w-4" />}
-            Log leave
+            {t("provider_dashboard.time_log_leave_button", "Log leave")}
           </Button>
         </CardContent>
       </Card>
@@ -630,7 +630,7 @@ function SurgePricingTab() {
       <div>
         <h3 className="font-semibold">{t("provider_dashboard.time_surge_matrix", "Surge Pricing Matrix")}</h3>
         <p className="text-sm text-muted-foreground">
-          Set your base fees. Peak and Off-Peak rates are computed automatically. Assign tiers to time windows in the Weekly Template tab.
+          {t("provider_dashboard.time_surge_desc", "Set your base fees. Peak and Off-Peak rates are computed automatically. Assign tiers to time windows in the Weekly Template tab.")}
         </p>
       </div>
 

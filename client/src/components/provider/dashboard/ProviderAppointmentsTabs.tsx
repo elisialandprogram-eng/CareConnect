@@ -135,7 +135,7 @@ export function ProviderAppointmentsTabs({ providerData, highlightApptId, active
     const handler = (e: BeforeUnloadEvent) => {
       if (noteIsDirtyRef.current) {
         e.preventDefault();
-        e.returnValue = "You have unsaved clinical notes. Leave anyway?";
+         e.returnValue = t("provider_dashboard.unsaved_clinical_notes", "You have unsaved clinical notes. Leave anyway?");
       }
     };
     window.addEventListener("beforeunload", handler);
@@ -173,7 +173,7 @@ export function ProviderAppointmentsTabs({ providerData, highlightApptId, active
     onError: (error: any) => {
       toast({
         title: t("provider_dashboard.toast_failed_update_appt", "Failed to update appointment"),
-        description: error?.message || "An unexpected error occurred. Please try again.",
+        description: error?.message || t("provider_dashboard.unexpected_error", "An unexpected error occurred. Please try again."),
         variant: "destructive",
       });
     },
@@ -192,7 +192,7 @@ export function ProviderAppointmentsTabs({ providerData, highlightApptId, active
     onError: (error: any) => {
       toast({
         title: t("provider_dashboard.toast_failed_payment", "Failed to update payment"),
-        description: error?.message || "An unexpected error occurred. Please try again.",
+        description: error?.message || t("provider_dashboard.unexpected_error", "An unexpected error occurred. Please try again."),
         variant: "destructive",
       });
     },
@@ -1142,7 +1142,7 @@ export function ProviderAppointmentsTabs({ providerData, highlightApptId, active
               {(selectedAppt as any).isRescheduled && (
                 <div className="rounded-lg border bg-muted/30 p-3 space-y-2" data-testid="section-reschedule-history">
                   <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-1.5">
-                    <CalendarClock className="h-3.5 w-3.5" />Reschedule history
+                    <CalendarClock className="h-3.5 w-3.5" />{t("provider_dashboard.reschedule_history", "Reschedule history")}
                   </p>
                   {(() => {
                     const reschedules = (selectedApptEvents ?? []).filter((e: any) => e.action === "reschedule");
@@ -1266,7 +1266,7 @@ export function ProviderAppointmentsTabs({ providerData, highlightApptId, active
           </DialogHeader>
           <div className="space-y-4 py-2">
             <p className="text-sm text-muted-foreground leading-relaxed">
-              Ask the patient for their <strong>4-digit sign-off code</strong> and enter it below to formally close this session. This creates an immutable completion record.
+              {t("provider_dashboard.signoff_code_help", "Ask the patient for their 4-digit sign-off code and enter it below to formally close this session. This creates an immutable completion record.")}
             </p>
 
             {/* 4-digit PIN input boxes */}
@@ -1315,7 +1315,7 @@ export function ProviderAppointmentsTabs({ providerData, highlightApptId, active
               className="bg-green-600 hover:bg-green-700 text-white"
               disabled={updateStatusMutation.isPending}
               onClick={() => {
-                if (pinValue.length !== 4) { setPinError("Please enter the full 4-digit code."); return; }
+                if (pinValue.length !== 4) { setPinError(t("provider_dashboard.signoff_code_required", "Please enter the full 4-digit code.")); return; }
                 if (pendingCompleteId) {
                   updateStatusMutation.mutate({ id: pendingCompleteId, status: "completed", signOffCode: pinValue });
                   setPinDialogOpen(false);

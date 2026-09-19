@@ -1290,17 +1290,17 @@ export default function ProviderDashboard() {
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-sm font-semibold flex items-center gap-2">
                     <CalendarIcon className="h-4 w-4 text-primary" />
-                    Today's Schedule
+                    {t("provider_dashboard.todays_schedule", "Today's Schedule")}
                     <Badge variant="secondary" className="ml-1">{todayAppointments.length}</Badge>
                   </CardTitle>
                   <Button size="sm" variant="ghost" className="h-7 text-xs text-primary hover:text-primary" onClick={() => setActiveTab("active")} data-testid="button-view-today-full">
-                    View all →
+                    {t("provider_dashboard.view_all", "View all →")}
                   </Button>
                 </div>
               </CardHeader>
               <CardContent className="pt-0 space-y-1">
                 {[...todayAppointments].sort((a, b) => a.startTime.localeCompare(b.startTime)).map((a) => {
-                  const patientName = `${(a as any).patient?.firstName ?? ""} ${(a as any).patient?.lastName ?? ""}`.trim() || "Patient";
+                  const patientName = `${(a as any).patient?.firstName ?? ""} ${(a as any).patient?.lastName ?? ""}`.trim() || t("provider_dashboard.patient_label", "Patient");
                   const svcName = (a as any).service?.name ?? "";
                   const statusColors: Record<string, string> = {
                     pending: "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300",
@@ -1363,7 +1363,8 @@ export default function ProviderDashboard() {
                   d.setDate(monday.getDate() + i);
                   const key = d.toISOString().slice(0, 10);
                   const count = allAppointments.filter(a => a.date === key && !terminalStatuses.includes(a.status)).length;
-                  return { key, label: ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"][i], date: d.getDate(), count, isToday: key === todayStr };
+                  const dayKeys = ["day_mon_short", "day_tue_short", "day_wed_short", "day_thu_short", "day_fri_short", "day_sat_short", "day_sun_short"];
+                  return { key, label: t(`provider_dashboard.${dayKeys[i]}`, ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"][i]), date: d.getDate(), count, isToday: key === todayStr };
                 });
                 const maxCount = Math.max(...weekDays.map(d => d.count), 1);
                 return (
