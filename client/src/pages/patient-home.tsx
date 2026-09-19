@@ -90,20 +90,26 @@ function visitTypeIcon(vt?: string | null) {
   return <Building2 className="h-4 w-4" />;
 }
 
-function visitTypeLabel(vt?: string | null) {
-  if (vt === "online") return "Video Visit";
-  if (vt === "home") return "Home Visit";
-  return "Clinic Visit";
+function visitTypeLabel(
+  vt: string | null | undefined,
+  t: (key: string, fallback: string) => string,
+) {
+  if (vt === "online") return t("patient_home.video_visit", "Video Visit");
+  if (vt === "home") return t("patient_home.home_visit", "Home Visit");
+  return t("patient_home.clinic_visit", "Clinic Visit");
 }
 
-function timeAgoLabel(dateStr: string): string {
+function timeAgoLabel(
+  dateStr: string,
+  t: (key: string, fallback: string, options?: Record<string, number>) => string,
+): string {
   const diff = Date.now() - new Date(dateStr).getTime();
   const days = Math.floor(diff / 86400000);
-  if (days === 0) return "Today";
-  if (days === 1) return "Yesterday";
-  if (days < 7) return `${days} days ago`;
-  if (days < 14) return "1 week ago";
-  return `${Math.floor(days / 7)} weeks ago`;
+  if (days === 0) return t("patient_home.today", "Today");
+  if (days === 1) return t("patient_home.yesterday", "Yesterday");
+  if (days < 7) return t("patient_home.days_ago", "{{count}} days ago", { count: days });
+  if (days < 14) return t("patient_home.one_week_ago", "1 week ago");
+  return t("patient_home.weeks_ago", "{{count}} weeks ago", { count: Math.floor(days / 7) });
 }
 
 // ── Skeleton Cards ────────────────────────────────────────────────────────────
@@ -224,8 +230,8 @@ function TodaysCare({ appointments, isLoading }: { appointments?: AppointmentWit
              <p className="text-sm text-muted-foreground">{t("patient_home.book_verified_provider", "Book a visit with a verified healthcare provider.")}</p>
           </div>
           <Button onClick={() => navigate("/book")} className="rounded-xl gap-2" data-testid="btn-book-appointment">
-            <Plus className="h-4 w-4" />
-            Book Appointment
+             <Plus className="h-4 w-4" />
+             {t("common.book_appointment", "Book Appointment")}
           </Button>
         </CardContent>
       </Card>
@@ -273,7 +279,7 @@ function TodaysCare({ appointments, isLoading }: { appointments?: AppointmentWit
               </span>
               <span className="flex items-center gap-1.5">
                 {visitTypeIcon(next.visitType)}
-                {visitTypeLabel(next.visitType)}
+                 {visitTypeLabel(next.visitType, t)}
               </span>
             </div>
           </div>
@@ -321,7 +327,15 @@ function TodaysCare({ appointments, isLoading }: { appointments?: AppointmentWit
 
         {upcoming.length > 1 && (
           <p className="text-xs text-muted-foreground mt-3 text-center">
-            +{upcoming.length - 1} more upcoming appointment{upcoming.length > 2 ? "s" : ""}
+             {t(
+               upcoming.length > 2
+                 ? "patient_home.more_upcoming_plural"
+                 : "patient_home.more_upcoming",
+               upcoming.length > 2
+                 ? "+{{count}} more upcoming appointments"
+                 : "+{{count}} more upcoming appointment",
+               { count: upcoming.length - 1 },
+             )}
           </p>
         )}
       </CardContent>
@@ -660,6 +674,7 @@ function BenefitsCenter({
   activePkgs?: PackageSummaryItem[];
   isLoadingWallet: boolean;
 }) {
+  const { t } = useTranslation();
   const { format: fmtMoney } = useCurrency();
 
   const balance = wallet ? Number(wallet.balance ?? 0) : 0;
@@ -669,29 +684,31 @@ function BenefitsCenter({
     {
       id: "wallet",
       icon: <Wallet className="h-5 w-5 text-emerald-500" />,
-      label: "Wallet Balance",
+       label: t("patient_home.wallet_balance", "Wallet Balance"),
       value: isLoadingWallet ? "—" : fmtMoney(balance),
       bg: "bg-emerald-500/8",
       href: "/wallet",
-      action: "Top Up",
+       action: t("patient_home.top_up", "Top Up"),
     },
     {
       id: "sessions",
       icon: <Crown className="h-5 w-5 text-amber-500" />,
-      label: "Package Sessions",
-      value: totalSessions > 0 ? `${totalSessions} remaining` : "None active",
+       label: t("patient_home.package_sessions", "Package Sessions"),
+       value: totalSessions > 0
+         ? t("patient_home.sessions_remaining", "{{count}} remaining", { count: totalSessions })
+         : t("patient_home.none_active", "None active"),
       bg: "bg-amber-500/8",
       href: "/membership",
-      action: "View",
+       action: t("patient_home.view", "View"),
     },
     {
       id: "gift",
       icon: <Gift className="h-5 w-5 text-pink-500" />,
-      label: "Gift & Referrals",
-      value: "Earn rewards",
+       label: t("patient_home.gift_referrals", "Gift & Referrals"),
+       value: t("patient_home.earn_rewards", "Earn rewards"),
       bg: "bg-pink-500/8",
       href: "/referrals",
-      action: "Refer",
+       action: t("patient_home.refer", "Refer"),
     },
   ];
 
@@ -700,7 +717,7 @@ function BenefitsCenter({
       <div className="flex items-center justify-between mb-3">
         <h2 className="text-base font-semibold text-foreground flex items-center gap-2">
           <Sparkles className="h-4 w-4 text-amber-500" />
-          Benefits Center
+          {t("patient_home.benefits_center", "Benefits Center")}
         </h2>
       </div>
       <div className="grid sm:grid-cols-3 gap-3">
@@ -733,6 +750,7 @@ function BenefitsCenter({
 // ── Section 8 — Recent Activity Timeline ──────────────────────────────────────
 
 function RecentActivity({ appointments }: { appointments?: AppointmentWithDetails[] }) {
+  const { t } = useTranslation();
   const recent = useMemo(() => {
     const events: Array<{ id: string; label: string; sub: string; date: string; icon: React.ReactNode; color: string }> = [];
 
@@ -740,13 +758,13 @@ function RecentActivity({ appointments }: { appointments?: AppointmentWithDetail
       .filter((a) => a.status === "completed" || a.status === "cancelled" || a.status === "confirmed")
       .slice(0, 5)
       .forEach((a) => {
-        const provName = `${a.provider?.user?.firstName || ""} ${a.provider?.user?.lastName || ""}`.trim() || "Provider";
+         const provName = `${a.provider?.user?.firstName || ""} ${a.provider?.user?.lastName || ""}`.trim() || t("patient_home.provider", "Provider");
         const dateStr = a.updatedAt ? String(a.updatedAt) : String(a.date || "");
         if (a.status === "completed") {
           events.push({
             id: a.id,
-            label: "Appointment Completed",
-            sub: `with ${provName}`,
+             label: t("patient_home.appointment_completed", "Appointment Completed"),
+             sub: String(t("patient_home.with_provider", "with {{name}}", { name: provName } as any)),
             date: dateStr,
             icon: <CheckCircle className="h-3.5 w-3.5" />,
             color: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400",
@@ -754,8 +772,8 @@ function RecentActivity({ appointments }: { appointments?: AppointmentWithDetail
         } else if (a.status === "cancelled") {
           events.push({
             id: a.id + "_c",
-            label: "Appointment Cancelled",
-            sub: `with ${provName}`,
+             label: t("patient_home.appointment_cancelled", "Appointment Cancelled"),
+             sub: String(t("patient_home.with_provider", "with {{name}}", { name: provName } as any)),
             date: dateStr,
             icon: <AlertCircle className="h-3.5 w-3.5" />,
             color: "bg-red-500/15 text-red-600 dark:text-red-400",
@@ -763,8 +781,8 @@ function RecentActivity({ appointments }: { appointments?: AppointmentWithDetail
         } else if (a.status === "confirmed") {
           events.push({
             id: a.id + "_b",
-            label: "Appointment Booked",
-            sub: `with ${provName}`,
+             label: t("patient_home.appointment_booked", "Appointment Booked"),
+             sub: String(t("patient_home.with_provider", "with {{name}}", { name: provName } as any)),
             date: dateStr,
             icon: <Calendar className="h-3.5 w-3.5" />,
             color: "bg-primary/15 text-primary",
@@ -773,7 +791,7 @@ function RecentActivity({ appointments }: { appointments?: AppointmentWithDetail
       });
 
     return events.slice(0, 5);
-  }, [appointments]);
+  }, [appointments, t]);
 
   if (!recent.length) return null;
 
@@ -781,7 +799,7 @@ function RecentActivity({ appointments }: { appointments?: AppointmentWithDetail
     <section>
       <h2 className="text-base font-semibold text-foreground mb-3 flex items-center gap-2">
         <Activity className="h-4 w-4 text-primary" />
-        Recent Activity
+         {t("patient_home.recent_activity", "Recent Activity")}
       </h2>
       <Card className="rounded-2xl border border-border/60">
         <CardContent className="p-4 divide-y divide-border/50">
@@ -794,7 +812,7 @@ function RecentActivity({ appointments }: { appointments?: AppointmentWithDetail
                 <p className="text-sm font-medium text-foreground">{e.label}</p>
                 <p className="text-xs text-muted-foreground">{e.sub}</p>
               </div>
-              <p className="text-xs text-muted-foreground flex-shrink-0">{e.date ? timeAgoLabel(e.date) : ""}</p>
+               <p className="text-xs text-muted-foreground flex-shrink-0">{e.date ? timeAgoLabel(e.date, t as any) : ""}</p>
             </div>
           ))}
         </CardContent>

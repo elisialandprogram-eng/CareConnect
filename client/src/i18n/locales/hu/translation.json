@@ -107,7 +107,9 @@
     "remove": "Eltávolítás",
     "previous": "Előző",
     "next": "Következő",
-    "page_of": "{{page}} / {{total}} oldal"
+    "page_of": "{{page}} / {{total}} oldal",
+    "command_center": "Parancsközpont",
+    "membership_packages": "Tagsági csomagok"
   },
   "hero": {
     "trusted_badge": "Több mint 10 000 páciens bizalmával",
@@ -3740,7 +3742,13 @@
     "responds_in_minutes": "{{minutes}} perc",
     "save": "Szolgáltató mentése",
     "save_failed": "A mentett szolgáltatókat nem sikerült frissíteni",
-    "unsave": "Eltávolítás a mentettekből"
+    "unsave": "Eltávolítás a mentettekből",
+    "clinic": "Rendelő",
+    "verified": "Ellenőrzött",
+    "online": "Online",
+    "home_visit": "Otthoni vizit",
+    "years_experience_short": "{{count}}+ év tapasztalat",
+    "next": "Következő"
   },
   "recently_viewed": {
     "clear": "Törlés",
@@ -4380,7 +4388,33 @@
     "view_details": "Részletek megtekintése",
     "join_video_visit": "Belépés a videós vizitre",
     "directions": "Útvonalterv",
-    "reschedule": "Átfoglalás"
+    "reschedule": "Átfoglalás",
+    "video_visit": "Videós vizit",
+    "home_visit": "Otthoni vizit",
+    "clinic_visit": "Rendelői vizit",
+    "more_upcoming": "+{{count}} további közelgő időpont",
+    "more_upcoming_plural": "+{{count}} további közelgő időpont",
+    "benefits_center": "Előnyök központja",
+    "wallet_balance": "Pénztáregyenleg",
+    "top_up": "Feltöltés",
+    "package_sessions": "Csomagalkalmak",
+    "sessions_remaining": "{{count}} alkalom maradt",
+    "none_active": "Nincs aktív",
+    "view": "Megtekintés",
+    "gift_referrals": "Ajándékok és ajánlások",
+    "earn_rewards": "Jutalmak szerzése",
+    "refer": "Ajánlás",
+    "recent_activity": "Legutóbbi tevékenység",
+    "appointment_completed": "Időpont teljesítve",
+    "appointment_cancelled": "Időpont lemondva",
+    "appointment_booked": "Időpont lefoglalva",
+    "with_provider": "{{name}} szolgáltatóval",
+    "provider": "Szolgáltató",
+    "today": "Ma",
+    "yesterday": "Tegnap",
+    "days_ago": "{{count}} napja",
+    "one_week_ago": "1 hete",
+    "weeks_ago": "{{count}} hete"
   },
   "patient_sweep": {
     "settings_timezone_title": "Időzóna",

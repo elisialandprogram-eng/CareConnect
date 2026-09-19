@@ -107,7 +107,9 @@
     "remove": "حذف",
     "previous": "قبلی",
     "next": "بعدی",
-    "page_of": "صفحه {{page}} از {{total}}"
+    "page_of": "صفحه {{page}} از {{total}}",
+    "command_center": "مرکز فرماندهی",
+    "membership_packages": "بسته‌های عضویت"
   },
   "hero": {
     "trusted_badge": "مورد اعتماد بیش از ۱۰,۰۰۰ بیمار",
@@ -3740,7 +3742,13 @@
     "responds_in_minutes": "{{minutes}} دقیقه",
     "save": "ذخیره ارائه‌دهنده",
     "save_failed": "به‌روزرسانی ارائه‌دهندگان ذخیره‌شده ممکن نشد",
-    "unsave": "حذف از ذخیره‌شده‌ها"
+    "unsave": "حذف از ذخیره‌شده‌ها",
+    "clinic": "کلینیک",
+    "verified": "تأییدشده",
+    "online": "آنلاین",
+    "home_visit": "ویزیت در منزل",
+    "years_experience_short": "{{count}}+ سال تجربه",
+    "next": "بعدی"
   },
   "recently_viewed": {
     "clear": "پاک کردن",
@@ -4380,7 +4388,33 @@
     "view_details": "مشاهده جزئیات",
     "join_video_visit": "ورود به ویزیت ویدیویی",
     "directions": "مسیریابی",
-    "reschedule": "تغییر زمان"
+    "reschedule": "تغییر زمان",
+    "video_visit": "ویزیت ویدیویی",
+    "home_visit": "ویزیت در منزل",
+    "clinic_visit": "ویزیت در کلینیک",
+    "more_upcoming": "+{{count}} نوبت نزدیک دیگر",
+    "more_upcoming_plural": "+{{count}} نوبت نزدیک دیگر",
+    "benefits_center": "مرکز مزایا",
+    "wallet_balance": "موجودی کیف پول",
+    "top_up": "افزایش موجودی",
+    "package_sessions": "جلسات بسته",
+    "sessions_remaining": "{{count}} جلسه باقی‌مانده",
+    "none_active": "مورد فعالی نیست",
+    "view": "مشاهده",
+    "gift_referrals": "هدیه و معرفی",
+    "earn_rewards": "کسب پاداش",
+    "refer": "معرفی",
+    "recent_activity": "فعالیت‌های اخیر",
+    "appointment_completed": "نوبت تکمیل شد",
+    "appointment_cancelled": "نوبت لغو شد",
+    "appointment_booked": "نوبت رزرو شد",
+    "with_provider": "با {{name}}",
+    "provider": "ارائه‌دهنده",
+    "today": "امروز",
+    "yesterday": "دیروز",
+    "days_ago": "{{count}} روز پیش",
+    "one_week_ago": "۱ هفته پیش",
+    "weeks_ago": "{{count}} هفته پیش"
   },
   "patient_sweep": {
     "settings_timezone_title": "منطقه زمانی",

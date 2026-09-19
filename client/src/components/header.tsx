@@ -260,7 +260,7 @@ export function Header() {
                   <DropdownMenuItem asChild>
                     <Link href="/admin/home" className="cursor-pointer" data-testid="link-admin-home-menu">
                       <Command className="me-2 h-4 w-4 text-indigo-500" />
-                      <span className="text-indigo-600 dark:text-indigo-400 font-medium">Command Center</span>
+                       <span className="text-indigo-600 dark:text-indigo-400 font-medium">{t("common.command_center", "Command Center")}</span>
                     </Link>
                   </DropdownMenuItem>
                 )}
@@ -308,7 +308,7 @@ export function Header() {
                   <DropdownMenuItem asChild>
                     <Link href="/packages" className="cursor-pointer" data-testid="link-packages-menu">
                       <Gift className="me-2 h-4 w-4 text-violet-500" />
-                      <span className="text-violet-600 dark:text-violet-400 font-medium">Membership Packages</span>
+                       <span className="text-violet-600 dark:text-violet-400 font-medium">{t("common.membership_packages", "Membership Packages")}</span>
                     </Link>
                   </DropdownMenuItem>
                 )}

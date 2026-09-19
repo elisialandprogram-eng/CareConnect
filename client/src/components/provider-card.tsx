@@ -161,7 +161,7 @@ export function ProviderCard({ provider, nextAvailable }: ProviderCardProps) {
                   </h3>
                   {isClinic && (
                     <Badge variant="outline" className="text-[10px] gap-1 border-primary/40 text-primary">
-                      Clinic
+                      {t("provider_card.clinic", "Clinic")}
                     </Badge>
                   )}
                   {provider.isVerified && (
@@ -173,7 +173,7 @@ export function ProviderCard({ provider, nextAvailable }: ProviderCardProps) {
                     >
                       <Badge className="bg-emerald-100 text-emerald-700 border border-emerald-300 hover:bg-emerald-100 flex items-center gap-1 px-2 py-0.5">
                         <CheckCircle className="h-3.5 w-3.5" />
-                        <span className="text-xs font-semibold">Verified</span>
+                         <span className="text-xs font-semibold">{t("provider_card.verified", "Verified")}</span>
                       </Badge>
                     </motion.div>
                   )}
@@ -214,7 +214,7 @@ export function ProviderCard({ provider, nextAvailable }: ProviderCardProps) {
                   )}
                   {provider.yearsExperience && provider.yearsExperience > 0 && (
                     <span className="text-xs text-muted-foreground font-medium">
-                      {provider.yearsExperience}+ yrs exp.
+                       {t("provider_card.years_experience_short", "{{count}}+ yrs exp.", { count: provider.yearsExperience })}
                     </span>
                   )}
                 </div>
@@ -246,9 +246,9 @@ export function ProviderCard({ provider, nextAvailable }: ProviderCardProps) {
               {(() => {
                 const modes: string[] = (provider as any).serviceModes ?? [];
                 const modeConfigs = [
-                  { key: "online", icon: Video, label: "Online" },
-                  { key: "home_visit", icon: Home, label: "Home Visit" },
-                  { key: "clinic_visit", icon: MapPin, label: "Clinic" },
+                   { key: "online", icon: Video, label: t("provider_card.online", "Online") },
+                   { key: "home_visit", icon: Home, label: t("provider_card.home_visit", "Home Visit") },
+                   { key: "clinic_visit", icon: MapPin, label: t("provider_card.clinic", "Clinic") },
                 ];
                 const homeRadiusKm: number | null = (provider as any).maxTravelDistanceKm ?? null;
                 const toShow = modeConfigs.filter((m) => modes.includes(m.key));
@@ -339,7 +339,7 @@ export function ProviderCard({ provider, nextAvailable }: ProviderCardProps) {
                 {nextAvailable && (
                   <div className="flex items-center gap-1 text-xs text-muted-foreground mb-2">
                     <Clock className="h-3 w-3" />
-                    <span>Next: {nextAvailable}</span>
+                   <span>{t("provider_card.next", "Next")}: {nextAvailable}</span>
                   </div>
                 )}
                 <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.98 }}>
