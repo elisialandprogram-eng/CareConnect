@@ -180,7 +180,7 @@ function inferLegacyTemplateData(eventKey: string, message: string, data: Record
   return result;
 }
 
-function getLocalizedNotification(
+export function getLocalizedNotification(
   notif: UserNotification,
   t: (key: string, fallback: string, options?: any) => unknown,
 ): { title: string; message: string } {

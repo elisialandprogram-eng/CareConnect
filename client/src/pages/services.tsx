@@ -109,7 +109,7 @@ export default function Services() {
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Header />
-      <PageBreadcrumbs items={[{ label: "Services" }]} />
+      <PageBreadcrumbs items={[{ label: t("common.services", "Services") }]} />
       <main className="flex-1">
         <section className="relative bg-gradient-to-b from-primary/5 via-background to-background border-b">
           <div className="container mx-auto px-4 py-10 sm:py-14">

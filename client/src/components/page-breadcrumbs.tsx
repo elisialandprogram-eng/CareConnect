@@ -11,6 +11,7 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
 
 export interface BreadcrumbSegment {
   label: string;
@@ -25,6 +26,7 @@ interface PageBreadcrumbsProps {
 
 export function PageBreadcrumbs({ items, fallback = "/", className }: PageBreadcrumbsProps) {
   const [, navigate] = useLocation();
+  const { t } = useTranslation();
 
   const handleBack = () => {
     if (typeof window !== "undefined" && window.history.length > 1) {
@@ -47,7 +49,7 @@ export function PageBreadcrumbs({ items, fallback = "/", className }: PageBreadc
         data-testid="button-back"
       >
         <ArrowLeft className="h-4 w-4 rtl:rotate-180" />
-        <span className="hidden sm:inline text-sm">Back</span>
+        <span className="hidden sm:inline text-sm">{t("common.back", "Back")}</span>
       </Button>
       <div className="w-px h-4 bg-border shrink-0" />
       <Breadcrumb>

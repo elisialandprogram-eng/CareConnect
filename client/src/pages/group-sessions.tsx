@@ -50,7 +50,7 @@ export default function GroupSessionsPage() {
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
-      <PageBreadcrumbs items={[{ label: "Group Sessions" }]} />
+      <PageBreadcrumbs items={[{ label: t("common.group_sessions", "Group Sessions") }]} />
       <main className="flex-1 container max-w-5xl py-8 space-y-6">
         <div>
           <h1 className="text-3xl font-bold" data-testid="text-page-title">

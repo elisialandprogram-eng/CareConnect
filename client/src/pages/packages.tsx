@@ -52,57 +52,59 @@ interface UserPkgDetail {
 
 // ── Benefit display ────────────────────────────────────────────────────────────
 
-const BENEFIT_DISPLAY: Record<string, { icon: any; label: (v: string) => string; color: string }> = {
+const BENEFIT_DISPLAY: Record<string, { icon: any; labelKey: string; color: string }> = {
   service_discount_percent: {
     icon: Percent,
-    label: v => `${v}% off service price on every booking`,
+    labelKey: "benefit_service_discount",
     color: "bg-blue-50 text-blue-700 border-blue-100",
   },
   platform_fee_discount: {
     icon: Percent,
-    label: v => `${v}% off platform fee`,
+    labelKey: "benefit_platform_discount",
     color: "bg-teal-50 text-teal-700 border-teal-100",
   },
   wallet_bonus: {
     icon: Wallet,
-    label: v => `${v} wallet credit on activation`,
+    labelKey: "benefit_wallet_bonus",
     color: "bg-green-50 text-green-700 border-green-100",
   },
   featured_provider: {
     icon: Star,
-    label: v => `${v} month(s) featured listing`,
+    labelKey: "benefit_featured_provider",
     color: "bg-yellow-50 text-yellow-700 border-yellow-100",
   },
   reduced_commission: {
     icon: Percent,
-    label: v => `${v}% commission reduction`,
+    labelKey: "benefit_reduced_commission",
     color: "bg-purple-50 text-purple-700 border-purple-100",
   },
   priority_support: {
     icon: Shield,
-    label: () => "Priority support access",
+    labelKey: "benefit_priority_support",
     color: "bg-red-50 text-red-700 border-red-100",
   },
   free_cancellations: {
     icon: CheckCircle,
-    label: v => `${v} free cancellation(s) per month`,
+    labelKey: "benefit_free_cancellations",
     color: "bg-orange-50 text-orange-700 border-orange-100",
   },
 };
 
 function BenefitPill({ benefit }: { benefit: PackageBenefit }) {
+  const { t } = useTranslation();
   const meta = BENEFIT_DISPLAY[benefit.benefitKey];
   if (!meta) return null;
   const Icon = meta.icon;
   return (
     <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border ${meta.color}`}>
       <Icon className="h-3 w-3 shrink-0" />
-      {meta.label(benefit.benefitValue)}
+      {t(`packages_page.${meta.labelKey}`, { value: benefit.benefitValue })}
     </span>
   );
 }
 
 function StatusBadge({ status }: { status: string }) {
+  const { t } = useTranslation();
   const map: Record<string, string> = {
     active:    "bg-green-50 text-green-700 border-green-200",
     pending:   "bg-yellow-50 text-yellow-700 border-yellow-200",
@@ -111,7 +113,7 @@ function StatusBadge({ status }: { status: string }) {
   };
   return (
     <span className={`inline-flex items-center px-2 py-0.5 rounded border text-xs font-medium capitalize ${map[status] ?? ""}`}>
-      {status}
+      {t(`packages_page.status_${status}`, status)}
     </span>
   );
 }
@@ -169,7 +171,7 @@ function PackageCard({
             ? <span className="flex items-center gap-1 text-xs text-muted-foreground"><MapPin className="h-3 w-3" />{pkg.countryCode}</span>
             : <span className="flex items-center gap-1 text-xs text-muted-foreground"><Globe className="h-3 w-3" />{t("patient_sweep.packages_global", "Global")}</span>
           }
-          <span className="flex items-center gap-1 text-xs text-muted-foreground"><Clock className="h-3 w-3" />{pkg.durationDays} days</span>
+          <span className="flex items-center gap-1 text-xs text-muted-foreground"><Clock className="h-3 w-3" />{t("packages_page.days", "{{count}} days", { count: pkg.durationDays })}</span>
         </div>
       </CardHeader>
       <CardContent className="flex-1 flex flex-col gap-4">
@@ -208,13 +210,15 @@ function PackageCard({
                     data-testid={`button-buy-wallet-${pkg.id}`}
                   >
                     <Wallet className="h-4 w-4 mr-1.5" />
-                    {insufficientFunds ? "Insufficient funds" : "Pay from Wallet"}
+                    {insufficientFunds
+                      ? t("packages_page.insufficient_funds", "Insufficient funds")
+                      : t("packages_page.pay_from_wallet", "Pay from Wallet")}
                   </Button>
                   {hasKnownBalance && (
                     <p className={`text-[11px] text-center ${insufficientFunds ? "text-amber-600 dark:text-amber-400" : "text-muted-foreground"}`}
                       data-testid={`text-wallet-balance-${pkg.id}`}
                     >
-                      {insufficientFunds ? "Balance: " : "Wallet: "}
+                      {insufficientFunds ? t("packages_page.balance_label", "Balance: ") : t("packages_page.wallet_label", "Wallet: ")}
                       <span className="font-semibold">{fmtMoney(walletBalanceUSD!)}</span>
                     </p>
                   )}
@@ -225,7 +229,7 @@ function PackageCard({
           {owned && (
             <Button variant="outline" className="w-full" disabled>
               <CheckCircle className="h-4 w-4 mr-1.5 text-green-500" />
-              You have this package
+              {t("packages_page.already_owned", "You have this package")}
             </Button>
           )}
         </div>
@@ -237,6 +241,7 @@ function PackageCard({
 // ── My package card ────────────────────────────────────────────────────────────
 
 function MyPackageCard({ up }: { up: UserPkgDetail }) {
+  const { t } = useTranslation();
   const days = daysLeft(up.expiresAt);
   const isExpiringSoon = days !== null && days <= 7 && up.status === "active";
 
@@ -254,15 +259,15 @@ function MyPackageCard({ up }: { up: UserPkgDetail }) {
           {up.package.benefits.map((b, i) => <BenefitPill key={i} benefit={b} />)}
         </div>
         <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground border-t pt-2">
-          <span className="flex items-center gap-1"><ShoppingBag className="h-3 w-3" /> Purchased: {fmtDate(up.purchasedAt)}</span>
-          <span className="flex items-center gap-1"><Zap className="h-3 w-3" /> Activated: {fmtDate(up.activatedAt)}</span>
+          <span className="flex items-center gap-1"><ShoppingBag className="h-3 w-3" /> {t("packages_page.purchased", "Purchased: {{date}}", { date: fmtDate(up.purchasedAt) })}</span>
+          <span className="flex items-center gap-1"><Zap className="h-3 w-3" /> {t("packages_page.activated", "Activated: {{date}}", { date: fmtDate(up.activatedAt) })}</span>
           <span className={`flex items-center gap-1 col-span-2 ${isExpiringSoon ? "text-orange-600 font-medium" : ""}`}>
             <CalendarClock className="h-3 w-3" />
             {up.expiresAt
               ? days === 0
-                ? "Expires today"
-                : `Expires: ${fmtDate(up.expiresAt)} (${days} day${days !== 1 ? "s" : ""} left)`
-              : "No expiry"}
+                ? t("packages_page.expires_today", "Expires today")
+                : t("packages_page.expires_in", "Expires: {{date}} ({{count}} days left)", { date: fmtDate(up.expiresAt), count: days ?? 0 })
+              : t("packages_page.no_expiry", "No expiry")}
           </span>
         </div>
       </CardContent>
@@ -393,7 +398,7 @@ export default function PackagesPage() {
               data-testid="link-wallet-balance-chip"
             >
               <Wallet className="h-3.5 w-3.5" />
-              Wallet: <span className="font-bold">{fmtMoney(walletBalanceUSD)}</span>
+              {t("packages_page.wallet_label", "Wallet: ")}<span className="font-bold">{fmtMoney(walletBalanceUSD)}</span>
             </a>
           )}
         </div>
@@ -502,7 +507,7 @@ export default function PackagesPage() {
                   <div className="rounded-lg border bg-muted/40 px-4 py-3 flex items-center justify-between text-sm">
                     <span className="flex items-center gap-1.5 text-muted-foreground">
                       <Wallet className="h-4 w-4" />
-                      Your wallet balance
+                      {t("packages_page.wallet_balance_label", "Your wallet balance")}
                     </span>
                     <span className="font-bold text-base" data-testid="text-confirm-wallet-balance">
                       {fmtMoney(walletBalanceUSD)}

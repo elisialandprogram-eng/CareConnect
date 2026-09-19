@@ -81,6 +81,7 @@ import { usePageTitle } from "@/hooks/use-page-title";
 import { QK } from "@/lib/query-keys";
 import { SavedAddressesPicker } from "@/components/location/SavedAddressesPicker";
 import { PatientReportingCenter } from "@/components/patient/PatientReportingCenter";
+import { getLocalizedNotification } from "@/pages/notifications";
 
 const PrescriptionList = ({ patientId }: { patientId?: string }) => {
   const { t } = useTranslation();
@@ -695,7 +696,7 @@ export default function PatientDashboard() {
               { label: t("dashboard.all_history","All History"), value: "past", icon: <Clock className="h-4 w-4" />, badge: pastAppointments.length },
             ]},
             { group: t("dashboard.my_health_group", "MY HEALTH"), items: [
-              { label: t("dashboard.medical","Medical Records"), value: "medical", icon: <FileText className="h-4 w-4" />, badge: 0 },
+              { label: t("dashboard.medical_records", "Medical Records"), value: "medical", icon: <FileText className="h-4 w-4" />, badge: 0 },
               { label: t("dashboard.health_metrics","Health Metrics"), value: "health-metrics", icon: <Activity className="h-4 w-4" />, badge: healthMetricsCount },
               { label: t("dashboard.family","Family Members"), value: "family", icon: <Users className="h-4 w-4" />, badge: familyMemberCount },
               { label: t("dashboard.medications","Medications"), value: "medications", icon: <Pill className="h-4 w-4" />, badge: medicationsData?.length ?? 0 },
@@ -1666,7 +1667,9 @@ export default function PatientDashboard() {
                         <div>
                           <p className="font-medium">{lastCompletedAppt.provider?.user?.firstName} {lastCompletedAppt.provider?.user?.lastName}</p>
                           <p className="text-sm text-muted-foreground">{lastCompletedAppt.provider?.specialization}</p>
-                          <p className="text-xs text-muted-foreground mt-0.5">Last seen: {formatDate(lastCompletedAppt.date)}</p>
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            {t("dashboard.last_seen", "Last seen: {{date}}", { date: formatDate(lastCompletedAppt.date) })}
+                          </p>
                         </div>
                       </div>
                       <div className="flex gap-2 shrink-0">
@@ -2040,20 +2043,29 @@ export default function PatientDashboard() {
                 </Card>
               ) : (
                 <div className="space-y-2">
-                  {notificationsData.slice(0, 8).map((notif: any) => (
-                    <div
-                      key={notif.id}
-                      className={`flex items-start gap-3 rounded-xl border p-4 transition-colors ${!notif.isRead ? "border-primary/30 bg-primary/5" : "border-border"}`}
-                      data-testid={`notif-${notif.id}`}
-                    >
-                      <div className={`h-2 w-2 rounded-full mt-1.5 shrink-0 ${!notif.isRead ? "bg-primary" : "bg-muted"}`} />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium">{notif.title ?? notif.type}</p>
-                        {notif.body && <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{notif.body}</p>}
-                        {notif.createdAt && <p className="text-xs text-muted-foreground/60 mt-1">{formatDateTimeTz(notif.createdAt)}</p>}
+                  {notificationsData.slice(0, 8).map((notif: any) => {
+                    const localized = getLocalizedNotification(notif, (key, fallback, options) =>
+                      String(t(key, { defaultValue: fallback, ...(options ?? {}) })),
+                    );
+                    return (
+                      <div
+                        key={notif.id}
+                        className={`flex items-start gap-3 rounded-xl border p-4 transition-colors ${!notif.isRead ? "border-primary/30 bg-primary/5" : "border-border"}`}
+                        data-testid={`notif-${notif.id}`}
+                      >
+                        <div className={`h-2 w-2 rounded-full mt-1.5 shrink-0 ${!notif.isRead ? "bg-primary" : "bg-muted"}`} />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium">{localized.title || notif.type}</p>
+                          {(localized.message || notif.body || notif.message) && (
+                            <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
+                              {localized.message || notif.body || notif.message}
+                            </p>
+                          )}
+                          {notif.createdAt && <p className="text-xs text-muted-foreground/60 mt-1">{formatDateTimeTz(notif.createdAt)}</p>}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                   {notificationsData.length > 8 && (
                     <div className="text-center pt-2">
                       <Button variant="outline" size="sm" asChild><Link href="/notifications">{t("dashboard.view_all_notifications", { defaultValue: "View all {{count}} notifications", count: notificationsData.length })}</Link></Button>

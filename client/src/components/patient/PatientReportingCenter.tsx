@@ -1,6 +1,7 @@
 import { formatDate } from "@/lib/datetime";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "@/lib/auth";
 import { useCurrency } from "@/lib/currency";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -74,35 +75,37 @@ function LoadingSkeleton() {
 }
 
 function EmptyState() {
+  const { t } = useTranslation();
   return (
     <div className="text-center py-16 text-muted-foreground">
       <Activity className="h-10 w-10 mx-auto mb-3 opacity-30" />
-      <p className="text-sm">No activity data yet. Book your first appointment to get started.</p>
+      <p className="text-sm">{t("patient_reporting.no_activity_data", "No activity data yet. Book your first appointment to get started.")}</p>
     </div>
   );
 }
 
 function OverviewTab({ data, formatPrice }: { data: PatientAnalytics; formatPrice: (v: number) => string }) {
+  const { t } = useTranslation();
   const { stats, monthlySpend, topProviders } = data;
   const completionRate = stats.total > 0 ? Math.round((stats.completed / stats.total) * 100) : 0;
 
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <KpiCard icon={DollarSign} label="Total Spent" value={formatPrice(stats.totalSpend)} sub={`${formatPrice(stats.spendThisMonth)} this month`} color="text-green-600" />
-        <KpiCard icon={Calendar} label="Completed" value={String(stats.completed)} sub={`${completionRate}% completion rate`} color="text-blue-600" />
-        <KpiCard icon={Activity} label="Upcoming" value={String(stats.upcoming)} sub="scheduled appointments" color="text-purple-600" />
-        <KpiCard icon={TrendingUp} label="Last 30 Days" value={formatPrice(stats.spend30d)} sub={`${stats.cancelled} cancelled total`} color="text-orange-600" />
+        <KpiCard icon={DollarSign} label={t("patient_reporting.total_spent", "Total Spent")} value={formatPrice(stats.totalSpend)} sub={`${formatPrice(stats.spendThisMonth)} ${t("patient_reporting.this_month", "this month")}`} color="text-green-600" />
+        <KpiCard icon={Calendar} label={t("patient_reporting.completed", "Completed")} value={String(stats.completed)} sub={`${completionRate}% ${t("patient_reporting.completion_rate", "completion rate")}`} color="text-blue-600" />
+        <KpiCard icon={Activity} label={t("patient_reporting.upcoming", "Upcoming")} value={String(stats.upcoming)} sub={t("patient_reporting.scheduled_appointments", "scheduled appointments")} color="text-purple-600" />
+        <KpiCard icon={TrendingUp} label={t("patient_reporting.last_30_days", "Last 30 Days")} value={formatPrice(stats.spend30d)} sub={`${stats.cancelled} ${t("patient_reporting.cancelled_total", "cancelled total")}`} color="text-orange-600" />
       </div>
 
       <div className="grid md:grid-cols-2 gap-4">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-semibold">Monthly Spending (12 months)</CardTitle>
+            <CardTitle className="text-sm font-semibold">{t("patient_reporting.monthly_spending", "Monthly Spending (12 months)")}</CardTitle>
           </CardHeader>
           <CardContent>
             {monthlySpend.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-6">No spending data yet.</p>
+              <p className="text-sm text-muted-foreground text-center py-6">{t("patient_reporting.no_spending_data", "No spending data yet.")}</p>
             ) : (
               <>
                 <ResponsiveContainer width="100%" height={140}>
@@ -110,13 +113,13 @@ function OverviewTab({ data, formatPrice }: { data: PatientAnalytics; formatPric
                     <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.3} />
                     <XAxis dataKey="month" tick={{ fontSize: 9 }} />
                     <YAxis tick={{ fontSize: 9 }} tickFormatter={v => formatPrice(v)} width={55} />
-                    <Tooltip formatter={(v: number) => [formatPrice(v), "Spend"]} />
+                    <Tooltip formatter={(v: number) => [formatPrice(v), t("patient_reporting.spend", "Spend")]} />
                     <Bar dataKey="spend" fill="hsl(var(--primary) / 0.7)" radius={[4, 4, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
                 <div className="flex gap-4 mt-2 text-xs text-muted-foreground">
-                  <span>Avg: {formatPrice(monthlySpend.reduce((s, m) => s + m.spend, 0) / monthlySpend.length)}</span>
-                  <span>Peak: {formatPrice(Math.max(...monthlySpend.map(m => m.spend)))}</span>
+                  <span>{t("patient_reporting.avg", "Avg")}: {formatPrice(monthlySpend.reduce((s, m) => s + m.spend, 0) / monthlySpend.length)}</span>
+                  <span>{t("patient_reporting.peak", "Peak")}: {formatPrice(Math.max(...monthlySpend.map(m => m.spend)))}</span>
                 </div>
               </>
             )}
@@ -126,12 +129,12 @@ function OverviewTab({ data, formatPrice }: { data: PatientAnalytics; formatPric
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-semibold flex items-center gap-1.5">
-              <Star className="h-4 w-4 text-yellow-500" /> My Providers
+              <Star className="h-4 w-4 text-yellow-500" /> {t("patient_reporting.my_providers", "My Providers")}
             </CardTitle>
           </CardHeader>
           <CardContent>
             {topProviders.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-6">Complete an appointment to see your providers.</p>
+              <p className="text-sm text-muted-foreground text-center py-6">{t("patient_reporting.complete_appointment", "Complete an appointment to see your providers.")}</p>
             ) : (
               <div className="space-y-2.5">
                 {topProviders.slice(0, 5).map((p, i) => (
@@ -144,7 +147,7 @@ function OverviewTab({ data, formatPrice }: { data: PatientAnalytics; formatPric
                       </div>
                     </div>
                     <div className="text-right shrink-0">
-                      <p className="text-xs font-semibold">{p.visitCount} visit{p.visitCount !== 1 ? "s" : ""}</p>
+                       <p className="text-xs font-semibold">{t("patient_reporting.visits", "{{count}} visits", { count: p.visitCount })}</p>
                     </div>
                   </div>
                 ))}
@@ -158,17 +161,18 @@ function OverviewTab({ data, formatPrice }: { data: PatientAnalytics; formatPric
 }
 
 function HealthActivityTab({ data, formatPrice }: { data: PatientAnalytics; formatPrice: (v: number) => string }) {
+  const { t } = useTranslation();
   const { monthlySpend, topProviders } = data;
 
   return (
     <div className="space-y-6">
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-semibold">Monthly Health Activity (12 months)</CardTitle>
+          <CardTitle className="text-sm font-semibold">{t("patient_reporting.monthly_health_activity", "Monthly Health Activity (12 months)")}</CardTitle>
         </CardHeader>
         <CardContent>
           {monthlySpend.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-6">No activity yet.</p>
+            <p className="text-sm text-muted-foreground text-center py-6">{t("patient_reporting.no_activity", "No activity yet.")}</p>
           ) : (
             <ResponsiveContainer width="100%" height={200}>
               <BarChart data={monthlySpend}>
@@ -176,8 +180,8 @@ function HealthActivityTab({ data, formatPrice }: { data: PatientAnalytics; form
                 <XAxis dataKey="month" tick={{ fontSize: 10 }} />
                 <YAxis tick={{ fontSize: 10 }} />
                 <Tooltip />
-                <Bar dataKey="completed" name="Completed" fill="#10b981" radius={[4, 4, 0, 0]} stackId="a" />
-                <Bar dataKey="cancelled" name="Cancelled" fill="#f43f5e" radius={[4, 4, 0, 0]} stackId="a" />
+                <Bar dataKey="completed" name={t("patient_reporting.completed", "Completed")} fill="#10b981" radius={[4, 4, 0, 0]} stackId="a" />
+                <Bar dataKey="cancelled" name={t("patient_reporting.cancelled", "Cancelled")} fill="#f43f5e" radius={[4, 4, 0, 0]} stackId="a" />
               </BarChart>
             </ResponsiveContainer>
           )}
@@ -187,7 +191,7 @@ function HealthActivityTab({ data, formatPrice }: { data: PatientAnalytics; form
       {topProviders.length > 0 && (
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-semibold">Provider Activity</CardTitle>
+            <CardTitle className="text-sm font-semibold">{t("patient_reporting.provider_activity", "Provider Activity")}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
@@ -201,8 +205,8 @@ function HealthActivityTab({ data, formatPrice }: { data: PatientAnalytics; form
                     </div>
                   </div>
                   <div className="text-right shrink-0">
-                    <p className="text-xs font-semibold">{p.visitCount} visits</p>
-                    <p className="text-xs text-muted-foreground">Last: {formatDate(p.lastVisit)}</p>
+                    <p className="text-xs font-semibold">{t("patient_reporting.visits", "{{count}} visits", { count: p.visitCount })}</p>
+                    <p className="text-xs text-muted-foreground">{t("patient_reporting.last", "Last")}: {formatDate(p.lastVisit)}</p>
                   </div>
                 </div>
               ))}
@@ -215,6 +219,7 @@ function HealthActivityTab({ data, formatPrice }: { data: PatientAnalytics; form
 }
 
 function AppointmentsTab({ data }: { data: PatientAnalytics }) {
+  const { t } = useTranslation();
   const { stats, monthlySpend } = data;
   const completionRate = stats.total > 0 ? Math.round((stats.completed / stats.total) * 100) : 0;
   const cancelRate = stats.total > 0 ? Math.round((stats.cancelled / stats.total) * 100) : 0;
@@ -222,16 +227,16 @@ function AppointmentsTab({ data }: { data: PatientAnalytics }) {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <KpiCard icon={Calendar} label="Total" value={String(stats.total)} color="text-blue-600" />
-        <KpiCard icon={Activity} label="Completed" value={String(stats.completed)} sub={`${completionRate}% rate`} color="text-emerald-600" />
-        <KpiCard icon={Clock} label="Upcoming" value={String(stats.upcoming)} color="text-purple-600" />
-        <KpiCard icon={TrendingUp} label="Cancelled" value={String(stats.cancelled)} sub={`${cancelRate}% cancel rate`} color="text-rose-600" />
+        <KpiCard icon={Calendar} label={t("patient_reporting.total", "Total")} value={String(stats.total)} color="text-blue-600" />
+        <KpiCard icon={Activity} label={t("patient_reporting.completed", "Completed")} value={String(stats.completed)} sub={`${completionRate}% ${t("patient_reporting.rate", "rate")}`} color="text-emerald-600" />
+        <KpiCard icon={Clock} label={t("patient_reporting.upcoming", "Upcoming")} value={String(stats.upcoming)} color="text-purple-600" />
+        <KpiCard icon={TrendingUp} label={t("patient_reporting.cancelled", "Cancelled")} value={String(stats.cancelled)} sub={`${cancelRate}% ${t("patient_reporting.cancel_rate", "cancel rate")}`} color="text-rose-600" />
       </div>
 
       {monthlySpend.length > 0 && (
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-semibold">Booking Trends (12 months)</CardTitle>
+            <CardTitle className="text-sm font-semibold">{t("patient_reporting.booking_trends", "Booking Trends (12 months)")}</CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={200}>
@@ -258,6 +263,7 @@ function AppointmentsTab({ data }: { data: PatientAnalytics }) {
 }
 
 function SpendingTab({ data, formatPrice }: { data: PatientAnalytics; formatPrice: (v: number) => string }) {
+  const { t } = useTranslation();
   const { stats, monthlySpend } = data;
   const yearlySpend = monthlySpend.reduce((s, m) => s + m.spend, 0);
   const avgMonthly = monthlySpend.length ? yearlySpend / monthlySpend.length : 0;
@@ -266,18 +272,18 @@ function SpendingTab({ data, formatPrice }: { data: PatientAnalytics; formatPric
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <KpiCard icon={DollarSign} label="Lifetime Spend" value={formatPrice(stats.totalSpend)} color="text-green-600" />
-        <KpiCard icon={TrendingUp} label="This Year (12mo)" value={formatPrice(yearlySpend)} color="text-blue-600" />
-        <KpiCard icon={Activity} label="Avg / Month" value={formatPrice(avgMonthly)} color="text-purple-600" />
-        <KpiCard icon={Clock} label="Last 30 Days" value={formatPrice(stats.spend30d)} color="text-orange-600" />
+        <KpiCard icon={DollarSign} label={t("patient_reporting.lifetime_spend", "Lifetime Spend")} value={formatPrice(stats.totalSpend)} color="text-green-600" />
+        <KpiCard icon={TrendingUp} label={t("patient_reporting.this_year", "This Year (12mo)")} value={formatPrice(yearlySpend)} color="text-blue-600" />
+        <KpiCard icon={Activity} label={t("patient_reporting.avg_month", "Avg / Month")} value={formatPrice(avgMonthly)} color="text-purple-600" />
+        <KpiCard icon={Clock} label={t("patient_reporting.last_30_days", "Last 30 Days")} value={formatPrice(stats.spend30d)} color="text-orange-600" />
       </div>
 
       {monthlySpend.length > 0 && (
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-semibold flex items-center justify-between">
-              <span>Monthly Spending</span>
-              <span className="text-xs font-normal text-muted-foreground">Peak: {peak.month} ({formatPrice(peak.spend)})</span>
+              <span>{t("patient_reporting.monthly_spending_short", "Monthly Spending")}</span>
+              <span className="text-xs font-normal text-muted-foreground">{t("patient_reporting.peak", "Peak")}: {peak.month} ({formatPrice(peak.spend)})</span>
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -286,7 +292,7 @@ function SpendingTab({ data, formatPrice }: { data: PatientAnalytics; formatPric
                 <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.3} />
                 <XAxis dataKey="month" tick={{ fontSize: 10 }} />
                 <YAxis tick={{ fontSize: 10 }} tickFormatter={v => formatPrice(v)} width={60} />
-                <Tooltip formatter={(v: number) => [formatPrice(v), "Spend"]} />
+                <Tooltip formatter={(v: number) => [formatPrice(v), t("patient_reporting.spend", "Spend")]} />
                 <Bar dataKey="spend" fill="hsl(var(--primary) / 0.7)" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
@@ -298,21 +304,22 @@ function SpendingTab({ data, formatPrice }: { data: PatientAnalytics; formatPric
 }
 
 function MembershipsTab({ data, formatPrice }: { data: PatientAnalytics; formatPrice: (v: number) => string }) {
+  const { t } = useTranslation();
   const memberships = data.packages.filter(p => p.totalSessions == null);
 
   return (
     <div className="space-y-4">
       <div>
-        <h3 className="text-sm font-semibold">Memberships & Unlimited Packages</h3>
-        <p className="text-xs text-muted-foreground mt-0.5">Subscription-style plans without a fixed session count.</p>
+        <h3 className="text-sm font-semibold">{t("patient_reporting.memberships_title", "Memberships & Unlimited Packages")}</h3>
+        <p className="text-xs text-muted-foreground mt-0.5">{t("patient_reporting.memberships_desc", "Subscription-style plans without a fixed session count.")}</p>
       </div>
 
       {memberships.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center text-muted-foreground">
             <Crown className="h-10 w-10 mx-auto mb-3 opacity-30" />
-            <p className="text-sm">No memberships yet.</p>
-            <p className="text-xs mt-1">Explore available memberships to get discounts and benefits.</p>
+            <p className="text-sm">{t("patient_reporting.no_memberships", "No memberships yet.")}</p>
+            <p className="text-xs mt-1">{t("patient_reporting.explore_memberships", "Explore available memberships to get discounts and benefits.")}</p>
           </CardContent>
         </Card>
       ) : (
@@ -323,12 +330,12 @@ function MembershipsTab({ data, formatPrice }: { data: PatientAnalytics; formatP
                 <div className="min-w-0">
                   <p className="font-medium text-sm">{m.name}</p>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    Purchased {formatDate(m.purchasedAt)}
-                    {m.expiresAt && ` · Expires ${formatDate(m.expiresAt)}`}
+                    {t("patient_reporting.purchased", "Purchased {{date}}", { date: formatDate(m.purchasedAt) })}
+                    {m.expiresAt && ` · ${t("patient_reporting.expires", "Expires {{date}}", { date: formatDate(m.expiresAt) })}`}
                   </p>
                 </div>
                 <Badge className={`text-xs capitalize shrink-0 ${PACKAGE_STATUS_COLOR[m.status] ?? "bg-muted text-muted-foreground"}`}>
-                  {m.status}
+                   {t(`patient_reporting.status_${m.status}`, m.status)}
                 </Badge>
               </CardContent>
             </Card>
@@ -349,20 +356,21 @@ function Crown({ className }: { className?: string }) {
 }
 
 function PackagesTab({ data, formatPrice }: { data: PatientAnalytics; formatPrice: (v: number) => string }) {
+  const { t } = useTranslation();
   const packages = data.packages.filter(p => p.totalSessions != null);
 
   return (
     <div className="space-y-4">
       <div>
-        <h3 className="text-sm font-semibold">Session Packages</h3>
-        <p className="text-xs text-muted-foreground mt-0.5">Fixed-session packages with usage tracking.</p>
+        <h3 className="text-sm font-semibold">{t("patient_reporting.session_packages_title", "Session Packages")}</h3>
+        <p className="text-xs text-muted-foreground mt-0.5">{t("patient_reporting.session_packages_desc", "Fixed-session packages with usage tracking.")}</p>
       </div>
 
       {packages.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center text-muted-foreground">
             <Package className="h-10 w-10 mx-auto mb-3 opacity-30" />
-            <p className="text-sm">No session packages yet.</p>
+            <p className="text-sm">{t("patient_reporting.no_session_packages", "No session packages yet.")}</p>
           </CardContent>
         </Card>
       ) : (
@@ -375,14 +383,14 @@ function PackagesTab({ data, formatPrice }: { data: PatientAnalytics; formatPric
                   <div className="flex items-center justify-between gap-2">
                     <p className="font-medium text-sm">{pkg.name}</p>
                     <Badge className={`text-xs capitalize ${PACKAGE_STATUS_COLOR[pkg.status] ?? "bg-muted text-muted-foreground"}`}>
-                      {pkg.status}
+                       {t(`patient_reporting.status_${pkg.status}`, pkg.status)}
                     </Badge>
                   </div>
                   {pkg.totalSessions && (
                     <>
                       <div className="flex justify-between text-xs text-muted-foreground">
-                        <span>{pkg.usedSessions} / {pkg.totalSessions} sessions used</span>
-                        <span>{pct.toFixed(0)}% complete</span>
+                         <span>{t("patient_reporting.sessions_used", "{{used}} / {{total}} sessions used", { used: pkg.usedSessions, total: pkg.totalSessions })}</span>
+                         <span>{t("patient_reporting.complete", "{{percent}}% complete", { percent: pct.toFixed(0) })}</span>
                       </div>
                       <div className="w-full bg-muted rounded-full h-1.5">
                         <div className="h-1.5 bg-primary rounded-full" style={{ width: `${Math.min(pct, 100)}%` }} />
@@ -390,8 +398,8 @@ function PackagesTab({ data, formatPrice }: { data: PatientAnalytics; formatPric
                     </>
                   )}
                   <p className="text-xs text-muted-foreground">
-                    Purchased {formatDate(pkg.purchasedAt)}
-                    {pkg.expiresAt && ` · Expires ${formatDate(pkg.expiresAt)}`}
+                     {t("patient_reporting.purchased", "Purchased {{date}}", { date: formatDate(pkg.purchasedAt) })}
+                     {pkg.expiresAt && ` · ${t("patient_reporting.expires", "Expires {{date}}", { date: formatDate(pkg.expiresAt) })}`}
                   </p>
                 </CardContent>
               </Card>
@@ -404,6 +412,7 @@ function PackagesTab({ data, formatPrice }: { data: PatientAnalytics; formatPric
 }
 
 function DocumentsTab() {
+  const { t } = useTranslation();
   const { data: prescriptions, isLoading: presLoading } = useQuery<any[]>({
     queryKey: ["/api/patient/prescriptions"],
   });
@@ -411,28 +420,28 @@ function DocumentsTab() {
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-sm font-semibold">My Documents</h3>
-        <p className="text-xs text-muted-foreground mt-0.5">Prescriptions, reports, and invoices from your care team.</p>
+        <h3 className="text-sm font-semibold">{t("patient_reporting.my_documents", "My Documents")}</h3>
+        <p className="text-xs text-muted-foreground mt-0.5">{t("patient_reporting.documents_desc", "Prescriptions, reports, and invoices from your care team.")}</p>
       </div>
 
       <div className="space-y-4">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <FileText className="h-4 w-4" /> Prescriptions
+              <FileText className="h-4 w-4" /> {t("patient_reporting.prescriptions", "Prescriptions")}
             </CardTitle>
           </CardHeader>
           <CardContent>
             {presLoading ? (
               <Skeleton className="h-16" />
             ) : (prescriptions ?? []).length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-4">No prescriptions yet.</p>
+              <p className="text-sm text-muted-foreground text-center py-4">{t("patient_reporting.no_prescriptions", "No prescriptions yet.")}</p>
             ) : (
               <div className="space-y-2">
                 {(prescriptions ?? []).slice(0, 10).map((p: any, i: number) => (
                   <div key={i} className="flex items-center justify-between gap-2 py-1.5 border-b last:border-0">
                     <div className="min-w-0">
-                      <p className="text-sm font-medium">{p.medication ?? "Prescription"}</p>
+                       <p className="text-sm font-medium">{p.medication ?? t("patient_reporting.prescription", "Prescription")}</p>
                       <p className="text-xs text-muted-foreground">{p.createdAt ? formatDate(p.createdAt) : ""}</p>
                     </div>
                     <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
@@ -446,14 +455,14 @@ function DocumentsTab() {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <Download className="h-4 w-4" /> Invoices
+              <Download className="h-4 w-4" /> {t("patient_reporting.invoices", "Invoices")}
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-muted-foreground">Download invoices from your appointment history in the main dashboard.</p>
+            <p className="text-sm text-muted-foreground">{t("patient_reporting.invoices_desc", "Download invoices from your appointment history in the main dashboard.")}</p>
             <Button variant="outline" size="sm" className="mt-3 gap-1.5" asChild>
               <a href="/patient-dashboard">
-                Go to My Appointments <ChevronRight className="h-3.5 w-3.5" />
+                {t("patient_reporting.go_appointments", "Go to My Appointments")} <ChevronRight className="h-3.5 w-3.5" />
               </a>
             </Button>
           </CardContent>
@@ -464,6 +473,7 @@ function DocumentsTab() {
 }
 
 function TimelineTab({ data, formatPrice }: { data: PatientAnalytics; formatPrice: (v: number) => string }) {
+  const { t } = useTranslation();
   const { monthlySpend, topProviders } = data;
   const eventsFromMonthly = [...monthlySpend].reverse().map(m => ({
     type: "monthly" as const,
@@ -476,15 +486,15 @@ function TimelineTab({ data, formatPrice }: { data: PatientAnalytics; formatPric
   return (
     <div className="space-y-4">
       <div>
-        <h3 className="text-sm font-semibold">Health Timeline</h3>
-        <p className="text-xs text-muted-foreground mt-0.5">Your healthcare journey, month by month.</p>
+        <h3 className="text-sm font-semibold">{t("patient_reporting.health_timeline", "Health Timeline")}</h3>
+        <p className="text-xs text-muted-foreground mt-0.5">{t("patient_reporting.timeline_desc", "Your healthcare journey, month by month.")}</p>
       </div>
 
       {eventsFromMonthly.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center text-muted-foreground">
             <Heart className="h-10 w-10 mx-auto mb-3 opacity-30" />
-            <p className="text-sm">No activity recorded yet.</p>
+            <p className="text-sm">{t("patient_reporting.no_activity_recorded", "No activity recorded yet.")}</p>
           </CardContent>
         </Card>
       ) : (
@@ -499,12 +509,12 @@ function TimelineTab({ data, formatPrice }: { data: PatientAnalytics; formatPric
                   <div className="flex gap-3 text-xs text-muted-foreground">
                     {e.completed > 0 && (
                       <span className="flex items-center gap-1 text-emerald-600">
-                        <Activity className="h-3 w-3" />{e.completed} completed
+                         <Activity className="h-3 w-3" />{t("patient_reporting.completed_count", "{{count}} completed", { count: e.completed })}
                       </span>
                     )}
                     {e.cancelled > 0 && (
                       <span className="flex items-center gap-1 text-rose-500">
-                        <Clock className="h-3 w-3" />{e.cancelled} cancelled
+                         <Clock className="h-3 w-3" />{t("patient_reporting.cancelled_count", "{{count}} cancelled", { count: e.cancelled })}
                       </span>
                     )}
                   </div>
@@ -522,7 +532,7 @@ function TimelineTab({ data, formatPrice }: { data: PatientAnalytics; formatPric
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <Users className="h-4 w-4" /> Providers Visited
+              <Users className="h-4 w-4" /> {t("patient_reporting.providers_visited", "Providers Visited")}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -536,7 +546,7 @@ function TimelineTab({ data, formatPrice }: { data: PatientAnalytics; formatPric
                       <p className="text-xs text-muted-foreground capitalize">{p.type?.replace(/_/g, " ")}</p>
                     </div>
                   </div>
-                  <span className="text-xs text-muted-foreground shrink-0">{p.visitCount} visits</span>
+                   <span className="text-xs text-muted-foreground shrink-0">{t("patient_reporting.visits", "{{count}} visits", { count: p.visitCount })}</span>
                 </div>
               ))}
             </div>
@@ -548,19 +558,20 @@ function TimelineTab({ data, formatPrice }: { data: PatientAnalytics; formatPric
 }
 
 const SECTIONS = [
-  { value: "overview",    label: "Overview",       icon: Activity   },
-  { value: "activity",    label: "Health Activity", icon: Heart      },
-  { value: "appointments", label: "Appointments",  icon: Calendar   },
-  { value: "spending",    label: "Spending",        icon: DollarSign },
-  { value: "memberships", label: "Memberships",     icon: Star       },
-  { value: "packages",    label: "Packages",        icon: Package    },
-  { value: "documents",   label: "Documents",       icon: FileText   },
-  { value: "timeline",    label: "Timeline",        icon: Clock      },
+  { value: "overview",    labelKey: "overview",       icon: Activity   },
+  { value: "activity",    labelKey: "health_activity", icon: Heart      },
+  { value: "appointments", labelKey: "appointments",  icon: Calendar   },
+  { value: "spending",    labelKey: "spending",        icon: DollarSign },
+  { value: "memberships", labelKey: "memberships",     icon: Star       },
+  { value: "packages",    labelKey: "packages",        icon: Package    },
+  { value: "documents",   labelKey: "documents",       icon: FileText   },
+  { value: "timeline",    labelKey: "timeline",        icon: Clock      },
 ] as const;
 
 type Section = (typeof SECTIONS)[number]["value"];
 
 export function PatientReportingCenter() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const { format: formatPrice } = useCurrency();
   const [section, setSection] = useState<Section>("overview");
@@ -585,8 +596,8 @@ export function PatientReportingCenter() {
               data-testid={`tab-patient-reports-${s.value}`}
             >
               <s.icon className="h-3 w-3 shrink-0" />
-              <span className="hidden sm:inline">{s.label}</span>
-              <span className="sm:hidden">{s.label.split(" ")[0]}</span>
+               <span className="hidden sm:inline">{t(`patient_reporting.section_${s.labelKey}`)}</span>
+               <span className="sm:hidden">{t(`patient_reporting.section_${s.labelKey}`).split(" ")[0]}</span>
             </TabsTrigger>
           ))}
         </TabsList>
