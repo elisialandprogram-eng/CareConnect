@@ -34,9 +34,9 @@ import { subscribeToPush, unsubscribeFromPush, getPushCapability } from "@/lib/p
 const LANGUAGE_OPTIONS = ["English", "Hungarian", "Persian", "Arabic", "German", "French", "Spanish", "Turkish", "Russian"];
 
 const SERVICE_MODE_LABELS: Record<string, string> = {
-  clinic_visit: "Clinic / Office Visit",
-  home_visit: "Home Visit",
-  telemedicine: "Telemedicine / Video",
+  clinic_visit: "provider_dashboard.mode_clinic_visit",
+  home_visit: "provider_dashboard.mode_home_visit",
+  telemedicine: "provider_dashboard.mode_telemedicine",
 };
 
 // ── Provider Taxonomy — 3-level hierarchy ─────────────────────────────────
@@ -235,26 +235,26 @@ function ProfileStrength({
     },
   });
 
-  const items: { label: string; done: boolean; section: ProfileSubSection; pts: number }[] = [
-    { label: "First and last name", done: !!(user?.firstName?.trim() && user?.lastName?.trim()), section: "personal", pts: 5 },
-    { label: "Phone number", done: !!((user as any)?.phone?.trim()), section: "personal", pts: 5 },
-    { label: "Profile photo", done: !!(user as any)?.avatarUrl, section: "verification", pts: 5 },
-    { label: "Mobile number", done: !!((user as any)?.mobileNumber?.trim()), section: "verification", pts: 5 },
-    { label: "City / location", done: !!((user as any)?.city?.trim() || provider?.city?.trim()), section: "personal", pts: 5 },
-    { label: "Professional bio (50+ chars)", done: (provider?.bio?.length ?? 0) >= 50, section: "professional", pts: 8 },
-    { label: "Provider Category & Specialization", done: !!provider?.providerCategory?.trim(), section: "professional", pts: 5 },
-    { label: "Language(s) spoken", done: Array.isArray(provider?.languages) && provider.languages.length > 0, section: "professional", pts: 4 },
-    { label: "License number", done: !!provider?.licenseNumber?.trim(), section: "professional", pts: 4 },
-    { label: "Years of experience", done: !!provider?.yearsExperience, section: "professional", pts: 4 },
-    { label: "Service mode selected", done: Array.isArray(provider?.serviceModes) && provider.serviceModes.length > 0, section: "services", pts: 10 },
-    { label: "Practice city / location", done: !!provider?.city?.trim(), section: "workplace", pts: 5 },
-    { label: "Permanent address", done: !!provider?.permanentAddressLine1?.trim(), section: "workplace", pts: 5 },
-    { label: "Medical / Professional Practising Licence", done: docs.some((d: any) => d.documentType === "medical_license" && d.verificationStatus !== "rejected"), section: "verification", pts: 10 },
-    { label: "Primary Medical Degree / Professional Qualification", done: docs.some((d: any) => d.documentType === "degree" && d.verificationStatus !== "rejected"), section: "verification", pts: 8 },
-    { label: "Government-Issued Photo ID", done: docs.some((d: any) => d.documentType === "id_card" && d.verificationStatus !== "rejected"), section: "verification", pts: 5 },
-    { label: "Proof of Residential Address", done: docs.some((d: any) => d.documentType === "address_proof" && d.verificationStatus !== "rejected"), section: "verification", pts: 5 },
-    { label: "Payment methods accepted", done: Array.isArray(provider?.paymentMethods) && provider.paymentMethods.length > 0, section: "settings", pts: 5 },
-    { label: "Emergency contact", done: !!provider?.emergencyContact?.trim(), section: "settings", pts: 5 },
+  const items: { id: string; label: string; done: boolean; section: ProfileSubSection; pts: number }[] = [
+    { id: "first-last-name", label: t("provider_dashboard.strength_first_last_name", "First and last name"), done: !!(user?.firstName?.trim() && user?.lastName?.trim()), section: "personal", pts: 5 },
+    { id: "phone-number", label: t("provider_dashboard.strength_phone_number", "Phone number"), done: !!((user as any)?.phone?.trim()), section: "personal", pts: 5 },
+    { id: "profile-photo", label: t("provider_dashboard.strength_profile_photo", "Profile photo"), done: !!(user as any)?.avatarUrl, section: "verification", pts: 5 },
+    { id: "mobile-number", label: t("provider_dashboard.strength_mobile_number", "Mobile number"), done: !!((user as any)?.mobileNumber?.trim()), section: "verification", pts: 5 },
+    { id: "city-location", label: t("provider_dashboard.strength_city_location", "City / location"), done: !!((user as any)?.city?.trim() || provider?.city?.trim()), section: "personal", pts: 5 },
+    { id: "professional-bio", label: t("provider_dashboard.strength_professional_bio", "Professional bio (50+ chars)"), done: (provider?.bio?.length ?? 0) >= 50, section: "professional", pts: 8 },
+    { id: "category-specialization", label: t("provider_dashboard.strength_category_specialization", "Provider Category & Specialization"), done: !!provider?.providerCategory?.trim(), section: "professional", pts: 5 },
+    { id: "languages-spoken", label: t("provider_dashboard.strength_languages_spoken", "Language(s) spoken"), done: Array.isArray(provider?.languages) && provider.languages.length > 0, section: "professional", pts: 4 },
+    { id: "license-number", label: t("provider_dashboard.strength_license_number", "License number"), done: !!provider?.licenseNumber?.trim(), section: "professional", pts: 4 },
+    { id: "years-experience", label: t("provider_dashboard.strength_years_experience", "Years of experience"), done: !!provider?.yearsExperience, section: "professional", pts: 4 },
+    { id: "service-mode", label: t("provider_dashboard.strength_service_mode", "Service mode selected"), done: Array.isArray(provider?.serviceModes) && provider.serviceModes.length > 0, section: "services", pts: 10 },
+    { id: "practice-city", label: t("provider_dashboard.strength_practice_city", "Practice city / location"), done: !!provider?.city?.trim(), section: "workplace", pts: 5 },
+    { id: "permanent-address", label: t("provider_dashboard.strength_permanent_address", "Permanent address"), done: !!provider?.permanentAddressLine1?.trim(), section: "workplace", pts: 5 },
+    { id: "medical-license", label: t("provider_dashboard.strength_medical_license", "Medical / Professional Practising Licence"), done: docs.some((d: any) => d.documentType === "medical_license" && d.verificationStatus !== "rejected"), section: "verification", pts: 10 },
+    { id: "medical-degree", label: t("provider_dashboard.strength_medical_degree", "Primary Medical Degree / Professional Qualification"), done: docs.some((d: any) => d.documentType === "degree" && d.verificationStatus !== "rejected"), section: "verification", pts: 8 },
+    { id: "government-id", label: t("provider_dashboard.strength_government_id", "Government-Issued Photo ID"), done: docs.some((d: any) => d.documentType === "id_card" && d.verificationStatus !== "rejected"), section: "verification", pts: 5 },
+    { id: "residential-address", label: t("provider_dashboard.strength_residential_address", "Proof of Residential Address"), done: docs.some((d: any) => d.documentType === "address_proof" && d.verificationStatus !== "rejected"), section: "verification", pts: 5 },
+    { id: "payment-methods", label: t("provider_dashboard.strength_payment_methods", "Payment methods accepted"), done: Array.isArray(provider?.paymentMethods) && provider.paymentMethods.length > 0, section: "settings", pts: 5 },
+    { id: "emergency-contact", label: t("provider_dashboard.strength_emergency_contact", "Emergency contact"), done: !!provider?.emergencyContact?.trim(), section: "settings", pts: 5 },
   ];
 
   const totalPts = items.reduce((s, i) => s + i.pts, 0);
@@ -303,8 +303,10 @@ function ProfileStrength({
           </div>
           <div>
             <p className="text-sm font-semibold">{t("provider_dashboard.profile_strength", "Profile Strength")}: <span className={ringColor}>{t(`provider_dashboard.strength_${strengthLabel.toLowerCase().replace(" ", "_")}`, strengthLabel)}</span></p>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              {incomplete.length === 0 ? "All complete!" : `${incomplete.length} item${incomplete.length !== 1 ? "s" : ""} still need${incomplete.length === 1 ? "s" : ""} attention`}
+             <p className="text-xs text-muted-foreground mt-0.5">
+               {incomplete.length === 0
+                 ? t("provider_dashboard.strength_all_complete", "All complete!")
+                 : t(incomplete.length === 1 ? "provider_dashboard.strength_one_attention" : "provider_dashboard.strength_many_attention", { count: incomplete.length })}
             </p>
           </div>
         </div>
@@ -317,7 +319,7 @@ function ProfileStrength({
             {items.map((item) => (
               <div key={item.label}
                 className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${item.done ? "opacity-50" : "bg-background/70 border border-border/50 hover:border-primary/30"}`}
-                data-testid={`strength-item-${item.label.toLowerCase().replace(/\W+/g, "-")}`}>
+                 data-testid={`strength-item-${item.id}`}>
                 <div className={`h-5 w-5 rounded-full flex items-center justify-center shrink-0 ${item.done ? "bg-emerald-500/10" : "bg-muted"}`}>
                   {item.done ? <CheckCircle className="h-3.5 w-3.5 text-emerald-500" /> : <div className="h-2 w-2 rounded-full bg-muted-foreground/40" />}
                 </div>
@@ -327,7 +329,7 @@ function ProfileStrength({
                   <Button size="sm" variant="ghost" className="h-6 px-2 text-xs shrink-0 text-primary hover:text-primary"
                     onClick={(e) => { e.stopPropagation(); onOpenSection(item.section); }}
                     data-testid={`button-strength-fix-${item.section}`}>
-                    Fix →
+                     {t("provider_dashboard.fix", "Fix")} →
                   </Button>
                 )}
               </div>
@@ -376,14 +378,14 @@ function ProfileStrength({
                       </span>
                     </label>
                   </div>
-                  <Button
+                   <Button
                     className="w-full"
                     onClick={() => submitMutation.mutate()}
                     disabled={submitMutation.isPending || !consentComplete}
                     data-testid="button-profile-strength-submit"
                   >
                     {submitMutation.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2 shrink-0" />}
-                    Submit Profile for Review
+                     {t("provider_dashboard.submit_profile_review", "Submit Profile for Review")}
                   </Button>
                   {!consentComplete && (
                     <p className="text-[10px] text-center text-muted-foreground">{t("provider_dashboard.accept_agreements", "Accept both agreements above to enable submission.")}</p>
@@ -496,7 +498,7 @@ function OverviewPanel({
               )}
             </div>
             <Button size="sm" variant="outline" className="shrink-0 gap-1.5 text-xs" onClick={() => onNavigate("personal")} data-testid="button-overview-edit-profile">
-              <Edit className="h-3.5 w-3.5" />Edit
+               <Edit className="h-3.5 w-3.5" />{t("provider_dashboard.edit", "Edit")}
             </Button>
           </div>
         </div>
@@ -504,15 +506,15 @@ function OverviewPanel({
         {/* Verification / visibility pills */}
         <div className="px-6 pb-4 flex flex-wrap gap-2">
           <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border ${provider?.isVerified ? "border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400" : "border-border bg-muted/50 text-muted-foreground"}`}>
-            <Shield className="h-3 w-3" />{provider?.isVerified ? "Verified provider" : "Not yet verified"}
+             <Shield className="h-3 w-3" />{provider?.isVerified ? t("provider_dashboard.verified_provider", "Verified provider") : t("provider_dashboard.not_yet_verified", "Not yet verified")}
           </span>
           <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border ${provider?.isPubliclyVisible !== false && ["approved", "active"].includes(status) ? "border-blue-300 bg-blue-50 text-blue-700 dark:border-blue-700 dark:bg-blue-950/40 dark:text-blue-400" : "border-border bg-muted/50 text-muted-foreground"}`}>
             <Globe className="h-3 w-3" />
-            {provider?.isPubliclyVisible !== false && ["approved", "active"].includes(status) ? "Visible to patients" : "Not publicly visible"}
+             {provider?.isPubliclyVisible !== false && ["approved", "active"].includes(status) ? t("provider_dashboard.visible_to_patients", "Visible to patients") : t("provider_dashboard.not_publicly_visible", "Not publicly visible")}
           </span>
           {provider?.licenseNumber && (
             <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border border-purple-300 bg-purple-50 text-purple-700 dark:border-purple-700 dark:bg-purple-950/40 dark:text-purple-400">
-              <Award className="h-3 w-3" />Licensed
+               <Award className="h-3 w-3" />{t("provider_dashboard.licensed", "Licensed")}
             </span>
           )}
         </div>
@@ -1068,7 +1070,7 @@ export function ProviderProfileTab({
           <div className="space-y-1.5 sm:col-span-2">
             <Label htmlFor="timezone">{t("provider_dashboard.timezone", "Timezone")}</Label>
             <p className="text-xs text-muted-foreground">
-              Used for accurate slot scheduling and appointment times. Select the timezone where you practice.
+              {t("provider_dashboard.timezone_help", "Used for accurate slot scheduling and appointment times. Select the timezone where you practice.")}
             </p>
             <Select
               value={personalData.timezone || "_none"}
@@ -1081,27 +1083,27 @@ export function ProviderProfileTab({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="_none">{t("provider_dashboard.timezone_not_set", "— Not set (platform will infer from country) —")}</SelectItem>
-                <SelectItem value="Europe/Budapest">Europe/Budapest — Hungary (CEST/CET)</SelectItem>
-                <SelectItem value="Asia/Tehran">Asia/Tehran — Iran (IRST/IRDT)</SelectItem>
-                <SelectItem value="UTC">UTC — Coordinated Universal Time</SelectItem>
-                <SelectItem value="Europe/London">Europe/London — UK (GMT/BST)</SelectItem>
-                <SelectItem value="Europe/Berlin">Europe/Berlin — Germany/Central Europe (CET/CEST)</SelectItem>
-                <SelectItem value="Europe/Paris">Europe/Paris — France/Belgium (CET/CEST)</SelectItem>
-                <SelectItem value="Europe/Rome">Europe/Rome — Italy (CET/CEST)</SelectItem>
-                <SelectItem value="Europe/Athens">Europe/Athens — Greece/Eastern Europe (EET/EEST)</SelectItem>
-                <SelectItem value="Europe/Istanbul">Europe/Istanbul — Turkey (TRT)</SelectItem>
-                <SelectItem value="Asia/Dubai">Asia/Dubai — UAE/Gulf (GST)</SelectItem>
-                <SelectItem value="Asia/Riyadh">Asia/Riyadh — Saudi Arabia (AST)</SelectItem>
-                <SelectItem value="Asia/Kolkata">Asia/Kolkata — India (IST)</SelectItem>
-                <SelectItem value="Asia/Singapore">Asia/Singapore — Singapore/Malaysia (SGT)</SelectItem>
-                <SelectItem value="Asia/Tokyo">Asia/Tokyo — Japan (JST)</SelectItem>
-                <SelectItem value="Australia/Sydney">Australia/Sydney — Sydney (AEDT/AEST)</SelectItem>
-                <SelectItem value="America/New_York">America/New_York — US Eastern (ET)</SelectItem>
-                <SelectItem value="America/Chicago">America/Chicago — US Central (CT)</SelectItem>
-                <SelectItem value="America/Denver">America/Denver — US Mountain (MT)</SelectItem>
-                <SelectItem value="America/Los_Angeles">America/Los_Angeles — US Pacific (PT)</SelectItem>
-                <SelectItem value="America/Toronto">America/Toronto — Canada Eastern (ET)</SelectItem>
-                <SelectItem value="America/Sao_Paulo">America/Sao_Paulo — Brazil (BRT)</SelectItem>
+                <SelectItem value="Europe/Budapest">{t("provider_dashboard.tz_budapest", "Europe/Budapest — Hungary (CEST/CET)")}</SelectItem>
+                <SelectItem value="Asia/Tehran">{t("provider_dashboard.tz_tehran", "Asia/Tehran — Iran (IRST/IRDT)")}</SelectItem>
+                <SelectItem value="UTC">{t("provider_dashboard.tz_utc", "UTC — Coordinated Universal Time")}</SelectItem>
+                <SelectItem value="Europe/London">{t("provider_dashboard.tz_london", "Europe/London — UK (GMT/BST)")}</SelectItem>
+                <SelectItem value="Europe/Berlin">{t("provider_dashboard.tz_berlin", "Europe/Berlin — Germany/Central Europe (CET/CEST)")}</SelectItem>
+                <SelectItem value="Europe/Paris">{t("provider_dashboard.tz_paris", "Europe/Paris — France/Belgium (CET/CEST)")}</SelectItem>
+                <SelectItem value="Europe/Rome">{t("provider_dashboard.tz_rome", "Europe/Rome — Italy (CET/CEST)")}</SelectItem>
+                <SelectItem value="Europe/Athens">{t("provider_dashboard.tz_athens", "Europe/Athens — Greece/Eastern Europe (EET/EEST)")}</SelectItem>
+                <SelectItem value="Europe/Istanbul">{t("provider_dashboard.tz_istanbul", "Europe/Istanbul — Turkey (TRT)")}</SelectItem>
+                <SelectItem value="Asia/Dubai">{t("provider_dashboard.tz_dubai", "Asia/Dubai — UAE/Gulf (GST)")}</SelectItem>
+                <SelectItem value="Asia/Riyadh">{t("provider_dashboard.tz_riyadh", "Asia/Riyadh — Saudi Arabia (AST)")}</SelectItem>
+                <SelectItem value="Asia/Kolkata">{t("provider_dashboard.tz_kolkata", "Asia/Kolkata — India (IST)")}</SelectItem>
+                <SelectItem value="Asia/Singapore">{t("provider_dashboard.tz_singapore", "Asia/Singapore — Singapore/Malaysia (SGT)")}</SelectItem>
+                <SelectItem value="Asia/Tokyo">{t("provider_dashboard.tz_tokyo", "Asia/Tokyo — Japan (JST)")}</SelectItem>
+                <SelectItem value="Australia/Sydney">{t("provider_dashboard.tz_sydney", "Australia/Sydney — Sydney (AEDT/AEST)")}</SelectItem>
+                <SelectItem value="America/New_York">{t("provider_dashboard.tz_new_york", "America/New_York — US Eastern (ET)")}</SelectItem>
+                <SelectItem value="America/Chicago">{t("provider_dashboard.tz_chicago", "America/Chicago — US Central (CT)")}</SelectItem>
+                <SelectItem value="America/Denver">{t("provider_dashboard.tz_denver", "America/Denver — US Mountain (MT)")}</SelectItem>
+                <SelectItem value="America/Los_Angeles">{t("provider_dashboard.tz_los_angeles", "America/Los_Angeles — US Pacific (PT)")}</SelectItem>
+                <SelectItem value="America/Toronto">{t("provider_dashboard.tz_toronto", "America/Toronto — Canada Eastern (ET)")}</SelectItem>
+                <SelectItem value="America/Sao_Paulo">{t("provider_dashboard.tz_sao_paulo", "America/Sao_Paulo — Brazil (BRT)")}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -1111,7 +1113,7 @@ export function ProviderProfileTab({
           <Button size="sm" onClick={() => savePersonalMutation.mutate(personalData)}
             disabled={savePersonalMutation.isPending || !personalDraft} data-testid="button-save-personal">
             {savePersonalMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <CheckCircle className="h-4 w-4 mr-2" />}
-            Save Personal Info
+             {t("provider_dashboard.save_personal_info", "Save Personal Info")}
           </Button>
         </div>
       </div>
@@ -1121,7 +1123,7 @@ export function ProviderProfileTab({
   const renderProfessional = () => {
     return (
     <div>
-      <SectionHeader icon={Briefcase} color="bg-indigo-500/10 text-indigo-600" title="Professional Information" description="Bio, specialization, experience, languages, and credential titles" />
+       <SectionHeader icon={Briefcase} color="bg-indigo-500/10 text-indigo-600" title={t("provider_dashboard.professional_information", "Professional Information")} description={t("provider_dashboard.professional_information_desc", "Bio, specialization, experience, languages, and credential titles")} />
       <div className="space-y-6">
 
         {/* ── Provider Category and Specialization ─────────────────────── */}
@@ -1149,13 +1151,13 @@ export function ProviderProfileTab({
                   <div>
                     <p className="text-sm font-semibold flex items-center gap-2">
                       <Stethoscope className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
-                      Provider Category and Specialization
+                       {t("provider_dashboard.category_specialization", "Provider Category and Specialization")}
                       {!categoryUnlocked && <Lock className="h-3.5 w-3.5 text-amber-500" />}
                     </p>
                     <p className="text-xs text-muted-foreground mt-0.5">
                       {categoryUnlocked
-                        ? "Edit any combination of category, specialization, or display title below, then click Submit for admin review."
-                        : "Category, specialization, and display title are locked after approval. Click Unlock to request a change — an admin will review within 1–3 business days."}
+                         ? t("provider_dashboard.category_edit_help", "Edit any combination of category, specialization, or display title below, then click Submit for admin review.")
+                         : t("provider_dashboard.category_locked_help", "Category, specialization, and display title are locked after approval. Click Unlock to request a change — an admin will review within 1–3 business days.")}
                     </p>
                   </div>
                   {!categoryUnlocked && (
@@ -1174,7 +1176,7 @@ export function ProviderProfileTab({
                       data-testid="button-unlock-category"
                     >
                       <Lock className="h-3.5 w-3.5 mr-1.5" />
-                      {hasPending ? "Change Pending…" : "Unlock"}
+                       {hasPending ? t("provider_dashboard.change_pending", "Change Pending…") : t("provider_dashboard.unlock", "Unlock")}
                     </Button>
                   )}
                 </div>
@@ -1184,24 +1186,24 @@ export function ProviderProfileTab({
                   <div className="flex items-start gap-2 rounded-lg bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 p-3">
                     <AlertTriangle className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
                     <div className="space-y-0.5">
-                      <p className="text-xs font-semibold text-amber-800 dark:text-amber-200">Profile change pending admin review</p>
+                       <p className="text-xs font-semibold text-amber-800 dark:text-amber-200">{t("provider_dashboard.profile_change_pending", "Profile change pending admin review")}</p>
                       {pendingCategory && (
                         <p className="text-xs text-amber-700 dark:text-amber-300">
-                          Category: <span className="font-medium">{pendingCategory}</span>
+                           {t("provider_dashboard.category_label", "Category")}: <span className="font-medium">{pendingCategory}</span>
                           {pendingSubcat && <> → <span className="font-medium">{pendingSubcat}</span></>}
                         </p>
                       )}
                       {pendingSpecialization && (
                         <p className="text-xs text-amber-700 dark:text-amber-300">
-                          Specialization: <span className="font-medium">{pendingSpecialization}</span>
+                           {t("provider_dashboard.specialization", "Specialization")}: <span className="font-medium">{pendingSpecialization}</span>
                         </p>
                       )}
                       {pendingDisplayTitle && (
                         <p className="text-xs text-amber-700 dark:text-amber-300">
-                          Display Title: <span className="font-medium">{pendingDisplayTitle}</span>
+                           {t("provider_dashboard.display_title", "Display Title")}: <span className="font-medium">{pendingDisplayTitle}</span>
                         </p>
                       )}
-                      <p className="text-xs text-amber-700/70 dark:text-amber-400/70 pt-0.5">Your current values stay active until this is approved.</p>
+                       <p className="text-xs text-amber-700/70 dark:text-amber-400/70 pt-0.5">{t("provider_dashboard.current_values_until_approved", "Your current values stay active until this is approved.")}</p>
                     </div>
                   </div>
                 )}
@@ -1210,7 +1212,7 @@ export function ProviderProfileTab({
                   /* ── Inline edit mode ──────────────────────────────────── */
                   <div className="space-y-3">
                     <div className="space-y-1.5">
-                      <Label>New Category <span className="text-muted-foreground text-xs">(optional if only changing specialization/title)</span></Label>
+                       <Label>{t("provider_dashboard.new_category", "New Category")} <span className="text-muted-foreground text-xs">({t("provider_dashboard.optional_specialization_title", "optional if only changing specialization/title")})</span></Label>
                       <Select
                         value={categoryChangeDraft.newCategory || "__none__"}
                         onValueChange={(v) => setCategoryChangeDraft(d => ({
@@ -1218,10 +1220,10 @@ export function ProviderProfileTab({
                         }))}
                       >
                         <SelectTrigger data-testid="select-new-category">
-                          <SelectValue placeholder="Select new category..." />
+                           <SelectValue placeholder={t("provider_dashboard.select_new_category", "Select new category...")} />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="__none__">— Select category —</SelectItem>
+                           <SelectItem value="__none__">— {t("provider_dashboard.select_category", "Select category")} —</SelectItem>
                           {PROVIDER_TAXONOMY.map((t) => (
                             <SelectItem key={t.category} value={t.category}>{t.category}</SelectItem>
                           ))}
@@ -1231,16 +1233,16 @@ export function ProviderProfileTab({
 
                     {editTaxonomy && (
                       <div className="space-y-1.5">
-                        <Label>New Sub-Category</Label>
+                         <Label>{t("provider_dashboard.new_subcategory", "New Sub-Category")}</Label>
                         <Select
                           value={categoryChangeDraft.newSubcategory || "__none__"}
                           onValueChange={(v) => setCategoryChangeDraft(d => ({ ...d, newSubcategory: v === "__none__" ? "" : v, newSpecialization: "" }))}
                         >
                           <SelectTrigger data-testid="select-new-subcategory">
-                            <SelectValue placeholder="Select sub-category..." />
+                             <SelectValue placeholder={t("provider_dashboard.select_subcategory", "Select sub-category...")} />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="__none__">— None —</SelectItem>
+                             <SelectItem value="__none__">— {t("provider_dashboard.none", "None")} —</SelectItem>
                             {editTaxonomy.subcategories.map((sc: any) => (
                               <SelectItem key={sc.name} value={sc.name}>{sc.name}</SelectItem>
                             ))}
@@ -1251,16 +1253,16 @@ export function ProviderProfileTab({
 
                     {editSubcat && (
                       <div className="space-y-1.5">
-                        <Label>New Specialization</Label>
+                         <Label>{t("provider_dashboard.new_specialization", "New Specialization")}</Label>
                         <Select
                           value={categoryChangeDraft.newSpecialization || "__none__"}
                           onValueChange={(v) => setCategoryChangeDraft(d => ({ ...d, newSpecialization: v === "__none__" ? "" : v }))}
                         >
                           <SelectTrigger data-testid="select-new-specialization">
-                            <SelectValue placeholder="Select specialization..." />
+                             <SelectValue placeholder={t("provider_dashboard.select_specialization", "Select specialization...")} />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="__none__">— None —</SelectItem>
+                             <SelectItem value="__none__">— {t("provider_dashboard.none", "None")} —</SelectItem>
                             {(editSubcat as any).specializations.map((sp: string) => (
                               <SelectItem key={sp} value={sp}>{sp}</SelectItem>
                             ))}
@@ -1271,17 +1273,17 @@ export function ProviderProfileTab({
 
                     {editTaxonomy && (
                       <div className="space-y-1.5">
-                        <Label>New Display Title</Label>
-                        <p className="text-xs text-muted-foreground">Title shown on your public provider card (e.g. "Dr.", "Physiotherapist").</p>
+                         <Label>{t("provider_dashboard.new_display_title", "New Display Title")}</Label>
+                         <p className="text-xs text-muted-foreground">{t("provider_dashboard.display_title_help", 'Title shown on your public provider card (e.g. "Dr.", "Physiotherapist").')}</p>
                         <Select
                           value={categoryChangeDraft.newDisplayTitle || "__none__"}
                           onValueChange={(v) => setCategoryChangeDraft(d => ({ ...d, newDisplayTitle: v === "__none__" ? "" : v }))}
                         >
                           <SelectTrigger data-testid="select-new-display-title">
-                            <SelectValue placeholder="Select display title..." />
+                             <SelectValue placeholder={t("provider_dashboard.select_display_title", "Select display title...")} />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="__none__">— None —</SelectItem>
+                             <SelectItem value="__none__">— {t("provider_dashboard.none", "None")} —</SelectItem>
                             {(editTaxonomy.displayTitles ?? []).map((t: string) => (
                               <SelectItem key={t} value={t}>{t}</SelectItem>
                             ))}
@@ -1291,9 +1293,9 @@ export function ProviderProfileTab({
                     )}
 
                     <div className="space-y-1.5">
-                      <Label>Reason <span className="text-muted-foreground text-xs">(optional but helpful)</span></Label>
+                       <Label>{t("provider_dashboard.reason", "Reason")} <span className="text-muted-foreground text-xs">({t("provider_dashboard.optional_helpful", "optional but helpful")})</span></Label>
                       <Textarea rows={2}
-                        placeholder="e.g. completed additional training, expanding scope of practice..."
+                         placeholder={t("provider_dashboard.category_reason_placeholder", "e.g. completed additional training, expanding scope of practice...")}
                         value={categoryChangeDraft.reason}
                         onChange={(e) => setCategoryChangeDraft(d => ({ ...d, reason: e.target.value }))}
                         data-testid="input-category-change-reason"
@@ -1305,7 +1307,7 @@ export function ProviderProfileTab({
                         onClick={() => { setCategoryUnlocked(false); setCategoryChangeDraft({ newCategory: "", newSubcategory: "", newSpecialization: "", newDisplayTitle: "", reason: "" }); }}
                         data-testid="button-cancel-category-change"
                       >
-                        Cancel
+                         {t("common.cancel", "Cancel")}
                       </Button>
                       <Button size="sm"
                         onClick={() => requestCategoryChangeMutation.mutate(categoryChangeDraft)}
@@ -1323,7 +1325,7 @@ export function ProviderProfileTab({
                         {requestCategoryChangeMutation.isPending
                           ? <Loader2 className="h-4 w-4 animate-spin mr-2" />
                           : <CheckCircle className="h-4 w-4 mr-2" />}
-                        Submit for Admin Review
+                         {t("provider_dashboard.submit_admin_review", "Submit for Admin Review")}
                       </Button>
                     </div>
                   </div>
@@ -1331,20 +1333,20 @@ export function ProviderProfileTab({
                   /* ── Read-only view ─────────────────────────────────────── */
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide mb-0.5">Category</p>
-                      <p className="text-sm font-medium">{provider?.providerCategory || <span className="italic text-muted-foreground/60">Not set</span>}</p>
+                       <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide mb-0.5">{t("provider_dashboard.category_label", "Category")}</p>
+                       <p className="text-sm font-medium">{provider?.providerCategory || <span className="italic text-muted-foreground/60">{t("provider_dashboard.not_set", "Not set")}</span>}</p>
                     </div>
                     <div>
-                      <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide mb-0.5">Sub-Category</p>
-                      <p className="text-sm font-medium">{provider?.providerSubcategory || <span className="italic text-muted-foreground/60">Not set</span>}</p>
+                       <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide mb-0.5">{t("provider_dashboard.subcategory", "Sub-Category")}</p>
+                       <p className="text-sm font-medium">{provider?.providerSubcategory || <span className="italic text-muted-foreground/60">{t("provider_dashboard.not_set", "Not set")}</span>}</p>
                     </div>
                     <div>
-                      <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide mb-0.5">Specialization</p>
-                      <p className="text-sm font-medium">{provider?.specialization || <span className="italic text-muted-foreground/60">Not set</span>}</p>
+                       <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide mb-0.5">{t("provider_dashboard.specialization", "Specialization")}</p>
+                       <p className="text-sm font-medium">{provider?.specialization || <span className="italic text-muted-foreground/60">{t("provider_dashboard.not_set", "Not set")}</span>}</p>
                     </div>
                     <div>
-                      <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide mb-0.5">Display Title</p>
-                      <p className="text-sm font-medium">{provider?.displayTitle || <span className="italic text-muted-foreground/60">Not set</span>}</p>
+                       <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide mb-0.5">{t("provider_dashboard.display_title", "Display Title")}</p>
+                       <p className="text-sm font-medium">{provider?.displayTitle || <span className="italic text-muted-foreground/60">{t("provider_dashboard.not_set", "Not set")}</span>}</p>
                     </div>
                   </div>
                 )}
@@ -1360,13 +1362,13 @@ export function ProviderProfileTab({
               <div>
                 <p className="text-sm font-semibold flex items-center gap-2">
                   <Stethoscope className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
-                  Provider Category and Specialization
+                   {t("provider_dashboard.category_specialization", "Provider Category and Specialization")}
                 </p>
-                <p className="text-xs text-muted-foreground mt-0.5">Select your professional category, sub-category, and specialization. This appears on your public profile and helps patients find you.</p>
+                 <p className="text-xs text-muted-foreground mt-0.5">{t("provider_dashboard.category_help", "Select your professional category, sub-category, and specialization. This appears on your public profile and helps patients find you.")}</p>
               </div>
 
               <div className="space-y-1.5">
-                <Label>Provider Category <span className="text-destructive">*</span></Label>
+                 <Label>{t("provider_dashboard.provider_category", "Provider Category")} <span className="text-destructive">*</span></Label>
                 <Select
                   value={categoryData.providerCategory || "__none__"}
                   onValueChange={(v) => {
@@ -1375,10 +1377,10 @@ export function ProviderProfileTab({
                   }}
                 >
                   <SelectTrigger data-testid="select-provider-category">
-                    <SelectValue placeholder="Select your category..." />
+                   <SelectValue placeholder={t("provider_dashboard.select_your_category", "Select your category...")} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="__none__">— Select category —</SelectItem>
+                   <SelectItem value="__none__">— {t("provider_dashboard.select_category", "Select category")} —</SelectItem>
                     {PROVIDER_TAXONOMY.map((t) => (
                       <SelectItem key={t.category} value={t.category}>{t.category}</SelectItem>
                     ))}
@@ -1388,7 +1390,7 @@ export function ProviderProfileTab({
 
               {selTaxonomy && (
                 <div className="space-y-1.5">
-                  <Label>Sub-Category <span className="text-destructive">*</span></Label>
+                   <Label>{t("provider_dashboard.subcategory", "Sub-Category")} <span className="text-destructive">*</span></Label>
                   <Select
                     value={categoryData.providerSubcategory || "__none__"}
                     onValueChange={(v) => {
@@ -1397,10 +1399,10 @@ export function ProviderProfileTab({
                     }}
                   >
                     <SelectTrigger data-testid="select-provider-subcategory">
-                      <SelectValue placeholder="Select sub-category..." />
+                       <SelectValue placeholder={t("provider_dashboard.select_subcategory", "Select sub-category...")} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="__none__">— Select sub-category —</SelectItem>
+                       <SelectItem value="__none__">— {t("provider_dashboard.select_subcategory", "Select sub-category")} —</SelectItem>
                       {selTaxonomy.subcategories.map((sc: any) => (
                         <SelectItem key={sc.name} value={sc.name}>{sc.name}</SelectItem>
                       ))}
@@ -1411,7 +1413,7 @@ export function ProviderProfileTab({
 
               {selSubcat && (
                 <div className="space-y-1.5">
-                  <Label>Specialization <span className="text-destructive">*</span></Label>
+                   <Label>{t("provider_dashboard.specialization", "Specialization")} <span className="text-destructive">*</span></Label>
                   <Select
                     value={categoryData.providerSpecialization || "__none__"}
                     onValueChange={(v) => {
@@ -1420,10 +1422,10 @@ export function ProviderProfileTab({
                     }}
                   >
                     <SelectTrigger data-testid="select-provider-specialization">
-                      <SelectValue placeholder="Select specialization..." />
+                       <SelectValue placeholder={t("provider_dashboard.select_specialization", "Select specialization...")} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="__none__">— Select specialization —</SelectItem>
+                       <SelectItem value="__none__">— {t("provider_dashboard.select_specialization", "Select specialization")} —</SelectItem>
                       {(selSubcat as any).specializations.map((sp: string) => (
                         <SelectItem key={sp} value={sp}>{sp}</SelectItem>
                       ))}
@@ -1434,8 +1436,8 @@ export function ProviderProfileTab({
 
               {categoryData.providerCategory && (
                 <div className="space-y-1.5">
-                  <Label>Display Title</Label>
-                  <p className="text-xs text-muted-foreground">Title shown on your public provider card (e.g. "Dr.", "Physiotherapist"). Options are tailored to your category.</p>
+                   <Label>{t("provider_dashboard.display_title", "Display Title")}</Label>
+                   <p className="text-xs text-muted-foreground">{t("provider_dashboard.display_title_category_help", 'Title shown on your public provider card (e.g. "Dr.", "Physiotherapist"). Options are tailored to your category.')}</p>
                   <Select
                     value={categoryData.displayTitle || "__none__"}
                     onValueChange={(v) => {
@@ -1444,10 +1446,10 @@ export function ProviderProfileTab({
                     }}
                   >
                     <SelectTrigger data-testid="select-display-title">
-                      <SelectValue placeholder="— Select display title —" />
+                     <SelectValue placeholder={`— ${t("provider_dashboard.select_display_title", "Select display title")} —`} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="__none__">— None —</SelectItem>
+                     <SelectItem value="__none__">— {t("provider_dashboard.none", "None")} —</SelectItem>
                       {(selTaxonomy?.displayTitles ?? []).map((t: string) => (
                         <SelectItem key={t} value={t}>{t}</SelectItem>
                       ))}
@@ -1460,7 +1462,7 @@ export function ProviderProfileTab({
                 <Button size="sm" onClick={() => saveCategoryMutation.mutate(categoryData)}
                   disabled={saveCategoryMutation.isPending || !categoryDraft} data-testid="button-save-category">
                   {saveCategoryMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <CheckCircle className="h-4 w-4 mr-2" />}
-                  Save Category
+                   {t("provider_dashboard.save_category", "Save Category")}
                 </Button>
               </div>
             </div>
@@ -1468,27 +1470,27 @@ export function ProviderProfileTab({
         })()}
 
         <div className="space-y-1.5">
-          <Label htmlFor="bio">Professional Bio</Label>
-          <p className="text-xs text-muted-foreground">Minimum 20 characters. Shown on your public profile.</p>
+           <Label htmlFor="bio">{t("provider_dashboard.professional_bio", "Professional Bio")}</Label>
+           <p className="text-xs text-muted-foreground">{t("provider_dashboard.bio_help", "Minimum 20 characters. Shown on your public profile.")}</p>
           <Textarea id="bio" rows={5} value={proBioData.bio}
             onChange={(e) => setProBioDraft((d) => ({ ...(d ?? proBioData), bio: e.target.value }))}
-            placeholder="Describe your expertise, approach, and what patients can expect..." data-testid="input-bio" />
-          <p className="text-xs text-muted-foreground text-right">{proBioData.bio.length} characters</p>
+             placeholder={t("provider_dashboard.bio_placeholder", "Describe your expertise, approach, and what patients can expect...")} data-testid="input-bio" />
+           <p className="text-xs text-muted-foreground text-right">{proBioData.bio.length} {t("provider_dashboard.characters", "characters")}</p>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-1.5">
-            <Label htmlFor="yearsExperience">Years of Experience</Label>
+             <Label htmlFor="yearsExperience">{t("provider_dashboard.years_experience", "Years of Experience")}</Label>
             <Input id="yearsExperience" type="number" min={0} max={60}
               value={proBioData.yearsExperience}
               onChange={(e) => setProBioDraft((d) => ({ ...(d ?? proBioData), yearsExperience: e.target.value }))}
               placeholder="5" data-testid="input-years-experience" />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="education">Education / Degree</Label>
+             <Label htmlFor="education">{t("provider_dashboard.education_degree", "Education / Degree")}</Label>
             <Input id="education" value={proBioData.education}
               onChange={(e) => setProBioDraft((d) => ({ ...(d ?? proBioData), education: e.target.value }))}
-              placeholder="e.g. M.D., University of Budapest" data-testid="input-education" />
+               placeholder={t("provider_dashboard.education_placeholder", "e.g. M.D., University of Budapest")} data-testid="input-education" />
           </div>
         </div>
 
@@ -1496,39 +1498,39 @@ export function ProviderProfileTab({
         <div className="rounded-xl border border-border/60 p-4 space-y-4 bg-muted/20">
           <div className="flex items-center gap-2">
             <Award className="h-4 w-4 text-primary" />
-            <p className="text-sm font-semibold">License Credentials</p>
+             <p className="text-sm font-semibold">{t("provider_dashboard.license_credentials", "License Credentials")}</p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <Label htmlFor="licenseNumber">License Number</Label>
+               <Label htmlFor="licenseNumber">{t("provider_dashboard.license_number", "License Number")}</Label>
               <Input id="licenseNumber" value={proBioData.licenseNumber}
                 onChange={(e) => setProBioDraft((d) => ({ ...(d ?? proBioData), licenseNumber: e.target.value }))}
-                disabled={complianceLocked} placeholder="e.g. HU-12345" data-testid="input-license-number" />
+                 disabled={complianceLocked} placeholder={t("provider_dashboard.license_number_placeholder", "e.g. HU-12345")} data-testid="input-license-number" />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="licenseExpiryDate">License Expiry Date</Label>
+               <Label htmlFor="licenseExpiryDate">{t("provider_dashboard.license_expiry_date", "License Expiry Date")}</Label>
               <Input id="licenseExpiryDate" type="date" value={proBioData.licenseExpiryDate}
                 onChange={(e) => setProBioDraft((d) => ({ ...(d ?? proBioData), licenseExpiryDate: e.target.value }))}
                 disabled={complianceLocked} data-testid="input-license-expiry" />
             </div>
             <div className="space-y-1.5 sm:col-span-2">
-              <Label htmlFor="licensingAuthority">Licensing Authority</Label>
+               <Label htmlFor="licensingAuthority">{t("provider_dashboard.licensing_authority", "Licensing Authority")}</Label>
               <Input id="licensingAuthority" value={proBioData.licensingAuthority}
                 onChange={(e) => setProBioDraft((d) => ({ ...(d ?? proBioData), licensingAuthority: e.target.value }))}
-                disabled={complianceLocked} placeholder="e.g. Hungarian Medical Chamber" data-testid="input-licensing-authority" />
+                 disabled={complianceLocked} placeholder={t("provider_dashboard.licensing_authority_placeholder", "e.g. Hungarian Medical Chamber")} data-testid="input-licensing-authority" />
             </div>
           </div>
           {!complianceLocked && (
             <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-50 border border-amber-200 dark:bg-amber-950/20 dark:border-amber-800">
               <Info className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
-              <p className="text-xs text-amber-700 dark:text-amber-400">Changes to license credentials are logged and the admin team is notified for compliance tracking.</p>
+               <p className="text-xs text-amber-700 dark:text-amber-400">{t("provider_dashboard.license_change_notice", "Changes to license credentials are logged and the admin team is notified for compliance tracking.")}</p>
             </div>
           )}
         </div>
 
         <div className="space-y-2">
-          <Label>Languages Spoken</Label>
-          <p className="text-xs text-muted-foreground">Select all languages you can consult in.</p>
+           <Label>{t("provider_dashboard.languages_spoken", "Languages Spoken")}</Label>
+           <p className="text-xs text-muted-foreground">{t("provider_dashboard.languages_help", "Select all languages you can consult in.")}</p>
           <div className="flex flex-wrap gap-2">
             {LANGUAGE_OPTIONS.map((lang) => {
               const selected = proBioData.languages.includes(lang);
@@ -1547,7 +1549,7 @@ export function ProviderProfileTab({
           <Button size="sm" onClick={() => saveProfessionalMutation.mutate(proBioData)}
             disabled={saveProfessionalMutation.isPending || !proBioDraft} data-testid="button-save-professional">
             {saveProfessionalMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <CheckCircle className="h-4 w-4 mr-2" />}
-            Save Professional Info
+             {t("provider_dashboard.save_professional_info", "Save Professional Info")}
           </Button>
         </div>
 
@@ -1558,11 +1560,11 @@ export function ProviderProfileTab({
         <div className="rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50/60 dark:bg-amber-950/20 p-4 space-y-3">
           <div className="flex items-center gap-2">
             <Banknote className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-            <p className="text-sm font-semibold">Practice Currency <span className="text-red-500 ml-0.5">*</span></p>
-            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-red-50 text-red-600 border border-red-200 dark:bg-red-950/40 dark:text-red-400 dark:border-red-800">Required for approval</span>
+             <p className="text-sm font-semibold">{t("provider_dashboard.practice_currency", "Practice Currency")} <span className="text-red-500 ml-0.5">*</span></p>
+             <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-red-50 text-red-600 border border-red-200 dark:bg-red-950/40 dark:text-red-400 dark:border-red-800">{t("provider_dashboard.required_for_approval", "Required for approval")}</span>
           </div>
           <p className="text-xs text-muted-foreground">
-            Select the currency you will charge patients in. This affects all service prices, wallet balance, payouts, and invoicing. You must set this before submitting for review.
+             {t("provider_dashboard.practice_currency_help", "Select the currency you will charge patients in. This affects all service prices, wallet balance, payouts, and invoicing. You must set this before submitting for review.")}
           </p>
           <Select
             value={(user as any)?.preferredCurrency || ""}
@@ -1570,7 +1572,7 @@ export function ProviderProfileTab({
             disabled={updateCurrencyMutation.isPending}
           >
             <SelectTrigger data-testid="select-provider-practice-currency">
-              <SelectValue placeholder="— Select your practice currency —" />
+               <SelectValue placeholder={`— ${t("provider_dashboard.select_practice_currency", "Select your practice currency")} —`} />
             </SelectTrigger>
             <SelectContent>
               {CURRENCY_OPTIONS.map((opt) => <SelectItem key={opt.code} value={opt.code}>{opt.label}</SelectItem>)}
@@ -1579,11 +1581,11 @@ export function ProviderProfileTab({
           {!(user as any)?.preferredCurrency && (
             <p className="text-xs text-amber-700 dark:text-amber-400 flex items-center gap-1.5">
               <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
-              Currency must be set before submitting for review.
+               {t("provider_dashboard.currency_required_review", "Currency must be set before submitting for review.")}
             </p>
           )}
-          {updateCurrencyMutation.isPending && <p className="text-xs text-muted-foreground">Saving…</p>}
-          {updateCurrencyMutation.isSuccess && <p className="text-xs text-emerald-600 dark:text-emerald-400 flex items-center gap-1"><CheckCircle className="h-3.5 w-3.5" />Currency saved.</p>}
+           {updateCurrencyMutation.isPending && <p className="text-xs text-muted-foreground">{t("common.saving", "Saving…")}</p>}
+           {updateCurrencyMutation.isSuccess && <p className="text-xs text-emerald-600 dark:text-emerald-400 flex items-center gap-1"><CheckCircle className="h-3.5 w-3.5" />{t("provider_dashboard.currency_saved", "Currency saved.")}</p>}
         </div>
 
         <Separator />
@@ -1591,8 +1593,8 @@ export function ProviderProfileTab({
         {/* Profile Gallery */}
         <div className="space-y-3">
           <div>
-            <p className="text-sm font-semibold flex items-center gap-2"><ImageIcon className="h-4 w-4 text-primary" />Profile Gallery</p>
-            <p className="text-xs text-muted-foreground mt-0.5">Photos of your clinic or practice space shown on your public profile.</p>
+             <p className="text-sm font-semibold flex items-center gap-2"><ImageIcon className="h-4 w-4 text-primary" />{t("provider_dashboard.profile_gallery", "Profile Gallery")}</p>
+             <p className="text-xs text-muted-foreground mt-0.5">{t("provider_dashboard.profile_gallery_desc", "Photos of your clinic or practice space shown on your public profile.")}</p>
           </div>
           <SectionErrorBoundary section="gallery"><ProviderGalleryManager /></SectionErrorBoundary>
         </div>
@@ -1603,34 +1605,34 @@ export function ProviderProfileTab({
 
   const renderWorkplace = () => (
     <div>
-      <SectionHeader icon={MapPin} color="bg-emerald-500/10 text-emerald-600" title="Workplace & Location" description="Clinic/practice address and your permanent legal address" />
+       <SectionHeader icon={MapPin} color="bg-emerald-500/10 text-emerald-600" title={t("provider_dashboard.workplace_location", "Workplace & Location")} description={t("provider_dashboard.workplace_location_desc", "Clinic/practice address and your permanent legal address")} />
       <div className="space-y-5">
         <div>
-          <p className="text-sm font-semibold mb-3">Practice / Clinic</p>
+           <p className="text-sm font-semibold mb-3">{t("provider_dashboard.practice_clinic", "Practice / Clinic")}</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5 sm:col-span-2">
-              <Label htmlFor="clinicName">Clinic / Practice Name</Label>
+               <Label htmlFor="clinicName">{t("provider_dashboard.clinic_practice_name", "Clinic / Practice Name")}</Label>
               <Input id="clinicName" value={workplaceData.clinicName}
                 onChange={(e) => setWorkplaceDraft((d) => ({ ...(d ?? workplaceData), clinicName: e.target.value }))}
-                placeholder="e.g. HealthFirst Physiotherapy" data-testid="input-clinic-name" />
+                 placeholder={t("provider_dashboard.clinic_name_placeholder", "e.g. HealthFirst Physiotherapy")} data-testid="input-clinic-name" />
             </div>
             <div className="space-y-1.5 sm:col-span-2">
-              <Label htmlFor="primaryServiceLocation">Practice Address</Label>
+               <Label htmlFor="primaryServiceLocation">{t("provider_dashboard.practice_address", "Practice Address")}</Label>
               <Input id="primaryServiceLocation" value={workplaceData.primaryServiceLocation}
                 onChange={(e) => setWorkplaceDraft((d) => ({ ...(d ?? workplaceData), primaryServiceLocation: e.target.value }))}
-                placeholder="Street address" data-testid="input-practice-address" />
+                 placeholder={t("provider_dashboard.street_address", "Street address")} data-testid="input-practice-address" />
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="workplaceCity">City</Label>
               <Input id="workplaceCity" value={workplaceData.city}
                 onChange={(e) => setWorkplaceDraft((d) => ({ ...(d ?? workplaceData), city: e.target.value }))}
-                placeholder="Budapest" data-testid="input-workplace-city" />
+                 placeholder={t("provider_dashboard.city_placeholder", "Budapest")} data-testid="input-workplace-city" />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="workplaceCountry">Country</Label>
+               <Label htmlFor="workplaceCountry">{t("provider_dashboard.country", "Country")}</Label>
               <Input id="workplaceCountry" value={workplaceData.country}
                 onChange={(e) => setWorkplaceDraft((d) => ({ ...(d ?? workplaceData), country: e.target.value }))}
-                placeholder="Hungary" data-testid="input-workplace-country" />
+                 placeholder={t("provider_dashboard.country_placeholder", "Hungary")} data-testid="input-workplace-country" />
             </div>
           </div>
         </div>
@@ -1639,17 +1641,17 @@ export function ProviderProfileTab({
 
         <div>
           <p className="text-sm font-semibold mb-1 flex items-center gap-2">
-            <span className="text-lg">🏠</span> Home Visit Coverage
+             <span className="text-lg">🏠</span> {t("provider_dashboard.home_visit_coverage", "Home Visit Coverage")}
           </p>
           <p className="text-xs text-muted-foreground mb-3">
-            Set the maximum distance (km) you are willing to travel for home visits, measured from your practice address. Leave blank for no distance restriction.
+             {t("provider_dashboard.home_visit_coverage_desc", "Set the maximum distance (km) you are willing to travel for home visits, measured from your practice address. Leave blank for no distance restriction.")}
           </p>
           <div className="flex items-center gap-3 max-w-xs">
             <Input
               type="number"
               min={0}
               max={500}
-              placeholder="e.g. 20"
+                 placeholder={t("provider_dashboard.distance_placeholder", "e.g. 20")}
               value={workplaceData.maxTravelDistanceKm}
               onChange={(e) => setWorkplaceDraft((d) => ({ ...(d ?? workplaceData), maxTravelDistanceKm: e.target.value }))}
               data-testid="input-max-travel-distance"
@@ -1658,7 +1660,7 @@ export function ProviderProfileTab({
             <span className="text-sm text-muted-foreground">km</span>
             {workplaceData.maxTravelDistanceKm && Number(workplaceData.maxTravelDistanceKm) > 0 && (
               <Badge variant="secondary" className="text-xs">
-                Up to {workplaceData.maxTravelDistanceKm} km
+                 {t("provider_dashboard.up_to_km", "Up to {{distance}} km", { distance: workplaceData.maxTravelDistanceKm })}
               </Badge>
             )}
           </div>
@@ -1667,43 +1669,43 @@ export function ProviderProfileTab({
         <Separator />
 
         <div>
-          <p className="text-sm font-semibold mb-1">Permanent / Legal Address</p>
-          <p className="text-xs text-muted-foreground mb-3">Your home address for invoicing and compliance. Not shown publicly.</p>
+           <p className="text-sm font-semibold mb-1">{t("provider_dashboard.permanent_legal_address", "Permanent / Legal Address")}</p>
+           <p className="text-xs text-muted-foreground mb-3">{t("provider_dashboard.permanent_address_desc", "Your home address for invoicing and compliance. Not shown publicly.")}</p>
           <div className="space-y-3">
             <div className="space-y-1.5">
-              <Label>Address Line 1</Label>
-              <Input placeholder="Street and house number" value={workplaceData.permanentAddressLine1}
+               <Label>{t("provider_dashboard.address_line_1", "Address Line 1")}</Label>
+               <Input placeholder={t("provider_dashboard.street_house_number", "Street and house number")} value={workplaceData.permanentAddressLine1}
                 onChange={(e) => setWorkplaceDraft((d) => ({ ...(d ?? workplaceData), permanentAddressLine1: e.target.value }))}
                 data-testid="input-permanent-address-line1" />
             </div>
             <div className="space-y-1.5">
-              <Label>Address Line 2 <span className="text-muted-foreground font-normal text-xs">(optional)</span></Label>
-              <Input placeholder="Apartment, floor, suite" value={workplaceData.permanentAddressLine2}
+               <Label>{t("provider_dashboard.address_line_2", "Address Line 2")} <span className="text-muted-foreground font-normal text-xs">({t("provider_dashboard.optional", "optional")})</span></Label>
+               <Input placeholder={t("provider_dashboard.apartment_floor_suite", "Apartment, floor, suite")} value={workplaceData.permanentAddressLine2}
                 onChange={(e) => setWorkplaceDraft((d) => ({ ...(d ?? workplaceData), permanentAddressLine2: e.target.value }))}
                 data-testid="input-permanent-address-line2" />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label>City</Label>
-                <Input placeholder="Budapest" value={workplaceData.permanentCity}
+                 <Label>{t("provider_dashboard.city", "City")}</Label>
+                 <Input placeholder={t("provider_dashboard.city_placeholder", "Budapest")} value={workplaceData.permanentCity}
                   onChange={(e) => setWorkplaceDraft((d) => ({ ...(d ?? workplaceData), permanentCity: e.target.value }))}
                   data-testid="input-permanent-city" />
               </div>
               <div className="space-y-1.5">
-                <Label>Region / State</Label>
-                <Input placeholder="Pest County" value={workplaceData.permanentStateRegion}
+                 <Label>{t("provider_dashboard.region_state", "Region / State")}</Label>
+                 <Input placeholder={t("provider_dashboard.region_placeholder", "Pest County")} value={workplaceData.permanentStateRegion}
                   onChange={(e) => setWorkplaceDraft((d) => ({ ...(d ?? workplaceData), permanentStateRegion: e.target.value }))}
                   data-testid="input-permanent-state-region" />
               </div>
               <div className="space-y-1.5">
-                <Label>Postal Code</Label>
-                <Input placeholder="1051" value={workplaceData.permanentPostalCode}
+                 <Label>{t("provider_dashboard.postal_code", "Postal Code")}</Label>
+                 <Input placeholder={t("provider_dashboard.postal_code_placeholder", "1051")} value={workplaceData.permanentPostalCode}
                   onChange={(e) => setWorkplaceDraft((d) => ({ ...(d ?? workplaceData), permanentPostalCode: e.target.value }))}
                   data-testid="input-permanent-postal-code" />
               </div>
               <div className="space-y-1.5">
-                <Label>Country</Label>
-                <Input placeholder="Hungary" value={workplaceData.permanentCountry}
+                 <Label>{t("provider_dashboard.country", "Country")}</Label>
+                 <Input placeholder={t("provider_dashboard.country_placeholder", "Hungary")} value={workplaceData.permanentCountry}
                   onChange={(e) => setWorkplaceDraft((d) => ({ ...(d ?? workplaceData), permanentCountry: e.target.value }))}
                   data-testid="input-permanent-country" />
               </div>
@@ -1716,18 +1718,18 @@ export function ProviderProfileTab({
             onClick={() => {
               const isClinicMode = servicesData.serviceModes.includes("clinic_visit");
               if (isClinicMode && !workplaceData.primaryServiceLocation.trim()) {
-                toast({ title: "Practice address required", description: "You have Clinic Visit enabled — please provide a practice address.", variant: "destructive" });
+                 toast({ title: t("provider_dashboard.practice_address_required", "Practice address required"), description: t("provider_dashboard.practice_address_required_desc", "You have Clinic Visit enabled — please provide a practice address."), variant: "destructive" });
                 return;
               }
               if (isClinicMode && !workplaceData.city.trim()) {
-                toast({ title: "City required", description: "You have Clinic Visit enabled — please provide a city.", variant: "destructive" });
+                 toast({ title: t("provider_dashboard.city_required", "City required"), description: t("provider_dashboard.city_required_desc", "You have Clinic Visit enabled — please provide a city."), variant: "destructive" });
                 return;
               }
               saveWorkplaceMutation.mutate(workplaceData);
             }}
             disabled={saveWorkplaceMutation.isPending || !workplaceDraft} data-testid="button-save-workplace">
             {saveWorkplaceMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <CheckCircle className="h-4 w-4 mr-2" />}
-            Save Workplace
+             {t("provider_dashboard.save_workplace", "Save Workplace")}
           </Button>
         </div>
       </div>
@@ -1736,15 +1738,15 @@ export function ProviderProfileTab({
 
   const renderServices = () => (
     <div>
-      <SectionHeader icon={Stethoscope} color="bg-cyan-500/10 text-cyan-600" title="Service Delivery" description="How you see patients — in-clinic, home visit, or video — and consultation fees" />
+       <SectionHeader icon={Stethoscope} color="bg-cyan-500/10 text-cyan-600" title={t("provider_dashboard.service_delivery", "Service Delivery")} description={t("provider_dashboard.service_delivery_desc", "How you see patients — in-clinic, home visit, or video — and consultation fees")} />
       <div className="space-y-5">
         {complianceLocked && (
           <div className="flex items-start gap-2 p-3 rounded-xl border border-amber-200 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-800">
             <Lock className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
-            <p className="text-xs text-amber-700 dark:text-amber-400">Service modes and fees are locked during compliance review.</p>
+            <p className="text-xs text-amber-700 dark:text-amber-400">{t("provider_dashboard.service_modes_locked", "Service modes and fees are locked during compliance review.")}</p>
           </div>
         )}
-        <p className="text-xs text-muted-foreground">Select the modes you offer. Pricing is set per-service in the Services tab.</p>
+        <p className="text-xs text-muted-foreground">{t("provider_dashboard.service_modes_help", "Select the modes you offer. Pricing is set per-service in the Services tab.")}</p>
         <div className="space-y-3">
           {[
             { key: "clinic_visit", icon: "🏥" },
@@ -1760,8 +1762,8 @@ export function ProviderProfileTab({
                   {icon}
                 </button>
                 <div className="flex-1">
-                  <p className="text-sm font-medium">{SERVICE_MODE_LABELS[key]}</p>
-                  <p className="text-xs text-muted-foreground">{active ? "Active" : "Inactive"}</p>
+                  <p className="text-sm font-medium">{t(SERVICE_MODE_LABELS[key], key)}</p>
+                  <p className="text-xs text-muted-foreground">{active ? t("provider_dashboard.active", "Active") : t("provider_dashboard.inactive", "Inactive")}</p>
                 </div>
               </div>
             );
@@ -1771,7 +1773,7 @@ export function ProviderProfileTab({
           <Button size="sm" onClick={() => saveServicesMutation.mutate(servicesData)}
             disabled={saveServicesMutation.isPending || !servicesDraft} data-testid="button-save-services">
             {saveServicesMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <CheckCircle className="h-4 w-4 mr-2" />}
-            Save Service Delivery
+            {t("provider_dashboard.save_service_delivery", "Save Service Delivery")}
           </Button>
         </div>
       </div>
@@ -1780,7 +1782,7 @@ export function ProviderProfileTab({
 
   const renderVerification = () => (
     <div>
-      <SectionHeader icon={FileCheck} color="bg-rose-500/10 text-rose-600" title="Verification & Documents" description="Upload your professional documents, ID, and track your verification status" />
+       <SectionHeader icon={FileCheck} color="bg-rose-500/10 text-rose-600" title={t("provider_dashboard.verification_documents", "Verification & Documents")} description={t("provider_dashboard.verification_documents_desc", "Upload your professional documents, ID, and track your verification status")} />
       <div className="space-y-6">
 
         {/* ── Mobile Number Verification ─────────────────────────────── */}
@@ -1790,12 +1792,12 @@ export function ProviderProfileTab({
               <Smartphone className="h-4 w-4 text-primary" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold">Mobile Number</p>
-              <p className="text-xs text-muted-foreground">Required before submitting for review. Used for appointment alerts and compliance notifications.</p>
+               <p className="text-sm font-semibold">{t("provider_dashboard.mobile_number", "Mobile Number")}</p>
+               <p className="text-xs text-muted-foreground">{t("provider_dashboard.mobile_number_help", "Required before submitting for review. Used for appointment alerts and compliance notifications.")}</p>
             </div>
             {currentMobile && mobileDraft === null && (
               <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200 gap-1 text-xs shrink-0">
-                <CheckCircle className="h-3 w-3" />Saved
+                 <CheckCircle className="h-3 w-3" />{t("common.saved", "Saved")}
               </Badge>
             )}
           </div>
@@ -1814,19 +1816,19 @@ export function ProviderProfileTab({
               disabled={saveMobileMutation.isPending || mobileValue.trim().length < 7 || (mobileDraft === null && !!currentMobile && mobileValue === currentMobile)}
               data-testid="button-save-mobile"
             >
-              {saveMobileMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}
+               {saveMobileMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : t("common.save", "Save")}
             </Button>
           </div>
 
           {mobileStatus === "sms_unavailable" && (
             <div className="flex items-start gap-2 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
               <Info className="h-3.5 w-3.5 shrink-0 mt-0.5" />
-              <span>Number saved. SMS verification is not yet active on this server — your number is on file and will be verified automatically when the feature is enabled.</span>
+               <span>{t("provider_dashboard.mobile_sms_unavailable", "Number saved. SMS verification is not yet active on this server — your number is on file and will be verified automatically when the feature is enabled.")}</span>
             </div>
           )}
           {mobileStatus === "saved" && (
             <p className="text-xs text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
-              <CheckCircle className="h-3.5 w-3.5" />A verification code has been sent to your number.
+               <CheckCircle className="h-3.5 w-3.5" />{t("provider_dashboard.verification_code_sent", "A verification code has been sent to your number.")}
             </p>
           )}
         </div>
@@ -1841,26 +1843,26 @@ export function ProviderProfileTab({
 
   const renderSettings = () => (
     <div>
-      <SectionHeader icon={Settings2} color="bg-slate-500/10 text-slate-600" title="Settings" description="Practice settings, notifications, language, and account security" />
+       <SectionHeader icon={Settings2} color="bg-slate-500/10 text-slate-600" title={t("provider_dashboard.settings", "Settings")} description={t("provider_dashboard.settings_desc", "Practice settings, notifications, language, and account security")} />
       <div className="space-y-6">
         <SectionErrorBoundary section="preferences">
           <div className="rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50/60 dark:bg-blue-950/20 px-4 py-3 text-xs text-blue-700 dark:text-blue-400 flex items-start gap-2">
             <Banknote className="h-3.5 w-3.5 shrink-0 mt-0.5" />
-            <span>To change your <strong>Practice Currency</strong>, go to <strong>Professional Information</strong> → Practice Currency.</span>
+             <span>{t("provider_dashboard.currency_navigation_help", "To change your")} <strong>{t("provider_dashboard.practice_currency", "Practice Currency")}</strong>, {t("provider_dashboard.go_to", "go to")} <strong>{t("provider_dashboard.professional_information", "Professional Information")}</strong> → {t("provider_dashboard.practice_currency", "Practice Currency")}.</span>
           </div>
           <Separator />
 
           {/* Interface Language */}
           <div className="space-y-1.5">
-            <p className="text-sm font-semibold">Interface Language</p>
-            <p className="text-xs text-muted-foreground">Choose the language for the platform UI.</p>
+             <p className="text-sm font-semibold">{t("provider_dashboard.interface_language", "Interface Language")}</p>
+             <p className="text-xs text-muted-foreground">{t("provider_dashboard.interface_language_desc", "Choose the language for the platform UI.")}</p>
             <select data-testid="select-provider-language"
               className="w-full border border-input rounded-md h-10 px-3 bg-background text-sm"
               defaultValue={notifPrefs?.language || i18n.language?.slice(0, 2) || "en"}
               onChange={(e) => updateNotifPrefs.mutate({ language: e.target.value })}>
-              <option value="en">English</option>
-              <option value="hu">Magyar (Hungarian)</option>
-              <option value="fa">فارسی (Persian)</option>
+               <option value="en">{t("provider_dashboard.language_english", "English")}</option>
+               <option value="hu">{t("provider_dashboard.language_hungarian", "Magyar (Hungarian)")}</option>
+               <option value="fa">{t("provider_dashboard.language_persian", "فارسی (Persian)")}</option>
             </select>
           </div>
 
@@ -1868,15 +1870,15 @@ export function ProviderProfileTab({
 
           {/* Country Context */}
           <div className="space-y-1.5">
-            <p className="text-sm font-semibold flex items-center gap-2"><Globe className="h-4 w-4 text-primary" />Country Context</p>
-            <p className="text-xs text-muted-foreground">Switch your active country — affects which providers and services you see.</p>
+             <p className="text-sm font-semibold flex items-center gap-2"><Globe className="h-4 w-4 text-primary" />{t("provider_dashboard.country_context", "Country Context")}</p>
+             <p className="text-xs text-muted-foreground">{t("provider_dashboard.country_context_desc", "Switch your active country — affects which providers and services you see.")}</p>
             <select data-testid="select-provider-country"
               className="w-full border border-input rounded-md h-10 px-3 bg-background text-sm"
               value={(user as any)?.countryCode || "HU"}
               disabled={updateCountryMutation.isPending}
               onChange={(e) => updateCountryMutation.mutate(e.target.value as "HU" | "IR")}>
-              <option value="HU">🇭🇺 Hungary</option>
-              <option value="IR">🇮🇷 Iran</option>
+               <option value="HU">🇭🇺 {t("provider_dashboard.hungary", "Hungary")}</option>
+               <option value="IR">🇮🇷 {t("provider_dashboard.iran", "Iran")}</option>
             </select>
           </div>
 
@@ -1884,38 +1886,38 @@ export function ProviderProfileTab({
 
           {/* Practice Settings */}
           <div className="space-y-4">
-            <p className="text-sm font-semibold">Practice Settings</p>
+             <p className="text-sm font-semibold">{t("provider_dashboard.practice_settings", "Practice Settings")}</p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <Label>Max Clients Per Day</Label>
+                 <Label>{t("provider_dashboard.max_clients_per_day", "Max Clients Per Day")}</Label>
                 <Input type="number" min={1} max={100} placeholder="e.g. 10"
                   value={prefData.maxPatientsPerDay}
                   onChange={(e) => setPrefDraft(p => ({ ...(p ?? prefData), maxPatientsPerDay: e.target.value }))}
                   data-testid="input-pref-max-patients" />
               </div>
               <div className="space-y-1.5">
-                <Label>Preferred Contact Method</Label>
+                 <Label>{t("provider_dashboard.preferred_contact_method", "Preferred Contact Method")}</Label>
                 <Select value={prefData.preferredContactMethod}
                   onValueChange={(v) => setPrefDraft(p => ({ ...(p ?? prefData), preferredContactMethod: v }))}>
                   <SelectTrigger data-testid="select-pref-contact"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="email">Email</SelectItem>
-                    <SelectItem value="phone">Phone</SelectItem>
-                    <SelectItem value="both">Both</SelectItem>
+                     <SelectItem value="email">{t("provider_dashboard.email", "Email")}</SelectItem>
+                     <SelectItem value="phone">{t("provider_dashboard.phone", "Phone")}</SelectItem>
+                     <SelectItem value="both">{t("provider_dashboard.both", "Both")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </div>
 
             <div className="space-y-1.5">
-              <Label>Emergency Contact Number</Label>
+               <Label>{t("provider_dashboard.emergency_contact_number", "Emergency Contact Number")}</Label>
               <Input placeholder="+36 …" value={prefData.emergencyContact}
                 onChange={(e) => setPrefDraft(p => ({ ...(p ?? prefData), emergencyContact: e.target.value }))}
                 data-testid="input-pref-emergency-contact" />
             </div>
 
             <div className="space-y-2">
-              <Label>Payment Methods Accepted</Label>
+               <Label>{t("provider_dashboard.payment_methods_accepted", "Payment Methods Accepted")}</Label>
               <div className="grid grid-cols-2 gap-2">
                 {PAYMENT_METHOD_OPTIONS.map(opt => {
                   const checked = prefData.paymentMethods.includes(opt.value);
@@ -1942,8 +1944,8 @@ export function ProviderProfileTab({
               data-testid="toggle-pref-oncall">
               <Checkbox checked={prefData.onCallAvailability} onCheckedChange={() => {}} />
               <div>
-                <p className="text-sm font-medium">On-call Availability</p>
-                <p className="text-xs text-muted-foreground">Available for emergency or after-hours calls</p>
+                 <p className="text-sm font-medium">{t("provider_dashboard.on_call_availability", "On-call Availability")}</p>
+                 <p className="text-xs text-muted-foreground">{t("provider_dashboard.on_call_availability_desc", "Available for emergency or after-hours calls")}</p>
               </div>
             </div>
 
@@ -1958,7 +1960,7 @@ export function ProviderProfileTab({
                 })}
                 data-testid="button-save-preferences">
                 {savePreferencesMutation.isPending && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
-                Save Practice Settings
+                 {t("provider_dashboard.save_practice_settings", "Save Practice Settings")}
               </Button>
             </div>
           </div>
@@ -1967,12 +1969,12 @@ export function ProviderProfileTab({
 
           {/* Notifications */}
           <div className="space-y-3">
-            <p className="text-sm font-semibold">Notifications</p>
+            <p className="text-sm font-semibold">{t("provider_dashboard.notifications", "Notifications")}</p>
             {[
-              { icon: Mail, label: "Email", desc: "Appointment confirmations and reminders", key: "emailEnabled", cap: commsCaps?.email, capLabel: "(not configured)", checked: notifPrefs?.emailEnabled !== false },
-              { icon: MessageSquare, label: "SMS", desc: "Text message alerts", key: "smsEnabled", cap: commsCaps?.sms, capLabel: "(not configured)", checked: !!notifPrefs?.smsEnabled },
-              { icon: MessageSquare, label: "WhatsApp", desc: "WhatsApp notifications", key: "whatsappEnabled", cap: commsCaps?.whatsapp, capLabel: "(not configured)", checked: !!notifPrefs?.whatsappEnabled },
-              { icon: Monitor, label: "In-App", desc: "Notifications inside the platform", key: "inAppEnabled", cap: true, capLabel: "", checked: notifPrefs?.inAppEnabled !== false },
+              { icon: Mail, label: t("provider_dashboard.email", "Email"), desc: t("provider_dashboard.email_notifications_desc", "Appointment confirmations and reminders"), key: "emailEnabled", cap: commsCaps?.email, capLabel: t("provider_dashboard.not_configured", "(not configured)"), checked: notifPrefs?.emailEnabled !== false },
+              { icon: MessageSquare, label: "SMS", desc: t("provider_dashboard.sms_notifications_desc", "Text message alerts"), key: "smsEnabled", cap: commsCaps?.sms, capLabel: t("provider_dashboard.not_configured", "(not configured)"), checked: !!notifPrefs?.smsEnabled },
+              { icon: MessageSquare, label: "WhatsApp", desc: t("provider_dashboard.whatsapp_notifications_desc", "WhatsApp notifications"), key: "whatsappEnabled", cap: commsCaps?.whatsapp, capLabel: t("provider_dashboard.not_configured", "(not configured)"), checked: !!notifPrefs?.whatsappEnabled },
+              { icon: Monitor, label: t("provider_dashboard.in_app", "In-App"), desc: t("provider_dashboard.in_app_notifications_desc", "Notifications inside the platform"), key: "inAppEnabled", cap: true, capLabel: "", checked: notifPrefs?.inAppEnabled !== false },
             ].map(({ icon: Icon, label, desc, key, cap, capLabel, checked }) => (
               <div key={key}>
                 <div className="flex items-center justify-between py-2">
@@ -1993,9 +1995,9 @@ export function ProviderProfileTab({
               <div className="flex items-start gap-3">
                 <Smartphone className="h-4 w-4 text-muted-foreground mt-0.5" />
                 <div>
-                  <p className="text-sm font-medium">Browser Push</p>
+                  <p className="text-sm font-medium">{t("provider_dashboard.browser_push", "Browser Push")}</p>
                   <p className="text-xs text-muted-foreground">
-                    {pushCap.supported ? (pushCap.configured ? "Real-time push alerts" : "(push not configured on server)") : "(not supported in this browser)"}
+                    {pushCap.supported ? (pushCap.configured ? t("provider_dashboard.realtime_push_alerts", "Real-time push alerts") : t("provider_dashboard.push_not_configured", "(push not configured on server)")) : t("provider_dashboard.push_not_supported", "(not supported in this browser)")}
                   </p>
                 </div>
               </div>
@@ -2004,17 +2006,17 @@ export function ProviderProfileTab({
             </div>
             <Separator />
             <div className="space-y-2">
-              <p className="text-sm font-medium">Quiet Hours</p>
-              <p className="text-xs text-muted-foreground">No notifications will be sent during these hours</p>
+                <p className="text-sm font-medium">{t("provider_dashboard.quiet_hours", "Quiet Hours")}</p>
+                <p className="text-xs text-muted-foreground">{t("provider_dashboard.quiet_hours_desc", "No notifications will be sent during these hours")}</p>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <Label htmlFor="provQhStart" className="text-xs">From</Label>
+                  <Label htmlFor="provQhStart" className="text-xs">{t("provider_dashboard.from", "From")}</Label>
                   <Input id="provQhStart" type="time" data-testid="input-provider-quiet-start"
                     defaultValue={notifPrefs?.quietHoursStart || ""}
                     onBlur={(e) => updateNotifPrefs.mutate({ quietHoursStart: e.target.value || null })} />
                 </div>
                 <div>
-                  <Label htmlFor="provQhEnd" className="text-xs">To</Label>
+                  <Label htmlFor="provQhEnd" className="text-xs">{t("provider_dashboard.to", "To")}</Label>
                   <Input id="provQhEnd" type="time" data-testid="input-provider-quiet-end"
                     defaultValue={notifPrefs?.quietHoursEnd || ""}
                     onBlur={(e) => updateNotifPrefs.mutate({ quietHoursEnd: e.target.value || null })} />
@@ -2028,11 +2030,15 @@ export function ProviderProfileTab({
 
         {/* Account Security */}
         <div className="space-y-4">
-          <p className="text-sm font-semibold flex items-center gap-2"><Lock className="h-4 w-4 text-primary" />Account Security</p>
-          <p className="text-xs text-muted-foreground">Choose a strong password of at least 8 characters.</p>
+          <p className="text-sm font-semibold flex items-center gap-2"><Lock className="h-4 w-4 text-primary" />{t("provider_dashboard.account_security", "Account Security")}</p>
+          <p className="text-xs text-muted-foreground">{t("provider_dashboard.account_security_desc", "Choose a strong password of at least 8 characters.")}</p>
           <form onSubmit={handlePasswordSubmit} className="space-y-3">
             {(["currentPassword", "newPassword", "confirmPassword"] as const).map((field) => {
-              const labels = { currentPassword: "Current Password", newPassword: "New Password", confirmPassword: "Confirm New Password" };
+              const labels = {
+                currentPassword: t("provider_dashboard.current_password", "Current Password"),
+                newPassword: t("provider_dashboard.new_password", "New Password"),
+                confirmPassword: t("provider_dashboard.confirm_new_password", "Confirm New Password"),
+              };
               const ids = { currentPassword: "input-current-password", newPassword: "input-new-password", confirmPassword: "input-confirm-password" };
               const showKey = field === "currentPassword" ? "current" : field === "newPassword" ? "new" : "confirm";
               return (
@@ -2057,7 +2063,7 @@ export function ProviderProfileTab({
                 disabled={changePasswordMutation.isPending || !passwordForm.currentPassword || !passwordForm.newPassword}
                 data-testid="button-change-password">
                 {changePasswordMutation.isPending && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
-                Change Password
+                {t("provider_dashboard.change_password", "Change Password")}
               </Button>
             </div>
           </form>
