@@ -240,7 +240,10 @@ export async function dispatchNotification(opts: DispatchOptions): Promise<void>
         type: eventKey.split(".")[0] || "system",
         title: opts.title,
         message: opts.body,
-        data: opts.data ? JSON.stringify(opts.data) : null,
+         // Keep the event key with the in-app row so the client can render
+         // the title/body in the user's current language. Existing custom
+         // data remains available to deep-link and template interpolation.
+         data: JSON.stringify({ ...(opts.data ?? {}), _eventKey: eventKey }),
         isRead: false,
       } as any);
       await logDelivery(userId, eventKey, "in_app", "sent");
@@ -362,7 +365,7 @@ export const notify = {
           ...(opts.formattedAmount ? [{ label: t("label.amount", opts.lang || "en"), value: opts.formattedAmount }] : []),
         ],
       },
-      data: { appointmentId: opts.appointmentId },
+      data: { appointmentId: opts.appointmentId, providerName: opts.providerName, date: opts.date, time: opts.time },
       push: { url: `/patient/appointments/${opts.appointmentId}` },
     }),
   appointmentRescheduled: (userId: string, opts: { date: string; time: string; appointmentId: string; lang?: Lang }) =>
@@ -380,7 +383,7 @@ export const notify = {
           { label: t("label.time", opts.lang || "en"), value: opts.time },
         ],
       },
-      data: { appointmentId: opts.appointmentId },
+      data: { appointmentId: opts.appointmentId, date: opts.date, time: opts.time },
     }),
   appointmentCancelled: (userId: string, opts: { date: string; time: string; appointmentId: string; lang?: Lang }) =>
     dispatchNotification({
@@ -397,7 +400,7 @@ export const notify = {
           { label: t("label.time", opts.lang || "en"), value: opts.time },
         ],
       },
-      data: { appointmentId: opts.appointmentId },
+      data: { appointmentId: opts.appointmentId, date: opts.date, time: opts.time },
     }),
   paymentReceived: (userId: string, opts: { amount: string; currency: string; appointmentId: string; lang?: Lang; formattedAmount: string }) => {
     // formattedAmount is required — always pass a pre-formatted, localised amount string.
@@ -415,7 +418,7 @@ export const notify = {
           { label: t("label.amount", opts.lang || "en"), value: _pmtDisplay },
         ],
       },
-      data: { appointmentId: opts.appointmentId },
+      data: { appointmentId: opts.appointmentId, formattedAmount: _pmtDisplay },
     });
   },
   reviewLeft: (userId: string, opts: { patientName: string; rating: number; reviewId: string; lang?: Lang }) =>
@@ -428,7 +431,7 @@ export const notify = {
         subject: `New ${opts.rating}-star review from ${opts.patientName}`,
         intro: `${opts.patientName} just left a ${opts.rating}-star review on your profile.`,
       },
-      data: { reviewId: opts.reviewId },
+      data: { reviewId: opts.reviewId, patientName: opts.patientName, rating: opts.rating },
       push: { url: `/provider-dashboard?tab=reviews` },
     }),
   reviewReplied: (userId: string, opts: { providerName: string; reviewId: string; lang?: Lang }) =>
@@ -442,7 +445,7 @@ export const notify = {
         headingKey: "review.reply.heading",
         intro: `${opts.providerName} replied to your review.`,
       },
-      data: { reviewId: opts.reviewId },
+      data: { reviewId: opts.reviewId, providerName: opts.providerName },
     }),
   ticketReplied: (userId: string, opts: { ticketId: string; subject: string; lang?: Lang }) =>
     dispatchNotification({
@@ -450,7 +453,7 @@ export const notify = {
       eventKey: "ticket.replied",
       title: "New reply on your support ticket",
       body: `Support replied on "${opts.subject}".`,
-      data: { ticketId: opts.ticketId },
+      data: { ticketId: opts.ticketId, subject: opts.subject },
       push: { url: `/support/tickets/${opts.ticketId}` },
     }),
   chatMessage: (userId: string, opts: { senderName: string; preview: string; conversationId: string }) =>
@@ -459,7 +462,7 @@ export const notify = {
       eventKey: "chat.new_message",
       title: `New message from ${opts.senderName}`,
       body: opts.preview.slice(0, 140),
-      data: { conversationId: opts.conversationId },
+      data: { conversationId: opts.conversationId, senderName: opts.senderName, preview: opts.preview.slice(0, 140) },
       push: { url: `/chat/${opts.conversationId}`, tag: `chat:${opts.conversationId}` },
     }),
   reminder: (userId: string, tier: "24h" | "1h" | "15m", opts: { date: string; time: string; appointmentId: string; lang?: Lang }) => {
@@ -480,7 +483,7 @@ export const notify = {
         headingKey,
         intro: `Your appointment is on ${opts.date} at ${opts.time}.`,
       },
-      data: { appointmentId: opts.appointmentId, tier },
+      data: { appointmentId: opts.appointmentId, tier, date: opts.date, time: opts.time },
       urgent: tier !== "24h",
     });
   },
@@ -496,7 +499,7 @@ export const notify = {
         introKey: "appt.postvisit.intro",
         cta: { label: "Leave a review", url: `/patient/appointments/${opts.appointmentId}#review` },
       },
-      data: { appointmentId: opts.appointmentId },
+      data: { appointmentId: opts.appointmentId, providerName: opts.providerName },
       push: { url: `/patient/appointments/${opts.appointmentId}#review` },
     }),
   broadcast: (userId: string, opts: { title: string; message: string; channels?: string[] }) =>
@@ -515,7 +518,7 @@ export const notify = {
       body: opts.preferredDate
         ? `You're on the waitlist for ${opts.providerName} on ${opts.preferredDate}. We'll notify you when a slot opens.`
         : `You're on the waitlist for ${opts.providerName}. We'll notify you when a slot opens.`,
-      data: {},
+      data: { providerName: opts.providerName, preferredDate: opts.preferredDate },
       push: { url: `/waitlist` },
     }),
   packageExpired: (userId: string, opts: { packageName: string; lang?: Lang }) =>
@@ -528,7 +531,7 @@ export const notify = {
         subject: `Your "${opts.packageName}" package has expired`,
         intro: `Your "${opts.packageName}" package has expired. Visit the packages page to renew or purchase a new plan.`,
       },
-      data: {},
+      data: { packageName: opts.packageName },
       push: { url: `/packages` },
     }),
 
@@ -548,7 +551,7 @@ export const notify = {
           { label: t("label.provider", opts.lang || "en"), value: opts.providerName },
         ],
       },
-      data: { appointmentId: opts.appointmentId },
+      data: { appointmentId: opts.appointmentId, providerName: opts.providerName, date: opts.date, time: opts.time },
       push: { url: `/patient/appointments/${opts.appointmentId}` },
     }),
 
@@ -567,7 +570,7 @@ export const notify = {
           : `Good news! A slot with ${opts.providerName} is now available.`,
         cta: { label: "Book now", url: `/providers` },
       },
-      data: {},
+      data: { providerName: opts.providerName, date: opts.date },
       push: { url: `/providers`, tag: `waitlist:${opts.providerName}` },
       urgent: true,
     }),
@@ -590,6 +593,7 @@ export const notify = {
       title,
       body,
       email: { subject: title, intro: body },
+      data: { status: opts.status, formattedAmount: opts.formattedAmount, notes: opts.notes },
       push: { url: `/provider-dashboard?tab=earnings` },
     });
   },
@@ -605,7 +609,7 @@ export const notify = {
         intro: `Invoice ${opts.invoiceNumber} for ${opts.formattedAmount} was due on ${opts.dueDate} and remains unpaid.`,
         cta: { label: "View invoice", url: `/patient/appointments` },
       },
-      data: { invoiceNumber: opts.invoiceNumber },
+      data: { invoiceNumber: opts.invoiceNumber, dueDate: opts.dueDate, formattedAmount: opts.formattedAmount },
       urgent: true,
     }),
 
@@ -623,7 +627,7 @@ export const notify = {
           ...(opts.method ? [{ label: "Method", value: opts.method }] : []),
         ],
       },
-      data: { appointmentId: opts.appointmentId },
+      data: { appointmentId: opts.appointmentId, formattedAmount: opts.formattedAmount, method: opts.method },
       push: { url: opts.appointmentId ? `/patient/appointments/${opts.appointmentId}` : `/patient/appointments` },
     }),
 
@@ -633,7 +637,7 @@ export const notify = {
       eventKey: "wallet.topup",
       title: "Wallet topped up",
       body: `${opts.formattedAmount} has been added to your wallet. New balance: ${opts.newBalance}.`,
-      data: {},
+      data: { formattedAmount: opts.formattedAmount, newBalance: opts.newBalance },
     }),
 
   walletRefund: (userId: string, opts: { formattedAmount: string; reason?: string; lang?: Lang }) =>
@@ -642,7 +646,7 @@ export const notify = {
       eventKey: "wallet.refund",
       title: "Wallet credited",
       body: `${opts.formattedAmount} has been credited to your wallet${opts.reason ? ` (${opts.reason})` : ""}.`,
-      data: {},
+      data: { formattedAmount: opts.formattedAmount, reason: opts.reason },
     }),
 
   membershipPurchased: (userId: string, opts: { packageName: string; formattedAmount: string; expiresAt?: string; lang?: Lang }) =>
@@ -661,7 +665,7 @@ export const notify = {
         ],
         cta: { label: "View membership", url: `/packages` },
       },
-      data: {},
+      data: { packageName: opts.packageName, expiresAt: opts.expiresAt },
       push: { url: `/packages` },
     }),
 
@@ -676,7 +680,7 @@ export const notify = {
         intro: `Your "${opts.packageName}" membership has expired. Renew now to keep enjoying your benefits.`,
         cta: { label: "Renew membership", url: `/packages` },
       },
-      data: {},
+      data: { packageName: opts.packageName },
       push: { url: `/packages` },
     }),
 
@@ -695,7 +699,7 @@ export const notify = {
           ...(opts.expiresAt ? [{ label: "Valid until", value: opts.expiresAt }] : []),
         ],
       },
-      data: {},
+      data: { packageName: opts.packageName, expiresAt: opts.expiresAt },
       push: { url: `/packages` },
     }),
 
@@ -711,7 +715,7 @@ export const notify = {
         intro: `We were unable to auto-renew your "${opts.packageName}" package because your wallet balance was insufficient. Please top up your wallet within ${grace} day${grace !== 1 ? "s" : ""} to keep your membership benefits active.`,
         cta: { label: "Top up wallet", url: `/wallet` },
       },
-      data: {},
+      data: { packageName: opts.packageName, graceDays: grace },
       push: { url: `/wallet` },
     });
   },
@@ -732,7 +736,7 @@ export const notify = {
         ],
         cta: { label: "View package", url: `/packages` },
       },
-      data: {},
+      data: { packageName: opts.packageName, sessionsIncluded: opts.sessionsIncluded },
       push: { url: `/packages` },
     }),
 };

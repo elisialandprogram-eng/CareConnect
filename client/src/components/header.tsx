@@ -46,6 +46,7 @@ function WalletBadge() {
 
 function NotificationBell() {
   const [, navigate] = useLocation();
+  const { t } = useTranslation();
   const { data } = useQuery<{ count: number }>({
     queryKey: ["/api/notifications/unread-count"],
     staleTime: 60_000,
@@ -58,7 +59,7 @@ function NotificationBell() {
       className="relative h-9 w-9 rounded-full bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30"
       onClick={() => navigate("/notifications")}
       data-testid="button-notification-bell"
-      aria-label="Notifications"
+      aria-label={t("common.notifications", "Notifications")}
     >
       <Bell className="h-4 w-4 text-amber-600 dark:text-amber-400" />
       {count > 0 && (
@@ -319,7 +320,7 @@ export function Header() {
                     <DropdownMenuItem asChild>
                       <Link href="/health-records" className="cursor-pointer" data-testid="link-health-records-menu">
                         <Activity className="me-2 h-4 w-4 text-indigo-500" />
-                        {t("common.health_records", "Health Records")}
+                         {t("common.health_records", "Health Records")}
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>

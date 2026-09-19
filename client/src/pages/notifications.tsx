@@ -86,6 +86,135 @@ function classifyType(type: string | null | undefined): NotifFilter {
   return "system"; // unknown → system bucket
 }
 
+function inferLegacyEventKey(notif: UserNotification, data: Record<string, any>): string | null {
+  if (typeof data._eventKey === "string") return data._eventKey.replace(/\./g, "_");
+  if (data.tier && notif.type === "appointment") {
+    return `appointment_reminder_${data.tier}`;
+  }
+
+  const title = notif.title.toLowerCase();
+  const message = notif.message.toLowerCase();
+  if (title.includes("appointment automatically closed")) return "appointment_auto_closed";
+  if (title.includes("appointment expired")) return "appointment_expired";
+  if (title.includes("appointment in 24 hours")) return "appointment_reminder_24h";
+  if (title.includes("appointment in 1 hour")) return "appointment_reminder_1h";
+  if (title.includes("appointment in 15 minutes")) return "appointment_reminder_15m";
+  if (title.includes("booking confirmed")) return message.includes("is confirmed") ? "appointment_confirmed" : "appointment_booked";
+  if (title.includes("appointment has been rescheduled")) return "appointment_rescheduled";
+  if (title.includes("appointment was cancelled")) return "appointment_cancelled";
+  if (title.includes("tell us about your visit")) return "appointment_postvisit";
+  if (title.includes("payment received")) return "payment_received";
+  if (title.includes("refund processed")) return "payment_refunded";
+  if (title.includes("new ") && title.includes("star review")) return "review_left";
+  if (title.includes("provider replied to your review")) return "review_replied";
+  if (title.includes("reply on your support ticket")) return "ticket_replied";
+  if (title.includes("new message from")) return "chat_new_message";
+  if (title.includes("added to waitlist")) return "waitlist_joined";
+  if (title.includes("slot available")) return "waitlist_slot_available";
+  if (title.includes("package expired")) return "package_expired";
+  if (title.includes("package purchased")) return "package_purchased";
+  if (title.includes("renewal failed")) return "package_renewal_failed";
+  if (title.includes("membership activated")) return "membership_purchased";
+  if (title.includes("membership expired")) return "membership_expired";
+  if (title.includes("membership renewed")) return "membership_renewed";
+  if (title.includes("wallet topped up")) return "wallet_topup";
+  if (title.includes("wallet credited")) return "wallet_refund";
+  if (title.includes("invoice overdue")) return "invoice_overdue";
+  if (title.includes("payout request approved")) return "payout_approved";
+  if (title.includes("payout sent")) return "payout_paid";
+  if (title.includes("payout request rejected")) return "payout_rejected";
+  return null;
+}
+
+function inferLegacyTemplateData(eventKey: string, message: string, data: Record<string, any>): Record<string, any> {
+  const result = { ...data };
+  const setMatch = (pattern: RegExp, ...keys: string[]) => {
+    const match = message.match(pattern);
+    if (!match) return;
+    keys.forEach((key, index) => {
+      if (result[key] == null && match[index + 1] != null) result[key] = match[index + 1].trim();
+    });
+  };
+
+  if (eventKey.startsWith("appointment_reminder_")) {
+    setMatch(/(.+?)\s+at\s+(.+?)\.?$/i, "date", "time");
+  } else if (eventKey === "appointment_booked") {
+    setMatch(/Your appointment with (.+?) is on (.+?) at (.+?)\.?$/i, "providerName", "date", "time");
+  } else if (eventKey === "appointment_confirmed") {
+    setMatch(/Your appointment with (.+?) on (.+?) at (.+?) is confirmed\.?$/i, "providerName", "date", "time");
+  } else if (eventKey === "appointment_rescheduled") {
+    setMatch(/New time: (.+?) at (.+?)\.?$/i, "date", "time");
+  } else if (eventKey === "appointment_cancelled") {
+    setMatch(/Your appointment on (.+?) at (.+?) was cancelled\.?$/i, "date", "time");
+  } else if (eventKey === "appointment_auto_closed") {
+    setMatch(/Your appointment(?: \(([^)]+)\))? on (.+?) was automatically closed/i, "appointmentRef", "date");
+  } else if (eventKey === "appointment_expired") {
+    setMatch(/Your appointment request(?: \(([^)]+)\))? expired/i, "appointmentRef");
+  } else if (eventKey === "payment_received") {
+    setMatch(/We received your payment of (.+?)\.?$/i, "formattedAmount");
+  } else if (eventKey === "payment_refunded") {
+    setMatch(/Your refund of (.+?) has been processed(?: to your (.+?))?\.?$/i, "formattedAmount", "method");
+  } else if (eventKey === "review_left") {
+    setMatch(/(.+?) left a (\d+)-star review/i, "patientName", "rating");
+  } else if (eventKey === "review_replied") {
+    setMatch(/(.+?) replied to your review/i, "providerName");
+  } else if (eventKey === "ticket_replied") {
+    setMatch(/Support replied on "(.+?)"\.?$/i, "subject");
+  } else if (eventKey === "chat_new_message") {
+    setMatch(/New message from (.+)$/i, "senderName");
+  } else if (eventKey === "waitlist_joined") {
+    setMatch(/You're on the waitlist for (.+?)(?: on (.+?))?\. We/i, "providerName", "preferredDate");
+  } else if (eventKey === "waitlist_slot_available") {
+    setMatch(/A slot with (.+?) is now available(?: on (.+?))?\.?/i, "providerName", "date");
+  } else if (eventKey === "package_expired" || eventKey === "package_purchased" || eventKey.startsWith("membership_")) {
+    setMatch(/Your "(.+?)"/i, "packageName");
+  } else if (eventKey === "wallet_topup") {
+    setMatch(/(.+?) has been added to your wallet\. New balance: (.+?)\.?$/i, "formattedAmount", "newBalance");
+  } else if (eventKey === "wallet_refund") {
+    setMatch(/(.+?) has been credited to your wallet/i, "formattedAmount");
+  } else if (eventKey === "invoice_overdue") {
+    setMatch(/Invoice (.+?) for (.+?) was due on (.+?)\./i, "invoiceNumber", "formattedAmount", "dueDate");
+  } else if (eventKey.startsWith("payout_")) {
+    setMatch(/payout(?: request)?(?: for| of) (.+?) has been/i, "formattedAmount");
+  }
+  return result;
+}
+
+function getLocalizedNotification(
+  notif: UserNotification,
+  t: (key: string, fallback: string, options?: any) => unknown,
+): { title: string; message: string } {
+  let data: Record<string, any> = {};
+  try {
+    const parsed = notif.data ? JSON.parse(notif.data) : {};
+    if (parsed && typeof parsed === "object") data = parsed;
+  } catch {
+    // Older notification rows may contain non-JSON data.
+  }
+
+  const eventKey = inferLegacyEventKey(notif, data);
+  if (!eventKey) return { title: notif.title, message: notif.message };
+
+  data = inferLegacyTemplateData(eventKey, notif.message, data);
+  const templateData = {
+    ...data,
+    appointmentRefSuffix: data.appointmentRef ? ` (${data.appointmentRef})` : "",
+    methodSuffix: data.method ? ` to your ${data.method}` : "",
+    preferredDateSuffix: data.preferredDate ? ` on ${data.preferredDate}` : "",
+    dateSuffix: data.date ? ` on ${data.date}` : "",
+    sessionsSuffix: data.sessionsIncluded ? ` ${data.sessionsIncluded} sessions included.` : "",
+    renewalSuffix: data.expiresAt ? ` Renews on ${data.expiresAt}.` : "",
+    validUntilSuffix: data.expiresAt ? ` Valid until ${data.expiresAt}.` : "",
+    reasonSuffix: data.reason ? ` (${data.reason})` : "",
+    notesSuffix: data.notes ? `: ${data.notes}` : "",
+  };
+
+  return {
+    title: String(t(`notifications.events.${eventKey}.title`, notif.title, templateData)),
+    message: String(t(`notifications.events.${eventKey}.message`, notif.message, templateData)),
+  };
+}
+
 export default function Notifications() {
   const { t } = useTranslation();
   usePageTitle(t("notifications.meta_title", "Notifications"));
@@ -330,6 +459,7 @@ export default function Notifications() {
                     filtered.map((notif) => {
                       const link = getDeepLink(notif);
                       const isSelected = selectedIds.has(notif.id);
+                      const localized = getLocalizedNotification(notif, t as any);
                       return (
                         <div
                           key={notif.id}
@@ -361,12 +491,12 @@ export default function Notifications() {
                           {getIcon(notif.type)}
                           <div className="flex-1 min-w-0">
                             <div className="flex items-start justify-between mb-1 gap-2">
-                              <h4 className="font-semibold leading-tight" data-testid={`text-notification-title-${notif.id}`}>{notif.title}</h4>
+                               <h4 className="font-semibold leading-tight" data-testid={`text-notification-title-${notif.id}`}>{localized.title}</h4>
                               <span className="text-xs text-muted-foreground whitespace-nowrap shrink-0">
                                 {notif.createdAt && formatDateTime(notif.createdAt, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
                               </span>
                             </div>
-                            <p className="text-sm text-muted-foreground leading-relaxed">{notif.message}</p>
+                             <p className="text-sm text-muted-foreground leading-relaxed">{localized.message}</p>
                             <div className="flex items-center gap-2 mt-2">
                               {!notif.isRead && !bulkMode && (
                                 <Button

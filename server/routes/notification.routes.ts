@@ -45,6 +45,7 @@ export function registerNotificationRoutes(app: Express): void {
           message: userNotifications.message,
           isRead: userNotifications.isRead,
           createdAt: userNotifications.createdAt,
+           data: userNotifications.data,
         })
         .from(userNotifications)
         .where(eq(userNotifications.userId, req.user!.id))
