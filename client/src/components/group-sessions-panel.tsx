@@ -42,11 +42,11 @@ type Participant = {
   userLastName: string | null;
 };
 
-const statusBadge: Record<string, { label: string; cls: string }> = {
-  scheduled: { label: "Scheduled", cls: "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200" },
-  live: { label: "Live", cls: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200" },
-  completed: { label: "Completed", cls: "bg-slate-200 text-slate-800 dark:bg-slate-700 dark:text-slate-200" },
-  cancelled: { label: "Cancelled", cls: "bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-200" },
+const statusBadge: Record<string, { key: string; cls: string }> = {
+  scheduled: { key: "scheduled", cls: "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200" },
+  live: { key: "live", cls: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200" },
+  completed: { key: "completed", cls: "bg-slate-200 text-slate-800 dark:bg-slate-700 dark:text-slate-200" },
+  cancelled: { key: "cancelled", cls: "bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-200" },
 };
 
 function toLocalInput(d: Date) {
@@ -212,7 +212,7 @@ export function GroupSessionsPanel() {
         ) : (
           <div className="space-y-3">
             {list.data.map((s) => {
-              const sb = statusBadge[s.status];
+              const sb = statusBadge[s.status] ?? statusBadge.scheduled;
               return (
                 <div key={s.id}
                   className="flex flex-col md:flex-row md:items-center justify-between gap-3 p-3 border rounded-xl"
@@ -220,7 +220,7 @@ export function GroupSessionsPanel() {
                   <div className="min-w-0">
                     <div className="font-medium flex items-center gap-2">
                       {s.title}
-                      <Badge className={sb.cls}>{sb.label}</Badge>
+                       <Badge className={sb.cls}>{t(`provider_dashboard.group_status_${sb.key}`, sb.key)}</Badge>
                     </div>
                     <div className="text-xs text-muted-foreground flex items-center gap-3 mt-0.5">
                       <span className="inline-flex items-center gap-1">
@@ -317,7 +317,7 @@ function GroupSessionDetailDialog({ sessionId, onClose }: { sessionId: string | 
                     {p.userFirstName || p.userLastName ? `${p.userFirstName ?? ""} ${p.userLastName ?? ""}`.trim() : p.userEmail}
                   </div>
                   <div className="text-xs text-muted-foreground">
-                    {p.userEmail} · {p.paymentStatus} · {fmtCurrency(Number(p.amountPaid))}
+                     {p.userEmail} · {t(`provider_dashboard.payment_${p.paymentStatus}`, p.paymentStatus)} · {fmtCurrency(Number(p.amountPaid))}
                   </div>
                 </div>
                 <Select

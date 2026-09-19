@@ -587,8 +587,8 @@ export function ProviderAppointmentsTabs({ providerData, highlightApptId, active
           </div>
           {(searchQuery.trim() || statusFilter !== "all" || visitTypeFilter !== "all") && (
             <p className="text-xs text-muted-foreground mb-3" data-testid="text-filter-count">
-              Showing <span className="font-semibold text-foreground">{filterAppointments(allAppts).length}</span> of {allAppts.length} appointments
-              {searchQuery.trim() && <> matching "<span className="font-semibold text-foreground">{searchQuery.trim()}</span>"</>}
+               {t("provider_dashboard.showing_count_of", "Showing {{shown}} of {{total}} appointments", { shown: filterAppointments(allAppts).length, total: allAppts.length })}
+               {searchQuery.trim() && <> {t("provider_dashboard.matching", "matching")} "<span className="font-semibold text-foreground">{searchQuery.trim()}</span>"</>}
             </p>
           )}
         </>
@@ -1260,7 +1260,7 @@ export function ProviderAppointmentsTabs({ providerData, highlightApptId, active
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400" />
-              Patient Sign-off Required
+               {t("provider_dashboard.patient_signoff_required", "Patient Sign-off Required")}
             </DialogTitle>
             <DialogFooter className="hidden" />
           </DialogHeader>

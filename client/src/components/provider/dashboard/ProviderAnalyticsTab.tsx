@@ -204,7 +204,15 @@ export function ProviderAnalyticsTabContent() {
               <YAxis yAxisId="bkg" orientation="right" tick={{ fontSize: 11 }} allowDecimals={false} />
               <Tooltip
                 formatter={(v: any, name: string) =>
-                  name === "revenue" ? [fmt(Number(v)), t("provider_dashboard.analytics_revenue", "Revenue")] : [v, name === "bookings" ? t("provider_dashboard.analytics_completed", "Completed") : name]
+                  name === "revenue"
+                    ? [fmt(Number(v)), t("provider_dashboard.analytics_revenue", "Revenue")]
+                    : [v, name === "bookings"
+                      ? t("provider_dashboard.analytics_completed", "Completed")
+                      : name === "cancellations"
+                        ? t("provider_dashboard.analytics_cancellations", "Cancellations")
+                        : name === "noShows"
+                          ? t("provider_dashboard.analytics_no_shows", "No-shows")
+                          : name]
                 }
               />
               <Legend wrapperStyle={{ fontSize: 12 }} />
@@ -215,10 +223,10 @@ export function ProviderAnalyticsTabContent() {
                 stroke="hsl(var(--primary))"
                 strokeWidth={2}
                 fill="url(#analyticsRevGrad)"
-                name="revenue"
+                 name={t("provider_dashboard.analytics_revenue", "Revenue")}
                 dot={false}
               />
-              <Bar yAxisId="bkg" dataKey="bookings" fill="hsl(var(--primary) / 0.6)" radius={[3, 3, 0, 0]} name="bookings" />
+              <Bar yAxisId="bkg" dataKey="bookings" fill="hsl(var(--primary) / 0.6)" radius={[3, 3, 0, 0]} name={t("provider_dashboard.analytics_bookings", "Bookings")} />
             </AreaChart>
           </ResponsiveContainer>
         </CardContent>
@@ -243,8 +251,8 @@ export function ProviderAnalyticsTabContent() {
               <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
               <Tooltip />
               <Legend wrapperStyle={{ fontSize: 12 }} />
-              <Bar dataKey="cancellations" fill="hsl(var(--destructive) / 0.7)" radius={[3, 3, 0, 0]} name="cancellations" stackId="a" />
-              <Bar dataKey="noShows" fill="hsl(var(--destructive) / 0.4)" radius={[3, 3, 0, 0]} name="no-shows" stackId="a" />
+               <Bar dataKey="cancellations" fill="hsl(var(--destructive) / 0.7)" radius={[3, 3, 0, 0]} name={t("provider_dashboard.analytics_cancellations", "Cancellations")} stackId="a" />
+               <Bar dataKey="noShows" fill="hsl(var(--destructive) / 0.4)" radius={[3, 3, 0, 0]} name={t("provider_dashboard.analytics_no_shows", "No-shows")} stackId="a" />
             </BarChart>
           </ResponsiveContainer>
         </CardContent>

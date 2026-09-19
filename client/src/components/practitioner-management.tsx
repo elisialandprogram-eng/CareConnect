@@ -281,6 +281,7 @@ function PractitionerScheduleDialog({
   practitioner: Practitioner;
   providerId: string;
 }) {
+  const { t } = useTranslation();
   const { toast } = useToast();
 
   const { data: scheduleData, isLoading: loadingSchedule } = useQuery<{ schedule: any }>({
@@ -302,9 +303,9 @@ function PractitionerScheduleDialog({
       apiRequest("PUT", `/api/practitioners/${practitioner.id}/schedule`, { schedule }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/practitioners/${practitioner.id}/schedule`] });
-      toast({ title: "Schedule saved" });
+       toast({ title: t("provider_dashboard.schedule_saved", "Schedule saved") });
     },
-    onError: () => toast({ title: "Failed to save schedule", variant: "destructive" }),
+    onError: () => toast({ title: t("provider_dashboard.schedule_save_failed", "Failed to save schedule"), variant: "destructive" }),
   });
 
   const displayName = practitioner.name ?? "";
@@ -316,7 +317,7 @@ function PractitionerScheduleDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <CalendarDays className="h-5 w-5 text-primary" />
-            Schedule — {displayName}
+             {t("provider_dashboard.schedule_for", "Schedule")} — {displayName}
           </DialogTitle>
         </DialogHeader>
 
@@ -325,18 +326,18 @@ function PractitionerScheduleDialog({
           <div className="rounded-xl bg-muted/50 border p-3 mb-2">
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 flex items-center gap-1.5">
               <BarChart2 className="h-3.5 w-3.5" />
-              Upcoming bookings
+              {t("provider_dashboard.upcoming_bookings", "Upcoming bookings")}
             </p>
             <div className="flex flex-wrap gap-3">
               {(utilData.utilization ?? []).slice(0, 7).map((u: any) => (
                 <div key={u.date} className="text-xs text-center min-w-[52px]" data-testid={`util-day-${u.date}`}>
                   <p className="font-medium">{formatDate(u.date + "T12:00:00", { weekday: "short", month: "short", day: "numeric" })}</p>
-                  <p className="text-muted-foreground">{u.appointmentCount} appt{u.appointmentCount !== 1 ? "s" : ""}</p>
+                   <p className="text-muted-foreground">{t("provider_dashboard.appointments_count", "{{count}} appointment(s)", { count: u.appointmentCount })}</p>
                 </div>
               ))}
               <div className="text-xs text-center min-w-[52px] ml-auto self-center">
                 <p className="font-semibold text-primary">{totalAppts}</p>
-                <p className="text-muted-foreground">total</p>
+                 <p className="text-muted-foreground">{t("provider_dashboard.total", "total")}</p>
               </div>
             </div>
           </div>
@@ -373,6 +374,7 @@ function AssignmentRow({
   onToggle: (id: string, isActive: boolean) => void;
   onFeeChange: (id: string, fee: string) => void;
 }) {
+  const { t } = useTranslation();
   const { format: fmtMoney } = useCurrency();
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(assignment.fee);
@@ -415,7 +417,7 @@ function AssignmentRow({
         <button
           className="text-primary hover:underline text-xs font-mono cursor-pointer"
           onClick={() => setEditing(true)}
-          title="Click to edit fee"
+           title={t("provider_dashboard.edit_fee", "Click to edit fee")}
           data-testid={`button-edit-fee-${assignment.id}`}
         >
           {fmtMoney(assignment.fee)}
@@ -552,9 +554,9 @@ function PractitionerCard({
             )}
             {(() => {
               const status = (practitioner as any).status ?? "pending";
-              if (status === "approved") return <Badge className="text-xs h-5 bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300 border border-emerald-200 hover:bg-emerald-100" data-testid={`badge-practitioner-status-${practitioner.id}`}>Approved</Badge>;
-              if (status === "rejected") return <Badge className="text-xs h-5 bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300 border border-rose-200 hover:bg-rose-100" data-testid={`badge-practitioner-status-${practitioner.id}`}>Rejected</Badge>;
-              return <Badge className="text-xs h-5 bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300 border border-amber-200 hover:bg-amber-100" data-testid={`badge-practitioner-status-${practitioner.id}`}>Pending Approval</Badge>;
+               if (status === "approved") return <Badge className="text-xs h-5 bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300 border border-emerald-200 hover:bg-emerald-100" data-testid={`badge-practitioner-status-${practitioner.id}`}>{t("provider_dashboard.status_approved", "Approved")}</Badge>;
+               if (status === "rejected") return <Badge className="text-xs h-5 bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300 border border-rose-200 hover:bg-rose-100" data-testid={`badge-practitioner-status-${practitioner.id}`}>{t("provider_dashboard.status_rejected", "Rejected")}</Badge>;
+               return <Badge className="text-xs h-5 bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300 border border-amber-200 hover:bg-amber-100" data-testid={`badge-practitioner-status-${practitioner.id}`}>{t("provider_dashboard.pending_approval", "Pending Approval")}</Badge>;
             })()}
           </div>
           {practitioner.specialization && (
@@ -576,7 +578,7 @@ function PractitionerCard({
             className="h-8 w-8"
             onClick={() => onEdit(practitioner)}
             data-testid={`button-edit-practitioner-${practitioner.id}`}
-            title="Edit practitioner"
+             title={t("provider_dashboard.edit_practitioner", "Edit practitioner")}
           >
             <Pencil className="h-3.5 w-3.5" />
           </Button>
@@ -586,7 +588,7 @@ function PractitionerCard({
             className="h-8 w-8 text-destructive hover:text-destructive"
             onClick={() => onDelete(practitioner)}
             data-testid={`button-delete-practitioner-${practitioner.id}`}
-            title="Delete practitioner"
+             title={t("provider_dashboard.delete_practitioner", "Delete practitioner")}
           >
             <Trash2 className="h-3.5 w-3.5" />
           </Button>
@@ -598,7 +600,7 @@ function PractitionerCard({
             data-testid={`button-schedule-${practitioner.id}`}
           >
             <CalendarDays className="h-3.5 w-3.5" />
-            Schedule
+             {t("provider_dashboard.schedule", "Schedule")}
           </Button>
           <Button
             size="sm"

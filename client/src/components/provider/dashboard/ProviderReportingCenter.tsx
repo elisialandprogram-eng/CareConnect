@@ -70,7 +70,7 @@ interface PayoutSummaryData {
   completedCount: number;
 }
 
-const DOW_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const DOW_KEYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"] as const;
 
 function PanelLoader() {
   return (
@@ -274,7 +274,7 @@ function PatientsTab({ insights, fmtMoney }: { insights?: InsightsData; fmtMoney
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-medium flex items-center gap-2">
             <Users className="h-4 w-4" />
-            Loyal Patients
+             {t("provider_dashboard.loyal_patients", "Loyal Patients")}
             <Badge variant="secondary">{insights.repeatPatients.length}</Badge>
           </CardTitle>
         </CardHeader>
@@ -287,10 +287,10 @@ function PatientsTab({ insights, fmtMoney }: { insights?: InsightsData; fmtMoney
                 <div key={p.patientId} className="flex justify-between items-center text-sm py-1.5 border-b last:border-0">
                   <div className="min-w-0">
                     <p className="font-medium truncate max-w-[160px]">{p.name}</p>
-                    <p className="text-xs text-muted-foreground">Last visit: {formatDate(p.lastVisit)}</p>
+                     <p className="text-xs text-muted-foreground">{t("provider_dashboard.last_visit", "Last visit")}: {formatDate(p.lastVisit)}</p>
                   </div>
                   <div className="text-right shrink-0 flex items-center gap-3">
-                    <Badge variant="secondary">{p.visitCount} visits</Badge>
+                     <Badge variant="secondary">{t("provider_dashboard.visits_count", "{{count}} visits", { count: p.visitCount })}</Badge>
                   </div>
                 </div>
               ))}
@@ -405,7 +405,7 @@ function ServicesTab({ analytics, fmtMoney }: { analytics?: AnalyticsData; fmtMo
               <XAxis type="number" tick={{ fontSize: 10 }} />
               <YAxis dataKey="name" type="category" tick={{ fontSize: 10 }} width={120} />
               <Tooltip />
-              <Bar dataKey="bookings" name="Bookings" fill="#10b981" radius={[0, 4, 4, 0]} />
+              <Bar dataKey="bookings" name={t("provider_dashboard.analytics_bookings", "Bookings")} fill="#10b981" radius={[0, 4, 4, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </CardContent>
@@ -429,7 +429,7 @@ function ScheduleTab({ analytics, insights, fmtMoney }: { analytics?: AnalyticsD
         if (cnt > best.cnt) best = { dow, hour, cnt };
       });
     });
-    return best.cnt > 0 ? `${DOW_LABELS[best.dow]} ${best.hour}:00` : null;
+    return best.cnt > 0 ? `${t(`provider_dashboard.day_${DOW_KEYS[best.dow]}_short`, DOW_KEYS[best.dow])} ${best.hour}:00` : null;
   })();
 
   return (
@@ -463,13 +463,13 @@ function ScheduleTab({ analytics, insights, fmtMoney }: { analytics?: AnalyticsD
                     const maxCnt = Math.max(...hours, 1);
                     return (
                       <div key={dow} className="contents">
-                        <div className="text-muted-foreground py-0.5">{DOW_LABELS[dow]}</div>
+                        <div className="text-muted-foreground py-0.5">{t(`provider_dashboard.day_${DOW_KEYS[dow]}_short`, DOW_KEYS[dow])}</div>
                         {hours.map((cnt, hour) => (
                           <div
                             key={hour}
                             className="h-6 rounded"
                             style={{ backgroundColor: cnt > 0 ? `rgba(99,102,241,${Math.max(0.1, cnt / maxCnt)})` : "transparent", border: "1px solid rgba(0,0,0,0.05)" }}
-                            title={`${DOW_LABELS[dow]} ${hour}:00 — ${cnt} appointments`}
+                            title={`${t(`provider_dashboard.day_${DOW_KEYS[dow]}_short`, DOW_KEYS[dow])} ${hour}:00 — ${t("provider_dashboard.appointments_count", "{{count}} appointment(s)", { count: cnt })}`}
                           />
                         ))}
                       </div>
@@ -599,7 +599,9 @@ function FinancialsTab({ fmtMoney, enabled }: { fmtMoney: (v: number) => string;
                       <td className="text-end py-2 font-medium text-emerald-600">{fmtMoney(Number(e.providerNetEarningsUsd ?? 0))}</td>
                       <td className="text-end py-2">
                         <Badge variant={["paid", "completed"].includes(e.paymentStatus) ? "default" : "secondary"} className="text-xs capitalize">
-                          {e.paymentStatus === "paid" || e.paymentStatus === "completed" ? "Paid" : (e.paymentStatus ?? "Pending")}
+                          {e.paymentStatus === "paid" || e.paymentStatus === "completed"
+                            ? t("provider_dashboard.payment_paid", "Paid")
+                            : String(t(`provider_dashboard.payment_${e.paymentStatus ?? "pending"}`, e.paymentStatus ?? t("provider_dashboard.payment_pending", "Pending")))}
                         </Badge>
                       </td>
                     </tr>
@@ -656,7 +658,7 @@ function PayoutsTab({ fmtMoney, enabled }: { fmtMoney: (v: number) => string; en
                 <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.3} />
                 <XAxis dataKey="month" tick={{ fontSize: 10 }} />
                 <YAxis tick={{ fontSize: 10 }} tickFormatter={v => fmtMoney(v)} width={65} />
-                <Tooltip formatter={(v: number) => [fmtMoney(v), "Net Credits"]} />
+                <Tooltip formatter={(v: number) => [fmtMoney(v), t("provider_dashboard.net_credits", "Net Credits")]} />
                 <Bar dataKey="net" name={t("provider_dashboard.reporting_credits", "Credits")} fill="#10b981" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>

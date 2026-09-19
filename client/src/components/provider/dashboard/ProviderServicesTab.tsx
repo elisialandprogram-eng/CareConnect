@@ -446,7 +446,7 @@ export function ProviderServicesTab({ providerData, providerWithServices, setAct
                           className={`text-[10px] ${isArchived ? "border-amber-500/60 text-amber-700 dark:text-amber-400" : sa.pendingChangeStatus === "pending" ? "border-amber-500/60 text-amber-700 dark:text-amber-400" : sa.pendingChangeStatus === "rejected" ? "border-destructive/60 text-destructive" : ""}`}
                           data-testid={`badge-service-status-${s.id}`}
                         >
-                          {isArchived ? "Archived" : sa.pendingChangeStatus === "pending" ? "Pending Approval" : sa.pendingChangeStatus === "rejected" ? "Rejected" : s.isActive ? t("provider_dashboard.active", "Active") : t("provider_dashboard.paused", "Paused")}
+                           {isArchived ? t("provider_dashboard.archived", "Archived") : sa.pendingChangeStatus === "pending" ? t("provider_dashboard.pending_approval", "Pending Approval") : sa.pendingChangeStatus === "rejected" ? t("provider_dashboard.rejected", "Rejected") : s.isActive ? t("provider_dashboard.active", "Active") : t("provider_dashboard.paused", "Paused")}
                         </Badge>
                       </div>
                       {visitFees.length > 0 && (
@@ -667,7 +667,7 @@ export function ProviderServicesTab({ providerData, providerWithServices, setAct
                         <div className="flex items-center gap-2 shrink-0">
                           {dateStr && <span className="text-xs text-muted-foreground hidden sm:block">{dateStr}</span>}
                           <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium capitalize ${colorClass}`}>
-                            {(proposal.status ?? "pending").replace(/_/g, " ")}
+                            {String(t(`provider_dashboard.proposal_status_${proposal.status ?? "pending"}`, (proposal.status ?? "pending").replace(/_/g, " ")))}
                           </span>
                         </div>
                       </div>
@@ -727,7 +727,7 @@ export function ProviderServicesTab({ providerData, providerWithServices, setAct
                 })}
               </div>
               {pkgServiceIds.length >= 2 && pkgSavings > 0 && (
-                <p className="text-xs text-green-600 dark:text-green-400">Saves {fmtMoney(pkgSavings)} vs buying separately</p>
+               <p className="text-xs text-green-600 dark:text-green-400">{t("provider_dashboard.package_savings", "Saves {{amount}} vs buying separately", { amount: fmtMoney(pkgSavings) })}</p>
               )}
             </div>
           </div>

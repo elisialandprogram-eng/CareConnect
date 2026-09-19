@@ -208,7 +208,7 @@ function ProfileCompletenessCard({
 // ── Provider Insights Tab ─────────────────────────────────────────────────────
 function ProviderInsightsTab({ data, fmtMoney }: { data: InsightsData; fmtMoney: (v: number) => string; }) {
   const { t } = useTranslation();
-  const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  const DAYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"] as const;
   const BUSINESS_HOURS = Array.from({ length: 14 }, (_, i) => i + 7);
   const heatMax = Math.max(1, ...(data.heatmap ?? []).flatMap((row) => row));
 
@@ -297,7 +297,7 @@ function ProviderInsightsTab({ data, fmtMoney }: { data: InsightsData; fmtMoney:
           <div className="overflow-x-auto">
             <div className="grid gap-0.5" style={{ gridTemplateColumns: `44px repeat(7, 1fr)`, minWidth: 340 }}>
               <div />
-              {DAYS.map((d) => <div key={d} className="text-center text-[10px] font-medium text-muted-foreground pb-1">{d}</div>)}
+              {DAYS.map((d) => <div key={d} className="text-center text-[10px] font-medium text-muted-foreground pb-1">{t(`provider_dashboard.day_${d}_short`, d)}</div>)}
               {BUSINESS_HOURS.map((hour) => (
                 <React.Fragment key={hour}>
                   <div className="text-[10px] text-muted-foreground flex items-center justify-end pr-1.5 h-6">{String(hour).padStart(2, "0")}:00</div>
@@ -688,12 +688,18 @@ export default function ProviderDashboard() {
               : isPending ? "bg-blue-500/20 text-blue-400"
               : isLive ? "bg-emerald-500/20 text-emerald-400"
               : "bg-white/10 text-white/50";
-            const labelMap: Record<string, string> = {
-              draft: "Draft", action_required: "Action Required", submitted: "Submitted",
-              pending_approval: "Under Review", under_review: "Under Review",
-              approved: "Approved", active: "Active", rejected: "Rejected",
-              suspended: "Suspended", deactivated: "Deactivated",
-            };
+             const labelMap: Record<string, string> = {
+               draft: t("provider_dashboard.status_draft", "Draft"),
+               action_required: t("provider_dashboard.status_action_required", "Action Required"),
+               submitted: t("provider_dashboard.status_submitted", "Submitted"),
+               pending_approval: t("provider_dashboard.status_under_review", "Under Review"),
+               under_review: t("provider_dashboard.status_under_review", "Under Review"),
+               approved: t("provider_dashboard.status_approved", "Approved"),
+               active: t("provider_dashboard.status_active", "Active"),
+               rejected: t("provider_dashboard.status_rejected", "Rejected"),
+               suspended: t("provider_dashboard.status_suspended", "Suspended"),
+               deactivated: t("provider_dashboard.status_deactivated", "Deactivated"),
+             };
             return (
               <div className={`mb-4 rounded-xl p-3 border ${borderCls}`} data-testid="sidebar-status-card">
                 <div className="flex items-center justify-between mb-1.5">
@@ -1127,7 +1133,7 @@ export default function ProviderDashboard() {
                     el?.scrollIntoView({ behavior: "smooth", block: "center" });
                   }, 350);
                 }} data-testid="button-jump-next-appt">
-                  Jump to →
+                  {t("provider_dashboard.jump_to", "Jump to")} →
                 </Button>
               </div>
             );
@@ -1220,7 +1226,7 @@ export default function ProviderDashboard() {
                   {pendingCashCount === 1 ? "1 appointment awaiting cash or bank-transfer payment" : `${pendingCashCount} appointments awaiting cash or bank-transfer payment`}
                 </p>
                 <p className="text-amber-700 dark:text-amber-400 text-xs mt-1 leading-relaxed">
-                  Find the appointment in your list below and click "Mark payment received" once you've collected it.
+                   {t("provider_dashboard.find_appointment_payment", "Find the appointment in your list below and click \"Mark payment received\" once you've collected it.")}
                 </p>
               </div>
               <Badge className="bg-amber-100 dark:bg-amber-900/50 text-amber-800 dark:text-amber-300 border-amber-200 dark:border-amber-700 shrink-0 text-sm font-bold px-3 py-1">
@@ -1550,9 +1556,9 @@ export default function ProviderDashboard() {
                     <CardHeader className="pb-3">
                       <CardTitle className="text-base flex items-center gap-2">
                         <Star className="h-4 w-4 text-amber-500" />
-                        Review Summary
+                         {t("provider_dashboard.review_summary", "Review Summary")}
                       </CardTitle>
-                      <CardDescription>{providerReviews.length} review{providerReviews.length !== 1 ? "s" : ""} · {replied} replied ({Math.round((replied / providerReviews.length) * 100)}% response rate)</CardDescription>
+                       <CardDescription>{t("provider_dashboard.review_summary_desc", "{{reviews}} reviews · {{replied}} replied ({{rate}}% response rate)", { reviews: providerReviews.length, replied, rate: Math.round((replied / providerReviews.length) * 100) })}</CardDescription>
                     </CardHeader>
                     <CardContent>
                       <div className="flex flex-col md:flex-row gap-6 items-start">
@@ -1829,10 +1835,10 @@ export default function ProviderDashboard() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Shield className="h-5 w-5 text-primary shrink-0" />
-              Review &amp; Accept Agreements
+              {t("provider_dashboard.review_accept_agreements", "Review & Accept Agreements")}
             </DialogTitle>
             <DialogDescription>
-              Before submitting your profile for compliance review, please read and accept the following agreements.
+              {t("provider_dashboard.agreements_desc", "Before submitting your profile for compliance review, please read and accept the following agreements.")}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
@@ -1845,11 +1851,11 @@ export default function ProviderDashboard() {
                 data-testid="checkbox-provider-agreement"
               />
               <span className="text-sm leading-relaxed">
-                I have read and agree to the{" "}
+                {t("provider_dashboard.agreement_prefix", "I have read and agree to the")}{" "}
                 <a href="/legal/provider-agreement" target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-2 hover:text-primary/80 font-medium">
-                  Provider Agreement
+                  {t("provider_dashboard.provider_agreement", "Provider Agreement")}
                 </a>
-                , including the terms of service, code of conduct, and obligations as a listed healthcare provider on this platform.
+                {t("provider_dashboard.provider_agreement_suffix", ", including the terms of service, code of conduct, and obligations as a listed healthcare provider on this platform.")}
               </span>
             </label>
             <label className="flex items-start gap-3 cursor-pointer select-none" data-testid="label-consent-data-processing">
@@ -1861,11 +1867,11 @@ export default function ProviderDashboard() {
                 data-testid="checkbox-data-processing-agreement"
               />
               <span className="text-sm leading-relaxed">
-                I have read and agree to the{" "}
+                {t("provider_dashboard.agreement_prefix", "I have read and agree to the")}{" "}
                 <a href="/legal/data-processing-agreement" target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-2 hover:text-primary/80 font-medium">
-                  Data Processing Agreement
+                  {t("provider_dashboard.data_processing_agreement", "Data Processing Agreement")}
                 </a>
-                , including how my personal and professional data is processed in accordance with applicable privacy regulations.
+                {t("provider_dashboard.data_agreement_suffix", ", including how my personal and professional data is processed in accordance with applicable privacy regulations.")}
               </span>
             </label>
           </div>
@@ -1876,7 +1882,7 @@ export default function ProviderDashboard() {
               onClick={() => { setConsentDialogOpen(false); setAgreedToProvider(false); setAgreedToData(false); }}
               data-testid="button-consent-cancel"
             >
-              Cancel
+              {t("common.cancel", "Cancel")}
             </Button>
             <Button
               className="w-full sm:w-auto gap-2"
@@ -1890,7 +1896,7 @@ export default function ProviderDashboard() {
               {submitReviewMutation.isPending
                 ? <Loader2 className="h-4 w-4 animate-spin" />
                 : <SendHorizonal className="h-4 w-4" />}
-              Confirm &amp; Submit for Review
+              {t("provider_dashboard.confirm_submit_review", "Confirm & Submit for Review")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1943,7 +1949,7 @@ export default function ProviderDashboard() {
                   onClick={() => { setLockedModalOpen(false); setActiveTab("profile"); }}
                   data-testid="button-locked-go-to-setup"
                 >
-                  Complete My Profile →
+                  {t("provider_dashboard.complete_my_profile", "Complete My Profile")} →
                 </Button>
                 <Button
                   variant="ghost"
@@ -1952,7 +1958,7 @@ export default function ProviderDashboard() {
                   onClick={() => setLockedModalOpen(false)}
                   data-testid="button-locked-dismiss"
                 >
-                  Dismiss
+                  {t("provider_dashboard.dismiss", "Dismiss")}
                 </Button>
               </div>
             </div>

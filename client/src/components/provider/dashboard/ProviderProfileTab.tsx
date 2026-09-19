@@ -1623,7 +1623,7 @@ export function ProviderProfileTab({
                  placeholder={t("provider_dashboard.street_address", "Street address")} data-testid="input-practice-address" />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="workplaceCity">City</Label>
+              <Label htmlFor="workplaceCity">{t("provider_dashboard.city", "City")}</Label>
               <Input id="workplaceCity" value={workplaceData.city}
                 onChange={(e) => setWorkplaceDraft((d) => ({ ...(d ?? workplaceData), city: e.target.value }))}
                  placeholder={t("provider_dashboard.city_placeholder", "Budapest")} data-testid="input-workplace-city" />
@@ -1890,7 +1890,7 @@ export function ProviderProfileTab({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1.5">
                  <Label>{t("provider_dashboard.max_clients_per_day", "Max Clients Per Day")}</Label>
-                <Input type="number" min={1} max={100} placeholder="e.g. 10"
+                <Input type="number" min={1} max={100} placeholder={t("provider_dashboard.example_max_clients", "e.g. 10")}
                   value={prefData.maxPatientsPerDay}
                   onChange={(e) => setPrefDraft(p => ({ ...(p ?? prefData), maxPatientsPerDay: e.target.value }))}
                   data-testid="input-pref-max-patients" />
@@ -1972,8 +1972,8 @@ export function ProviderProfileTab({
             <p className="text-sm font-semibold">{t("provider_dashboard.notifications", "Notifications")}</p>
             {[
               { icon: Mail, label: t("provider_dashboard.email", "Email"), desc: t("provider_dashboard.email_notifications_desc", "Appointment confirmations and reminders"), key: "emailEnabled", cap: commsCaps?.email, capLabel: t("provider_dashboard.not_configured", "(not configured)"), checked: notifPrefs?.emailEnabled !== false },
-              { icon: MessageSquare, label: "SMS", desc: t("provider_dashboard.sms_notifications_desc", "Text message alerts"), key: "smsEnabled", cap: commsCaps?.sms, capLabel: t("provider_dashboard.not_configured", "(not configured)"), checked: !!notifPrefs?.smsEnabled },
-              { icon: MessageSquare, label: "WhatsApp", desc: t("provider_dashboard.whatsapp_notifications_desc", "WhatsApp notifications"), key: "whatsappEnabled", cap: commsCaps?.whatsapp, capLabel: t("provider_dashboard.not_configured", "(not configured)"), checked: !!notifPrefs?.whatsappEnabled },
+              { icon: MessageSquare, label: t("provider_dashboard.sms", "SMS"), desc: t("provider_dashboard.sms_notifications_desc", "Text message alerts"), key: "smsEnabled", cap: commsCaps?.sms, capLabel: t("provider_dashboard.not_configured", "(not configured)"), checked: !!notifPrefs?.smsEnabled },
+              { icon: MessageSquare, label: t("provider_dashboard.whatsapp", "WhatsApp"), desc: t("provider_dashboard.whatsapp_notifications_desc", "WhatsApp notifications"), key: "whatsappEnabled", cap: commsCaps?.whatsapp, capLabel: t("provider_dashboard.not_configured", "(not configured)"), checked: !!notifPrefs?.whatsappEnabled },
               { icon: Monitor, label: t("provider_dashboard.in_app", "In-App"), desc: t("provider_dashboard.in_app_notifications_desc", "Notifications inside the platform"), key: "inAppEnabled", cap: true, capLabel: "", checked: notifPrefs?.inAppEnabled !== false },
             ].map(({ icon: Icon, label, desc, key, cap, capLabel, checked }) => (
               <div key={key}>
