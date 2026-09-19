@@ -4,6 +4,7 @@ import { formatCurrencyForCountry, useAdminCurrency } from "@/lib/currency";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useTranslation } from "react-i18next";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -124,8 +125,12 @@ function fmtMonthLabel(ym: string) {
   return formatDate(new Date(Number(y), Number(m) - 1, 1), { month: "short", year: "2-digit" });
 }
 
-function visitTypeLabel(vt: string) {
-  const map: Record<string, string> = { online: "Online", home_visit: "Home Visit", clinic_visit: "Clinic" };
+function visitTypeLabel(vt: string, t: (key: string) => string) {
+  const map: Record<string, string> = {
+    online: t("admin.provider_financials.online"),
+    home_visit: t("admin.provider_financials.home_visit"),
+    clinic_visit: t("admin.provider_financials.clinic"),
+  };
   return map[vt] ?? vt;
 }
 
@@ -163,6 +168,11 @@ function MarkPaidDialog({
   onClose: () => void;
   onSuccess: () => void;
 }) {
+  const { t: translate } = useTranslation();
+  const t = (key: string, options?: any): string =>
+    String(translate(/^admin\.(review_moderation|category_requests|calendar\.|payouts|provider_wallets|provider_financials)/.test(key)
+      ? key.replace(/^admin\./, "admin_dashboard.")
+      : key, options));
   const { toast } = useToast();
   const [ref, setRef] = useState("");
   const [loading, setLoading] = useState(false);
@@ -175,10 +185,17 @@ function MarkPaidDialog({
         earningIds: selectedIds,
         payoutReference: ref.trim() || undefined,
       });
-      toast({ title: `${selectedIds.length} earning${selectedIds.length !== 1 ? "s" : ""} marked as paid` });
+      toast({
+        title: t(
+          selectedIds.length === 1
+            ? "admin.provider_financials.marked_paid"
+            : "admin.provider_financials.marked_paid_plural",
+          { count: selectedIds.length },
+        ),
+      });
       onSuccess();
     } catch (err: any) {
-      toast({ title: err?.message ?? "Failed to mark as paid", variant: "destructive" });
+      toast({ title: err?.message ?? t("admin.provider_financials.mark_paid_failed"), variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -188,25 +205,30 @@ function MarkPaidDialog({
     <Dialog open={open} onOpenChange={v => { if (!v) onClose(); }}>
       <DialogContent className="max-w-sm" data-testid="dialog-mark-paid">
         <DialogHeader>
-          <DialogTitle>Mark as Paid</DialogTitle>
+          <DialogTitle>{t("admin.provider_financials.mark_paid_title")}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-3 py-1">
           <p className="text-sm text-muted-foreground">
-            Marking <strong>{selectedIds.length}</strong> earning record{selectedIds.length !== 1 ? "s" : ""} as paid.
+             {t(
+               selectedIds.length === 1
+                 ? "admin.provider_financials.mark_paid_description"
+                 : "admin.provider_financials.mark_paid_description_plural",
+               { count: selectedIds.length },
+             )}
           </p>
           <div className="space-y-1">
-            <Label>Payout Reference (optional)</Label>
+             <Label>{t("admin.provider_financials.payout_reference")}</Label>
             <Input
               value={ref}
               onChange={e => setRef(e.target.value)}
-              placeholder="Bank transfer ID, Wise ref, etc."
+               placeholder={t("admin.provider_financials.payout_reference_placeholder")}
               data-testid="input-payout-ref"
             />
           </div>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
+           <Button type="button" variant="outline" onClick={onClose}>{t("admin.provider_financials.cancel")}</Button>
             <Button type="submit" disabled={loading} data-testid="button-confirm-mark-paid">
-              {loading ? "Processing…" : "Mark as Paid"}
+               {loading ? t("admin.provider_financials.processing") : t("admin.provider_financials.mark_paid_title")}
             </Button>
           </DialogFooter>
         </form>
@@ -218,6 +240,11 @@ function MarkPaidDialog({
 // ── Per-provider detail view ───────────────────────────────────────────────────
 
 function ProviderDetail({ providerId, onBack }: { providerId: string; onBack: () => void }) {
+  const { t: translate } = useTranslation();
+  const t = (key: string, options?: any): string =>
+    String(translate(/^admin\.(review_moderation|category_requests|calendar\.|payouts|provider_wallets|provider_financials)/.test(key)
+      ? key.replace(/^admin\./, "admin_dashboard.")
+      : key, options));
   const { format: _adminFmt } = useAdminCurrency();
   // Admin panels ALWAYS display in USD — shadow module-level fmtCurr so all
   // existing call sites (fmtCurr(v, cc)) automatically use USD formatting.
@@ -282,7 +309,7 @@ function ProviderDetail({ providerId, onBack }: { providerId: string; onBack: ()
     );
   }
 
-  if (!data) return <p className="text-muted-foreground">Failed to load report.</p>;
+  if (!data) return <p className="text-muted-foreground">{t("admin.provider_financials.load_failed")}</p>;
 
   const { provider } = data;
   const providerName = `${provider.first_name} ${provider.last_name}`.trim() || provider.email;
@@ -320,10 +347,10 @@ function ProviderDetail({ providerId, onBack }: { providerId: string; onBack: ()
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={() => refetch()} data-testid="button-refresh-report">
-            <RefreshCw className="h-4 w-4 mr-1.5" /> Refresh
+             <RefreshCw className="h-4 w-4 mr-1.5" /> {t("admin.provider_financials.refresh")}
           </Button>
           <Button variant="outline" size="sm" onClick={handleExport} data-testid="button-export-csv">
-            <Download className="h-4 w-4 mr-1.5" /> Export CSV
+             <Download className="h-4 w-4 mr-1.5" /> {t("admin.provider_financials.export_csv")}
           </Button>
         </div>
       </div>
@@ -334,8 +361,12 @@ function ProviderDetail({ providerId, onBack }: { providerId: string; onBack: ()
           <div className="flex items-center gap-2 text-amber-800 dark:text-amber-200 text-sm">
             <Clock className="h-4 w-4 shrink-0" />
             <span>
-              <strong>{fmtCurr(s?.pending_payout, cc)}</strong> pending payout across{" "}
-              <strong>{s?.pending_records}</strong> record{s?.pending_records !== "1" ? "s" : ""}
+               {t(
+                 s?.pending_records === "1"
+                   ? "admin.provider_financials.pending_payout_alert"
+                   : "admin.provider_financials.pending_payout_alert_plural",
+                 { amount: fmtCurr(s?.pending_payout, cc), count: s?.pending_records },
+               )}
             </span>
           </div>
           <Button
@@ -345,31 +376,31 @@ function ProviderDetail({ providerId, onBack }: { providerId: string; onBack: ()
             onClick={() => { setFilterStatus("pending"); setInnerTab("earnings"); setSelectedIds(new Set(pendingEarnings.map(e => e.id))); }}
             data-testid="button-view-pending"
           >
-            <Banknote className="h-4 w-4 mr-1.5" /> Pay All
+             <Banknote className="h-4 w-4 mr-1.5" /> {t("admin.provider_financials.pay_all")}
           </Button>
         </div>
       )}
 
       {/* Summary cards */}
       <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
-        <StatCard icon={TrendingUp}   label="Gross Revenue"     value={fmtCurr(s?.gross_revenue, cc)}   sub={`${s?.completed_count ?? 0} sessions`} />
-        <StatCard icon={Receipt}      label="Platform Fees"     value={fmtCurr(s?.platform_fees, cc)}   color="text-blue-600" />
-        <StatCard icon={DollarSign}   label="Net Earnings"      value={fmtCurr(s?.net_earnings, cc)}    color="text-green-600" />
-        <StatCard icon={Clock}        label="Pending Payout"    value={fmtCurr(s?.pending_payout, cc)}  color="text-amber-600" sub={`${s?.pending_records ?? 0} records`} />
-        <StatCard icon={Wallet}       label="Total Paid Out"    value={fmtCurr(s?.paid_payout, cc)}     color="text-emerald-600" sub={`${s?.paid_records ?? 0} records`} />
-        <StatCard icon={FileText}     label="Refunds Issued"    value={fmtCurr(s?.refunds_issued, cc)}  color="text-red-500" sub={`${s?.cancelled_count ?? 0} cancelled`} />
+         <StatCard icon={TrendingUp}   label={t("admin.provider_financials.gross_revenue")} value={fmtCurr(s?.gross_revenue, cc)}   sub={t("admin.provider_financials.sessions", { count: s?.completed_count ?? 0 })} />
+         <StatCard icon={Receipt}      label={t("admin.provider_financials.platform_fees")} value={fmtCurr(s?.platform_fees, cc)}   color="text-blue-600" />
+         <StatCard icon={DollarSign}   label={t("admin.provider_financials.net_earnings")} value={fmtCurr(s?.net_earnings, cc)}    color="text-green-600" />
+         <StatCard icon={Clock}        label={t("admin.provider_financials.pending_payout")} value={fmtCurr(s?.pending_payout, cc)}  color="text-amber-600" sub={t("admin.provider_financials.records", { count: s?.pending_records ?? 0 })} />
+         <StatCard icon={Wallet}       label={t("admin.provider_financials.total_paid_out")} value={fmtCurr(s?.paid_payout, cc)}     color="text-emerald-600" sub={t("admin.provider_financials.records", { count: s?.paid_records ?? 0 })} />
+         <StatCard icon={FileText}     label={t("admin.provider_financials.refunds_issued")} value={fmtCurr(s?.refunds_issued, cc)}  color="text-red-500" sub={t("admin.provider_financials.cancelled", { count: s?.cancelled_count ?? 0 })} />
       </div>
 
       <Tabs value={innerTab} onValueChange={setInnerTab}>
         <TabsList>
           <TabsTrigger value="overview" data-testid="tab-report-overview">
-            <BarChart3 className="h-4 w-4 mr-1.5" /> Monthly Trend
+             <BarChart3 className="h-4 w-4 mr-1.5" /> {t("admin.provider_financials.monthly_trend")}
           </TabsTrigger>
           <TabsTrigger value="earnings" data-testid="tab-report-earnings">
-            <Banknote className="h-4 w-4 mr-1.5" /> Earnings Records
+             <Banknote className="h-4 w-4 mr-1.5" /> {t("admin.provider_financials.earnings_records")}
           </TabsTrigger>
           <TabsTrigger value="breakdown" data-testid="tab-report-breakdown">
-            <Receipt className="h-4 w-4 mr-1.5" /> Visit Type Breakdown
+             <Receipt className="h-4 w-4 mr-1.5" /> {t("admin.provider_financials.visit_type_breakdown")}
           </TabsTrigger>
         </TabsList>
 
@@ -377,13 +408,13 @@ function ProviderDetail({ providerId, onBack }: { providerId: string; onBack: ()
         <TabsContent value="overview" className="pt-4">
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-base">Monthly Revenue (last 13 months)</CardTitle>
-              <CardDescription>Gross revenue, platform fee, and net earning per calendar month.</CardDescription>
+              <CardTitle className="text-base">{t("admin.provider_financials.monthly_revenue")}</CardTitle>
+              <CardDescription>{t("admin.provider_financials.monthly_revenue_description")}</CardDescription>
             </CardHeader>
             <CardContent>
               {chartData.length === 0 ? (
                 <div className="flex items-center justify-center h-40 text-muted-foreground text-sm">
-                  No appointment data available yet.
+                   {t("admin.provider_financials.no_appointment_data")}
                 </div>
               ) : (
                 <ResponsiveContainer width="100%" height={280}>
@@ -415,12 +446,12 @@ function ProviderDetail({ providerId, onBack }: { providerId: string; onBack: ()
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All records</SelectItem>
-                  <SelectItem value="pending">Pending only</SelectItem>
-                  <SelectItem value="paid">Paid only</SelectItem>
+                   <SelectItem value="all">{t("admin.provider_financials.all_records")}</SelectItem>
+                   <SelectItem value="pending">{t("admin.provider_financials.pending_only")}</SelectItem>
+                   <SelectItem value="paid">{t("admin.provider_financials.paid_only")}</SelectItem>
                 </SelectContent>
               </Select>
-              <span className="text-xs text-muted-foreground">{visibleEarnings.length} records</span>
+               <span className="text-xs text-muted-foreground">{t("admin.provider_financials.records", { count: visibleEarnings.length })}</span>
             </div>
             {selectedIds.size > 0 && (
               <Button
@@ -429,7 +460,7 @@ function ProviderDetail({ providerId, onBack }: { providerId: string; onBack: ()
                 data-testid="button-mark-paid"
               >
                 <CheckCircle className="h-4 w-4 mr-1.5" />
-                Mark {selectedIds.size} as Paid
+                 {t("admin.provider_financials.mark_selected_paid", { count: selectedIds.size })}
               </Button>
             )}
           </div>
@@ -445,25 +476,25 @@ function ProviderDetail({ providerId, onBack }: { providerId: string; onBack: ()
                           <Checkbox
                             checked={selectedIds.size > 0 && selectedIds.size === pendingEarnings.filter(e => visibleEarnings.includes(e)).length}
                             onCheckedChange={toggleAll}
-                            aria-label="Select all pending"
+                             aria-label={t("admin.provider_financials.select_all_pending")}
                             data-testid="checkbox-select-all"
                           />
                         )}
                       </TableHead>
-                      <TableHead>Appointment</TableHead>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Service</TableHead>
-                      <TableHead>Visit</TableHead>
-                      <TableHead className="text-right">Gross</TableHead>
-                      <TableHead className="text-right">Fee</TableHead>
-                      <TableHead className="text-right">Net</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Paid</TableHead>
+                       <TableHead>{t("admin.provider_financials.appointment")}</TableHead>
+                       <TableHead>{t("admin.provider_financials.date")}</TableHead>
+                       <TableHead>{t("admin.provider_financials.service")}</TableHead>
+                       <TableHead>{t("admin.provider_financials.visit")}</TableHead>
+                       <TableHead className="text-right">{t("admin.provider_financials.gross")}</TableHead>
+                       <TableHead className="text-right">{t("admin.provider_financials.fee")}</TableHead>
+                       <TableHead className="text-right">{t("admin.provider_financials.net")}</TableHead>
+                       <TableHead>{t("admin.provider_financials.status")}</TableHead>
+                       <TableHead>{t("admin.provider_financials.paid")}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {visibleEarnings.length === 0 && (
-                      <TableRow><TableCell colSpan={10} className="text-center text-muted-foreground py-10">No records found.</TableCell></TableRow>
+                       <TableRow><TableCell colSpan={10} className="text-center text-muted-foreground py-10">{t("admin.provider_financials.no_records")}</TableCell></TableRow>
                     )}
                     {visibleEarnings.map(e => (
                       <TableRow key={e.id} data-testid={`row-earning-${e.id}`} className={e.status === "paid" ? "opacity-70" : ""}>
@@ -482,15 +513,15 @@ function ProviderDetail({ providerId, onBack }: { providerId: string; onBack: ()
                         <TableCell className="text-xs">{fmtDate(e.appointment_date)}</TableCell>
                         <TableCell className="text-xs max-w-[120px] truncate">{e.service_name ?? "—"}</TableCell>
                         <TableCell>
-                          <Badge variant="outline" className="text-[10px]">{visitTypeLabel(e.visit_type)}</Badge>
+                           <Badge variant="outline" className="text-[10px]">{visitTypeLabel(e.visit_type, t)}</Badge>
                         </TableCell>
                         <TableCell className="text-right text-sm font-medium tabular-nums">{fmtCurr(e.total_amount, cc)}</TableCell>
                         <TableCell className="text-right text-sm text-muted-foreground tabular-nums">{fmtCurr(e.platform_fee, cc)}</TableCell>
                         <TableCell className="text-right text-sm font-semibold tabular-nums text-green-700 dark:text-green-400">{fmtCurr(e.provider_net_earnings_usd, cc)}</TableCell>
                         <TableCell>
                           {e.status === "paid"
-                            ? <span className="flex items-center gap-1 text-xs text-emerald-600"><CheckCircle className="h-3.5 w-3.5" />Paid</span>
-                            : <span className="flex items-center gap-1 text-xs text-amber-600"><Clock className="h-3.5 w-3.5" />Pending</span>
+                             ? <span className="flex items-center gap-1 text-xs text-emerald-600"><CheckCircle className="h-3.5 w-3.5" />{t("admin.provider_financials.paid")}</span>
+                             : <span className="flex items-center gap-1 text-xs text-amber-600"><Clock className="h-3.5 w-3.5" />{t("admin.provider_financials.pending")}</span>
                           }
                         </TableCell>
                         <TableCell className="text-xs text-muted-foreground">
@@ -509,9 +540,9 @@ function ProviderDetail({ providerId, onBack }: { providerId: string; onBack: ()
               {/* Footer totals */}
               {visibleEarnings.length > 0 && (
                 <div className="flex items-center justify-end gap-6 px-4 py-3 border-t text-sm font-medium">
-                  <span>Gross: <strong className="tabular-nums">{fmtCurr(visibleEarnings.reduce((a, e) => a + n(e.total_amount), 0), cc)}</strong></span>
-                  <span>Platform: <strong className="tabular-nums text-blue-600">{fmtCurr(visibleEarnings.reduce((a, e) => a + n(e.platform_fee), 0), cc)}</strong></span>
-                  <span>Net: <strong className="tabular-nums text-green-700 dark:text-green-400">{fmtCurr(visibleEarnings.reduce((a, e) => a + n(e.provider_net_earnings_usd), 0), cc)}</strong></span>
+                   <span>{t("admin.provider_financials.gross")}: <strong className="tabular-nums">{fmtCurr(visibleEarnings.reduce((a, e) => a + n(e.total_amount), 0), cc)}</strong></span>
+                   <span>{t("admin.provider_financials.platform")}: <strong className="tabular-nums text-blue-600">{fmtCurr(visibleEarnings.reduce((a, e) => a + n(e.platform_fee), 0), cc)}</strong></span>
+                   <span>{t("admin.provider_financials.net")}: <strong className="tabular-nums text-green-700 dark:text-green-400">{fmtCurr(visibleEarnings.reduce((a, e) => a + n(e.provider_net_earnings_usd), 0), cc)}</strong></span>
                 </div>
               )}
             </CardContent>
@@ -524,15 +555,15 @@ function ProviderDetail({ providerId, onBack }: { providerId: string; onBack: ()
             {(data.byVisitType ?? []).map(vt => (
               <Card key={vt.visit_type}>
                 <CardContent className="pt-5 pb-4">
-                  <p className="text-sm font-medium text-muted-foreground mb-1">{visitTypeLabel(vt.visit_type)}</p>
+                   <p className="text-sm font-medium text-muted-foreground mb-1">{visitTypeLabel(vt.visit_type, t)}</p>
                   <p className="text-2xl font-bold tabular-nums">{fmtCurr(vt.net_earnings, cc)}</p>
-                  <p className="text-xs text-muted-foreground">Net earnings</p>
-                  <p className="text-xs text-muted-foreground mt-1">{vt.completed} completed appointment{vt.completed !== "1" ? "s" : ""}</p>
+                   <p className="text-xs text-muted-foreground">{t("admin.provider_financials.net_earnings")}</p>
+                   <p className="text-xs text-muted-foreground mt-1">{t(vt.completed === "1" ? "admin.provider_financials.completed_appointments" : "admin.provider_financials.completed_appointments_plural", { count: vt.completed })}</p>
                 </CardContent>
               </Card>
             ))}
             {(data.byVisitType ?? []).length === 0 && (
-              <p className="text-muted-foreground text-sm col-span-3 py-8 text-center">No visit type data yet.</p>
+               <p className="text-muted-foreground text-sm col-span-3 py-8 text-center">{t("admin.provider_financials.no_visit_data")}</p>
             )}
           </div>
         </TabsContent>
@@ -556,6 +587,11 @@ function ProviderDetail({ providerId, onBack }: { providerId: string; onBack: ()
 // ── Overview table ─────────────────────────────────────────────────────────────
 
 function OverviewTable({ onSelect }: { onSelect: (id: string) => void }) {
+  const { t: translate } = useTranslation();
+  const t = (key: string, options?: any): string =>
+    String(translate(/^admin\.(review_moderation|category_requests|calendar\.|payouts|provider_wallets|provider_financials)/.test(key)
+      ? key.replace(/^admin\./, "admin_dashboard.")
+      : key, options));
   const { format: fmtMoney } = useAdminCurrency();
   const [search, setSearch] = useState("");
   const [filterCountry, setFilterCountry] = useState("all");
@@ -592,11 +628,11 @@ function OverviewTable({ onSelect }: { onSelect: (id: string) => void }) {
     <div className="space-y-5">
       {/* Platform totals */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-        <StatCard icon={TrendingUp}  label="Platform Gross Revenue" value={fmtMoney(totals.gross)}   />
-        <StatCard icon={Receipt}     label="Total Platform Fees"     value={fmtMoney(totals.fees)}   color="text-blue-600" />
-        <StatCard icon={DollarSign}  label="Total Net Earnings"      value={fmtMoney(totals.net)}    color="text-green-600" />
-        <StatCard icon={Clock}       label="Pending Payouts"         value={fmtMoney(totals.pending)} color="text-amber-600" />
-        <StatCard icon={Wallet}      label="Total Paid Out"          value={fmtMoney(totals.paid)}   color="text-emerald-600" />
+         <StatCard icon={TrendingUp}  label={t("admin.provider_financials.platform_gross_revenue")} value={fmtMoney(totals.gross)}   />
+         <StatCard icon={Receipt}     label={t("admin.provider_financials.total_platform_fees")}     value={fmtMoney(totals.fees)}   color="text-blue-600" />
+         <StatCard icon={DollarSign}  label={t("admin.provider_financials.total_net_earnings")}      value={fmtMoney(totals.net)}    color="text-green-600" />
+         <StatCard icon={Clock}       label={t("admin.provider_financials.pending_payouts")}         value={fmtMoney(totals.pending)} color="text-amber-600" />
+         <StatCard icon={Wallet}      label={t("admin.provider_financials.total_paid_out")}          value={fmtMoney(totals.paid)}   color="text-emerald-600" />
       </div>
 
       <div className="flex items-center justify-between gap-3 flex-wrap">
@@ -604,7 +640,7 @@ function OverviewTable({ onSelect }: { onSelect: (id: string) => void }) {
           <div className="relative">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search providers…"
+               placeholder={t("admin.provider_financials.search_providers")}
               className="pl-9 w-52"
               value={search}
               onChange={e => setSearch(e.target.value)}
@@ -616,9 +652,9 @@ function OverviewTable({ onSelect }: { onSelect: (id: string) => void }) {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All countries</SelectItem>
-              <SelectItem value="HU">Hungary</SelectItem>
-              <SelectItem value="IR">Iran</SelectItem>
+               <SelectItem value="all">{t("admin.provider_financials.all_countries")}</SelectItem>
+               <SelectItem value="HU">{t("admin.provider_financials.hungary")}</SelectItem>
+               <SelectItem value="IR">{t("admin.provider_financials.iran")}</SelectItem>
             </SelectContent>
           </Select>
           <Select value={sortBy} onValueChange={v => setSortBy(v as any)}>
@@ -626,14 +662,14 @@ function OverviewTable({ onSelect }: { onSelect: (id: string) => void }) {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="gross_revenue">Sort: Gross Revenue</SelectItem>
-              <SelectItem value="net_earnings">Sort: Net Earnings</SelectItem>
-              <SelectItem value="pending_payout">Sort: Pending Payout</SelectItem>
+               <SelectItem value="gross_revenue">{t("admin.provider_financials.sort_gross")}</SelectItem>
+               <SelectItem value="net_earnings">{t("admin.provider_financials.sort_net")}</SelectItem>
+               <SelectItem value="pending_payout">{t("admin.provider_financials.sort_pending")}</SelectItem>
             </SelectContent>
           </Select>
         </div>
         <Button variant="outline" size="sm" onClick={() => refetch()} data-testid="button-refresh-overview">
-          <RefreshCw className="h-4 w-4 mr-1.5" /> Refresh
+           <RefreshCw className="h-4 w-4 mr-1.5" /> {t("admin.provider_financials.refresh")}
         </Button>
       </div>
 
@@ -643,24 +679,24 @@ function OverviewTable({ onSelect }: { onSelect: (id: string) => void }) {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Provider</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead className="text-right">Appointments</TableHead>
-                  <TableHead className="text-right">Gross Revenue</TableHead>
-                  <TableHead className="text-right">Platform Fee</TableHead>
-                  <TableHead className="text-right">Net Earnings</TableHead>
-                  <TableHead className="text-right">Pending</TableHead>
-                  <TableHead className="text-right">Paid Out</TableHead>
-                  <TableHead>Last Session</TableHead>
+                   <TableHead>{t("admin.provider_financials.providers")}</TableHead>
+                   <TableHead>{t("admin.provider_financials.type")}</TableHead>
+                   <TableHead className="text-right">{t("admin.provider_financials.appointments")}</TableHead>
+                   <TableHead className="text-right">{t("admin.provider_financials.gross_revenue")}</TableHead>
+                   <TableHead className="text-right">{t("admin.provider_financials.platform_fee")}</TableHead>
+                   <TableHead className="text-right">{t("admin.provider_financials.net_earnings")}</TableHead>
+                   <TableHead className="text-right">{t("admin.provider_financials.pending")}</TableHead>
+                   <TableHead className="text-right">{t("admin.provider_financials.paid_out")}</TableHead>
+                   <TableHead>{t("admin.provider_financials.last_session")}</TableHead>
                   <TableHead />
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isLoading && (
-                  <TableRow><TableCell colSpan={10} className="text-center text-muted-foreground py-10">Loading…</TableCell></TableRow>
+                   <TableRow><TableCell colSpan={10} className="text-center text-muted-foreground py-10">{t("admin.provider_financials.loading")}</TableCell></TableRow>
                 )}
                 {!isLoading && filtered.length === 0 && (
-                  <TableRow><TableCell colSpan={10} className="text-center text-muted-foreground py-10">No providers found.</TableCell></TableRow>
+                   <TableRow><TableCell colSpan={10} className="text-center text-muted-foreground py-10">{t("admin.provider_financials.no_providers")}</TableCell></TableRow>
                 )}
                 {filtered.map(r => (
                   <TableRow key={r.provider_id} data-testid={`row-fin-${r.provider_id}`} className="cursor-pointer hover:bg-muted/50" onClick={() => onSelect(r.provider_id)}>
@@ -712,10 +748,10 @@ function OverviewTable({ onSelect }: { onSelect: (id: string) => void }) {
           </div>
           {!isLoading && rows.length > 0 && (
             <div className="flex items-center justify-end gap-6 px-4 py-3 border-t text-sm font-medium">
-              <span>Gross: <strong className="tabular-nums">{fmtMoney(totals.gross)}</strong></span>
-              <span>Fees: <strong className="tabular-nums text-blue-600">{fmtMoney(totals.fees)}</strong></span>
-              <span>Net: <strong className="tabular-nums text-green-700">{fmtMoney(totals.net)}</strong></span>
-              <span>Pending: <strong className="tabular-nums text-amber-600">{fmtMoney(totals.pending)}</strong></span>
+               <span>{t("admin.provider_financials.gross_total")} <strong className="tabular-nums">{fmtMoney(totals.gross)}</strong></span>
+               <span>{t("admin.provider_financials.fees_total")} <strong className="tabular-nums text-blue-600">{fmtMoney(totals.fees)}</strong></span>
+               <span>{t("admin.provider_financials.net_total")} <strong className="tabular-nums text-green-700">{fmtMoney(totals.net)}</strong></span>
+               <span>{t("admin.provider_financials.pending_total")} <strong className="tabular-nums text-amber-600">{fmtMoney(totals.pending)}</strong></span>
             </div>
           )}
         </CardContent>

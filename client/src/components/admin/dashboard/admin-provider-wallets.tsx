@@ -36,6 +36,7 @@ import {
 import { apiRequest } from "@/lib/queryClient";
 import { fmtBalance } from "./utils";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface AdminWallet {
@@ -68,8 +69,10 @@ interface LedgerEntry {
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-function entryTypeLabel(t: string): string {
-  return t.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+function entryTypeLabel(entryType: string, translate: (key: string, options?: any) => string): string {
+  const key = `admin.provider_wallets.${entryType}`;
+  const translated = translate(key, { defaultValue: "" });
+  return translated || entryType.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
 }
 
 function entryTypeColor(t: string): string {
@@ -81,15 +84,15 @@ function entryTypeColor(t: string): string {
   return "neutral";
 }
 
-function timeAgo(iso: string): string {
+function timeAgo(iso: string, translate: (key: string, options?: any) => string): string {
   const diff = Date.now() - new Date(iso).getTime();
   const mins = Math.floor(diff / 60000);
-  if (mins < 1) return "just now";
-  if (mins < 60) return `${mins}m ago`;
+  if (mins < 1) return translate("admin.provider_wallets.just_now");
+  if (mins < 60) return translate("admin.provider_wallets.minutes_ago", { count: mins });
   const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
+  if (hrs < 24) return translate("admin.provider_wallets.hours_ago", { count: hrs });
   const days = Math.floor(hrs / 24);
-  return `${days}d ago`;
+  return translate("admin.provider_wallets.days_ago", { count: days });
 }
 
 function fmtDate(iso: string): string {
@@ -106,6 +109,11 @@ function LedgerHistorySheet({
   open: boolean;
   onClose: () => void;
 }) {
+  const { t: translate } = useTranslation();
+  const t = (key: string, options?: any): string =>
+    String(translate(/^admin\.(review_moderation|category_requests|calendar\.|payouts|provider_wallets|provider_financials)/.test(key)
+      ? key.replace(/^admin\./, "admin_dashboard.")
+      : key, options));
   const [page, setPage] = useState(0);
   const pageSize = 25;
 
@@ -139,7 +147,7 @@ function LedgerHistorySheet({
         <SheetHeader className="px-6 pt-6 pb-4 border-b">
           <SheetTitle className="flex items-center gap-2">
             <History className="h-5 w-5 text-muted-foreground" />
-            Ledger History
+            {t("admin.provider_wallets.ledger_history")}
           </SheetTitle>
           <SheetDescription>
             {wallet?.provider_name} · {wallet?.provider_email}
@@ -149,19 +157,19 @@ function LedgerHistorySheet({
           {wallet && (
             <div className="flex gap-3 pt-2">
               <div className="flex-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/50 px-3 py-2">
-                <p className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">Available</p>
+                 <p className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">{t("admin.provider_wallets.available")}</p>
                 <p className="text-base font-bold text-emerald-700 dark:text-emerald-300">
                   {fmtBalance(wallet.available_balance, wallet.currency)}
                 </p>
               </div>
               <div className="flex-1 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50 px-3 py-2">
-                <p className="text-xs text-amber-600 dark:text-amber-400 font-medium">Held</p>
+                 <p className="text-xs text-amber-600 dark:text-amber-400 font-medium">{t("admin.provider_wallets.held")}</p>
                 <p className="text-base font-bold text-amber-700 dark:text-amber-300">
                   {fmtBalance(wallet.held_balance, wallet.currency)}
                 </p>
               </div>
               <div className="flex-1 rounded-lg bg-muted/50 border border-border/60 px-3 py-2">
-                <p className="text-xs text-muted-foreground font-medium">Lifetime</p>
+                 <p className="text-xs text-muted-foreground font-medium">{t("admin.provider_wallets.lifetime")}</p>
                 <p className="text-base font-bold text-foreground">
                   {fmtBalance(wallet.lifetime_earnings, wallet.currency)}
                 </p>
@@ -175,13 +183,13 @@ function LedgerHistorySheet({
           <div className="flex items-center gap-4 px-6 py-2.5 bg-muted/30 border-b text-xs text-muted-foreground">
             <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-medium">
               <TrendingUp className="h-3 w-3" />
-              Credits: {fmtBalance(String(creditTotal), "USD")}
+              {t("admin.provider_wallets.credits")}: {fmtBalance(String(creditTotal), "USD")}
             </span>
             <span className="flex items-center gap-1 text-red-600 dark:text-red-400 font-medium">
               <TrendingDown className="h-3 w-3" />
-              Debits: {fmtBalance(String(debitTotal), "USD")}
+              {t("admin.provider_wallets.debits")}: {fmtBalance(String(debitTotal), "USD")}
             </span>
-            <span className="ml-auto">{total} total entries</span>
+            <span className="ml-auto">{t("admin.provider_wallets.total_entries", { count: total })}</span>
           </div>
         )}
 
@@ -194,7 +202,7 @@ function LedgerHistorySheet({
           ) : entries.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
               <History className="h-10 w-10 mb-3 opacity-30" />
-              <p className="text-sm">No ledger entries yet</p>
+               <p className="text-sm">{t("admin.provider_wallets.no_entries")}</p>
             </div>
           ) : (
             entries.map(entry => {
@@ -234,7 +242,7 @@ function LedgerHistorySheet({
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
                         <span className="text-sm font-medium text-foreground">
-                          {entryTypeLabel(entry.entryType)}
+                           {entryTypeLabel(entry.entryType, t)}
                         </span>
                         {entry.description && (
                           <p className="text-xs text-muted-foreground mt-0.5 truncate max-w-xs">
@@ -244,7 +252,7 @@ function LedgerHistorySheet({
                         <div className="flex items-center gap-2 mt-1 flex-wrap">
                           {entry.actorName && (
                             <span className="text-[11px] text-muted-foreground">
-                              by <span className="font-medium">{entry.actorName}</span>
+                               {t("admin.provider_wallets.by")} <span className="font-medium">{entry.actorName}</span>
                               {entry.actorRole && (
                                 <span className="capitalize"> ({entry.actorRole.replace(/_/g, " ")})</span>
                               )}
@@ -252,11 +260,11 @@ function LedgerHistorySheet({
                           )}
                           {entry.referenceId && (
                             <span className="text-[11px] text-muted-foreground font-mono truncate max-w-[100px]">
-                              ref: {entry.referenceId.slice(0, 8)}…
+                               {t("admin.provider_wallets.reference")}: {entry.referenceId.slice(0, 8)}…
                             </span>
                           )}
                           <span className="text-[11px] text-muted-foreground ml-auto">
-                            {timeAgo(entry.createdAt)}
+                             {timeAgo(entry.createdAt, t)}
                           </span>
                         </div>
                       </div>
@@ -276,7 +284,7 @@ function LedgerHistorySheet({
                         </p>
                         {entry.balanceAfter != null && (
                           <p className="text-[11px] text-muted-foreground mt-0.5">
-                            bal: {fmtBalance(entry.balanceAfter, entry.currency)}
+                             {t("admin.provider_wallets.balance")}: {fmtBalance(entry.balanceAfter, entry.currency)}
                           </p>
                         )}
                         <p className="text-[11px] text-muted-foreground">
@@ -302,10 +310,10 @@ function LedgerHistorySheet({
               data-testid="btn-ledger-prev"
               className="gap-1 h-7 text-xs"
             >
-              <ChevronLeft className="h-3 w-3" /> Prev
+               <ChevronLeft className="h-3 w-3" /> {t("admin.provider_wallets.prev")}
             </Button>
             <span className="text-xs text-muted-foreground">
-              Page {page + 1} of {totalPages} · {total} entries
+               {t("admin.provider_wallets.page_of_entries", { page: page + 1, totalPages, count: total })}
             </span>
             <Button
               variant="outline"
@@ -315,7 +323,7 @@ function LedgerHistorySheet({
               data-testid="btn-ledger-next"
               className="gap-1 h-7 text-xs"
             >
-              Next <ChevronRightIcon className="h-3 w-3" />
+               {t("admin.provider_wallets.next")} <ChevronRightIcon className="h-3 w-3" />
             </Button>
           </div>
         )}
@@ -326,6 +334,11 @@ function LedgerHistorySheet({
 
 // ── Main panel ────────────────────────────────────────────────────────────────
 export function AdminProviderWalletsPanel() {
+  const { t: translate } = useTranslation();
+  const t = (key: string, options?: any): string =>
+    String(translate(/^admin\.(review_moderation|category_requests|calendar\.|payouts|provider_wallets|provider_financials)/.test(key)
+      ? key.replace(/^admin\./, "admin_dashboard.")
+      : key, options));
   const { toast } = useToast();
   const [search, setSearch] = useState("");
 
@@ -375,8 +388,8 @@ export function AdminProviderWalletsPanel() {
       }),
     onSuccess: () => {
       toast({
-        title: "Wallet adjusted",
-        description: "The provider's balance has been updated.",
+        title: t("admin.provider_wallets.wallet_adjusted"),
+        description: t("admin.provider_wallets.wallet_updated"),
       });
       refetch();
       setAdjustOpen(false);
@@ -385,7 +398,7 @@ export function AdminProviderWalletsPanel() {
     },
     onError: (e: any) =>
       toast({
-        title: "Failed to adjust",
+        title: t("admin.provider_wallets.adjust_failed"),
         description: e.message,
         variant: "destructive",
       }),
@@ -406,7 +419,7 @@ export function AdminProviderWalletsPanel() {
         reason,
       }),
     onSuccess: (_data, vars) => {
-      toast({ title: vars.frozen ? "Wallet frozen" : "Wallet unfrozen" });
+      toast({ title: vars.frozen ? t("admin.provider_wallets.frozen") : t("admin.provider_wallets.unfreeze") });
       refetch();
       setFreezeOpen(false);
       setFreezeTarget(null);
@@ -414,7 +427,7 @@ export function AdminProviderWalletsPanel() {
     },
     onError: (e: any) =>
       toast({
-        title: "Failed to update freeze status",
+        title: t("admin.provider_wallets.freeze_status_failed"),
         description: e.message,
         variant: "destructive",
       }),
@@ -434,7 +447,7 @@ export function AdminProviderWalletsPanel() {
   const handleFreezeConfirm = () => {
     if (!freezeTarget) return;
     if (!freezeTarget.is_frozen && !freezeReason.trim()) {
-      toast({ title: "Please enter a reason for freezing", variant: "destructive" });
+      toast({ title: t("admin.provider_wallets.reason_required"), variant: "destructive" });
       return;
     }
     freezeMutation.mutate({
@@ -452,10 +465,10 @@ export function AdminProviderWalletsPanel() {
             <div>
               <CardTitle className="flex items-center gap-2">
                 <Wallet className="h-5 w-5" />
-                Provider Wallets
+                {t("admin.provider_wallets.title")}
               </CardTitle>
               <CardDescription>
-                View balances, freeze wallets, make adjustments, and browse transaction history
+                {t("admin.provider_wallets.description")}
               </CardDescription>
             </div>
             <div className="flex items-center gap-2">
@@ -463,7 +476,7 @@ export function AdminProviderWalletsPanel() {
                 <Search className="absolute start-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
                   className="pl-8 w-64"
-                  placeholder="Search by name or email…"
+                   placeholder={t("admin.provider_wallets.search_placeholder")}
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   data-testid="input-wallet-search"
@@ -490,19 +503,19 @@ export function AdminProviderWalletsPanel() {
           ) : wallets.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
               <Wallet className="h-10 w-10 mx-auto mb-3 opacity-30" />
-              <p>No provider wallets found</p>
+               <p>{t("admin.provider_wallets.no_wallets")}</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b bg-muted/50">
-                    <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Provider</th>
-                    <th className="px-4 py-2.5 text-right text-xs font-medium text-muted-foreground">Available</th>
-                    <th className="px-4 py-2.5 text-right text-xs font-medium text-muted-foreground">Held</th>
-                    <th className="px-4 py-2.5 text-right text-xs font-medium text-muted-foreground">Lifetime</th>
-                    <th className="px-4 py-2.5 text-center text-xs font-medium text-muted-foreground">Status</th>
-                    <th className="px-4 py-2.5 text-right text-xs font-medium text-muted-foreground">Actions</th>
+                     <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">{t("admin.provider_wallets.provider")}</th>
+                     <th className="px-4 py-2.5 text-right text-xs font-medium text-muted-foreground">{t("admin.provider_wallets.available")}</th>
+                     <th className="px-4 py-2.5 text-right text-xs font-medium text-muted-foreground">{t("admin.provider_wallets.held")}</th>
+                     <th className="px-4 py-2.5 text-right text-xs font-medium text-muted-foreground">{t("admin.provider_wallets.lifetime")}</th>
+                     <th className="px-4 py-2.5 text-center text-xs font-medium text-muted-foreground">{t("admin.provider_wallets.status")}</th>
+                     <th className="px-4 py-2.5 text-right text-xs font-medium text-muted-foreground">{t("admin.provider_wallets.actions")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -531,11 +544,11 @@ export function AdminProviderWalletsPanel() {
                         <div className="flex flex-col items-center gap-1">
                           {w.is_frozen ? (
                             <Badge className="bg-red-100 text-red-800 border-red-200 border text-xs">
-                              Frozen
+                               {t("admin.provider_wallets.frozen")}
                             </Badge>
                           ) : (
                             <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 border text-xs">
-                              Active
+                               {t("admin.provider_wallets.active")}
                             </Badge>
                           )}
                           {w.is_frozen && w.frozen_reason && (
@@ -568,7 +581,7 @@ export function AdminProviderWalletsPanel() {
                             data-testid={`btn-ledger-history-${w.provider_id}`}
                           >
                             <History className="h-3 w-3" />
-                            History
+                             {t("admin.provider_wallets.history")}
                           </Button>
                           <Button
                             variant="ghost"
@@ -582,7 +595,7 @@ export function AdminProviderWalletsPanel() {
                             }}
                             data-testid={`btn-adjust-wallet-${w.provider_id}`}
                           >
-                            Adjust
+                             {t("admin.provider_wallets.adjust")}
                           </Button>
                           <Button
                             variant="ghost"
@@ -597,9 +610,9 @@ export function AdminProviderWalletsPanel() {
                             data-testid={`btn-freeze-wallet-${w.provider_id}`}
                           >
                             {w.is_frozen ? (
-                              <><Unlock className="h-3 w-3" /> Unfreeze</>
+                               <><Unlock className="h-3 w-3" /> {t("admin.provider_wallets.unfreeze")}</>
                             ) : (
-                              <><Lock className="h-3 w-3" /> Freeze</>
+                               <><Lock className="h-3 w-3" /> {t("admin.provider_wallets.freeze")}</>
                             )}
                           </Button>
                         </div>
@@ -624,55 +637,52 @@ export function AdminProviderWalletsPanel() {
       <Dialog open={adjustOpen} onOpenChange={setAdjustOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Adjust Wallet Balance</DialogTitle>
+            <DialogTitle>{t("admin.provider_wallets.adjust_balance")}</DialogTitle>
             <DialogDescription>
               {selectedWallet && (
                 <>
-                  Adjusting wallet for{" "}
-                  <strong>{selectedWallet.provider_name}</strong>. Current
-                  available:{" "}
-                  <strong>
-                    {fmtBalance(selectedWallet.available_balance, selectedWallet.currency)}
-                  </strong>
-                  .
+                   {t("admin.provider_wallets.adjusting_wallet", {
+                     name: selectedWallet.provider_name,
+                     amount: fmtBalance(selectedWallet.available_balance, selectedWallet.currency),
+                   })}
                 </>
               )}{" "}
-              Use positive amount to credit, negative to debit.
+               {t("admin.provider_wallets.positive_negative_hint")}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-1.5">
-              <Label>Amount (positive = credit, negative = debit)</Label>
+               <Label>{t("admin.provider_wallets.amount")}</Label>
               <Input
                 type="number"
                 step="1"
                 value={adjustAmount}
                 onChange={(e) => setAdjustAmount(e.target.value)}
-                placeholder="e.g. 10 or -10"
+                 placeholder={t("admin.provider_wallets.amount_placeholder")}
                 data-testid="input-adjust-amount"
               />
             </div>
             <div className="space-y-1.5">
-              <Label>Entry type</Label>
+               <Label>{t("admin.provider_wallets.entry_type")}</Label>
               <select
                 className="w-full border rounded-md h-9 px-3 text-sm bg-background"
                 value={adjustType}
                 onChange={(e) => setAdjustType(e.target.value)}
                 data-testid="select-adjust-type"
               >
-                <option value="manual_correction">Manual correction</option>
-                <option value="wallet_adjustment">Wallet adjustment</option>
-                <option value="refund_deduction">Refund deduction</option>
-                <option value="commission_deduction">Commission deduction</option>
-                <option value="tax_deduction">Tax deduction</option>
+                 <option value="manual_correction">{t("admin.provider_wallets.manual_correction")}</option>
+                 <option value="wallet_adjustment">{t("admin.provider_wallets.wallet_adjustment")}</option>
+                 <option value="refund_deduction">{t("admin.provider_wallets.refund_deduction")}</option>
+                 <option value="commission_deduction">{t("admin.provider_wallets.commission_deduction")}</option>
+                 <option value="tax_deduction">{t("admin.provider_wallets.tax_deduction")}</option>
               </select>
             </div>
             <div className="space-y-1.5">
-              <Label>Reason / Description *</Label>
+               <Label>{t("admin.provider_wallets.reason_description")}</Label>
               <Input
                 value={adjustDesc}
                 onChange={(e) => setAdjustDesc(e.target.value)}
-                placeholder="Explain why this adjustment is being made"
+                 placeholder={t("admin.provider_wallets.reason_placeholder")}
                 data-testid="input-adjust-description"
               />
             </div>
@@ -684,7 +694,7 @@ export function AdminProviderWalletsPanel() {
             <Button
               onClick={() => {
                 if (!selectedWallet || !adjustAmount || !adjustDesc.trim()) {
-                  toast({ title: "Fill all fields", variant: "destructive" });
+                   toast({ title: t("admin.provider_wallets.fill_all_fields"), variant: "destructive" });
                   return;
                 }
                 adjustMutation.mutate({
@@ -697,7 +707,7 @@ export function AdminProviderWalletsPanel() {
               disabled={adjustMutation.isPending}
               data-testid="btn-confirm-adjust"
             >
-              {adjustMutation.isPending ? "Saving…" : "Apply adjustment"}
+               {adjustMutation.isPending ? t("admin.provider_wallets.saving") : t("admin.provider_wallets.apply_adjustment")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -714,22 +724,19 @@ export function AdminProviderWalletsPanel() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               {freezeTarget?.is_frozen ? (
-                <><Unlock className="h-5 w-5 text-emerald-600" /> Unfreeze wallet</>
+                 <><Unlock className="h-5 w-5 text-emerald-600" /> {t("admin.provider_wallets.unfreeze_wallet")}</>
               ) : (
-                <><Lock className="h-5 w-5 text-red-600" /> Freeze wallet</>
+                 <><Lock className="h-5 w-5 text-red-600" /> {t("admin.provider_wallets.freeze_wallet")}</>
               )}
             </DialogTitle>
             <DialogDescription>
               {freezeTarget?.is_frozen ? (
                 <>
-                  This will restore full payout capability for{" "}
-                  <strong>{freezeTarget?.provider_name}</strong> and clear any audit hold.
+                   {t("admin.provider_wallets.restore_payouts", { name: freezeTarget?.provider_name })}
                 </>
               ) : (
                 <>
-                  This will block all payouts for{" "}
-                  <strong>{freezeTarget?.provider_name}</strong> until manually unfrozen.
-                  Please provide a clear reason.
+                   {t("admin.provider_wallets.block_payouts", { name: freezeTarget?.provider_name })}
                 </>
               )}
             </DialogDescription>
@@ -737,7 +744,7 @@ export function AdminProviderWalletsPanel() {
 
           {freezeTarget?.is_frozen && freezeTarget.frozen_reason && (
             <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-              <p className="font-medium text-xs uppercase tracking-wide mb-1">Current freeze reason</p>
+               <p className="font-medium text-xs uppercase tracking-wide mb-1">{t("admin.provider_wallets.current_freeze_reason")}</p>
               <p>{freezeTarget.frozen_reason}</p>
             </div>
           )}
@@ -745,13 +752,13 @@ export function AdminProviderWalletsPanel() {
           {!freezeTarget?.is_frozen && (
             <div className="space-y-1.5">
               <Label htmlFor="freeze-reason">
-                Reason for freezing <span className="text-red-500">*</span>
+                 {t("admin.provider_wallets.reason_for_freezing")} <span className="text-red-500">*</span>
               </Label>
               <Input
                 id="freeze-reason"
                 value={freezeReason}
                 onChange={(e) => setFreezeReason(e.target.value)}
-                placeholder="e.g. Suspicious payout request flagged for review"
+                 placeholder={t("admin.provider_wallets.freeze_reason_placeholder")}
                 data-testid="input-freeze-reason"
               />
             </div>
@@ -763,7 +770,7 @@ export function AdminProviderWalletsPanel() {
               onClick={() => { setFreezeOpen(false); setFreezeTarget(null); setFreezeReason(""); }}
               data-testid="btn-cancel-freeze"
             >
-              Cancel
+               {t("admin.provider_wallets.cancel")}
             </Button>
             <Button
               variant={freezeTarget?.is_frozen ? "default" : "destructive"}
@@ -772,10 +779,10 @@ export function AdminProviderWalletsPanel() {
               data-testid="btn-confirm-freeze"
             >
               {freezeMutation.isPending
-                ? "Saving…"
+                 ? t("admin.provider_wallets.saving")
                 : freezeTarget?.is_frozen
-                ? "Confirm unfreeze"
-                : "Confirm freeze"}
+                 ? t("admin.provider_wallets.confirm_unfreeze")
+                 : t("admin.provider_wallets.confirm_freeze")}
             </Button>
           </DialogFooter>
         </DialogContent>

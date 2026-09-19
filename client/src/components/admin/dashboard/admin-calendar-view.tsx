@@ -25,17 +25,17 @@ const STATUS_COLOR: Record<string, string> = {
   rescheduled: "bg-purple-400",
 };
 
-const STATUS_LABEL: Record<string, string> = {
-  completed: "Completed",
-  confirmed: "Confirmed",
-  in_progress: "In progress",
-  cancelled: "Cancelled",
-  cancelled_by_provider: "Cancelled (provider)",
-  cancelled_by_patient: "Cancelled (client)",
-  pending: "Pending",
-  rejected: "Rejected",
-  no_show: "No show",
-  rescheduled: "Rescheduled",
+const STATUS_LABEL_KEY: Record<string, string> = {
+  completed: "admin.completed",
+  confirmed: "admin.confirmed",
+  in_progress: "admin.calendar.in_progress",
+  cancelled: "admin.cancelled",
+  cancelled_by_provider: "admin.calendar.cancelled_provider",
+  cancelled_by_patient: "admin.calendar.cancelled_client",
+  pending: "admin.pending",
+  rejected: "admin.calendar.rejected",
+  no_show: "admin.calendar.no_show",
+  rescheduled: "admin.calendar.rescheduled",
 };
 
 function fmt(d: Date, opts: Intl.DateTimeFormatOptions) {
@@ -43,6 +43,9 @@ function fmt(d: Date, opts: Intl.DateTimeFormatOptions) {
 }
 function fmtTime(d: Date) {
   return formatTime(d, { hour: "2-digit", minute: "2-digit" });
+}
+function statusLabel(status: string, t: (key: string) => string) {
+  return t(STATUS_LABEL_KEY[status] ?? status);
 }
 function isSameDay(a: Date, b: Date) {
   return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
@@ -63,26 +66,31 @@ function EventChip({ b, onClick }: { b: any; onClick: () => void }) {
 }
 
 function BookingDetailDialog({ booking, open, onClose }: { booking: any; open: boolean; onClose: () => void }) {
+  const { t: translate } = useTranslation();
+  const t = (key: string, options?: any): string =>
+    String(translate(/^admin\.(review_moderation|category_requests|calendar\.|payouts|provider_wallets|provider_financials)/.test(key)
+      ? key.replace(/^admin\./, "admin_dashboard.")
+      : key, options));
   const { format: fmtMoney } = useAdminCurrency();
   if (!booking) return null;
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="max-w-sm">
         <DialogHeader>
-          <DialogTitle>Booking details</DialogTitle>
+          <DialogTitle>{t("admin.calendar.booking_details")}</DialogTitle>
         </DialogHeader>
         <div className="space-y-2 text-sm">
           <div className="flex items-center gap-2">
             <span className={`h-2.5 w-2.5 rounded-full ${STATUS_COLOR[booking.status] ?? "bg-slate-400"}`} />
-            <span className="font-medium">{STATUS_LABEL[booking.status] ?? booking.status}</span>
+            <span className="font-medium">{statusLabel(booking.status, t)}</span>
           </div>
-          <p><span className="text-muted-foreground">Service:</span> {booking.serviceName || booking.service?.name || "—"}</p>
-          <p><span className="text-muted-foreground">Client:</span> {booking.customerName || booking.customer?.name || "—"}</p>
-          <p><span className="text-muted-foreground">Provider:</span> {booking.providerName || booking.provider?.name || "—"}</p>
-          <p><span className="text-muted-foreground">Date:</span> {formatDateTime(booking.scheduledAt || booking.date)}</p>
-          {booking.visitType && <p><span className="text-muted-foreground">Visit type:</span> {booking.visitType}</p>}
-          {(booking.finalTotalUsd ?? booking.totalAmount) && <p><span className="text-muted-foreground">Amount (USD):</span> {fmtMoney(Number(booking.finalTotalUsd ?? booking.totalAmount))}</p>}
-          {booking.appointmentNumber && <p><span className="text-muted-foreground">Ref:</span> {booking.appointmentNumber}</p>}
+           <p><span className="text-muted-foreground">{t("admin.calendar.service")}:</span> {booking.serviceName || booking.service?.name || "—"}</p>
+           <p><span className="text-muted-foreground">{t("admin.calendar.client")}:</span> {booking.customerName || booking.customer?.name || "—"}</p>
+           <p><span className="text-muted-foreground">{t("admin.calendar.provider")}:</span> {booking.providerName || booking.provider?.name || "—"}</p>
+           <p><span className="text-muted-foreground">{t("admin.calendar.date")}:</span> {formatDateTime(booking.scheduledAt || booking.date)}</p>
+           {booking.visitType && <p><span className="text-muted-foreground">{t("admin.calendar.visit_type")}:</span> {booking.visitType}</p>}
+           {(booking.finalTotalUsd ?? booking.totalAmount) && <p><span className="text-muted-foreground">{t("admin.calendar.amount_usd")}:</span> {fmtMoney(Number(booking.finalTotalUsd ?? booking.totalAmount))}</p>}
+           {booking.appointmentNumber && <p><span className="text-muted-foreground">{t("admin.calendar.ref")}:</span> {booking.appointmentNumber}</p>}
         </div>
       </DialogContent>
     </Dialog>
@@ -90,7 +98,11 @@ function BookingDetailDialog({ booking, open, onClose }: { booking: any; open: b
 }
 
 export function AdminCalendarView() {
-  const { t } = useTranslation();
+  const { t: translate } = useTranslation();
+  const t = (key: string, options?: any): string =>
+    String(translate(/^admin\.(review_moderation|category_requests|calendar\.|payouts|provider_wallets|provider_financials)/.test(key)
+      ? key.replace(/^admin\./, "admin_dashboard.")
+      : key, options));
   const { format: fmtAdmin } = useAdminCurrency();
   const [view, setView] = useState<CalView>("week");
   const [offset, setOffset] = useState(0);
@@ -227,10 +239,10 @@ export function AdminCalendarView() {
               </div>
               <Select value={providerFilter} onValueChange={setProviderFilter}>
                 <SelectTrigger className="h-8 w-44 text-xs" data-testid="select-cal-provider">
-                  <SelectValue placeholder="All providers" />
+                   <SelectValue placeholder={t("admin.calendar.all_providers")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All providers</SelectItem>
+                   <SelectItem value="all">{t("admin.calendar.all_providers")}</SelectItem>
                   {providers.map((p: any) => (
                     <SelectItem key={p.id} value={p.id}>
                       {p.businessName || p.user?.name || p.clinicName || p.id}
@@ -266,10 +278,10 @@ export function AdminCalendarView() {
         {[
           ["bg-amber-500", t("admin.pending", "Pending")],
           ["bg-blue-500", t("admin.confirmed", "Confirmed")],
-          ["bg-indigo-500", "In progress"],
+          ["bg-indigo-500", t("admin.calendar.in_progress")],
           ["bg-emerald-500", t("admin.completed", "Completed")],
           ["bg-red-400", t("admin.cancelled", "Cancelled")],
-          ["bg-purple-400", "Rescheduled"],
+          ["bg-purple-400", t("admin.calendar.rescheduled")],
         ].map(([color, label]) => (
           <span key={label} className="flex items-center gap-1">
             <span className={`h-3 w-3 rounded ${color}`} />
@@ -288,6 +300,11 @@ export function AdminCalendarView() {
 }
 
 function DayView({ day, events, onEventClick }: { day: Date; events: any[]; onEventClick: (b: any) => void }) {
+  const { t: translate } = useTranslation();
+  const t = (key: string, options?: any): string =>
+    String(translate(/^admin\.(review_moderation|category_requests|calendar\.|payouts|provider_wallets|provider_financials)/.test(key)
+      ? key.replace(/^admin\./, "admin_dashboard.")
+      : key, options));
   const isToday = isSameDay(day, new Date());
   return (
     <div className={`border rounded-lg p-4 min-h-[360px] ${isToday ? "border-primary bg-primary/5" : ""}`}>
@@ -296,7 +313,7 @@ function DayView({ day, events, onEventClick }: { day: Date; events: any[]; onEv
         {events.length > 0 && <Badge variant="secondary" className="ml-2">{events.length}</Badge>}
       </p>
       {events.length === 0 ? (
-        <p className="text-sm text-muted-foreground/60 italic">No bookings</p>
+        <p className="text-sm text-muted-foreground/60 italic">{t("admin.calendar.no_bookings")}</p>
       ) : (
         <div className="space-y-2">
           {events.map((b: any) => (
@@ -312,7 +329,7 @@ function DayView({ day, events, onEventClick }: { day: Date; events: any[]; onEv
                 <p className="text-xs text-muted-foreground">{b.customerName || b.customer?.name || ""}</p>
                 <p className="text-xs text-muted-foreground">{fmtTime(new Date(b.scheduledAt || b.date || Date.now()))}</p>
               </div>
-              <Badge variant="outline" className="text-xs shrink-0">{STATUS_LABEL[b.status] ?? b.status}</Badge>
+               <Badge variant="outline" className="text-xs shrink-0">{statusLabel(b.status, t)}</Badge>
             </div>
           ))}
         </div>
@@ -322,6 +339,11 @@ function DayView({ day, events, onEventClick }: { day: Date; events: any[]; onEv
 }
 
 function WeekView({ days, byDay, onEventClick }: { days: Date[]; byDay: Map<string, any[]>; onEventClick: (b: any) => void }) {
+  const { t: translate } = useTranslation();
+  const t = (key: string, options?: any): string =>
+    String(translate(/^admin\.(review_moderation|category_requests|calendar\.|payouts|provider_wallets|provider_financials)/.test(key)
+      ? key.replace(/^admin\./, "admin_dashboard.")
+      : key, options));
   const today = new Date();
   return (
     <div className="grid grid-cols-7 gap-1.5">
@@ -345,7 +367,7 @@ function WeekView({ days, byDay, onEventClick }: { days: Date[]; byDay: Map<stri
                 <EventChip key={b.id} b={b} onClick={() => onEventClick(b)} />
               ))}
               {evts.length > 4 && (
-                <p className="text-[10px] text-muted-foreground text-center">+{evts.length - 4} more</p>
+                 <p className="text-[10px] text-muted-foreground text-center">{t("admin.calendar.more", { count: evts.length - 4 })}</p>
               )}
               {evts.length === 0 && (
                 <p className="text-[10px] text-muted-foreground/50 italic">—</p>
@@ -369,8 +391,15 @@ function MonthView({
   isCurrentMonth: (d: Date) => boolean;
   onEventClick: (b: any) => void;
 }) {
+  const { t: translate } = useTranslation();
+  const t = (key: string, options?: any): string =>
+    String(translate(/^admin\.(review_moderation|category_requests|calendar\.|payouts|provider_wallets|provider_financials)/.test(key)
+      ? key.replace(/^admin\./, "admin_dashboard.")
+      : key, options));
   const today = new Date();
-  const weekDays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+  const weekDays = Array.from({ length: 7 }, (_, index) =>
+    formatDate(new Date(2024, 0, 1 + index), { weekday: "short" }),
+  );
   return (
     <div>
       <div className="grid grid-cols-7 mb-1">
@@ -404,7 +433,7 @@ function MonthView({
                     onClick={() => onEventClick(b)}
                     data-testid={`event-cal-${b.id}`}
                   >
-                    {b.serviceName || b.service?.name || "Booking"}
+                     {b.serviceName || b.service?.name || t("admin.calendar.booking")}
                   </button>
                 ))}
                 {evts.length > 3 && (

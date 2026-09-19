@@ -14,6 +14,7 @@ import {
 import {
   CheckCircle, XCircle, Clock, ArrowRight, AlertTriangle, RefreshCw, Layers,
 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 interface CategoryRequest {
   provider_id: string;
@@ -32,6 +33,11 @@ interface CategoryRequest {
 }
 
 export function AdminCategoryRequests() {
+  const { t: translate } = useTranslation();
+  const t = (key: string, options?: any): string =>
+    String(translate(/^admin\.(review_moderation|category_requests|calendar\.|payouts|provider_wallets|provider_financials)/.test(key)
+      ? key.replace(/^admin\./, "admin_dashboard.")
+      : key, options));
   const { toast } = useToast();
   const [rejectDialog, setRejectDialog] = useState<{ providerId: string; name: string } | null>(null);
   const [rejectReason, setRejectReason] = useState("");
@@ -46,7 +52,7 @@ export function AdminCategoryRequests() {
       const res = await apiRequest("POST", `/api/admin/providers/${providerId}/approve-category-change`, { decision, reason });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        throw new Error((err as any).message || "Failed to process decision");
+        throw new Error((err as any).message || t("admin.category_requests.decision_failed"));
       }
       return res.json();
     },
@@ -56,9 +62,9 @@ export function AdminCategoryRequests() {
       refetch();
       setRejectDialog(null);
       setRejectReason("");
-      toast({ title: vars.decision === "approve" ? "Category change approved" : "Category change rejected" });
+      toast({ title: vars.decision === "approve" ? t("admin.category_requests.approved_toast") : t("admin.category_requests.rejected_toast") });
     },
-    onError: (e: any) => toast({ title: "Error", description: e?.message, variant: "destructive" }),
+    onError: (e: any) => toast({ title: t("admin.category_requests.error"), description: e?.message, variant: "destructive" }),
   });
 
   const handleApprove = (providerId: string) => {
@@ -89,14 +95,14 @@ export function AdminCategoryRequests() {
         <div>
           <h2 className="text-xl font-semibold flex items-center gap-2">
             <Layers className="h-5 w-5 text-indigo-500" />
-            Category Change Requests
+             {t("admin.category_requests.title")}
           </h2>
           <p className="text-sm text-muted-foreground mt-0.5">
-            Review provider requests to change their professional category after approval.
+             {t("admin.category_requests.description")}
           </p>
         </div>
         <Badge variant="secondary" className="text-sm px-3 py-1" data-testid="count-category-requests">
-          {requests.length} pending
+          {requests.length} {t("admin.category_requests.pending_suffix")}
         </Badge>
       </div>
 
@@ -104,8 +110,8 @@ export function AdminCategoryRequests() {
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-16 gap-3">
             <CheckCircle className="h-12 w-12 text-emerald-400" />
-            <p className="text-base font-medium">No pending category requests</p>
-            <p className="text-sm text-muted-foreground">All category change requests have been reviewed.</p>
+             <p className="text-base font-medium">{t("admin.category_requests.no_pending")}</p>
+             <p className="text-sm text-muted-foreground">{t("admin.category_requests.all_reviewed")}</p>
           </CardContent>
         </Card>
       ) : (
@@ -140,9 +146,9 @@ export function AdminCategoryRequests() {
                       {/* Category change summary */}
                       <div className="mt-3 flex items-center gap-2 flex-wrap text-sm">
                         <div className="flex flex-col gap-0.5">
-                          <span className="text-[10px] text-muted-foreground uppercase tracking-wide">Current</span>
+                           <span className="text-[10px] text-muted-foreground uppercase tracking-wide">{t("admin.category_requests.current")}</span>
                           <span className="font-medium text-muted-foreground">
-                            {req.provider_category || "Not set"}
+                             {req.provider_category || t("admin.category_requests.not_set")}
                             {req.provider_subcategory && (
                               <span className="text-muted-foreground/60 ml-1">· {req.provider_subcategory}</span>
                             )}
@@ -150,7 +156,7 @@ export function AdminCategoryRequests() {
                         </div>
                         <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0 mt-3" />
                         <div className="flex flex-col gap-0.5">
-                          <span className="text-[10px] text-muted-foreground uppercase tracking-wide">Requested</span>
+                           <span className="text-[10px] text-muted-foreground uppercase tracking-wide">{t("admin.category_requests.requested")}</span>
                           <span className="font-semibold text-indigo-700 dark:text-indigo-300">
                             {req.pending_provider_category}
                             {req.pending_provider_subcategory && (
@@ -164,7 +170,7 @@ export function AdminCategoryRequests() {
                         <div className="mt-2 flex items-start gap-1.5 bg-muted/40 rounded-md px-3 py-2">
                           <AlertTriangle className="h-3.5 w-3.5 text-amber-500 mt-0.5 shrink-0" />
                           <p className="text-xs text-muted-foreground">
-                            <span className="font-medium">Reason: </span>{req.category_change_reason}
+                             <span className="font-medium">{t("admin.category_requests.reason")}: </span>{req.category_change_reason}
                           </p>
                         </div>
                       )}
@@ -180,7 +186,7 @@ export function AdminCategoryRequests() {
                       disabled={decisionMutation.isPending}
                       data-testid={`button-reject-${req.provider_id}`}
                     >
-                      <XCircle className="h-3.5 w-3.5 mr-1.5" /> Reject
+                       <XCircle className="h-3.5 w-3.5 mr-1.5" /> {t("admin.category_requests.reject")}
                     </Button>
                     <Button
                       size="sm"
@@ -190,7 +196,7 @@ export function AdminCategoryRequests() {
                       data-testid={`button-approve-${req.provider_id}`}
                     >
                       <CheckCircle className="h-3.5 w-3.5 mr-1.5" />
-                      Approve Change
+                       {t("admin.category_requests.approve_change")}
                     </Button>
                   </div>
                 </CardContent>
@@ -204,22 +210,22 @@ export function AdminCategoryRequests() {
       <Dialog open={!!rejectDialog} onOpenChange={(o) => { if (!o) { setRejectDialog(null); setRejectReason(""); } }}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Reject Category Change</DialogTitle>
+            <DialogTitle>{t("admin.category_requests.reject_title")}</DialogTitle>
             <DialogDescription>
-              Rejecting the category change request for <strong>{rejectDialog?.name}</strong>. Optionally provide a reason.
+              {t("admin.category_requests.reject_description", { name: rejectDialog?.name })}
             </DialogDescription>
           </DialogHeader>
           <Textarea
-            placeholder="Optional: explain why this category change is not approved..."
+             placeholder={t("admin.category_requests.reject_placeholder")}
             value={rejectReason}
             onChange={(e) => setRejectReason(e.target.value)}
             rows={3}
             data-testid="input-reject-reason"
           />
           <DialogFooter>
-            <Button variant="outline" onClick={() => { setRejectDialog(null); setRejectReason(""); }}>Cancel</Button>
+             <Button variant="outline" onClick={() => { setRejectDialog(null); setRejectReason(""); }}>{t("admin.category_requests.cancel")}</Button>
             <Button variant="destructive" onClick={handleReject} disabled={decisionMutation.isPending} data-testid="button-confirm-reject">
-              Reject Request
+               {t("admin.category_requests.reject_request")}
             </Button>
           </DialogFooter>
         </DialogContent>

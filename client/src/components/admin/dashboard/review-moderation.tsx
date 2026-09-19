@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { useTranslation } from "react-i18next";
 
 type ReviewRow = {
   id: string;
@@ -24,6 +25,11 @@ type ReviewRow = {
 };
 
 export function ReviewModerationPanel() {
+  const { t: translate } = useTranslation();
+  const t = (key: string, options?: any): string =>
+    String(translate(/^admin\.(review_moderation|category_requests|calendar\.|payouts|provider_wallets|provider_financials)/.test(key)
+      ? key.replace(/^admin\./, "admin_dashboard.")
+      : key, options));
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [status, setStatus] = useState<"pending" | "approved" | "rejected" | "all">("pending");
@@ -32,7 +38,7 @@ export function ReviewModerationPanel() {
     queryKey,
     queryFn: async () => {
       const response = await fetch(`/api/admin/reviews?status=${status}`, { credentials: "include" });
-      if (!response.ok) throw new Error("Failed to load reviews");
+      if (!response.ok) throw new Error(t("admin.review_moderation.load_failed"));
       return response.json();
     },
   });
@@ -45,19 +51,19 @@ export function ReviewModerationPanel() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/reviews"] });
       queryClient.invalidateQueries({ queryKey: ["/api/providers"] });
-      toast({ title: "Review updated" });
+      toast({ title: t("admin.review_moderation.updated") });
     },
-    onError: (error: Error) => toast({ title: "Could not update review", description: error.message, variant: "destructive" }),
+    onError: (error: Error) => toast({ title: t("admin.review_moderation.update_failed"), description: error.message, variant: "destructive" }),
   });
 
   return (
     <Card data-testid="panel-review-moderation">
       <CardHeader className="flex flex-row items-start justify-between gap-3">
         <div>
-          <CardTitle>Review moderation</CardTitle>
-          <CardDescription>Approve patient reviews before they appear publicly or affect ratings.</CardDescription>
+          <CardTitle>{t("admin.review_moderation.title")}</CardTitle>
+          <CardDescription>{t("admin.review_moderation.description")}</CardDescription>
         </div>
-        <Button variant="outline" size="sm" onClick={() => refetch()} aria-label="Refresh reviews">
+        <Button variant="outline" size="sm" onClick={() => refetch()} aria-label={t("admin.review_moderation.refresh")}>
           <RefreshCw className="h-4 w-4" />
         </Button>
       </CardHeader>
@@ -70,7 +76,7 @@ export function ReviewModerationPanel() {
               variant={status === value ? "default" : "outline"}
               onClick={() => setStatus(value)}
             >
-              {value[0].toUpperCase() + value.slice(1)}
+              {t(`admin.review_moderation.${value}`)}
             </Button>
           ))}
         </div>
@@ -81,7 +87,9 @@ export function ReviewModerationPanel() {
           </div>
         ) : reviews.length === 0 ? (
           <div className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
-            No {status === "all" ? "" : status} reviews.
+            {status === "all"
+              ? t("admin.review_moderation.no_reviews_all")
+              : t("admin.review_moderation.no_reviews", { status: t(`admin.review_moderation.${status}`) })}
           </div>
         ) : (
           <div className="space-y-3">
@@ -91,18 +99,18 @@ export function ReviewModerationPanel() {
                   <div>
                     <p className="font-medium">
                       {review.patient_first_name} {review.patient_last_name}
-                      <span className="font-normal text-muted-foreground"> reviewed </span>
+                       <span className="font-normal text-muted-foreground"> {t("admin.review_moderation.reviewed")} </span>
                       {review.provider_first_name} {review.provider_last_name}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      {review.appointment_date} at {review.start_time}
+                       {review.appointment_date} {t("admin.review_moderation.at")} {review.start_time}
                     </p>
                   </div>
                   <Badge variant={review.status === "approved" ? "default" : review.status === "rejected" ? "destructive" : "secondary"}>
-                    {review.status}
+                     {t(`admin.review_moderation.${review.status}`)}
                   </Badge>
                 </div>
-                <div className="flex items-center gap-1 text-amber-500" aria-label={`${review.rating} out of 5 stars`}>
+                <div className="flex items-center gap-1 text-amber-500" aria-label={t("admin.review_moderation.stars_aria", { count: review.rating })}>
                   {Array.from({ length: 5 }, (_, index) => (
                     <Star key={index} className={`h-4 w-4 ${index < review.rating ? "fill-current" : ""}`} />
                   ))}
@@ -115,7 +123,7 @@ export function ReviewModerationPanel() {
                       onClick={() => decision.mutate({ id: review.id, nextStatus: "approved" })}
                       disabled={decision.isPending}
                     >
-                      <Check className="me-1.5 h-4 w-4" /> Approve
+                      <Check className="me-1.5 h-4 w-4" /> {t("admin.review_moderation.approve")}
                     </Button>
                     <Button
                       size="sm"
@@ -123,7 +131,7 @@ export function ReviewModerationPanel() {
                       onClick={() => decision.mutate({ id: review.id, nextStatus: "rejected" })}
                       disabled={decision.isPending}
                     >
-                      <X className="me-1.5 h-4 w-4" /> Reject
+                      <X className="me-1.5 h-4 w-4" /> {t("admin.review_moderation.reject")}
                     </Button>
                   </div>
                 )}

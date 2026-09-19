@@ -19,8 +19,14 @@ import { ArrowDownToLine, Banknote, CheckCircle, XCircle } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { formatInCurrency, useAdminCurrency } from "@/lib/currency";
 import { formatDateTime } from "@/lib/datetime";
+import { useTranslation } from "react-i18next";
 
 export function AdminPayoutsPanel() {
+  const { t: translate } = useTranslation();
+  const t = (key: string, options?: any): string =>
+    String(translate(/^admin\.(review_moderation|category_requests|calendar\.|payouts|provider_wallets|provider_financials)/.test(key)
+      ? key.replace(/^admin\./, "admin_dashboard.")
+      : key, options));
   const { toast } = useToast();
   const { format: fmtCurrency } = useAdminCurrency();
   const [statusFilter, setStatusFilter] = useState("pending");
@@ -59,7 +65,7 @@ export function AdminPayoutsPanel() {
         paymentReference,
       }),
     onSuccess: () => {
-      toast({ title: "Payout request updated" });
+      toast({ title: t("admin.payouts.updated") });
       refetch();
       queryClient.invalidateQueries({ queryKey: ["/api/admin/payout-requests"] });
       setActionId(null);
@@ -68,7 +74,7 @@ export function AdminPayoutsPanel() {
     },
     onError: (e: any) =>
       toast({
-        title: "Failed to update",
+        title: t("admin.payouts.update_failed"),
         description: e.message,
         variant: "destructive",
       }),
@@ -96,19 +102,19 @@ export function AdminPayoutsPanel() {
 
   function statusBadge(s: string) {
     if (s === "pending")
-      return <Badge className="bg-amber-100 text-amber-800">Pending</Badge>;
+      return <Badge className="bg-amber-100 text-amber-800">{t("admin.payouts.pending")}</Badge>;
     if (s === "approved")
-      return <Badge className="bg-blue-100 text-blue-800">Approved</Badge>;
+      return <Badge className="bg-blue-100 text-blue-800">{t("admin.payouts.approved")}</Badge>;
     if (s === "paid")
-      return <Badge className="bg-emerald-100 text-emerald-800">Paid</Badge>;
+      return <Badge className="bg-emerald-100 text-emerald-800">{t("admin.payouts.paid")}</Badge>;
     if (s === "rejected")
-      return <Badge className="bg-red-100 text-red-800">Rejected</Badge>;
+      return <Badge className="bg-red-100 text-red-800">{t("admin.payouts.rejected")}</Badge>;
     return <Badge variant="outline">{s}</Badge>;
   }
 
   function localAmount(r: any): string {
     if (r.requested_amount_local == null || !r.requested_currency) {
-      return "Historical local snapshot unavailable";
+      return t("admin.payouts.historical_local_unavailable");
     }
     return formatInCurrency(r.requested_amount_local, r.requested_currency);
   }
@@ -126,10 +132,10 @@ export function AdminPayoutsPanel() {
             <div>
               <CardTitle className="flex items-center gap-2">
                 <ArrowDownToLine className="h-5 w-5 text-emerald-600" />
-                Provider Payout Requests
+                {t("admin.payouts.title")}
               </CardTitle>
               <CardDescription>
-                Review, approve, and process provider withdrawal requests.
+                {t("admin.payouts.description")}
               </CardDescription>
             </div>
             <div className="flex gap-1.5 flex-wrap">
@@ -143,7 +149,7 @@ export function AdminPayoutsPanel() {
                     className="capitalize text-xs h-7 px-2"
                     data-testid={`button-payout-filter-${s}`}
                   >
-                    {s}
+                    {t(`admin.payouts.${s}`)}
                   </Button>
                 ),
               )}
@@ -151,8 +157,8 @@ export function AdminPayoutsPanel() {
           </div>
           {requests.length > 0 && (
             <p className="text-sm text-muted-foreground mt-1">
-              {requests.length} request{requests.length !== 1 ? "s" : ""} ·
-              Total: <strong>{fmtCurrency(totalAmount)}</strong>
+              {t(requests.length === 1 ? "admin.payouts.request_count" : "admin.payouts.request_count_plural", { count: requests.length })} ·{" "}
+              {t("admin.payouts.total")}: <strong>{fmtCurrency(totalAmount)}</strong>
             </p>
           )}
         </CardHeader>
@@ -169,7 +175,7 @@ export function AdminPayoutsPanel() {
           ) : requests.length === 0 ? (
             <div className="text-center py-10 text-muted-foreground">
               <Banknote className="h-10 w-10 mx-auto mb-3 opacity-20" />
-              <p className="text-sm">No {statusFilter} payout requests.</p>
+              <p className="text-sm">{t("admin.payouts.no_requests", { status: t(`admin.payouts.${statusFilter}`) })}</p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -203,40 +209,40 @@ export function AdminPayoutsPanel() {
                       </p>
                       <div className="mt-3 rounded-md border bg-muted/30 p-3">
                         <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
-                          Request details
+                          {t("admin.payouts.request_details")}
                         </p>
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-2 text-xs">
                           <div>
-                            <span className="text-muted-foreground">Requested by</span>
+                            <span className="text-muted-foreground">{t("admin.payouts.requested_by")}</span>
                             <p className="font-medium">{r.provider_name}</p>
-                            <p className="text-muted-foreground">{r.provider_email || "Email unavailable"}</p>
+                            <p className="text-muted-foreground">{r.provider_email || t("admin.payouts.email_unavailable")}</p>
                           </div>
                           <div>
-                            <span className="text-muted-foreground">Request ID</span>
+                            <span className="text-muted-foreground">{t("admin.payouts.request_id")}</span>
                             <p className="font-mono break-all">{r.id}</p>
-                            <p className="text-muted-foreground">Provider ID: {r.provider_id}</p>
+                            <p className="text-muted-foreground">{t("admin.payouts.provider_id")}: {r.provider_id}</p>
                           </div>
                           <div>
-                            <span className="text-muted-foreground">Requested at</span>
-                            <p className="font-medium">{formatDateTime(r.created_at) || "Unavailable"}</p>
-                            <p className="text-muted-foreground">Country: {r.country_code || "—"} · Type: {r.provider_type || "—"}</p>
+                            <span className="text-muted-foreground">{t("admin.payouts.requested_at")}</span>
+                            <p className="font-medium">{formatDateTime(r.created_at) || t("admin.payouts.unavailable")}</p>
+                            <p className="text-muted-foreground">{t("admin.payouts.country")}: {r.country_code || "—"} · {t("admin.payouts.type")}: {r.provider_type || "—"}</p>
                           </div>
                           <div>
-                            <span className="text-muted-foreground">Requested amount in system currency</span>
+                            <span className="text-muted-foreground">{t("admin.payouts.system_currency_amount")}</span>
                             <p className="font-semibold">{fmtCurrency(r.requested_amount_usd ?? r.amount)} USD</p>
                           </div>
                           <div>
-                            <span className="text-muted-foreground">Requested amount in provider currency</span>
+                            <span className="text-muted-foreground">{t("admin.payouts.provider_currency_amount")}</span>
                             <p className="font-semibold">{localAmount(r)}</p>
                             <p className="text-muted-foreground">
-                              Rate: {r.request_exchange_rate ? `1 USD = ${r.request_exchange_rate} ${r.requested_currency}` : "Not captured"}
+                              {t("admin.payouts.rate")}: {r.request_exchange_rate ? `1 USD = ${r.request_exchange_rate} ${r.requested_currency}` : t("admin.payouts.not_captured")}
                             </p>
                           </div>
                           <div>
-                            <span className="text-muted-foreground">Method and destination</span>
+                            <span className="text-muted-foreground">{t("admin.payouts.method_destination")}</span>
                             <p className="font-medium capitalize">{(r.method || r.payment_method || "—").replaceAll("_", " ")}</p>
                             <p className="text-muted-foreground">
-                              {r.bank_name || "Bank not provided"}
+                              {r.bank_name || t("admin.payouts.bank_not_provided")}
                               {r.account_holder ? ` · ${r.account_holder}` : ""}
                               {r.account_number_masked ? ` · ${r.account_number_masked}` : ""}
                             </p>
@@ -260,32 +266,32 @@ export function AdminPayoutsPanel() {
                       )}
                       <div className="mt-2 rounded-md border p-3">
                         <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
-                          What this payout includes · USD settlement breakdown
+                          {t("admin.payouts.what_includes")}
                         </p>
                         <p className="text-xs text-muted-foreground mb-2">
-                          This is a wallet withdrawal request. The amounts below are the immutable settlement snapshot used to fund the request; it is not limited to one appointment.
+                          {t("admin.payouts.settlement_snapshot")}
                         </p>
                         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 text-xs">
-                          <span className="rounded bg-slate-50 text-slate-800 px-2 py-1">Provider service earnings: <strong>{fmtCurrency(r.service_earnings_usd ?? 0)}</strong></span>
-                          <span className="rounded bg-muted px-2 py-1">Gross provider payout: <strong>{fmtCurrency(r.gross_settlement_amount_usd ?? r.amount)}</strong></span>
-                          <span className="rounded bg-emerald-50 text-emerald-800 px-2 py-1">Patient tax passed through: <strong>{fmtCurrency(r.tax_pass_through_settlement_usd ?? 0)}</strong></span>
-                           <span className="rounded bg-amber-50 text-amber-800 px-2 py-1">Cash platform fee: <strong>{fmtCurrency(r.cash_platform_fee_settlement_usd ?? 0)}</strong></span>
-                           <span className="rounded bg-orange-50 text-orange-800 px-2 py-1">Cash platform tax: <strong>{fmtCurrency(r.cash_platform_tax_settlement_usd ?? 0)}</strong></span>
-                           <span className="rounded bg-rose-50 text-rose-800 px-2 py-1">Cash commission: <strong>{fmtCurrency(r.cash_commission_settlement_usd ?? 0)}</strong></span>
-                           <span className="rounded bg-red-50 text-red-800 px-2 py-1">Total cash deductions: <strong>{fmtCurrency(r.cash_total_deduction_usd ?? 0)}</strong></span>
-                          <span className="rounded bg-blue-50 text-blue-800 px-2 py-1">Final settlement: <strong>{fmtCurrency(r.final_settlement_amount_usd ?? r.amount)}</strong></span>
+                           <span className="rounded bg-slate-50 text-slate-800 px-2 py-1">{t("admin.payouts.provider_service_earnings")}: <strong>{fmtCurrency(r.service_earnings_usd ?? 0)}</strong></span>
+                           <span className="rounded bg-muted px-2 py-1">{t("admin.payouts.gross_provider_payout")}: <strong>{fmtCurrency(r.gross_settlement_amount_usd ?? r.amount)}</strong></span>
+                           <span className="rounded bg-emerald-50 text-emerald-800 px-2 py-1">{t("admin.payouts.patient_tax_passed")}: <strong>{fmtCurrency(r.tax_pass_through_settlement_usd ?? 0)}</strong></span>
+                            <span className="rounded bg-amber-50 text-amber-800 px-2 py-1">{t("admin.payouts.cash_platform_fee")}: <strong>{fmtCurrency(r.cash_platform_fee_settlement_usd ?? 0)}</strong></span>
+                            <span className="rounded bg-orange-50 text-orange-800 px-2 py-1">{t("admin.payouts.cash_platform_tax")}: <strong>{fmtCurrency(r.cash_platform_tax_settlement_usd ?? 0)}</strong></span>
+                            <span className="rounded bg-rose-50 text-rose-800 px-2 py-1">{t("admin.payouts.cash_commission")}: <strong>{fmtCurrency(r.cash_commission_settlement_usd ?? 0)}</strong></span>
+                            <span className="rounded bg-red-50 text-red-800 px-2 py-1">{t("admin.payouts.total_cash_deductions")}: <strong>{fmtCurrency(r.cash_total_deduction_usd ?? 0)}</strong></span>
+                           <span className="rounded bg-blue-50 text-blue-800 px-2 py-1">{t("admin.payouts.final_settlement")}: <strong>{fmtCurrency(r.final_settlement_amount_usd ?? r.amount)}</strong></span>
                         </div>
                       </div>
                       <p className="text-xs text-muted-foreground mt-1">
                         Requested {formatDateTime(r.created_at)}
                         {r.reviewed_by_name
-                          ? ` · Reviewed by ${r.reviewed_by_name}${r.reviewed_by_email ? ` (${r.reviewed_by_email})` : ""}`
+                          ? ` · ${t("admin.payouts.reviewed_by")} ${r.reviewed_by_name}${r.reviewed_by_email ? ` (${r.reviewed_by_email})` : ""}`
                           : ""}
                         {r.reviewed_at
-                          ? ` on ${formatDateTime(r.reviewed_at)}`
+                          ? ` ${t("admin.payouts.on")} ${formatDateTime(r.reviewed_at)}`
                           : ""}
                         {r.paid_at
-                          ? ` · Paid ${formatDateTime(r.paid_at)}`
+                          ? ` · ${t("admin.payouts.paid_label")} ${formatDateTime(r.paid_at)}`
                           : ""}
                       </p>
                     </div>
@@ -299,8 +305,8 @@ export function AdminPayoutsPanel() {
                             onClick={() => openAction(r.id, "approved")}
                             data-testid={`button-approve-payout-${r.id}`}
                           >
-                            <CheckCircle className="h-3.5 w-3.5 mr-1" />{" "}
-                            Approve
+                             <CheckCircle className="h-3.5 w-3.5 mr-1" />{" "}
+                             {t("admin.payouts.approve")}
                           </Button>
                           <Button
                             size="sm"
@@ -309,7 +315,7 @@ export function AdminPayoutsPanel() {
                             onClick={() => openAction(r.id, "rejected")}
                             data-testid={`button-reject-payout-${r.id}`}
                           >
-                            <XCircle className="h-3.5 w-3.5 mr-1" /> Reject
+                             <XCircle className="h-3.5 w-3.5 mr-1" /> {t("admin.payouts.reject")}
                           </Button>
                         </>
                       )}
@@ -320,7 +326,7 @@ export function AdminPayoutsPanel() {
                           onClick={() => openAction(r.id, "paid")}
                           data-testid={`button-mark-paid-payout-${r.id}`}
                         >
-                          <Banknote className="h-3.5 w-3.5 mr-1" /> Mark Paid
+                           <Banknote className="h-3.5 w-3.5 mr-1" /> {t("admin.payouts.mark_paid")}
                         </Button>
                       )}
                     </div>
@@ -342,38 +348,38 @@ export function AdminPayoutsPanel() {
           <DialogHeader>
             <DialogTitle>
               {actionType === "approved"
-                ? "Approve Payout Request"
+                 ? t("admin.payouts.approve_title")
                 : actionType === "rejected"
-                ? "Reject Payout Request"
-                : "Mark Payout as Paid"}
+                 ? t("admin.payouts.reject_title")
+                 : t("admin.payouts.paid_title")}
             </DialogTitle>
             <DialogDescription>
               {actionType === "paid"
-                ? "Enter the payment reference so the provider can track it."
+                 ? t("admin.payouts.paid_description")
                 : actionType === "rejected"
-                ? "Optionally add a note explaining why this request was rejected."
-                : "Approve this payout request. The provider will be notified."}
+                 ? t("admin.payouts.reject_description")
+                 : t("admin.payouts.approve_description")}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 py-2">
             {actionType === "paid" && (
               <div className="space-y-1.5">
                 <Label htmlFor="payout-ref">
-                  Payment Reference (optional)
+                   {t("admin.payouts.payment_reference")}
                 </Label>
                 <Input
                   id="payout-ref"
                   value={paymentRef}
                   onChange={(e) => setPaymentRef(e.target.value)}
-                  placeholder="e.g. TXN-20240601-001"
+                   placeholder={t("admin.payouts.reference_placeholder")}
                   data-testid="input-payout-reference"
                 />
               </div>
             )}
             <div className="space-y-1.5">
               <Label htmlFor="payout-note">
-                Admin Note{" "}
-                {actionType === "rejected" ? "(recommended)" : "(optional)"}
+                 {t("admin.payouts.admin_note")}{" "}
+                 {actionType === "rejected" ? `(${t("admin.payouts.recommended")})` : `(${t("admin.payouts.optional")})`}
               </Label>
               <Textarea
                 id="payout-note"
@@ -381,8 +387,8 @@ export function AdminPayoutsPanel() {
                 onChange={(e) => setAdminNote(e.target.value)}
                 placeholder={
                   actionType === "rejected"
-                    ? "Reason for rejection…"
-                    : "Internal note…"
+                     ? t("admin.payouts.rejection_reason_placeholder")
+                     : t("admin.payouts.internal_note_placeholder")
                 }
                 rows={2}
                 data-testid="input-payout-admin-note"
@@ -395,7 +401,7 @@ export function AdminPayoutsPanel() {
               onClick={() => setActionId(null)}
               disabled={updateMutation.isPending}
             >
-              Cancel
+              {t("admin.payouts.cancel")}
             </Button>
             <Button
               onClick={submitAction}
@@ -410,12 +416,12 @@ export function AdminPayoutsPanel() {
               data-testid="button-confirm-payout-action"
             >
               {updateMutation.isPending
-                ? "Processing…"
+                 ? t("admin.payouts.processing")
                 : actionType === "approved"
-                ? "Approve"
+                 ? t("admin.payouts.approve")
                 : actionType === "rejected"
-                ? "Reject"
-                : "Mark as Paid"}
+                 ? t("admin.payouts.reject")
+                 : t("admin.payouts.mark_paid")}
             </Button>
           </DialogFooter>
         </DialogContent>
