@@ -20,14 +20,14 @@ import { QK } from "@/lib/query-keys";
 
 type NotifFilter = "all" | "appointment" | "payment" | "system" | "package" | "membership" | "referral";
 
-const FILTER_TABS: { key: NotifFilter; label: string; icon: typeof Bell }[] = [
-  { key: "all",         label: "All",          icon: Bell },
-  { key: "appointment", label: "Appointments",  icon: Calendar },
-  { key: "payment",     label: "Payments",      icon: DollarSign },
-  { key: "package",     label: "Packages",      icon: Settings },
-  { key: "membership",  label: "Membership",    icon: Info },
-  { key: "referral",    label: "Referrals",     icon: ChevronRight },
-  { key: "system",      label: "System",        icon: Settings },
+const FILTER_TABS: { key: NotifFilter; icon: typeof Bell }[] = [
+  { key: "all",         icon: Bell },
+  { key: "appointment", icon: Calendar },
+  { key: "payment",     icon: DollarSign },
+  { key: "package",     icon: Settings },
+  { key: "membership",  icon: Info },
+  { key: "referral",    icon: ChevronRight },
+  { key: "system",      icon: Settings },
 ];
 
 function getIcon(type: string | null | undefined) {
@@ -124,10 +124,10 @@ export default function Notifications() {
       setBulkMode(false);
       queryClient.invalidateQueries({ queryKey: QK.notifications() });
       queryClient.invalidateQueries({ queryKey: QK.notificationsUnreadCount() });
-      toast({ title: action === "delete" ? "Notifications deleted" : "Marked as read" });
+      toast({ title: action === "delete" ? t("notifications.deleted", "Notifications deleted") : t("notifications.marked_read", "Marked as read") });
     },
     onError: (e: any) => {
-      showErrorModal({ title: "Action failed", description: e?.message || "Please try again.", context: "notifications.bulk" });
+      showErrorModal({ title: t("notifications.action_failed", "Action failed"), description: e?.message || t("notifications.try_again", "Please try again."), context: "notifications.bulk" });
     },
   });
 
@@ -164,7 +164,7 @@ export default function Notifications() {
     onError: (e: any) => {
       showErrorModal({
         title: t("notifications.all_marked_failed", "Couldn't mark all as read"),
-        description: e?.message || "Please try again.",
+        description: e?.message || t("notifications.try_again", "Please try again."),
         context: "notifications.markAllRead",
       });
     },
@@ -194,13 +194,13 @@ export default function Notifications() {
     : all.filter((n) => classifyType(n.type) === activeFilter);
 
   const emptyMessages: Record<NotifFilter, { title: string; desc: string }> = {
-    all:         { title: "No notifications yet",          desc: "You'll be notified here about appointments, payments, and updates." },
-    appointment: { title: "No appointment notifications",  desc: "Booking confirmations and reminders will appear here." },
-    payment:     { title: "No payment notifications",      desc: "Payment receipts and wallet credits will appear here." },
-    system:      { title: "No system notifications",       desc: "Important account and platform alerts will appear here." },
-    package:     { title: "No package notifications",      desc: "Membership and package updates will appear here." },
-    membership:  { title: "No membership notifications",   desc: "Membership plan updates will appear here." },
-    referral:    { title: "No referral notifications",     desc: "Referral rewards and status updates will appear here." },
+    all:         { title: t("notifications.empty_all_title", "No notifications yet"), desc: t("notifications.empty_all_desc", "You'll be notified here about appointments, payments, and updates.") },
+    appointment: { title: t("notifications.empty_appointment_title", "No appointment notifications"), desc: t("notifications.empty_appointment_desc", "Booking confirmations and reminders will appear here.") },
+    payment:     { title: t("notifications.empty_payment_title", "No payment notifications"), desc: t("notifications.empty_payment_desc", "Payment receipts and wallet credits will appear here.") },
+    system:      { title: t("notifications.empty_system_title", "No system notifications"), desc: t("notifications.empty_system_desc", "Important account and platform alerts will appear here.") },
+    package:     { title: t("notifications.empty_package_title", "No package notifications"), desc: t("notifications.empty_package_desc", "Membership and package updates will appear here.") },
+    membership:  { title: t("notifications.empty_membership_title", "No membership notifications"), desc: t("notifications.empty_membership_desc", "Membership plan updates will appear here.") },
+    referral:    { title: t("notifications.empty_referral_title", "No referral notifications"), desc: t("notifications.empty_referral_desc", "Referral rewards and status updates will appear here.") },
   };
 
   return (
@@ -209,7 +209,7 @@ export default function Notifications() {
       <main className="flex-1 container mx-auto p-4 py-8">
         <div className="max-w-4xl mx-auto">
           <PageBreadcrumbs
-            items={[{ label: "Home", href: "/" }, { label: t("common.notifications", "Notifications") }]}
+            items={[{ label: t("common.home", "Home"), href: "/" }, { label: t("common.notifications", "Notifications") }]}
             fallback="/"
           />
           <Card>
@@ -234,7 +234,7 @@ export default function Notifications() {
                       data-testid="button-bulk-mark-read"
                     >
                       <Check className="h-4 w-4 mr-1.5" />
-                      Mark read ({selectedIds.size})
+                      {t("notifications.mark_selected_read", "Mark read ({{count}})", { count: selectedIds.size })}
                     </Button>
                     <Button
                       size="sm"
@@ -245,7 +245,7 @@ export default function Notifications() {
                       data-testid="button-bulk-delete"
                     >
                       <Trash2 className="h-4 w-4 mr-1.5" />
-                      Delete ({selectedIds.size})
+                      {t("notifications.delete_selected", "Delete ({{count}})", { count: selectedIds.size })}
                     </Button>
                   </>
                 )}
@@ -256,7 +256,7 @@ export default function Notifications() {
                   data-testid="button-toggle-bulk"
                 >
                   {bulkMode ? <CheckSquare className="h-4 w-4 mr-1.5" /> : <Square className="h-4 w-4 mr-1.5" />}
-                  {bulkMode ? "Cancel" : "Select"}
+                  {bulkMode ? t("common.cancel", "Cancel") : t("notifications.select", "Select")}
                 </Button>
                 <Button
                   size="sm"
@@ -273,7 +273,7 @@ export default function Notifications() {
 
             {/* Filter chips */}
             <div className="px-6 pb-3 flex flex-wrap gap-2 border-b" data-testid="notification-filters">
-              {FILTER_TABS.map(({ key, label, icon: Icon }) => {
+              {FILTER_TABS.map(({ key, icon: Icon }) => {
                 const count = key === "all" ? all.length : all.filter(n => classifyType(n.type) === key).length;
                 const unread = key === "all" ? unreadCount : all.filter(n => classifyType(n.type) === key && !n.isRead).length;
                 return (
@@ -287,7 +287,7 @@ export default function Notifications() {
                         : "bg-muted text-muted-foreground hover:bg-muted/80"}`}
                   >
                     <Icon className="h-3.5 w-3.5" />
-                    {label}
+                    {t(`notifications.filter_${key}`, key)}
                     {count > 0 && (
                       <span className={`rounded-full px-1.5 py-0.5 text-xs leading-none
                         ${activeFilter === key ? "bg-white/25 text-white" : unread > 0 ? "bg-primary/15 text-primary" : "bg-muted-foreground/15 text-muted-foreground"}`}>
@@ -350,7 +350,7 @@ export default function Notifications() {
                               type="button"
                               className="mt-0.5 shrink-0 text-muted-foreground hover:text-primary transition-colors"
                               data-testid={`checkbox-notif-${notif.id}`}
-                              aria-label={isSelected ? "Deselect" : "Select"}
+                              aria-label={isSelected ? t("notifications.deselect", "Deselect") : t("notifications.select", "Select")}
                               onClick={(e) => { e.stopPropagation(); toggleSelect(notif.id); }}
                             >
                               {isSelected
@@ -383,7 +383,7 @@ export default function Notifications() {
                               )}
                               {link && !bulkMode && (
                                 <span className="ml-auto text-xs text-primary flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                                  View <ChevronRight className="h-3 w-3" />
+                                  {t("notifications.view", "View")} <ChevronRight className="h-3 w-3" />
                                 </span>
                               )}
                             </div>
@@ -393,7 +393,7 @@ export default function Notifications() {
                               type="button"
                               className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive p-1 rounded shrink-0 mt-0.5"
                               data-testid={`button-delete-notif-${notif.id}`}
-                              aria-label="Delete notification"
+                              aria-label={t("notifications.delete", "Delete notification")}
                               onClick={(e) => { e.stopPropagation(); deleteNotifMutation.mutate(notif.id); }}
                             >
                               <Trash2 className="h-3.5 w-3.5" />
