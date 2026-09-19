@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Download, Play, Plus, Save, Trash2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 type FieldType = "text" | "number" | "boolean" | "date" | "datetime";
 type Operator = string;
@@ -55,6 +56,7 @@ function displayValue(value: unknown, type: FieldType): string {
 }
 
 export function CustomReportsBuilder() {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const metadataQuery = useQuery<{ sources: Source[] }>({
@@ -92,7 +94,7 @@ export function CustomReportsBuilder() {
       return response.json() as Promise<ReportResult>;
     },
     onSuccess: data => setResult(data),
-    onError: (error: Error) => toast({ title: "Report could not run", description: error.message, variant: "destructive" }),
+     onError: (error: Error) => toast({ title: t("admin_tools.custom.report_run_failed", "Report could not run"), description: error.message, variant: "destructive" }),
   });
 
   const saveMutation = useMutation({
@@ -109,9 +111,9 @@ export function CustomReportsBuilder() {
       setReportName(data.name);
       setSelectedSavedId(data.id);
       queryClient.invalidateQueries({ queryKey: ["/api/admin/custom-reports/saved"] });
-      toast({ title: "Report saved" });
+       toast({ title: t("admin_tools.custom.report_saved", "Report saved") });
     },
-    onError: (error: Error) => toast({ title: "Report could not be saved", description: error.message, variant: "destructive" }),
+     onError: (error: Error) => toast({ title: t("admin_tools.custom.report_save_failed", "Report could not be saved"), description: error.message, variant: "destructive" }),
   });
 
   const deleteMutation = useMutation({
@@ -123,9 +125,9 @@ export function CustomReportsBuilder() {
       setSelectedSavedId("");
       setReportName("");
       queryClient.invalidateQueries({ queryKey: ["/api/admin/custom-reports/saved"] });
-      toast({ title: "Saved report deleted" });
+       toast({ title: t("admin_tools.custom.report_deleted", "Saved report deleted") });
     },
-    onError: (error: Error) => toast({ title: "Report could not be deleted", description: error.message, variant: "destructive" }),
+     onError: (error: Error) => toast({ title: t("admin_tools.custom.report_delete_failed", "Report could not be deleted"), description: error.message, variant: "destructive" }),
   });
 
   const changeSource = (key: string) => {
@@ -189,7 +191,7 @@ export function CustomReportsBuilder() {
     if (!saved) return;
     const savedSource = sources.find(item => item.key === saved.definition.source);
     if (!savedSource) {
-      toast({ title: "This report uses an unavailable data source", variant: "destructive" });
+       toast({ title: t("admin_tools.custom.unavailable_source", "This report uses an unavailable data source"), variant: "destructive" });
       return;
     }
     setDefinition(saved.definition);
@@ -209,42 +211,42 @@ export function CustomReportsBuilder() {
       anchor.click();
       URL.revokeObjectURL(url);
     } catch (error: any) {
-      toast({ title: "Export failed", description: error.message, variant: "destructive" });
+       toast({ title: t("admin_tools.custom.export_failed", "Export failed"), description: error.message, variant: "destructive" });
     }
   };
 
-  if (metadataQuery.isLoading) return <div className="p-6 text-sm text-muted-foreground">Loading report builder…</div>;
-  if (metadataQuery.isError) return <div className="p-6 text-sm text-destructive">The report builder could not load.</div>;
+   if (metadataQuery.isLoading) return <div className="p-6 text-sm text-muted-foreground">{t("admin_tools.custom.loading", "Loading report builder…")}</div>;
+   if (metadataQuery.isError) return <div className="p-6 text-sm text-destructive">{t("admin_tools.custom.load_failed", "The report builder could not load.")}</div>;
 
   return (
     <div className="space-y-4" data-testid="custom-reports-builder">
       <div>
-        <h2 className="text-2xl font-semibold">Custom Reports</h2>
-        <p className="text-sm text-muted-foreground">Build safe, reusable reports from approved admin data sources.</p>
+         <h2 className="text-2xl font-semibold">{t("admin_tools.custom.title", "Custom Reports")}</h2>
+         <p className="text-sm text-muted-foreground">{t("admin_tools.custom.description", "Build safe, reusable reports from approved admin data sources.")}</p>
       </div>
 
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-base">Report definition</CardTitle>
-          <CardDescription>Only approved fields and relationships are available. Results remain country-scoped.</CardDescription>
+           <CardTitle className="text-base">{t("admin_tools.custom.definition", "Report definition")}</CardTitle>
+           <CardDescription>{t("admin_tools.custom.definition_desc", "Only approved fields and relationships are available. Results remain country-scoped.")}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-5">
           <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
             <div className="space-y-2">
-              <Label htmlFor="custom-report-source">Data source</Label>
+               <Label htmlFor="custom-report-source">{t("admin_tools.custom.data_source", "Data source")}</Label>
               <select id="custom-report-source" value={definition.source} onChange={event => changeSource(event.target.value)} className="h-10 w-full rounded-md border bg-background px-3 text-sm">
                 {sources.map(item => <option key={item.key} value={item.key}>{item.label}</option>)}
               </select>
               <p className="text-xs text-muted-foreground">{source?.description}</p>
             </div>
             <div className="space-y-2">
-              <Label>Saved reports</Label>
+               <Label>{t("admin_tools.custom.saved_reports", "Saved reports")}</Label>
               <div className="flex gap-2">
                 <select value={selectedSavedId} onChange={event => setSelectedSavedId(event.target.value)} className="h-10 min-w-0 flex-1 rounded-md border bg-background px-3 text-sm">
-                  <option value="">Choose a saved report…</option>
+                   <option value="">{t("admin_tools.custom.choose_saved", "Choose a saved report…")}</option>
                   {(savedQuery.data ?? []).map(item => <option key={item.id} value={item.id}>{item.name}</option>)}
                 </select>
-                <Button variant="outline" onClick={loadSelected} disabled={!selectedSavedId}>Load</Button>
+                 <Button variant="outline" onClick={loadSelected} disabled={!selectedSavedId}>{t("common.load", "Load")}</Button>
               </div>
             </div>
           </div>
@@ -252,10 +254,10 @@ export function CustomReportsBuilder() {
           <div className="grid gap-4 lg:grid-cols-2">
             <div className="rounded-lg border p-3">
               <div className="mb-2 flex items-center justify-between">
-                <Label>Available fields</Label>
-                <span className="text-xs text-muted-foreground">{definition.fields.length} selected</span>
+                 <Label>{t("admin_tools.custom.available_fields", "Available fields")}</Label>
+                 <span className="text-xs text-muted-foreground">{t("admin_tools.custom.selected", "{{count}} selected", { count: definition.fields.length })}</span>
               </div>
-              <Input value={fieldSearch} onChange={event => setFieldSearch(event.target.value)} placeholder="Search fields…" className="mb-2" />
+               <Input value={fieldSearch} onChange={event => setFieldSearch(event.target.value)} placeholder={t("admin_tools.custom.search_fields", "Search fields…")} className="mb-2" />
               <div className="grid max-h-64 gap-1 overflow-y-auto pr-1 sm:grid-cols-2">
                 {visibleFields.map(item => (
                   <label key={item.key} className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-muted">
@@ -266,8 +268,8 @@ export function CustomReportsBuilder() {
               </div>
             </div>
             <div className="rounded-lg border p-3">
-              <Label>Group by</Label>
-              <p className="mb-2 mt-1 text-xs text-muted-foreground">Choose selected fields when using COUNT or another aggregation.</p>
+               <Label>{t("admin_tools.custom.group_by", "Group by")}</Label>
+               <p className="mb-2 mt-1 text-xs text-muted-foreground">{t("admin_tools.custom.group_by_desc", "Choose selected fields when using COUNT or another aggregation.")}</p>
               <div className="grid max-h-52 gap-1 overflow-y-auto sm:grid-cols-2">
                 {definition.fields.map(key => {
                   const item = fieldMap.get(key);
@@ -283,9 +285,9 @@ export function CustomReportsBuilder() {
           </div>
 
           <div className="rounded-lg border p-3">
-            <div className="mb-3 flex items-center justify-between">
-              <div><Label>Filters</Label><p className="text-xs text-muted-foreground">Filters are typed and parameterized on the server.</p></div>
-              <Button size="sm" variant="outline" onClick={addFilter}><Plus className="mr-1 h-3.5 w-3.5" />Add filter</Button>
+               <div className="mb-3 flex items-center justify-between">
+               <div><Label>{t("admin_tools.custom.filters", "Filters")}</Label><p className="text-xs text-muted-foreground">{t("admin_tools.custom.filters_desc", "Filters are typed and parameterized on the server.")}</p></div>
+               <Button size="sm" variant="outline" onClick={addFilter}><Plus className="mr-1 h-3.5 w-3.5" />{t("admin_tools.custom.add_filter", "Add filter")}</Button>
             </div>
             <div className="space-y-2">
               {definition.filters.map((filter, index) => {
@@ -301,18 +303,18 @@ export function CustomReportsBuilder() {
                       {operators.map(operator => <option key={operator} value={operator}>{OPERATOR_LABELS[operator] ?? operator}</option>)}
                     </select>
                     {showValue ? <Input value={Array.isArray(filter.value) ? filter.value.join(", ") : String(filter.value ?? "")} onChange={event => setDefinition(current => ({ ...current, filters: current.filters.map((item, itemIndex) => itemIndex === index ? { ...item, value: event.target.value } : item) }))} placeholder={filterField?.type === "number" ? "Number" : "Value"} /> : <div />}
-                    {filter.operator === "between" ? <Input value={String(filter.valueTo ?? "")} onChange={event => setDefinition(current => ({ ...current, filters: current.filters.map((item, itemIndex) => itemIndex === index ? { ...item, valueTo: event.target.value } : item) }))} placeholder="And…" /> : <div />}
-                    <Button size="icon" variant="ghost" aria-label="Remove filter" onClick={() => setDefinition(current => ({ ...current, filters: current.filters.filter((_, itemIndex) => itemIndex !== index) }))}><Trash2 className="h-4 w-4" /></Button>
+                     {filter.operator === "between" ? <Input value={String(filter.valueTo ?? "")} onChange={event => setDefinition(current => ({ ...current, filters: current.filters.map((item, itemIndex) => itemIndex === index ? { ...item, valueTo: event.target.value } : item) }))} placeholder={t("admin_tools.custom.and", "And…")} /> : <div />}
+                     <Button size="icon" variant="ghost" aria-label={t("admin_tools.custom.remove_filter", "Remove filter")} onClick={() => setDefinition(current => ({ ...current, filters: current.filters.filter((_, itemIndex) => itemIndex !== index) }))}><Trash2 className="h-4 w-4" /></Button>
                   </div>
                 );
               })}
-              {!definition.filters.length && <p className="text-sm text-muted-foreground">No filters. The report will include all accessible rows.</p>}
+               {!definition.filters.length && <p className="text-sm text-muted-foreground">{t("admin_tools.custom.no_filters", "No filters. The report will include all accessible rows.")}</p>}
             </div>
           </div>
 
           <div className="grid gap-4 lg:grid-cols-2">
             <div className="rounded-lg border p-3">
-              <div className="mb-3 flex items-center justify-between"><Label>Aggregations</Label><Button size="sm" variant="outline" onClick={addAggregation}><Plus className="mr-1 h-3.5 w-3.5" />Add</Button></div>
+               <div className="mb-3 flex items-center justify-between"><Label>{t("admin_tools.custom.aggregations", "Aggregations")}</Label><Button size="sm" variant="outline" onClick={addAggregation}><Plus className="mr-1 h-3.5 w-3.5" />{t("common.add", "Add")}</Button></div>
               <div className="space-y-2">
                 {definition.aggregations.map((aggregation, index) => (
                   <div key={index} className="flex gap-2">
@@ -323,34 +325,34 @@ export function CustomReportsBuilder() {
                       <option value="__all__">All rows</option>
                       {fields.filter(item => item.aggregatable).map(item => <option key={item.key} value={item.key}>{item.label}</option>)}
                     </select>
-                    <Button size="icon" variant="ghost" aria-label="Remove aggregation" onClick={() => setDefinition(current => ({ ...current, aggregations: current.aggregations.filter((_, itemIndex) => itemIndex !== index) }))}><Trash2 className="h-4 w-4" /></Button>
+                     <Button size="icon" variant="ghost" aria-label={t("admin_tools.custom.remove_aggregation", "Remove aggregation")} onClick={() => setDefinition(current => ({ ...current, aggregations: current.aggregations.filter((_, itemIndex) => itemIndex !== index) }))}><Trash2 className="h-4 w-4" /></Button>
                   </div>
                 ))}
-                {!definition.aggregations.length && <p className="text-sm text-muted-foreground">No aggregations. The preview will show detail rows.</p>}
+                 {!definition.aggregations.length && <p className="text-sm text-muted-foreground">{t("admin_tools.custom.no_aggregations", "No aggregations. The preview will show detail rows.")}</p>}
               </div>
             </div>
             <div className="rounded-lg border p-3">
-              <Label>Sort results</Label>
+               <Label>{t("admin_tools.custom.sort_results", "Sort results")}</Label>
               <div className="mt-2 flex gap-2">
                 <select value={definition.sort?.field ?? ""} onChange={event => setDefinition(current => ({ ...current, sort: event.target.value ? { field: event.target.value, direction: current.sort?.direction ?? "asc" } : undefined }))} className="h-9 min-w-0 flex-1 rounded-md border bg-background px-2 text-sm">
-                  <option value="">Default order</option>
+                   <option value="">{t("admin_tools.custom.default_order", "Default order")}</option>
                   {definition.fields.map(key => <option key={key} value={key}>{fieldMap.get(key)?.label ?? key}</option>)}
                   {definition.aggregations.map((aggregation, index) => <option key={`agg_${index}`} value={`agg_${index}`}>{aggregation.function} result {index + 1}</option>)}
                 </select>
                 <select value={definition.sort?.direction ?? "asc"} onChange={event => setDefinition(current => current.sort ? { ...current, sort: { ...current.sort, direction: event.target.value as "asc" | "desc" } } : current)} className="h-9 rounded-md border bg-background px-2 text-sm">
-                  <option value="asc">Ascending</option><option value="desc">Descending</option>
+                   <option value="asc">{t("admin_tools.custom.ascending", "Ascending")}</option><option value="desc">{t("admin_tools.custom.descending", "Descending")}</option>
                 </select>
               </div>
             </div>
           </div>
 
           <div className="flex flex-wrap items-center gap-2 border-t pt-4">
-            <Input value={reportName} onChange={event => setReportName(event.target.value)} placeholder="Report name for saving…" className="max-w-xs" />
-            <Button onClick={runPreview} disabled={previewMutation.isPending || !definition.fields.length}><Play className="mr-1.5 h-4 w-4" />{previewMutation.isPending ? "Running…" : "Preview"}</Button>
-            <Button variant="outline" onClick={() => reportName.trim() && saveMutation.mutate({ id: loadedReportId || undefined, name: reportName.trim(), definition: buildDefinition() })} disabled={!reportName.trim() || saveMutation.isPending}><Save className="mr-1.5 h-4 w-4" />Save</Button>
-            {loadedReportId && <Button variant="ghost" onClick={() => deleteMutation.mutate(loadedReportId)} disabled={deleteMutation.isPending}><Trash2 className="mr-1.5 h-4 w-4" />Delete</Button>}
-            <Button variant="outline" onClick={exportCsv} disabled={!definition.fields.length}><Download className="mr-1.5 h-4 w-4" />Export CSV</Button>
-            <span className="text-xs text-muted-foreground">CSV opens directly in Excel and preserves the selected report columns.</span>
+             <Input value={reportName} onChange={event => setReportName(event.target.value)} placeholder={t("admin_tools.custom.report_name", "Report name for saving…")} className="max-w-xs" />
+             <Button onClick={runPreview} disabled={previewMutation.isPending || !definition.fields.length}><Play className="mr-1.5 h-4 w-4" />{previewMutation.isPending ? t("admin_tools.custom.running", "Running…") : t("admin_tools.custom.preview", "Preview")}</Button>
+             <Button variant="outline" onClick={() => reportName.trim() && saveMutation.mutate({ id: loadedReportId || undefined, name: reportName.trim(), definition: buildDefinition() })} disabled={!reportName.trim() || saveMutation.isPending}><Save className="mr-1.5 h-4 w-4" />{t("common.save", "Save")}</Button>
+             {loadedReportId && <Button variant="ghost" onClick={() => deleteMutation.mutate(loadedReportId)} disabled={deleteMutation.isPending}><Trash2 className="mr-1.5 h-4 w-4" />{t("common.delete", "Delete")}</Button>}
+             <Button variant="outline" onClick={exportCsv} disabled={!definition.fields.length}><Download className="mr-1.5 h-4 w-4" />{t("admin_tools.custom.export_csv", "Export CSV")}</Button>
+             <span className="text-xs text-muted-foreground">{t("admin_tools.custom.csv_desc", "CSV opens directly in Excel and preserves the selected report columns.")}</span>
           </div>
         </CardContent>
       </Card>
@@ -358,8 +360,8 @@ export function CustomReportsBuilder() {
       {result && (
         <Card>
           <CardHeader className="flex-row items-center justify-between space-y-0">
-            <div><CardTitle className="text-base">Preview</CardTitle><CardDescription>{result.total.toLocaleString()} accessible row{result.total === 1 ? "" : "s"}</CardDescription></div>
-            <span className="text-xs text-muted-foreground">Page {result.page} of {result.totalPages}</span>
+             <div><CardTitle className="text-base">{t("admin_tools.custom.preview", "Preview")}</CardTitle><CardDescription>{t("admin_tools.custom.accessible_rows", "{{count}} accessible row(s)", { count: result.total })}</CardDescription></div>
+             <span className="text-xs text-muted-foreground">{t("admin_tools.custom.page_of", "Page {{page}} of {{total}}", { page: result.page, total: result.totalPages })}</span>
           </CardHeader>
           <CardContent>
             <div className="overflow-x-auto rounded-md border">
@@ -367,11 +369,11 @@ export function CustomReportsBuilder() {
                 <thead className="bg-muted/50"><tr>{result.columns.map(column => <th key={column.key} className="whitespace-nowrap px-3 py-2 text-left font-medium">{column.label}</th>)}</tr></thead>
                 <tbody>{result.rows.map((row, rowIndex) => <tr key={rowIndex} className="border-t">{result.columns.map(column => <td key={column.key} className="whitespace-nowrap px-3 py-2">{displayValue(row[column.key], column.type)}</td>)}</tr>)}</tbody>
               </table>
-              {!result.rows.length && <p className="p-6 text-center text-sm text-muted-foreground">No rows matched the current report.</p>}
+               {!result.rows.length && <p className="p-6 text-center text-sm text-muted-foreground">{t("admin_tools.custom.no_rows", "No rows matched the current report.")}</p>}
             </div>
             <div className="mt-3 flex items-center justify-between">
-              <Button variant="outline" size="sm" disabled={result.page <= 1 || previewMutation.isPending} onClick={() => changePage(result.page - 1)}>Previous</Button>
-              <Button variant="outline" size="sm" disabled={result.page >= result.totalPages || previewMutation.isPending} onClick={() => changePage(result.page + 1)}>Next</Button>
+               <Button variant="outline" size="sm" disabled={result.page <= 1 || previewMutation.isPending} onClick={() => changePage(result.page - 1)}>{t("common.previous", "Previous")}</Button>
+               <Button variant="outline" size="sm" disabled={result.page >= result.totalPages || previewMutation.isPending} onClick={() => changePage(result.page + 1)}>{t("common.next", "Next")}</Button>
             </div>
           </CardContent>
         </Card>

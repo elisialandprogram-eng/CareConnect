@@ -17,6 +17,7 @@ import {
   ExternalLink, ClipboardCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface KycDoc {
@@ -124,11 +125,12 @@ const STATUS_LABEL: Record<string, string> = {
 // Documents are NOT loaded until the admin clicks "Preview" to avoid
 // auto-downloading large files on every queue load (bandwidth hardening).
 function LicenseDocPreview({ url }: { url: string | null }) {
+  const { t } = useTranslation();
   const [revealed, setRevealed] = useState(false);
   return (
     <div className="rounded-xl border border-border bg-muted/20 overflow-hidden">
       <div className="px-4 py-2.5 border-b border-border bg-background">
-        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">License Document</p>
+         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t("admin_tools.review.license_document", "License Document")}</p>
       </div>
       <div className="p-4">
         {url ? (
@@ -145,7 +147,7 @@ function LicenseDocPreview({ url }: { url: string | null }) {
               ) : (
                 <div className="w-full h-36 rounded-xl border-2 border-dashed border-border bg-background flex flex-col items-center justify-center gap-2">
                   <FileText className="h-8 w-8 text-muted-foreground/40" />
-                  <p className="text-xs text-muted-foreground">PDF / Document file</p>
+                   <p className="text-xs text-muted-foreground">{t("admin_tools.review.pdf_document", "PDF / Document file")}</p>
                 </div>
               )
             ) : (
@@ -156,20 +158,20 @@ function LicenseDocPreview({ url }: { url: string | null }) {
                 data-testid="button-preview-license-doc"
               >
                 <Eye className="h-6 w-6 text-muted-foreground/50" />
-                <p className="text-xs text-muted-foreground">Click to preview document</p>
+                 <p className="text-xs text-muted-foreground">{t("admin_tools.review.click_preview", "Click to preview document")}</p>
               </button>
             )}
             <Button variant="outline" size="sm" className="w-full rounded-xl gap-2" asChild data-testid="button-open-license-doc">
               <a href={url} target="_blank" rel="noopener noreferrer">
-                <ExternalLink className="h-3.5 w-3.5" /> Open Full Document
+                 <ExternalLink className="h-3.5 w-3.5" /> {t("admin_tools.review.open_document", "Open Full Document")}
               </a>
             </Button>
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center h-36 text-center">
             <AlertTriangle className="h-8 w-8 text-amber-500 mb-2" />
-            <p className="text-sm font-medium text-foreground">No license document uploaded</p>
-            <p className="text-xs text-muted-foreground mt-1">Provider has not uploaded their license yet.</p>
+             <p className="text-sm font-medium text-foreground">{t("admin_tools.review.no_license", "No license document uploaded")}</p>
+             <p className="text-xs text-muted-foreground mt-1">{t("admin_tools.review.no_license_desc", "Provider has not uploaded their license yet.")}</p>
           </div>
         )}
       </div>
@@ -184,6 +186,7 @@ interface DocRowProps {
   onDone: () => void;
 }
 function DocRow({ doc, providerId, onDone }: DocRowProps) {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const [note, setNote] = useState(doc.adminNote ?? "");
   const [showNote, setShowNote] = useState(false);
@@ -198,11 +201,11 @@ function DocRow({ doc, providerId, onDone }: DocRowProps) {
         adminNote: adminNote ?? undefined,
       }),
     onSuccess: () => {
-      toast({ title: "Document updated" });
+       toast({ title: t("admin_tools.review.document_updated", "Document updated") });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/verification-queue"] });
       onDone();
     },
-    onError: (err: Error) => toast({ title: "Error", description: err.message, variant: "destructive" }),
+     onError: (err: Error) => toast({ title: t("common.error", "Error"), description: err.message, variant: "destructive" }),
   });
 
   const isLocked = doc.verificationStatus === "approved";
@@ -228,7 +231,7 @@ function DocRow({ doc, providerId, onDone }: DocRowProps) {
         </div>
         <div className="flex items-center gap-2">
           <span className={cn("inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium", s.cls)}>
-            <s.Icon className="h-3 w-3" />{s.label}
+             <s.Icon className="h-3 w-3" />{t(`admin_tools.review.status.${LEGACY_DOC_STATUS_MAP[doc.verificationStatus] ?? doc.verificationStatus}`, s.label)}
           </span>
           {doc.documentUrl && (
             <a
@@ -238,14 +241,14 @@ function DocRow({ doc, providerId, onDone }: DocRowProps) {
               className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
               data-testid={`link-view-doc-${doc.id}`}
             >
-              <Eye className="h-3.5 w-3.5" /> View
+               <Eye className="h-3.5 w-3.5" /> {t("common.view", "View")}
             </a>
           )}
         </div>
       </div>
 
       {doc.adminNote && (
-        <p className="text-xs text-muted-foreground italic">Note: {doc.adminNote}</p>
+         <p className="text-xs text-muted-foreground italic">{t("admin_tools.review.note", "Note")}: {doc.adminNote}</p>
       )}
 
       {!isLocked && (
@@ -259,7 +262,7 @@ function DocRow({ doc, providerId, onDone }: DocRowProps) {
               onClick={() => update({ status: "approved", adminNote: note || undefined })}
               data-testid={`button-approve-doc-${doc.id}`}
             >
-              <CheckCircle2 className="h-3.5 w-3.5 mr-1" /> Approve
+               <CheckCircle2 className="h-3.5 w-3.5 mr-1" /> {t("common.approve", "Approve")}
             </Button>
             <Button
               size="sm"
@@ -269,7 +272,7 @@ function DocRow({ doc, providerId, onDone }: DocRowProps) {
               onClick={() => { setNoteMode("reject"); setShowNote(true); }}
               data-testid={`button-reject-doc-${doc.id}`}
             >
-              <XCircle className="h-3.5 w-3.5 mr-1" /> Reject
+               <XCircle className="h-3.5 w-3.5 mr-1" /> {t("common.reject", "Reject")}
             </Button>
             <Button
               size="sm"
@@ -279,7 +282,7 @@ function DocRow({ doc, providerId, onDone }: DocRowProps) {
               onClick={() => { setNoteMode("reupload"); setShowNote(true); }}
               data-testid={`button-reupload-doc-${doc.id}`}
             >
-              <AlertTriangle className="h-3.5 w-3.5 mr-1" /> Request re-upload
+               <AlertTriangle className="h-3.5 w-3.5 mr-1" /> {t("admin_tools.review.request_reupload", "Request re-upload")}
             </Button>
           </div>
 
@@ -287,22 +290,22 @@ function DocRow({ doc, providerId, onDone }: DocRowProps) {
             <div className="space-y-1.5 rounded-lg border border-border bg-muted/30 p-3">
               <Label className="text-xs font-medium">
                 {noteMode === "reject"
-                  ? "Rejection reason (required — sent to provider)"
-                  : "Re-upload instructions (required — sent to provider)"}
+                   ? t("admin_tools.review.rejection_reason", "Rejection reason (required — sent to provider)")
+                   : t("admin_tools.review.reupload_instructions", "Re-upload instructions (required — sent to provider)")}
               </Label>
               <Textarea
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
                 placeholder={
                   noteMode === "reject"
-                    ? "Explain why this document is being rejected…"
-                    : "Explain what needs to be corrected (e.g. image resolution too low, document expired)…"
+                     ? t("admin_tools.review.rejection_placeholder", "Explain why this document is being rejected…")
+                     : t("admin_tools.review.reupload_placeholder", "Explain what needs to be corrected (e.g. image resolution too low, document expired)…")
                 }
                 className="text-xs min-h-[64px]"
                 data-testid={`textarea-rejection-note-${doc.id}`}
               />
               {!note.trim() && (
-                <p className="text-xs text-red-500">A reason is required before proceeding.</p>
+                 <p className="text-xs text-red-500">{t("admin_tools.review.reason_required", "A reason is required before proceeding.")}</p>
               )}
               <div className="flex gap-2">
                 {noteMode === "reject" ? (
@@ -314,7 +317,7 @@ function DocRow({ doc, providerId, onDone }: DocRowProps) {
                     onClick={() => update({ status: "rejected", adminNote: note })}
                     data-testid={`button-confirm-reject-${doc.id}`}
                   >
-                    {isPending ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : "Confirm rejection"}
+                     {isPending ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : t("admin_tools.review.confirm_rejection", "Confirm rejection")}
                   </Button>
                 ) : (
                   <Button
@@ -325,7 +328,7 @@ function DocRow({ doc, providerId, onDone }: DocRowProps) {
                     onClick={() => update({ status: "reupload_required", adminNote: note })}
                     data-testid={`button-confirm-reupload-${doc.id}`}
                   >
-                    {isPending ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : "Send re-upload request"}
+                     {isPending ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : t("admin_tools.review.send_reupload", "Send re-upload request")}
                   </Button>
                 )}
                 <Button
@@ -334,7 +337,7 @@ function DocRow({ doc, providerId, onDone }: DocRowProps) {
                   className="h-7 text-xs"
                   onClick={() => { setShowNote(false); setNote(doc.adminNote ?? ""); }}
                 >
-                  Cancel
+                   {t("common.cancel", "Cancel")}
                 </Button>
               </div>
             </div>
@@ -383,6 +386,7 @@ interface DetailPanelProps {
   onClose: () => void;
 }
 function DetailPanel({ entry, onClose }: DetailPanelProps) {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const [rejectReason, setRejectReason] = useState("");
   const [showReject, setShowReject] = useState(false);
@@ -392,11 +396,11 @@ function DetailPanel({ entry, onClose }: DetailPanelProps) {
     mutationFn: ({ decision, reason }: { decision: string; reason?: string }) =>
       apiRequest("POST", `/api/admin/providers/${entry.id}/finalize-verification`, { decision, reason }),
     onSuccess: (_data, vars) => {
-      toast({ title: vars.decision === "approve" ? "Provider approved ✓" : "Provider rejected" });
+       toast({ title: vars.decision === "approve" ? t("admin_tools.review.provider_approved", "Provider approved ✓") : t("admin_tools.review.provider_rejected", "Provider rejected") });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/verification-queue"] });
       onClose();
     },
-    onError: (err: Error) => toast({ title: "Error", description: err.message, variant: "destructive" }),
+     onError: (err: Error) => toast({ title: t("common.error", "Error"), description: err.message, variant: "destructive" }),
   });
 
   const docs = entry.documents ?? [];
@@ -405,14 +409,14 @@ function DetailPanel({ entry, onClose }: DetailPanelProps) {
 
   // Profile checklist items
   const checklistItems = [
-    { key: "professional_title", label: "Professional Title", value: entry.professional_title ?? undefined },
-    { key: "license_number", label: "License Number", value: entry.license_number ?? undefined },
-    { key: "licensing_authority", label: "Licensing Authority", value: entry.licensing_authority ?? undefined },
-    { key: "license_expiry", label: "License Expiry Date", value: entry.license_expiry_date ? formatDate(entry.license_expiry_date, { day: "numeric", month: "short", year: "numeric" }) : undefined },
-    { key: "national_id", label: "National Provider ID / Govt. Photo ID", value: entry.national_provider_id ?? (entry.documents?.find(d => d.documentType === "id_card") ? `✓ Govt. Photo ID uploaded` : undefined) },
-    { key: "provider_agreement", label: "Provider Agreement", value: entry.provider_agreement_accepted ? "✓ Accepted" : "✗ Not accepted" },
-    { key: "gdpr_agreement", label: "GDPR / Data Processing Agreement", value: entry.data_processing_agreement_accepted ? "✓ Accepted" : "✗ Not accepted" },
-    { key: "bio", label: "Bio (≥ 20 chars)", value: entry.bio ? `${entry.bio.slice(0, 100)}${entry.bio.length > 100 ? "…" : ""}` : undefined },
+     { key: "professional_title", label: t("admin_tools.review.professional_title", "Professional Title"), value: entry.professional_title ?? undefined },
+     { key: "license_number", label: t("admin_tools.review.license_number", "License Number"), value: entry.license_number ?? undefined },
+     { key: "licensing_authority", label: t("admin_tools.review.licensing_authority", "Licensing Authority"), value: entry.licensing_authority ?? undefined },
+     { key: "license_expiry", label: t("admin_tools.review.license_expiry_date", "License Expiry Date"), value: entry.license_expiry_date ? formatDate(entry.license_expiry_date, { day: "numeric", month: "short", year: "numeric" }) : undefined },
+     { key: "national_id", label: t("admin_tools.review.national_id", "National Provider ID / Govt. Photo ID"), value: entry.national_provider_id ?? (entry.documents?.find(d => d.documentType === "id_card") ? `✓ ${t("admin_tools.review.govt_id_uploaded", "Govt. Photo ID uploaded")}` : undefined) },
+     { key: "provider_agreement", label: t("admin_tools.review.provider_agreement", "Provider Agreement"), value: entry.provider_agreement_accepted ? `✓ ${t("admin_tools.review.accepted", "Accepted")}` : `✗ ${t("admin_tools.review.not_accepted", "Not accepted")}` },
+     { key: "gdpr_agreement", label: t("admin_tools.review.gdpr_agreement", "GDPR / Data Processing Agreement"), value: entry.data_processing_agreement_accepted ? `✓ ${t("admin_tools.review.accepted", "Accepted")}` : `✗ ${t("admin_tools.review.not_accepted", "Not accepted")}` },
+     { key: "bio", label: t("admin_tools.review.bio", "Bio (≥ 20 chars)"), value: entry.bio ? `${entry.bio.slice(0, 100)}${entry.bio.length > 100 ? "…" : ""}` : undefined },
   ];
 
   const toggleField = (key: string) => {
@@ -441,7 +445,7 @@ function DetailPanel({ entry, onClose }: DetailPanelProps) {
           </div>
         </div>
         <span className={cn("rounded-full border px-2.5 py-0.5 text-xs font-medium", ps)}>
-          {entry.status.replace(/_/g, " ")}
+           {t(`admin_tools.review.provider_status.${entry.status}`, entry.status.replace(/_/g, " "))}
         </span>
       </div>
 
@@ -450,11 +454,11 @@ function DetailPanel({ entry, onClose }: DetailPanelProps) {
         <div className="rounded-lg border border-amber-200 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-800 px-4 py-3 flex items-start gap-2">
           <AlertTriangle className="h-4 w-4 text-amber-600 flex-shrink-0 mt-0.5" />
           <div className="text-sm">
-            <p className="font-semibold text-amber-800 dark:text-amber-300">Profile updated after submission</p>
+             <p className="font-semibold text-amber-800 dark:text-amber-300">{t("admin_tools.review.profile_updated", "Profile updated after submission")}</p>
             <p className="text-xs text-amber-700 dark:text-amber-400 mt-0.5">
-              The provider edited their profile after submission. The information below reflects their latest version.
+               {t("admin_tools.review.profile_updated_desc", "The provider edited their profile after submission. The information below reflects their latest version.")}
               {entry.last_resubmitted_at && (
-                <> Last resubmitted: <strong>{formatDateTime(entry.last_resubmitted_at)}</strong>.</>
+                 <> {t("admin_tools.review.last_resubmitted", "Last resubmitted")}: <strong>{formatDateTime(entry.last_resubmitted_at)}</strong>.</>
               )}
             </p>
           </div>
@@ -467,13 +471,13 @@ function DetailPanel({ entry, onClose }: DetailPanelProps) {
           {entry.submitted_at && (
             <span className="flex items-center gap-1.5">
               <Clock className="h-3 w-3" />
-              Originally submitted: <strong className="ml-0.5">{formatDate(entry.submitted_at, { day: "numeric", month: "short", year: "numeric" })}</strong>
+               {t("admin_tools.review.originally_submitted", "Originally submitted")}: <strong className="ml-0.5">{formatDate(entry.submitted_at, { day: "numeric", month: "short", year: "numeric" })}</strong>
             </span>
           )}
           {entry.last_resubmitted_at && (
             <span className="flex items-center gap-1.5">
               <RefreshCw className="h-3 w-3" />
-              Last resubmitted: <strong className="ml-0.5">{formatDateTime(entry.last_resubmitted_at)}</strong>
+               {t("admin_tools.review.last_resubmitted", "Last resubmitted")}: <strong className="ml-0.5">{formatDateTime(entry.last_resubmitted_at)}</strong>
             </span>
           )}
         </div>
@@ -483,38 +487,38 @@ function DetailPanel({ entry, onClose }: DetailPanelProps) {
       <div>
         <div className="flex items-center gap-2 mb-3">
           <FileText className="h-4 w-4 text-muted-foreground" />
-          <p className="text-sm font-semibold">Profile & Credentials</p>
+           <p className="text-sm font-semibold">{t("admin_tools.review.profile_credentials", "Profile & Credentials")}</p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
           {/* Submitted profile text */}
           <div className="rounded-xl border border-border bg-muted/20 overflow-hidden">
             <div className="px-4 py-2.5 border-b border-border bg-background">
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Submitted Profile Data</p>
+             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t("admin_tools.review.submitted_profile", "Submitted Profile Data")}</p>
             </div>
             <div className="p-4 space-y-2.5 text-sm">
               {[
-                { label: "Provider Category", value: entry.provider_category },
-                { label: "Sub-Category", value: entry.provider_subcategory },
-                { label: "Specialization", value: entry.specialization },
-                { label: "Clinic / Practice", value: entry.clinic_name },
-                { label: "License Number", value: entry.license_number },
-                { label: "Licensing Authority", value: entry.licensing_authority },
-                { label: "License Expiry", value: entry.license_expiry_date ? formatDate(entry.license_expiry_date) : null },
-                { label: "National Provider ID / Govt. Photo ID", value: entry.national_provider_id ?? (entry.documents?.find(d => d.documentType === "id_card") ? `✓ Govt. Photo ID uploaded (${entry.documents!.find(d => d.documentType === "id_card")!.verificationStatus})` : null) },
-                { label: "Provider Agreement", value: entry.provider_agreement_accepted ? "✓ Accepted" : "✗ Not accepted" },
-                { label: "GDPR Agreement", value: entry.data_processing_agreement_accepted ? "✓ Accepted" : "✗ Not accepted" },
+                 { label: t("admin_tools.review.provider_category", "Provider Category"), value: entry.provider_category },
+                 { label: t("admin_tools.review.sub_category", "Sub-Category"), value: entry.provider_subcategory },
+                 { label: t("admin_tools.review.specialization", "Specialization"), value: entry.specialization },
+                 { label: t("admin_tools.review.clinic_practice", "Clinic / Practice"), value: entry.clinic_name },
+                 { label: t("admin_tools.review.license_number", "License Number"), value: entry.license_number },
+                 { label: t("admin_tools.review.licensing_authority", "Licensing Authority"), value: entry.licensing_authority },
+                 { label: t("admin_tools.review.license_expiry", "License Expiry"), value: entry.license_expiry_date ? formatDate(entry.license_expiry_date) : null },
+                 { label: t("admin_tools.review.national_id", "National Provider ID / Govt. Photo ID"), value: entry.national_provider_id ?? (entry.documents?.find(d => d.documentType === "id_card") ? `✓ ${t("admin_tools.review.govt_id_uploaded", "Govt. Photo ID uploaded")} (${entry.documents!.find(d => d.documentType === "id_card")!.verificationStatus})` : null) },
+                 { label: t("admin_tools.review.provider_agreement", "Provider Agreement"), value: entry.provider_agreement_accepted ? `✓ ${t("admin_tools.review.accepted", "Accepted")}` : `✗ ${t("admin_tools.review.not_accepted", "Not accepted")}` },
+                 { label: t("admin_tools.review.gdpr_agreement_short", "GDPR Agreement"), value: entry.data_processing_agreement_accepted ? `✓ ${t("admin_tools.review.accepted", "Accepted")}` : `✗ ${t("admin_tools.review.not_accepted", "Not accepted")}` },
               ].map(({ label, value }) => (
                 <div key={label} className="flex items-start justify-between gap-2">
                   <span className="text-xs text-muted-foreground font-medium flex-shrink-0">{label}</span>
                   <span className={`text-xs text-right break-all ${value ? "text-foreground font-medium" : "text-muted-foreground/50 italic"}`}>
-                    {value || "Not provided"}
+                     {value || t("admin_tools.review.not_provided", "Not provided")}
                   </span>
                 </div>
               ))}
               {entry.bio && (
                 <div>
-                  <p className="text-xs text-muted-foreground font-medium mb-1">Bio</p>
+                   <p className="text-xs text-muted-foreground font-medium mb-1">{t("admin_tools.review.bio_short", "Bio")}</p>
                   <p className="text-xs text-foreground leading-relaxed bg-background rounded-lg p-2.5 border border-border">{entry.bio}</p>
                 </div>
               )}
@@ -530,14 +534,14 @@ function DetailPanel({ entry, onClose }: DetailPanelProps) {
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <ClipboardCheck className="h-4 w-4 text-muted-foreground" />
-              <p className="text-sm font-semibold">Credential Verification Checklist</p>
+               <p className="text-sm font-semibold">{t("admin_tools.review.checklist", "Credential Verification Checklist")}</p>
             </div>
             <span className="text-xs text-muted-foreground">
-              {verifiedFields.size} / {checklistItems.length} verified
+               {t("admin_tools.review.verified_count", "{{done}} / {{total}} verified", { done: verifiedFields.size, total: checklistItems.length })}
             </span>
           </div>
           <p className="text-xs text-muted-foreground mb-3">
-            Tick each item once you've confirmed it matches the submitted document. All must be checked before final approval.
+             {t("admin_tools.review.checklist_desc", "Tick each item once you've confirmed it matches the submitted document. All must be checked before final approval.")}
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             {checklistItems.map((item) => (
@@ -557,18 +561,18 @@ function DetailPanel({ entry, onClose }: DetailPanelProps) {
       <div>
         <div className="flex items-center gap-2 mb-3">
           <ShieldCheck className="h-4 w-4 text-muted-foreground" />
-          <p className="text-sm font-semibold">KYC Documents</p>
+           <p className="text-sm font-semibold">{t("admin_tools.review.kyc_documents", "KYC Documents")}</p>
           {docs.length > 0 && (
             <span className="text-xs text-muted-foreground ml-auto">
-              {docs.filter(d => d.verificationStatus === "approved").length} / {docs.length} approved
+               {t("admin_tools.review.approved_count", "{{approved}} / {{total}} approved", { approved: docs.filter(d => d.verificationStatus === "approved").length, total: docs.length })}
             </span>
           )}
         </div>
         {docs.length === 0 ? (
           <div className="rounded-lg border border-amber-200 bg-amber-50/50 dark:bg-amber-950/20 p-4 text-center">
             <AlertTriangle className="h-6 w-6 text-amber-500 mx-auto mb-1.5" />
-            <p className="text-sm font-medium text-foreground">No documents uploaded yet</p>
-            <p className="text-xs text-muted-foreground mt-0.5">Provider hasn't submitted any KYC documents.</p>
+             <p className="text-sm font-medium text-foreground">{t("admin_tools.review.no_documents", "No documents uploaded yet")}</p>
+             <p className="text-xs text-muted-foreground mt-0.5">{t("admin_tools.review.no_documents_desc", "Provider hasn't submitted any KYC documents.")}</p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -586,7 +590,7 @@ function DetailPanel({ entry, onClose }: DetailPanelProps) {
 
       {/* ── SECTION 3: Final Decision ── */}
       <div className="rounded-xl border border-border bg-muted/30 p-4 space-y-3">
-        <p className="text-sm font-semibold">Final Decision</p>
+         <p className="text-sm font-semibold">{t("admin_tools.review.final_decision", "Final Decision")}</p>
 
         {/* Gate explanations */}
         <div className="space-y-1.5">
@@ -594,27 +598,27 @@ function DetailPanel({ entry, onClose }: DetailPanelProps) {
             {allChecklistVerified
               ? <CheckCircle2 className="h-3.5 w-3.5 flex-shrink-0" />
               : <Clock className="h-3.5 w-3.5 flex-shrink-0" />}
-            Credential checklist: {allChecklistVerified ? "Complete" : `${verifiedFields.size}/${checklistItems.length} items verified`}
+             {t("admin_tools.review.credential_checklist", "Credential checklist")}: {allChecklistVerified ? t("admin_tools.review.complete", "Complete") : t("admin_tools.review.items_verified", "{{done}}/{{total}} items verified", { done: verifiedFields.size, total: checklistItems.length })}
           </div>
           <div className={cn("flex items-center gap-2 text-xs", allDocsApproved ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground")}>
             {allDocsApproved
               ? <CheckCircle2 className="h-3.5 w-3.5 flex-shrink-0" />
               : <Clock className="h-3.5 w-3.5 flex-shrink-0" />}
-            KYC documents: {allDocsApproved
-              ? "All approved"
+             {t("admin_tools.review.kyc_documents", "KYC documents")}: {allDocsApproved
+               ? t("admin_tools.review.all_approved", "All approved")
               : docs.length === 0
-                ? "No documents uploaded"
-                : `${docs.filter(d => d.verificationStatus === "approved").length}/${docs.length} approved`}
+                 ? t("admin_tools.review.no_documents_uploaded", "No documents uploaded")
+                 : t("admin_tools.review.approved_count", "{{approved}} / {{total}} approved", { approved: docs.filter(d => d.verificationStatus === "approved").length, total: docs.length })}
           </div>
         </div>
 
         {showReject && (
           <div className="space-y-1.5">
-            <Label className="text-xs">Rejection reason (sent to provider)</Label>
+             <Label className="text-xs">{t("admin_tools.review.final_rejection_reason", "Rejection reason (sent to provider)")}</Label>
             <Textarea
               value={rejectReason}
               onChange={(e) => setRejectReason(e.target.value)}
-              placeholder="Explain why the application is being rejected…"
+               placeholder={t("admin_tools.review.application_rejection_placeholder", "Explain why the application is being rejected…")}
               className="text-xs min-h-[64px]"
               data-testid="textarea-final-rejection"
             />
@@ -630,7 +634,7 @@ function DetailPanel({ entry, onClose }: DetailPanelProps) {
             data-testid="button-finalize-approve"
           >
             {finalizing ? <RefreshCw className="h-3.5 w-3.5 animate-spin mr-1" /> : <CheckCircle2 className="h-3.5 w-3.5 mr-1" />}
-            Approve Application
+             {t("admin_tools.review.approve_application", "Approve Application")}
           </Button>
 
           {!showReject ? (
@@ -642,7 +646,7 @@ function DetailPanel({ entry, onClose }: DetailPanelProps) {
               onClick={() => setShowReject(true)}
               data-testid="button-finalize-reject-open"
             >
-              <XCircle className="h-3.5 w-3.5 mr-1" /> Reject Application
+               <XCircle className="h-3.5 w-3.5 mr-1" /> {t("admin_tools.review.reject_application", "Reject Application")}
             </Button>
           ) : (
             <>
@@ -654,10 +658,10 @@ function DetailPanel({ entry, onClose }: DetailPanelProps) {
                 onClick={() => finalize({ decision: "reject", reason: rejectReason })}
                 data-testid="button-finalize-reject-confirm"
               >
-                Confirm Rejection
+                 {t("admin_tools.review.confirm_rejection", "Confirm Rejection")}
               </Button>
               <Button size="sm" variant="ghost" className="h-8 text-xs" onClick={() => setShowReject(false)}>
-                Cancel
+                 {t("common.cancel", "Cancel")}
               </Button>
             </>
           )}
@@ -666,16 +670,16 @@ function DetailPanel({ entry, onClose }: DetailPanelProps) {
         {!canApprove && (
           <p className="text-xs text-muted-foreground italic">
             {!allChecklistVerified && !allDocsApproved
-              ? "Complete the credential checklist and approve all documents before finalizing."
+               ? t("admin_tools.review.complete_all_before_finalize", "Complete the credential checklist and approve all documents before finalizing.")
               : !allChecklistVerified
-                ? "Tick all checklist items above before finalizing."
-                : "Approve all KYC documents above before finalizing."}
+                 ? t("admin_tools.review.tick_all_before_finalize", "Tick all checklist items above before finalizing.")
+                 : t("admin_tools.review.approve_docs_before_finalize", "Approve all KYC documents above before finalizing.")}
           </p>
         )}
       </div>
 
       <Button variant="ghost" size="sm" className="text-xs w-full" onClick={onClose} data-testid="button-back-queue">
-        ← Back to queue
+         ← {t("admin_tools.review.back_to_queue", "Back to queue")}
       </Button>
     </div>
   );
@@ -683,6 +687,7 @@ function DetailPanel({ entry, onClose }: DetailPanelProps) {
 
 // ── Main ProviderReviewQueue component ────────────────────────────────────────
 export function ProviderReviewQueue() {
+  const { t } = useTranslation();
   const [selected, setSelected] = useState<QueueEntry | null>(null);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -723,15 +728,15 @@ export function ProviderReviewQueue() {
         <div>
           <h2 className="text-lg font-semibold flex items-center gap-2">
             <ShieldCheck className="h-5 w-5 text-primary" />
-            Provider Review Queue
+             {t("admin_tools.review.title", "Provider Review Queue")}
           </h2>
           <p className="text-sm text-muted-foreground mt-0.5">
-            Review credentials, verify documents, and give final approval — all in one place
+             {t("admin_tools.review.description", "Review credentials, verify documents, and give final approval — all in one place")}
           </p>
         </div>
         <div className="flex items-center gap-2">
           <Input
-            placeholder="Search by name or email…"
+             placeholder={t("admin_tools.review.search", "Search by name or email…")}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="h-8 text-sm w-56"
@@ -752,10 +757,10 @@ export function ProviderReviewQueue() {
       {/* Stats row */}
       <div className="grid grid-cols-4 gap-3">
         {[
-          { label: "Submitted",        key: "submitted",      statuses: ["submitted", "pending_approval"],      cls: "text-blue-700"   },
-          { label: "Under Review",     key: "under_review",   statuses: ["under_review", "documents_verified"], cls: "text-teal-700"   },
-          { label: "Action Required",  key: "action_required",statuses: ["action_required"],                    cls: "text-orange-700" },
-          { label: "Draft",            key: "draft",          statuses: ["draft"],                              cls: "text-gray-600"   },
+           { label: t("admin_tools.review.status.submitted", "Submitted"),        key: "submitted",      statuses: ["submitted", "pending_approval"],      cls: "text-blue-700"   },
+           { label: t("admin_tools.review.status.under_review", "Under Review"),   key: "under_review",   statuses: ["under_review", "documents_verified"], cls: "text-teal-700"   },
+           { label: t("admin_tools.review.status.action_required", "Action Required"), key: "action_required", statuses: ["action_required"], cls: "text-orange-700" },
+           { label: t("admin_tools.review.status.draft", "Draft"),                key: "draft",          statuses: ["draft"],                              cls: "text-gray-600"   },
         ].map(({ label, key, statuses, cls }) => (
           <Card
             key={label}
@@ -775,12 +780,12 @@ export function ProviderReviewQueue() {
       {/* Active filter pill */}
       {statusFilter !== "all" && (
         <div className="flex items-center gap-2">
-          <span className="text-xs text-muted-foreground">Filtering by:</span>
+           <span className="text-xs text-muted-foreground">{t("admin_tools.review.filtering_by", "Filtering by")}:</span>
           <span className={cn("inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium", PROVIDER_STATUS_BADGE[statusFilter] ?? "bg-gray-100 text-gray-600 border-gray-200")}>
             {STATUS_LABEL[statusFilter] ?? statusFilter}
           </span>
           <button type="button" className="text-xs text-muted-foreground hover:text-foreground underline" onClick={() => setStatusFilter("all")}>
-            Clear
+             {t("common.clear", "Clear")}
           </button>
         </div>
       )}
@@ -795,8 +800,8 @@ export function ProviderReviewQueue() {
       ) : filtered.length === 0 ? (
         <div className="py-16 text-center text-muted-foreground" data-testid="empty-queue">
           <Users className="h-10 w-10 mx-auto mb-3 opacity-30" />
-          <p className="font-medium">No providers in review queue</p>
-          <p className="text-xs mt-1">{search ? "Try a different search." : "All applications are up to date."}</p>
+           <p className="font-medium">{t("admin_tools.review.no_providers", "No providers in review queue")}</p>
+           <p className="text-xs mt-1">{search ? t("admin_tools.review.try_search", "Try a different search.") : t("admin_tools.review.all_up_to_date", "All applications are up to date.")}</p>
         </div>
       ) : (
         <div className="space-y-2">
@@ -835,12 +840,12 @@ export function ProviderReviewQueue() {
                         </p>
                         {submittedAt && (
                           <p className="text-[10px] text-muted-foreground/60 flex items-center gap-1 mt-0.5">
-                            <Clock className="h-3 w-3" /> Submitted {submittedAt}
+                             <Clock className="h-3 w-3" /> {t("admin_tools.review.submitted_on", "Submitted")} {submittedAt}
                           </p>
                         )}
                         {resubmittedAt && (
                           <p className="text-[10px] text-muted-foreground/60 flex items-center gap-1 mt-0.5">
-                            <RefreshCw className="h-3 w-3" /> Resubmitted {resubmittedAt}
+                             <RefreshCw className="h-3 w-3" /> {t("admin_tools.review.resubmitted_on", "Resubmitted")} {resubmittedAt}
                           </p>
                         )}
                       </div>
@@ -864,7 +869,7 @@ export function ProviderReviewQueue() {
                       )}
                       {updatedAfterSubmit && (
                         <span className="rounded-full border border-amber-300 bg-amber-50 text-amber-700 px-2 py-0.5 text-[10px] font-semibold flex items-center gap-1">
-                          <RefreshCw className="h-2.5 w-2.5" /> Updated
+                           <RefreshCw className="h-2.5 w-2.5" /> {t("common.updated", "Updated")}
                         </span>
                       )}
                       <span className={cn("rounded-full border px-2 py-0.5 text-xs font-medium", ps)}>

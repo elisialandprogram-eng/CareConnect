@@ -21,6 +21,7 @@ import {
   CheckCircle2,
   Clock,
 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 interface DbHealthResponse {
   pool: {
@@ -82,6 +83,7 @@ function CacheGauge({ label, value }: { label: string; value: number }) {
 }
 
 export function DatabaseHealthPanel() {
+  const { t } = useTranslation();
   const [refreshKey, setRefreshKey] = useState(0);
 
   const { data, isLoading, isError, dataUpdatedAt } = useQuery<DbHealthResponse>({
@@ -104,17 +106,17 @@ export function DatabaseHealthPanel() {
         <div>
           <h2 className="text-xl font-semibold flex items-center gap-2">
             <Database className="h-5 w-5 text-primary" />
-            Database Health
+             {t("admin_tools.database.title", "Database Health")}
           </h2>
           <p className="text-sm text-muted-foreground mt-0.5">
-            Live pool stats, table metrics, and cache hit rates
+             {t("admin_tools.database.description", "Live pool stats, table metrics, and cache hit rates")}
           </p>
         </div>
         <div className="flex items-center gap-3">
           {dataUpdatedAt > 0 && (
             <span className="text-xs text-muted-foreground flex items-center gap-1">
               <Clock className="h-3 w-3" />
-              Updated {timeAgo(new Date(dataUpdatedAt).toISOString())}
+               {t("admin_tools.database.updated", "Updated")} {timeAgo(new Date(dataUpdatedAt).toISOString())}
             </span>
           )}
           <Button
@@ -125,7 +127,7 @@ export function DatabaseHealthPanel() {
             data-testid="button-refresh-db-health"
           >
             <RefreshCw className={`h-4 w-4 mr-1.5 ${isLoading ? "animate-spin" : ""}`} />
-            Refresh
+             {t("common.refresh", "Refresh")}
           </Button>
         </div>
       </div>
@@ -133,17 +135,17 @@ export function DatabaseHealthPanel() {
       {isError && (
         <div className="flex items-center gap-2 rounded-md border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">
           <AlertTriangle className="h-4 w-4 shrink-0" />
-          Failed to load database health. Check server logs.
+           {t("admin_tools.database.load_failed", "Failed to load database health. Check server logs.")}
         </div>
       )}
 
       {/* ── Pool Stats ── */}
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         {[
-          { label: "Total Connections", value: data?.pool.total ?? "—", sub: `of ${data?.pool.max ?? 5} max` },
-          { label: "Idle", value: data?.pool.idle ?? "—", sub: "available immediately" },
-          { label: "Active", value: data ? data.pool.total - data.pool.idle : "—", sub: `${poolUtil}% utilization` },
-          { label: "Waiting", value: data?.pool.waiting ?? "—", sub: "queue depth" },
+           { label: t("admin_tools.database.total_connections", "Total Connections"), value: data?.pool.total ?? "—", sub: t("admin_tools.database.of_max", "of {{count}} max", { count: data?.pool.max ?? 5 }) },
+           { label: t("admin_tools.database.idle", "Idle"), value: data?.pool.idle ?? "—", sub: t("admin_tools.database.available", "available immediately") },
+           { label: t("admin_tools.database.active", "Active"), value: data ? data.pool.total - data.pool.idle : "—", sub: t("admin_tools.database.utilization", "{{percent}}% utilization", { percent: poolUtil }) },
+           { label: t("admin_tools.database.waiting", "Waiting"), value: data?.pool.waiting ?? "—", sub: t("admin_tools.database.queue_depth", "queue depth") },
         ].map((stat) => (
           <Card key={stat.label} className="bg-muted/40">
             <CardContent className="pt-4 pb-3">
@@ -165,7 +167,7 @@ export function DatabaseHealthPanel() {
         <Card className="bg-muted/40">
           <CardContent className="pt-4 pb-4">
             <div className="flex items-center justify-between text-sm mb-2">
-              <span className="font-medium">Pool Utilization</span>
+             <span className="font-medium">{t("admin_tools.database.pool_utilization", "Pool Utilization")}</span>
               <span className={`font-semibold ${poolColor}`}>{poolUtil}%</span>
             </div>
             <Progress value={poolUtil} className="h-3" />
@@ -178,17 +180,17 @@ export function DatabaseHealthPanel() {
         <CardHeader className="pb-3">
           <CardTitle className="text-sm font-medium flex items-center gap-2">
             <Activity className="h-4 w-4 text-primary" />
-            Buffer Cache Hit Rates
+             {t("admin_tools.database.buffer_cache", "Buffer Cache Hit Rates")}
             {data && data.cacheHitRate.heap >= 95 && data.cacheHitRate.index >= 95 && (
               <Badge variant="outline" className="ml-auto text-emerald-600 border-emerald-300 text-xs">
                 <CheckCircle2 className="h-3 w-3 mr-1" />
-                Optimal
+                 {t("admin_tools.database.optimal", "Optimal")}
               </Badge>
             )}
             {data && (data.cacheHitRate.heap < 85 || data.cacheHitRate.index < 85) && (
               <Badge variant="outline" className="ml-auto text-amber-600 border-amber-300 text-xs">
                 <AlertTriangle className="h-3 w-3 mr-1" />
-                Degraded
+                 {t("admin_tools.database.degraded", "Degraded")}
               </Badge>
             )}
           </CardTitle>
@@ -201,11 +203,11 @@ export function DatabaseHealthPanel() {
             </div>
           ) : (
             <>
-              <CacheGauge label="Heap (table) cache hit rate" value={data?.cacheHitRate.heap ?? 0} />
-              <CacheGauge label="Index cache hit rate" value={data?.cacheHitRate.index ?? 0} />
+               <CacheGauge label={t("admin_tools.database.heap_cache", "Heap (table) cache hit rate")} value={data?.cacheHitRate.heap ?? 0} />
+               <CacheGauge label={t("admin_tools.database.index_cache", "Index cache hit rate")} value={data?.cacheHitRate.index ?? 0} />
               <p className="text-xs text-muted-foreground">
-                Target ≥ 95%. Values below 85% indicate memory pressure — consider increasing
-                shared_buffers or upgrading the Supabase plan.
+                 {t("admin_tools.database.cache_target", "Target ≥ 95%. Values below 85% indicate memory pressure — consider increasing")}
+                 {" "}{t("admin_tools.database.cache_target_suffix", "shared_buffers or upgrading the Supabase plan.")}
               </p>
             </>
           )}
@@ -217,14 +219,14 @@ export function DatabaseHealthPanel() {
         <CardHeader className="pb-3">
           <CardTitle className="text-sm font-medium flex items-center gap-2">
             <Activity className="h-4 w-4 text-primary" />
-            Active PG Connections (pg_stat_activity)
+             {t("admin_tools.database.active_connections", "Active PG Connections (pg_stat_activity)")}
           </CardTitle>
         </CardHeader>
         <CardContent>
           {isLoading ? (
             <div className="h-20 bg-muted rounded animate-pulse" />
           ) : !data?.connections.byState.length ? (
-            <p className="text-sm text-muted-foreground">No active connections visible.</p>
+             <p className="text-sm text-muted-foreground">{t("admin_tools.database.no_connections", "No active connections visible.")}</p>
           ) : (
             <div className="flex flex-wrap gap-2">
               {data.connections.byState.map((row, i) => (
@@ -250,7 +252,7 @@ export function DatabaseHealthPanel() {
         <CardHeader className="pb-3">
           <CardTitle className="text-sm font-medium flex items-center gap-2">
             <Database className="h-4 w-4 text-primary" />
-            Top Tables by Row Count
+             {t("admin_tools.database.top_tables", "Top Tables by Row Count")}
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
@@ -260,12 +262,12 @@ export function DatabaseHealthPanel() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Table</TableHead>
-                  <TableHead className="text-right">Live Rows</TableHead>
-                  <TableHead className="text-right">Dead Rows</TableHead>
-                  <TableHead className="text-right">Bloat %</TableHead>
-                  <TableHead className="text-right">Last Autovacuum</TableHead>
-                  <TableHead className="text-right">Last Analyze</TableHead>
+                   <TableHead>{t("admin_tools.database.table", "Table")}</TableHead>
+                   <TableHead className="text-right">{t("admin_tools.database.live_rows", "Live Rows")}</TableHead>
+                   <TableHead className="text-right">{t("admin_tools.database.dead_rows", "Dead Rows")}</TableHead>
+                   <TableHead className="text-right">{t("admin_tools.database.bloat", "Bloat %")}</TableHead>
+                   <TableHead className="text-right">{t("admin_tools.database.last_autovacuum", "Last Autovacuum")}</TableHead>
+                   <TableHead className="text-right">{t("admin_tools.database.last_analyze", "Last Analyze")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>

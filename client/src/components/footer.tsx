@@ -71,7 +71,7 @@ export function Footer() {
           {/* Account column — gated by auth */}
           <div>
             <h3 className="font-semibold mb-4">
-              {user ? t("common.patients", "My Account") : t("common.patients", "Get Started")}
+              {user ? t("common.my_account", "My Account") : t("common.get_started", "Get Started")}
             </h3>
             <ul className="space-y-2 text-sm text-muted-foreground">
               {user ? (
@@ -124,7 +124,7 @@ export function Footer() {
                       data-testid="footer-cta-book"
                     >
                       <CalendarPlus className="h-3.5 w-3.5" />
-                      Book an Appointment
+                      {t("common.book_appointment", "Book an Appointment")}
                     </Link>
                   </li>
                   <li>
@@ -134,7 +134,7 @@ export function Footer() {
                       data-testid="footer-cta-explore"
                     >
                       <Stethoscope className="h-3.5 w-3.5" />
-                      Explore Medical Specialties
+                      {t("common.explore_specialties", "Explore Medical Specialties")}
                     </Link>
                   </li>
                   <li>
@@ -144,18 +144,18 @@ export function Footer() {
                       data-testid="footer-cta-provider"
                     >
                       <UserPlus className="h-3.5 w-3.5" />
-                      Join as a Provider
+                      {t("common.join_provider", "Join as a Provider")}
                     </Link>
                   </li>
                   <li>
                     <Link href="/packages" className="hover:text-foreground transition-colors flex items-center gap-1.5">
                       <HeartHandshake className="h-3.5 w-3.5" />
-                      Membership Packages
+                      {t("common.packages", "Membership Packages")}
                     </Link>
                   </li>
                   <li>
                     <Link href="/register" className="hover:text-foreground transition-colors">
-                      Create Free Account
+                      {t("common.create_account", "Create Free Account")}
                     </Link>
                   </li>
                 </>

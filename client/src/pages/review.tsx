@@ -154,8 +154,8 @@ export default function ReviewPage() {
       <Header />
       <PageBreadcrumbs
         items={[
-          { label: "My Dashboard", href: "/dashboard" },
-          { label: "Leave a Review" },
+           { label: t("common.my_dashboard", "My Dashboard"), href: "/dashboard" },
+           { label: t("review.title", "Leave a Review") },
         ]}
         fallback="/dashboard"
       />
@@ -202,7 +202,7 @@ export default function ReviewPage() {
                 className="flex items-center gap-1"
                 onMouseLeave={() => setHover(0)}
                 role="radiogroup"
-                aria-label="rating"
+                 aria-label={t("review.rating_aria", "Rating")}
               >
                 {[1, 2, 3, 4, 5].map((star) => {
                   const filled = (hover || rating) >= star;
@@ -213,7 +213,7 @@ export default function ReviewPage() {
                       className="p-1"
                       onMouseEnter={() => setHover(star)}
                       onClick={() => setRating(star)}
-                      aria-label={`${star} stars`}
+                       aria-label={t("review.stars_aria", "{{count}} stars", { count: star })}
                       data-testid={`star-${star}`}
                     >
                       <Star

@@ -100,7 +100,7 @@ export default function MyReviewsPage() {
       <main className="flex-1 container mx-auto px-4 py-8 max-w-3xl">
         <PageBreadcrumbs
           items={[
-            { label: "Dashboard", href: "/patient/dashboard" },
+             { label: t("common.dashboard", "Dashboard"), href: "/patient/dashboard" },
             { label: t("patient_ui.reviews.title", "My Reviews") },
           ]}
         />

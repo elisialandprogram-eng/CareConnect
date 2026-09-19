@@ -211,6 +211,7 @@ const DOC_PLACEHOLDERS = [
 
 // ─── Schedule Tab (P2) — lazy-fetches from dedicated endpoint ────────────────
 function ScheduleTab({ providerId }: { providerId: string }) {
+  const { t } = useTranslation();
   const DAY_NAMES = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 
   const { data, isLoading, isError } = useQuery<{
@@ -236,7 +237,7 @@ function ScheduleTab({ providerId }: { providerId: string }) {
   if (isError || !data) return (
     <div className="p-5 text-center text-slate-400 text-sm">
       <AlertCircle className="h-8 w-8 mx-auto mb-2 text-slate-300" />
-      Could not load schedule data
+      {t("admin_tools.ops.schedule_load_failed", "Could not load schedule data")}
     </div>
   );
 
@@ -259,8 +260,8 @@ function ScheduleTab({ providerId }: { providerId: string }) {
       <div className="space-y-3">
         <div className="flex items-center gap-2">
           <CalendarDays className="h-4 w-4 text-blue-500" />
-          <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300">Weekly Schedule</h3>
-          {!officeHours && <span className="text-xs text-slate-400">(no office hours set)</span>}
+          <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300">{t("admin_tools.ops.weekly_schedule", "Weekly Schedule")}</h3>
+          {!officeHours && <span className="text-xs text-slate-400">({t("admin_tools.ops.no_office_hours", "no office hours set")})</span>}
         </div>
         <div className="rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
           {[1,2,3,4,5,6,0].map((dayNum) => {
@@ -299,7 +300,7 @@ function ScheduleTab({ providerId }: { providerId: string }) {
                     )}
                   </div>
                 ) : (
-                  <span className="text-xs text-slate-400">Not available</span>
+                  <span className="text-xs text-slate-400">{t("admin_tools.ops.not_available", "Not available")}</span>
                 )}
               </div>
             );
@@ -312,7 +313,7 @@ function ScheduleTab({ providerId }: { providerId: string }) {
         <div className="space-y-2">
           <div className="flex items-center gap-2">
             <BookOpen className="h-4 w-4 text-purple-500" />
-            <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300">Schedule Templates ({scheduleTemplates.length})</h3>
+            <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300">{t("admin_tools.ops.schedule_templates", "Schedule Templates")} ({scheduleTemplates.length})</h3>
           </div>
           <div className="rounded-lg border border-slate-200 dark:border-slate-700 divide-y divide-slate-100 dark:divide-slate-800 overflow-hidden">
             {scheduleTemplates.map((t: any) => (
@@ -320,7 +321,7 @@ function ScheduleTab({ providerId }: { providerId: string }) {
                 <span className="w-20 text-xs font-medium text-slate-700 dark:text-slate-300 flex-shrink-0">{DAY_NAMES[t.day_of_week]}</span>
                 <span className="text-xs font-mono text-slate-600 dark:text-slate-400 flex-shrink-0">{t.start_time}–{t.end_time}</span>
                 {t.modality && <Badge variant="outline" className="text-[10px]">{humanLabel(t.modality)}</Badge>}
-                {!t.is_active && <Badge variant="outline" className="text-[10px] text-slate-400">Inactive</Badge>}
+                {!t.is_active && <Badge variant="outline" className="text-[10px] text-slate-400">{t("admin_tools.ops.inactive", "Inactive")}</Badge>}
                 <div className="flex-1" />
                 <div className="flex items-center gap-3 text-[10px] text-slate-400 flex-wrap">
                   {t.slot_duration_mins && <span>{t.slot_duration_mins}min slots</span>}
@@ -339,12 +340,12 @@ function ScheduleTab({ providerId }: { providerId: string }) {
         <div className="flex items-center gap-2">
           <AlarmClock className="h-4 w-4 text-orange-500" />
           <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300">
-            Scheduled Time Off
+            {t("admin_tools.ops.scheduled_time_off", "Scheduled Time Off")}
           </h3>
           <span className="text-xs text-slate-400">({timeOff.length} entries)</span>
         </div>
         {timeOff.length === 0 ? (
-          <p className="text-xs text-slate-400 py-2">No time-off periods scheduled</p>
+          <p className="text-xs text-slate-400 py-2">{t("admin_tools.ops.no_time_off", "No time-off periods scheduled")}</p>
         ) : (
           <div className="rounded-lg border border-slate-200 dark:border-slate-700 divide-y divide-slate-100 dark:divide-slate-800 overflow-hidden">
             {timeOff.map((t: any) => (
@@ -362,12 +363,12 @@ function ScheduleTab({ providerId }: { providerId: string }) {
         <div className="flex items-center gap-2">
           <Flag className="h-4 w-4 text-red-500" />
           <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300">
-            Schedule Overrides / Blocked Dates
+            {t("admin_tools.ops.schedule_overrides", "Schedule Overrides / Blocked Dates")}
           </h3>
           <span className="text-xs text-slate-400">({exceptions.length} entries)</span>
         </div>
         {exceptions.length === 0 ? (
-          <p className="text-xs text-slate-400 py-2">No blocked dates</p>
+          <p className="text-xs text-slate-400 py-2">{t("admin_tools.ops.no_blocked_dates", "No blocked dates")}</p>
         ) : (
           <div className="rounded-lg border border-slate-200 dark:border-slate-700 divide-y divide-slate-100 dark:divide-slate-800 overflow-hidden">
             {exceptions.map((ex: any) => (
@@ -571,6 +572,7 @@ function DocumentRow({
   onReload: () => void;
   providerId?: string;
 }) {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const [showNoteForm, setShowNoteForm] = useState(false);
   const [noteInput, setNoteInput] = useState("");
@@ -607,17 +609,17 @@ function DocumentRow({
       if (!r.ok) throw new Error("Failed");
     },
     onSuccess: () => {
-      toast({ title: "Re-upload requested — provider notified on next page load" });
+      toast({ title: t("admin_tools.ops.reupload_requested", "Re-upload requested — provider notified on next page load") });
       setShowNoteForm(false);
       setNoteInput("");
       onReload();
     },
-    onError: () => toast({ title: "Failed to request re-upload", variant: "destructive" }),
+    onError: () => toast({ title: t("admin_tools.ops.reupload_failed", "Failed to request re-upload"), variant: "destructive" }),
   });
 
   const reminderMutation = useMutation({
     mutationFn: async () => {
-      if (!providerId) throw new Error("No provider");
+      if (!providerId) throw new Error(t("admin_tools.ops.no_provider", "No provider"));
       const body = isExpiringSoon
         ? `Your ${placeholder.label} is expiring in ${daysLeft} day${daysLeft === 1 ? "" : "s"}. Please upload a renewed copy to stay compliant.`
         : `Your ${placeholder.label} has expired. Please upload a current, valid copy to restore your compliance status.`;
@@ -628,8 +630,8 @@ function DocumentRow({
       });
       if (!r.ok) throw new Error("Failed");
     },
-    onSuccess: () => toast({ title: "Renewal reminder sent to provider" }),
-    onError: () => toast({ title: "Failed to send reminder", variant: "destructive" }),
+    onSuccess: () => toast({ title: t("admin_tools.ops.renewal_sent", "Renewal reminder sent to provider") }),
+    onError: () => toast({ title: t("admin_tools.ops.reminder_failed", "Failed to send reminder"), variant: "destructive" }),
   });
 
   return (
@@ -649,25 +651,25 @@ function DocumentRow({
               <div className="space-y-0.5 mt-0.5">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className={`text-xs font-medium ${docStatusTextClass(isExpiringSoon ? "expiring_soon" : status)}`}>
-                    {STATUS_LABEL[status] || status}
-                    {isExpiringSoon && ` · ${daysLeft}d left`}
+                    {String(t(`admin_tools.review.status.${canonicalStatus}`, STATUS_LABEL[status] || status))}
+                    {isExpiringSoon && ` · ${t("admin_tools.expiry.days_left", "{{count}}d left", { count: daysLeft })}`}
                   </span>
                   {doc.expiryDate && (
-                    <span className="text-xs text-slate-400">Expires: {doc.expiryDate}</span>
+                    <span className="text-xs text-slate-400">{t("admin_tools.ops.expires", "Expires")}: {doc.expiryDate}</span>
                   )}
                 </div>
                 {status === "approved" && doc.verifiedAt && (
                   <p className="text-xs text-slate-400">
-                    Verified {format(new Date(doc.verifiedAt), "MMM d, yyyy")}
-                    {doc.verifiedBy && <span className="ml-1">by admin</span>}
+                    {t("admin_tools.ops.verified", "Verified")} {format(new Date(doc.verifiedAt), "MMM d, yyyy")}
+                    {doc.verifiedBy && <span className="ml-1">{t("admin_tools.ops.by_admin", "by admin")}</span>}
                   </p>
                 )}
                 {doc.adminNote && (
-                  <p className="text-xs text-slate-500 italic truncate">Note: {doc.adminNote}</p>
+                  <p className="text-xs text-slate-500 italic truncate">{t("admin_tools.review.note", "Note")}: {doc.adminNote}</p>
                 )}
                 {doc.createdAt && (
                   <p className="text-xs text-slate-400">
-                    Uploaded {format(new Date(doc.createdAt), "MMM d, yyyy")}
+                    {t("admin_tools.ops.uploaded", "Uploaded")} {format(new Date(doc.createdAt), "MMM d, yyyy")}
                     {doc.fileName && ` · ${doc.fileName}`}
                   </p>
                 )}
@@ -683,7 +685,7 @@ function DocumentRow({
             criticality === "mandatory" ? "border-red-200 text-red-600 bg-red-50"
             : criticality === "compliance-required" ? "border-purple-200 text-purple-600 bg-purple-50"
             : "border-slate-200 text-slate-500"}`}>
-            {criticality}
+            {String(t(`admin_tools.ops.criticality.${criticality}`, criticality))}
           </span>
           {doc && (
             <>
@@ -700,7 +702,7 @@ function DocumentRow({
                   className={`h-6 px-1.5 text-[10px] ${isExpiringSoon ? "text-amber-600 hover:bg-amber-50" : "text-red-600 hover:bg-red-50"}`}
                   onClick={() => reminderMutation.mutate()}
                   disabled={reminderMutation.isPending}
-                  title={isExpiringSoon ? `Send expiry reminder (${daysLeft}d left)` : "Send expired document reminder"}
+                  title={isExpiringSoon ? t("admin_tools.ops.send_expiry_reminder", "Send expiry reminder ({{count}}d left)", { count: daysLeft }) : t("admin_tools.ops.send_expired_reminder", "Send expired document reminder")}
                 >
                   {reminderMutation.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Bell className="h-3 w-3" />}
                 </Button>
@@ -711,7 +713,7 @@ function DocumentRow({
                   size="sm" variant="ghost"
                   className="h-6 px-1.5 text-[10px] text-orange-600 hover:text-orange-700 hover:bg-orange-50"
                   onClick={() => setShowNoteForm(v => !v)}
-                  title="Request re-upload"
+                  title={t("admin_tools.review.request_reupload", "Request re-upload")}
                 >
                   <RefreshCw className="h-3 w-3" />
                 </Button>
@@ -724,9 +726,9 @@ function DocumentRow({
       {/* Per-document re-upload request form */}
       {doc && showNoteForm && (
         <div className="rounded-md bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-800 p-2.5 space-y-2">
-          <p className="text-[11px] font-semibold text-orange-800 dark:text-orange-300">Request Re-upload</p>
+          <p className="text-[11px] font-semibold text-orange-800 dark:text-orange-300">{t("admin_tools.expiry.request_reupload", "Request Re-upload")}</p>
           <Input
-            placeholder="Reason (e.g. image too blurry, document expired)"
+            placeholder={t("admin_tools.ops.reupload_reason_placeholder", "Reason (e.g. image too blurry, document expired)")}
             value={noteInput}
             onChange={e => setNoteInput(e.target.value)}
             className="h-7 text-xs"
@@ -738,9 +740,9 @@ function DocumentRow({
               disabled={reuploadMutation.isPending}
             >
               {reuploadMutation.isPending ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <RefreshCw className="h-3 w-3 mr-1" />}
-              Confirm
+              {t("common.confirm", "Confirm")}
             </Button>
-            <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setShowNoteForm(false)}>Cancel</Button>
+            <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setShowNoteForm(false)}>{t("common.cancel", "Cancel")}</Button>
           </div>
         </div>
       )}
@@ -760,6 +762,7 @@ function RequestDocumentsDialog({
   onOpenChange: (v: boolean) => void;
   onSuccess: () => void;
 }) {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const [selected, setSelected] = useState<string[]>([]);
   const [dialogReason, setDialogReason] = useState("");
@@ -779,24 +782,24 @@ function RequestDocumentsDialog({
       return r.json();
     },
     onSuccess: () => {
-      toast({ title: "Document request sent — provider will see flagged documents" });
+      toast({ title: t("admin_tools.ops.document_request_sent", "Document request sent — provider will see flagged documents") });
       onOpenChange(false);
       setSelected([]);
       setDialogReason("");
       onSuccess();
     },
-    onError: () => toast({ title: "Failed to send request", variant: "destructive" }),
+    onError: () => toast({ title: t("admin_tools.ops.request_failed", "Failed to send request"), variant: "destructive" }),
   });
 
   return (
     <Dialog open={open} onOpenChange={v => { onOpenChange(v); if (!v) { setSelected([]); setDialogReason(""); } }}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Request Documents</DialogTitle>
+          <DialogTitle>{t("admin_tools.ops.request_documents", "Request Documents")}</DialogTitle>
         </DialogHeader>
         <div className="space-y-4 py-1">
           <div className="space-y-1.5">
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Select which documents to request</p>
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">{t("admin_tools.ops.select_documents", "Select which documents to request")}</p>
             <div className="space-y-1 max-h-64 overflow-y-auto pr-1">
               {DOC_PLACEHOLDERS.map(ph => (
                 <label key={ph.type} className="flex items-center gap-2.5 p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-900 cursor-pointer">
@@ -811,34 +814,34 @@ function RequestDocumentsDialog({
                     ph.criticality === "mandatory" ? "border-red-200 text-red-600 bg-red-50"
                     : ph.criticality === "compliance-required" ? "border-purple-200 text-purple-600 bg-purple-50"
                     : "border-slate-200 text-slate-500 bg-white"}`}>
-                    {ph.criticality === "mandatory" ? "Required"
-                      : ph.criticality === "compliance-required" ? "Compliance"
-                      : "Optional"}
+                    {ph.criticality === "mandatory" ? t("admin_tools.ops.required", "Required")
+                      : ph.criticality === "compliance-required" ? t("admin_tools.ops.compliance", "Compliance")
+                      : t("admin_tools.ops.optional", "Optional")}
                   </span>
                 </label>
               ))}
             </div>
           </div>
           <div className="space-y-1.5">
-            <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Reason / admin note (optional)</Label>
+            <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">{t("admin_tools.ops.reason_note", "Reason / admin note (optional)")}</Label>
             <Textarea
-              placeholder="e.g. Document quality too low — please re-upload a clear, legible copy."
+              placeholder={t("admin_tools.ops.document_reason_placeholder", "e.g. Document quality too low — please re-upload a clear, legible copy.")}
               value={dialogReason}
               onChange={e => setDialogReason(e.target.value)}
               className="min-h-[70px] text-xs resize-none"
             />
-            <p className="text-[11px] text-slate-400">This note will be shown to the provider next to each flagged document.</p>
+            <p className="text-[11px] text-slate-400">{t("admin_tools.ops.document_reason_desc", "This note will be shown to the provider next to each flagged document.")}</p>
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>{t("common.cancel", "Cancel")}</Button>
           <Button
             size="sm"
             disabled={selected.length === 0 || mutation.isPending}
             onClick={() => mutation.mutate()}
           >
             {mutation.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />}
-            Request {selected.length > 0 ? `${selected.length} document${selected.length > 1 ? "s" : ""}` : "documents"}
+            {t("admin_tools.ops.request_count", "Request {{count}} document(s)", { count: selected.length })}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -848,6 +851,7 @@ function RequestDocumentsDialog({
 
 // ─── Category Permissions Tab ────────────────────────────────────────────────
 function CategoryPermissionsTab({ providerId }: { providerId: string }) {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const qKey = [`/api/admin/providers/${providerId}/category-permissions`];
@@ -888,11 +892,11 @@ function CategoryPermissionsTab({ providerId }: { providerId: string }) {
       return r.json();
     },
     onSuccess: () => {
-      toast({ title: "Category permissions saved" });
+      toast({ title: t("admin_tools.ops.permissions_saved", "Category permissions saved") });
       queryClient.invalidateQueries({ queryKey: qKey });
       setInitialized(false);
     },
-    onError: () => toast({ title: "Failed to save", variant: "destructive" }),
+    onError: () => toast({ title: t("admin_tools.ops.save_failed", "Failed to save"), variant: "destructive" }),
   });
 
   const resetMutation = useMutation({
@@ -902,11 +906,11 @@ function CategoryPermissionsTab({ providerId }: { providerId: string }) {
       return r.json();
     },
     onSuccess: () => {
-      toast({ title: "Permissions reset to defaults" });
+      toast({ title: t("admin_tools.ops.permissions_reset", "Permissions reset to defaults") });
       queryClient.invalidateQueries({ queryKey: qKey });
       setInitialized(false);
     },
-    onError: () => toast({ title: "Failed to reset", variant: "destructive" }),
+    onError: () => toast({ title: t("admin_tools.ops.reset_failed", "Failed to reset"), variant: "destructive" }),
   });
 
   const permMap = new Map(permissions.map((p) => [p.categoryId, p]));
@@ -920,7 +924,7 @@ function CategoryPermissionsTab({ providerId }: { providerId: string }) {
     return (
       <div className="flex items-center justify-center py-16 text-slate-400 text-sm gap-2">
         <Loader2 className="h-4 w-4 animate-spin" />
-        Loading categories…
+        {t("admin_tools.ops.loading_categories", "Loading categories…")}
       </div>
     );
   }
@@ -930,8 +934,8 @@ function CategoryPermissionsTab({ providerId }: { providerId: string }) {
       {/* Header */}
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div>
-          <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300">Service Category Access</h3>
-          <p className="text-xs text-slate-400 mt-0.5">Control which categories this provider can offer services in.</p>
+          <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300">{t("admin_tools.ops.service_category_access", "Service Category Access")}</h3>
+          <p className="text-xs text-slate-400 mt-0.5">{t("admin_tools.ops.service_category_desc", "Control which categories this provider can offer services in.")}</p>
         </div>
         <div className="flex items-center gap-2">
           {overrideCount > 0 && (
@@ -944,7 +948,7 @@ function CategoryPermissionsTab({ providerId }: { providerId: string }) {
               data-testid="button-reset-category-permissions"
             >
               {resetMutation.isPending ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <XCircle className="h-3 w-3 mr-1" />}
-              Reset to defaults
+              {t("admin_tools.ops.reset_defaults", "Reset to defaults")}
             </Button>
           )}
           <Button
@@ -955,7 +959,7 @@ function CategoryPermissionsTab({ providerId }: { providerId: string }) {
             data-testid="button-save-category-permissions"
           >
             {saveMutation.isPending ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <CheckCircle className="h-3 w-3 mr-1" />}
-            Save
+            {t("common.save", "Save")}
           </Button>
         </div>
       </div>
@@ -965,19 +969,19 @@ function CategoryPermissionsTab({ providerId }: { providerId: string }) {
         <div className="flex items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 dark:bg-blue-950/30 dark:border-blue-800 px-3 py-2">
           <Shield className="h-3.5 w-3.5 text-blue-500 shrink-0" />
           <p className="text-xs text-blue-700 dark:text-blue-300">
-            <span className="font-semibold">{overrideCount} explicit override{overrideCount !== 1 ? "s" : ""}</span> active for this provider.
+            <span className="font-semibold">{t("admin_tools.ops.explicit_overrides", "{{count}} explicit override(s)", { count: overrideCount })}</span> {t("admin_tools.ops.active_for_provider", "active for this provider.")}
           </p>
         </div>
       ) : (
         <div className="flex items-center gap-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 px-3 py-2">
           <LayoutGrid className="h-3.5 w-3.5 text-slate-400 shrink-0" />
-          <p className="text-xs text-slate-500">Using platform defaults — all categories enabled.</p>
+          <p className="text-xs text-slate-500">{t("admin_tools.ops.platform_defaults", "Using platform defaults — all categories enabled.")}</p>
         </div>
       )}
 
       {/* Category rows */}
       {allCategories.length === 0 && (
-        <div className="text-center py-10 text-slate-400 text-sm">No categories configured</div>
+        <div className="text-center py-10 text-slate-400 text-sm">{t("admin_tools.ops.no_categories", "No categories configured")}</div>
       )}
       <div className="space-y-1.5">
         {allCategories.map((cat) => {
@@ -1003,19 +1007,19 @@ function CategoryPermissionsTab({ providerId }: { providerId: string }) {
                 </div>
                 {hasOverride && (
                   <Badge variant="outline" className="text-[10px] px-1.5 py-0 shrink-0 border-blue-300 text-blue-600 dark:text-blue-400">
-                    Override
+                    {t("admin_tools.ops.override", "Override")}
                   </Badge>
                 )}
                 {draft[cat.id] !== (hasOverride ? permMap.get(cat.id)!.enabled : true) && (
                   <Badge variant="outline" className="text-[10px] px-1.5 py-0 shrink-0 border-amber-400 text-amber-600 dark:text-amber-400">
-                    Unsaved
+                    {t("admin_tools.ops.unsaved", "Unsaved")}
                   </Badge>
                 )}
               </div>
               <Switch
                 checked={isEnabled}
                 onCheckedChange={(val) => setDraft((prev) => ({ ...prev, [cat.id]: val }))}
-                aria-label={`Toggle ${cat.name}`}
+                aria-label={t("admin_tools.ops.toggle_category", "Toggle {{name}}", { name: cat.name })}
                 data-testid={`switch-category-${cat.id}`}
               />
             </div>
@@ -1042,6 +1046,7 @@ function ProviderCommandHeader({
   data: ConsoleData;
   onRefresh: () => void;
 }) {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const { user: authUser } = useAuth();
   const qc = useQueryClient();
@@ -1064,16 +1069,16 @@ function ProviderCommandHeader({
   const healthScore = Math.max(0, 100 - metrics.computedRisk);
 
   const CONFIRM_COPY: Record<string, { title: string; desc: string; needsReason: boolean; variant: "green" | "red" | "orange" }> = {
-    approve:            { title: "Approve Provider",          desc: "This will approve the provider and grant them access to accept bookings.", needsReason: false, variant: "green" },
-    reject:             { title: "Reject Application",        desc: "This will reject the provider. Please provide a reason.", needsReason: true,  variant: "red"   },
-    suspend:            { title: "Suspend Provider",          desc: "This will immediately suspend the provider account.", needsReason: true,  variant: "red"   },
-    unsuspend:          { title: "Unsuspend Provider",        desc: "This will restore the provider's account access.", needsReason: false, variant: "green" },
-    deactivate:         { title: "Deactivate Provider",       desc: "This will permanently deactivate this provider. They will not be able to log in or accept bookings.", needsReason: true, variant: "red" },
-    reactivate:         { title: "Reactivate Account",        desc: "This will reactivate the deactivated provider account.", needsReason: false, variant: "green" },
-    request_changes:    { title: "Request Profile Changes",   desc: "Provider will be moved to Action Required and notified to update their profile.", needsReason: true,  variant: "orange" },
-    reset_verification: { title: "Reset Verification",        desc: "All documents will be returned to Pending and provider status set to Submitted. This cannot be undone.", needsReason: false, variant: "orange" },
-    enable_bookings:    { title: "Enable Bookings",           desc: "This will allow the provider to accept new patient bookings.", needsReason: false, variant: "green" },
-    disable_bookings:   { title: "Disable Bookings",          desc: "New patient bookings will be blocked for this provider. Existing appointments are unaffected.", needsReason: false, variant: "orange" },
+    approve:            { title: t("admin_tools.ops.approve_provider", "Approve Provider"), desc: t("admin_tools.ops.approve_provider_desc", "This will approve the provider and grant them access to accept bookings."), needsReason: false, variant: "green" },
+    reject:             { title: t("admin_tools.ops.reject_application", "Reject Application"), desc: t("admin_tools.ops.reject_application_desc", "This will reject the provider. Please provide a reason."), needsReason: true, variant: "red" },
+    suspend:            { title: t("admin_tools.ops.suspend_provider", "Suspend Provider"), desc: t("admin_tools.ops.suspend_provider_desc", "This will immediately suspend the provider account."), needsReason: true, variant: "red" },
+    unsuspend:          { title: t("admin_tools.ops.unsuspend_provider", "Unsuspend Provider"), desc: t("admin_tools.ops.unsuspend_provider_desc", "This will restore the provider's account access."), needsReason: false, variant: "green" },
+    deactivate:         { title: t("admin_tools.ops.deactivate_provider", "Deactivate Provider"), desc: t("admin_tools.ops.deactivate_provider_desc", "This will permanently deactivate this provider. They will not be able to log in or accept bookings."), needsReason: true, variant: "red" },
+    reactivate:         { title: t("admin_tools.ops.reactivate_account", "Reactivate Account"), desc: t("admin_tools.ops.reactivate_account_desc", "This will reactivate the deactivated provider account."), needsReason: false, variant: "green" },
+    request_changes:    { title: t("admin_tools.ops.request_changes", "Request Profile Changes"), desc: t("admin_tools.ops.request_changes_desc", "Provider will be moved to Action Required and notified to update their profile."), needsReason: true, variant: "orange" },
+    reset_verification: { title: t("admin_tools.ops.reset_verification", "Reset Verification"), desc: t("admin_tools.ops.reset_verification_desc", "All documents will be returned to Pending and provider status set to Submitted. This cannot be undone."), needsReason: false, variant: "orange" },
+    enable_bookings:    { title: t("admin_tools.ops.enable_bookings", "Enable Bookings"), desc: t("admin_tools.ops.enable_bookings_desc", "This will allow the provider to accept new patient bookings."), needsReason: false, variant: "green" },
+    disable_bookings:   { title: t("admin_tools.ops.disable_bookings", "Disable Bookings"), desc: t("admin_tools.ops.disable_bookings_desc", "New patient bookings will be blocked for this provider. Existing appointments are unaffected."), needsReason: false, variant: "orange" },
   };
 
   const actionMutation = useMutation({
@@ -1083,13 +1088,13 @@ function ProviderCommandHeader({
       return r.json();
     },
     onSuccess: (_, vars) => {
-      toast({ title: vars.action === "approve" ? "Provider approved" : vars.action === "suspend" ? "Provider suspended" : "Action completed" });
+      toast({ title: vars.action === "approve" ? t("admin_tools.ops.provider_approved", "Provider approved") : vars.action === "suspend" ? t("admin_tools.ops.provider_suspended", "Provider suspended") : t("admin_tools.ops.action_completed", "Action completed") });
       setConfirmAction(null);
       setReason("");
       qc.invalidateQueries({ queryKey: ["/api/admin/providers"] });
       onRefresh();
     },
-    onError: (err: any) => toast({ title: err?.message || "Action failed", variant: "destructive" }),
+    onError: (err: any) => toast({ title: err?.message || t("common.action_failed", "Action failed"), variant: "destructive" }),
   });
 
   const doAction = (action: string, extra?: any) => actionMutation.mutate({ action, reason, ...extra });
@@ -1108,7 +1113,7 @@ function ProviderCommandHeader({
           <div className="flex items-center gap-2 flex-wrap">
             <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">{fullName}</h2>
             {prov.isVerified && <span title="Verified"><ShieldCheck className="h-4 w-4 text-blue-500" /></span>}
-            {isSuspended && <Badge variant="destructive" className="text-xs">Suspended</Badge>}
+            {isSuspended && <Badge variant="destructive" className="text-xs">{t("admin_tools.ops.suspended", "Suspended")}</Badge>}
           </div>
           <div className="flex items-center gap-2 mt-1 flex-wrap">
             <span className="text-sm text-slate-500 capitalize">
@@ -1117,7 +1122,7 @@ function ProviderCommandHeader({
             <span className="text-slate-300">·</span>
             <StatusBadge status={prov.status} domain="provider" className="text-xs" />
             <span className={`text-xs px-2 py-0.5 rounded-full border font-medium ${risk.color}`}>
-              Risk: {risk.label} ({metrics.computedRisk})
+              {t("admin_tools.ops.risk", "Risk")}: {t(`admin_tools.ops.risk_level.${risk.label.toLowerCase()}`, risk.label)} ({metrics.computedRisk})
             </span>
             <span className="text-xs text-slate-400">{prov.countryCode} · ID …{prov.id?.slice(-6)}</span>
           </div>
@@ -1127,7 +1132,7 @@ function ProviderCommandHeader({
               {user?.phone && <span className="text-xs text-slate-500 flex items-center gap-1"><Phone className="h-3 w-3" />{user.phone}</span>}
               {user?.createdAt && (
                 <span className="text-xs text-slate-400 flex items-center gap-1">
-                  <Calendar className="h-3 w-3" />Joined {format(new Date(user.createdAt), "MMM yyyy")}
+              <Calendar className="h-3 w-3" />{t("admin_tools.ops.joined", "Joined")} {format(new Date(user.createdAt), "MMM yyyy")}
                 </span>
               )}
             </div>
@@ -1144,13 +1149,13 @@ function ProviderCommandHeader({
               disabled={actionMutation.isPending}
               data-testid="button-approve-provider"
             >
-              <CheckCircle className="h-3.5 w-3.5" />Approve
+              <CheckCircle className="h-3.5 w-3.5" />{t("common.approve", "Approve")}
             </Button>
           )}
           {isApproved && (
             <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-900">
               <CheckCircle className="h-3.5 w-3.5 text-green-600" />
-              <span className="text-xs font-semibold text-green-700 dark:text-green-400">Approved</span>
+              <span className="text-xs font-semibold text-green-700 dark:text-green-400">{t("admin_tools.review.status.approved", "Approved")}</span>
             </div>
           )}
 
@@ -1161,63 +1166,63 @@ function ProviderCommandHeader({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-52">
-              <DropdownMenuLabel className="text-xs font-semibold text-slate-400 uppercase">Lifecycle</DropdownMenuLabel>
+              <DropdownMenuLabel className="text-xs font-semibold text-slate-400 uppercase">{t("admin_tools.ops.lifecycle", "Lifecycle")}</DropdownMenuLabel>
               {!isApproved && !isDeactivated && (
                 <DropdownMenuItem onClick={() => setConfirmAction("approve")} className="text-green-600 focus:text-green-600">
-                  <CheckCircle className="h-3.5 w-3.5 mr-2" />Approve Provider
+                  <CheckCircle className="h-3.5 w-3.5 mr-2" />{t("admin_tools.ops.approve_provider", "Approve Provider")}
                 </DropdownMenuItem>
               )}
               <DropdownMenuItem onClick={() => setConfirmAction("reject")} className="text-red-600 focus:text-red-600">
-                <XCircle className="h-3.5 w-3.5 mr-2" />Reject Application
+                <XCircle className="h-3.5 w-3.5 mr-2" />{t("admin_tools.ops.reject_application", "Reject Application")}
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => setConfirmAction("request_changes")} className="text-orange-600 focus:text-orange-600">
-                <AlertCircle className="h-3.5 w-3.5 mr-2" />Request Changes
+                <AlertCircle className="h-3.5 w-3.5 mr-2" />{t("admin_tools.ops.request_changes_short", "Request Changes")}
               </DropdownMenuItem>
               {isDeactivated ? (
                 <DropdownMenuItem onClick={() => setConfirmAction("reactivate")} className="text-blue-600 focus:text-blue-600">
-                  <Play className="h-3.5 w-3.5 mr-2" />Reactivate Account
+                  <Play className="h-3.5 w-3.5 mr-2" />{t("admin_tools.ops.reactivate_account", "Reactivate Account")}
                 </DropdownMenuItem>
               ) : (
                 <DropdownMenuItem onClick={() => setConfirmAction("deactivate")} className="text-red-700 focus:text-red-700">
-                  <TimerOff className="h-3.5 w-3.5 mr-2" />Deactivate Provider
+                  <TimerOff className="h-3.5 w-3.5 mr-2" />{t("admin_tools.ops.deactivate_provider", "Deactivate Provider")}
                 </DropdownMenuItem>
               )}
               <DropdownMenuSeparator />
-              <DropdownMenuLabel className="text-xs font-semibold text-slate-400 uppercase">Account</DropdownMenuLabel>
+              <DropdownMenuLabel className="text-xs font-semibold text-slate-400 uppercase">{t("admin_tools.ops.account", "Account")}</DropdownMenuLabel>
               {!isSuspended ? (
                 <DropdownMenuItem onClick={() => setConfirmAction("suspend")} className="text-orange-600 focus:text-orange-600">
-                  <Ban className="h-3.5 w-3.5 mr-2" />Suspend Provider
+                  <Ban className="h-3.5 w-3.5 mr-2" />{t("admin_tools.ops.suspend_provider", "Suspend Provider")}
                 </DropdownMenuItem>
               ) : (
                 <DropdownMenuItem onClick={() => setConfirmAction("unsuspend")} className="text-green-600 focus:text-green-600">
-                  <CheckCircle className="h-3.5 w-3.5 mr-2" />Unsuspend Provider
+                  <CheckCircle className="h-3.5 w-3.5 mr-2" />{t("admin_tools.ops.unsuspend_provider", "Unsuspend Provider")}
                 </DropdownMenuItem>
               )}
               <DropdownMenuItem onClick={() => setConfirmAction("enable_bookings")}>
-                <Play className="h-3.5 w-3.5 mr-2" />Enable Bookings
+                <Play className="h-3.5 w-3.5 mr-2" />{t("admin_tools.ops.enable_bookings", "Enable Bookings")}
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => setConfirmAction("disable_bookings")}>
-                <Pause className="h-3.5 w-3.5 mr-2" />Disable Bookings
+                <Pause className="h-3.5 w-3.5 mr-2" />{t("admin_tools.ops.disable_bookings", "Disable Bookings")}
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuLabel className="text-xs font-semibold text-slate-400 uppercase">Verification</DropdownMenuLabel>
+              <DropdownMenuLabel className="text-xs font-semibold text-slate-400 uppercase">{t("admin_tools.ops.verification", "Verification")}</DropdownMenuLabel>
               <DropdownMenuItem onClick={() => setConfirmAction("reset_verification")}>
-                <RefreshCw className="h-3.5 w-3.5 mr-2" />Reset Verification
+                <RefreshCw className="h-3.5 w-3.5 mr-2" />{t("admin_tools.ops.reset_verification", "Reset Verification")}
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => setShowReqDocsDialog(true)}>
-                <ClipboardList className="h-3.5 w-3.5 mr-2" />Request Documents
+                <ClipboardList className="h-3.5 w-3.5 mr-2" />{t("admin_tools.ops.request_documents", "Request Documents")}
               </DropdownMenuItem>
               {prov.licenseDocumentUrl && (
                 <DropdownMenuItem asChild>
                   <a href={prov.licenseDocumentUrl} target="_blank" rel="noreferrer">
-                    <Eye className="h-3.5 w-3.5 mr-2" />View License
+                    <Eye className="h-3.5 w-3.5 mr-2" />{t("admin_tools.ops.view_license", "View License")}
                   </a>
                 </DropdownMenuItem>
               )}
               <DropdownMenuSeparator />
-              <DropdownMenuLabel className="text-xs font-semibold text-slate-400 uppercase">Communication</DropdownMenuLabel>
+              <DropdownMenuLabel className="text-xs font-semibold text-slate-400 uppercase">{t("admin_tools.ops.communication", "Communication")}</DropdownMenuLabel>
               <DropdownMenuItem onClick={() => setShowNotifForm(true)}>
-                <Bell className="h-3.5 w-3.5 mr-2" />Send Notification
+                <Bell className="h-3.5 w-3.5 mr-2" />{t("admin_tools.ops.send_notification", "Send Notification")}
               </DropdownMenuItem>
               {isGlobal && (
                 <>
@@ -1370,11 +1375,13 @@ function ProviderCommandCenter({
   data: ConsoleData;
   onRefresh: () => void;
 }) {
+  const { t } = useTranslation();
   const { format: fmtUSD } = useAdminCurrency();
   const { toast } = useToast();
   const qc = useQueryClient();
   const { provider: prov, user, services, practitioners, documents, appointments, financials, metrics, timeline } = data;
   const fullName = `${user?.firstName || ""} ${user?.lastName || ""}`.trim();
+  const label = (key: string, fallback: string) => t(`admin_tools.ops.${key}`, fallback);
 
   // P3: Service admin actions
   const serviceActionMutation = useMutation({
@@ -1433,13 +1440,13 @@ function ProviderCommandCenter({
   // Health factors (for overview)
   const healthScore = Math.max(0, 100 - metrics.computedRisk);
   const healthFactors = [
-    { label: "Identity Verified",       pass: prov.isVerified,                                  impact: "high" as const,   note: prov.isVerified ? "KYC identity confirmed" : "Admin has not finalized verification" },
-    { label: "Account Status",          pass: ["approved","active"].includes(prov.status),       impact: "high" as const,   note: `Current status: ${humanLabel(prov.status)}` },
-    { label: "Mandatory Docs Approved", pass: metrics.pendingDocs === 0 && metrics.approvedDocs >= 3, impact: "high" as const, note: `${metrics.approvedDocs}/${metrics.totalDocs} documents approved` },
-    { label: "Low Cancellation Rate",   pass: appointments.cancellationRate < 20,                impact: "medium" as const, note: `${appointments.cancellationRate}% cancellation rate` },
-    { label: "Has Services",            pass: metrics.servicesCount > 0,                         impact: "medium" as const, note: `${metrics.servicesCount} service(s) configured` },
-    { label: "Bookings Enabled",        pass: prov.bookingsEnabled !== false,                    impact: "medium" as const, note: prov.bookingsEnabled !== false ? "Accepting new bookings" : "Booking intake disabled" },
-    { label: "Account Not Suspended",   pass: !user?.isSuspended,                               impact: "high" as const,   note: user?.isSuspended ? `Suspended: ${user.suspensionReason || "No reason"}` : "Account in good standing" },
+    { label: t("admin_tools.ops.identity_verified", "Identity Verified"), pass: prov.isVerified, impact: "high" as const, note: prov.isVerified ? t("admin_tools.ops.kyc_confirmed", "KYC identity confirmed") : t("admin_tools.ops.verification_incomplete", "Admin has not finalized verification") },
+    { label: t("admin_tools.ops.account_status", "Account Status"), pass: ["approved","active"].includes(prov.status), impact: "high" as const, note: `${t("admin_tools.ops.current_status", "Current status")}: ${humanLabel(prov.status)}` },
+    { label: t("admin_tools.ops.mandatory_docs", "Mandatory Docs Approved"), pass: metrics.pendingDocs === 0 && metrics.approvedDocs >= 3, impact: "high" as const, note: t("admin_tools.ops.documents_approved", "{{approved}}/{{total}} documents approved", { approved: metrics.approvedDocs, total: metrics.totalDocs }) },
+    { label: t("admin_tools.ops.low_cancellation", "Low Cancellation Rate"), pass: appointments.cancellationRate < 20, impact: "medium" as const, note: `${appointments.cancellationRate}% ${t("admin_tools.ops.cancellation_rate", "cancellation rate")}` },
+    { label: t("admin_tools.ops.has_services", "Has Services"), pass: metrics.servicesCount > 0, impact: "medium" as const, note: t("admin_tools.ops.services_configured", "{{count}} service(s) configured", { count: metrics.servicesCount }) },
+    { label: t("admin_tools.ops.bookings_enabled", "Bookings Enabled"), pass: prov.bookingsEnabled !== false, impact: "medium" as const, note: prov.bookingsEnabled !== false ? t("admin_tools.ops.accepting_bookings", "Accepting new bookings") : t("admin_tools.ops.booking_disabled", "Booking intake disabled") },
+    { label: t("admin_tools.ops.account_not_suspended", "Account Not Suspended"), pass: !user?.isSuspended, impact: "high" as const, note: user?.isSuspended ? `${t("admin_tools.ops.suspended", "Suspended")}: ${user.suspensionReason || t("admin_tools.ops.no_reason", "No reason")}` : t("admin_tools.ops.good_standing", "Account in good standing") },
   ];
 
   const TAB_TRIGGER_CLS = "text-xs px-3 py-2.5 rounded-none border-b-2 border-transparent data-[state=active]:border-blue-500 data-[state=active]:bg-transparent data-[state=active]:text-blue-600 dark:data-[state=active]:text-blue-400 whitespace-nowrap";
@@ -1454,17 +1461,17 @@ function ProviderCommandCenter({
         <div className="border-b border-slate-200 dark:border-slate-800 px-4 bg-white dark:bg-slate-950">
           <TabsList className="h-auto bg-transparent border-0 p-0 gap-0 overflow-x-auto flex">
             {[
-              { id: "overview",  label: "Overview"     },
-              { id: "profile",   label: "Profile"      },
-              { id: "kycdocs",   label: "KYC & Docs"   },
-              { id: "schedule",  label: "Schedule"     },
-              { id: "services",  label: "Services"     },
-              { id: "bookings",  label: "Bookings"     },
-              { id: "patients",  label: "Patients"     },
-              { id: "financial", label: "Financials"   },
-              { id: "staff",     label: "Staff"        },
-              { id: "timeline",  label: "Timeline"     },
-              { id: "notes",     label: "Admin Notes"  },
+              { id: "overview",  label: t("admin_tools.ops.overview", "Overview") },
+              { id: "profile",   label: t("admin_tools.ops.profile", "Profile") },
+              { id: "kycdocs",   label: t("admin_tools.ops.kyc_docs", "KYC & Docs") },
+              { id: "schedule",  label: t("admin_tools.ops.schedule", "Schedule") },
+              { id: "services",  label: t("common.services", "Services") },
+              { id: "bookings",  label: t("admin.bookings", "Bookings") },
+              { id: "patients",  label: t("admin.patients", "Patients") },
+              { id: "financial", label: t("admin_tools.ops.financials", "Financials") },
+              { id: "staff",     label: t("admin_tools.ops.staff", "Staff") },
+              { id: "timeline",  label: t("admin_tools.ops.timeline", "Timeline") },
+              { id: "notes",     label: t("admin_tools.ops.admin_notes", "Admin Notes") },
             ].map(({ id, label }) => (
               <TabsTrigger key={id} value={id} className={TAB_TRIGGER_CLS}>
                 {label}
@@ -1491,11 +1498,11 @@ function ProviderCommandCenter({
                 <div className={`rounded-xl border p-5 flex items-center gap-6 ${scoreLabel.bg}`}>
                   <div className="text-center flex-shrink-0">
                     <div className={`text-5xl font-bold ${scoreLabel.color}`}>{healthScore}</div>
-                    <div className={`text-sm font-semibold mt-1 ${scoreLabel.color}`}>{scoreLabel.text}</div>
+                    <div className={`text-sm font-semibold mt-1 ${scoreLabel.color}`}>{label(`health_${scoreLabel.text.toLowerCase()}`, scoreLabel.text)}</div>
                   </div>
                   <div className="flex-1 space-y-2">
                     <Progress value={healthScore} className="h-3" />
-                    <p className="text-xs text-slate-500">{passing}/{healthFactors.length} health factors passing</p>
+                    <p className="text-xs text-slate-500">{label("health_factors_passing", "{{passing}}/{{total}} health factors passing").replace("{{passing}}", String(passing)).replace("{{total}}", String(healthFactors.length))}</p>
                     <div className="flex flex-wrap gap-1.5 mt-1">
                       {healthFactors.filter(f => !f.pass).map(f => (
                         <span key={f.label} className={`text-[10px] px-1.5 py-0.5 rounded border font-medium ${f.impact === "high" ? "border-red-200 text-red-600 bg-red-50 dark:bg-red-950/20" : "border-yellow-200 text-yellow-600 bg-yellow-50 dark:bg-yellow-950/20"}`}>
@@ -1528,11 +1535,11 @@ function ProviderCommandCenter({
 
             {/* Quick stats */}
             <div className="grid grid-cols-4 gap-3">
-              {[
-                { icon: Calendar,   label: "Total Appts",  value: appointments.total      },
-                { icon: CheckCheck, label: "Completed",    value: appointments.completed  },
-                { icon: Users,      label: "Staff",        value: metrics.staffCount      },
-                { icon: Briefcase,  label: "Services",     value: metrics.servicesCount   },
+                {[
+                  { icon: Calendar, label: label("total_appts", "Total Appts"), value: appointments.total },
+                  { icon: CheckCheck, label: label("completed", "Completed"), value: appointments.completed },
+                  { icon: Users, label: label("staff", "Staff"), value: metrics.staffCount },
+                  { icon: Briefcase, label: label("services", "Services"), value: metrics.servicesCount },
               ].map(({ icon: Icon, label, value }) => (
                 <div key={label} className="bg-slate-50 dark:bg-slate-900 rounded-lg p-3 text-center">
                   <Icon className="h-4 w-4 text-slate-400 mx-auto mb-1" />
@@ -1544,7 +1551,7 @@ function ProviderCommandCenter({
 
             {prov.internalNotes && (
               <div>
-                <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Internal Notes</h3>
+                <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">{label("internal_notes", "Internal Notes")}</h3>
                 <p className="text-sm text-slate-600 dark:text-slate-400 bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200 dark:border-yellow-900/40 rounded p-3">
                   {prov.internalNotes}
                 </p>
@@ -1559,7 +1566,7 @@ function ProviderCommandCenter({
             <div className="rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
               <div className="px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 flex items-center gap-2">
                 <UserIcon className="h-3.5 w-3.5 text-slate-500" />
-                <span className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Identity</span>
+                <span className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">{label("identity", "Identity")}</span>
               </div>
               <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
                 {[
@@ -2103,6 +2110,7 @@ function ProviderCommandCenter({
 
 // ─── Provider Notes Panel (standalone for hook compliance) ────────────────────
 function ProviderNotesPanel({ providerId }: { providerId: string }) {
+  const { t } = useTranslation();
   const [noteText, setNoteText] = useState("");
   const qc = useQueryClient();
   const notesQueryKey = [`/api/admin/providers/${providerId}/notes`];
@@ -2199,6 +2207,7 @@ function ProviderNotesPanel({ providerId }: { providerId: string }) {
 
 // ─── Main Export: Provider Command Center ─────────────────────────────────────
 export function ProviderOperationsConsole({ jumpToProviderId }: { jumpToProviderId?: string | null } = {}) {
+  const { t } = useTranslation();
   const [selectedId, setSelectedId] = useState<string | null>(jumpToProviderId ?? null);
 
   useEffect(() => {

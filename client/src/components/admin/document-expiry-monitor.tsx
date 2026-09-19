@@ -15,6 +15,7 @@ import {
 import { format, parseISO } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 interface ExpiryDoc {
@@ -94,17 +95,17 @@ function docTypeLabel(t: string) {
   return DOC_TYPE_LABELS[t] ?? t.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
 }
 
-function DaysLeftBadge({ days }: { days: number }) {
+function DaysLeftBadge({ days, t }: { days: number; t: (key: string, fallback: string, options?: Record<string, unknown>) => string }) {
   const tier = days < 0 ? "overdue" : days <= 14 ? "critical" : days <= 30 ? "warning" : days <= 60 ? "notice" : "upcoming";
   const cfg = TIER_CFG[tier];
   return (
     <span className={cn("inline-flex items-center gap-1 text-[11px] font-semibold px-1.5 py-0.5 rounded-md border", cfg.bg, cfg.text, cfg.border)}>
-      {days < 0 ? `${Math.abs(days)}d overdue` : days === 0 ? "Today!" : `${days}d left`}
+       {days < 0 ? t("admin_tools.expiry.days_overdue", "{{count}}d overdue", { count: Math.abs(days) }) : days === 0 ? t("admin_tools.expiry.today", "Today!") : t("admin_tools.expiry.days_left", "{{count}}d left", { count: days })}
     </span>
   );
 }
 
-function StatusBadge({ status }: { status: string }) {
+function StatusBadge({ status, t }: { status: string; t: (key: string, fallback: string) => string }) {
   const map: Record<string, string> = {
     approved:          "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400",
     pending:           "bg-amber-100 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400",
@@ -116,7 +117,7 @@ function StatusBadge({ status }: { status: string }) {
   };
   return (
     <span className={cn("inline-flex text-[10px] font-medium px-1.5 py-0.5 rounded border border-transparent", map[status] ?? "bg-muted text-muted-foreground")}>
-      {status.replace(/_/g, " ")}
+       {t(`admin_tools.expiry.status.${status}`, status.replace(/_/g, " "))}
     </span>
   );
 }
@@ -143,6 +144,7 @@ function TierChip({ tier, count, active, onClick }: { tier: Exclude<Tier, "all">
 
 // ── Main component ─────────────────────────────────────────────────────────────
 export function DocumentExpiryMonitor({ onSelectProvider }: { onSelectProvider?: (id: string) => void }) {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const qc = useQueryClient();
   const [activeTier, setActiveTier] = useState<Tier>("all");
@@ -165,12 +167,12 @@ export function DocumentExpiryMonitor({ onSelectProvider }: { onSelectProvider?:
       return res.json();
     },
     onSuccess: (d: any) => {
-      toast({ title: `Flagged ${d.updated} document(s)`, description: "Providers have been notified to re-upload." });
+      toast({ title: t("admin_tools.expiry.flagged", "Flagged {{count}} document(s)", { count: d.updated }), description: t("admin_tools.expiry.providers_notified", "Providers have been notified to re-upload.") });
       setSelected(new Set());
       qc.invalidateQueries({ queryKey: ["/api/admin/document-expiry"] });
       qc.invalidateQueries({ queryKey: ["/api/admin/document-queue"] });
     },
-    onError: () => toast({ title: "Bulk action failed", variant: "destructive" }),
+    onError: () => toast({ title: t("admin_tools.expiry.bulk_failed", "Bulk action failed"), variant: "destructive" }),
   });
 
   const singleMutation = useMutation({
@@ -182,11 +184,11 @@ export function DocumentExpiryMonitor({ onSelectProvider }: { onSelectProvider?:
       return res.json();
     },
     onSuccess: () => {
-      toast({ title: "Re-upload requested", description: "Provider has been notified." });
+      toast({ title: t("admin_tools.expiry.reupload_requested", "Re-upload requested"), description: t("admin_tools.expiry.provider_notified", "Provider has been notified.") });
       qc.invalidateQueries({ queryKey: ["/api/admin/document-expiry"] });
       qc.invalidateQueries({ queryKey: ["/api/admin/document-queue"] });
     },
-    onError: () => toast({ title: "Action failed", variant: "destructive" }),
+    onError: () => toast({ title: t("common.action_failed", "Action failed"), variant: "destructive" }),
   });
 
   // ── Flatten + filter + sort ────────────────────────────────────────────────
@@ -268,15 +270,15 @@ export function DocumentExpiryMonitor({ onSelectProvider }: { onSelectProvider?:
         <div>
           <h2 className="text-lg font-semibold flex items-center gap-2">
             <Clock className="h-5 w-5 text-amber-500" />
-            Document Expiry Monitor
+             {t("admin_tools.expiry.title", "Document Expiry Monitor")}
           </h2>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Track provider documents approaching or past their expiry date.
+             {t("admin_tools.expiry.description", "Track provider documents approaching or past their expiry date.")}
           </p>
         </div>
         <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isRefetching} data-testid="button-refresh-expiry">
           <RefreshCw className={cn("h-3.5 w-3.5 mr-1.5", isRefetching && "animate-spin")} />
-          Refresh
+           {t("common.refresh", "Refresh")}
         </Button>
       </div>
 
@@ -286,12 +288,12 @@ export function DocumentExpiryMonitor({ onSelectProvider }: { onSelectProvider?:
           <AlertTriangle className="h-5 w-5 text-red-500 shrink-0" />
           <div className="flex-1 min-w-0">
             <p className="text-sm font-semibold text-red-700 dark:text-red-400">
-              {totalUrgent} document{totalUrgent !== 1 ? "s" : ""} need immediate action
+               {t("admin_tools.expiry.immediate_action", "{{count}} document(s) need immediate action", { count: totalUrgent })}
             </p>
             <p className="text-xs text-red-600/80 dark:text-red-400/70">
-              {counts.overdue > 0 && `${counts.overdue} expired`}
+               {counts.overdue > 0 && t("admin_tools.expiry.expired_count", "{{count}} expired", { count: counts.overdue })}
               {counts.overdue > 0 && counts.critical > 0 && " · "}
-              {counts.critical > 0 && `${counts.critical} expiring within 14 days`}
+               {counts.critical > 0 && t("admin_tools.expiry.expiring_14", "{{count}} expiring within 14 days", { count: counts.critical })}
             </p>
           </div>
           {totalUrgent > 0 && (
@@ -309,7 +311,7 @@ export function DocumentExpiryMonitor({ onSelectProvider }: { onSelectProvider?:
                 if (urgentIds.length > 0) bulkMutation.mutate(urgentIds);
               }}
             >
-              Flag All Urgent
+               {t("admin_tools.expiry.flag_all", "Flag All Urgent")}
             </Button>
           )}
         </div>
@@ -325,7 +327,7 @@ export function DocumentExpiryMonitor({ onSelectProvider }: { onSelectProvider?:
             activeTier === "all" ? "bg-foreground text-background border-foreground" : "bg-background text-muted-foreground border-border hover:bg-muted/50",
           )}
         >
-          All <span className="font-bold ml-0.5">{allDocs.length}</span>
+           {t("common.all", "All")} <span className="font-bold ml-0.5">{allDocs.length}</span>
         </button>
         {(Object.keys(TIER_CFG) as Exclude<Tier, "all">[]).map(tier => (
           <TierChip
@@ -345,7 +347,7 @@ export function DocumentExpiryMonitor({ onSelectProvider }: { onSelectProvider?:
           <Input
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder="Search provider or document…"
+             placeholder={t("admin_tools.expiry.search", "Search provider or document…")}
             className="pl-8 h-8 text-xs"
             data-testid="input-expiry-search"
           />
@@ -360,7 +362,7 @@ export function DocumentExpiryMonitor({ onSelectProvider }: { onSelectProvider?:
             onClick={() => bulkMutation.mutate(selectedArr)}
           >
             <AlertCircle className="h-3.5 w-3.5 mr-1.5" />
-            Request Re-upload ({selectedArr.length})
+             {t("admin_tools.expiry.request_reupload_count", "Request Re-upload ({{count}})", { count: selectedArr.length })}
           </Button>
         )}
       </div>
@@ -371,10 +373,10 @@ export function DocumentExpiryMonitor({ onSelectProvider }: { onSelectProvider?:
           <CardContent className="py-16 text-center">
             <CheckCircle2 className="h-10 w-10 text-emerald-500 mx-auto mb-3" />
             <p className="text-sm font-medium text-foreground">
-              {activeTier === "all" ? "No documents with expiry dates tracked" : `No ${TIER_CFG[activeTier as Exclude<Tier,"all">].label} documents`}
+               {activeTier === "all" ? t("admin_tools.expiry.no_tracked", "No documents with expiry dates tracked") : t("admin_tools.expiry.no_tier_docs", "No {{tier}} documents", { tier: t(`admin_tools.expiry.tier.${activeTier}`, TIER_CFG[activeTier as Exclude<Tier,"all">].label) })}
             </p>
             <p className="text-xs text-muted-foreground mt-1">
-              {activeTier === "all" ? "Documents with expiry dates will appear here once providers upload them." : "Try a different filter."}
+               {activeTier === "all" ? t("admin_tools.expiry.no_tracked_desc", "Documents with expiry dates will appear here once providers upload them.") : t("admin_tools.expiry.try_filter", "Try a different filter.")}
             </p>
           </CardContent>
         </Card>
@@ -393,16 +395,16 @@ export function DocumentExpiryMonitor({ onSelectProvider }: { onSelectProvider?:
                     />
                   </th>
                   <th className="text-left px-3 py-2.5 font-medium cursor-pointer select-none" onClick={() => sortBy("name")}>
-                    Provider <SortIcon field="name" />
+                     {t("admin_tools.expiry.provider", "Provider")} <SortIcon field="name" />
                   </th>
                   <th className="text-left px-3 py-2.5 font-medium cursor-pointer select-none" onClick={() => sortBy("document_type")}>
-                    Document <SortIcon field="document_type" />
+                     {t("admin_tools.expiry.document", "Document")} <SortIcon field="document_type" />
                   </th>
                   <th className="text-left px-3 py-2.5 font-medium cursor-pointer select-none whitespace-nowrap" onClick={() => sortBy("days_left")}>
-                    Expiry <SortIcon field="days_left" />
+                     {t("admin_tools.expiry.expiry", "Expiry")} <SortIcon field="days_left" />
                   </th>
-                  <th className="text-left px-3 py-2.5 font-medium">Status</th>
-                  <th className="text-right px-3 py-2.5 font-medium">Actions</th>
+                   <th className="text-left px-3 py-2.5 font-medium">{t("common.status", "Status")}</th>
+                   <th className="text-right px-3 py-2.5 font-medium">{t("common.actions", "Actions")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -461,8 +463,8 @@ export function DocumentExpiryMonitor({ onSelectProvider }: { onSelectProvider?:
                           <FileText className={cn("h-3.5 w-3.5 shrink-0", cfg.text)} />
                           <span className="font-medium text-foreground whitespace-nowrap">{docTypeLabel(doc.document_type)}</span>
                           {doc.document_criticality === "mandatory" && (
-                            <Badge variant="outline" className="text-[9px] px-1 py-0 h-4 border-red-200 text-red-600 bg-red-50 dark:bg-red-950/20 dark:text-red-400 dark:border-red-800">
-                              mandatory
+                           <Badge variant="outline" className="text-[9px] px-1 py-0 h-4 border-red-200 text-red-600 bg-red-50 dark:bg-red-950/20 dark:text-red-400 dark:border-red-800">
+                               {t("admin_tools.expiry.mandatory", "mandatory")}
                             </Badge>
                           )}
                         </div>
@@ -471,7 +473,7 @@ export function DocumentExpiryMonitor({ onSelectProvider }: { onSelectProvider?:
                       {/* Expiry */}
                       <td className="px-3 py-2.5 whitespace-nowrap">
                         <div className="space-y-0.5">
-                          <DaysLeftBadge days={Number(doc.days_left)} />
+                           <DaysLeftBadge days={Number(doc.days_left)} t={t} />
                           <div className="text-muted-foreground">
                             {format(parseISO(doc.expiry_date), "dd MMM yyyy")}
                           </div>
@@ -480,7 +482,7 @@ export function DocumentExpiryMonitor({ onSelectProvider }: { onSelectProvider?:
 
                       {/* Status */}
                       <td className="px-3 py-2.5">
-                        <StatusBadge status={doc.verification_status} />
+                         <StatusBadge status={doc.verification_status} t={t} />
                       </td>
 
                       {/* Actions */}
@@ -502,11 +504,11 @@ export function DocumentExpiryMonitor({ onSelectProvider }: { onSelectProvider?:
                               onClick={() => singleMutation.mutate(doc.id as string)}
                               data-testid={`button-reupload-${doc.id}`}
                             >
-                              Request Re-upload
+                               {t("admin_tools.expiry.request_reupload", "Request Re-upload")}
                             </Button>
                           )}
                           {alreadyFlagged && (
-                            <span className="text-[10px] text-orange-600 dark:text-orange-400 font-medium">Flagged ✓</span>
+                             <span className="text-[10px] text-orange-600 dark:text-orange-400 font-medium">{t("admin_tools.expiry.flagged_short", "Flagged ✓")}</span>
                           )}
                         </div>
                       </td>
@@ -518,7 +520,7 @@ export function DocumentExpiryMonitor({ onSelectProvider }: { onSelectProvider?:
           </div>
           {sorted.length >= 10 && (
             <div className="px-4 py-2.5 border-t border-border bg-muted/20 text-center">
-              <span className="text-xs text-muted-foreground">Showing {sorted.length} document{sorted.length !== 1 ? "s" : ""}</span>
+               <span className="text-xs text-muted-foreground">{t("admin_tools.expiry.showing", "Showing {{count}} document(s)", { count: sorted.length })}</span>
             </div>
           )}
         </Card>
