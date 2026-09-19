@@ -1460,14 +1460,14 @@ export default function ProviderDashboard() {
                   <BarChart2 className="h-4 w-4 mr-1" />{t("provider_dashboard.tab_insights", "Insights")}
                 </TabsTrigger>
                 <TabsTrigger value="payouts" data-testid="tab-payouts-top">
-                  <Wallet className="h-4 w-4 mr-1" />Wallet &amp; Payouts
+                  <Wallet className="h-4 w-4 mr-1" />{t("provider_dashboard.wallet_payouts", "Wallet & Payouts")}
                 </TabsTrigger>
                 <TabsTrigger value="services" data-testid="tab-services">{t("provider_dashboard.tab_services", "Service Catalog")}</TabsTrigger>
                 <TabsTrigger value="group-sessions" data-testid="tab-group-sessions">
                   {t("provider_dashboard.tab_group_sessions", "Group Sessions")}
                 </TabsTrigger>
                 <TabsTrigger value="profile" data-testid="tab-profile">
-                  <UserRound className="h-4 w-4 mr-1" />My Profile
+                  <UserRound className="h-4 w-4 mr-1" />{t("provider_dashboard.my_profile", "My Profile")}
                 </TabsTrigger>
               </TabsList>
             </div>

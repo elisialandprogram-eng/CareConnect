@@ -56,6 +56,12 @@ function statusBadge(status: string, t: any) {
   }
 }
 
+function payoutMethodLabel(method: string, t: any) {
+  if (method === "bank_transfer") return t("provider_dashboard.bank_transfer", "Bank Transfer");
+  if (method === "manual") return t("provider_dashboard.manual_cash", "Manual / Cash");
+  return method?.replace("_", " ") || "—";
+}
+
 function statusIcon(status: string) {
   if (status === "paid")     return <CheckCircle2 className="h-4 w-4 text-emerald-500" />;
   if (status === "approved") return <CheckCircle2 className="h-4 w-4 text-blue-500" />;
@@ -259,7 +265,7 @@ export function ProviderPayoutPanel() {
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-semibold text-sm">{fmt(Number(r.amount))}</span>
                        {statusBadge(r.status, t)}
-                      <span className="text-xs text-muted-foreground capitalize">{r.method?.replace("_", " ")}</span>
+                       <span className="text-xs text-muted-foreground">{payoutMethodLabel(r.method, t)}</span>
                     </div>
                     {r.bank_name && (
                       <p className="text-xs text-muted-foreground mt-0.5">{r.bank_name}{r.account_holder ? ` · ${r.account_holder}` : ""}</p>

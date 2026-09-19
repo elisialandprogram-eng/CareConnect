@@ -214,14 +214,14 @@ export function ProviderWalletPanel() {
               <div className="flex items-center gap-2">
                 <Phone className="h-4 w-4 text-muted-foreground shrink-0" />
                 <p className="text-xs text-muted-foreground">
-                  Need help?{" "}
+                   {t("provider_wallet.need_help", "Need help?")}{" "}
                   <a
                     href="mailto:support@goldenlife.com"
                     className="font-medium text-foreground underline underline-offset-2 hover:text-primary transition-colors"
                   >
-                    Contact support
+                     {t("provider_wallet.contact_support", "Contact support")}
                   </a>
-                  {" "}and quote reference:{" "}
+                   {" "}{t("provider_wallet.quote_reference", "and quote reference:")}{" "}
                   <span className="font-mono text-xs bg-muted px-1 py-0.5 rounded">
                     {isSystemHold ? "WALLET-AUDIT-HOLD" : "WALLET-ADMIN-FREEZE"}
                   </span>
@@ -236,8 +236,8 @@ export function ProviderWalletPanel() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Card data-testid="card-wallet-available">
           <CardHeader className="pb-2">
-            <CardDescription className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              <Wallet className="h-3.5 w-3.5" /> Available
+              <CardDescription className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+               <Wallet className="h-3.5 w-3.5" /> {t("provider_wallet.available", "Available")}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -254,8 +254,8 @@ export function ProviderWalletPanel() {
 
         <Card data-testid="card-wallet-held">
           <CardHeader className="pb-2">
-            <CardDescription className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              <ArrowDownToLine className="h-3.5 w-3.5" /> In payout requests
+              <CardDescription className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+               <ArrowDownToLine className="h-3.5 w-3.5" /> {t("provider_wallet.in_payout_requests", "In payout requests")}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -272,8 +272,8 @@ export function ProviderWalletPanel() {
 
         <Card data-testid="card-wallet-lifetime">
           <CardHeader className="pb-2">
-            <CardDescription className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              <TrendingUp className="h-3.5 w-3.5" /> Lifetime earned
+              <CardDescription className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+               <TrendingUp className="h-3.5 w-3.5" /> {t("provider_wallet.lifetime_earned", "Lifetime earned")}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -286,7 +286,7 @@ export function ProviderWalletPanel() {
             )}
             {wallet?.lastPayoutDate && (
               <p className="text-xs text-muted-foreground mt-1">
-                Last payout: {formatDate(wallet.lastPayoutDate)}
+                 {t("provider_wallet.last_payout", "Last payout")}: {formatDate(wallet.lastPayoutDate)}
               </p>
             )}
           </CardContent>
@@ -309,7 +309,7 @@ export function ProviderWalletPanel() {
               data-testid="btn-provider-wallet-topup"
             >
               <Wallet className="h-4 w-4 mr-1" />
-              Add funds
+              {t("provider_wallet.add_funds", "Add funds")}
             </Button>
             <Button
               variant="ghost"
@@ -319,7 +319,7 @@ export function ProviderWalletPanel() {
               data-testid="btn-wallet-refresh"
             >
               <RefreshCw className={`h-4 w-4 mr-1 ${refreshMutation.isPending ? "animate-spin" : ""}`} />
-              Refresh
+              {t("provider_wallet.refresh", "Refresh")}
             </Button>
           </div>
         </div>
