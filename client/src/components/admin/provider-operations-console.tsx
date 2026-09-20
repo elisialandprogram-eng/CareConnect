@@ -1077,8 +1077,8 @@ function ProviderCommandHeader({
     reactivate:         { title: t("admin_tools.ops.reactivate_account", "Reactivate Account"), desc: t("admin_tools.ops.reactivate_account_desc", "This will reactivate the deactivated provider account."), needsReason: false, variant: "green" },
     request_changes:    { title: t("admin_tools.ops.request_changes", "Request Profile Changes"), desc: t("admin_tools.ops.request_changes_desc", "Provider will be moved to Action Required and notified to update their profile."), needsReason: true, variant: "orange" },
     reset_verification: { title: t("admin_tools.ops.reset_verification", "Reset Verification"), desc: t("admin_tools.ops.reset_verification_desc", "All documents will be returned to Pending and provider status set to Submitted. This cannot be undone."), needsReason: false, variant: "orange" },
-    enable_bookings:    { title: t("admin_tools.ops.enable_bookings", "Enable Bookings"), desc: t("admin_tools.ops.enable_bookings_desc", "This will allow the provider to accept new patient bookings."), needsReason: false, variant: "green" },
-    disable_bookings:   { title: t("admin_tools.ops.disable_bookings", "Disable Bookings"), desc: t("admin_tools.ops.disable_bookings_desc", "New patient bookings will be blocked for this provider. Existing appointments are unaffected."), needsReason: false, variant: "orange" },
+    enable_bookings:    { title: t("admin_tools.ops.enable_bookings", "Enable Bookings"), desc: t("admin_tools.ops.enable_bookings_desc", "This will allow the provider to accept new member bookings."), needsReason: false, variant: "green" },
+    disable_bookings:   { title: t("admin_tools.ops.disable_bookings", "Disable Bookings"), desc: t("admin_tools.ops.disable_bookings_desc", "New member bookings will be blocked for this provider. Existing appointments are unaffected."), needsReason: false, variant: "orange" },
   };
 
   const actionMutation = useMutation({
@@ -1467,7 +1467,7 @@ function ProviderCommandCenter({
               { id: "schedule",  label: t("admin_tools.ops.schedule", "Schedule") },
               { id: "services",  label: t("common.services", "Services") },
               { id: "bookings",  label: t("admin.bookings", "Bookings") },
-              { id: "patients",  label: t("admin.patients", "Patients") },
+              { id: "patients",  label: t("admin.patients", "Members") },
               { id: "financial", label: t("admin_tools.ops.financials", "Financials") },
               { id: "staff",     label: t("admin_tools.ops.staff", "Staff") },
               { id: "timeline",  label: t("admin_tools.ops.timeline", "Timeline") },

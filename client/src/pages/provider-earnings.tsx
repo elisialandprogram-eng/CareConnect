@@ -540,7 +540,7 @@ export default function ProviderEarnings() {
                     <TableRow className="bg-muted/30">
                        <TableHead className="pl-4 w-[160px]">{t("provider_dashboard.appointment_date", "Appointment date")}</TableHead>
                        <TableHead>{t("provider_dashboard.service_label", "Service")}</TableHead>
-                       <TableHead className="hidden md:table-cell">{t("provider_dashboard.patient_label", "Patient")}</TableHead>
+                       <TableHead className="hidden md:table-cell">{t("provider_dashboard.patient_label", "Member")}</TableHead>
                        <TableHead className="hidden sm:table-cell">{t("provider_dashboard.type_label", "Type")}</TableHead>
                        <TableHead className="text-right">{t("provider_dashboard.provider_gross_short", "Provider gross")}</TableHead>
                        <TableHead className="text-right hidden sm:table-cell">{t("provider_dashboard.provider_deduction", "Provider deduction")}</TableHead>
@@ -652,7 +652,7 @@ export default function ProviderEarnings() {
                 <div className="text-xs text-muted-foreground space-y-0.5">
                    <p className="font-medium text-foreground">{t("provider_dashboard.earnings_calculated", "How your earnings are calculated")}</p>
                    <p>{t("provider_dashboard.earnings_formula_full", "Provider gross earnings − provider-side deductions = provider net earnings and settlement.")}</p>
-                   <p>{t("provider_dashboard.earnings_exclusions", "Patient totals, platform fees, taxes, surcharges, and booking price lines are not included in provider earnings.")}</p>
+                   <p>{t("provider_dashboard.earnings_exclusions", "Member totals, platform fees, taxes, surcharges, and booking price lines are not included in provider earnings.")}</p>
                 </div>
               </div>
             </CardContent>

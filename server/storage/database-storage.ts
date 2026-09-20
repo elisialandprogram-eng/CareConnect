@@ -3768,7 +3768,7 @@ export class DatabaseStorage extends PackagesMixin implements IStorage {
             modality
         `);
         if ((upd.rows as any[]).length === 0) {
-          throw new Error("This time slot was just reserved by another patient. Please choose a different time.");
+          throw new Error("This time slot was just reserved by another member. Please choose a different time.");
         }
         return (upd.rows as any[])[0] as TimeSlot;
       }

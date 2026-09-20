@@ -548,7 +548,7 @@ export default function Profile() {
                 </div>
                 <div className="flex items-center gap-2 mt-3 flex-wrap">
                   <Badge variant="secondary" className="capitalize" data-testid="badge-user-role">
-                    {user.role === "patient" ? t("profile_page.patient", "Client") :
+                    {user.role === "patient" ? t("profile_page.patient", "Member") :
                      user.role === "provider" ? t("profile_page.healthcare_provider", "Healthcare Provider") :
                      user.role}
                   </Badge>

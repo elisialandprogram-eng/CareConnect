@@ -812,7 +812,7 @@ export function ProviderOfficeHoursCard({
         <CardHeader>
           <CardTitle className="text-base">{t("provider_dashboard.auto_reply_title", "Auto-reply")}</CardTitle>
           <CardDescription>
-            {t("provider_dashboard.auto_reply_desc", "Send an automatic response when a client messages you outside of office hours.")}
+            {t("provider_dashboard.auto_reply_desc", "Send an automatic response when a member messages you outside of office hours.")}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
@@ -894,7 +894,7 @@ export function AvailabilityExceptionsCard() {
     <Card data-testid="card-availability-exceptions">
       <CardHeader>
         <CardTitle className="text-base">{t("provider_dashboard.block_specific_dates", "Block specific dates")}</CardTitle>
-        <CardDescription>{t("provider_dashboard.block_specific_dates_desc", "Block individual dates when you are unavailable (e.g. public holidays, personal days). Clients will not be able to book on these dates.")}</CardDescription>
+        <CardDescription>{t("provider_dashboard.block_specific_dates_desc", "Block individual dates when you are unavailable (e.g. public holidays, personal days). Members will not be able to book on these dates.")}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex flex-wrap gap-3 items-end">
@@ -990,7 +990,7 @@ export function CancellationPolicyCard() {
     <Card data-testid="card-cancellation-policy">
       <CardHeader>
         <CardTitle className="text-base">{t("provider_dashboard.cancellation_policy", "Cancellation policy")}</CardTitle>
-        <CardDescription>{t("provider_dashboard.cancellation_policy_desc", "Set how many hours before an appointment a client can cancel for free. Cancellations within this window may incur a fee.")}</CardDescription>
+        <CardDescription>{t("provider_dashboard.cancellation_policy_desc", "Set how many hours before an appointment a member can cancel for free. Cancellations within this window may incur a fee.")}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="grid grid-cols-2 gap-4">
@@ -1021,7 +1021,7 @@ export function CancellationPolicyCard() {
         </div>
         {hours > 0 && percent > 0 && (
           <p className="text-sm text-muted-foreground p-2 rounded-md bg-muted/40">
-             {t("provider_dashboard.cancel_fee_notice", "Clients who cancel within {{hours}} hours of their appointment will be charged {{percent}}% of the service fee.", { hours, percent })}
+             {t("provider_dashboard.cancel_fee_notice", "Members who cancel within {{hours}} hours of their appointment will be charged {{percent}}% of the service fee.", { hours, percent })}
           </p>
         )}
         <Button
@@ -1134,7 +1134,7 @@ export function WorkloadControlsCard({ provider }: { provider: any }) {
               onChange={e => setMinNotice(e.target.value)}
               data-testid="input-min-notice-minutes"
             />
-             <p className="text-xs text-muted-foreground">{t("provider_dashboard.min_notice_hint", "How far in advance patients must book. 60 = 1 hour.")}</p>
+             <p className="text-xs text-muted-foreground">{t("provider_dashboard.min_notice_hint", "How far in advance members must book. 60 = 1 hour.")}</p>
           </div>
           <div className="space-y-1">
              <Label className="text-xs">{t("provider_dashboard.max_booking_horizon", "Maximum booking horizon (days)")}</Label>
@@ -1147,7 +1147,7 @@ export function WorkloadControlsCard({ provider }: { provider: any }) {
               onChange={e => setMaxDays(e.target.value)}
               data-testid="input-max-booking-days"
             />
-             <p className="text-xs text-muted-foreground">{t("provider_dashboard.max_booking_horizon_hint", "How far ahead patients can book. Default is 90 days.")}</p>
+             <p className="text-xs text-muted-foreground">{t("provider_dashboard.max_booking_horizon_hint", "How far ahead members can book. Default is 90 days.")}</p>
           </div>
         </div>
 
@@ -1172,7 +1172,7 @@ export function WorkloadControlsCard({ provider }: { provider: any }) {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium">{t("provider_dashboard.enable_waitlist", "Enable Waitlist")}</p>
-              <p className="text-xs text-muted-foreground">{t("provider_dashboard.enable_waitlist_desc", "Clients can join a waitlist when all slots are full and get notified automatically when a spot opens.")}</p>
+              <p className="text-xs text-muted-foreground">{t("provider_dashboard.enable_waitlist_desc", "Members can join a waitlist when all slots are full and get notified automatically when a spot opens.")}</p>
             </div>
             <Switch
               checked={waitlistEnabled}
@@ -1276,7 +1276,7 @@ export function ProviderTimeOffCard() {
         <CardDescription>
           {t(
             "provider_dashboard.time_off_desc",
-            "Block a date range so clients can't book new appointments while you're away. Existing appointments are not affected — cancel them manually if needed.",
+            "Block a date range so members can't book new appointments while you're away. Existing appointments are not affected — cancel them manually if needed.",
           )}
         </CardDescription>
       </CardHeader>

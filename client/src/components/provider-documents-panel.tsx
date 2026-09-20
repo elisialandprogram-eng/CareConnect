@@ -268,7 +268,7 @@ function ProfilePhotoSection() {
         </div>
         <div>
            <p className="text-sm font-semibold">{t("provider_dashboard.profile_photo", "Profile Photo")}</p>
-           <p className="text-xs text-muted-foreground">{t("provider_dashboard.profile_photo_desc", "Visible to patients on your booking card and public profile")}</p>
+           <p className="text-xs text-muted-foreground">{t("provider_dashboard.profile_photo_desc", "Visible to members on your booking card and public profile")}</p>
         </div>
       </div>
       {isLoading ? (
@@ -294,7 +294,7 @@ function ProfilePhotoSection() {
             )}
           </div>
           <div className="flex flex-col gap-2">
-             <p className="text-xs text-muted-foreground">{t("provider_dashboard.photo_constraints", "JPG, PNG or WebP · Max 5 MB · Shown to patients")}</p>
+             <p className="text-xs text-muted-foreground">{t("provider_dashboard.photo_constraints", "JPG, PNG or WebP · Max 5 MB · Shown to members")}</p>
             <Button
               size="sm"
               variant={avatarUrl ? "outline" : "default"}
@@ -616,7 +616,7 @@ function UnifiedDocumentsSection() {
         </CardTitle>
         <CardDescription className="flex items-start gap-1.5">
           <Lock className="h-3.5 w-3.5 mt-0.5 text-amber-500 shrink-0" />
-           {t("provider_dashboard.private_documents_desc", "Private documents reviewed by admin only — never shown on your public profile or shared with patients.")}
+           {t("provider_dashboard.private_documents_desc", "Private documents reviewed by admin only — never shown on your public profile or shared with members.")}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">

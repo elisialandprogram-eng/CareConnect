@@ -105,7 +105,7 @@ function RoleIcon({ role }: { role: string }) {
 function roleLabel(role: string, t: (key: string, fallback: string) => string) {
   if (role === "admin") return t("patient_ui.messages.support", "Support");
   if (role === "provider") return t("patient_ui.reviews.provider", "Provider");
-  return t("common.patient", "Patient");
+  return t("common.patient", "Member");
 }
 
 function convIsLocked(conv: RichConversation): boolean {

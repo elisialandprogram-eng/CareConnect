@@ -85,10 +85,10 @@ const REASON_LABELS: Record<string, string> = {
   provider_sick: "Provider unavailable (illness)",
   emergency: "Emergency or urgent situation",
   overbooked: "Scheduling error / overbooked",
-  patient_unresponsive: "Unable to reach patient",
+  patient_unresponsive: "Unable to reach member",
   // Provider no-show reasons
-  patient_did_not_arrive: "Client did not arrive",
-  patient_unreachable: "Client was unreachable",
+  patient_did_not_arrive: "Member did not arrive",
+  patient_unreachable: "Member was unreachable",
   other: "Other",
 };
 
@@ -241,13 +241,13 @@ export function AppointmentActionDialog({
         cancel: t("appt_action.cancelled_toast", "Appointment cancelled"),
         reschedule: t("appt_action.rescheduled_toast", "Appointment rescheduled"),
         no_show: t("appt_action.no_show_toast", "Marked as no-show"),
-        propose: t("appt_action.proposed_toast", "New time proposed — waiting for patient response"),
+        propose: t("appt_action.proposed_toast", "New time proposed — waiting for member response"),
       };
       const refundAmount = data?.refund?.amount ?? quote?.refund?.amount ?? 0;
       toast({
         title: titleByAction[action],
         description: action === "cancel" && refundAmount > 0
-          ? `${formatInCurrency(refundAmount, quote?.displayCurrency ?? "USD")} has been credited to the patient's wallet.`
+          ? `${formatInCurrency(refundAmount, quote?.displayCurrency ?? "USD")} has been credited to the member's wallet.`
           : action === "cancel"
           ? "No refund applies based on the cancellation policy."
           : undefined,
@@ -288,8 +288,8 @@ export function AppointmentActionDialog({
           <DialogDescription>
             {action === "cancel" && t("appt_action.cancel_desc", "Tell us why and review the refund before confirming.")}
             {action === "reschedule" && t("appt_action.reschedule_desc", "Pick a new time for this appointment.")}
-            {action === "no_show" && t("appt_action.no_show_desc", "Record that the client did not attend.")}
-            {action === "propose" && t("appt_action.propose_desc", "Suggest a new date and time. The patient will need to accept or reject your proposal.")}
+            {action === "no_show" && t("appt_action.no_show_desc", "Record that the member did not attend.")}
+            {action === "propose" && t("appt_action.propose_desc", "Suggest a new date and time. The member will need to accept or reject your proposal.")}
           </DialogDescription>
         </DialogHeader>
 

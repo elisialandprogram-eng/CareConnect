@@ -57,11 +57,11 @@ export default function BecomeProvider() {
                   <div className="p-2 bg-primary/10 rounded-lg w-fit mb-2">
                     <Users className="h-6 w-6 text-primary" />
                   </div>
-                  <CardTitle className="text-lg">{t("provider_dashboard.become_reach_clients", "Reach More Clients")}</CardTitle>
+                  <CardTitle className="text-lg">{t("provider_dashboard.become_reach_clients", "Reach More Members")}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <p className="text-sm text-muted-foreground">
-                    {t("provider_dashboard.become_reach_clients_desc", "Connect with clients actively seeking healthcare services in your area.")}
+                    {t("provider_dashboard.become_reach_clients_desc", "Connect with members actively seeking healthcare services in your area.")}
                   </p>
                 </CardContent>
               </Card>
@@ -89,7 +89,7 @@ export default function BecomeProvider() {
                 </CardHeader>
                 <CardContent>
                   <p className="text-sm text-muted-foreground">
-                    {t("provider_dashboard.become_grow_practice_desc", "Build your reputation with client reviews and increase your visibility.")}
+                    {t("provider_dashboard.become_grow_practice_desc", "Build your reputation with member reviews and increase your visibility.")}
                   </p>
                 </CardContent>
               </Card>

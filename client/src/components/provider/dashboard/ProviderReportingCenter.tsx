@@ -122,7 +122,7 @@ function OverviewTab({ analytics, insights, fmtMoney }: { analytics?: AnalyticsD
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <KpiCard icon={DollarSign} label={t("provider_dashboard.reporting_total_revenue", "Total Revenue (12mo)")} value={fmtMoney(totalRevenue)} color="text-emerald-600" />
         <KpiCard icon={Calendar} label={t("provider_dashboard.reporting_completed", "Completed")} value={String(kpi?.totalCompleted ?? 0)} sub={t("provider_dashboard.reporting_appointments", "appointments")} color="text-blue-600" />
-        <KpiCard icon={Users} label={t("provider_dashboard.reporting_repeat_patients", "Repeat Patients")} value={`${(kpi?.repeatPatientPct ?? 0).toFixed(1)}%`} sub={t("provider_dashboard.reporting_come_back", "come back")} color="text-violet-600" />
+        <KpiCard icon={Users} label={t("provider_dashboard.reporting_repeat_patients", "Repeat Members")} value={`${(kpi?.repeatPatientPct ?? 0).toFixed(1)}%`} sub={t("provider_dashboard.reporting_come_back", "come back")} color="text-violet-600" />
         <KpiCard icon={Activity} label={t("provider_dashboard.reporting_utilization", "Utilization")} value={`${(kpi?.utilizationPct ?? 0).toFixed(1)}%`} sub={t("provider_dashboard.reporting_slots_filled", "of slots filled")} color="text-amber-600" />
       </div>
 
@@ -258,15 +258,15 @@ function RevenueTab({ analytics, insights, fmtMoney }: { analytics?: AnalyticsDa
 
 function PatientsTab({ insights, fmtMoney }: { insights?: InsightsData; fmtMoney: (v: number) => string }) {
   const { t } = useTranslation();
-  if (!insights) return <EmptyState icon={Users} message={t("provider_dashboard.reporting_no_patient_data", "No patient data yet.")} />;
+  if (!insights) return <EmptyState icon={Users} message={t("provider_dashboard.reporting_no_patient_data", "No member data yet.")} />;
 
   const kpi = insights.kpi;
 
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-        <KpiCard icon={Users} label={t("provider_dashboard.reporting_total_patients", "Total Patients")} value={String(kpi.totalBookings)} sub={t("provider_dashboard.reporting_unique_visits", "unique visits")} color="text-blue-600" />
-        <KpiCard icon={TrendingUp} label={t("provider_dashboard.reporting_repeat_rate", "Repeat Rate")} value={`${kpi.repeatPatientPct.toFixed(1)}%`} sub={t("provider_dashboard.reporting_return_patients", "return patients")} color="text-emerald-600" />
+        <KpiCard icon={Users} label={t("provider_dashboard.reporting_total_patients", "Total Members")} value={String(kpi.totalBookings)} sub={t("provider_dashboard.reporting_unique_visits", "unique visits")} color="text-blue-600" />
+        <KpiCard icon={TrendingUp} label={t("provider_dashboard.reporting_repeat_rate", "Repeat Rate")} value={`${kpi.repeatPatientPct.toFixed(1)}%`} sub={t("provider_dashboard.reporting_return_patients", "return members")} color="text-emerald-600" />
         <KpiCard icon={Activity} label={t("provider_dashboard.reporting_lost_bookings", "Lost Bookings")} value={String(kpi.lostBookings)} sub={t("provider_dashboard.reporting_cancelled_rejected", "cancelled / rejected")} color="text-rose-600" />
       </div>
 
@@ -274,13 +274,13 @@ function PatientsTab({ insights, fmtMoney }: { insights?: InsightsData; fmtMoney
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-medium flex items-center gap-2">
             <Users className="h-4 w-4" />
-             {t("provider_dashboard.loyal_patients", "Loyal Patients")}
+             {t("provider_dashboard.loyal_patients", "Loyal Members")}
             <Badge variant="secondary">{insights.repeatPatients.length}</Badge>
           </CardTitle>
         </CardHeader>
         <CardContent>
           {insights.repeatPatients.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-4 text-center">{t("provider_dashboard.reporting_no_repeat_patients", "No repeat patients yet.")}</p>
+            <p className="text-sm text-muted-foreground py-4 text-center">{t("provider_dashboard.reporting_no_repeat_patients", "No repeat members yet.")}</p>
           ) : (
             <div className="space-y-2 max-h-80 overflow-y-auto">
               {insights.repeatPatients.map(p => (
@@ -679,7 +679,7 @@ function GrowthTab({ insights, fmtMoney }: { insights?: InsightsData; fmtMoney: 
     <div className="space-y-6">
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
         <KpiCard icon={Activity} label={t("provider_dashboard.reporting_cancellation_rate", "Cancellation Rate")} value={`${kpi.cancellationRate.toFixed(1)}%`} color={kpi.cancellationRate > 20 ? "text-rose-600" : "text-amber-600"} />
-        <KpiCard icon={Users} label={t("provider_dashboard.reporting_repeat_patients", "Repeat Patients")} value={`${kpi.repeatPatientPct.toFixed(1)}%`} color="text-emerald-600" />
+        <KpiCard icon={Users} label={t("provider_dashboard.reporting_repeat_patients", "Repeat Members")} value={`${kpi.repeatPatientPct.toFixed(1)}%`} color="text-emerald-600" />
         <KpiCard icon={Clock} label={t("provider_dashboard.reporting_lost_bookings", "Lost Bookings")} value={String(kpi.lostBookings)} sub={t("provider_dashboard.analytics_last_12_months", "last 12 months")} color="text-rose-600" />
       </div>
 

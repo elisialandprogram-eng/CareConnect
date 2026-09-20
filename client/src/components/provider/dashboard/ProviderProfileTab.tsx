@@ -510,7 +510,7 @@ function OverviewPanel({
           </span>
           <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border ${provider?.isPubliclyVisible !== false && ["approved", "active"].includes(status) ? "border-blue-300 bg-blue-50 text-blue-700 dark:border-blue-700 dark:bg-blue-950/40 dark:text-blue-400" : "border-border bg-muted/50 text-muted-foreground"}`}>
             <Globe className="h-3 w-3" />
-             {provider?.isPubliclyVisible !== false && ["approved", "active"].includes(status) ? t("provider_dashboard.visible_to_patients", "Visible to patients") : t("provider_dashboard.not_publicly_visible", "Not publicly visible")}
+             {provider?.isPubliclyVisible !== false && ["approved", "active"].includes(status) ? t("provider_dashboard.visible_to_patients", "Visible to members") : t("provider_dashboard.not_publicly_visible", "Not publicly visible")}
           </span>
           {provider?.licenseNumber && (
             <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border border-purple-300 bg-purple-50 text-purple-700 dark:border-purple-700 dark:bg-purple-950/40 dark:text-purple-400">
@@ -1364,7 +1364,7 @@ export function ProviderProfileTab({
                   <Stethoscope className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
                    {t("provider_dashboard.category_specialization", "Provider Category and Specialization")}
                 </p>
-                 <p className="text-xs text-muted-foreground mt-0.5">{t("provider_dashboard.category_help", "Select your professional category, sub-category, and specialization. This appears on your public profile and helps patients find you.")}</p>
+                 <p className="text-xs text-muted-foreground mt-0.5">{t("provider_dashboard.category_help", "Select your professional category, sub-category, and specialization. This appears on your public profile and helps members find you.")}</p>
               </div>
 
               <div className="space-y-1.5">
@@ -1474,7 +1474,7 @@ export function ProviderProfileTab({
            <p className="text-xs text-muted-foreground">{t("provider_dashboard.bio_help", "Minimum 20 characters. Shown on your public profile.")}</p>
           <Textarea id="bio" rows={5} value={proBioData.bio}
             onChange={(e) => setProBioDraft((d) => ({ ...(d ?? proBioData), bio: e.target.value }))}
-             placeholder={t("provider_dashboard.bio_placeholder", "Describe your expertise, approach, and what patients can expect...")} data-testid="input-bio" />
+             placeholder={t("provider_dashboard.bio_placeholder", "Describe your expertise, approach, and what members can expect...")} data-testid="input-bio" />
            <p className="text-xs text-muted-foreground text-right">{proBioData.bio.length} {t("provider_dashboard.characters", "characters")}</p>
         </div>
 
@@ -1564,7 +1564,7 @@ export function ProviderProfileTab({
              <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-red-50 text-red-600 border border-red-200 dark:bg-red-950/40 dark:text-red-400 dark:border-red-800">{t("provider_dashboard.required_for_approval", "Required for approval")}</span>
           </div>
           <p className="text-xs text-muted-foreground">
-             {t("provider_dashboard.practice_currency_help", "Select the currency you will charge patients in. This affects all service prices, wallet balance, payouts, and invoicing. You must set this before submitting for review.")}
+             {t("provider_dashboard.practice_currency_help", "Select the currency you will charge members in. This affects all service prices, wallet balance, payouts, and invoicing. You must set this before submitting for review.")}
           </p>
           <Select
             value={(user as any)?.preferredCurrency || ""}
@@ -1738,7 +1738,7 @@ export function ProviderProfileTab({
 
   const renderServices = () => (
     <div>
-       <SectionHeader icon={Stethoscope} color="bg-cyan-500/10 text-cyan-600" title={t("provider_dashboard.service_delivery", "Service Delivery")} description={t("provider_dashboard.service_delivery_desc", "How you see patients — in-clinic, home visit, or video — and consultation fees")} />
+       <SectionHeader icon={Stethoscope} color="bg-cyan-500/10 text-cyan-600" title={t("provider_dashboard.service_delivery", "Service Delivery")} description={t("provider_dashboard.service_delivery_desc", "How you see members — in-clinic, home visit, or video — and consultation fees")} />
       <div className="space-y-5">
         {complianceLocked && (
           <div className="flex items-start gap-2 p-3 rounded-xl border border-amber-200 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-800">
@@ -1889,7 +1889,7 @@ export function ProviderProfileTab({
              <p className="text-sm font-semibold">{t("provider_dashboard.practice_settings", "Practice Settings")}</p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                 <Label>{t("provider_dashboard.max_clients_per_day", "Max Clients Per Day")}</Label>
+                 <Label>{t("provider_dashboard.max_clients_per_day", "Max Members Per Day")}</Label>
                 <Input type="number" min={1} max={100} placeholder={t("provider_dashboard.example_max_clients", "e.g. 10")}
                   value={prefData.maxPatientsPerDay}
                   onChange={(e) => setPrefDraft(p => ({ ...(p ?? prefData), maxPatientsPerDay: e.target.value }))}

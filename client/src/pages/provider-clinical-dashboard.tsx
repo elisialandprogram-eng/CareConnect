@@ -98,7 +98,7 @@ export default function ProviderClinicalDashboard() {
             {t("clinical_dashboard.heading", "Clinical Dashboard")}
           </h1>
           <p className="text-sm text-muted-foreground mt-0.5">
-            {t("clinical_dashboard.subtitle", "Your active patients, pending follow-ups, and recent clinical activity.")}
+            {t("clinical_dashboard.subtitle", "Your active members, pending follow-ups, and recent clinical activity.")}
           </p>
         </div>
         <Button variant="outline" size="sm" asChild>
@@ -114,7 +114,7 @@ export default function ProviderClinicalDashboard() {
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           {[
-            { label: t("clinical_dashboard.active_patients", "Active Patients"), value: data?.stats.activePatients ?? 0, icon: <Users className="h-5 w-5 text-blue-500" />, sub: t("clinical_dashboard.last_90d", "last 90 days") },
+            { label: t("clinical_dashboard.active_patients", "Active Members"), value: data?.stats.activePatients ?? 0, icon: <Users className="h-5 w-5 text-blue-500" />, sub: t("clinical_dashboard.last_90d", "last 90 days") },
             { label: t("clinical_dashboard.pending_followups", "Pending Follow-ups"), value: data?.stats.pendingFollowUps ?? 0, icon: <CalendarDays className="h-5 w-5 text-orange-500" />, sub: t("clinical_dashboard.needs_booking", "needs booking") },
             { label: t("clinical_dashboard.active_prescriptions", "Active Prescriptions"), value: data?.stats.activePrescriptions ?? 0, icon: <Pill className="h-5 w-5 text-green-500" />, sub: t("clinical_dashboard.currently_active", "currently active") },
             { label: t("clinical_dashboard.active_plans", "Treatment Plans"), value: data?.stats.activeTreatmentPlans ?? 0, icon: <Target className="h-5 w-5 text-purple-500" />, sub: t("clinical_dashboard.in_progress", "in progress") },
@@ -150,7 +150,7 @@ export default function ProviderClinicalDashboard() {
               <Input
                 value={searchQ}
                 onChange={(e) => setSearchQ(e.target.value)}
-                placeholder={t("clinical_dashboard.search_placeholder", "Search patients, prescriptions, diagnoses, notes...")}
+                placeholder={t("clinical_dashboard.search_placeholder", "Search members, prescriptions, diagnoses, notes...")}
                 className="pl-8"
                 data-testid="input-clinical-search"
               />

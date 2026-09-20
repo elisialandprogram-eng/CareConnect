@@ -900,9 +900,9 @@ export default function AppointmentDetails() {
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
               <Phone className="h-4 w-4" />
-              Patient Contact Information
+              Member Contact Information
             </CardTitle>
-            <CardDescription>{t("patient_sweep.appointment_contact_desc", "Contact details shared by the patient for this appointment.")}</CardDescription>
+            <CardDescription>{t("patient_sweep.appointment_contact_desc", "Contact details shared by the member for this appointment.")}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="grid sm:grid-cols-2 gap-4 text-sm">
@@ -937,7 +937,7 @@ export default function AppointmentDetails() {
               )}
             </div>
             {!(appt as any).patientContact.mobileNumber && !(appt as any).patientContact.emergencyContactName && (
-              <p className="text-sm text-muted-foreground">{t("patient_sweep.appointment_no_contact", "The patient has not added contact details yet.")}</p>
+              <p className="text-sm text-muted-foreground">{t("patient_sweep.appointment_no_contact", "The member has not added contact details yet.")}</p>
             )}
           </CardContent>
         </Card>

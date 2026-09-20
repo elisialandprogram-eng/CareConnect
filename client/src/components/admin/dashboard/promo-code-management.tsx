@@ -766,7 +766,7 @@ export function PromoCodeManagement({
                       <FormDescription>
                         {t(
                           "admin_dashboard.promo_code_uppercase_hint",
-                          "Codes are stored uppercase. Clients enter this exact code at checkout.",
+                          "Codes are stored uppercase. Members enter this exact code at checkout.",
                         )}
                       </FormDescription>
                       <FormMessage />

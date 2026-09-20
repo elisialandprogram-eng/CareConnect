@@ -362,7 +362,7 @@ export function ProviderServicesTab({ providerData, providerWithServices, setAct
             <div className="flex-1 min-w-0">
               <div className="font-medium text-amber-900 dark:text-amber-100">{t("provider_dashboard.add_clinic_address", "Add your clinic address")}</div>
               <p className="text-sm text-amber-800 dark:text-amber-200 mt-1">
-                {t("provider_dashboard.add_clinic_address_desc", "Clients can't book in-clinic visits until you set your clinic location. Open the Profile tab and fill in \"Primary location\".")}
+                {t("provider_dashboard.add_clinic_address_desc", "Members can't book in-clinic visits until you set your clinic location. Open the Profile tab and fill in \"Primary location\".")}
               </p>
               <Button size="sm" variant="outline" className="mt-2 border-amber-300 dark:border-amber-700"
                 onClick={() => setActiveTab("profile")} data-testid="button-set-clinic-address">

@@ -262,7 +262,7 @@ export function SystemBreaker() {
             <AlertDialogDescription>
               {pendingAction === "freeze"
                 ? "This will immediately block all new bookings and wallet withdrawals platform-wide. All in-progress operations are unaffected."
-                : "This will restore normal platform operations. Patients will be able to book and providers can request payouts again."}
+                : "This will restore normal platform operations. Members will be able to book and providers can request payouts again."}
             </AlertDialogDescription>
           </AlertDialogHeader>
 

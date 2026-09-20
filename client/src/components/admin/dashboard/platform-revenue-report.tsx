@@ -258,13 +258,13 @@ export function PlatformRevenueReport() {
               </select>
             </div>
             <div className="space-y-1 xl:col-span-2">
-               <label className="text-xs font-medium">{t("client", "Client")}</label>
+               <label className="text-xs font-medium">{t("client", "Member")}</label>
               <select
                 value={clientId}
                 onChange={event => { setClientId(event.target.value); setPage(1); }}
                 className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
               >
-                 <option value="">{t("all_clients", "All clients")}</option>
+                 <option value="">{t("all_clients", "All members")}</option>
                 {(filterOptions?.clients ?? []).map(option => (
                   <option key={option.id} value={option.id}>
                     {option.name || option.email || option.id}
@@ -336,7 +336,7 @@ export function PlatformRevenueReport() {
                 <tr className="border-y bg-muted/40 text-xs text-muted-foreground">
                    <th className="text-start font-medium p-3 whitespace-nowrap">{t("booking", "Booking")}</th>
                    <th className="text-start font-medium p-3 whitespace-nowrap">{t("provider", "Provider")}</th>
-                   <th className="text-start font-medium p-3 whitespace-nowrap">{t("client", "Client")}</th>
+                   <th className="text-start font-medium p-3 whitespace-nowrap">{t("client", "Member")}</th>
                    <th className="text-start font-medium p-3 whitespace-nowrap">{t("payment", "Payment")}</th>
                    <th className="text-end font-medium p-3 whitespace-nowrap">{t("commission", "Commission")}</th>
                    <th className="text-end font-medium p-3 whitespace-nowrap">{t("platform_fee", "Platform fee")}</th>

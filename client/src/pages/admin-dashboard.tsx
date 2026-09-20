@@ -169,8 +169,8 @@ function buildNavGroups(isGlobalAdmin: boolean, t: (k: string, d?: string) => st
         { value: "providers", label: t("admin.providers", "Providers"), icon: Building },
         { value: "doc-expiry", label: t("admin.expiry_monitor", "Expiry Monitor"), icon: AlertTriangle },
         { value: "verification-queue", label: t("admin.provider_review", "Provider Review"), icon: UserCheck },
-        { value: "review-moderation", label: t("admin.patient_reviews", "Patient Reviews"), icon: Star },
-        { value: "users", label: t("admin.clients", "Clients"), icon: Users },
+        { value: "review-moderation", label: t("admin.patient_reviews", "Member Reviews"), icon: Star },
+        { value: "users", label: t("admin.clients", "Members"), icon: Users },
         { value: "staff", label: t("admin.staff", "Staff"), icon: UserCheck },
         { value: "category-requests", label: t("admin.category_requests", "Category Requests"), icon: Layers },
       ],
@@ -580,7 +580,7 @@ export default function AdminDashboard() {
               <Card>
                 <CardHeader>
                   <CardTitle>{t("admin.membership_packages", "Membership Packages")}</CardTitle>
-                  <CardDescription>{t("admin.membership_packages_desc", "Create and manage membership packages for clients and providers. Set benefits, pricing, and country targeting.")}</CardDescription>
+                  <CardDescription>{t("admin.membership_packages_desc", "Create and manage membership packages for members and providers. Set benefits, pricing, and country targeting.")}</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <PackageManagement />

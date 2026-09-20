@@ -831,7 +831,7 @@ export function PractitionerManagementCard({
               <p className="text-xs text-muted-foreground">
                 {t(
                   "practitioner.pricing_hint",
-                  "Clients see all assigned practitioners when booking. If a practitioner has a custom fee for a service, that fee overrides the service base price."
+                  "Members see all assigned practitioners when booking. If a practitioner has a custom fee for a service, that fee overrides the service base price."
                 )}
               </p>
             </>

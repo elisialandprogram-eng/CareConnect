@@ -1229,7 +1229,7 @@ export function registerAdminProvidersRoutes(app: Express): void {
             heading: "Service approved",
             intro: `Hi ${owner.first_name || "there"}, great news — your service has been approved and is now visible to members.`,
             details: [{ label: "Service", value: svc.name }],
-            cta: "Patients can now discover and book this service on your profile.",
+            cta: "Members can now discover and book this service on your profile.",
           });
         }
         return res.json(activated);

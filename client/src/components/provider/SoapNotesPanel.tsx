@@ -105,7 +105,7 @@ export function SoapNotesPanel({
   }
 
   const soapFields: Array<{ key: keyof typeof EMPTY_FORM; label: string; placeholder: string }> = [
-    { key: "subjective",  label: t("clinical.soap_s", "Subjective"),  placeholder: t("clinical.soap_s_hint", "Patient's complaints, symptoms, history as reported...") },
+    { key: "subjective",  label: t("clinical.soap_s", "Subjective"),  placeholder: t("clinical.soap_s_hint", "Member's complaints, symptoms, history as reported...") },
     { key: "objective",   label: t("clinical.soap_o", "Objective"),   placeholder: t("clinical.soap_o_hint", "Examination findings, vitals, observations...") },
     { key: "assessment",  label: t("clinical.soap_a", "Assessment"),  placeholder: t("clinical.soap_a_hint", "Diagnosis, differential diagnoses, clinical impression...") },
     { key: "plan",        label: t("clinical.soap_p", "Plan"),        placeholder: t("clinical.soap_p_hint", "Treatment plan, medications, follow-up, referrals...") },

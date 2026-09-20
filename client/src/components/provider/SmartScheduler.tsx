@@ -214,7 +214,7 @@ function TimeOffManagerPanel() {
           <Clock className="h-4 w-4 text-primary" /> {t("provider_dashboard.scheduler_add_timeoff", "Add Time Off / Block")}
         </CardTitle>
         <CardDescription className="text-xs">
-          {t("provider_dashboard.scheduler_timeoff_desc", "Block out a date range. Patients won't be able to book during blocked periods.")}
+          {t("provider_dashboard.scheduler_timeoff_desc", "Block out a date range. Members won't be able to book during blocked periods.")}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">

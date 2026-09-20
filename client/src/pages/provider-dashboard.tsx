@@ -167,7 +167,7 @@ function ProfileCompletenessCard({
             <div>
                <p className="font-semibold text-sm">{t("provider_dashboard.profile_completeness", "Profile completeness")}</p>
               <p className="text-xs text-muted-foreground mt-0.5">
-                 {pct < 50 ? t("provider_dashboard.profile_needs_info", "Your profile needs more info before clients can find and book you.")
+                 {pct < 50 ? t("provider_dashboard.profile_needs_info", "Your profile needs more info before members can find and book you.")
                    : pct < 80 ? t("provider_dashboard.profile_almost", "Almost there — a few more fields and you'll be discoverable.")
                    : t("provider_dashboard.profile_looking_good", "Looking good! Just a few optional items remaining.")}
               </p>
@@ -226,9 +226,9 @@ function ProviderInsightsTab({ data, fmtMoney }: { data: InsightsData; fmtMoney:
           <p className="text-xs text-muted-foreground mt-1">{t("provider_dashboard.insights_lost_bookings", "Lost: {{count}} bookings", { count: data.kpi.lostBookings })}</p>
         </CardContent></Card>
         <Card data-testid="kpi-repeat-patients"><CardContent className="pt-5 pb-4">
-          <p className="text-xs text-muted-foreground">{t("provider_dashboard.insights_repeat_clients", "Repeat clients")}</p>
+          <p className="text-xs text-muted-foreground">{t("provider_dashboard.insights_repeat_clients", "Repeat members")}</p>
           <p className="text-2xl font-bold mt-1 text-emerald-600 dark:text-emerald-400">{data.kpi.repeatPatientPct}%</p>
-          <p className="text-xs text-muted-foreground mt-1">{t("provider_dashboard.insights_loyal_clients", "{{count}} loyal clients", { count: data.repeatPatients.length })}</p>
+          <p className="text-xs text-muted-foreground mt-1">{t("provider_dashboard.insights_loyal_clients", "{{count}} loyal members", { count: data.repeatPatients.length })}</p>
         </CardContent></Card>
         <Card data-testid="kpi-conversion-rate"><CardContent className="pt-5 pb-4">
           <p className="text-xs text-muted-foreground">{t("provider_dashboard.insights_booking_conversion", "Booking conversion")}</p>
@@ -251,7 +251,7 @@ function ProviderInsightsTab({ data, fmtMoney }: { data: InsightsData; fmtMoney:
 
       {data.repeatPatients.length > 0 && (
         <Card>
-          <CardHeader><CardTitle className="text-base flex items-center gap-2"><Users className="h-4 w-4" /> {t("provider_dashboard.insights_loyal_clients_title", "Loyal clients")}</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-base flex items-center gap-2"><Users className="h-4 w-4" /> {t("provider_dashboard.insights_loyal_clients_title", "Loyal members")}</CardTitle></CardHeader>
           <CardContent>
             <div className="space-y-2">
               {data.repeatPatients.slice(0, 10).map((p) => (
@@ -638,7 +638,7 @@ export default function ProviderDashboard() {
                 {[
                   t("provider_dashboard.compliance_step_1", "Our compliance team reviews your license, credentials, and bio."),
                   t("provider_dashboard.compliance_step_2", "You'll receive an email once approved (or with feedback if changes are needed)."),
-                  t("provider_dashboard.compliance_step_3", "Once approved, your profile goes live and patients can start booking you."),
+                   t("provider_dashboard.compliance_step_3", "Once approved, your profile goes live and members can start booking you."),
                 ].map((step, i) => (
                   <li key={i} className="flex items-start gap-3 text-sm text-muted-foreground">
                     <span className="mt-0.5 h-5 w-5 rounded-full bg-primary/10 text-primary text-[10px] flex items-center justify-center flex-shrink-0 font-bold">{i + 1}</span>
@@ -755,8 +755,8 @@ export default function ProviderDashboard() {
               { label: t("provider_dashboard.tab_calendar","Calendar"), value: "calendar", icon: <CalendarDays className="h-4 w-4" />, badge: 0 },
               { label: t("provider_dashboard.tab_history","History"), value: "history", icon: <Clock className="h-4 w-4" />, badge: historyAppointments.length },
             ]},
-             { group: t("provider_dashboard.group_clients", "CLIENTS"), items: [
-              { label: t("provider_dashboard.tab_clients","Clients"), value: "clients", icon: <Users className="h-4 w-4" />, badge: uniquePatientCount },
+             { group: t("provider_dashboard.group_clients", "MEMBERS"), items: [
+               { label: t("provider_dashboard.tab_clients","Members"), value: "clients", icon: <Users className="h-4 w-4" />, badge: uniquePatientCount },
               { label: t("provider_dashboard.tab_reviews","Reviews"), value: "reviews", icon: <Star className="h-4 w-4" />, badge: providerReviews?.length ?? 0 },
             ]},
              { group: t("provider_dashboard.group_schedule", "SCHEDULE"), items: [
@@ -897,7 +897,7 @@ export default function ProviderDashboard() {
                   </div>
                   <div className="flex-1">
                     <p className="font-bold text-emerald-800 dark:text-emerald-300 text-base">{t("provider_dashboard.approved_congratulations", "🎉 Congratulations — you're approved!")}</p>
-                    <p className="text-emerald-700 dark:text-emerald-400 text-sm mt-1">{t("provider_dashboard.approved_live_desc", "Your profile is now live and patients can discover and book you.")}</p>
+                    <p className="text-emerald-700 dark:text-emerald-400 text-sm mt-1">{t("provider_dashboard.approved_live_desc", "Your profile is now live and members can discover and book you.")}</p>
                     {nextSteps.length > 0 && (
                       <div className="mt-3">
                         <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 mb-2">{t("provider_dashboard.approved_next_steps", "Complete these steps to start getting bookings:")}</p>
@@ -911,7 +911,7 @@ export default function ProviderDashboard() {
                       </div>
                     )}
                     {nextSteps.length === 0 && (
-                      <p className="text-emerald-600 dark:text-emerald-500 text-xs mt-2 font-medium">{t("provider_dashboard.approved_ready", "✓ Profile is fully set up — you're ready for patients!")}</p>
+                      <p className="text-emerald-600 dark:text-emerald-500 text-xs mt-2 font-medium">{t("provider_dashboard.approved_ready", "✓ Profile is fully set up — you're ready for members!")}</p>
                     )}
                   </div>
                 </div>
@@ -1064,11 +1064,11 @@ export default function ProviderDashboard() {
             >
               <CardContent className="p-5">
                 <div className="flex items-center justify-between">
-                  <p className="text-sm text-muted-foreground">{t("provider_dashboard.stat_patients", "Clients")}</p>
+                   <p className="text-sm text-muted-foreground">{t("provider_dashboard.stat_patients", "Members")}</p>
                   <div className="stat-icon h-9 w-9"><Users className="h-4 w-4" /></div>
                 </div>
                 <p className="text-3xl font-bold mt-1" data-testid="text-patients-count">{uniquePatientCount}</p>
-                <p className="text-xs text-muted-foreground mt-1">{t("provider_dashboard.stat_patients_desc", "unique clients — click to view")}</p>
+                 <p className="text-xs text-muted-foreground mt-1">{t("provider_dashboard.stat_patients_desc", "unique members — click to view")}</p>
               </CardContent>
             </Card>
           </div>
@@ -1083,7 +1083,7 @@ export default function ProviderDashboard() {
                 <p className="font-semibold text-sm text-orange-800 dark:text-orange-200">
                   You have {pendingCount} pending appointment{pendingCount !== 1 ? "s" : ""} waiting for review
                 </p>
-                <p className="text-xs text-orange-700/70 dark:text-orange-300/70">{t("provider_dashboard.pending_tasks_desc", "Approve or reject client requests to keep your queue up to date.")}</p>
+                 <p className="text-xs text-orange-700/70 dark:text-orange-300/70">{t("provider_dashboard.pending_tasks_desc", "Approve or reject member requests to keep your queue up to date.")}</p>
               </div>
               <Button size="sm" variant="outline" className="border-orange-400/60 text-orange-700 dark:text-orange-300 hover:bg-orange-100 shrink-0" data-testid="button-review-pending" onClick={() => setActiveTab("upcoming")}>
                   {t("provider_dashboard.review_pending", "Review")} →
@@ -1104,7 +1104,7 @@ export default function ProviderDashboard() {
                 return ta < tb ? -1 : 1;
               })[0];
             if (!nextAppt) return null;
-            const patientName = `${nextAppt.patient?.firstName ?? ""} ${nextAppt.patient?.lastName ?? ""}`.trim() || "Patient";
+             const patientName = `${nextAppt.patient?.firstName ?? ""} ${nextAppt.patient?.lastName ?? ""}`.trim() || "Member";
             return (
               <div className="flex items-center gap-3 rounded-xl border border-primary/20 bg-primary/5 dark:bg-primary/10 px-5 py-3.5 mb-2" data-testid="banner-next-appointment">
                 <div className="h-9 w-9 rounded-full bg-primary/10 dark:bg-primary/20 flex items-center justify-center shrink-0">
@@ -1145,7 +1145,7 @@ export default function ProviderDashboard() {
               <CalendarIcon className="h-3.5 w-3.5 mr-1.5" />{t("provider_dashboard.quick_schedule", "My Schedule")}
             </Button>
             <Button size="sm" variant="outline" data-testid="link-quick-patients" onClick={() => setActiveTab("clients")}>
-              <Users className="h-3.5 w-3.5 mr-1.5" />{t("provider_dashboard.quick_patients", "Clients")}
+               <Users className="h-3.5 w-3.5 mr-1.5" />{t("provider_dashboard.quick_patients", "Members")}
             </Button>
             <Button size="sm" variant="outline" asChild data-testid="link-quick-earnings">
               <Link href="/provider/earnings"><Banknote className="h-3.5 w-3.5 mr-1.5" />{t("provider_dashboard.quick_earnings", "Earnings")}</Link>
@@ -1243,9 +1243,9 @@ export default function ProviderDashboard() {
                 <Zap className="w-5 h-5 text-blue-600 dark:text-blue-400" />
               </div>
               <div className="flex-1">
-                <p className="font-semibold text-blue-800 dark:text-blue-300 text-sm">{t("provider_dashboard_extra.approved_setup_prompt", "You're approved — finish setting up to start accepting clients")}</p>
+                <p className="font-semibold text-blue-800 dark:text-blue-300 text-sm">{t("provider_dashboard_extra.approved_setup_prompt", "You're approved — finish setting up to start accepting members")}</p>
                 <p className="text-blue-700 dark:text-blue-400 text-xs mt-1 leading-relaxed">
-                  {t("provider_dashboard_extra.approved_setup_desc", "Add at least one active service with pricing, then configure your availability. Clients won't be able to book you until both are done.")}
+                  {t("provider_dashboard_extra.approved_setup_desc", "Add at least one active service with pricing, then configure your availability. Members won't be able to book you until both are done.")}
                 </p>
                 <div className="flex gap-2 mt-3">
                   <Button size="sm" variant="default" onClick={() => setActiveTab("services")}><Plus className="h-3.5 w-3.5 mr-1" />{t("provider_dashboard.add_service", "Add a service")}</Button>
@@ -1306,7 +1306,7 @@ export default function ProviderDashboard() {
               </CardHeader>
               <CardContent className="pt-0 space-y-1">
                 {[...todayAppointments].sort((a, b) => a.startTime.localeCompare(b.startTime)).map((a) => {
-                  const patientName = `${(a as any).patient?.firstName ?? ""} ${(a as any).patient?.lastName ?? ""}`.trim() || t("provider_dashboard.patient_label", "Patient");
+                   const patientName = `${(a as any).patient?.firstName ?? ""} ${(a as any).patient?.lastName ?? ""}`.trim() || t("provider_dashboard.patient_label", "Member");
                   const svcName = (a as any).service?.name ?? "";
                   const statusColors: Record<string, string> = {
                     pending: "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300",
@@ -1439,7 +1439,7 @@ export default function ProviderDashboard() {
                   {historyAppointments.length > 0 && <Badge variant="secondary" className="ml-2">{historyAppointments.length}</Badge>}
                 </TabsTrigger>
                 <TabsTrigger value="clients" data-testid="tab-clients">
-                  <Users className="h-4 w-4 mr-1" />{t("provider_dashboard.tab_clients", "Clients")}
+                   <Users className="h-4 w-4 mr-1" />{t("provider_dashboard.tab_clients", "Members")}
                   {uniquePatientCount > 0 && <Badge variant="secondary" className="ml-2">{uniquePatientCount}</Badge>}
                 </TabsTrigger>
                 <TabsTrigger value="calendar" data-testid="tab-calendar">
@@ -1486,19 +1486,19 @@ export default function ProviderDashboard() {
               ) : uniqueClients.length === 0 ? (
                 <div className="text-center py-16 text-muted-foreground" data-testid="empty-clients">
                   <Users className="h-10 w-10 mx-auto mb-3 opacity-40" />
-                  <p className="font-medium">{t("provider_dashboard.no_clients", "No clients yet")}</p>
-                  <p className="text-xs mt-1 text-muted-foreground">{t("provider_dashboard.clients_will_appear", "Clients who have booked with you will appear here.")}</p>
+                   <p className="font-medium">{t("provider_dashboard.no_clients", "No members yet")}</p>
+                   <p className="text-xs mt-1 text-muted-foreground">{t("provider_dashboard.clients_will_appear", "Members who have booked with you will appear here.")}</p>
                 </div>
               ) : (
                 <div className="space-y-3">
                   <p className="text-sm text-muted-foreground">
-                    {uniqueClients.length} unique client{uniqueClients.length !== 1 ? "s" : ""}
+                     {uniqueClients.length} unique member{uniqueClients.length !== 1 ? "s" : ""}
                   </p>
                   <div className="rounded-xl border overflow-hidden">
                     <table className="w-full text-sm">
                       <thead className="bg-muted/50">
                         <tr>
-                          <th className="text-left px-4 py-3 font-medium text-muted-foreground">{t("provider_dashboard.client", "Client")}</th>
+                           <th className="text-left px-4 py-3 font-medium text-muted-foreground">{t("provider_dashboard.client", "Member")}</th>
                           <th className="text-right px-4 py-3 font-medium text-muted-foreground">{t("provider_dashboard.visits", "Visits")}</th>
                           <th className="text-right px-4 py-3 font-medium text-muted-foreground hidden md:table-cell">{t("provider_dashboard.last_visit", "Last visit")}</th>
                           <th className="text-right px-4 py-3 font-medium text-muted-foreground"></th>

@@ -413,7 +413,7 @@ export function ProviderAnalyticsTabContent() {
                     <p className="text-sm font-semibold text-teal-600 dark:text-teal-400 tabular-nums">
                       {t("provider_dashboard.analytics_saved", "{{amount}} saved", { amount: fmt(pkg.totalDiscount) })}
                     </p>
-                    <p className="text-xs text-muted-foreground">{t("provider_dashboard.analytics_for_patients", "for patients")}</p>
+                    <p className="text-xs text-muted-foreground">{t("provider_dashboard.analytics_for_patients", "for members")}</p>
                   </div>
                 </div>
               ))}

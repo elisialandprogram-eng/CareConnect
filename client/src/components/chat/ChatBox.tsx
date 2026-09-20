@@ -69,7 +69,7 @@ function roleIcon(role: string) {
 function roleLabel(role: string) {
   if (role === "admin") return "GoldenLife Support";
   if (role === "provider") return "Provider";
-  return "Client";
+  return "Member";
 }
 
 export function ChatBox() {

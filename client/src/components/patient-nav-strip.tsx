@@ -31,7 +31,7 @@ export function PatientNavStrip() {
   return (
     <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-sm border-b border-border/60 shadow-sm">
       <div className="container mx-auto px-4 max-w-3xl">
-        <nav className="flex items-center gap-1 h-12" role="tablist" aria-label={t("patient_ui.navigation.patient_navigation", "Patient navigation")}>
+        <nav className="flex items-center gap-1 h-12" role="tablist" aria-label={t("patient_ui.navigation.patient_navigation", "Member navigation")}>
           {tabs.map((tab) => (
             <Link key={tab.href} href={tab.href}>
               <button

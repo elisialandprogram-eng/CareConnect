@@ -294,7 +294,7 @@ export function ProviderCard({ provider, nextAvailable }: ProviderCardProps) {
                   "{topReview.comment}"
                 </p>
                 <p className="text-[11px] text-muted-foreground">
-                  — {topReview.patient?.firstName ?? t("common.patient", "Patient")}
+                  — {topReview.patient?.firstName ?? t("common.patient", "Member")}
                 </p>
               </div>
             )}

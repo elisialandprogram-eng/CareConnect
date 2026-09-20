@@ -78,7 +78,7 @@ export function registerCareRoutes(app: Express): void {
       const appt = await storage.getAppointment(parsed.appointmentId);
       if (!appt) return res.status(404).json({ message: "Appointment not found" });
       if (appt.providerId !== provider.id) return res.status(403).json({ message: "Access denied" });
-      if (appt.patientId !== parsed.patientId) return res.status(400).json({ message: "Patient mismatch" });
+      if (appt.patientId !== parsed.patientId) return res.status(400).json({ message: "Member mismatch" });
 
       // ── Section E: Allergy Safety Check ────────────────────────────────────
       // Query allergy entries from medical_history AND user's known_allergies field.

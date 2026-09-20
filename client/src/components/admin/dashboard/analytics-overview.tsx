@@ -128,7 +128,7 @@ export function AnalyticsOverview({ onNavigate }: { onNavigate?: (tab: string) =
           <RevenueKpiCard
             label={t("admin.total_users", "Total users")}
             value={formatCount(analytics?.totalUsers || 0)}
-            hint={t("admin.registered_patients", "Registered clients — click to manage")}
+            hint={t("admin.registered_patients", "Registered members — click to manage")}
             icon={Users}
             gradient="bg-gradient-to-br from-blue-500 via-blue-600 to-indigo-600"
             testId="kpi-total-users"

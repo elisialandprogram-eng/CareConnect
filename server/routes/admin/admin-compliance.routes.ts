@@ -275,7 +275,7 @@ export function registerAdminComplianceRoutes(app: Express): void {
       );
       await pool.query(
         `INSERT INTO user_notifications (user_id, type, title, message)
-         SELECT u.id, 'system', 'New dispute filed', 'A patient filed a dispute for appointment #' || $1
+          SELECT u.id, 'system', 'New dispute filed', 'A member filed a dispute for appointment #' || $1
          FROM users u WHERE u.role IN ('admin','global_admin','country_admin')`,
         [appointmentId],
       );

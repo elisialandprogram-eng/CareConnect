@@ -164,7 +164,7 @@ export function ProviderAppointmentsTabs({ providerData, highlightApptId, active
       if (variables.status === "completed" && data?.invoice?.created) {
         toast({
           title: t("provider_dashboard.toast_appt_completed", "Appointment completed"),
-          description: t("provider_dashboard.toast_appt_completed_desc", "Invoice {{invoiceNumber}} was generated and emailed to the patient.", { invoiceNumber: data.invoice.invoiceNumber }),
+          description: t("provider_dashboard.toast_appt_completed_desc", "Invoice {{invoiceNumber}} was generated and emailed to the member.", { invoiceNumber: data.invoice.invoiceNumber }),
         });
       } else {
         toast({ title: t("provider_dashboard.toast_appt_updated", "Appointment updated") });
@@ -549,7 +549,7 @@ export function ProviderAppointmentsTabs({ providerData, highlightApptId, active
         <>
           <div className="mt-6 mb-4 flex flex-col sm:flex-row gap-3">
             <Input
-              placeholder={t("provider_dashboard.search_placeholder", "Search by client name, service, or ID...")}
+              placeholder={t("provider_dashboard.search_placeholder", "Search by member name, service, or ID...")}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="flex-1"
@@ -631,13 +631,13 @@ export function ProviderAppointmentsTabs({ providerData, highlightApptId, active
                         {t("provider_dashboard.action_required_title", "Action Required — {{count}} appointment request{{s}} awaiting your approval", { count: pendingList.length, s: pendingList.length !== 1 ? "s" : "" })}
                       </p>
                       <p className="text-xs text-amber-700 dark:text-amber-400">
-                        {t("provider_dashboard.action_required_desc", "Patients are waiting. Approve or reject each request below.")}
+                        {t("provider_dashboard.action_required_desc", "Members are waiting. Approve or reject each request below.")}
                       </p>
                     </div>
                   </div>
                   <div className="space-y-2">
                     {pendingList.map((a) => {
-                      const patientName = `${a.patient?.firstName ?? ""} ${a.patient?.lastName ?? ""}`.trim() || "Patient";
+                      const patientName = `${a.patient?.firstName ?? ""} ${a.patient?.lastName ?? ""}`.trim() || "Member";
                       const svcName = (a as any).service?.name || a.serviceId || "";
                       const isUpdatingThis = updateStatusMutation.isPending && (updateStatusMutation.variables as any)?.id === a.id;
                       return (
@@ -775,13 +775,13 @@ export function ProviderAppointmentsTabs({ providerData, highlightApptId, active
                         {t("provider_dashboard.action_required_today_title", "Action Required — {{count}} today's request{{s}} awaiting approval", { count: pendingTodayList.length, s: pendingTodayList.length !== 1 ? "s" : "" })}
                       </p>
                       <p className="text-xs text-amber-700 dark:text-amber-400">
-                        {t("provider_dashboard.action_required_today_desc", "These clients have bookings today and need your confirmation.")}
+                        {t("provider_dashboard.action_required_today_desc", "These members have bookings today and need your confirmation.")}
                       </p>
                     </div>
                   </div>
                   <div className="space-y-2">
                     {pendingTodayList.map(a => {
-                      const patientName = `${a.patient?.firstName ?? ""} ${a.patient?.lastName ?? ""}`.trim() || "Patient";
+                      const patientName = `${a.patient?.firstName ?? ""} ${a.patient?.lastName ?? ""}`.trim() || "Member";
                       const svcName = (a as any).service?.name || a.serviceId || "";
                       const isUpdatingThis = updateStatusMutation.isPending && (updateStatusMutation.variables as any)?.id === a.id;
                       return (
@@ -1059,7 +1059,7 @@ export function ProviderAppointmentsTabs({ providerData, highlightApptId, active
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-3 text-sm">
                 <div>
-                  <p className="text-muted-foreground">{t("provider_dashboard.patient_label", "Client")}</p>
+                  <p className="text-muted-foreground">{t("provider_dashboard.patient_label", "Member")}</p>
                   <p className="font-medium">{selectedAppt.patient?.firstName} {selectedAppt.patient?.lastName}</p>
                 </div>
                 <div>
@@ -1135,7 +1135,7 @@ export function ProviderAppointmentsTabs({ providerData, highlightApptId, active
               )}
               {selectedAppt.notes && (
                 <div className="col-span-2">
-                  <p className="text-muted-foreground text-sm">{t("provider_dashboard.patient_notes", "Client notes")}</p>
+                   <p className="text-muted-foreground text-sm">{t("provider_dashboard.patient_notes", "Member notes")}</p>
                   <p className="text-sm">{selectedAppt.notes}</p>
                 </div>
               )}
@@ -1260,13 +1260,13 @@ export function ProviderAppointmentsTabs({ providerData, highlightApptId, active
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400" />
-               {t("provider_dashboard.patient_signoff_required", "Patient Sign-off Required")}
+               {t("provider_dashboard.patient_signoff_required", "Member Sign-off Required")}
             </DialogTitle>
             <DialogFooter className="hidden" />
           </DialogHeader>
           <div className="space-y-4 py-2">
             <p className="text-sm text-muted-foreground leading-relaxed">
-              {t("provider_dashboard.signoff_code_help", "Ask the patient for their 4-digit sign-off code and enter it below to formally close this session. This creates an immutable completion record.")}
+              {t("provider_dashboard.signoff_code_help", "Ask the member for their 4-digit sign-off code and enter it below to formally close this session. This creates an immutable completion record.")}
             </p>
 
             {/* 4-digit PIN input boxes */}

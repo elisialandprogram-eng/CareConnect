@@ -93,11 +93,11 @@ export default function EnhancedAnalyticsDashboard() {
     <div className="space-y-6">
       {/* KPI row */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard icon={Users} label={t("admin.insights.new_patients_30d", "New clients (30d)")} value={data.newUsersLast30Days} />
+        <StatCard icon={Users} label={t("admin.insights.new_patients_30d", "New members (30d)")} value={data.newUsersLast30Days} />
         <StatCard icon={UserCheck} label={t("admin.insights.new_providers_30d", "New providers (30d)")} value={data.newProvidersLast30Days} />
         <StatCard
           icon={RefreshCw}
-          label={t("admin.insights.patient_retention", "Client retention")}
+          label={t("admin.insights.patient_retention", "Member retention")}
           value={`${data.retentionRate}%`}
           sub={t("admin.insights.returning_active", "{{returning}} returning / {{active}} active", {
             returning: data.returningPatients,
@@ -106,7 +106,7 @@ export default function EnhancedAnalyticsDashboard() {
         />
         <StatCard
           icon={BarChart3}
-          label={t("admin.insights.avg_appts_patient", "Avg appts / client")}
+          label={t("admin.insights.avg_appts_patient", "Avg appts / member")}
           value={data.avgAppointmentsPerPatient}
           sub={t("admin.insights.last_90_days", "(last 90 days)")}
         />
@@ -123,7 +123,7 @@ export default function EnhancedAnalyticsDashboard() {
       <Card>
         <CardHeader>
           <CardTitle>{t("admin.insights.growth_trends", "Growth trends (last 6 months)")}</CardTitle>
-          <CardDescription>{t("admin.insights.growth_desc", "New clients, providers, and bookings each month")}</CardDescription>
+          <CardDescription>{t("admin.insights.growth_desc", "New members, providers, and bookings each month")}</CardDescription>
         </CardHeader>
         <CardContent>
           <ResponsiveContainer width="100%" height={280}>

@@ -196,7 +196,7 @@ export function SlotAvailabilityWidget({
               <div
                 key={slot.id}
                 data-testid={`slot-held-${slot.startTime}`}
-                title="Reserved by another patient"
+                title="Reserved by another member"
                 className="rounded-xl border border-amber-300 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-700 py-3 px-1 text-xs font-medium text-center text-amber-700 dark:text-amber-400 cursor-not-allowed select-none"
               >
                 <span className="block font-semibold">{slot.startTime}</span>

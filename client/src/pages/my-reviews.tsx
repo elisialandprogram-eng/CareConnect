@@ -238,7 +238,7 @@ export default function MyReviewsPage() {
             ) : (
               <div className="space-y-3">
                 <p className="text-sm text-muted-foreground mb-2">
-                   {t("patient_ui.reviews.feedback_help", "Your feedback helps other patients choose the right care.")}
+                   {t("patient_ui.reviews.feedback_help", "Your feedback helps other members choose the right care.")}
                 </p>
                 {pending.map((a: any) => {
                   const providerName = a.provider

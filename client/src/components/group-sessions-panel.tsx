@@ -134,7 +134,7 @@ export function GroupSessionsPanel() {
             {t("group.title", "Group Sessions")}
           </CardTitle>
           <CardDescription>
-            {t("group.desc", "Run group therapy or workshops. Clients book a seat and pay from their wallet; cancelling a session refunds everyone automatically.")}
+            {t("group.desc", "Run group therapy or workshops. Members book a seat and pay from their wallet; cancelling a session refunds everyone automatically.")}
           </CardDescription>
         </div>
         <Dialog open={open} onOpenChange={setOpen}>
@@ -146,7 +146,7 @@ export function GroupSessionsPanel() {
           <DialogContent className="max-w-lg">
             <DialogHeader>
               <DialogTitle>{t("group.new", "New session")}</DialogTitle>
-              <DialogDescription>{t("group.new_desc", "Schedule a group session for your clients.")}</DialogDescription>
+              <DialogDescription>{t("group.new_desc", "Schedule a group session for your members.")}</DialogDescription>
             </DialogHeader>
             <div className="grid gap-3">
               <div className="space-y-1">

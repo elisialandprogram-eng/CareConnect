@@ -240,12 +240,12 @@ export async function generateInvoicePDF(
   doc.setFont("helvetica", "bold");
   doc.setFontSize(8);
   doc.setTextColor(...BRAND_DARK_RGB);
-  doc.text("BILL TO  ·  PATIENT", billX + 4, bfY + 6);
+  doc.text("BILL TO  ·  MEMBER", billX + 4, bfY + 6);
 
   doc.setFont("helvetica", "bold");
   doc.setFontSize(11);
   doc.setTextColor(...TEXT);
-  const patientName = [patient?.firstName, patient?.lastName].filter(Boolean).join(" ") || patient?.email || "Patient";
+  const patientName = [patient?.firstName, patient?.lastName].filter(Boolean).join(" ") || patient?.email || "Member";
   doc.text(patientName, billX + 4, bfY + 13);
 
   doc.setFont("helvetica", "normal");

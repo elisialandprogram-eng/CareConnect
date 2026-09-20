@@ -549,7 +549,7 @@ export async function checkConflict(
             hasConflict: true,
             conflictType: "slot_hold",
             conflictId: row.id,
-            message: "This slot is temporarily reserved by another patient. Please try again shortly.",
+            message: "This slot is temporarily reserved by another member. Please try again shortly.",
             effectiveStart: effectiveStartTime,
             effectiveEnd: effectiveEndTime,
           },

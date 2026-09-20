@@ -687,7 +687,7 @@ function SurgePricingTab() {
       <Alert>
         <Clock className="h-4 w-4" />
         <AlertDescription className="text-sm">
-          <strong>{t("provider_dashboard.time_how_tiers_work", "How tiers work:")}</strong> {t("provider_dashboard.time_tiers_desc", "Assign a pricing tier to each time window in the Weekly Template tab. When a client books a slot in a Peak window, the system automatically applies the +20% surcharge to the slot price. Off-Peak windows receive a −15% discount to fill slower hours.")}
+          <strong>{t("provider_dashboard.time_how_tiers_work", "How tiers work:")}</strong> {t("provider_dashboard.time_tiers_desc", "Assign a pricing tier to each time window in the Weekly Template tab. When a member books a slot in a Peak window, the system automatically applies the +20% surcharge to the slot price. Off-Peak windows receive a −15% discount to fill slower hours.")}
         </AlertDescription>
       </Alert>
     </div>

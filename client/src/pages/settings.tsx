@@ -655,7 +655,7 @@ export default function Settings() {
                   <Button variant="outline" size="sm" asChild data-testid="button-manage-consent">
                     <a href="/consent">
                       <Shield className="h-4 w-4 mr-2" />
-                      {t("patient_sweep.settings_manage_consent", "Manage patient consent")}
+                      {t("patient_sweep.settings_manage_consent", "Manage member consent")}
                     </a>
                   </Button>
                 </div>

@@ -124,7 +124,7 @@ function useRotating<T>(items: T[], intervalMs = 10000): T {
 
 function patientName(appt: Appointment) {
   if (appt.patient?.firstName) return `${appt.patient.firstName} ${appt.patient.lastName ?? ""}`.trim();
-  return appt.patientName || "Patient";
+  return appt.patientName || "Member";
 }
 
 const STATUS_COLOR: Record<string, string> = {
@@ -341,7 +341,7 @@ export default function ProviderHome() {
     alerts.push({ icon: Bell, color: "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-300", label: t("provider_dashboard.unread_notifications", "{{count}} unread notification{{suffix}}", { count: unreadCount!.count, suffix: unreadCount!.count !== 1 ? "s" : "" }), desc: t("provider_dashboard.check_notifications", "Check your notification center"), href: "/notifications" });
   }
   if (pendingReviewReplies > 0) {
-    alerts.push({ icon: MessageSquare, color: "border-blue-200 bg-blue-50 text-blue-800 dark:border-blue-800 dark:bg-blue-950/30 dark:text-blue-300", label: t("provider_dashboard.reviews_waiting", "{{count}} review{{suffix}} awaiting reply", { count: pendingReviewReplies, suffix: pendingReviewReplies !== 1 ? "s" : "" }), desc: t("provider_dashboard.prompt_response", "Patients appreciate a prompt response"), href: "/provider/dashboard" });
+    alerts.push({ icon: MessageSquare, color: "border-blue-200 bg-blue-50 text-blue-800 dark:border-blue-800 dark:bg-blue-950/30 dark:text-blue-300", label: t("provider_dashboard.reviews_waiting", "{{count}} review{{suffix}} awaiting reply", { count: pendingReviewReplies, suffix: pendingReviewReplies !== 1 ? "s" : "" }), desc: t("provider_dashboard.prompt_response", "Members appreciate a prompt response"), href: "/provider/dashboard" });
   }
   if (expiredDocs.length > 0) {
     alerts.push({ icon: AlertTriangle, color: "border-rose-200 bg-rose-50 text-rose-800 dark:border-rose-800 dark:bg-rose-950/30 dark:text-rose-300", label: t("provider_dashboard.documents_expired", "{{count}} document{{suffix}} expired", { count: expiredDocs.length, suffix: expiredDocs.length !== 1 ? "s" : "" }), desc: t("provider_dashboard.upload_updated_docs", "Upload updated documents to remain compliant"), href: "/provider/dashboard" });
@@ -353,7 +353,7 @@ export default function ProviderHome() {
     alerts.push({ icon: FileText, color: "border-sky-200 bg-sky-50 text-sky-800 dark:border-sky-800 dark:bg-sky-950/30 dark:text-sky-300", label: t("provider_dashboard.documents_under_review", "{{count}} document{{suffix}} under review", { count: pendingDocs.length, suffix: pendingDocs.length !== 1 ? "s" : "" }), desc: t("provider_dashboard.admin_verifying", "Admin is verifying your credentials"), href: "/provider/dashboard" });
   }
   if (last7Stats.rate >= 0.20 && last7Stats.total >= 3) {
-    alerts.push({ icon: TrendingDown, color: "border-rose-300 bg-rose-50 text-rose-800 dark:border-rose-700 dark:bg-rose-950/30 dark:text-rose-300", label: t("provider_dashboard.high_cancellation_rate", "High cancellation rate: {{rate}}% over the last 7 days", { rate: Math.round(last7Stats.rate * 100) }), desc: t("provider_dashboard.cancelled_recent_desc", "{{cancelled}} of {{total}} recent appointments were cancelled or not attended — consider reaching out to patients", { cancelled: last7Stats.cancelled, total: last7Stats.total }), href: "/provider/dashboard" });
+    alerts.push({ icon: TrendingDown, color: "border-rose-300 bg-rose-50 text-rose-800 dark:border-rose-700 dark:bg-rose-950/30 dark:text-rose-300", label: t("provider_dashboard.high_cancellation_rate", "High cancellation rate: {{rate}}% over the last 7 days", { rate: Math.round(last7Stats.rate * 100) }), desc: t("provider_dashboard.cancelled_recent_desc", "{{cancelled}} of {{total}} recent appointments were cancelled or not attended — consider reaching out to members", { cancelled: last7Stats.cancelled, total: last7Stats.total }), href: "/provider/dashboard" });
   }
 
   // Rotating contextual messages
@@ -364,13 +364,13 @@ export default function ProviderHome() {
     else if (todayAppts.length === 0) msgs.push("No appointments scheduled today — enjoy the quiet.");
     else if (todayAppts.length === 1) msgs.push("You have 1 appointment today.");
     else msgs.push(`You have ${todayAppts.length} appointments today.`);
-    if (completedToday.length > 0) msgs.push(`${completedToday.length} patient${completedToday.length !== 1 ? "s" : ""} seen today.`);
-    if (patientsThisWeek > 0) msgs.push(`${patientsThisWeek} patients seen this week.`);
+    if (completedToday.length > 0) msgs.push(`${completedToday.length} member${completedToday.length !== 1 ? "s" : ""} seen today.`);
+    if (patientsThisWeek > 0) msgs.push(`${patientsThisWeek} members seen this week.`);
     if (last7Stats.rate >= 0.20 && last7Stats.total >= 3) msgs.push(`Cancellation rate is ${Math.round(last7Stats.rate * 100)}% this week — consider reviewing your schedule.`);
     if (pendingReviewReplies > 0) msgs.push(`${pendingReviewReplies} review${pendingReviewReplies !== 1 ? "s" : ""} waiting for your reply.`);
     if (expiredDocs.length > 0) msgs.push("Expired documents require your attention.");
     if (alerts.length === 0) msgs.push("Everything looks good today.");
-    return msgs.length ? msgs : ["Welcome back — your patients are counting on you."];
+    return msgs.length ? msgs : ["Welcome back — your members are counting on you."];
   }, [todayAppts, cancelledTodayCount, completedToday, patientsThisWeek, last7Stats, pendingReviewReplies, expiredDocs, alerts]);
 
   const currentMessage = useRotating(contextMessages, 8000);
@@ -484,7 +484,7 @@ export default function ProviderHome() {
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
                   {cancelledTodayCount > 0
-                     ? t("provider_dashboard.slots_open_rebook", "These slots are now open — patients may rebook.")
+                     ? t("provider_dashboard.slots_open_rebook", "These slots are now open — members may rebook.")
                      : t("provider_dashboard.enjoy_day", "Enjoy the day or use this time for clinical work.")}
                 </p>
                 <Button className="mt-3 rounded-xl gap-2" size="sm" asChild>
@@ -532,7 +532,7 @@ export default function ProviderHome() {
           </h2>
           <div className="grid grid-cols-2 gap-3">
              <StatCard icon={Calendar} label={t("provider_dashboard.appointments_today", "Appointments today")} value={todayAppts.length} color="bg-primary/10 text-primary" />
-             <StatCard icon={CheckCircle2} label={t("provider_dashboard.patients_this_week", "Patients this week")} value={patientsThisWeek} color="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" />
+             <StatCard icon={CheckCircle2} label={t("provider_dashboard.patients_this_week", "Members this week")} value={patientsThisWeek} color="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" />
              <StatCard icon={Star} label={t("provider_dashboard.average_rating", "Average rating")} value={avgRating ?? "—"} color="bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400" href="/provider/dashboard" />
              <StatCard icon={MessageSquare} label={t("provider_dashboard.reviews_awaiting_reply", "Reviews awaiting reply")} value={pendingReviewReplies} color="bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" href="/provider/dashboard" />
           </div>
@@ -565,7 +565,7 @@ export default function ProviderHome() {
                     {r.rating}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-semibold text-foreground">{r.patientName ?? "Patient"}</p>
+                    <p className="text-xs font-semibold text-foreground">{r.patientName ?? "Member"}</p>
                     {r.comment && <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{r.comment}</p>}
                     {!r.reply && (
                       <span className="inline-block mt-1 text-[10px] px-1.5 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 font-medium">

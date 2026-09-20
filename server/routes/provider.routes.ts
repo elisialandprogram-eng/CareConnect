@@ -1153,10 +1153,10 @@ export function registerProviderRoutes(app: Express): void {
         growthTips.push("Your cancellation rate is above 20%. Sending reminders 24–48 h before sessions can reduce no-shows.");
       }
       if (insightsRepeatPct < 30 && totalBookings >= 5) {
-        growthTips.push("Fewer than 30% of your patients return. A service package can encourage long-term engagement.");
+        growthTips.push("Fewer than 30% of your members return. A service package can encourage long-term engagement.");
       }
       if (insightsUtilizationPct < 50 && totalBookings >= 3) {
-        growthTips.push("Your completion rate is under 50%. Review your scheduling and follow up with patients who cancel.");
+        growthTips.push("Your completion rate is under 50%. Review your scheduling and follow up with members who cancel.");
       }
       if (insightsLostBookings > 5) {
         growthTips.push(`${insightsLostBookings} bookings were lost to cancellations or no-shows. A clear cancellation policy can help.`);

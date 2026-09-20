@@ -215,7 +215,7 @@ export function PatientNotesPanel({ patientId, appointmentId, onDirtyChange }: {
         <Textarea
           value={newContent}
           onChange={(e) => { setNewContent(e.target.value); onDirtyChange?.(e.target.value.trim() !== ""); }}
-          placeholder={t("clinical.note_placeholder", "Write a clinical note about this patient...")}
+          placeholder={t("clinical.note_placeholder", "Write a clinical note about this member...")}
           rows={3}
           data-testid="textarea-new-note"
         />
@@ -536,7 +536,7 @@ export function PrescriptionsPanel({ patientId, appointmentId, appointmentStatus
         <Skeleton className="h-20 rounded-lg" />
       ) : !prescriptions?.length ? (
         <div className="text-sm text-muted-foreground text-center py-4" data-testid="text-no-prescriptions">
-          {t("clinical.no_prescriptions", "No prescriptions issued for this patient.")}
+          {t("clinical.no_prescriptions", "No prescriptions issued for this member.")}
         </div>
       ) : (
         <div className="space-y-3">
@@ -815,7 +815,7 @@ export function OutcomePanel({ appointmentId, appointmentStatus, patientId, init
       setFollowUpSent(true);
       setFollowUpTime(data.followUpRecommendedAt ?? new Date().toISOString());
       queryClient.invalidateQueries({ queryKey: ["/api/appointments/provider"] });
-      toast({ title: t("clinical.followup_sent", "Follow-up recommendation sent to patient") });
+      toast({ title: t("clinical.followup_sent", "Follow-up recommendation sent to member") });
     },
     onError: () => toast({ title: t("clinical.followup_failed", "Failed to send follow-up"), variant: "destructive" }),
   });
@@ -856,7 +856,7 @@ export function OutcomePanel({ appointmentId, appointmentStatus, patientId, init
           />
           <div>
             <p className="text-sm font-medium">{t("clinical.follow_up_recommended", "Follow-up appointment recommended")}</p>
-            <p className="text-xs text-muted-foreground">{t("clinical.follow_up_recommended_desc", "Check this if the patient should return for another visit")}</p>
+            <p className="text-xs text-muted-foreground">{t("clinical.follow_up_recommended_desc", "Check this if the member should return for another visit")}</p>
           </div>
         </label>
 
@@ -869,7 +869,7 @@ export function OutcomePanel({ appointmentId, appointmentStatus, patientId, init
           />
           <div>
             <p className="text-sm font-medium">{t("clinical.referral_needed", "Referral to specialist needed")}</p>
-            <p className="text-xs text-muted-foreground">{t("clinical.referral_needed_desc", "Check this if the patient needs a referral to another provider")}</p>
+            <p className="text-xs text-muted-foreground">{t("clinical.referral_needed_desc", "Check this if the member needs a referral to another provider")}</p>
           </div>
         </label>
       </div>
@@ -892,7 +892,7 @@ export function OutcomePanel({ appointmentId, appointmentStatus, patientId, init
       <div className="space-y-2">
         <p className="text-sm font-medium flex items-center gap-1.5">
           <CalendarDays className="h-4 w-4 text-primary" />
-          {t("clinical.send_followup_title", "Notify Patient — Book Follow-Up")}
+          {t("clinical.send_followup_title", "Notify Member — Book Follow-Up")}
         </p>
         {followUpSent ? (
           <div className="flex items-center gap-2 rounded-lg bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 p-3 text-sm text-green-800 dark:text-green-300" data-testid="banner-followup-sent">
@@ -907,7 +907,7 @@ export function OutcomePanel({ appointmentId, appointmentStatus, patientId, init
             <Textarea
               value={followUpNote}
               onChange={(e) => setFollowUpNote(e.target.value)}
-              placeholder={t("clinical.followup_note_placeholder", "Optional message to patient (e.g. 'Please book in 2 weeks for reassessment')")}
+              placeholder={t("clinical.followup_note_placeholder", "Optional message to member (e.g. 'Please book in 2 weeks for reassessment')")}
               rows={2}
               disabled={!isCompleted}
               data-testid="textarea-followup-note"
@@ -983,7 +983,7 @@ export function PatientTimelinePanel({ patientId }: { patientId: string }) {
     return (
       <div className="text-sm text-muted-foreground text-center py-6 flex flex-col items-center gap-2" data-testid="text-timeline-error">
         <AlertCircle className="h-5 w-5" />
-        {t("clinical.timeline_error", "Could not load patient timeline.")}
+        {t("clinical.timeline_error", "Could not load member timeline.")}
       </div>
     );
   }
@@ -1092,7 +1092,7 @@ export function ClinicalWorkspacePanel({ open, onClose, appointment }: ClinicalW
   const [activeTab, setActiveTab] = useState("intake");
   const [isDirty, setIsDirty] = useState(false);
 
-  const patientName = `${appointment.patient?.firstName ?? ""} ${appointment.patient?.lastName ?? ""}`.trim() || t("clinical.patient", "Patient");
+  const patientName = `${appointment.patient?.firstName ?? ""} ${appointment.patient?.lastName ?? ""}`.trim() || t("clinical.patient", "Member");
 
   // ── Intake schema for label resolution (Section B) ──────────────────────────
   const { data: intakeSchemaData } = useQuery<{ schema: IntakeField[] }>({
@@ -1185,7 +1185,7 @@ export function ClinicalWorkspacePanel({ open, onClose, appointment }: ClinicalW
                 <CardHeader className="pb-2 pt-4 px-4">
                   <CardTitle className="text-sm flex items-center gap-1.5">
                     <ClipboardList className="h-4 w-4 text-primary" />
-                    {t("clinical.intake_card_title", "Patient Intake Form Responses")}
+                    {t("clinical.intake_card_title", "Member Intake Form Responses")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="px-4 pb-4">
@@ -1198,7 +1198,7 @@ export function ClinicalWorkspacePanel({ open, onClose, appointment }: ClinicalW
               {appointment.notes && (
                 <Card className="mt-3">
                   <CardHeader className="pb-2 pt-4 px-4">
-                    <CardTitle className="text-sm">{t("clinical.patient_booking_notes", "Booking notes from patient")}</CardTitle>
+                    <CardTitle className="text-sm">{t("clinical.patient_booking_notes", "Booking notes from member")}</CardTitle>
                   </CardHeader>
                   <CardContent className="px-4 pb-4">
                     <p className="text-sm text-muted-foreground">{appointment.notes}</p>
@@ -1343,7 +1343,7 @@ export function ClinicalWorkspacePanel({ open, onClose, appointment }: ClinicalW
                 <CardHeader className="pb-2 pt-4 px-4">
                   <CardTitle className="text-sm flex items-center gap-1.5">
                     <History className="h-4 w-4 text-primary" />
-                    {t("clinical.timeline_title", "Patient Timeline")}
+                    {t("clinical.timeline_title", "Member Timeline")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="px-4 pb-4">
