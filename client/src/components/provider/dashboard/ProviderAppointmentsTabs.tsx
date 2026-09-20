@@ -390,12 +390,17 @@ export function ProviderAppointmentsTabs({ providerData, highlightApptId, active
                 <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> {appointment.startTime}</span>
                 <span className="flex items-center gap-1 capitalize">
                   {isHomeVisit ? <Home className="h-3 w-3" /> : <Video className="h-3 w-3" />}
-                  {appointment.visitType}
+                   {t(`provider_dashboard.type_${appointment.visitType}`, appointment.visitType)}
                 </span>
                 {payment && (
                   <span className="flex items-center gap-1">
                     <PaymentIcon className="h-3 w-3" />
-                    <span className="capitalize">{paymentMethod?.replace(/_/g, " ") || "cash"}</span>
+                    <span className="capitalize">
+                      {t(
+                        `provider_dashboard.payment_${paymentMethod || "cash"}`,
+                        paymentMethod?.replace(/_/g, " ") || t("provider_dashboard.payment_cash", "Cash"),
+                      )}
+                    </span>
                     <span>•</span>
                     <StatusBadge status={paymentStatus} domain="payment" className="text-[10px] py-0 h-4" />
                   </span>

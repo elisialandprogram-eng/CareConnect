@@ -106,6 +106,7 @@ interface PriceHistoryPanelProps {
 }
 
 function PriceHistoryPanel({ history, isLoading, currentPrice }: PriceHistoryPanelProps) {
+  const { t } = useTranslation();
   if (isLoading) {
     return (
       <div className="flex flex-col gap-3 py-6">
@@ -122,8 +123,8 @@ function PriceHistoryPanel({ history, isLoading, currentPrice }: PriceHistoryPan
         <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center">
           <History className="h-5 w-5 text-muted-foreground" />
         </div>
-        <p className="text-sm font-medium text-muted-foreground">No price changes recorded yet</p>
-        <p className="text-xs text-muted-foreground/70">Every time a price is saved, an entry will appear here.</p>
+        <p className="text-sm font-medium text-muted-foreground">{t("provider_forms.price_history_empty", "No price changes recorded yet")}</p>
+        <p className="text-xs text-muted-foreground/70">{t("provider_forms.price_history_desc", "Every time a price is saved, an entry will appear here.")}</p>
       </div>
     );
   }
@@ -135,9 +136,9 @@ function PriceHistoryPanel({ history, isLoading, currentPrice }: PriceHistoryPan
           {history.length} change{history.length !== 1 ? "s" : ""} — most recent first
         </p>
         <div className="flex items-center gap-1 text-xs text-muted-foreground">
-          <span className="inline-flex items-center gap-0.5 text-emerald-600 dark:text-emerald-400"><TrendingDown className="h-3 w-3" /> = decrease</span>
+          <span className="inline-flex items-center gap-0.5 text-emerald-600 dark:text-emerald-400"><TrendingDown className="h-3 w-3" /> {t("provider_forms.decrease", "= decrease")}</span>
           <span className="mx-1">·</span>
-          <span className="inline-flex items-center gap-0.5 text-destructive"><TrendingUp className="h-3 w-3" /> = increase</span>
+          <span className="inline-flex items-center gap-0.5 text-destructive"><TrendingUp className="h-3 w-3" /> {t("provider_forms.increase", "= increase")}</span>
         </div>
       </div>
       <ScrollArea className="h-[340px] pr-2">
@@ -180,7 +181,7 @@ function PriceHistoryPanel({ history, isLoading, currentPrice }: PriceHistoryPan
                   <div className="flex items-center gap-1.5 text-xs text-muted-foreground shrink-0">
                     <Clock className="h-3 w-3" />
                     <span data-testid={`text-changed-at-${entry.id}`}>{fmtDate(entry.changedAt)}</span>
-                    {isLatest && <Badge variant="secondary" className="text-[10px] h-4 px-1.5 ml-1">Latest</Badge>}
+                     {isLatest && <Badge variant="secondary" className="text-[10px] h-4 px-1.5 ml-1">{t("provider_forms.latest", "Latest")}</Badge>}
                   </div>
                 </div>
 
@@ -188,35 +189,35 @@ function PriceHistoryPanel({ history, isLoading, currentPrice }: PriceHistoryPan
 
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-2">
                   <div data-testid={`text-ph-base-${entry.id}`}>
-                    <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Base price</p>
+                    <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{t("provider_forms.base_price", "Base price")}</p>
                     <p className="text-sm font-semibold flex items-center gap-1">
                       {fmt(entry.price)}
                       {prev && <PriceDelta prev={prev.price} curr={entry.price} />}
                     </p>
                   </div>
                   <div data-testid={`text-ph-home-${entry.id}`}>
-                    <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Home visit fee</p>
+                    <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{t("provider_forms.home_fee", "Home visit fee")}</p>
                     <p className="text-sm font-semibold flex items-center gap-1">
                       {fmt(entry.homeVisitFee)}
                       {prev && <PriceDelta prev={prev.homeVisitFee} curr={entry.homeVisitFee} />}
                     </p>
                   </div>
                   <div data-testid={`text-ph-clinic-${entry.id}`}>
-                    <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Clinic fee</p>
+                    <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{t("provider_forms.clinic_fee", "Clinic fee")}</p>
                     <p className="text-sm font-semibold flex items-center gap-1">
                       {fmt(entry.clinicFee)}
                       {prev && <PriceDelta prev={prev.clinicFee} curr={entry.clinicFee} />}
                     </p>
                   </div>
                   <div data-testid={`text-ph-tele-${entry.id}`}>
-                    <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Telemedicine fee</p>
+                    <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{t("provider_forms.telemedicine_fee", "Telemedicine fee")}</p>
                     <p className="text-sm font-semibold flex items-center gap-1">
                       {fmt(entry.telemedicineFee)}
                       {prev && <PriceDelta prev={prev.telemedicineFee} curr={entry.telemedicineFee} />}
                     </p>
                   </div>
                   <div data-testid={`text-ph-emergency-${entry.id}`}>
-                    <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Emergency fee</p>
+                    <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{t("provider_forms.emergency_fee", "Emergency fee")}</p>
                     <p className="text-sm font-semibold flex items-center gap-1">
                       {fmt(entry.emergencyFee)}
                       {prev && <PriceDelta prev={prev.emergencyFee} curr={entry.emergencyFee} />}
@@ -224,7 +225,7 @@ function PriceHistoryPanel({ history, isLoading, currentPrice }: PriceHistoryPan
                   </div>
                   {entry.platformFeeOverride != null && (
                     <div data-testid={`text-ph-platform-${entry.id}`}>
-                      <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Platform fee override</p>
+                    <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{t("provider_forms.platform_fee_override", "Platform fee override")}</p>
                       <p className="text-sm font-semibold">{fmt(entry.platformFeeOverride)}</p>
                     </div>
                   )}
@@ -740,7 +741,7 @@ export function ServiceFormDialog({ open, onOpenChange, service, providerId, adm
 
                 {!lockCategory && editingCategoryId && (
                   <div className="rounded-md border bg-muted/30 p-3 space-y-2" data-testid="form-edit-category">
-                    <Label className="text-xs text-muted-foreground">Edit category</Label>
+                     <Label className="text-xs text-muted-foreground">{t("provider_forms.edit_category", "Edit category")}</Label>
                     <Input
                       placeholder="Category name"
                       value={editingCategoryName}
@@ -765,7 +766,7 @@ export function ServiceFormDialog({ open, onOpenChange, service, providerId, adm
                         onClick={() => { setEditingCategoryId(null); setEditingCategoryName(""); }}
                         data-testid="button-cancel-edit-category"
                       >
-                        Cancel
+                         {t("provider_forms.cancel", "Cancel")}
                       </Button>
                       <Button
                         type="button"
@@ -774,7 +775,7 @@ export function ServiceFormDialog({ open, onOpenChange, service, providerId, adm
                         disabled={updateCategoryMutation.isPending || !editingCategoryName.trim()}
                         data-testid="button-save-edit-category"
                       >
-                        {updateCategoryMutation.isPending ? "Saving..." : "Save"}
+                         {updateCategoryMutation.isPending ? t("common.saving", "Saving...") : t("common.save", "Save")}
                       </Button>
                     </div>
                   </div>
@@ -782,7 +783,7 @@ export function ServiceFormDialog({ open, onOpenChange, service, providerId, adm
 
                 {!lockCategory && showNewCategory && (
                   <div className="rounded-md border bg-muted/30 p-3 space-y-2" data-testid="form-new-category">
-                    <Label className="text-xs text-muted-foreground">New category</Label>
+                     <Label className="text-xs text-muted-foreground">{t("provider_forms.new_category", "New category")}</Label>
                     <Input
                       placeholder="e.g. Sports massage"
                       value={newCategoryName}
@@ -807,7 +808,7 @@ export function ServiceFormDialog({ open, onOpenChange, service, providerId, adm
                         onClick={() => { setShowNewCategory(false); setNewCategoryName(""); }}
                         data-testid="button-cancel-new-category"
                       >
-                        Cancel
+                         {t("provider_forms.cancel", "Cancel")}
                       </Button>
                       <Button
                         type="button"
@@ -816,7 +817,7 @@ export function ServiceFormDialog({ open, onOpenChange, service, providerId, adm
                         disabled={createCategoryMutation.isPending || !newCategoryName.trim()}
                         data-testid="button-save-new-category"
                       >
-                        {createCategoryMutation.isPending ? "Adding..." : "Add"}
+                         {createCategoryMutation.isPending ? t("common.adding", "Adding...") : t("practitioner.add", "Add")}
                       </Button>
                     </div>
                   </div>
@@ -871,7 +872,7 @@ export function ServiceFormDialog({ open, onOpenChange, service, providerId, adm
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label className="text-sm flex items-center gap-1">
-                  <Info className="h-3 w-3 text-muted-foreground" /> Duration <span className="text-destructive">*</span>
+                   <Info className="h-3 w-3 text-muted-foreground" /> {t("provider_forms.duration", "Duration")} <span className="text-destructive">*</span>
                 </Label>
                 <Select value={duration} onValueChange={setDuration}>
                   <SelectTrigger data-testid="select-duration"><SelectValue /></SelectTrigger>
@@ -884,7 +885,7 @@ export function ServiceFormDialog({ open, onOpenChange, service, providerId, adm
               </div>
               <div className="space-y-2">
                 <Label className="text-sm flex items-center gap-1">
-                  <Info className="h-3 w-3 text-muted-foreground" /> Time slot length <span className="text-destructive">*</span>
+                   <Info className="h-3 w-3 text-muted-foreground" /> {t("provider_forms.slot_length", "Time slot length")} <span className="text-destructive">*</span>
                 </Label>
                 <Select value={slotLength} onValueChange={setSlotLength}>
                   <SelectTrigger data-testid="select-slot-length"><SelectValue /></SelectTrigger>
@@ -939,17 +940,17 @@ export function ServiceFormDialog({ open, onOpenChange, service, providerId, adm
 
               return (
                 <div className="space-y-3 rounded-lg border bg-muted/30 p-3">
-                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
-                    <Clock className="h-3.5 w-3.5" /> Buffer Time
+                     <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
+                     <Clock className="h-3.5 w-3.5" /> {t("provider_forms.buffer_time", "Buffer Time")}
                   </p>
 
                   <div className="space-y-1">
                     <Label className="text-xs flex items-center gap-1">
-                      Buffer Before
-                      <span className="text-muted-foreground font-normal ml-1">— extra time blocked <em>before</em> appointment (not billed)</span>
+                       {t("provider_forms.buffer_before", "Buffer Before")}
+                       <span className="text-muted-foreground font-normal ml-1">— {t("provider_forms.buffer_before_desc", "extra time blocked before appointment (not billed)")}</span>
                     </Label>
                     <ChipRow value={bufferBefore} setValue={v => setBufferBefore(String(Math.min(240, Math.max(0, Number(v) || 0))))} testId="input-buffer-before" />
-                    {errBefore && <p className="text-xs text-destructive mt-1">Maximum buffer is 240 minutes.</p>}
+                     {errBefore && <p className="text-xs text-destructive mt-1">{t("provider_forms.max_buffer", "Maximum buffer is 240 minutes.")}</p>}
                     {!errBefore && warnBefore && (
                       <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">⚠ Buffer before ({bufBeforeNum} min) is as long as or longer than the service duration ({durNum} min).</p>
                     )}
@@ -957,11 +958,11 @@ export function ServiceFormDialog({ open, onOpenChange, service, providerId, adm
 
                   <div className="space-y-1">
                     <Label className="text-xs flex items-center gap-1">
-                      Buffer After
-                      <span className="text-muted-foreground font-normal ml-1">— extra time blocked <em>after</em> appointment (not billed)</span>
+                       {t("provider_forms.buffer_after", "Buffer After")}
+                       <span className="text-muted-foreground font-normal ml-1">— {t("provider_forms.buffer_after_desc", "extra time blocked after appointment (not billed)")}</span>
                     </Label>
                     <ChipRow value={bufferAfter} setValue={v => setBufferAfter(String(Math.min(240, Math.max(0, Number(v) || 0))))} testId="input-buffer-after" />
-                    {errAfter && <p className="text-xs text-destructive mt-1">Maximum buffer is 240 minutes.</p>}
+                     {errAfter && <p className="text-xs text-destructive mt-1">{t("provider_forms.max_buffer", "Maximum buffer is 240 minutes.")}</p>}
                     {!errAfter && warnAfter && (
                       <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">⚠ Buffer after ({bufAfterNum} min) is as long as or longer than the service duration ({durNum} min).</p>
                     )}
@@ -1019,7 +1020,7 @@ export function ServiceFormDialog({ open, onOpenChange, service, providerId, adm
 
             {/* Settings section */}
             <div className="space-y-2">
-              <h3 className="text-sm font-semibold tracking-wide text-muted-foreground uppercase">Settings</h3>
+              <h3 className="text-sm font-semibold tracking-wide text-muted-foreground uppercase">{t("provider_forms.settings", "Settings")}</h3>
             </div>
 
             <div className="flex items-center justify-between rounded-md border px-3 py-3">
@@ -1033,43 +1034,43 @@ export function ServiceFormDialog({ open, onOpenChange, service, providerId, adm
             {/* Service delivery mode */}
             <div className="space-y-2 rounded-md border p-4">
               <div>
-                <Label className="text-sm font-medium">Service Delivery Mode</Label>
-                <p className="text-xs text-muted-foreground">Which visit types are available for this specific service.</p>
+                 <Label className="text-sm font-medium">{t("provider_forms.delivery_mode", "Service Delivery Mode")}</Label>
+                 <p className="text-xs text-muted-foreground">{t("provider_forms.delivery_mode_desc", "Which visit types are available for this specific service.")}</p>
               </div>
               <Select value={locationMode} onValueChange={setLocationMode}>
                 <SelectTrigger data-testid="select-service-location-mode">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="both">Clinic &amp; Home</SelectItem>
-                  <SelectItem value="clinic_only">Clinic Only</SelectItem>
-                  <SelectItem value="home_only">Home Visit Only</SelectItem>
-                  <SelectItem value="online_only">Online Only</SelectItem>
-                  <SelectItem value="clinic_online">Clinic &amp; Online</SelectItem>
-                  <SelectItem value="home_online">Home &amp; Online</SelectItem>
-                  <SelectItem value="all">All modes (Clinic · Home · Online)</SelectItem>
+                   <SelectItem value="both">{t("provider_forms.clinic_home", "Clinic & Home")}</SelectItem>
+                   <SelectItem value="clinic_only">{t("provider_forms.clinic_only", "Clinic Only")}</SelectItem>
+                   <SelectItem value="home_only">{t("provider_forms.home_only", "Home Visit Only")}</SelectItem>
+                   <SelectItem value="online_only">{t("provider_forms.online_only", "Online Only")}</SelectItem>
+                   <SelectItem value="clinic_online">{t("provider_forms.clinic_online", "Clinic & Online")}</SelectItem>
+                   <SelectItem value="home_online">{t("provider_forms.home_online", "Home & Online")}</SelectItem>
+                   <SelectItem value="all">{t("provider_forms.all_modes", "All modes (Clinic · Home · Online)")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             <div className="space-y-3 rounded-md border p-4">
               <div>
-                <Label className="text-sm font-medium">Visit-type fees</Label>
-                <p className="text-xs text-muted-foreground">Extra fee added on top of the base price for each visit type. Leave at 0 if not applicable.</p>
+                 <Label className="text-sm font-medium">{t("provider_forms.visit_type_fees", "Visit-type fees")}</Label>
+                 <p className="text-xs text-muted-foreground">{t("provider_forms.visit_type_fees_desc", "Extra fee added on top of the base price for each visit type. Leave at 0 if not applicable.")}</p>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <Label className="text-xs">Home visit ({inputSymbol})</Label>
+                   <Label className="text-xs">{t("provider_forms.home_fee", "Home visit fee")} ({inputSymbol})</Label>
                   <Input type="number" step={inputStep} value={homeVisitFee} onChange={(e) => setHomeVisitFee(e.target.value)} data-testid="input-home-visit-fee" />
                   {usdHint(homeVisitFee) && <p className="text-[10px] text-muted-foreground mt-0.5">{usdHint(homeVisitFee)}</p>}
                 </div>
                 <div>
-                  <Label className="text-xs">Clinic ({inputSymbol})</Label>
+                   <Label className="text-xs">{t("provider_forms.clinic_fee", "Clinic fee")} ({inputSymbol})</Label>
                   <Input type="number" step={inputStep} value={clinicFee} onChange={(e) => setClinicFee(e.target.value)} data-testid="input-clinic-fee" />
                   {usdHint(clinicFee) && <p className="text-[10px] text-muted-foreground mt-0.5">{usdHint(clinicFee)}</p>}
                 </div>
                 <div>
-                  <Label className="text-xs">Telemedicine ({inputSymbol})</Label>
+                   <Label className="text-xs">{t("provider_forms.telemedicine_fee", "Telemedicine fee")} ({inputSymbol})</Label>
                   <Input type="number" step={inputStep} value={telemedicineFee} onChange={(e) => setTelemedicineFee(e.target.value)} data-testid="input-telemedicine-fee" />
                   {usdHint(telemedicineFee) && <p className="text-[10px] text-muted-foreground mt-0.5">{usdHint(telemedicineFee)}</p>}
                 </div>
@@ -1085,8 +1086,8 @@ export function ServiceFormDialog({ open, onOpenChange, service, providerId, adm
             </div>
 
             <div className="rounded-md border p-4 space-y-2">
-              <Label className="text-sm font-medium">Daily capacity</Label>
-              <p className="text-xs text-muted-foreground">Max members per day for this service. Leave empty for no limit.</p>
+               <Label className="text-sm font-medium">{t("provider_forms.daily_capacity", "Daily capacity")}</Label>
+               <p className="text-xs text-muted-foreground">{t("provider_forms.daily_capacity_desc", "Max members per day for this service. Leave empty for no limit.")}</p>
               <Input
                 type="number"
                 min="0"
@@ -1101,7 +1102,7 @@ export function ServiceFormDialog({ open, onOpenChange, service, providerId, adm
             {/* Availability hours: per-visit-type window override */}
             <div className="rounded-md border p-4 space-y-3">
               <div>
-                <Label className="text-sm font-medium">Availability hours</Label>
+                 <Label className="text-sm font-medium">{t("provider_forms.availability_hours", "Availability hours")}</Label>
                 <p className="text-xs text-muted-foreground mt-0.5">
                   Limit when this service can be booked for each visit type. Leave empty to use your regular schedule.
                 </p>
@@ -1167,7 +1168,7 @@ export function ServiceFormDialog({ open, onOpenChange, service, providerId, adm
                 >
                   <span className="flex items-center gap-2 text-sm font-medium">
                     <History className="h-4 w-4 text-muted-foreground" />
-                    Price history
+                     {t("provider_forms.price_history", "Price history")}
                     {priceHistory.length > 0 && (
                       <Badge variant="secondary" className="ml-1 text-[10px] h-4 px-1.5">{priceHistory.length}</Badge>
                     )}
@@ -1191,18 +1192,18 @@ export function ServiceFormDialog({ open, onOpenChange, service, providerId, adm
               onClick={() => setIsActive(false)}
               data-testid="button-hide-service"
             >
-              HIDE SERVICE
+               {t("provider_forms.hide_service", "HIDE SERVICE")}
             </Button>
           )}
           <Button variant="ghost" onClick={() => onOpenChange(false)} data-testid="button-close-service">
-            CLOSE
+             {t("provider_forms.close", "CLOSE")}
           </Button>
           <Button
             onClick={() => saveMutation.mutate()}
             disabled={saveMutation.isPending || !name || !price}
             data-testid="button-save-service"
           >
-            {saveMutation.isPending ? "Saving..." : "SAVE"}
+             {saveMutation.isPending ? t("common.saving", "Saving...") : t("common.save_upper", "SAVE")}
           </Button>
         </DialogFooter>
       </DialogContent>

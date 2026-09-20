@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -73,6 +74,7 @@ function checkGuardrail(priceUSD: number, s: SubService & { minPrice?: any; maxP
 const PROPOSE_EMPTY = { category: "", serviceName: "", description: "", suggestedPrice: "", locationMode: "both" };
 
 function ProposeServiceForm({ category, onClose }: { category?: string; onClose: () => void }) {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const [form, setForm] = useState({ ...PROPOSE_EMPTY, category: category ?? "" });
 
@@ -99,18 +101,18 @@ function ProposeServiceForm({ category, onClose }: { category?: string; onClose:
     <div className="rounded-xl border border-dashed border-primary/40 bg-primary/5 p-4 space-y-3" data-testid="form-propose-service">
       <div className="flex items-center gap-2">
         <Send className="h-4 w-4 text-primary" />
-        <p className="text-sm font-semibold">Propose a new service</p>
+        <p className="text-sm font-semibold">{t("provider_forms.propose_title", "Propose a new service")}</p>
       </div>
       <p className="text-xs text-muted-foreground">
-        Can't find your service in the catalogue? Submit a proposal and an admin will review it and add it for you.
+        {t("provider_forms.propose_desc", "Can't find your service in the catalogue? Submit a proposal and an admin will review it and add it for you.")}
       </p>
 
       <div className="grid grid-cols-1 gap-3">
         <div>
-          <Label className="text-xs">Category <span className="text-destructive">*</span></Label>
+          <Label className="text-xs">{t("provider_forms.category", "Category")} <span className="text-destructive">*</span></Label>
           <Select value={form.category} onValueChange={v => setForm(f => ({ ...f, category: v }))}>
             <SelectTrigger className="mt-1 rounded-lg h-9 text-sm" data-testid="select-propose-category">
-              <SelectValue placeholder="Select category…" />
+              <SelectValue placeholder={t("provider_forms.select_category", "Select category…")} />
             </SelectTrigger>
             <SelectContent>
               {Object.entries(CATEGORY_LABELS).map(([k, v]) => (
@@ -121,22 +123,22 @@ function ProposeServiceForm({ category, onClose }: { category?: string; onClose:
         </div>
 
         <div>
-          <Label className="text-xs">Service name <span className="text-destructive">*</span></Label>
+          <Label className="text-xs">{t("provider_forms.service_name", "Service name")} <span className="text-destructive">*</span></Label>
           <Input
             value={form.serviceName}
             onChange={e => setForm(f => ({ ...f, serviceName: e.target.value }))}
-            placeholder="e.g. Kinesio Taping"
+            placeholder={t("provider_forms.service_placeholder", "e.g. Kinesio Taping")}
             className="mt-1 rounded-lg h-9 text-sm"
             data-testid="input-propose-name"
           />
         </div>
 
         <div>
-          <Label className="text-xs">Description (optional)</Label>
+          <Label className="text-xs">{t("provider_forms.description_optional", "Description (optional)")}</Label>
           <Textarea
             value={form.description}
             onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-            placeholder="Brief description of the service…"
+            placeholder={t("provider_forms.description_placeholder", "Brief description of the service…")}
             rows={2}
             className="mt-1 rounded-lg text-sm resize-none"
             data-testid="textarea-propose-description"
@@ -145,7 +147,7 @@ function ProposeServiceForm({ category, onClose }: { category?: string; onClose:
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <Label className="text-xs">Suggested price (USD, optional)</Label>
+            <Label className="text-xs">{t("provider_forms.suggested_price", "Suggested price (USD, optional)")}</Label>
             <div className="relative mt-1">
               <span className="absolute start-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">$</span>
               <Input
@@ -161,17 +163,17 @@ function ProposeServiceForm({ category, onClose }: { category?: string; onClose:
             </div>
           </div>
           <div>
-            <Label className="text-xs">Delivery mode</Label>
+          <Label className="text-xs">{t("provider_forms.delivery", "Delivery mode")}</Label>
             <Select value={form.locationMode} onValueChange={v => setForm(f => ({ ...f, locationMode: v }))}>
               <SelectTrigger className="mt-1 rounded-lg h-9 text-sm" data-testid="select-propose-location">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="both">Clinic &amp; Home</SelectItem>
-                <SelectItem value="clinic_only">Clinic Only</SelectItem>
-                <SelectItem value="home_only">Home Only</SelectItem>
-                <SelectItem value="online_only">Online Only</SelectItem>
-                <SelectItem value="all">All modes</SelectItem>
+                <SelectItem value="both">{t("provider_forms.clinic_home", "Clinic & Home")}</SelectItem>
+                <SelectItem value="clinic_only">{t("provider_forms.clinic_only", "Clinic Only")}</SelectItem>
+                <SelectItem value="home_only">{t("provider_forms.home_only", "Home Only")}</SelectItem>
+                <SelectItem value="online_only">{t("provider_forms.online_only", "Online Only")}</SelectItem>
+                <SelectItem value="all">{t("provider_forms.all_modes", "All modes")}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -179,7 +181,7 @@ function ProposeServiceForm({ category, onClose }: { category?: string; onClose:
       </div>
 
       <div className="flex justify-end gap-2 pt-1">
-        <Button size="sm" variant="ghost" onClick={onClose} data-testid="button-propose-cancel">Cancel</Button>
+        <Button size="sm" variant="ghost" onClick={onClose} data-testid="button-propose-cancel">{t("provider_forms.cancel", "Cancel")}</Button>
         <Button
           size="sm"
           onClick={() => propose.mutate()}
@@ -187,7 +189,7 @@ function ProposeServiceForm({ category, onClose }: { category?: string; onClose:
           data-testid="button-propose-submit"
         >
           {propose.isPending ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <Send className="h-3.5 w-3.5 mr-1.5" />}
-          Submit Proposal
+          {t("provider_forms.submit_proposal", "Submit Proposal")}
         </Button>
       </div>
     </div>
@@ -196,6 +198,7 @@ function ProposeServiceForm({ category, onClose }: { category?: string; onClose:
 
 /* ── Main dialog ────────────────────────────────────────────────── */
 export function AddServiceCatalogueDialog({ open, onOpenChange, providerId }: Props) {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const { code: preferredCode, format: fmtPrice } = useCurrency();
   const [search, setSearch] = useState("");
@@ -336,7 +339,7 @@ export function AddServiceCatalogueDialog({ open, onOpenChange, providerId }: Pr
         <div className="flex items-start gap-2 rounded-lg border border-destructive/40 bg-destructive/5 p-3 text-sm">
           <AlertTriangle className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
           <div>
-            <p className="font-semibold text-destructive">Price below minimum</p>
+            <p className="font-semibold text-destructive">{t("provider_forms.price_below_min", "Price below minimum")}</p>
             <p className="text-xs text-muted-foreground mt-0.5">
               The minimum allowed price for this service is {fmtUsdInNative(Number(s.minPrice))} (platform minimum). Please increase your price.
             </p>
@@ -349,7 +352,7 @@ export function AddServiceCatalogueDialog({ open, onOpenChange, providerId }: Pr
         <div className="flex items-start gap-2 rounded-lg border border-destructive/40 bg-destructive/5 p-3 text-sm">
           <AlertTriangle className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
           <div>
-            <p className="font-semibold text-destructive">Price above maximum</p>
+            <p className="font-semibold text-destructive">{t("provider_forms.price_above_max", "Price above maximum")}</p>
             <p className="text-xs text-muted-foreground mt-0.5">
               The maximum allowed price for this service is {fmtUsdInNative(Number(s.maxPrice))} (platform maximum). Please reduce your price.
             </p>
@@ -362,7 +365,7 @@ export function AddServiceCatalogueDialog({ open, onOpenChange, providerId }: Pr
         <div className="flex items-start gap-2 rounded-lg border border-amber-400/40 bg-amber-50 dark:bg-amber-950/20 p-3 text-sm">
           <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
           <div>
-            <p className="font-medium text-amber-800 dark:text-amber-300">Below suggested range</p>
+            <p className="font-medium text-amber-800 dark:text-amber-300">{t("provider_forms.below_suggested", "Below suggested range")}</p>
             <p className="text-xs text-muted-foreground mt-0.5">
               Suggested minimum is {fmtUsdInNative(Number(s.suggestedMinPrice))}. You can proceed, but this may require admin review.
             </p>
@@ -375,7 +378,7 @@ export function AddServiceCatalogueDialog({ open, onOpenChange, providerId }: Pr
         <div className="flex items-start gap-2 rounded-lg border border-amber-400/40 bg-amber-50 dark:bg-amber-950/20 p-3 text-sm">
           <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
           <div>
-            <p className="font-medium text-amber-800 dark:text-amber-300">Above suggested range</p>
+            <p className="font-medium text-amber-800 dark:text-amber-300">{t("provider_forms.above_suggested", "Above suggested range")}</p>
             <p className="text-xs text-muted-foreground mt-0.5">
               Suggested maximum is {fmtUsdInNative(Number(s.suggestedMaxPrice))}. You can proceed, but this may require admin review.
             </p>
@@ -492,12 +495,12 @@ export function AddServiceCatalogueDialog({ open, onOpenChange, providerId }: Pr
               </p>
               {myCategory && (
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-xs text-muted-foreground font-medium">Your category:</span>
+                  <span className="text-xs text-muted-foreground font-medium">{t("provider_forms.your_category", "Your category:")}</span>
                   <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold ${CATEGORY_COLORS[myCategory] ?? "bg-muted text-muted-foreground"}`}>
                     {CATEGORY_LABELS[myCategory] ?? myCategory}
                   </span>
                   {hasAdminOverride && (
-                    <span className="text-xs text-amber-600 dark:text-amber-400 font-medium">(admin override)</span>
+                    <span className="text-xs text-amber-600 dark:text-amber-400 font-medium">({t("provider_forms.admin_override", "admin override")})</span>
                   )}
                 </div>
               )}
@@ -522,7 +525,7 @@ export function AddServiceCatalogueDialog({ open, onOpenChange, providerId }: Pr
               {myCategory && (
                 <div className="flex items-center gap-2 flex-wrap">
                   {hasAdminOverride && (
-                    <Badge variant="secondary" className="text-xs">Admin override</Badge>
+                    <Badge variant="secondary" className="text-xs">{t("provider_forms.admin_override", "Admin override")}</Badge>
                   )}
                   <Badge variant="default" className="text-xs">
                     {CATEGORY_LABELS[myCategory] ?? myCategory}
@@ -636,7 +639,7 @@ export function AddServiceCatalogueDialog({ open, onOpenChange, providerId }: Pr
             </div>
 
             <DialogFooter className="px-6 py-4 border-t shrink-0">
-              <Button variant="outline" onClick={handleClose}>Cancel</Button>
+              <Button variant="outline" onClick={handleClose}>{t("provider_forms.cancel", "Cancel")}</Button>
             </DialogFooter>
           </>
         ) : (
@@ -665,17 +668,17 @@ export function AddServiceCatalogueDialog({ open, onOpenChange, providerId }: Pr
                     </div>
                     <div className="grid grid-cols-3 gap-3 pt-2 border-t border-border/50">
                       <div>
-                        <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Duration</p>
+                        <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{t("provider_forms.duration", "Duration")}</p>
                         <p className="text-sm font-semibold">{selected.durationMinutes || 30} min</p>
                       </div>
                       <div>
-                        <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Catalogue Price</p>
+                        <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{t("provider_forms.catalogue_price", "Catalogue Price")}</p>
                         <p className="text-sm font-semibold">
                           {Number(selected.basePrice || 0) > 0 ? fmtPrice(Number(selected.basePrice)) : "—"}
                         </p>
                       </div>
                       <div>
-                        <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Tax rules</p>
+                        <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{t("provider_forms.tax_rules", "Tax rules")}</p>
                         <p className="text-sm font-semibold">
                           Configured in Revenue & Billing
                         </p>
@@ -684,19 +687,19 @@ export function AddServiceCatalogueDialog({ open, onOpenChange, providerId }: Pr
                     {/* Guardrail range display */}
                     {((selected as any).minPrice || (selected as any).maxPrice || (selected as any).suggestedMinPrice || (selected as any).suggestedMaxPrice) && (
                       <div className="pt-2 border-t border-border/50">
-                        <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1.5">Price Guardrails</p>
+                        <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1.5">{t("provider_forms.price_guardrails", "Price Guardrails")}</p>
                         <div className="flex flex-wrap gap-3 text-xs">
                           {(selected as any).minPrice && (
-                            <span className="text-muted-foreground">Hard min: <strong className="text-foreground">{fmtUsdInNative(Number((selected as any).minPrice))}</strong></span>
+                            <span className="text-muted-foreground">{t("provider_forms.hard_min", "Hard min:")} <strong className="text-foreground">{fmtUsdInNative(Number((selected as any).minPrice))}</strong></span>
                           )}
                           {(selected as any).maxPrice && (
-                            <span className="text-muted-foreground">Hard max: <strong className="text-foreground">{fmtUsdInNative(Number((selected as any).maxPrice))}</strong></span>
+                            <span className="text-muted-foreground">{t("provider_forms.hard_max", "Hard max:")} <strong className="text-foreground">{fmtUsdInNative(Number((selected as any).maxPrice))}</strong></span>
                           )}
                           {(selected as any).suggestedMinPrice && (
-                            <span className="text-muted-foreground">Suggested min: <strong className="text-foreground">{fmtUsdInNative(Number((selected as any).suggestedMinPrice))}</strong></span>
+                            <span className="text-muted-foreground">{t("provider_forms.suggested_min", "Suggested min:")} <strong className="text-foreground">{fmtUsdInNative(Number((selected as any).suggestedMinPrice))}</strong></span>
                           )}
                           {(selected as any).suggestedMaxPrice && (
-                            <span className="text-muted-foreground">Suggested max: <strong className="text-foreground">{fmtUsdInNative(Number((selected as any).suggestedMaxPrice))}</strong></span>
+                            <span className="text-muted-foreground">{t("provider_forms.suggested_max", "Suggested max:")} <strong className="text-foreground">{fmtUsdInNative(Number((selected as any).suggestedMaxPrice))}</strong></span>
                           )}
                         </div>
                       </div>
@@ -706,7 +709,7 @@ export function AddServiceCatalogueDialog({ open, onOpenChange, providerId }: Pr
                   {/* Currency selector */}
                   <div className="rounded-xl border bg-muted/30 p-3 flex items-center justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="text-xs font-medium">Price Currency</p>
+                      <p className="text-xs font-medium">{t("provider_forms.price_currency", "Price Currency")}</p>
                       <p className="text-[11px] text-muted-foreground leading-snug">
                         Enter prices in your local currency — they'll be saved as USD.
                       </p>
@@ -785,56 +788,56 @@ export function AddServiceCatalogueDialog({ open, onOpenChange, providerId }: Pr
                   {/* Service delivery mode */}
                   <div className="space-y-1.5">
                     <Label className="text-sm font-medium">
-                      Service Delivery Mode <span className="text-destructive">*</span>
+                       {t("provider_forms.delivery_mode", "Service Delivery Mode")} <span className="text-destructive">*</span>
                     </Label>
                     <p className="text-xs text-muted-foreground">
-                      How clients can book this service.
+                       {t("provider_forms.delivery_mode_booking_desc", "How members can book this service.")}
                     </p>
                     <Select value={locationMode} onValueChange={setLocationMode}>
                       <SelectTrigger className="rounded-xl" data-testid="select-location-mode">
-                        <SelectValue placeholder="Select mode" />
+                         <SelectValue placeholder={t("provider_forms.select_mode", "Select mode")} />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="both">
                           <div className="flex items-center gap-2">
                             <Building2 className="h-4 w-4" />
-                            Clinic &amp; Home Visit (both)
+                             {t("provider_forms.clinic_home_visit", "Clinic & Home Visit")} ({t("provider_forms.both", "both")})
                           </div>
                         </SelectItem>
                         <SelectItem value="clinic_only">
                           <div className="flex items-center gap-2">
                             <Building2 className="h-4 w-4" />
-                            Clinic Visit Only
+                             {t("provider_forms.clinic_visit_only", "Clinic Visit Only")}
                           </div>
                         </SelectItem>
                         <SelectItem value="home_only">
                           <div className="flex items-center gap-2">
                             <Home className="h-4 w-4" />
-                            Home Visit Only
+                             {t("provider_forms.home_visit_only", "Home Visit Only")}
                           </div>
                         </SelectItem>
                         <SelectItem value="online_only">
                           <div className="flex items-center gap-2">
                             <Video className="h-4 w-4" />
-                            Online Consultation Only
+                             {t("provider_forms.online_consultation_only", "Online Consultation Only")}
                           </div>
                         </SelectItem>
                         <SelectItem value="clinic_online">
                           <div className="flex items-center gap-2">
                             <Building2 className="h-4 w-4" />
-                            Clinic &amp; Online
+                             {t("provider_forms.clinic_online", "Clinic & Online")}
                           </div>
                         </SelectItem>
                         <SelectItem value="home_online">
                           <div className="flex items-center gap-2">
                             <Home className="h-4 w-4" />
-                            Home &amp; Online
+                             {t("provider_forms.home_online", "Home & Online")}
                           </div>
                         </SelectItem>
                         <SelectItem value="all">
                           <div className="flex items-center gap-2">
                             <Check className="h-4 w-4" />
-                            All modes (Clinic, Home &amp; Online)
+                             {t("provider_forms.all_modes_long", "All modes (Clinic, Home & Online)")}
                           </div>
                         </SelectItem>
                       </SelectContent>
@@ -844,7 +847,7 @@ export function AddServiceCatalogueDialog({ open, onOpenChange, providerId }: Pr
                   {/* Visit-type fees */}
                   <div className="space-y-3">
                     <div>
-                      <Label className="text-sm font-medium">Visit Type Fees (Optional)</Label>
+                       <Label className="text-sm font-medium">{t("provider_forms.visit_type_fees_optional", "Visit Type Fees (Optional)")}</Label>
                       <p className="text-xs text-muted-foreground mt-0.5">
                         Set additional fees per visit mode. Leave blank if you don't charge extra.
                         Online/telemedicine will only be available if you set a telemedicine fee.
@@ -938,8 +941,8 @@ export function AddServiceCatalogueDialog({ open, onOpenChange, providerId }: Pr
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                       <div className="space-y-1">
-                        <Label className="text-xs font-medium">Before (min)</Label>
-                        <p className="text-[11px] text-muted-foreground">e.g. travel time, setup</p>
+                        <Label className="text-xs font-medium">{t("provider_forms.before_min", "Before (min)")}</Label>
+                        <p className="text-[11px] text-muted-foreground">{t("provider_forms.before_desc", "e.g. travel time, setup")}</p>
                         <Select value={bufferBefore} onValueChange={setBufferBefore}>
                           <SelectTrigger className="rounded-lg h-9 text-sm" data-testid="select-buffer-before">
                             <SelectValue />
@@ -952,8 +955,8 @@ export function AddServiceCatalogueDialog({ open, onOpenChange, providerId }: Pr
                         </Select>
                       </div>
                       <div className="space-y-1">
-                        <Label className="text-xs font-medium">After (min)</Label>
-                        <p className="text-[11px] text-muted-foreground">e.g. notes, travel</p>
+                        <Label className="text-xs font-medium">{t("provider_forms.after_min", "After (min)")}</Label>
+                        <p className="text-[11px] text-muted-foreground">{t("provider_forms.after_desc", "e.g. notes, travel")}</p>
                         <Select value={bufferAfter} onValueChange={setBufferAfter}>
                           <SelectTrigger className="rounded-lg h-9 text-sm" data-testid="select-buffer-after">
                             <SelectValue />
@@ -992,26 +995,26 @@ export function AddServiceCatalogueDialog({ open, onOpenChange, providerId }: Pr
                   {/* Price summary */}
                   {price && Number(price) > 0 && (
                     <div className="rounded-xl border bg-primary/5 p-3 space-y-1.5">
-                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Price summary</p>
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{t("provider_forms.price_summary", "Price summary")}</p>
                       <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Base price</span>
+                        <span className="text-muted-foreground">{t("provider_forms.base_price", "Base price")}</span>
                         <span className="font-medium">{fmtInput(price)}</span>
                       </div>
                       {["home_only", "home_online", "both", "all"].includes(locationMode) && homeVisitFee && Number(homeVisitFee) > 0 && (
                         <div className="flex justify-between text-sm">
-                          <span className="text-muted-foreground flex items-center gap-1"><Home className="h-3 w-3" />Home visit fee</span>
+                          <span className="text-muted-foreground flex items-center gap-1"><Home className="h-3 w-3" />{t("provider_forms.home_fee", "Home visit fee")}</span>
                           <span className="font-medium">+{fmtInput(homeVisitFee)}</span>
                         </div>
                       )}
                       {["clinic_only", "clinic_online", "both", "all"].includes(locationMode) && clinicFee && Number(clinicFee) > 0 && (
                         <div className="flex justify-between text-sm">
-                          <span className="text-muted-foreground flex items-center gap-1"><Building2 className="h-3 w-3" />Clinic fee</span>
+                          <span className="text-muted-foreground flex items-center gap-1"><Building2 className="h-3 w-3" />{t("provider_forms.clinic_fee", "Clinic fee")}</span>
                           <span className="font-medium">+{fmtInput(clinicFee)}</span>
                         </div>
                       )}
                       {telemedicineFee && Number(telemedicineFee) > 0 && (
                         <div className="flex justify-between text-sm">
-                          <span className="text-muted-foreground flex items-center gap-1"><Video className="h-3 w-3" />Online fee</span>
+                          <span className="text-muted-foreground flex items-center gap-1"><Video className="h-3 w-3" />{t("provider_forms.online_fee", "Online fee")}</span>
                           <span className="font-medium">+{fmtInput(telemedicineFee)}</span>
                         </div>
                       )}

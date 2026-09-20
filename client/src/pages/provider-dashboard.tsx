@@ -1492,7 +1492,15 @@ export default function ProviderDashboard() {
               ) : (
                 <div className="space-y-3">
                   <p className="text-sm text-muted-foreground">
-                     {uniqueClients.length} unique member{uniqueClients.length !== 1 ? "s" : ""}
+                     {t(
+                       uniqueClients.length === 1
+                         ? "provider_dashboard.unique_members_one"
+                         : "provider_dashboard.unique_members_other",
+                       uniqueClients.length === 1
+                         ? "{{count}} unique member"
+                         : "{{count}} unique members",
+                       { count: uniqueClients.length },
+                     )}
                   </p>
                   <div className="rounded-xl border overflow-hidden">
                     <table className="w-full text-sm">
@@ -1509,8 +1517,8 @@ export default function ProviderDashboard() {
                           <tr key={c.patientId} className="hover:bg-muted/30 transition-colors" data-testid={`row-client-${c.patientId}`}>
                             <td className="px-4 py-3">
                               <div className="flex items-center gap-3">
-                                <AvatarSM src={c.avatarUrl ?? undefined} name={c.name || "?"} />
-                                <span className="font-medium">{c.name || "Unknown"}</span>
+                                 <AvatarSM src={c.avatarUrl ?? undefined} name={c.name || "?"} />
+                                 <span className="font-medium">{c.name || t("provider_dashboard.unknown_member", "Unknown")}</span>
                               </div>
                             </td>
                             <td className="px-4 py-3 text-right tabular-nums">
@@ -1527,7 +1535,7 @@ export default function ProviderDashboard() {
                                 data-testid={`button-view-timeline-${c.patientId}`}
                                 onClick={() => setPatientTimelineId(c.patientId)}
                               >
-                                View
+                                 {t("provider_dashboard.view", "View")}
                               </Button>
                             </td>
                           </tr>
@@ -1773,11 +1781,17 @@ export default function ProviderDashboard() {
             <DialogContent className="max-w-lg w-full" data-testid="modal-patient-timeline">
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-3">
-                  {timelineClient && <AvatarSM src={timelineClient.avatarUrl ?? undefined} name={timelineClient.name || "?"} />}
+                   {timelineClient && <AvatarSM src={timelineClient.avatarUrl ?? undefined} name={timelineClient.name || "?"} />}
                   <div>
-                    <span className="font-bold">{timelineClient?.name || "Member"}</span>
+                     <span className="font-bold">{timelineClient?.name || t("provider_sweep.member", "Member")}</span>
                     <p className="text-xs font-normal text-muted-foreground mt-0.5">
-                      {timelineAppts.length} appointment{timelineAppts.length !== 1 ? "s" : ""}
+                       {t(
+                         timelineAppts.length === 1
+                           ? "provider_dashboard.appointments_one"
+                           : "provider_dashboard.appointments_other",
+                         timelineAppts.length === 1 ? "{{count}} appointment" : "{{count}} appointments",
+                         { count: timelineAppts.length },
+                       )}
                     </p>
                   </div>
                 </DialogTitle>
@@ -1799,7 +1813,7 @@ export default function ProviderDashboard() {
                             <div className="flex items-center justify-between gap-2">
                               <p className="text-xs font-medium text-muted-foreground">{a.date} · {a.startTime ?? ""}</p>
                               <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full shrink-0 ${statusColor}`}>
-                                {a.status.replace(/_/g, " ")}
+                                 {t(`provider_dashboard.status_${a.status}`, a.status.replace(/_/g, " "))}
                               </span>
                             </div>
                             {svcName && <p className="text-sm font-medium mt-0.5 truncate">{svcName}</p>}
@@ -1810,7 +1824,7 @@ export default function ProviderDashboard() {
                             )}
                             {(a as any).visitType && (
                               <Badge variant="outline" className="text-[10px] mt-1 capitalize">
-                                {(a as any).visitType.replace("_", " ")}
+                                 {String(t(`provider_dashboard.type_${(a as any).visitType}`, (a as any).visitType.replace("_", " ")))}
                               </Badge>
                             )}
                           </div>

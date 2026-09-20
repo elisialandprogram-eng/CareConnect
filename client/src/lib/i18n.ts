@@ -9,6 +9,7 @@ import {
 } from '../i18n/member-terminology';
 import { memberSweepTranslations } from '../i18n/member-sweep';
 import { providerSweepTranslations } from '../i18n/provider-sweep';
+import { providerDashboardSweepTranslations } from '../i18n/provider-dashboard-sweep';
 
 const SUPPORTED = ['en', 'hu', 'fa'] as const;
 type Lang = (typeof SUPPORTED)[number];
@@ -52,12 +53,16 @@ async function ensureLanguage(lng: string) {
   if (loaded.has(code)) return;
   try {
     const mod = await loaders[code]();
-    const translation = mergeTranslationAdditions(
+    let translation = mergeTranslationAdditions(
       mergeTranslationAdditions(
         mod.default,
         memberSweepTranslations[code] as unknown as Record<string, unknown>,
       ),
       providerSweepTranslations[code] as unknown as Record<string, unknown>,
+    );
+    translation = mergeTranslationAdditions(
+      translation,
+      providerDashboardSweepTranslations[code] as unknown as Record<string, unknown>,
     );
     i18n.addResourceBundle(
       code,
@@ -90,10 +95,13 @@ i18n
         translation: normalizeTranslationTree(
           mergeTranslationAdditions(
             mergeTranslationAdditions(
-              enTranslation as Record<string, unknown>,
-              memberSweepTranslations.en as unknown as Record<string, unknown>,
+              mergeTranslationAdditions(
+                enTranslation as Record<string, unknown>,
+                memberSweepTranslations.en as unknown as Record<string, unknown>,
+              ),
+              providerSweepTranslations.en as unknown as Record<string, unknown>,
             ),
-            providerSweepTranslations.en as unknown as Record<string, unknown>,
+            providerDashboardSweepTranslations.en as unknown as Record<string, unknown>,
           ),
           'en',
         ),
