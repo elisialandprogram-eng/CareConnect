@@ -1149,23 +1149,30 @@ export function registerProviderRoutes(app: Express): void {
       const insightsLostBookings     = Number(lostRows.rows[0]?.cnt ?? 0);
 
       const growthTips: string[] = [];
+      const growthTipKeys: Array<{ key: string; count?: number }> = [];
       if (insightsCancellationRate > 20) {
         growthTips.push("Your cancellation rate is above 20%. Sending reminders 24–48 h before sessions can reduce no-shows.");
+        growthTipKeys.push({ key: "growth_tip_high_cancellation" });
       }
       if (insightsRepeatPct < 30 && totalBookings >= 5) {
         growthTips.push("Fewer than 30% of your members return. A service package can encourage long-term engagement.");
+        growthTipKeys.push({ key: "growth_tip_low_repeat" });
       }
       if (insightsUtilizationPct < 50 && totalBookings >= 3) {
         growthTips.push("Your completion rate is under 50%. Review your scheduling and follow up with members who cancel.");
+        growthTipKeys.push({ key: "growth_tip_low_completion" });
       }
       if (insightsLostBookings > 5) {
         growthTips.push(`${insightsLostBookings} bookings were lost to cancellations or no-shows. A clear cancellation policy can help.`);
+        growthTipKeys.push({ key: "growth_tip_lost_bookings", count: insightsLostBookings });
       }
       if (repeatPatients.length === 0 && totalBookings >= 5) {
         growthTips.push("Build long-term relationships by recommending follow-up visits at the end of each session.");
+        growthTipKeys.push({ key: "growth_tip_no_repeat" });
       }
       if (growthTips.length === 0 && totalBookings > 0) {
         growthTips.push("You're on track! Keep your profile updated and availability open to maximise bookings.");
+        growthTipKeys.push({ key: "growth_tip_on_track" });
       }
 
       res.json({
@@ -1187,6 +1194,7 @@ export function registerProviderRoutes(app: Express): void {
         })),
         repeatPatients,
         growthTips,
+        growthTipKeys,
       });
     } catch (error) {
       console.error("[provider/insights] error:", error);

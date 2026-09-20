@@ -134,3 +134,4 @@
 - [Modality-aware scheduling](modality-aware-scheduling.md) — canonical clinic/home/online slot provenance; shared slots are null and modality edits must not erase other modes
 - [Stripe webhook idempotency schema compatibility](idempotency-schema-compat.md) — claim only portable key/scope/expiry fields with untargeted ON CONFLICT; legacy DBs differ from current idempotency schema
 - [Client localization parity](client-localization-parity.md) — keep en/fa/hu translation keys identical; page-facing literals should use useTranslation, including public/legal and patient dashboard UI
+- [Provider generated-copy localization](provider-generated-copy-localization.md) — server-generated provider copy must return translation keys plus interpolation data; the client renders the active locale

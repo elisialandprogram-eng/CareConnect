@@ -923,7 +923,7 @@ export function SmartScheduler({ provider }: { provider?: any }) {
                                 </SelectTrigger>
                                 <SelectContent>
                                   {[10,15,20,30,45,60,90,120].map(d => (
-                                    <SelectItem key={d} value={String(d)}>{d} min</SelectItem>
+                                    <SelectItem key={d} value={String(d)}>{d} {t("provider_dashboard.minutes_short", "min")}</SelectItem>
                                   ))}
                                 </SelectContent>
                               </Select>

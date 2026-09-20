@@ -41,6 +41,7 @@ interface InsightsData {
   popularServices: { name: string; count: number }[];
   repeatPatients: { patientId: string; name: string; visitCount: number; lastVisit: string }[];
   growthTips: string[];
+  growthTipKeys?: Array<{ key: string; count?: number }>;
 }
 
 interface EarningsData {
@@ -163,7 +164,11 @@ function OverviewTab({ analytics, insights, fmtMoney }: { analytics?: AnalyticsD
               {insights!.growthTips.map((tip, i) => (
                 <div key={i} className="flex gap-2 text-sm">
                   <span className="text-amber-500 shrink-0">💡</span>
-                  <p className="text-muted-foreground leading-relaxed">{tip}</p>
+                  <p className="text-muted-foreground leading-relaxed">
+                    {insights!.growthTipKeys?.[i]
+                      ? t(`provider_dashboard.${insights!.growthTipKeys[i].key}`, tip, { count: insights!.growthTipKeys[i].count })
+                      : tip}
+                  </p>
                 </div>
               ))}
             </div>
@@ -737,7 +742,11 @@ function GrowthTab({ insights, fmtMoney }: { insights?: InsightsData; fmtMoney: 
               {insights.growthTips.map((tip, i) => (
                 <div key={i} className="flex gap-2 text-sm">
                   <span className="text-amber-500 shrink-0">💡</span>
-                  <p className="text-muted-foreground leading-relaxed">{tip}</p>
+                  <p className="text-muted-foreground leading-relaxed">
+                    {insights.growthTipKeys?.[i]
+                      ? t(`provider_dashboard.${insights.growthTipKeys[i].key}`, tip, { count: insights.growthTipKeys[i].count })
+                      : tip}
+                  </p>
                 </div>
               ))}
             </div>
@@ -765,7 +774,7 @@ function ExportsTab({ fmtMoney }: { fmtMoney: (v: number) => string }) {
           <a href="/api/provider/earnings/export" download data-testid="export-provider-earnings-csv">
             <Button size="sm" variant="outline" className="gap-1.5 shrink-0">
               <Download className="h-3.5 w-3.5" />
-              CSV
+              {t("provider_dashboard.csv", "CSV")}
             </Button>
           </a>
         </CardContent>

@@ -103,6 +103,7 @@ interface InsightsData {
   popularServices: { name: string; count: number }[];
   repeatPatients: { patientId: string; name: string; visitCount: number; lastVisit: string }[];
   growthTips?: string[];
+  growthTipKeys?: Array<{ key: string; count?: number }>;
 }
 
 // ── Profile completeness helpers ──────────────────────────────────────────────
@@ -281,7 +282,11 @@ function ProviderInsightsTab({ data, fmtMoney }: { data: InsightsData; fmtMoney:
               {(data.growthTips ?? []).map((tip, i) => (
                 <li key={i} className="flex items-start gap-2.5 text-sm" data-testid={`growth-tip-${i}`}>
                   <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 text-xs font-bold">{i + 1}</span>
-                  <span className="text-muted-foreground leading-relaxed">{tip}</span>
+                  <span className="text-muted-foreground leading-relaxed">
+                    {data.growthTipKeys?.[i]
+                      ? t(`provider_dashboard.${data.growthTipKeys[i].key}`, tip, { count: data.growthTipKeys[i].count })
+                      : tip}
+                  </span>
                 </li>
               ))}
             </ul>
@@ -1081,7 +1086,10 @@ export default function ProviderDashboard() {
               </div>
               <div className="flex-1">
                 <p className="font-semibold text-sm text-orange-800 dark:text-orange-200">
-                  You have {pendingCount} pending appointment{pendingCount !== 1 ? "s" : ""} waiting for review
+                  {t("provider_dashboard.pending_appointments_banner", "You have {{count}} pending appointments waiting for review", {
+                    count: pendingCount,
+                    plural: pendingCount !== 1 ? "s" : "",
+                  })}
                 </p>
                  <p className="text-xs text-orange-700/70 dark:text-orange-300/70">{t("provider_dashboard.pending_tasks_desc", "Approve or reject member requests to keep your queue up to date.")}</p>
               </div>
@@ -1115,7 +1123,7 @@ export default function ProviderDashboard() {
                     {t("provider_sweep.next", "Next")}: {nextAppt.service?.name ?? t("provider_sweep.appointment", "Appointment")} {t("provider_sweep.with", "with")} {patientName}
                   </p>
                   <div className="flex items-center gap-3 text-xs text-muted-foreground mt-0.5">
-                    <span>{nextAppt.date} at {nextAppt.startTime}</span>
+                     <span>{nextAppt.date} {t("provider_dashboard.at", "at")} {nextAppt.startTime}</span>
                     <AppointmentTimeContext
                       date={nextAppt.date}
                       startTime={nextAppt.startTime}
@@ -1174,7 +1182,7 @@ export default function ProviderDashboard() {
                 </Link>
                 <br />
                 <Link href="/packages" className="inline-flex items-center gap-1 mt-2 text-xs font-medium text-white/80 hover:text-white underline-offset-2 hover:underline" data-testid="link-provider-packages">
-                  🎁 Membership Packages →
+                   🎁 {t("provider_dashboard.membership_packages", "Membership Packages")} →
                 </Link>
               </div>
               <div className="md:col-span-2">
@@ -1264,7 +1272,7 @@ export default function ProviderDashboard() {
                   <div className="stat-icon h-8 w-8"><Star className="h-3.5 w-3.5" /></div>
                 </div>
                 <p className="text-2xl font-bold" data-testid="text-rating">{Number(providerData?.rating || 0).toFixed(1)}<span className="text-sm font-normal text-muted-foreground"> / 5</span></p>
-                <p className="text-xs text-muted-foreground mt-0.5">{providerData?.totalReviews || 0} reviews</p>
+                 <p className="text-xs text-muted-foreground mt-0.5">{t("provider_dashboard.reviews_count", "{{count}} reviews", { count: providerData?.totalReviews || 0 })}</p>
               </CardContent>
             </Card>
             <Card className="stat-card stat-sky">
@@ -1274,7 +1282,7 @@ export default function ProviderDashboard() {
                   <div className="stat-icon h-8 w-8"><ClipboardCheck className="h-3.5 w-3.5" /></div>
                 </div>
                 <p className="text-2xl font-bold" data-testid="text-completion-rate">{completionRate}%</p>
-                <p className="text-xs text-muted-foreground mt-0.5">{completedAppointments.length} of {allAppointments.length} completed</p>
+                 <p className="text-xs text-muted-foreground mt-0.5">{t("provider_dashboard.completion_summary", "{{completed}} of {{total}} completed", { completed: completedAppointments.length, total: allAppointments.length })}</p>
               </CardContent>
             </Card>
             <Card className={`stat-card ${cancellationRate > 20 ? "stat-orange" : "stat-indigo"}`}>
@@ -1336,7 +1344,7 @@ export default function ProviderDashboard() {
                         {svcName && <p className="text-xs text-muted-foreground truncate">{svcName}</p>}
                       </div>
                       <span className={`text-[11px] px-2 py-0.5 rounded-full font-medium whitespace-nowrap ${statusCls}`}>
-                        {a.status.replace(/_/g, " ")}
+                         {t(`provider_dashboard.status_${a.status}`, a.status.replace(/_/g, " "))}
                       </span>
                     </div>
                   );

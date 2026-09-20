@@ -180,7 +180,7 @@ function RequestServiceEditDialog({
             data-testid="button-submit-edit-request"
           >
             {submit.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-            Submit request
+            {t("provider_dashboard.submit_request", "Submit request")}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -697,7 +697,7 @@ export function ProviderServicesTab({ providerData, providerWithServices, setAct
               <Input id="pkg-name" value={pkgName} onChange={e => setPkgName(e.target.value)} data-testid="input-package-name" />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="pkg-desc">{t("provider_dashboard.package_description", "Description")} <span className="text-muted-foreground">(optional)</span></Label>
+              <Label htmlFor="pkg-desc">{t("provider_dashboard.package_description", "Description")} <span className="text-muted-foreground">({t("provider_dashboard.optional", "optional")})</span></Label>
               <Textarea id="pkg-desc" value={pkgDescription} onChange={e => setPkgDescription(e.target.value)} rows={2} data-testid="input-package-description" />
             </div>
             <div className="grid grid-cols-2 gap-3">
@@ -706,7 +706,7 @@ export function ProviderServicesTab({ providerData, providerWithServices, setAct
                 <Input id="pkg-price" type="number" step={pkgInputStep} value={pkgPrice} onChange={e => setPkgPrice(e.target.value)} data-testid="input-package-price" />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="pkg-dur">{t("provider_dashboard.package_duration", "Duration (min)")} <span className="text-muted-foreground">(optional)</span></Label>
+                <Label htmlFor="pkg-dur">{t("provider_dashboard.package_duration", "Duration (min)")} <span className="text-muted-foreground">({t("provider_dashboard.optional", "optional")})</span></Label>
                 <Input id="pkg-dur" type="number" min={1} value={pkgDuration} onChange={e => setPkgDuration(e.target.value)} data-testid="input-package-duration" />
               </div>
             </div>

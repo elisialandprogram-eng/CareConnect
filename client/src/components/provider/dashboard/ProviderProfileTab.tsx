@@ -325,7 +325,7 @@ function ProfileStrength({
                   {item.done ? <CheckCircle className="h-3.5 w-3.5 text-emerald-500" /> : <div className="h-2 w-2 rounded-full bg-muted-foreground/40" />}
                 </div>
                 <span className={`flex-1 ${item.done ? "line-through text-muted-foreground" : ""}`}>{item.label}</span>
-                <span className="text-xs text-muted-foreground tabular-nums shrink-0">+{item.pts}pts</span>
+                 <span className="text-xs text-muted-foreground tabular-nums shrink-0">+{item.pts} {t("provider_dashboard.points", "pts")}</span>
                 {!item.done && !locked && (
                   <Button size="sm" variant="ghost" className="h-6 px-2 text-xs shrink-0 text-primary hover:text-primary"
                     onClick={(e) => { e.stopPropagation(); onOpenSection(item.section); }}
@@ -340,7 +340,7 @@ function ProfileStrength({
           <div className="mt-4 pt-3 border-t border-border/60">
             <div className="flex items-center justify-between text-xs text-muted-foreground mb-1.5">
               <span>{t("provider_dashboard.overall_progress", "Overall progress")}</span>
-              <span className={`font-semibold tabular-nums ${ringColor}`}>{earnedPts} / {totalPts} pts</span>
+               <span className={`font-semibold tabular-nums ${ringColor}`}>{earnedPts} / {totalPts} {t("provider_dashboard.points", "pts")}</span>
             </div>
             <div className="h-2 rounded-full bg-muted overflow-hidden">
               <div className={`h-full ${barColor} rounded-full transition-all duration-700`} style={{ width: `${pct}%` }} />
@@ -361,7 +361,7 @@ function ProfileStrength({
                         data-testid="checkbox-strength-provider-agreement"
                       />
                       <span className="text-xs leading-snug text-muted-foreground">
-                        I agree to the{" "}
+                         {t("provider_dashboard.agree_to", "I agree to the")}{" "}
                         <a href="/legal/provider-agreement" target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-2 font-medium">{t("provider_dashboard.provider_agreement", "Provider Agreement")}</a>
                       </span>
                     </label>
@@ -374,7 +374,7 @@ function ProfileStrength({
                         data-testid="checkbox-strength-data-processing"
                       />
                       <span className="text-xs leading-snug text-muted-foreground">
-                        I agree to the{" "}
+                         {t("provider_dashboard.agree_to", "I agree to the")}{" "}
                         <a href="/legal/data-processing-agreement" target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-2 font-medium">{t("provider_dashboard.data_processing_agreement", "Data Processing Agreement")}</a>
                       </span>
                     </label>
@@ -1658,7 +1658,7 @@ export function ProviderProfileTab({
               data-testid="input-max-travel-distance"
               className="w-36"
             />
-            <span className="text-sm text-muted-foreground">km</span>
+            <span className="text-sm text-muted-foreground">{t("provider_dashboard.kilometers", "km")}</span>
             {workplaceData.maxTravelDistanceKm && Number(workplaceData.maxTravelDistanceKm) > 0 && (
               <Badge variant="secondary" className="text-xs">
                  {t("provider_dashboard.up_to_km", "Up to {{distance}} km", { distance: workplaceData.maxTravelDistanceKm })}

@@ -275,7 +275,7 @@ export function TreatmentPlansPanel({
                           {plan.status.replace("_", " ")}
                         </Badge>
                         {totalTasks > 0 && (
-                          <span className="text-xs text-muted-foreground">{completedTasks}/{totalTasks} tasks</span>
+                          <span className="text-xs text-muted-foreground">{completedTasks}/{totalTasks} {t("provider_dashboard.tasks", "tasks")}</span>
                         )}
                       </div>
                       {plan.start_date && (

@@ -1319,7 +1319,7 @@ export function ProviderAppointmentsTabs({ providerData, highlightApptId, active
 
           <DialogFooter className="gap-2">
             <Button variant="outline" onClick={() => { setPinDialogOpen(false); setPendingCompleteId(null); setPinValue(""); setPinError(""); }} data-testid="button-pin-cancel">
-              Cancel
+              {t("common.cancel", "Cancel")}
             </Button>
             <Button
               className="bg-green-600 hover:bg-green-700 text-white"
@@ -1337,7 +1337,7 @@ export function ProviderAppointmentsTabs({ providerData, highlightApptId, active
               data-testid="button-pin-confirm"
             >
               {updateStatusMutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <CheckCircle className="h-4 w-4 mr-2" />}
-              Confirm session complete
+              {t("provider_dashboard.confirm_session_complete", "Confirm session complete")}
             </Button>
           </DialogFooter>
         </DialogContent>

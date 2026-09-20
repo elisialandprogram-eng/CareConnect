@@ -579,7 +579,7 @@ export function StructuredScheduleEditor({
             {clearWeekMut.isPending
               ? <Loader2 className="h-3 w-3 animate-spin" />
               : <Trash2 className="h-3 w-3" />}
-            Clear Week
+            {t("provider_dashboard.clear_week", "Clear Week")}
           </Button>
           <Button
             size="sm"
@@ -837,7 +837,7 @@ export function ProviderOfficeHoursCard({
           />
           <div className="flex items-center justify-between">
             {autoReplyDirty ? (
-              <p className="text-xs text-amber-600 dark:text-amber-400 font-medium">● Unsaved changes</p>
+              <p className="text-xs text-amber-600 dark:text-amber-400 font-medium">● {t("provider_dashboard.unsaved_changes", "Unsaved changes")}</p>
             ) : (
               <span />
             )}
@@ -850,7 +850,7 @@ export function ProviderOfficeHoursCard({
               data-testid="button-save-auto-reply"
             >
               {saveAutoReply.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
-              Save
+              {t("provider_dashboard.save", "Save")}
             </Button>
           </div>
         </CardContent>
@@ -1201,7 +1201,7 @@ export function WorkloadControlsCard({ provider }: { provider: any }) {
           data-testid="button-save-workload-settings"
         >
           {saveMut.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
-          Save settings
+          {t("provider_dashboard.save_settings", "Save settings")}
         </Button>
       </CardContent>
     </Card>
