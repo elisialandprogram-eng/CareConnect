@@ -82,25 +82,27 @@ interface EarningsPayload {
   };
 }
 
+type ProviderTranslator = (key: string, fallback: string, options?: Record<string, unknown>) => string;
+
 const CURRENCY_OPTIONS = [
-  { value: "all", label: "All currencies" },
-  { value: "USD", label: "USD — US Dollar" },
-  { value: "HUF", label: "HUF — Hungarian Forint" },
-  { value: "IRR", label: "IRR — Iranian Rial" },
-  { value: "EUR", label: "EUR — Euro" },
+  { value: "all", labelKey: "provider_sweep.earnings.all_currencies", fallback: "All currencies" },
+  { value: "USD", labelKey: "provider_sweep.earnings.usd", fallback: "USD — US Dollar" },
+  { value: "HUF", labelKey: "provider_sweep.earnings.huf", fallback: "HUF — Hungarian Forint" },
+  { value: "IRR", labelKey: "provider_sweep.earnings.irr", fallback: "IRR — Iranian Rial" },
+  { value: "EUR", labelKey: "provider_sweep.earnings.eur", fallback: "EUR — Euro" },
 ];
 
 const STATUS_OPTIONS = [
-  { value: "all", label: "All payment statuses" },
-  { value: "completed", label: "Payment completed" },
-  { value: "pending", label: "Payment pending" },
+  { value: "all", labelKey: "provider_sweep.earnings.all_payment_statuses", fallback: "All payment statuses" },
+  { value: "completed", labelKey: "provider_sweep.earnings.payment_completed", fallback: "Payment completed" },
+  { value: "pending", labelKey: "provider_sweep.earnings.payment_pending", fallback: "Payment pending" },
 ];
 
 const VISIT_TYPE_LABELS: Record<string, string> = {
-  clinic_visit: "Clinic",
-  home_visit: "Home",
-  online: "Online",
-  telemedicine: "Video",
+  clinic_visit: "provider_sweep.earnings.clinic",
+  home_visit: "provider_sweep.earnings.home",
+  online: "provider_sweep.earnings.online",
+  telemedicine: "provider_sweep.earnings.video",
 };
 
 function formatDate(value: Date | string | null | undefined) {
@@ -112,9 +114,10 @@ function patientName(e: RichEarning) {
   return name || "—";
 }
 
-function visitBadge(type: string | null) {
+function visitBadge(type: string | null, translate: ProviderTranslator) {
   if (!type) return null;
-  const label = VISIT_TYPE_LABELS[type] ?? type;
+  const labelKey = VISIT_TYPE_LABELS[type];
+  const label = labelKey ? translate(labelKey, type) : type;
   const colors: Record<string, string> = {
     clinic_visit: "bg-blue-100 text-blue-700 border-blue-200",
     home_visit: "bg-purple-100 text-purple-700 border-purple-200",
@@ -330,7 +333,7 @@ export default function ProviderEarnings() {
     <div className="min-h-screen bg-background flex flex-col">
       <Header />
       <PageBreadcrumbs
-        items={[{ label: "Provider Dashboard", href: "/provider/dashboard" }, { label: "Earnings" }]}
+        items={[{ label: t("provider_sweep.earnings.dashboard", "Provider Dashboard"), href: "/provider/dashboard" }, { label: t("provider_earnings.title", "Earnings") }]}
         fallback="/provider/dashboard"
       />
       <main className="flex-1 container mx-auto px-4 py-8 max-w-6xl">
@@ -384,7 +387,7 @@ export default function ProviderEarnings() {
                   </SelectTrigger>
                   <SelectContent>
                     {STATUS_OPTIONS.map((o) => (
-                      <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                      <SelectItem key={o.value} value={o.value}>{t(o.labelKey, o.fallback)}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -397,7 +400,7 @@ export default function ProviderEarnings() {
                   </SelectTrigger>
                   <SelectContent>
                     {CURRENCY_OPTIONS.map((o) => (
-                      <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                      <SelectItem key={o.value} value={o.value}>{t(o.labelKey, o.fallback)}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -582,7 +585,7 @@ export default function ProviderEarnings() {
                               {patientName(e)}
                             </TableCell>
                             <TableCell className="hidden sm:table-cell">
-                              {visitBadge(e.visitType)}
+                              {visitBadge(e.visitType, (key, fallback, options) => String(t(key, fallback, options)))}
                             </TableCell>
                             {(() => {
                               const { providerGross, providerCommission, settlement, fmtPay } =

@@ -66,16 +66,16 @@ const CONTEXTUAL_MESSAGES = [
 ];
 
 const HEALTH_TIPS = [
-  "Drink enough water throughout the day to support your body.",
-  "Regular exercise improves overall wellbeing and mood.",
-  "Quality sleep supports recovery and mental clarity.",
-  "Routine checkups help prevent future health issues.",
-  "Taking medications consistently improves outcomes.",
-  "A few deep breaths can reduce stress significantly.",
-  "Small daily habits build long-term health.",
-];
+  { key: "dashboard.health_tip_1", fallback: "Drink enough water throughout the day to support your body." },
+  { key: "dashboard.health_tip_2", fallback: "Regular exercise improves overall wellbeing and mood." },
+  { key: "dashboard.health_tip_3", fallback: "Quality sleep supports recovery and mental clarity." },
+  { key: "dashboard.health_tip_4", fallback: "Routine checkups help prevent future health issues." },
+  { key: "dashboard.health_tip_5", fallback: "Taking medications consistently improves outcomes." },
+  { key: "dashboard.health_tip_6", fallback: "A few deep breaths can reduce stress significantly." },
+  { key: "dashboard.health_tip_7", fallback: "Small daily habits build long-term health." },
+] as const;
 
-function useRotating<T>(items: T[], intervalMs = 8000): T {
+function useRotating<T>(items: readonly T[], intervalMs = 8000): T {
   const [idx, setIdx] = useState(0);
   useEffect(() => {
     const t = setInterval(() => setIdx((i) => (i + 1) % items.length), intervalMs);
@@ -836,7 +836,7 @@ function HealthTip() {
           <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-400 mb-1">
             {t("patient_sweep.home_health_tip", "Health tip of the day")}
           </p>
-          <p className="text-sm text-foreground leading-relaxed">{tip}</p>
+          <p className="text-sm text-foreground leading-relaxed">{t(tip.key, tip.fallback)}</p>
         </div>
       </CardContent>
     </Card>

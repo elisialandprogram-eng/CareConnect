@@ -2,6 +2,7 @@ import React, { useState, useEffect, Component } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
 import { useTranslation } from "react-i18next";
+import i18n from "@/lib/i18n";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient, invalidateProviderProfile } from "@/lib/queryClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -108,11 +109,11 @@ export const PROVIDER_TAXONOMY = [
 type TaxonomyEntry = typeof PROVIDER_TAXONOMY[number];
 
 const CURRENCY_OPTIONS = [
-  { code: "USD", label: "USD ($) — US Dollar" },
-  { code: "HUF", label: "HUF (Ft) — Hungarian Forint" },
-  { code: "IRR", label: "IRR (﷼) — Iranian Rial" },
-  { code: "GBP", label: "GBP (£) — British Pound" },
-  { code: "EUR", label: "EUR (€) — Euro" },
+  { code: "USD", labelKey: "provider_sweep.currency.usd", fallback: "USD ($) — US Dollar" },
+  { code: "HUF", labelKey: "provider_sweep.currency.huf", fallback: "HUF (Ft) — Hungarian Forint" },
+  { code: "IRR", labelKey: "provider_sweep.currency.irr", fallback: "IRR (﷼) — Iranian Rial" },
+  { code: "GBP", labelKey: "provider_sweep.currency.gbp", fallback: "GBP (£) — British Pound" },
+  { code: "EUR", labelKey: "provider_sweep.currency.eur", fallback: "EUR (€) — Euro" },
 ] as const;
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -150,7 +151,7 @@ class SectionErrorBoundary extends Component<{ children: React.ReactNode; sectio
     if (this.state.error) {
       return (
         <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
-          <strong>Error loading {this.props.section} section.</strong> {this.state.error.message}
+          <strong>{i18n.t("provider_dashboard.error_loading_section", "Error loading {{section}} section.", { section: this.props.section })}</strong> {this.state.error.message}
         </div>
       );
     }
@@ -885,10 +886,10 @@ export function ProviderProfileTab({
   // Currency: users.preferredCurrency is the single source of truth (display currency)
   // ═══════════════════════════════════════════════════════════════════════════
   const PAYMENT_METHOD_OPTIONS = [
-    { value: "card", label: "Credit / Debit Card" },
-    { value: "cash", label: "Cash" },
-    { value: "bank_transfer", label: "Bank Transfer" },
-    { value: "insurance", label: "Insurance" },
+    { value: "card", labelKey: "provider_sweep.payment.card", fallback: "Credit / Debit Card" },
+    { value: "cash", labelKey: "provider_sweep.payment.cash", fallback: "Cash" },
+    { value: "bank_transfer", labelKey: "provider_sweep.payment.bank_transfer", fallback: "Bank Transfer" },
+    { value: "insurance", labelKey: "provider_sweep.payment.insurance", fallback: "Insurance" },
   ];
 
   const [prefDraft, setPrefDraft] = useState<{
@@ -1575,7 +1576,7 @@ export function ProviderProfileTab({
                <SelectValue placeholder={`— ${t("provider_dashboard.select_practice_currency", "Select your practice currency")} —`} />
             </SelectTrigger>
             <SelectContent>
-              {CURRENCY_OPTIONS.map((opt) => <SelectItem key={opt.code} value={opt.code}>{opt.label}</SelectItem>)}
+              {CURRENCY_OPTIONS.map((opt) => <SelectItem key={opt.code} value={opt.code}>{t(opt.labelKey, opt.fallback)}</SelectItem>)}
             </SelectContent>
           </Select>
           {!(user as any)?.preferredCurrency && (
@@ -1932,7 +1933,7 @@ export function ProviderProfileTab({
                       <div className={`w-4 h-4 rounded-[4px] border flex items-center justify-center flex-shrink-0 ${checked ? "bg-primary border-primary" : "border-muted-foreground/40"}`}>
                         {checked && <CheckCircle className="w-3 h-3 text-white" />}
                       </div>
-                      {opt.label}
+                      {t(opt.labelKey, opt.fallback)}
                     </button>
                   );
                 })}

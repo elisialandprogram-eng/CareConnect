@@ -662,7 +662,7 @@ export function ProviderServicesTab({ providerData, providerWithServices, setAct
                         <div className="flex-1 min-w-0">
                           <p className="font-medium text-sm truncate">{proposal.serviceName || proposal.title || "Untitled proposal"}</p>
                           {proposal.category && <p className="text-xs text-muted-foreground">{proposal.category}</p>}
-                          {proposal.adminNotes && <p className="text-xs text-muted-foreground mt-1 italic">Admin: {proposal.adminNotes}</p>}
+                          {proposal.adminNotes && <p className="text-xs text-muted-foreground mt-1 italic">{t("provider_dashboard.admin_note_prefix", "Admin")}: {proposal.adminNotes}</p>}
                         </div>
                         <div className="flex items-center gap-2 shrink-0">
                           {dateStr && <span className="text-xs text-muted-foreground hidden sm:block">{dateStr}</span>}

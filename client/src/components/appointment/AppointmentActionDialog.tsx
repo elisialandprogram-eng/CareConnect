@@ -314,29 +314,29 @@ export function AppointmentActionDialog({
               <div className="flex items-center gap-2">
                 <Wallet className="h-4 w-4 text-primary shrink-0" />
                 <span className="font-semibold text-sm">{t("appt_action.refund_preview", "Refund preview")}</span>
-                <Badge
+                  <Badge
                   variant={quote.refund.amount > 0 ? "default" : "secondary"}
                   className="ml-auto text-[10px] h-5"
                   data-testid="badge-refund-policy"
                 >
                   {quote.refund.policy === "full" || quote.refund.policy === "provider_full"
-                    ? "Full refund"
+                    ? t("provider_sweep.action.full_refund", "Full refund")
                     : quote.refund.policy === "partial"
-                    ? "50% refund"
-                    : "No refund"}
+                    ? t("provider_sweep.action.half_refund", "50% refund")
+                    : t("provider_sweep.action.no_refund", "No refund")}
                 </Badge>
               </div>
 
               <div className="grid grid-cols-2 gap-3 text-sm">
                 <div>
-                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Refund amount</p>
+                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{t("provider_sweep.action.refund_amount", "Refund amount")}</p>
                   <p className="font-bold text-base" data-testid="text-refund-amount">
                     {quote.refund.amount > 0 ? formatInCurrency(quote.refund.amount, quote.displayCurrency ?? "USD") : "—"}
                   </p>
                 </div>
                 {quote.hoursBeforeStart !== null && (
                   <div>
-                    <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Time to appointment</p>
+                    <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{t("provider_sweep.action.time_to_appointment", "Time to appointment")}</p>
                     <p className="font-medium flex items-center gap-1">
                       <Clock className="h-3 w-3 text-muted-foreground" />
                       {quote.hoursBeforeStart >= 24
@@ -352,7 +352,7 @@ export function AppointmentActionDialog({
               {quote.refund.amount > 0 && (
                 <div className="flex items-start gap-2 text-xs text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30 rounded-lg px-3 py-2">
                   <CheckCircle2 className="h-3.5 w-3.5 shrink-0 mt-0.5" />
-                  <span>Refund will be credited to the member's wallet immediately after cancellation.</span>
+                  <span>{t("provider_sweep.action.refund_notice", "Refund will be credited to the member's wallet immediately after cancellation.")}</span>
                 </div>
               )}
             </div>
@@ -368,7 +368,7 @@ export function AppointmentActionDialog({
                 <SelectContent>
                   {reasonCodes.map((code) => (
                     <SelectItem key={code} value={code} data-testid={`option-reason-${code}`}>
-                      {REASON_LABELS[code] ?? code}
+                      {t(`provider_sweep.action.${code}`, REASON_LABELS[code] ?? code)}
                     </SelectItem>
                   ))}
                 </SelectContent>

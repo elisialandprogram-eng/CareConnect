@@ -106,25 +106,25 @@ interface InsightsData {
 }
 
 // ── Profile completeness helpers ──────────────────────────────────────────────
-const PROFILE_SECTIONS: { section: ProfileSection; label: string; icon: string; checks: (p: any) => { label: string; done: boolean }[] }[] = [
-  { section: "professional", label: "Professional Info", icon: "👤", checks: (p: any) => [
+const PROFILE_SECTIONS: { section: ProfileSection; labelKey: string; labelFallback: string; icon: string; checks: (p: any) => { label: string; done: boolean }[] }[] = [
+  { section: "professional", labelKey: "provider_sweep.profile.professional_info", labelFallback: "Professional Info", icon: "👤", checks: (p: any) => [
     { label: "Specialization", done: !!p.specialization },
     { label: "Bio / About you", done: !!p.bio },
     { label: "Years of experience", done: p.yearsExperience != null && p.yearsExperience > 0 },
     { label: "Education", done: !!p.education },
   ]},
-  { section: "verification", label: "Credentials & KYC", icon: "🪪", checks: (p: any) => [
+  { section: "verification", labelKey: "provider_sweep.profile.credentials_kyc", labelFallback: "Credentials & KYC", icon: "🪪", checks: (p: any) => [
     { label: "License number", done: !!p.licenseNumber },
     { label: "Licensing authority", done: !!p.licensingAuthority },
   ]},
-  { section: "workplace", label: "Workplace", icon: "📍", checks: (p: any) => [
+  { section: "workplace", labelKey: "provider_sweep.profile.workplace", labelFallback: "Workplace", icon: "📍", checks: (p: any) => [
     { label: "Primary location", done: !!p.primaryServiceLocation || !!p.city },
     { label: "City", done: !!p.city },
   ]},
-  { section: "services", label: "Service Delivery", icon: "🩺", checks: (p: any) => [
+  { section: "services", labelKey: "provider_sweep.profile.service_delivery", labelFallback: "Service Delivery", icon: "🩺", checks: (p: any) => [
     { label: "At least one service mode", done: Array.isArray(p.serviceModes) && p.serviceModes.length > 0 },
   ]},
-] as { section: ProfileSubSection; label: string; icon: string; checks: (p: any) => { label: string; done: boolean }[] }[];
+ ] as { section: ProfileSubSection; labelKey: string; labelFallback: string; icon: string; checks: (p: any) => { label: string; done: boolean }[] }[];
 
 function ProfileCompletenessCard({
   provider,
@@ -193,7 +193,7 @@ function ProfileCompletenessCard({
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border bg-background hover:border-primary/50 hover:bg-primary/5 transition-all text-sm text-muted-foreground hover:text-foreground group"
                 data-testid={`button-complete-section-${section.section}`}>
                 <span>{section.icon}</span>
-                 <span className="font-medium">{t(`provider_dashboard.nav_${section.section}`, section.label)}</span>
+                  <span className="font-medium">{t(section.labelKey, section.labelFallback)}</span>
                 <Badge variant="secondary" className="text-[10px] h-4 px-1.5">{missing.length}</Badge>
                 <ChevronRight className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
               </button>
@@ -1112,7 +1112,7 @@ export default function ProviderDashboard() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="font-semibold text-sm">
-                    Next: {nextAppt.service?.name ?? "Appointment"} with {patientName}
+                    {t("provider_sweep.next", "Next")}: {nextAppt.service?.name ?? t("provider_sweep.appointment", "Appointment")} {t("provider_sweep.with", "with")} {patientName}
                   </p>
                   <div className="flex items-center gap-3 text-xs text-muted-foreground mt-0.5">
                     <span>{nextAppt.date} at {nextAppt.startTime}</span>
@@ -1929,16 +1929,16 @@ export default function ProviderDashboard() {
               {/* What's locked checklist */}
               <div className="space-y-2 mb-5">
                 {[
-                  { label: "Add & publish services" },
-                  { label: "Set availability & schedules" },
-                  { label: "Accept member bookings" },
-                  { label: "Host group sessions" },
-                ].map(({ label }) => (
-                  <div key={label} className="flex items-center gap-2.5 text-xs text-muted-foreground">
+                  { key: "publish_services", fallback: "Add & publish services" },
+                  { key: "availability", fallback: "Set availability & schedules" },
+                  { key: "bookings", fallback: "Accept member bookings" },
+                  { key: "group_sessions", fallback: "Host group sessions" },
+                ].map(({ key, fallback }) => (
+                  <div key={key} className="flex items-center gap-2.5 text-xs text-muted-foreground">
                     <div className="w-4 h-4 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
                       <Lock className="h-2.5 w-2.5 text-muted-foreground/60" />
                     </div>
-                    {label}
+                    {t(`provider_sweep.locked.${key}`, fallback)}
                   </div>
                 ))}
               </div>

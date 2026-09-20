@@ -95,21 +95,25 @@ function fmtTime(dateStr: string) {
   return formatTime(dateStr, { hour: "2-digit", minute: "2-digit" });
 }
 
-function relativeLabel(dateStr: string) {
+type ProviderTranslator = (key: string, fallback: string, options?: Record<string, unknown>) => string;
+
+function relativeLabel(dateStr: string, translate: ProviderTranslator) {
   const diff = Date.now() - new Date(dateStr).getTime();
   const mins = Math.floor(diff / 60000);
-  if (mins < 60) return `${mins}m ago`;
+  if (mins < 60) return translate("provider_sweep.minutes_ago", "{{count}}m ago", { count: mins });
   const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
+  if (hrs < 24) return translate("provider_sweep.hours_ago", "{{count}}h ago", { count: hrs });
   const days = Math.floor(hrs / 24);
-  return days === 1 ? "Yesterday" : `${days} days ago`;
+  return days === 1
+    ? translate("provider_sweep.yesterday", "Yesterday")
+    : translate("provider_sweep.days_ago", "{{count}} days ago", { count: days });
 }
 
-function greetingWord() {
+function greetingWord(translate: ProviderTranslator) {
   const h = new Date().getHours();
-  if (h < 12) return "Good morning";
-  if (h < 17) return "Good afternoon";
-  return "Good evening";
+  if (h < 12) return translate("provider_sweep.good_morning", "Good morning");
+  if (h < 17) return translate("provider_sweep.good_afternoon", "Good afternoon");
+  return translate("provider_sweep.good_evening", "Good evening");
 }
 
 function useRotating<T>(items: T[], intervalMs = 10000): T {
@@ -396,7 +400,7 @@ export default function ProviderHome() {
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
                 <h1 className="text-xl font-bold" data-testid="text-provider-greeting">
-                  {greetingWord()}, {providerProfile?.displayTitle?.endsWith(".") ? `${providerProfile.displayTitle} ${providerDisplayName}` : providerDisplayName}
+                  {greetingWord((key, fallback, options) => String(t(key, fallback, options)))}, {providerProfile?.displayTitle?.endsWith(".") ? `${providerProfile.displayTitle} ${providerDisplayName}` : providerDisplayName}
                 </h1>
                 {providerProfile?.isVerified && (
                   <Badge className="bg-white/20 text-white border-white/30 text-xs px-2 py-0.5" data-testid="badge-verified">
@@ -565,7 +569,7 @@ export default function ProviderHome() {
                     {r.rating}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-semibold text-foreground">{r.patientName ?? "Member"}</p>
+                    <p className="text-xs font-semibold text-foreground">{r.patientName ?? t("provider_sweep.member", "Member")}</p>
                     {r.comment && <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{r.comment}</p>}
                     {!r.reply && (
                       <span className="inline-block mt-1 text-[10px] px-1.5 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 font-medium">
@@ -573,7 +577,7 @@ export default function ProviderHome() {
                       </span>
                     )}
                   </div>
-                  <p className="text-[10px] text-muted-foreground/60 flex-shrink-0">{relativeLabel(r.createdAt)}</p>
+                  <p className="text-[10px] text-muted-foreground/60 flex-shrink-0">{relativeLabel(r.createdAt, (key, fallback, options) => String(t(key, fallback, options)))}</p>
                 </div>
               ))}
               <Button variant="outline" className="w-full rounded-xl gap-2 text-sm" asChild data-testid="button-view-reviews">
@@ -683,9 +687,9 @@ export default function ProviderHome() {
                   <div className="flex-1 pb-1">
                     <p className="text-sm font-medium text-foreground">{patientName(appt)}</p>
                     <p className="text-xs text-muted-foreground">
-                      {appt.serviceName ?? "Appointment"} · <span className="capitalize">{appt.status.replace(/_/g, " ")}</span>
+                      {appt.serviceName ?? t("appointments.appointment", "Appointment")} · <span className="capitalize">{t(`provider_dashboard.status_${appt.status}`, appt.status.replace(/_/g, " "))}</span>
                     </p>
-                    <p className="text-[10px] text-muted-foreground/60 mt-0.5">{relativeLabel(appt.startAt)}</p>
+                    <p className="text-[10px] text-muted-foreground/60 mt-0.5">{relativeLabel(appt.startAt, (key, fallback, options) => String(t(key, fallback, options)))}</p>
                   </div>
                 </div>
               ))}

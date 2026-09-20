@@ -775,17 +775,17 @@ function ExportsTab({ fmtMoney }: { fmtMoney: (v: number) => string }) {
 }
 
 const SECTIONS = [
-  { value: "overview",     label: "Overview",    icon: BarChart3   },
-  { value: "revenue",      label: "Revenue",     icon: DollarSign  },
-  { value: "patients",     label: "Members",     icon: Users       },
-  { value: "bookings",     label: "Bookings",    icon: Calendar    },
-  { value: "services",     label: "Services",    icon: Briefcase   },
-  { value: "schedule",     label: "Schedule",    icon: Clock       },
-  { value: "reviews",      label: "Reviews",     icon: Star        },
-  { value: "financials",   label: "Financials",  icon: DollarSign  },
-  { value: "payouts",      label: "Payouts",     icon: CreditCard  },
-  { value: "growth",       label: "Growth",      icon: TrendingUp  },
-  { value: "exports",      label: "Exports",     icon: Download    },
+  { value: "overview", label: "Overview", icon: BarChart3 },
+  { value: "revenue", label: "Revenue", icon: DollarSign },
+  { value: "patients", label: "Members", icon: Users },
+  { value: "bookings", label: "Bookings", icon: Calendar },
+  { value: "services", label: "Services", icon: Briefcase },
+  { value: "schedule", label: "Schedule", icon: Clock },
+  { value: "reviews", label: "Reviews", icon: Star },
+  { value: "financials", label: "Financials", icon: DollarSign },
+  { value: "payouts", label: "Payouts", icon: CreditCard },
+  { value: "growth", label: "Growth", icon: TrendingUp },
+  { value: "exports", label: "Exports", icon: Download },
 ] as const;
 
 type Section = (typeof SECTIONS)[number]["value"];
@@ -830,7 +830,7 @@ export function ProviderReportingCenter({
               data-testid={`tab-provider-reports-${s.value}`}
             >
               <s.icon className="h-3 w-3 shrink-0" />
-              <span className="hidden sm:inline">{t(`provider_dashboard.tab_${s.value}`, s.label)}</span>
+              <span className="hidden sm:inline">{t(`provider_sweep.reports.${s.value}`, s.label)}</span>
             </TabsTrigger>
           ))}
         </TabsList>

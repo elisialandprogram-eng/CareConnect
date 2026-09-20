@@ -56,7 +56,8 @@ type Modality = "none" | "clinic" | "home_visit" | "video";
 
 // ── Constants ──────────────────────────────────────────────────────────────────
 
-const DOW_SHORT  = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+const DOW_SHORT  = ["sun_short","mon_short","tue_short","wed_short","thu_short","fri_short","sat_short"] as const;
+const DOW_FALLBACK = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"] as const;
 
 const ORDERED_DAYS = [1,2,3,4,5,6,0]; // Mon–Sun display order
 
@@ -433,7 +434,7 @@ function InsightsPanel({ weekMatrix, weekSummary, totalHours, enabledDays }: Ins
                 const pct = d.total > 0 ? Math.round((d.booked / d.total) * 100) : 0;
                 return (
                   <div key={d.dow} className="flex items-center gap-3">
-                    <span className="text-xs w-8 text-muted-foreground shrink-0">{DOW_SHORT[d.dow]}</span>
+                    <span className="text-xs w-8 text-muted-foreground shrink-0">{t(`provider_sweep.days.${DOW_SHORT[d.dow]}`, DOW_FALLBACK[d.dow])}</span>
                     <div className="flex-1 bg-muted rounded-full h-2 overflow-hidden">
                       <div
                         className="h-full bg-primary rounded-full transition-all"
@@ -460,7 +461,7 @@ function InsightsPanel({ weekMatrix, weekSummary, totalHours, enabledDays }: Ins
                     }, 0) : 0;
                 return (
                   <div key={dow} className="flex items-center gap-3">
-                    <span className="text-xs w-8 text-muted-foreground shrink-0">{DOW_SHORT[dow]}</span>
+                    <span className="text-xs w-8 text-muted-foreground shrink-0">{t(`provider_sweep.days.${DOW_SHORT[dow]}`, DOW_FALLBACK[dow])}</span>
                     <div className="flex-1 bg-muted rounded-full h-2 overflow-hidden">
                       {isActive && hrs > 0 && (
                         <div
@@ -647,9 +648,9 @@ export function SmartScheduler({ provider }: { provider?: any }) {
       setDirtyDays(new Set());
       refetchTpl();
       queryClient.invalidateQueries({ queryKey: ["/api/provider/schedule-templates"], exact: false });
-      toast({ title: "Schedule saved ✓", description: "Slots will be regenerated within a minute." });
+      toast({ title: t("provider_sweep.schedule.save_success", "Schedule saved ✓"), description: t("provider_sweep.schedule.save_success_description", "Slots will be regenerated within a minute.") });
     } catch (e: any) {
-      toast({ title: "Save failed", description: e.message, variant: "destructive" });
+      toast({ title: t("provider_sweep.schedule.save_failed", "Save failed"), description: e.message, variant: "destructive" });
     } finally {
       setIsSaving(false);
     }
@@ -832,7 +833,7 @@ export function SmartScheduler({ provider }: { provider?: any }) {
                           : "bg-background border-border hover:bg-accent"
                       }`}
                     >
-                      {DOW_SHORT[dow]}
+                      {t(`provider_sweep.days.${DOW_SHORT[dow]}`, DOW_FALLBACK[dow])}
                     </button>
                   ))}
                 </div>
@@ -885,7 +886,7 @@ export function SmartScheduler({ provider }: { provider?: any }) {
                           data-testid={`switch-day-${dow}`}
                         />
                         <span className={`text-xs font-semibold w-8 ${day.enabled ? "text-foreground" : "text-muted-foreground"}`}>
-                          {DOW_SHORT[dow]}
+                          {t(`provider_sweep.days.${DOW_SHORT[dow]}`, DOW_FALLBACK[dow])}
                         </span>
                       </div>
 

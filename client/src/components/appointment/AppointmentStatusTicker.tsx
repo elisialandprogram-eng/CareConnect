@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 
 interface StatusCfg {
   icon: React.ReactNode;
+  labelKey: string;
   label: string;
   color: string;
   bgColor: string;
@@ -14,6 +15,7 @@ interface StatusCfg {
 const STATUS_CONFIG: Record<string, StatusCfg> = {
   approved: {
     icon: <CheckCircle className="h-4 w-4" />,
+    labelKey: "approved",
     label: "Approved",
     color: "text-blue-700 dark:text-blue-300",
     bgColor: "bg-blue-50 dark:bg-blue-950/50",
@@ -21,6 +23,7 @@ const STATUS_CONFIG: Record<string, StatusCfg> = {
   },
   confirmed: {
     icon: <CheckCircle className="h-4 w-4" />,
+    labelKey: "confirmed",
     label: "Confirmed",
     color: "text-emerald-700 dark:text-emerald-300",
     bgColor: "bg-emerald-50 dark:bg-emerald-950/50",
@@ -28,6 +31,7 @@ const STATUS_CONFIG: Record<string, StatusCfg> = {
   },
   in_progress: {
     icon: <Activity className="h-4 w-4" />,
+    labelKey: "in_progress",
     label: "In Progress",
     color: "text-violet-700 dark:text-violet-300",
     bgColor: "bg-violet-50 dark:bg-violet-950/50",
@@ -35,6 +39,7 @@ const STATUS_CONFIG: Record<string, StatusCfg> = {
   },
   completed: {
     icon: <CheckCircle className="h-4 w-4" />,
+    labelKey: "completed",
     label: "Completed",
     color: "text-teal-700 dark:text-teal-300",
     bgColor: "bg-teal-50 dark:bg-teal-950/50",
@@ -42,6 +47,7 @@ const STATUS_CONFIG: Record<string, StatusCfg> = {
   },
   rejected: {
     icon: <XCircle className="h-4 w-4" />,
+    labelKey: "rejected",
     label: "Declined",
     color: "text-red-700 dark:text-red-300",
     bgColor: "bg-red-50 dark:bg-red-950/50",
@@ -49,6 +55,7 @@ const STATUS_CONFIG: Record<string, StatusCfg> = {
   },
   cancelled_by_provider: {
     icon: <XCircle className="h-4 w-4" />,
+    labelKey: "cancelled",
     label: "Cancelled",
     color: "text-orange-700 dark:text-orange-300",
     bgColor: "bg-orange-50 dark:bg-orange-950/50",
@@ -66,7 +73,9 @@ function domainLabel(
 
 function buildMessage(u: StatusUpdate, t: (key: string, fallback: string, options?: Record<string, unknown>) => string): string {
   const ref = u.appointmentNumber ? ` #${u.appointmentNumber}` : "";
-  const when = u.date && u.startTime ? ` on ${u.date} at ${u.startTime}` : "";
+  const when = u.date && u.startTime
+    ? t("provider_sweep.on_at", " on {{date}} at {{time}}", { date: u.date, time: u.startTime })
+    : "";
   switch (u.status) {
     case "approved":
       return t("member_ticker.approved", "{{provider}} approved your appointment{{reference}}{{when}}.", { provider: u.providerName, reference: ref, when });
@@ -81,7 +90,10 @@ function buildMessage(u: StatusUpdate, t: (key: string, fallback: string, option
     case "cancelled_by_provider":
       return t("member_ticker.cancelled", "Your appointment{{reference}}{{when}} was cancelled by {{provider}}.", { reference: ref, when, provider: u.providerName });
     default:
-      return t("member_ticker.status_changed", "Your appointment{{reference}} status changed to {{status}}.", { reference: ref, status: u.status.replace(/_/g, " ") });
+      return t("member_ticker.status_changed", "Your appointment{{reference}} status changed to {{status}}.", {
+        reference: ref,
+        status: t(`provider_sweep.status.${u.status}`, u.status.replace(/_/g, " ")),
+      });
   }
 }
 
@@ -104,6 +116,7 @@ export function AppointmentStatusTicker({ updates, onDismiss }: Props) {
       {updates.map((update) => {
         const cfg: StatusCfg = STATUS_CONFIG[update.status] ?? {
           icon: <Clock className="h-4 w-4" />,
+            labelKey: "pending",
             label: t("member_ticker.update", "Update"),
           color: "text-muted-foreground",
           bgColor: "bg-card",
@@ -120,7 +133,7 @@ export function AppointmentStatusTicker({ updates, onDismiss }: Props) {
 
             <div className="flex-1 min-w-0">
               <p className={`text-[11px] font-semibold uppercase tracking-wider mb-0.5 ${cfg.color}`}>
-                {t("member_ticker.appointment", "Appointment")} {domainLabel(t, update.status, cfg.label)}
+                {t("member_ticker.appointment", "Appointment")} {t(`provider_sweep.status.${cfg.labelKey}`, cfg.label)}
               </p>
               <p className="text-sm text-foreground leading-snug">
                 {buildMessage(update, (key, fallback, options) => String(t(key, fallback, options)))}

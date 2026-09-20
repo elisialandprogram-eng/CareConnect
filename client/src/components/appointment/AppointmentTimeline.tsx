@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { QK } from "@/lib/query-keys";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatDateTime } from "@/lib/datetime";
+import { useTranslation } from "react-i18next";
 import {
   CheckCircle2, XCircle, Clock, CalendarClock, PlayCircle, RefreshCw,
   ThumbsUp, ThumbsDown, UserX, AlertCircle, RotateCcw, CreditCard,
@@ -17,25 +18,25 @@ interface EventRow {
   metadata?: string | null;
 }
 
-const EVENT_CONFIG: Record<string, { label: string; icon: React.ReactNode; color: string }> = {
-  book:                  { label: "Appointment Created",      icon: <CalendarClock className="h-4 w-4" />,  color: "bg-blue-500"    },
-  confirm:               { label: "Confirmed",                icon: <ThumbsUp className="h-4 w-4" />,       color: "bg-emerald-500" },
-  approve:               { label: "Approved",                 icon: <ThumbsUp className="h-4 w-4" />,       color: "bg-emerald-500" },
-  start:                 { label: "Session Started",          icon: <PlayCircle className="h-4 w-4" />,     color: "bg-indigo-500"  },
-  complete:              { label: "Session Completed",        icon: <CheckCircle2 className="h-4 w-4" />,   color: "bg-emerald-600" },
-  cancel:                { label: "Cancelled",                icon: <XCircle className="h-4 w-4" />,        color: "bg-rose-500"    },
-  reject:                { label: "Rejected",                 icon: <ThumbsDown className="h-4 w-4" />,     color: "bg-rose-500"    },
-  reschedule:            { label: "Reschedule Requested",     icon: <RefreshCw className="h-4 w-4" />,      color: "bg-amber-500"   },
-  propose:               { label: "New Time Proposed",        icon: <CalendarClock className="h-4 w-4" />,  color: "bg-amber-500"   },
-  reschedule_accept:     { label: "Reschedule Accepted",      icon: <CheckCircle2 className="h-4 w-4" />,   color: "bg-emerald-500" },
-  reschedule_reject:     { label: "Reschedule Declined",      icon: <XCircle className="h-4 w-4" />,        color: "bg-rose-400"    },
-  no_show:               { label: "No Show",                  icon: <UserX className="h-4 w-4" />,          color: "bg-rose-400"    },
-  refund:                { label: "Refund Issued",            icon: <RotateCcw className="h-4 w-4" />,      color: "bg-teal-500"    },
-  payment:               { label: "Payment Completed",        icon: <CreditCard className="h-4 w-4" />,     color: "bg-teal-500"    },
-  invoice:               { label: "Invoice Generated",       icon: <FileText className="h-4 w-4" />,        color: "bg-slate-500"   },
-  reminder:              { label: "Reminder Sent",            icon: <Bell className="h-4 w-4" />,           color: "bg-slate-400"   },
-  followup_scheduled:    { label: "Follow-up Scheduled",     icon: <MessageSquare className="h-4 w-4" />,  color: "bg-violet-500"  },
-  status_change:         { label: "Status Updated",           icon: <Clock className="h-4 w-4" />,          color: "bg-slate-400"   },
+const EVENT_CONFIG: Record<string, { labelKey: string; label: string; icon: React.ReactNode; color: string }> = {
+  book:                  { labelKey: "book", label: "Appointment Created", icon: <CalendarClock className="h-4 w-4" />, color: "bg-blue-500" },
+  confirm:               { labelKey: "confirm", label: "Confirmed", icon: <ThumbsUp className="h-4 w-4" />, color: "bg-emerald-500" },
+  approve:               { labelKey: "approve", label: "Approved", icon: <ThumbsUp className="h-4 w-4" />, color: "bg-emerald-500" },
+  start:                 { labelKey: "start", label: "Session Started", icon: <PlayCircle className="h-4 w-4" />, color: "bg-indigo-500" },
+  complete:              { labelKey: "complete", label: "Session Completed", icon: <CheckCircle2 className="h-4 w-4" />, color: "bg-emerald-600" },
+  cancel:                { labelKey: "cancel", label: "Cancelled", icon: <XCircle className="h-4 w-4" />, color: "bg-rose-500" },
+  reject:                { labelKey: "reject", label: "Rejected", icon: <ThumbsDown className="h-4 w-4" />, color: "bg-rose-500" },
+  reschedule:            { labelKey: "reschedule", label: "Reschedule Requested", icon: <RefreshCw className="h-4 w-4" />, color: "bg-amber-500" },
+  propose:               { labelKey: "propose", label: "New Time Proposed", icon: <CalendarClock className="h-4 w-4" />, color: "bg-amber-500" },
+  reschedule_accept:     { labelKey: "reschedule_accept", label: "Reschedule Accepted", icon: <CheckCircle2 className="h-4 w-4" />, color: "bg-emerald-500" },
+  reschedule_reject:     { labelKey: "reschedule_reject", label: "Reschedule Declined", icon: <XCircle className="h-4 w-4" />, color: "bg-rose-400" },
+  no_show:               { labelKey: "no_show", label: "No Show", icon: <UserX className="h-4 w-4" />, color: "bg-rose-400" },
+  refund:                { labelKey: "refund", label: "Refund Issued", icon: <RotateCcw className="h-4 w-4" />, color: "bg-teal-500" },
+  payment:               { labelKey: "payment", label: "Payment Completed", icon: <CreditCard className="h-4 w-4" />, color: "bg-teal-500" },
+  invoice:               { labelKey: "invoice", label: "Invoice Generated", icon: <FileText className="h-4 w-4" />, color: "bg-slate-500" },
+  reminder:              { labelKey: "reminder", label: "Reminder Sent", icon: <Bell className="h-4 w-4" />, color: "bg-slate-400" },
+  followup_scheduled:    { labelKey: "followup_scheduled", label: "Follow-up Scheduled", icon: <MessageSquare className="h-4 w-4" />, color: "bg-violet-500" },
+  status_change:         { labelKey: "status_change", label: "Status Updated", icon: <Clock className="h-4 w-4" />, color: "bg-slate-400" },
 };
 
 function formatEventTime(iso: string): string {
@@ -44,6 +45,7 @@ function formatEventTime(iso: string): string {
 
 function resolveConfig(eventType: string | undefined | null) {
   if (!eventType) return {
+    labelKey: "event",
     label: "Event",
     icon: <AlertCircle className="h-4 w-4" />,
     color: "bg-slate-400",
@@ -60,6 +62,7 @@ function resolveConfig(eventType: string | undefined | null) {
 }
 
 export function AppointmentTimeline({ appointmentId, events: propEvents }: { appointmentId?: string | null; events?: EventRow[] }) {
+  const { t } = useTranslation();
   const { data: fetchedEvents, isLoading } = useQuery<EventRow[]>({
     queryKey: QK.appointmentEvents(appointmentId ?? ""),
     enabled: !!appointmentId && !propEvents,
@@ -78,7 +81,7 @@ export function AppointmentTimeline({ appointmentId, events: propEvents }: { app
   if (!events.length) {
     return (
       <p className="text-sm text-muted-foreground text-center py-4" data-testid="timeline-empty">
-        No timeline events yet.
+        {t("provider_sweep.timeline.empty", "No timeline events yet.")}
       </p>
     );
   }
@@ -99,20 +102,20 @@ export function AppointmentTimeline({ appointmentId, events: propEvents }: { app
               </div>
               <div className={`flex-1 min-w-0 rounded-lg border bg-card px-3 py-2 shadow-sm ${isLast ? "border-primary/30 bg-primary/5" : ""}`}>
                 <div className="flex items-start justify-between gap-2 flex-wrap">
-                  <p className="text-sm font-medium">{cfg.label}</p>
+                  <p className="text-sm font-medium">{t(`provider_sweep.timeline.${cfg.labelKey}`, cfg.label)}</p>
                   <span className="text-[11px] text-muted-foreground shrink-0">{formatEventTime(ev.createdAt)}</span>
                 </div>
                 {(ev.actorName || ev.actorRole) && (
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    {ev.actorName ? `By ${ev.actorName}` : `By ${ev.actorRole}`}
+                    {t("provider_sweep.by", "By")} {ev.actorName ?? ev.actorRole}
                   </p>
                 )}
                 {!!meta.reason && (
-                  <p className="text-xs text-muted-foreground mt-0.5 italic">Reason: {String(meta.reason)}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5 italic">{t("provider_sweep.reason", "Reason")}: {String(meta.reason)}</p>
                 )}
                 {!!meta.proposedDate && !!meta.proposedTime && (
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    Proposed: {String(meta.proposedDate)} at {String(meta.proposedTime)}
+                    {t("provider_sweep.proposed", "Proposed")}: {String(meta.proposedDate)} at {String(meta.proposedTime)}
                   </p>
                 )}
               </div>

@@ -8,6 +8,7 @@ import {
   normalizeTranslationTree,
 } from '../i18n/member-terminology';
 import { memberSweepTranslations } from '../i18n/member-sweep';
+import { providerSweepTranslations } from '../i18n/provider-sweep';
 
 const SUPPORTED = ['en', 'hu', 'fa'] as const;
 type Lang = (typeof SUPPORTED)[number];
@@ -52,8 +53,11 @@ async function ensureLanguage(lng: string) {
   try {
     const mod = await loaders[code]();
     const translation = mergeTranslationAdditions(
-      mod.default,
-      memberSweepTranslations[code] as unknown as Record<string, unknown>,
+      mergeTranslationAdditions(
+        mod.default,
+        memberSweepTranslations[code] as unknown as Record<string, unknown>,
+      ),
+      providerSweepTranslations[code] as unknown as Record<string, unknown>,
     );
     i18n.addResourceBundle(
       code,
@@ -85,8 +89,11 @@ i18n
       en: {
         translation: normalizeTranslationTree(
           mergeTranslationAdditions(
-            enTranslation as Record<string, unknown>,
-            memberSweepTranslations.en as unknown as Record<string, unknown>,
+            mergeTranslationAdditions(
+              enTranslation as Record<string, unknown>,
+              memberSweepTranslations.en as unknown as Record<string, unknown>,
+            ),
+            providerSweepTranslations.en as unknown as Record<string, unknown>,
           ),
           'en',
         ),

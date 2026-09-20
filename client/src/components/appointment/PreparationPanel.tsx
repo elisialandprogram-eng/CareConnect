@@ -1,4 +1,5 @@
 import { CheckCircle2, Circle, Clock, Info, MapPin, Video, Home, FileText, CreditCard, Phone } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 interface CheckItem {
   id: string;
@@ -21,50 +22,53 @@ interface Props {
   className?: string;
 }
 
-function getChecklist(props: Props): CheckItem[] {
+type PreparationTranslator = (key: string, fallback: string) => string;
+
+function getChecklist(props: Props, translate: PreparationTranslator): CheckItem[] {
   const { visitType, paymentStatus, patientAddress, meetingLink, hasNotes } = props;
 
   const items: CheckItem[] = [];
 
   if (paymentStatus === "completed" || paymentStatus === "paid") {
-    items.push({ id: "payment", icon: <CreditCard className="h-4 w-4" />, text: "Payment confirmed", done: true });
+    items.push({ id: "payment", icon: <CreditCard className="h-4 w-4" />, text: translate("provider_sweep.payment_confirmed", "Payment confirmed"), done: true });
   } else if (paymentStatus === "pending") {
-    items.push({ id: "payment", icon: <CreditCard className="h-4 w-4" />, text: "Complete payment before your appointment", done: false });
+    items.push({ id: "payment", icon: <CreditCard className="h-4 w-4" />, text: translate("provider_sweep.complete_payment", "Complete payment before your appointment"), done: false });
   }
 
   if (visitType === "online") {
-    items.push({ id: "link", icon: <Video className="h-4 w-4" />, text: "Test your camera and microphone", done: false });
+    items.push({ id: "link", icon: <Video className="h-4 w-4" />, text: translate("provider_sweep.test_camera", "Test your camera and microphone"), done: false });
     if (meetingLink) {
-      items.push({ id: "joinlink", icon: <Video className="h-4 w-4" />, text: "Meeting link is ready — join from the details page", done: true });
+      items.push({ id: "joinlink", icon: <Video className="h-4 w-4" />, text: translate("provider_sweep.meeting_ready", "Meeting link is ready — join from the details page"), done: true });
     }
-    items.push({ id: "quiet", icon: <Info className="h-4 w-4" />, text: "Find a quiet, well-lit space", done: false });
-    items.push({ id: "device", icon: <Phone className="h-4 w-4" />, text: "Ensure your device is charged", done: false });
+    items.push({ id: "quiet", icon: <Info className="h-4 w-4" />, text: translate("provider_sweep.quiet_space", "Find a quiet, well-lit space"), done: false });
+    items.push({ id: "device", icon: <Phone className="h-4 w-4" />, text: translate("provider_sweep.charged_device", "Ensure your device is charged"), done: false });
   }
 
   if (visitType === "home") {
     if (patientAddress) {
-      items.push({ id: "address", icon: <MapPin className="h-4 w-4" />, text: "Address confirmed — provider will visit you", done: true });
+      items.push({ id: "address", icon: <MapPin className="h-4 w-4" />, text: translate("provider_sweep.address_confirmed", "Address confirmed — provider will visit you"), done: true });
     } else {
-      items.push({ id: "address", icon: <MapPin className="h-4 w-4" />, text: "Confirm your address with the provider", done: false });
+      items.push({ id: "address", icon: <MapPin className="h-4 w-4" />, text: translate("provider_sweep.confirm_address", "Confirm your address with the provider"), done: false });
     }
-    items.push({ id: "home-prep", icon: <Home className="h-4 w-4" />, text: "Prepare a clean, accessible space for your session", done: false });
-    items.push({ id: "id", icon: <FileText className="h-4 w-4" />, text: "Have a valid ID ready for verification", done: false });
+    items.push({ id: "home-prep", icon: <Home className="h-4 w-4" />, text: translate("provider_sweep.prepare_space", "Prepare a clean, accessible space for your session"), done: false });
+    items.push({ id: "id", icon: <FileText className="h-4 w-4" />, text: translate("provider_sweep.valid_id", "Have a valid ID ready for verification"), done: false });
   }
 
   if (visitType === "clinic") {
-    items.push({ id: "arrive", icon: <Clock className="h-4 w-4" />, text: "Arrive 10 minutes early", done: false });
-    items.push({ id: "docs", icon: <FileText className="h-4 w-4" />, text: "Bring any relevant medical documents or test results", done: false });
-    items.push({ id: "insurance", icon: <CreditCard className="h-4 w-4" />, text: "Bring your insurance card if applicable", done: false });
+    items.push({ id: "arrive", icon: <Clock className="h-4 w-4" />, text: translate("provider_sweep.arrive_early", "Arrive 10 minutes early"), done: false });
+    items.push({ id: "docs", icon: <FileText className="h-4 w-4" />, text: translate("provider_sweep.bring_documents", "Bring any relevant medical documents or test results"), done: false });
+    items.push({ id: "insurance", icon: <CreditCard className="h-4 w-4" />, text: translate("provider_sweep.bring_insurance", "Bring your insurance card if applicable"), done: false });
   }
 
   if (hasNotes) {
-    items.push({ id: "notes", icon: <FileText className="h-4 w-4" />, text: "Your appointment notes have been shared with the provider", done: true });
+    items.push({ id: "notes", icon: <FileText className="h-4 w-4" />, text: translate("provider_sweep.notes_shared", "Your appointment notes have been shared with the provider"), done: true });
   }
 
   return items;
 }
 
 export function PreparationPanel(props: Props) {
+  const { t } = useTranslation();
   const { visitType, appointmentDate, startTime, startAtUtc, providerName, className = "" } = props;
 
   // Prefer the authoritative UTC timestamp; fall back to wall-clock parse.
@@ -82,7 +86,7 @@ export function PreparationPanel(props: Props) {
 
   if (hoursUntil < 0 || hoursUntil > 48) return null;
 
-  const checklist = getChecklist(props);
+  const checklist = getChecklist(props, (key, fallback) => String(t(key, fallback)));
   const doneCount = checklist.filter(c => c.done).length;
   const visitIcon = visitType === "online" ? <Video className="h-4 w-4" /> : visitType === "home" ? <Home className="h-4 w-4" /> : <MapPin className="h-4 w-4" />;
 
@@ -98,7 +102,7 @@ export function PreparationPanel(props: Props) {
           </div>
           <div>
             <h4 className="text-sm font-semibold text-blue-900 dark:text-blue-200">
-              {hoursUntil < 2 ? "Your appointment is soon!" : "Prepare for your appointment"}
+              {hoursUntil < 2 ? t("provider_sweep.appointment_soon", "Your appointment is soon!") : t("provider_sweep.prepare_appointment", "Prepare for your appointment")}
             </h4>
             {providerName && (
               <p className="text-xs text-blue-700 dark:text-blue-400">with {providerName}</p>
@@ -106,7 +110,7 @@ export function PreparationPanel(props: Props) {
           </div>
         </div>
         <span className="text-xs font-medium text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/40 px-2 py-0.5 rounded-full">
-          {doneCount}/{checklist.length} ready
+          {doneCount}/{checklist.length} {t("provider_sweep.ready", "ready")}
         </span>
       </div>
 

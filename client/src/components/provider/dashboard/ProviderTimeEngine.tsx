@@ -346,7 +346,7 @@ function WeeklyTemplateTab() {
             <CardHeader className="pb-2 pt-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                    <span className="font-medium text-sm">{t(`provider_dashboard.day_${dow}`, DAY_NAMES[dow])}</span>
+                    <span className="font-medium text-sm">{t(`provider_sweep.days.${["sun_long", "mon_long", "tue_long", "wed_long", "thu_long", "fri_long", "sat_long"][dow]}`, DAY_NAMES[dow])}</span>
                   {daySlots.length > 0 ? (
                     <Badge variant="secondary" className="text-xs">{t("provider_dashboard.time_windows", "{{count}} window", { count: daySlots.length })}</Badge>
                   ) : (

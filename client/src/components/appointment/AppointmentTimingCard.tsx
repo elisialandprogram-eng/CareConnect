@@ -155,13 +155,13 @@ export function AppointmentTimingCard({ date, startTime, endTime = "", startAtUt
         <div className={cn("space-y-2", className)}>
           <div className="flex items-center justify-between gap-4 text-sm">
             <span className="text-muted-foreground flex items-center gap-1.5">
-              <Clock className="h-3.5 w-3.5" />Current time
+              <Clock className="h-3.5 w-3.5" />{t("provider_sweep.schedule.current_time", "Current time")}
             </span>
             <span className="font-mono font-semibold tabular-nums">{localTimeStr()}</span>
           </div>
           <div className="flex items-center justify-between gap-4 text-sm">
             <span className="text-muted-foreground flex items-center gap-1.5">
-              <Timer className="h-3.5 w-3.5" />Starts in
+              <Timer className="h-3.5 w-3.5" />{t("provider_sweep.schedule.starts_in", "Starts in")}
             </span>
             <span className={cn(
               "font-bold tabular-nums",

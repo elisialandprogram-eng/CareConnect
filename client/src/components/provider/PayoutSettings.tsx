@@ -248,7 +248,7 @@ export function PayoutSettings({ providerData, isUnderReview = false }: Props) {
           {/* Routing / IBAN / SWIFT */}
           {useIBAN ? (
             <div className="space-y-1.5">
-              <Label className="text-xs">IBAN</Label>
+              <Label className="text-xs">{t("provider_sweep.iban", "IBAN")}</Label>
               <Input
                 value={draft.ibanNumber}
                 onChange={(e) => set("ibanNumber", e.target.value)}

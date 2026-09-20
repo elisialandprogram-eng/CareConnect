@@ -682,11 +682,11 @@ export function ProviderAppointmentsTabs({ providerData, highlightApptId, active
                           }}
                           data-testid="checkbox-select-all-pending"
                         />
-                        <span className="text-xs text-amber-700 dark:text-amber-400">Select all pending ({pendingList.length})</span>
+                        <span className="text-xs text-amber-700 dark:text-amber-400">{t("provider_sweep.select_all_pending", "Select all pending")} ({pendingList.length})</span>
                       </div>
                       {selectedPendingIds.length > 0 && (
                         <>
-                          <Badge variant="secondary" className="text-xs">{selectedPendingIds.length} selected</Badge>
+                          <Badge variant="secondary" className="text-xs">{selectedPendingIds.length} {t("provider_sweep.selected", "selected")}</Badge>
                           <Button size="sm" className="h-7 text-xs bg-green-600 hover:bg-green-700 text-white" disabled={isBulking}
                             onClick={() => bulkStatusMutation.mutate({ ids: selectedPendingIds, status: "confirmed" })}
                             data-testid="button-bulk-approve">
@@ -822,11 +822,11 @@ export function ProviderAppointmentsTabs({ providerData, highlightApptId, active
                             else clearSelected();
                           }}
                           data-testid="checkbox-select-all-today-pending" />
-                        <span className="text-xs text-amber-700 dark:text-amber-400">Select all ({pendingTodayList.length})</span>
+                        <span className="text-xs text-amber-700 dark:text-amber-400">{t("provider_sweep.select_all", "Select all")} ({pendingTodayList.length})</span>
                       </div>
                       {selectedPendingIds.length > 0 && (
                         <>
-                          <Badge variant="secondary" className="text-xs">{selectedPendingIds.length} selected</Badge>
+                          <Badge variant="secondary" className="text-xs">{selectedPendingIds.length} {t("provider_sweep.selected", "selected")}</Badge>
                           <Button size="sm" className="h-7 text-xs bg-green-600 hover:bg-green-700 text-white" disabled={isBulking}
                             onClick={() => bulkStatusMutation.mutate({ ids: selectedPendingIds, status: "confirmed" })}
                             data-testid="button-bulk-today-approve">
@@ -1015,8 +1015,13 @@ export function ProviderAppointmentsTabs({ providerData, highlightApptId, active
               {calendarView === "month" && (
                 <div data-testid="calendar-month-view">
                   <div className="grid grid-cols-7 mb-1">
-                    {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((d) => (
-                      <div key={d} className="text-xs text-center font-medium text-muted-foreground py-2">{d}</div>
+                    {[
+                      ["mon_short", "Mon"], ["tue_short", "Tue"], ["wed_short", "Wed"],
+                      ["thu_short", "Thu"], ["fri_short", "Fri"], ["sat_short", "Sat"], ["sun_short", "Sun"],
+                    ].map(([key, fallback]) => (
+                      <div key={key} className="text-xs text-center font-medium text-muted-foreground py-2">
+                        {t(`provider_sweep.days.${key}`, fallback)}
+                      </div>
                     ))}
                   </div>
                   <div className="grid grid-cols-7 gap-1">
@@ -1148,7 +1153,7 @@ export function ProviderAppointmentsTabs({ providerData, highlightApptId, active
                     const reschedules = (selectedApptEvents ?? []).filter((e: any) => e.action === "reschedule");
                     const original = (selectedAppt as any).originalDate;
                     const steps: Array<{ date: string; start: string; end: string; label: string; current?: boolean }> = [];
-                    if (original) steps.push({ date: original, start: (selectedAppt as any).originalStartTime ?? "", end: (selectedAppt as any).originalEndTime ?? "", label: "Original" });
+                    if (original) steps.push({ date: original, start: (selectedAppt as any).originalStartTime ?? "", end: (selectedAppt as any).originalEndTime ?? "", label: t("provider_dashboard.original", "Original") });
                     reschedules.forEach((ev: any, i: number) => {
                       try {
                         const m = ev.metadata ? JSON.parse(ev.metadata) : null;
