@@ -265,7 +265,7 @@ export function registerProviderWalletPayoutsRoutes(app: Express): void {
 
       const headers = [
         "Date","Appointment #","Appointment Date","Time","Visit Type","Service",
-        "Patient","Provider Gross Earnings","Provider Commission","Provider Net Earnings",
+        "Member","Provider Gross Earnings","Provider Commission","Provider Net Earnings",
          "Provider Settlement Deduction","Settlement Amount","Payment Method","Currency","Status","Paid On",
         "Refund Status","Payment Status",
       ];

@@ -1775,7 +1775,7 @@ export default function ProviderDashboard() {
                 <DialogTitle className="flex items-center gap-3">
                   {timelineClient && <AvatarSM src={timelineClient.avatarUrl ?? undefined} name={timelineClient.name || "?"} />}
                   <div>
-                    <span className="font-bold">{timelineClient?.name || "Patient"}</span>
+                    <span className="font-bold">{timelineClient?.name || "Member"}</span>
                     <p className="text-xs font-normal text-muted-foreground mt-0.5">
                       {timelineAppts.length} appointment{timelineAppts.length !== 1 ? "s" : ""}
                     </p>
@@ -1931,7 +1931,7 @@ export default function ProviderDashboard() {
                 {[
                   { label: "Add & publish services" },
                   { label: "Set availability & schedules" },
-                  { label: "Accept patient bookings" },
+                  { label: "Accept member bookings" },
                   { label: "Host group sessions" },
                 ].map(({ label }) => (
                   <div key={label} className="flex items-center gap-2.5 text-xs text-muted-foreground">

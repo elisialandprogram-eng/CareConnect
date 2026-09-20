@@ -19,7 +19,7 @@ const physiotherapistSubServices = [
   { name: "Hand Therapy", description: "Hand and upper extremity rehabilitation" },
   { name: "Vestibular Rehabilitation", description: "Balance and dizziness disorders" },
   { name: "Aquatic Therapy", description: "Physical therapy performed in water" },
-  { name: "Critical Care PT", description: "Physiotherapy for patients in intensive care" },
+  { name: "Critical Care PT", description: "Physiotherapy for members in intensive care" },
   { name: "Osteoporosis Management", description: "Resistance and weight-bearing training" }
 ];
 
@@ -67,12 +67,12 @@ const nurseSubServices = [
   { name: "Surgical/Perioperative Nursing", description: "Care before, during, and after surgery" },
   { name: "Pediatric Nursing", description: "Specialized care for children" },
   { name: "Neonatal Intensive Care (NICU)", description: "Care for premature or ill newborns" },
-  { name: "Geriatric Nursing", description: "Specialized care for elderly patients" },
-  { name: "Oncology Nursing", description: "Support and treatment for cancer patients" },
-  { name: "Dialysis/Nephrology Nursing", description: "Care for patients with kidney disease" },
+  { name: "Geriatric Nursing", description: "Specialized care for elderly members" },
+  { name: "Oncology Nursing", description: "Support and treatment for members with cancer" },
+  { name: "Dialysis/Nephrology Nursing", description: "Care for members with kidney disease" },
   { name: "Wound & Ostomy Nursing", description: "Specialized wound care and management" },
   { name: "Hospice & Palliative Care", description: "End-of-life and comfort care" },
-  { name: "Home Health Nursing", description: "Care provided in the patient's home" },
+  { name: "Home Health Nursing", description: "Care provided in the member's home" },
   { name: "Rehabilitation Nursing", description: "Support for recovering functional abilities" },
   { name: "School Nursing", description: "Health care in educational settings" },
   { name: "Occupational Health Nursing", description: "Workplace health and safety" }

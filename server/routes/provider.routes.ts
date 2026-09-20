@@ -681,7 +681,7 @@ export function registerProviderRoutes(app: Express): void {
   app.get("/api/saved-providers", authenticateToken, async (req: AuthRequest, res: Response) => {
     try {
       if (req.user?.role !== "patient") {
-        return res.status(403).json({ message: "Patient access required" });
+        return res.status(403).json({ message: "Member access required" });
       }
       const list = await storage.listSavedProviders(req.user.id);
       res.json(list);
@@ -705,7 +705,7 @@ export function registerProviderRoutes(app: Express): void {
   app.post("/api/saved-providers/:providerId", authenticateToken, async (req: AuthRequest, res: Response) => {
     try {
       if (req.user?.role !== "patient") {
-        return res.status(403).json({ message: "Patient access required" });
+        return res.status(403).json({ message: "Member access required" });
       }
       const provider = await storage.getProvider(req.params.providerId);
       if (!provider) return res.status(404).json({ message: "Provider not found" });
@@ -720,7 +720,7 @@ export function registerProviderRoutes(app: Express): void {
   app.delete("/api/saved-providers/:providerId", authenticateToken, async (req: AuthRequest, res: Response) => {
     try {
       if (req.user?.role !== "patient") {
-        return res.status(403).json({ message: "Patient access required" });
+        return res.status(403).json({ message: "Member access required" });
       }
       await storage.removeSavedProvider(req.user.id, req.params.providerId);
       res.status(204).end();
@@ -3078,7 +3078,7 @@ export function registerProviderRoutes(app: Express): void {
       // Verify the provider has at least one appointment with this patient.
       const sharedAppts = await storage.getAppointmentsByProvider(provider.id);
       const hasRelationship = sharedAppts.some(a => a.patientId === req.params.patientId);
-      if (!hasRelationship) return res.status(403).json({ message: "No appointment relationship with this patient" });
+      if (!hasRelationship) return res.status(403).json({ message: "No appointment relationship with this member" });
 
       const docs = await storage.getPatientDocumentsSharedWithProvider(req.params.patientId, provider.id);
       res.json(docs);
@@ -3090,7 +3090,7 @@ export function registerProviderRoutes(app: Express): void {
   app.get("/api/providers/:id/match-score", authenticateToken, async (req: AuthRequest, res: Response) => {
     try {
       if (!req.user || req.user.role !== "patient") {
-        return res.status(403).json({ message: "Patient access only" });
+        return res.status(403).json({ message: "Member access only" });
       }
       const provider = await storage.getProvider(req.params.id);
       if (!provider) return res.status(404).json({ message: "Provider not found" });

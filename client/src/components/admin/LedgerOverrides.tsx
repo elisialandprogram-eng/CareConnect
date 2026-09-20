@@ -292,8 +292,8 @@ export function LedgerOverrides() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="release_escrow">Release escrow to provider</SelectItem>
-                  <SelectItem value="refund_patient">Full refund to patient</SelectItem>
-                  <SelectItem value="partial_refund">Partial refund to patient</SelectItem>
+                  <SelectItem value="refund_patient">Full refund to member</SelectItem>
+                  <SelectItem value="partial_refund">Partial refund to member</SelectItem>
                   <SelectItem value="fee_split_adjust">Adjust platform fee split</SelectItem>
                   <SelectItem value="void_charge">Void charge (no money moved)</SelectItem>
                 </SelectContent>

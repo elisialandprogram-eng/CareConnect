@@ -245,8 +245,8 @@ async function checkWalletCreditImbalance(): Promise<ReconciliationFinding> {
     totalAmountUsd: totalDrift,
     details: rows,
     message: rows.length > 0
-      ? `${rows.length} patient wallet(s) have balance not matching transaction ledger sum.`
-      : "All patient wallets balance with their transaction ledger.",
+      ? `${rows.length} member wallet(s) have balance not matching transaction ledger sum.`
+      : "All member wallets balance with their transaction ledger.",
     action: rows.length > 0 ? "Manual wallet adjustment required. Check wallet_transactions for each affected user." : "None",
   };
 }

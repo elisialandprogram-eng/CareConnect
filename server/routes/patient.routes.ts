@@ -816,7 +816,7 @@ export function registerPatientRoutes(app: Express): void {
           return res.status(403).json({ message: "Cannot record consent for another user" });
         }
         if (req.body.patientId && req.body.patientId !== req.user.id) {
-          return res.status(403).json({ message: "Cannot record consent for another patient" });
+          return res.status(403).json({ message: "Cannot record consent for another member" });
         }
       }
       const data = insertPatientConsentSchema.parse({
@@ -934,7 +934,7 @@ export function registerPatientRoutes(app: Express): void {
       );
       res.json(rows.rows);
     } catch {
-      res.status(500).json({ message: "Failed to fetch patient gallery" });
+      res.status(500).json({ message: "Failed to fetch member gallery" });
     }
   });
 
@@ -1039,7 +1039,7 @@ export function registerPatientRoutes(app: Express): void {
       });
     } catch (error) {
       console.error("[patient/analytics]", error);
-      res.status(500).json({ message: "Failed to load patient analytics" });
+      res.status(500).json({ message: "Failed to load member analytics" });
     }
   });
 
@@ -1047,7 +1047,7 @@ export function registerPatientRoutes(app: Express): void {
   // Self-serve: patient fetches their own prescriptions for the Documents tab.
   app.get("/api/patient/prescriptions", authenticateToken, async (req: AuthRequest, res: Response) => {
     try {
-      if (req.user?.role !== "patient") return res.status(403).json({ message: "Patient account required" });
+      if (req.user?.role !== "patient") return res.status(403).json({ message: "Member account required" });
       const prescriptions = await storage.getPrescriptionsByPatient(req.user.id);
       res.json(prescriptions ?? []);
     } catch (err: any) {

@@ -206,7 +206,7 @@ export function registerProviderScheduleAdminRoutes(app: Express): void {
         `SELECT id FROM appointments WHERE provider_id = $1 AND patient_id = $2 LIMIT 1`,
         [provider.id, patientId],
       );
-      if (apptCheck.length === 0) return res.status(403).json({ message: "Access denied: no appointments with this patient" });
+      if (apptCheck.length === 0) return res.status(403).json({ message: "Access denied: no appointments with this member" });
 
       // Fetch all data in parallel
       const [apptRows, noteRows, prescRows, histRows, patientRows] = await Promise.all([

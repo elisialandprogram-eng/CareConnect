@@ -64,7 +64,7 @@ function AdminPatientsPanel() {
   const { data, isLoading } = useQuery<any>({ queryKey: ["/api/admin/analytics/enhanced"] });
 
   if (isLoading) return <PanelLoader />;
-  if (!data) return <p className="text-sm text-muted-foreground text-center py-12">No patient data available.</p>;
+  if (!data) return <p className="text-sm text-muted-foreground text-center py-12">No member data available.</p>;
 
   const s = data.summary || {};
   const retention = s.retentionRate ?? 0;
@@ -73,20 +73,20 @@ function AdminPatientsPanel() {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <KpiCard icon={Users} label="New Patients (30d)" value={String(s.newUsers ?? 0)} sub="registered this month" color="text-blue-600" />
-        <KpiCard icon={Activity} label="Active Patients (90d)" value={String(s.activePatients ?? 0)} sub="with appointments" color="text-emerald-600" />
-        <KpiCard icon={TrendingUp} label="Returning Patients" value={String(s.returningPatients ?? 0)} sub={`${retention.toFixed(1)}% retention rate`} color="text-violet-600" />
+        <KpiCard icon={Users} label="New Members (30d)" value={String(s.newUsers ?? 0)} sub="registered this month" color="text-blue-600" />
+        <KpiCard icon={Activity} label="Active Members (90d)" value={String(s.activePatients ?? 0)} sub="with appointments" color="text-emerald-600" />
+        <KpiCard icon={TrendingUp} label="Returning Members" value={String(s.returningPatients ?? 0)} sub={`${retention.toFixed(1)}% retention rate`} color="text-violet-600" />
         <KpiCard icon={DollarSign} label="Total Refunds" value={fmt(refundTotal)} sub={`${s.refundCount ?? 0} refund events`} color="text-rose-600" />
       </div>
 
       <div className="grid grid-cols-2 gap-4">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Avg Appointments / Patient</CardTitle>
+            <CardTitle className="text-sm font-medium">Avg Appointments / Member</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-3xl font-bold">{(s.avgAppointmentsPerPatient ?? 0).toFixed(1)}</p>
-            <p className="text-xs text-muted-foreground mt-1">across all active patients</p>
+            <p className="text-xs text-muted-foreground mt-1">across all active members</p>
           </CardContent>
         </Card>
         <Card>
@@ -104,7 +104,7 @@ function AdminPatientsPanel() {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <TrendingUp className="h-4 w-4" /> Patient Growth (6 months)
+              <TrendingUp className="h-4 w-4" /> Member Growth (6 months)
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -120,7 +120,7 @@ function AdminPatientsPanel() {
                 <XAxis dataKey="month" tick={{ fontSize: 10 }} />
                 <YAxis tick={{ fontSize: 10 }} />
                 <Tooltip />
-                <Area type="monotone" dataKey="newUsers" name="New Patients" stroke="#6366f1" fill="url(#patGrad)" strokeWidth={2} />
+                <Area type="monotone" dataKey="newUsers" name="New Members" stroke="#6366f1" fill="url(#patGrad)" strokeWidth={2} />
               </AreaChart>
             </ResponsiveContainer>
           </CardContent>
@@ -547,13 +547,13 @@ const EXPORTS = [
   },
   {
     label: "Appointments",
-    description: "Full appointment list with patient, provider, and service details",
+    description: "Full appointment list with member, provider, and service details",
     endpoint: "/api/admin/export/appointments.csv",
     currency: "USD",
   },
   {
-    label: "Users / Patients",
-    description: "All registered patient accounts",
+    label: "Users / Members",
+    description: "All registered member accounts",
     endpoint: "/api/admin/export/users.csv",
     currency: "N/A",
   },
@@ -632,7 +632,7 @@ const SECTIONS = [
   { value: "financial",    label: "Financial",             icon: DollarSign      },
   { value: "operations",   label: "Operations",            icon: Activity        },
   { value: "providers",    label: "Providers",             icon: Users           },
-  { value: "patients",     label: "Patients",              icon: Crown           },
+    { value: "patients",     label: "Members",               icon: Crown           },
   { value: "memberships",  label: "Memberships",           icon: Package         },
   { value: "packages",     label: "Packages",              icon: Package         },
   { value: "revenue",      label: "Revenue Intel",         icon: TrendingUp      },

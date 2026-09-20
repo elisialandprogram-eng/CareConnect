@@ -130,7 +130,7 @@ interface LifecycleEvent {
 const COL_GROUPS = [
   { id: "booking",   label: "A · Booking",   cols: ["ref","status","payment","date"] as const },
   { id: "appt",      label: "B · Appointment",cols: ["appt"] as const },
-  { id: "patient",   label: "C · Patient",   cols: ["patient"] as const },
+  { id: "patient",   label: "C · Member",   cols: ["patient"] as const },
   { id: "provider",  label: "D · Provider",  cols: ["provider"] as const },
   { id: "service",   label: "E · Service",   cols: ["service"] as const },
   { id: "financial", label: "F · Financial", cols: ["amount"] as const },
@@ -296,7 +296,7 @@ function InvestigationDrawer({
             </a>
           </Button>
           <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => { onClose(); navigate(`/admin?tab=users&userId=${row.patient_id}`); }}>
-            <Users className="h-3 w-3" />Patient
+            <Users className="h-3 w-3" />Member
           </Button>
           <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => { onClose(); navigate(`/admin?tab=providers&id=${row.provider_id}`); }}>
             <Building2 className="h-3 w-3" />Provider
@@ -346,15 +346,15 @@ function InvestigationDrawer({
             <Row label="Clinic"       value={row.clinic_name} />
           </Section>
 
-          {/* C: Patient */}
-          <Section title="C · Patient" icon={Users}>
+          {/* C: Member */}
+          <Section title="C · Member" icon={Users}>
             <Row label="Name"     value={`${row.patient_first_name} ${row.patient_last_name}`} />
             <Row label="Email"    value={row.patient_email} />
             <Row label="City"     value={row.patient_city} />
             <Row label="Country"  value={row.patient_country} />
             <Row label="Profile"  value={
               <Button size="sm" variant="ghost" className="h-5 p-0 text-xs" onClick={() => { onClose(); navigate(`/admin?tab=users&userId=${row.patient_id}`); }}>
-                View Patient Profile →
+                View Member Profile →
               </Button>
             } />
           </Section>
@@ -725,7 +725,7 @@ export function BookingsManagementComponent() {
             <div className="relative flex-1 min-w-[220px]">
               <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search ref, patient, provider, service, promo, Stripe ID…"
+                placeholder="Search ref, member, provider, service, promo, Stripe ID…"
                 value={search}
                 onChange={e => { setSearch(e.target.value); setPage(1); }}
                 className="ps-9 h-9"
@@ -863,7 +863,7 @@ export function BookingsManagementComponent() {
                     Created <SortIcon field="created_at" />
                   </th>
                   {visibleCols.has("ref") && <th className="px-3 py-2 text-left font-medium text-xs whitespace-nowrap">Ref</th>}
-                  {visibleCols.has("patient") && <th className="px-3 py-2 text-left font-medium text-xs whitespace-nowrap">Patient</th>}
+                  {visibleCols.has("patient") && <th className="px-3 py-2 text-left font-medium text-xs whitespace-nowrap">Member</th>}
                   {visibleCols.has("provider") && <th className="px-3 py-2 text-left font-medium text-xs whitespace-nowrap">Provider</th>}
                   {visibleCols.has("service") && <th className="px-3 py-2 text-left font-medium text-xs whitespace-nowrap">Service</th>}
                   {visibleCols.has("appt") && (

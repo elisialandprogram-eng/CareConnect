@@ -1954,7 +1954,7 @@ function ProviderCommandCenter({
                 <div className="space-y-4">
                   <div className="grid grid-cols-3 gap-3">
                     {[
-                      { label: "Unique Patients", value: uniqueNames.length },
+                      { label: "Unique Members", value: uniqueNames.length },
                       { label: "Total Bookings",  value: appointments.total  },
                       { label: "Completed",        value: appointments.completed },
                     ].map(({ label, value }) => (
@@ -1979,7 +1979,7 @@ function ProviderCommandCenter({
                   </div>
                   {uniqueNames.length > 0 && (
                     <div className="space-y-1">
-                      <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Recent Patients</p>
+                      <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Recent Members</p>
                       {uniqueNames.slice(0, 10).map((name, i) => (
                         <div key={i} className="flex items-center gap-2 py-1.5 text-sm">
                           <div className="h-7 w-7 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-xs font-medium text-slate-500">

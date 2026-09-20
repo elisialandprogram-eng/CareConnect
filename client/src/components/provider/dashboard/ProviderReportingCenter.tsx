@@ -777,7 +777,7 @@ function ExportsTab({ fmtMoney }: { fmtMoney: (v: number) => string }) {
 const SECTIONS = [
   { value: "overview",     label: "Overview",    icon: BarChart3   },
   { value: "revenue",      label: "Revenue",     icon: DollarSign  },
-  { value: "patients",     label: "Patients",    icon: Users       },
+  { value: "patients",     label: "Members",     icon: Users       },
   { value: "bookings",     label: "Bookings",    icon: Calendar    },
   { value: "services",     label: "Services",    icon: Briefcase   },
   { value: "schedule",     label: "Schedule",    icon: Clock       },

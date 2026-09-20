@@ -209,7 +209,7 @@ export default function Register() {
                         <FormLabel>{t("common.i_am_a")}</FormLabel>
                         <div className="grid grid-cols-2 gap-2">
                           {[
-                            { value: "patient", label: "Patient", icon: "👤" },
+                            { value: "patient", label: "Member", icon: "👤" },
                             { value: "provider", label: "Healthcare Provider", icon: "🩺" },
                           ].map((opt) => (
                             <button
@@ -408,7 +408,7 @@ export default function Register() {
                           {[
                             { icon: BadgeCheck, text: "Set your professional credentials & license details" },
                             { icon: Lock, text: "Submit for compliance review — typically 1–3 business days" },
-                            { icon: CheckCircle2, text: "Get approved and start accepting patient bookings" },
+                            { icon: CheckCircle2, text: "Get approved and start accepting member bookings" },
                           ].map(({ icon: Icon, text }, i) => (
                             <div key={i} className="flex items-center gap-2.5 text-xs text-muted-foreground">
                               <Icon className="h-3.5 w-3.5 text-primary shrink-0" />

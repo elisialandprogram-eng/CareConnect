@@ -96,7 +96,7 @@ function ProcessRefundDialog({
     onSuccess: (data) => {
       toast({
         title: action === "reject" ? "Refund declined" : "Refund processed",
-        description: action === "reject" ? "No funds were moved." : `${fmtMoney(data.refundAmt)} issued to client wallet.`,
+        description: action === "reject" ? "No funds were moved." : `${fmtMoney(data.refundAmt)} issued to member wallet.`,
       });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/refunds"] });
       onOpenChange(false);
@@ -186,7 +186,7 @@ function ProcessRefundDialog({
           {action === "reject" && (
             <div className="flex items-start gap-2 p-2 rounded-lg bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-300 text-xs border border-amber-200 dark:border-amber-800">
               <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
-              <span>No funds will be moved. The client will be notified.</span>
+              <span>No funds will be moved. The member will be notified.</span>
             </div>
           )}
         </div>
@@ -283,7 +283,7 @@ export function RefundManagementPanel() {
               <Input
                 value={search}
                 onChange={e => { setSearch(e.target.value); setPage(1); }}
-                placeholder="Search appointment, client, provider..."
+                placeholder="Search appointment, member, provider..."
                 className="pl-9 h-8 text-xs"
                 data-testid="input-refund-search"
               />
@@ -312,7 +312,7 @@ export function RefundManagementPanel() {
                 <thead className="bg-muted/40 text-xs text-muted-foreground uppercase tracking-wide">
                   <tr>
                     <th className="text-left px-4 py-3">Appt #</th>
-                    <th className="text-left px-4 py-3">Client</th>
+                    <th className="text-left px-4 py-3">Member</th>
                     <th className="text-left px-4 py-3">Provider</th>
                     <th className="text-left px-4 py-3">Service</th>
                     <th className="text-right px-4 py-3">Paid</th>
@@ -428,7 +428,7 @@ function RuleRow({ rule, onSave }: { rule: RefundRule; onSave: (id: string, patc
   };
 
   const scenarioLabel = {
-    patient_cancel: "Client cancel",
+    patient_cancel: "Member cancel",
     provider_cancel: "Provider cancel",
     no_show: "No-show",
     late_cancel: "Late cancel",

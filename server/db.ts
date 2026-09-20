@@ -765,7 +765,7 @@ export async function runStartupMigrations() {
       INSERT INTO refund_rules (scenario, country_code, full_refund_hours, partial_refund_hours, partial_refund_percent, description)
       SELECT s.scenario, 'all', s.full_h, s.partial_h, s.pct, s.descr
       FROM (VALUES
-        ('patient_cancel'::text,   24, 6,  50, 'Patient cancellation: >24 h full, 6–24 h 50%, <6 h none'),
+        ('patient_cancel'::text,   24, 6,  50, 'Member cancellation: >24 h full, 6–24 h 50%, <6 h none'),
         ('provider_cancel'::text,   0, 0, 100, 'Provider/admin cancellation: always full refund'),
         ('no_show'::text,           0, 0,   0, 'No-show: no refund issued'),
         ('late_cancel'::text,       0, 6,   0, 'Late cancellation (<6 h): no refund'),
@@ -3063,7 +3063,7 @@ async function seedRbacRoles(): Promise<void> {
     const SEED_DOCS = [
       { slug: 'platform_terms',         title: 'Platform Terms of Service',       doc_type: 'platform_terms',         target_roles: ['patient','provider'],  is_required: true },
       { slug: 'privacy_policy',         title: 'Privacy Policy',                  doc_type: 'privacy_policy',         target_roles: ['patient','provider'],  is_required: true },
-      { slug: 'patient_agreement',      title: 'Patient Agreement',               doc_type: 'patient_agreement',      target_roles: ['patient'],             is_required: true },
+      { slug: 'patient_agreement',      title: 'Member Agreement',                doc_type: 'patient_agreement',      target_roles: ['patient'],             is_required: true },
       { slug: 'provider_agreement',     title: 'Provider Service Agreement',      doc_type: 'provider_agreement',     target_roles: ['provider'],            is_required: true },
       { slug: 'medical_disclaimer',     title: 'Medical Disclaimer',              doc_type: 'medical_disclaimer',     target_roles: ['patient','provider'],  is_required: true },
       { slug: 'payment_authorization',  title: 'Payment Authorization',           doc_type: 'payment_authorization',  target_roles: ['patient'],             is_required: true },
@@ -3083,7 +3083,7 @@ async function seedRbacRoles(): Promise<void> {
       { slug: 'package_terms',          title: 'Package Terms & Conditions',      doc_type: 'package_terms',          target_roles: ['patient'],             is_required: false },
       { slug: 'gift_card_terms',        title: 'Gift Card Terms & Conditions',    doc_type: 'gift_card_terms',        target_roles: ['patient'],             is_required: false },
       { slug: 'provider_code_of_conduct',title:'Provider Code of Conduct',        doc_type: 'provider_code_of_conduct',target_roles: ['provider'],           is_required: true },
-      { slug: 'patient_code_of_conduct',title: 'Patient Code of Conduct',         doc_type: 'patient_code_of_conduct',target_roles: ['patient'],             is_required: false },
+      { slug: 'patient_code_of_conduct',title: 'Member Code of Conduct',          doc_type: 'patient_code_of_conduct',target_roles: ['patient'],             is_required: false },
     ];
     for (const doc of SEED_DOCS) {
       await pool.query(`
@@ -3095,6 +3095,25 @@ async function seedRbacRoles(): Promise<void> {
     }
     console.log('[db] legal document registry seeded (23 document types)');
   } catch (err: any) { console.warn('[db] P7 seed legal docs:', err.message); }
+
+  // ── Terminology: update only system-managed legal labels ─────────────────
+  // Role values, slugs, table names, and patient_id columns remain unchanged
+  // for compatibility. User-authored legal content and clinical text are not
+  // rewritten.
+  try {
+    await pool.query(`
+      UPDATE legal_documents
+      SET title = CASE title
+        WHEN 'Patient Agreement' THEN 'Member Agreement'
+        WHEN 'Patient Code of Conduct' THEN 'Member Code of Conduct'
+        ELSE title
+      END
+      WHERE title IN ('Patient Agreement', 'Patient Code of Conduct')
+    `);
+    console.log('[db] member terminology labels updated');
+  } catch (err: any) {
+    console.warn('[db] member terminology labels:', err.message);
+  }
 
   // ── C22: Communication hardening — message editing audit trail ─────────────
   try {

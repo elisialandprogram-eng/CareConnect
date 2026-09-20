@@ -1291,7 +1291,7 @@ export function registerAdminFinancialRoutes(app: Express): void {
       <div class="grid-2">
         <div class="box">
           <h3>Bill To</h3>
-          <p><strong>Jane Client</strong><br/>123 Sample Street<br/>Budapest, Hungary<br/>jane@example.com</p>
+            <p><strong>Jane Member</strong><br/>123 Sample Street<br/>Budapest, Hungary<br/>jane@example.com</p>
         </div>
         <div class="box">
           <h3>Provider</h3>
@@ -2493,7 +2493,7 @@ export function registerAdminFinancialRoutes(app: Express): void {
   const PLATFORM_REVENUE_CSV_COLUMNS = [
     "Booking Ref", "Appointment ID", "Booking Date", "Appointment Status",
     "Payment Status", "Payment Method", "Country", "Booking Currency",
-    "Booking Amount", "Client ID", "Client Name", "Client Email",
+    "Booking Amount", "Member ID", "Member Name", "Member Email",
     "Provider ID", "Provider Name", "Provider Email", "Service",
     "Platform Commission (USD)", "Platform Fee (USD)",
     "Payment Gateway Fee or Tax (USD)", "Service Tax (USD)",
@@ -2698,9 +2698,9 @@ export function registerAdminFinancialRoutes(app: Express): void {
             a.country_code::text AS "Country",
             COALESCE(a.booking_currency, a.display_currency, svc.currency, 'USD') AS "Booking Currency",
             a.total_amount AS "Booking Amount",
-            pu.id AS "Client ID",
-            CONCAT_WS(' ', pu.first_name, pu.last_name) AS "Client Name",
-            pu.email AS "Client Email",
+            pu.id AS "Member ID",
+            CONCAT_WS(' ', pu.first_name, pu.last_name) AS "Member Name",
+            pu.email AS "Member Email",
             prov.id AS "Provider ID",
             CONCAT_WS(' ', pru.first_name, pru.last_name) AS "Provider Name",
             pru.email AS "Provider Email",
@@ -3025,10 +3025,10 @@ export function registerAdminFinancialRoutes(app: Express): void {
             COALESCE(svc.location_mode, a.visit_type)  AS "Location Type",
             a.country_code                              AS "Country",
             -- Section B: Patient
-            pu.id                                       AS "Patient ID",
-            pu.first_name || ' ' || pu.last_name       AS "Patient Name",
-            pu.email                                    AS "Patient Email",
-            pu.city                                     AS "Patient City",
+            pu.id                                       AS "Member ID",
+            pu.first_name || ' ' || pu.last_name       AS "Member Name",
+            pu.email                                    AS "Member Email",
+            pu.city                                     AS "Member City",
             -- Section C: Provider
             prov.id                                     AS "Provider ID",
             pru.first_name || ' ' || pru.last_name     AS "Provider Name",

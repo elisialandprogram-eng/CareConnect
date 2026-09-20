@@ -90,8 +90,8 @@ export const RESET_PROFILES: ResetProfile[] = [
   },
   {
     id: "patient",
-    name: "Patient Data Reset",
-    description: "Removes all patient accounts and every record associated with them.",
+    name: "Member Data Reset",
+    description: "Removes all member accounts and every record associated with them.",
     affectedTables: ["users (patients)", "wallets", "family_members", "saved_addresses", "saved_providers", "patient_consents", "patient_gallery", "health_metrics", "medications", "medical_history", "prescriptions", "patient_notes"],
     protected: ["admin users", "providers", "platform config"],
     color: "destructive",
@@ -101,7 +101,7 @@ export const RESET_PROFILES: ResetProfile[] = [
     name: "Provider Data Reset",
     description: "Removes all provider accounts and every record associated with them.",
     affectedTables: ["providers", "provider_documents", "provider_credentials", "provider_gallery", "provider_pricing_overrides", "provider_office_hours", "provider_schedule_templates", "provider_admin_notes", "provider_wallets", "provider_ledger"],
-    protected: ["admin users", "patient users", "appointments (orphaned)", "platform config"],
+    protected: ["admin users", "member users", "appointments (orphaned)", "platform config"],
     color: "destructive",
   },
   {

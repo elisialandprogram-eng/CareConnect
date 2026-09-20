@@ -779,7 +779,7 @@ export function registerAdminProvidersRoutes(app: Express): void {
           storage.createUserNotification({
             userId: prov.userId,
             title: "Account Reactivated ✓",
-            message: "Your provider account has been reactivated. You can now accept patient bookings.",
+            message: "Your provider account has been reactivated. You can now accept member bookings.",
             type: "admin_message",
             data: JSON.stringify({ action: "reactivate" }),
           } as any).catch(() => {});
@@ -1227,7 +1227,7 @@ export function registerAdminProvidersRoutes(app: Express): void {
             to: owner.email,
             subject: "Your service is now live — GoldenLife",
             heading: "Service approved",
-            intro: `Hi ${owner.first_name || "there"}, great news — your service has been approved and is now visible to patients.`,
+            intro: `Hi ${owner.first_name || "there"}, great news — your service has been approved and is now visible to members.`,
             details: [{ label: "Service", value: svc.name }],
             cta: "Patients can now discover and book this service on your profile.",
           });
@@ -1473,7 +1473,7 @@ export function registerAdminProvidersRoutes(app: Express): void {
         storage.createUserNotification({
           userId:  prov.userId,
           title:   "Application Approved ✓",
-          message: "Congratulations! Your provider application has been approved. You can now publish services and accept patient bookings.",
+          message: "Congratulations! Your provider application has been approved. You can now publish services and accept member bookings.",
           type:    "provider_approved",
           data:    JSON.stringify({ providerId: id }),
         }).catch(() => {});

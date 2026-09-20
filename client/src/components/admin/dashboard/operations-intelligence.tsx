@@ -97,7 +97,7 @@ export function OperationsIntelligenceDashboard() {
     <div className="space-y-6">
       <div>
         <h2 className="text-xl font-semibold">Operations Intelligence</h2>
-        <p className="text-sm text-muted-foreground">Support SLA, booking patterns, patient growth and retention</p>
+        <p className="text-sm text-muted-foreground">Support SLA, booking patterns, member growth and retention</p>
       </div>
 
       <Tabs defaultValue="support">
@@ -197,19 +197,19 @@ export function OperationsIntelligenceDashboard() {
             <StatTile
               label="Repeat Booking Rate"
               value={`${growth?.repeatBooking.repeatRatePct ?? 0}%`}
-              sub={`${growth?.repeatBooking.repeatPatients ?? 0} repeat / ${growth?.repeatBooking.totalPatients ?? 0} total patients`}
+              sub={`${growth?.repeatBooking.repeatPatients ?? 0} repeat / ${growth?.repeatBooking.totalPatients ?? 0} total members`}
               icon={UserCheck}
               color="text-green-500"
             />
             <StatTile
-              label="Patient Retention (90d)"
+              label="Member Retention (90d)"
               value={`${growth?.retention.retentionRatePct ?? 0}%`}
               sub={`${growth?.retention.activePatients ?? 0} active vs ${growth?.retention.churnedPatients ?? 0} churned`}
               icon={Activity}
               color="text-indigo-500"
             />
             <StatTile
-              label="Total Patients w/ Appts"
+              label="Total Members w/ Appts"
               value={formatCount(growth?.retention.totalWithAppointments ?? 0)}
               icon={Users as any}
               color="text-blue-500"
@@ -218,8 +218,8 @@ export function OperationsIntelligenceDashboard() {
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Weekly New Patient Acquisition</CardTitle>
-              <CardDescription>New patient registrations per week (last 12 weeks)</CardDescription>
+              <CardTitle className="text-base">Weekly New Member Acquisition</CardTitle>
+              <CardDescription>New member registrations per week (last 12 weeks)</CardDescription>
             </CardHeader>
             <CardContent>
               {!growth?.acquisition?.weeklyTrend?.length ? (
@@ -232,7 +232,7 @@ export function OperationsIntelligenceDashboard() {
                       tickFormatter={(v) => v.slice(5)} />
                     <YAxis tick={{ fontSize: 11 }} tickLine={false} allowDecimals={false} />
                     <Tooltip />
-                    <Line type="monotone" dataKey="newPatients" name="New Patients" stroke="#6366f1" strokeWidth={2} dot={{ r: 3 }} />
+                    <Line type="monotone" dataKey="newPatients" name="New Members" stroke="#6366f1" strokeWidth={2} dot={{ r: 3 }} />
                   </LineChart>
                 </ResponsiveContainer>
               )}

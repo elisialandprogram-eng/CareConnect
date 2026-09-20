@@ -352,7 +352,7 @@ export function ProviderAnalyticsTabContent() {
             <Gift className="h-4 w-4 text-indigo-500" />
             {t("provider_dashboard.analytics_referral_performance", "Referral Performance")}
           </CardTitle>
-          <CardDescription>{t("provider_dashboard.analytics_referral_desc", "Patients you have referred to the platform")}</CardDescription>
+          <CardDescription>{t("provider_dashboard.analytics_referral_desc", "Members you have referred to the platform")}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-3 gap-4 text-center">

@@ -209,8 +209,8 @@ export function SeedUatTool() {
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">
               Seed account status
             </p>
-            <StatusDot active={!!status?.patient1} label="Emma Kovács (patient)" />
-            <StatusDot active={!!status?.patient2} label="Dávid Barros (patient)" />
+            <StatusDot active={!!status?.patient1} label="Emma Kovács (member)" />
+            <StatusDot active={!!status?.patient2} label="Dávid Barros (member)" />
             <StatusDot active={!!status?.physio}   label="Dr. Anna Szabó (rehabilitation)" />
             <StatusDot active={!!status?.physician} label="Dr. Bence Molnár (physician)" />
             {status && (
@@ -306,10 +306,10 @@ export function SeedUatTool() {
                 UAT scenarios covered
               </p>
               <ul className="text-xs text-blue-700/80 dark:text-blue-300/80 space-y-1 list-disc list-inside">
-                <li>Patient booking flow (online, home, clinic)</li>
+                <li>Member booking flow (online, home, clinic)</li>
                 <li>Provider dashboard — upcoming &amp; past appointments</li>
                 <li>Review submission (2 completed appointments pre-seeded)</li>
-                <li>Wallet balance — patients have $150 / $200 pre-loaded</li>
+                <li>Wallet balance — members have $150 / $200 pre-loaded</li>
                 <li>Provider profiles visible on /providers listing</li>
               </ul>
             </div>

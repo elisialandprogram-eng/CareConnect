@@ -227,7 +227,7 @@ export function checkAction(opts: {
           return {
             ok: false,
             status: 409,
-            message: `Patients cannot cancel within ${PATIENT_CANCEL_MIN_HOURS} hours of the appointment. Please contact the provider.`,
+            message: `Members cannot cancel within ${PATIENT_CANCEL_MIN_HOURS} hours of the appointment. Please contact the provider.`,
           };
         }
         toStatus = "cancelled_by_patient";
@@ -244,7 +244,7 @@ export function checkAction(opts: {
           return {
             ok: false,
             status: 409,
-            message: `Patients cannot reschedule within ${PATIENT_RESCHEDULE_MIN_HOURS} hours of the appointment.`,
+            message: `Members cannot reschedule within ${PATIENT_RESCHEDULE_MIN_HOURS} hours of the appointment.`,
           };
         }
         toStatus = "reschedule_requested";

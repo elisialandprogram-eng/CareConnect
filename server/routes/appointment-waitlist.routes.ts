@@ -390,7 +390,7 @@ export function registerAppointmentWaitlistRoutes(app: Express): void {
         const pgCode = insertErr?.code ?? insertErr?.cause?.code;
         if (pgCode === "23505") {
           return res.status(409).json({
-            message: "This slot was just reserved by another patient. Please choose a different time.",
+            message: "This slot was just reserved by another member. Please choose a different time.",
             conflictType: "slot_hold",
           });
         }

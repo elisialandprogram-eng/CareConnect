@@ -3,6 +3,10 @@ import { initReactI18next } from 'react-i18next';
 import LanguageDetector from 'i18next-browser-languagedetector';
 
 import enTranslation from '../i18n/locales/en/translation.json';
+import {
+  memberTerminologyPostProcessor,
+  normalizeTranslationTree,
+} from '../i18n/member-terminology';
 
 const SUPPORTED = ['en', 'hu', 'fa'] as const;
 type Lang = (typeof SUPPORTED)[number];
@@ -20,7 +24,13 @@ async function ensureLanguage(lng: string) {
   if (loaded.has(code)) return;
   try {
     const mod = await loaders[code]();
-    i18n.addResourceBundle(code, 'translation', mod.default, true, true);
+    i18n.addResourceBundle(
+      code,
+      'translation',
+      normalizeTranslationTree(mod.default, code),
+      true,
+      true,
+    );
     loaded.add(code);
     // Force React to re-render with the newly loaded bundle. If the user is
     // already on this language (common on initial load), changeLanguage is a
@@ -36,12 +46,14 @@ async function ensureLanguage(lng: string) {
 }
 
 i18n
+  .use(memberTerminologyPostProcessor)
   .use(LanguageDetector)
   .use(initReactI18next)
   .init({
     resources: {
-      en: { translation: enTranslation },
+      en: { translation: normalizeTranslationTree(enTranslation, 'en') },
     },
+    postProcess: ['memberTerminology'],
     fallbackLng: 'en',
     supportedLngs: SUPPORTED as unknown as string[],
     nonExplicitSupportedLngs: true,

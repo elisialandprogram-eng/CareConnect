@@ -162,7 +162,7 @@ export async function executeSeed(): Promise<SeedResult> {
         userId:       physioUid,
         ptype:        "rehabilitation",
         spec:         "Sports Rehabilitation, Manual Therapy, Orthopedic Recovery",
-        bio:          "Certified physiotherapist with 8 years of experience treating sports injuries and post-operative patients. Available for both clinic and home visits across Budapest.",
+        bio:          "Certified physiotherapist with 8 years of experience treating sports injuries and post-operative members. Available for both clinic and home visits across Budapest.",
         yrs:          8,
         consFee:      "75.00",
         homeFee:      "120.00",

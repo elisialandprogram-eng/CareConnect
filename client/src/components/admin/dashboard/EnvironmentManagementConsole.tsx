@@ -180,7 +180,7 @@ function OverviewTab() {
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-3">Users</p>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               <StatCard label="Total Users" value={stats.users.total} icon={User} />
-              <StatCard label="Patients" value={stats.users.patients} icon={User} />
+              <StatCard label="Members" value={stats.users.patients} icon={User} />
               <StatCard label="Providers" value={stats.users.providers} icon={Stethoscope} />
               <StatCard label="Admins / Staff" value={stats.users.admins} icon={Shield} />
             </div>
@@ -499,7 +499,7 @@ function FullResetTab() {
   const canExecute = understood && confirmText === CONFIRMATION_PHRASE && !!previewCounts && !executeMutation.isPending;
 
   const countEntries: Array<{ label: string; key: keyof ResetCounts; danger?: boolean }> = [
-    { label: "Patients", key: "patients", danger: true },
+    { label: "Members", key: "patients", danger: true },
     { label: "Providers", key: "providers", danger: true },
     { label: "Appointments", key: "appointments", danger: true },
     { label: "Payments", key: "payments", danger: true },
@@ -733,7 +733,7 @@ function TestDataTab() {
 
           <div className="rounded-md bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 p-3 flex gap-2 text-sm text-blue-700 dark:text-blue-300">
             <Info className="h-4 w-4 mt-0.5 shrink-0" />
-            <span>To remove detected test data, use the <strong>Reset Profiles</strong> tab — select Patient Data Reset or Provider Data Reset.</span>
+            <span>To remove detected test data, use the <strong>Reset Profiles</strong> tab — select Member Data Reset or Provider Data Reset.</span>
           </div>
         </>
       )}

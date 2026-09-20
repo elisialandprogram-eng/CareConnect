@@ -1872,10 +1872,10 @@ export function registerAppointmentRoutes(app: Express): void {
                 { label: "Time", value: `${startTime} - ${endTime}` },
                 ...(service ? [{ label: "Service", value: service.name }] : []),
                 { label: "Visit Type", value: visitType === "home" ? "Home Visit" : visitType === "clinic" ? "Clinic Visit" : "Online Consultation" },
-                { label: "Patient Name", value: `${user.firstName} ${user.lastName}` },
-                ...(contactMobile ? [{ label: "Patient Phone", value: contactMobile }] : (user.mobileNumber || user.phone) ? [{ label: "Patient Phone", value: (user.mobileNumber || user.phone)! }] : []),
+                { label: "Member Name", value: `${user.firstName} ${user.lastName}` },
+                ...(contactMobile ? [{ label: "Member Phone", value: contactMobile }] : (user.mobileNumber || user.phone) ? [{ label: "Member Phone", value: (user.mobileNumber || user.phone)! }] : []),
                 ...(visitType === "home"
-                  ? [{ label: "Patient Address", value: patientAddress || user.address || "Patient will provide address" }]
+                  ? [{ label: "Member Address", value: patientAddress || user.address || "Member will provide address" }]
                   : visitType === "clinic"
                   ? [{ label: "Clinic Address", value: provider.primaryServiceLocation || provider.city || "Clinic" }]
                   : [{ label: "Address", value: "Online (link will be shared)" }]),
@@ -1912,7 +1912,7 @@ export function registerAppointmentRoutes(app: Express): void {
             uid: appointment.id,
             title: `GoldenLife appointment with ${providerWithUser?.user.firstName} ${providerWithUser?.user.lastName}`,
             description: `${service ? service.name + " — " : ""}${visitType === "home" ? "Home visit" : "Online consultation"}`,
-            location: visitType === "home" ? (patientAddress || "Patient address") : "Online",
+            location: visitType === "home" ? (patientAddress || "Member address") : "Online",
             date,
             startTime,
             endTime,
@@ -1973,7 +1973,7 @@ export function registerAppointmentRoutes(app: Express): void {
                   <p style="margin: 5px 0;"><strong>Total Amount:</strong> ${_fmtEmailAmt(Number(appointment.totalAmount ?? fee))}</p>
                 </div>
                 <p>A calendar invite (<code>.ics</code>) is attached — open it to add this appointment to your calendar.</p>
-                <p>You can view and manage your appointment in your patient dashboard.</p>
+                 <p>You can view and manage your appointment in your member dashboard.</p>
                 <p style="color: #64748b; font-size: 0.875rem; margin-top: 30px;">
                   Thank you for choosing GoldenLife.<br>
                   <em>This is an automated message, please do not reply.</em>
@@ -2163,7 +2163,7 @@ export function registerAppointmentRoutes(app: Express): void {
           // Patients cannot change appointment status directly. All patient-initiated
           // transitions (cancel, reschedule) must go through POST /api/appointments/:id/action.
           return res.status(403).json({
-            message: "Patients cannot change appointment status directly. Use POST /api/appointments/:id/action.",
+            message: "Members cannot change appointment status directly. Use POST /api/appointments/:id/action.",
           });
         } else {
           return res.status(403).json({ message: "Access denied" });
@@ -2202,11 +2202,11 @@ export function registerAppointmentRoutes(app: Express): void {
         const storedCode = codeRow.rows[0]?.sign_off_code ?? null;
         if (!storedCode) {
           return res.status(409).json({
-            message: "This session has no active sign-off code. Please ask the patient to refresh their appointment page to generate one.",
+            message: "This session has no active sign-off code. Please ask the member to refresh their appointment page to generate one.",
           });
         }
         if (submittedCode !== String(storedCode)) {
-          return res.status(422).json({ message: "Incorrect sign-off code. Please ask the patient to check their appointment page." });
+          return res.status(422).json({ message: "Incorrect sign-off code. Please ask the member to check their appointment page." });
         }
       }
 
@@ -2409,7 +2409,7 @@ export function registerAppointmentRoutes(app: Express): void {
                 { label: "Time", value: `${appointment.startTime} - ${appointment.endTime}` },
                 ...(invoiceResult?.invoiceNumber ? [{ label: "Invoice", value: invoiceResult.invoiceNumber }] : []),
               ],
-              cta: "Please take a moment to leave a review for your provider — your feedback helps other patients choose the right care.",
+              cta: "Please take a moment to leave a review for your provider — your feedback helps other members choose the right care.",
             });
           }
         }
@@ -2546,7 +2546,7 @@ export function registerAppointmentRoutes(app: Express): void {
                 { label: "Amount", value: _fmtReceipt(Number(payment.amount)) },
                 { label: "Method", value: payment.paymentMethod || "card" },
               ],
-              cta: "An invoice for your records is available in your patient dashboard.",
+              cta: "An invoice for your records is available in your member dashboard.",
             });
           }
           notify.paymentReceived(appointment.patientId, {
@@ -3216,7 +3216,7 @@ export function registerAppointmentRoutes(app: Express): void {
         metadata: { appointmentId: appt.id, triggeredBy: "provider", hasNote: !!note },
       }).catch(() => {});
 
-      return res.json({ success: true, message: "Follow-up recommendation sent to patient", followUpRecommendedAt: new Date().toISOString() });
+          return res.json({ success: true, message: "Follow-up recommendation sent to member", followUpRecommendedAt: new Date().toISOString() });
     } catch (err: any) {
       console.error("[recommend-followup] error:", err?.message);
       return res.status(500).json({ message: err?.message || "Failed to send follow-up recommendation" });
@@ -3245,7 +3245,7 @@ export function registerAppointmentRoutes(app: Express): void {
       const role = (req.user?.role ?? "patient") as string;
       let allowed = isAdminRole(role);
       if (!allowed && role === "patient") allowed = existing.patientId === req.user!.id;
-      if (!allowed) return res.status(403).json({ message: "Only the patient or admin can respond to a reschedule proposal." });
+      if (!allowed) return res.status(403).json({ message: "Only the member or admin can respond to a reschedule proposal." });
 
       if (existing.status !== "reschedule_proposed") {
         return res.status(409).json({ message: "This appointment does not have a pending reschedule proposal." });
@@ -3318,7 +3318,7 @@ export function registerAppointmentRoutes(app: Express): void {
           actorRole: role as any,
           fromStatus: "reschedule_proposed" as any,
           toStatus: toStatus as any,
-          reason: reason || (accept ? "Patient accepted reschedule proposal." : "Patient rejected reschedule proposal — appointment auto-cancelled with full refund."),
+          reason: reason || (accept ? "Member accepted reschedule proposal." : "Member rejected reschedule proposal — appointment auto-cancelled with full refund."),
           reasonCode: accept ? "accepted" : "rejected",
           refundAmount: accept ? "0" : String(Number(existing.totalAmount ?? 0)),
           metadata: accept && proposedTime

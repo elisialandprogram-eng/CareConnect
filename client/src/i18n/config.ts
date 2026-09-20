@@ -5,22 +5,28 @@ import LanguageDetector from 'i18next-browser-languagedetector';
 import enTranslation from './locales/en/translation.json';
 import huTranslation from './locales/hu/translation.json';
 import faTranslation from './locales/fa/translation.json';
+import {
+  memberTerminologyPostProcessor,
+  normalizeTranslationTree,
+} from './member-terminology';
 
 i18n
+  .use(memberTerminologyPostProcessor)
   .use(LanguageDetector)
   .use(initReactI18next)
   .init({
     resources: {
       en: {
-        translation: enTranslation
+        translation: normalizeTranslationTree(enTranslation, "en")
       },
       hu: {
-        translation: huTranslation
+        translation: normalizeTranslationTree(huTranslation, "hu")
       },
       fa: {
-        translation: faTranslation
+        translation: normalizeTranslationTree(faTranslation, "fa")
       }
     },
+    postProcess: ["memberTerminology"],
     fallbackLng: 'en',
     interpolation: {
       escapeValue: false,

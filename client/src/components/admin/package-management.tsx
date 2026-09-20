@@ -276,7 +276,7 @@ function PackageFormDialog({
               <Select value={form.targetUserType} onValueChange={v => setField("targetUserType", v)}>
                 <SelectTrigger data-testid="select-pkg-target"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="patient">Clients</SelectItem>
+                  <SelectItem value="patient">Members</SelectItem>
                   <SelectItem value="provider">Providers</SelectItem>
                   <SelectItem value="both">Both</SelectItem>
                 </SelectContent>
@@ -482,7 +482,7 @@ export default function PackageManagement() {
         {[
           { label: "Total Packages",    value: stats.total,    icon: ShoppingBag },
           { label: "Active",            value: stats.active,   icon: CheckCircle },
-          { label: "Patient Packages",  value: stats.patient,  icon: Users },
+          { label: "Member Packages",  value: stats.patient,  icon: Users },
           { label: "Provider Packages", value: stats.provider, icon: Shield },
         ].map(s => (
           <Card key={s.label}>
@@ -531,7 +531,7 @@ export default function PackageManagement() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Users</SelectItem>
-                  <SelectItem value="patient">Clients</SelectItem>
+                  <SelectItem value="patient">Members</SelectItem>
                   <SelectItem value="provider">Providers</SelectItem>
                 </SelectContent>
               </Select>

@@ -1565,7 +1565,7 @@ function RevenueSimulatorPanel() {
                 {/* 3-card summary */}
                 <div className="grid grid-cols-3 gap-2">
                   <div className="rounded-lg bg-blue-50 dark:bg-blue-900/20 p-2.5 text-center">
-                    <p className="text-[10px] text-blue-600 font-semibold uppercase tracking-wide">Patient Pays</p>
+                    <p className="text-[10px] text-blue-600 font-semibold uppercase tracking-wide">Member Pays</p>
                     <p className="text-base font-bold text-blue-700 mt-0.5 font-mono leading-tight">{currFmt(result.patientPayable, result.bookingCurrency)}</p>
                   </div>
                   <div className="rounded-lg bg-emerald-50 dark:bg-emerald-900/20 p-2.5 text-center">
@@ -1921,7 +1921,7 @@ export function RevenueBillingCenter() {
     },
     {
       value: "patient-wallets",
-      label: t("admin.revenue_center.tab_patient_wallets", "Patient Wallets"),
+      label: t("admin.revenue_center.tab_patient_wallets", "Member Wallets"),
       icon: Wallet,
       component: <Suspense fallback={<PanelLoader />}><LazyAdminWallets /></Suspense>,
     },

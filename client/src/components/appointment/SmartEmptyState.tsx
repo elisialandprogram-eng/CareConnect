@@ -75,7 +75,7 @@ const CONFIG: Record<EmptyContext, {
   provider_all: {
     icon: <Heart className="h-8 w-8" />,
     title: "No appointments yet",
-    description: "Your appointments will appear here once patients start booking your services.",
+    description: "Your appointments will appear here once members start booking your services.",
     color: "text-rose-400",
   },
   search: {

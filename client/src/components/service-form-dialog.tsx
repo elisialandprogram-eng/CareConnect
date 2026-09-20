@@ -1086,7 +1086,7 @@ export function ServiceFormDialog({ open, onOpenChange, service, providerId, adm
 
             <div className="rounded-md border p-4 space-y-2">
               <Label className="text-sm font-medium">Daily capacity</Label>
-              <p className="text-xs text-muted-foreground">Max clients per day for this service. Leave empty for no limit.</p>
+              <p className="text-xs text-muted-foreground">Max members per day for this service. Leave empty for no limit.</p>
               <Input
                 type="number"
                 min="0"

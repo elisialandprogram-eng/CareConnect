@@ -352,7 +352,7 @@ export function AppointmentActionDialog({
               {quote.refund.amount > 0 && (
                 <div className="flex items-start gap-2 text-xs text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30 rounded-lg px-3 py-2">
                   <CheckCircle2 className="h-3.5 w-3.5 shrink-0 mt-0.5" />
-                  <span>Refund will be credited to the client's wallet immediately after cancellation.</span>
+                  <span>Refund will be credited to the member's wallet immediately after cancellation.</span>
                 </div>
               )}
             </div>

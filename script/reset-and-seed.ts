@@ -59,7 +59,7 @@ const CATALOGUE = [
         name: "Women's Health & Obstetrics",
         providerType: "physician",
         services: [
-          { name: "Contraceptive & Family Planning Counseling", description: "Helping patients choose and manage birth control methods", durationMinutes: 45 },
+          { name: "Contraceptive & Family Planning Counseling", description: "Helping members choose and manage birth control methods", durationMinutes: 45 },
           { name: "Pre-Conception & Fertility Guidance", description: "Reviewing medical histories for couples planning a pregnancy", durationMinutes: 60 },
           { name: "Menopause & Hormonal Support Session", description: "Managing hot flashes, mood shifts, and hormone replacement options", durationMinutes: 45 },
         ],
@@ -95,7 +95,7 @@ const CATALOGUE = [
         name: "Clinical Psychology & Psychotherapy",
         providerType: "mental_health",
         services: [
-          { name: "Initial Therapy Intake Session", description: "Establishing client history and setting core therapeutic goals", durationMinutes: 60 },
+          { name: "Initial Therapy Intake Session", description: "Establishing member history and setting core therapeutic goals", durationMinutes: 60 },
           { name: "Individual Psychotherapy", description: "Evidence-based talk therapy for depression, anxiety, trauma, or stress", durationMinutes: 50 },
           { name: "Couples & Marriage Counseling", description: "Joint sessions focusing on communication, conflict resolution, and intimacy", durationMinutes: 60 },
           { name: "Family Therapy Session", description: "Structural therapy involving family members to resolve household distress", durationMinutes: 60 },

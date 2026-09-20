@@ -985,7 +985,7 @@ export default function AppointmentDetails() {
             <div className="space-y-2">
               <Label className="text-sm">{t("patient_sweep.appointment_add_note", "Add a note")}</Label>
               <Textarea
-                placeholder="Write a private note about this client or appointment..."
+                placeholder="Write a private note about this member or appointment..."
                 value={noteContent}
                 onChange={e => setNoteContent(e.target.value)}
                 className="text-sm"

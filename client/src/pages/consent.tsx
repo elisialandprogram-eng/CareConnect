@@ -25,7 +25,7 @@ import { Download, Globe } from "lucide-react";
 
 const consentText = {
   en: {
-    title: "Patient Consent & Authorization",
+    title: "Member Consent & Authorization",
     subtitle: "By registering with Golden Life Health Care, I voluntarily provide my consent and authorization.",
     treatmentTitle: "1. Consent to Medical Treatment",
     treatmentBody: "I consent to receive medical care and treatment from licensed healthcare professionals affiliated with Golden Life Health Care. This may include medical examinations, diagnostic procedures, consultations, and treatments deemed necessary based on professional medical judgment. I understand that the nature and purpose of treatments will be explained, no guarantees are made, and I have the right to withdraw consent.",
@@ -39,7 +39,7 @@ const consentText = {
     termsTitle: "4. Terms & Conditions Acceptance",
     termsBody: "I confirm that I have read, understood, and agree to comply with the Terms & Conditions of Golden Life Health Care. I am responsible for providing accurate information.",
     termsLabel: "I agree to the Terms & Conditions.",
-    declarationTitle: "5. Patient Declaration & Confirmation",
+    declarationTitle: "5. Member Declaration & Confirmation",
     declarationBody: "By submitting this form, I confirm all information is accurate, I am authorized to give consent, and my consent is voluntary.",
     declarationLabel: "I confirm and submit my consent.",
     submit: "Submit Consent",
@@ -229,7 +229,7 @@ export default function ConsentPage() {
         items={[
           { label: t("nav.home", "Home"), href: "/" },
           { label: t("nav.settings", "Settings"), href: "/settings" },
-          { label: t("consent_page.breadcrumb", "Patient Consent") },
+          { label: t("consent_page.breadcrumb", "Member Consent") },
         ]}
         fallback="/settings"
       />

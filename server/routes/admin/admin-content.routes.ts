@@ -557,7 +557,7 @@ export function registerAdminContentRoutes(app: Express): void {
           { label: "Duration", value: `${durationMins} min` },
           { label: "Price", value: formatLocal(Number(price || 0), "USD") },
         ],
-        cta: "Patients can now discover and book this service on your profile.",
+        cta: "Members can now discover and book this service on your profile.",
       });
 
       if (!svc.rows[0]?.id) throw new Error("Failed to create service record");

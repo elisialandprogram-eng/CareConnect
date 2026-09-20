@@ -250,7 +250,7 @@ export function registerAdminComplianceRoutes(app: Express): void {
   // ── Disputes ──────────────────────────────────────────────────────────────
   app.post("/api/disputes", authenticateToken, async (req: AuthRequest, res: Response) => {
     try {
-      if (req.user?.role !== "patient") return res.status(403).json({ message: "Patients only" });
+      if (req.user?.role !== "patient") return res.status(403).json({ message: "Members only" });
       const schema = z.object({
         appointmentId: z.string(),
         reason: z.string().min(5),
@@ -652,7 +652,7 @@ export function registerAdminComplianceRoutes(app: Express): void {
       },
       deletion_request_sla_days: 30,
       export_request_sla_days: 30,
-      note: "Patient self-service export available at GET /api/patient/me/data-export. GDPR Article 17 deletion requests processed via /api/privacy/requests.",
+      note: "Member self-service export available at GET /api/patient/me/data-export. GDPR Article 17 deletion requests processed via /api/privacy/requests.",
     });
   });
 }

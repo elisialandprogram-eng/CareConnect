@@ -148,7 +148,7 @@ interface LifecycleEvent {
 
 const COLUMN_GROUPS = [
   { id: "booking",   label: "A · Booking",   cols: ["ref","status","payment","type","date"] },
-  { id: "patient",   label: "B · Patient",   cols: ["patient"] },
+  { id: "patient",   label: "B · Member",   cols: ["patient"] },
   { id: "provider",  label: "C · Provider",  cols: ["provider"] },
   { id: "service",   label: "D · Service",   cols: ["service"] },
   { id: "financial", label: "E · Financial", cols: ["gross","commission","net"] },
@@ -381,9 +381,9 @@ function InvestigationDrawer({
             <Row label="Audit Reference" value={<span className="font-mono text-xs">{row.id}</span>} />
           </Section>
 
-          {/* Section B — Patient */}
-          <Section title="B · Patient" icon={Users}>
-            <Row label="Patient ID"  value={row.patient_id} />
+          {/* Section B — Member */}
+          <Section title="B · Member" icon={Users}>
+            <Row label="Member ID"  value={row.patient_id} />
             <Row label="Name"        value={`${row.patient_first_name} ${row.patient_last_name}`} />
             <Row label="Email"       value={row.patient_email} />
             <Row label="City"        value={row.patient_city} />
@@ -832,7 +832,7 @@ export function FinancialMasterReport() {
             <div className="relative flex-1 min-w-[200px]">
               <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search booking ref, patient, provider, promo, Stripe ID…"
+                placeholder="Search booking ref, member, provider, promo, Stripe ID…"
                 value={search}
                 onChange={e => handleSearch(e.target.value)}
                 className="ps-9 h-9"
@@ -1001,7 +1001,7 @@ export function FinancialMasterReport() {
                     <th className="px-3 py-2.5 text-left font-medium whitespace-nowrap">Ref</th>
                   )}
                   {visibleCols.has("patient") && (
-                    <th className="px-3 py-2.5 text-left font-medium whitespace-nowrap">Patient</th>
+                    <th className="px-3 py-2.5 text-left font-medium whitespace-nowrap">Member</th>
                   )}
                   {visibleCols.has("provider") && (
                     <th className="px-3 py-2.5 text-left font-medium whitespace-nowrap">Provider</th>

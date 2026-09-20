@@ -93,8 +93,8 @@ const BOOKING_FIELDS: ReportField[] = [
   field("booking_currency", "Booking Currency", "text", "COALESCE(a.booking_currency, a.display_currency, 'USD')"),
   field("created_at", "Created At", "datetime", "a.created_at"),
   field("appointment_at", "Appointment At", "datetime", "a.start_at"),
-  field("patient_name", "Patient Name", "text", "CONCAT_WS(' ', pu.first_name, pu.last_name)"),
-  field("patient_email", "Patient Email", "text", "pu.email"),
+  field("patient_name", "Member Name", "text", "CONCAT_WS(' ', pu.first_name, pu.last_name)"),
+  field("patient_email", "Member Email", "text", "pu.email"),
   field("provider_name", "Provider Name", "text", "CONCAT_WS(' ', pru.first_name, pru.last_name)"),
   field("provider_category", "Provider Category", "text", "prov.provider_type::text"),
   field("service_name", "Service Name", "text", "svc.name"),
@@ -115,7 +115,7 @@ const SOURCES: Record<string, ReportSource> = {
   bookings: {
     key: "bookings",
     label: "Bookings",
-    description: "Appointments with patient, provider, payment, service, pricing, tax, and earnings context.",
+    description: "Appointments with member, provider, payment, service, pricing, tax, and earnings context.",
     countrySql: "a.country_code::text",
     fromSql: `
       FROM appointments a
@@ -144,7 +144,7 @@ const SOURCES: Record<string, ReportSource> = {
   customers: {
     key: "customers",
     label: "Customers",
-    description: "Patient accounts with account status and wallet context.",
+    description: "Member accounts with account status and wallet context.",
     countrySql: "u.country_code::text",
     fromSql: `
       FROM users u

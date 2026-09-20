@@ -105,7 +105,7 @@ export function scoreProvider(
   if (rating > 0) {
     const ratingScore = clamp(Math.round((rating / 5) * 15), 15);
     score += ratingScore;
-    if (rating >= 4.5) reasons.push("Highly rated by patients");
+    if (rating >= 4.5) reasons.push("Highly rated by members");
     else if (rating >= 4.0) reasons.push("Well-reviewed provider");
   }
 

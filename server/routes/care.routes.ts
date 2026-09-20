@@ -262,7 +262,7 @@ export function registerCareRoutes(app: Express): void {
         [provider.id, parsed.patientId],
       );
       if (apptCheck.length === 0) {
-        return res.status(403).json({ message: "You can only add medical history for your own patients" });
+        return res.status(403).json({ message: "You can only add medical history for your own members" });
       }
 
       const entry = await storage.createMedicalHistory(parsed);
@@ -565,7 +565,7 @@ export function registerCareRoutes(app: Express): void {
         `SELECT id FROM appointments WHERE provider_id = $1 AND patient_id = $2 LIMIT 1`,
         [provider.id, parsed.patientId],
       );
-      if (check.length === 0) return res.status(403).json({ message: "You can only write SOAP notes for your own patients" });
+      if (check.length === 0) return res.status(403).json({ message: "You can only write SOAP notes for your own members" });
 
       // If appointmentId given, check for existing SOAP note for same appointment
       if (parsed.appointmentId) {
@@ -737,7 +737,7 @@ export function registerCareRoutes(app: Express): void {
         `SELECT id FROM appointments WHERE provider_id=$1 AND patient_id=$2 LIMIT 1`,
         [provider.id, parsed.patientId],
       );
-      if (check.length === 0) return res.status(403).json({ message: "You can only diagnose your own patients" });
+      if (check.length === 0) return res.status(403).json({ message: "You can only diagnose your own members" });
 
       const { rows } = await pool.query(
         `INSERT INTO diagnoses (patient_id, provider_id, appointment_id, code, title, description, category, status, diagnosed_at)
@@ -873,7 +873,7 @@ export function registerCareRoutes(app: Express): void {
         `SELECT id FROM appointments WHERE provider_id=$1 AND patient_id=$2 LIMIT 1`,
         [provider.id, parsed.patientId],
       );
-      if (check.length === 0) return res.status(403).json({ message: "You can only create treatment plans for your own patients" });
+      if (check.length === 0) return res.status(403).json({ message: "You can only create treatment plans for your own members" });
 
       const client = await pool.connect();
       try {
@@ -1162,7 +1162,7 @@ export function registerCareRoutes(app: Express): void {
       doc.moveDown(1);
 
       // ── Patient Info ───────────────────────────────────────────────────────
-      doc.fontSize(12).font("Helvetica-Bold").text("Patient Information");
+      doc.fontSize(12).font("Helvetica-Bold").text("Member Information");
       doc.moveTo(50, doc.y).lineTo(545, doc.y).stroke("#ddd");
       doc.moveDown(0.3);
       doc.fontSize(10).font("Helvetica");
@@ -1268,7 +1268,7 @@ export function registerCareRoutes(app: Express): void {
         `SELECT id FROM appointments WHERE provider_id=$1 AND patient_id=$2 LIMIT 1`,
         [provider.id, parsed.patientId],
       );
-      if (check.length === 0) return res.status(403).json({ message: "You can only attach files for your own patients" });
+      if (check.length === 0) return res.status(403).json({ message: "You can only attach files for your own members" });
 
       const { rows } = await pool.query(
         `INSERT INTO clinical_attachments (patient_id, provider_id, appointment_id, category, title, file_url, file_type, file_size, notes, uploaded_by)

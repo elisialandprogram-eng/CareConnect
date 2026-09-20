@@ -307,7 +307,7 @@ export function CurrencyRatesPanel() {
         </CardHeader>
         <CardContent className="text-sm text-muted-foreground space-y-2">
           <p>
-            <strong className="text-foreground">Wallet debiting</strong> — when a patient pays
+            <strong className="text-foreground">Wallet debiting</strong> — when a member pays
             with wallet credits, the platform converts the appointment's USD total to the local
             currency amount deducted from their balance.
           </p>

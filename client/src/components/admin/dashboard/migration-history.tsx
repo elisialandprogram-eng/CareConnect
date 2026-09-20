@@ -30,7 +30,7 @@ const COUNT_LABELS: Record<string, string> = {
   providers: "Provider profiles",
   services: "Services",
   serviceRequests: "Service requests",
-  appointmentsAsPatient: "Appts (as patient)",
+  appointmentsAsPatient: "Appts (as member)",
   appointmentsAsProvider: "Appts (as provider)",
   invoices: "Invoices",
   payments: "Payments",

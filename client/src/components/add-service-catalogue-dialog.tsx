@@ -414,7 +414,7 @@ export function AddServiceCatalogueDialog({ open, onOpenChange, providerId }: Pr
       queryClient.invalidateQueries({ queryKey: ["/api/provider/me"] });
       toast({
         title: "Service submitted for approval",
-        description: "An admin will review it before it becomes visible to clients.",
+        description: "An admin will review it before it becomes visible to members.",
       });
       handleClose();
     },

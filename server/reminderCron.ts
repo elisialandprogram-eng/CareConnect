@@ -1021,7 +1021,7 @@ async function sendProfileCompletionReminders(): Promise<number> {
         await storage.createUserNotification({
           userId: row.user_id,
           type: "system",
-          title: "Complete your profile to attract more patients",
+          title: "Complete your profile to attract more members",
           message: `Hi ${row.first_name}, your profile is missing: ${missing.join(", ")}. A complete profile gets up to 3× more bookings.`,
           isRead: false,
         } as any);

@@ -58,7 +58,7 @@ interface LegalAcceptance {
 const DOC_TYPES = [
   { value: "platform_terms",         label: "Platform Terms" },
   { value: "privacy_policy",         label: "Privacy Policy" },
-  { value: "patient_agreement",      label: "Patient Agreement" },
+  { value: "patient_agreement",      label: "Member Agreement" },
   { value: "provider_agreement",     label: "Provider Agreement" },
   { value: "medical_disclaimer",     label: "Medical Disclaimer" },
   { value: "payment_authorization",  label: "Payment Authorization" },
@@ -78,7 +78,7 @@ const DOC_TYPES = [
   { value: "package_terms",          label: "Package Terms" },
   { value: "gift_card_terms",        label: "Gift Card Terms" },
   { value: "provider_code_of_conduct","label": "Provider Code of Conduct" },
-  { value: "patient_code_of_conduct","label": "Patient Code of Conduct" },
+  { value: "patient_code_of_conduct","label": "Member Code of Conduct" },
 ];
 
 const TARGET_ROLES = ["patient", "provider", "admin"];

@@ -227,7 +227,7 @@ export function SystemBreaker() {
           <CardContent>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {[
-                { label: "New appointment bookings", desc: "Patients cannot book any new slots" },
+                { label: "New appointment bookings", desc: "Members cannot book any new slots" },
                 { label: "Wallet withdrawals", desc: "Provider payout requests are blocked" },
                 { label: "Slot reservations", desc: "Real-time slot holds are prevented" },
                 { label: "New payment charges", desc: "Stripe charges for bookings are halted" },

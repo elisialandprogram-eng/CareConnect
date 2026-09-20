@@ -163,7 +163,7 @@ function ClientDirectory({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">{t("admin.all_roles")}</SelectItem>
-                <SelectItem value="patient">Client</SelectItem>
+                <SelectItem value="patient">Member</SelectItem>
                 <SelectItem value="provider">Provider</SelectItem>
                 <SelectItem value="admin">Admin</SelectItem>
                 <SelectItem value="global_admin">Global Admin</SelectItem>
@@ -1121,7 +1121,7 @@ export function ClientOperationsConsole() {
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center gap-3 text-slate-400">
             <Users className="h-12 w-12 text-slate-200 dark:text-slate-700" />
-            <p className="text-sm">Select a client to view their workspace</p>
+            <p className="text-sm">Select a member to view their workspace</p>
             <p className="text-xs">{clients.length} clients loaded</p>
           </div>
         )}
@@ -1137,7 +1137,7 @@ export function ClientOperationsConsole() {
           />
         ) : (
           <div className="flex-1 flex items-center justify-center bg-white dark:bg-slate-950 border-l border-slate-200 dark:border-slate-800">
-            <p className="text-xs text-slate-300 p-4 text-center">Select a client to see actions</p>
+            <p className="text-xs text-slate-300 p-4 text-center">Select a member to see actions</p>
           </div>
         )}
       </div>

@@ -319,7 +319,7 @@ export function registerLocationRoutes(app: Express): void {
         const pLng = parseFloat(patientLng);
 
         if (!isValidCoordinates(pLat, pLng)) {
-          return res.status(400).json({ message: "Invalid patient coordinates" });
+          return res.status(400).json({ message: "Invalid member coordinates" });
         }
 
         const provResult = await pool.query(
@@ -379,7 +379,7 @@ export function registerLocationRoutes(app: Express): void {
         const pLng = parseFloat(patientLng);
 
         if (!isValidCoordinates(pLat, pLng)) {
-          return res.status(400).json({ message: "Invalid patient coordinates" });
+          return res.status(400).json({ message: "Invalid member coordinates" });
         }
 
         const provResult = await pool.query(

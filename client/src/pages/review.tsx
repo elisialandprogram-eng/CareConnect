@@ -59,7 +59,7 @@ export default function ReviewPage() {
     onSuccess: () => {
       toast({
         title: t("review.thanks_title", "Thanks for your review!"),
-        description: t("review.thanks_desc", "Your feedback helps other patients."),
+        description: t("review.thanks_desc", "Your feedback helps other members."),
       });
       queryClient.invalidateQueries({ queryKey: QK.patientAppointments() });
       queryClient.invalidateQueries({ queryKey: QK.reviews() });

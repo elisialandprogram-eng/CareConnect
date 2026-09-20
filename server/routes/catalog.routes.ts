@@ -343,7 +343,7 @@ export function registerCatalogRoutes(app: Express): void {
   app.post("/api/reviews", authenticateToken, async (req: AuthRequest, res: Response) => {
     try {
       if (req.user?.role !== "patient") {
-        return res.status(403).json({ message: "Only patients can submit reviews" });
+        return res.status(403).json({ message: "Only members can submit reviews" });
       }
 
       const { appointmentId, rating: rawRating, comment } = req.body as {
@@ -409,7 +409,7 @@ export function registerCatalogRoutes(app: Express): void {
   app.get("/api/reviews/mine", authenticateToken, async (req: AuthRequest, res: Response) => {
     try {
       if (req.user?.role !== "patient") {
-        return res.status(403).json({ message: "Only patients can view their reviews" });
+        return res.status(403).json({ message: "Only members can view their reviews" });
       }
       const { rows } = await pool.query<{
         id: string; appointment_id: string; provider_id: string;
