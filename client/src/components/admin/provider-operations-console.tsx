@@ -395,6 +395,8 @@ function ProviderDirectory({
   onSelect: (id: string) => void;
 }) {
   const { t } = useTranslation();
+  const d = (key: string, fallback: string, options?: Record<string, unknown>) =>
+    t(`admin_provider_details.${key}`, fallback, options);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
@@ -468,34 +470,34 @@ function ProviderDirectory({
               </SelectContent>
             </Select>
             <Select value={typeFilter} onValueChange={setTypeFilter}>
-              <SelectTrigger className="h-7 text-xs"><SelectValue placeholder="Type" /></SelectTrigger>
+               <SelectTrigger className="h-7 text-xs"><SelectValue placeholder={d("type", "Type")} /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All types</SelectItem>
-                <SelectItem value="physician">Medical Doctors & Specialists</SelectItem>
-                <SelectItem value="mental_health">Mental Health & Behavioral</SelectItem>
-                <SelectItem value="nutrition">Nutrition & Dietetics</SelectItem>
-                <SelectItem value="rehabilitation">Physical Therapy & Rehab</SelectItem>
-                <SelectItem value="dental">Dental Care</SelectItem>
-                <SelectItem value="alternative_medicine">Alternative & Holistic</SelectItem>
-                <SelectItem value="nursing">Maternal, Nursing & Allied</SelectItem>
+                 <SelectItem value="all">{d("all_types", "All types")}</SelectItem>
+                 <SelectItem value="physician">{d("physician", "Medical Doctors & Specialists")}</SelectItem>
+                 <SelectItem value="mental_health">{d("mental_health", "Mental Health & Behavioral")}</SelectItem>
+                 <SelectItem value="nutrition">{d("nutrition", "Nutrition & Dietetics")}</SelectItem>
+                 <SelectItem value="rehabilitation">{d("rehabilitation", "Physical Therapy & Rehab")}</SelectItem>
+                 <SelectItem value="dental">{d("dental", "Dental Care")}</SelectItem>
+                 <SelectItem value="alternative_medicine">{d("alternative_medicine", "Alternative & Holistic")}</SelectItem>
+                 <SelectItem value="nursing">{d("nursing", "Maternal, Nursing & Allied")}</SelectItem>
               </SelectContent>
             </Select>
             <Select value={countryFilter} onValueChange={setCountryFilter}>
                <SelectTrigger className="h-7 text-xs"><SelectValue placeholder={t("admin.country")} /></SelectTrigger>
               <SelectContent>
                  <SelectItem value="all">{t("admin.all_countries")}</SelectItem>
-                <SelectItem value="HU">Hungary</SelectItem>
-                <SelectItem value="IR">Iran</SelectItem>
+                 <SelectItem value="HU">{d("hungary", "Hungary")}</SelectItem>
+                 <SelectItem value="IR">{d("iran", "Iran")}</SelectItem>
               </SelectContent>
             </Select>
             <Select value={riskFilter} onValueChange={setRiskFilter}>
-              <SelectTrigger className="h-7 text-xs"><SelectValue placeholder="Risk" /></SelectTrigger>
+               <SelectTrigger className="h-7 text-xs"><SelectValue placeholder={d("risk", "Risk")} /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All risk levels</SelectItem>
-                <SelectItem value="low">Low risk</SelectItem>
-                <SelectItem value="medium">Medium risk</SelectItem>
-                <SelectItem value="high">High risk</SelectItem>
-                <SelectItem value="critical">Critical risk</SelectItem>
+                 <SelectItem value="all">{d("all_risk_levels", "All risk levels")}</SelectItem>
+                 <SelectItem value="low">{d("low_risk", "Low risk")}</SelectItem>
+                 <SelectItem value="medium">{d("medium_risk", "Medium risk")}</SelectItem>
+                 <SelectItem value="high">{d("high_risk", "High risk")}</SelectItem>
+                 <SelectItem value="critical">{d("critical_risk", "Critical risk")}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -548,7 +550,7 @@ function ProviderDirectory({
                     <div className="flex items-center gap-2 mt-1">
                       <span className="text-[10px] text-slate-400">{p.countryCode}</span>
                       {p.user?.isSuspended && (
-                        <span className="text-[10px] text-red-500 font-medium">Suspended</span>
+                         <span className="text-[10px] text-red-500 font-medium">{d("suspended", "Suspended")}</span>
                       )}
                     </div>
                   </div>
@@ -1052,6 +1054,8 @@ function ProviderCommandHeader({
   const qc = useQueryClient();
   const { format: fmtUSD } = useAdminCurrency();
   const { provider: prov, user, metrics, appointments, financials } = data;
+  const d = (key: string, fallback: string, options?: Record<string, unknown>) =>
+    t(`admin_provider_details.${key}`, fallback, options);
 
   const [confirmAction, setConfirmAction] = useState<string | null>(null);
   const [reason, setReason] = useState("");
@@ -1124,7 +1128,7 @@ function ProviderCommandHeader({
             <span className={`text-xs px-2 py-0.5 rounded-full border font-medium ${risk.color}`}>
               {t("admin_tools.ops.risk", "Risk")}: {t(`admin_tools.ops.risk_level.${risk.label.toLowerCase()}`, risk.label)} ({metrics.computedRisk})
             </span>
-            <span className="text-xs text-slate-400">{prov.countryCode} · ID …{prov.id?.slice(-6)}</span>
+           <span className="text-xs text-slate-400">{prov.countryCode} · ID …{prov.id?.slice(-6)}</span>
           </div>
           {user?.email && (
             <div className="flex items-center gap-3 mt-1.5 flex-wrap">
@@ -1227,8 +1231,8 @@ function ProviderCommandHeader({
               {isGlobal && (
                 <>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => toast({ title: "Impersonate", description: "Requires additional authorization." })}>
-                    <UserIcon className="h-3.5 w-3.5 mr-2" />Impersonate (Global)
+                   <DropdownMenuItem onClick={() => toast({ title: d("impersonate_global", "Impersonate (Global)"), description: d("additional_authorization", "Requires additional authorization.") })}>
+                     <UserIcon className="h-3.5 w-3.5 mr-2" />{d("impersonate_global", "Impersonate (Global)")}
                   </DropdownMenuItem>
                 </>
               )}
@@ -1254,9 +1258,9 @@ function ProviderCommandHeader({
             {healthScore}
           </div>
           <div>
-            <p className="text-xs font-semibold text-slate-600 dark:text-slate-300">Health</p>
+             <p className="text-xs font-semibold text-slate-600 dark:text-slate-300">{d("health", "Health")}</p>
             <p className="text-[11px] text-slate-400">
-              {healthScore >= 80 ? "Excellent" : healthScore >= 60 ? "Good" : healthScore >= 40 ? "Fair" : "Poor"}
+               {healthScore >= 80 ? d("excellent", "Excellent") : healthScore >= 60 ? d("good", "Good") : healthScore >= 40 ? d("fair", "Fair") : d("poor", "Poor")}
             </p>
           </div>
         </div>
@@ -1265,7 +1269,7 @@ function ProviderCommandHeader({
           <DollarSign className="h-5 w-5 text-green-500 flex-shrink-0" />
           <div>
             <p className="text-xs font-semibold text-slate-900 dark:text-slate-100">{fmtUSD(financials.revenueUsd)}</p>
-            <p className="text-[11px] text-slate-400">Earnings (USD)</p>
+             <p className="text-[11px] text-slate-400">{d("earnings_usd", "Earnings (USD)")}</p>
           </div>
         </div>
         {/* Appointments */}
@@ -1273,7 +1277,7 @@ function ProviderCommandHeader({
           <Calendar className="h-5 w-5 text-blue-500 flex-shrink-0" />
           <div>
             <p className="text-xs font-semibold text-slate-900 dark:text-slate-100">{appointments.total}</p>
-            <p className="text-[11px] text-slate-400">{appointments.completed} completed</p>
+             <p className="text-[11px] text-slate-400">{d("completed_count", "{{count}} completed", { count: appointments.completed })}</p>
           </div>
         </div>
         {/* Docs */}
@@ -1285,7 +1289,7 @@ function ProviderCommandHeader({
           <FileText className={`h-5 w-5 flex-shrink-0 ${metrics.verificationPct === 100 ? "text-green-500" : metrics.pendingDocs > 0 ? "text-yellow-500" : "text-slate-400"}`} />
           <div>
             <p className="text-xs font-semibold text-slate-900 dark:text-slate-100">{metrics.approvedDocs}/{metrics.totalDocs}</p>
-            <p className="text-[11px] text-slate-400">{metrics.verificationPct}% verified</p>
+             <p className="text-[11px] text-slate-400">{d("verified_percent", "{{percent}}% verified", { percent: metrics.verificationPct })}</p>
           </div>
         </div>
       </div>
@@ -1293,14 +1297,14 @@ function ProviderCommandHeader({
       {/* Send Notification inline form (conditionally shown below KPIs) */}
       {showNotifForm && (
         <div className="mx-5 mb-3 p-3 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-xl space-y-2">
-          <div className="flex items-center justify-between">
-            <p className="text-xs font-semibold text-blue-700 dark:text-blue-300">Send Notification to Provider</p>
+           <div className="flex items-center justify-between">
+             <p className="text-xs font-semibold text-blue-700 dark:text-blue-300">{d("send_notification_to_provider", "Send Notification to Provider")}</p>
             <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-slate-400" onClick={() => setShowNotifForm(false)}>
               <XCircle className="h-4 w-4" />
             </Button>
           </div>
-          <Input placeholder="Title" value={notifTitle} onChange={e => setNotifTitle(e.target.value)} className="h-7 text-xs" />
-          <Textarea placeholder="Message…" value={notifBody} onChange={e => setNotifBody(e.target.value)} className="text-xs min-h-[56px] resize-none" />
+           <Input placeholder={d("title", "Title")} value={notifTitle} onChange={e => setNotifTitle(e.target.value)} className="h-7 text-xs" />
+           <Textarea placeholder={d("message", "Message…")} value={notifBody} onChange={e => setNotifBody(e.target.value)} className="text-xs min-h-[56px] resize-none" />
           <Button
             size="sm" className="h-7 text-xs gap-1.5"
             disabled={!notifTitle || !notifBody || actionMutation.isPending}
@@ -1311,7 +1315,7 @@ function ProviderCommandHeader({
               setNotifBody("");
             }}
           >
-            <Send className="h-3 w-3" />Send
+             <Send className="h-3 w-3" />{d("send", "Send")}
           </Button>
         </div>
       )}
@@ -1335,9 +1339,9 @@ function ProviderCommandHeader({
             </p>
             {confirmAction && CONFIRM_COPY[confirmAction]?.needsReason && (
               <div>
-                <Label className="text-xs">Reason {confirmAction !== "request_changes" ? "(optional)" : ""}</Label>
+                 <Label className="text-xs">{d("reason", "Reason")} {confirmAction !== "request_changes" ? d("optional", "(optional)") : ""}</Label>
                 <Textarea
-                  placeholder="Reason…"
+                   placeholder={d("reason_placeholder", "Reason…")}
                   value={reason}
                   onChange={e => setReason(e.target.value)}
                   className="mt-1.5 text-sm min-h-[80px]"
@@ -1346,7 +1350,7 @@ function ProviderCommandHeader({
             )}
           </div>
           <DialogFooter>
-            <Button variant="outline" size="sm" onClick={() => { setConfirmAction(null); setReason(""); }}>Cancel</Button>
+             <Button variant="outline" size="sm" onClick={() => { setConfirmAction(null); setReason(""); }}>{d("cancel", "Cancel")}</Button>
             <Button
               size="sm"
               className={
@@ -1358,7 +1362,7 @@ function ProviderCommandHeader({
               disabled={actionMutation.isPending}
             >
               {actionMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : null}
-              Confirm
+               {d("confirm", "Confirm")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1489,10 +1493,10 @@ function ProviderCommandCenter({
           <TabsContent value="overview" className="p-5 space-y-5 mt-0">
             {/* Health score card */}
             {(() => {
-              const scoreLabel = healthScore >= 80 ? { text: "Excellent", color: "text-green-600", bg: "bg-green-50 border-green-200 dark:bg-green-950/20 dark:border-green-900/40" }
-                : healthScore >= 60 ? { text: "Good",    color: "text-blue-600",   bg: "bg-blue-50 border-blue-200 dark:bg-blue-950/20 dark:border-blue-900/40" }
-                : healthScore >= 40 ? { text: "Fair",    color: "text-yellow-600", bg: "bg-yellow-50 border-yellow-200 dark:bg-yellow-950/20 dark:border-yellow-900/40" }
-                : { text: "Poor", color: "text-red-600", bg: "bg-red-50 border-red-200 dark:bg-red-950/20 dark:border-red-900/40" };
+               const scoreLabel = healthScore >= 80 ? { text: d("excellent", "Excellent"), color: "text-green-600", bg: "bg-green-50 border-green-200 dark:bg-green-950/20 dark:border-green-900/40" }
+                 : healthScore >= 60 ? { text: d("good", "Good"), color: "text-blue-600", bg: "bg-blue-50 border-blue-200 dark:bg-blue-950/20 dark:border-blue-900/40" }
+                 : healthScore >= 40 ? { text: d("fair", "Fair"), color: "text-yellow-600", bg: "bg-yellow-50 border-yellow-200 dark:bg-yellow-950/20 dark:border-yellow-900/40" }
+                 : { text: d("poor", "Poor"), color: "text-red-600", bg: "bg-red-50 border-red-200 dark:bg-red-950/20 dark:border-red-900/40" };
               const passing = healthFactors.filter(f => f.pass).length;
               return (
                 <div className={`rounded-xl border p-5 flex items-center gap-6 ${scoreLabel.bg}`}>
@@ -1525,7 +1529,7 @@ function ProviderCommandCenter({
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-medium text-slate-700 dark:text-slate-300">{f.label}</span>
-                      <span className={`text-[10px] px-1.5 py-0.5 rounded border font-medium ${f.impact === "high" ? "border-red-200 text-red-600 bg-red-50 dark:bg-red-950/20" : "border-yellow-200 text-yellow-600 bg-yellow-50 dark:bg-yellow-950/20"}`}>{f.impact} impact</span>
+                       <span className={`text-[10px] px-1.5 py-0.5 rounded border font-medium ${f.impact === "high" ? "border-red-200 text-red-600 bg-red-50 dark:bg-red-950/20" : "border-yellow-200 text-yellow-600 bg-yellow-50 dark:bg-yellow-950/20"}`}>{d("impact", "{{impact}} impact", { impact: f.impact })}</span>
                     </div>
                     <p className="text-xs text-slate-500 mt-0.5">{f.note}</p>
                   </div>
@@ -1536,10 +1540,10 @@ function ProviderCommandCenter({
             {/* Quick stats */}
             <div className="grid grid-cols-4 gap-3">
                 {[
-                  { icon: Calendar, label: label("total_appts", "Total Appts"), value: appointments.total },
-                  { icon: CheckCheck, label: label("completed", "Completed"), value: appointments.completed },
-                  { icon: Users, label: label("staff", "Staff"), value: metrics.staffCount },
-                  { icon: Briefcase, label: label("services", "Services"), value: metrics.servicesCount },
+                   { icon: Calendar, label: d("appts", "Total Appts"), value: appointments.total },
+                   { icon: CheckCheck, label: d("completed", "Completed"), value: appointments.completed },
+                   { icon: Users, label: d("staff", "Staff"), value: metrics.staffCount },
+                   { icon: Briefcase, label: d("services", "Services"), value: metrics.servicesCount },
               ].map(({ icon: Icon, label, value }) => (
                 <div key={label} className="bg-slate-50 dark:bg-slate-900 rounded-lg p-3 text-center">
                   <Icon className="h-4 w-4 text-slate-400 mx-auto mb-1" />
@@ -1570,18 +1574,18 @@ function ProviderCommandCenter({
               </div>
               <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
                 {[
-                  { label: "Full Name",            value: `${user?.firstName || ""} ${user?.lastName || ""}`.trim() || "—" },
-                  { label: "Display Title",        value: prov.displayTitle || prov.display_title || prov.professionalTitle || "—" },
-                  { label: "Provider ID",          value: prov.id, mono: true },
-                  { label: "User ID",              value: user?.id, mono: true },
-                  { label: "Email",                value: user?.email },
-                  { label: "Mobile",               value: user?.phone || prov.supportPhone || "—" },
-                  { label: "Verification Status",  value: prov.isVerified ? "✓ Verified" : "Not Verified" },
-                  { label: "Provider Status",      value: humanLabel(prov.status) },
-                  { label: "Risk Level",           value: riskLabel(metrics.computedRisk).label },
-                  { label: "Joined",               value: user?.createdAt ? format(new Date(user.createdAt), "MMM d, yyyy") : "—" },
-                  { label: "Last Updated",         value: prov.updatedAt ? format(new Date(prov.updatedAt), "MMM d, yyyy") : "—" },
-                  { label: "Bookings",             value: prov.bookingsEnabled === false ? "Disabled" : "Enabled" },
+                   { label: d("full_name", "Full Name"), value: `${user?.firstName || ""} ${user?.lastName || ""}`.trim() || d("no_value", "—") },
+                   { label: d("display_title", "Display Title"), value: prov.displayTitle || prov.display_title || prov.professionalTitle || d("no_value", "—") },
+                   { label: d("provider_id", "Provider ID"), value: prov.id, mono: true },
+                   { label: d("user_id", "User ID"), value: user?.id, mono: true },
+                   { label: d("email", "Email"), value: user?.email },
+                   { label: d("mobile", "Mobile"), value: user?.phone || prov.supportPhone || d("no_value", "—") },
+                   { label: d("verification_status", "Verification Status"), value: prov.isVerified ? `✓ ${d("verified", "Verified")}` : d("not_verified", "Not Verified") },
+                   { label: d("provider_status", "Provider Status"), value: humanLabel(prov.status) },
+                   { label: d("risk_level", "Risk Level"), value: riskLabel(metrics.computedRisk).label },
+                   { label: d("joined", "Joined"), value: user?.createdAt ? format(new Date(user.createdAt), "MMM d, yyyy") : d("no_value", "—") },
+                   { label: d("last_updated", "Last Updated"), value: prov.updatedAt ? format(new Date(prov.updatedAt), "MMM d, yyyy") : d("no_value", "—") },
+                   { label: d("bookings", "Bookings"), value: prov.bookingsEnabled === false ? d("disabled", "Disabled") : d("enabled", "Enabled") },
                 ].map(({ label, value, mono }) => (
                   <div key={label} className="flex items-start gap-2 text-sm">
                     <span className="text-xs text-slate-400 w-36 flex-shrink-0 pt-0.5">{label}</span>
@@ -1595,22 +1599,22 @@ function ProviderCommandCenter({
             <div className="rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
               <div className="px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 flex items-center gap-2">
                 <Stethoscope className="h-3.5 w-3.5 text-blue-500" />
-                <span className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Professional</span>
+                 <span className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">{d("professional", "Professional")}</span>
               </div>
               <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
                 {[
-                  { label: "Category",             value: prov.providerCategory || humanLabel(prov.providerType) },
-                  { label: "Subcategory",          value: prov.providerSubcategory || "—" },
-                  { label: "Provider Type",        value: humanLabel(prov.providerType) },
-                  { label: "Account Type",         value: humanLabel(prov.accountType) },
-                  { label: "Specialization",       value: prov.specialization || "—" },
-                  { label: "Professional Title",   value: prov.professionalTitle || "—" },
-                  { label: "Languages",            value: (prov.languages || []).join(", ") || "—" },
-                  { label: "Service Modes",        value: (prov.serviceModes || []).map(humanLabel).join(", ") || "—" },
-                  { label: "Years Experience",     value: prov.yearsExperience != null ? `${prov.yearsExperience} years` : "—" },
-                  { label: "Education",            value: prov.education || "—" },
-                  { label: "Rating",               value: prov.rating ? `${Number(prov.rating).toFixed(1)} ★  (${prov.totalReviews || 0} reviews)` : "No reviews yet" },
-                  { label: "Affiliated Hospital",  value: prov.affiliatedHospital || "—" },
+                   { label: d("category", "Category"), value: prov.providerCategory || humanLabel(prov.providerType) },
+                   { label: d("subcategory", "Subcategory"), value: prov.providerSubcategory || d("no_value", "—") },
+                   { label: d("provider_type", "Provider Type"), value: humanLabel(prov.providerType) },
+                   { label: d("account_type", "Account Type"), value: humanLabel(prov.accountType) },
+                   { label: d("specialization", "Specialization"), value: prov.specialization || d("no_value", "—") },
+                   { label: d("professional_title", "Professional Title"), value: prov.professionalTitle || d("no_value", "—") },
+                   { label: d("languages", "Languages"), value: (prov.languages || []).join(", ") || d("no_value", "—") },
+                   { label: d("service_modes", "Service Modes"), value: (prov.serviceModes || []).map(humanLabel).join(", ") || d("no_value", "—") },
+                   { label: d("years_experience", "Years Experience"), value: prov.yearsExperience != null ? `${prov.yearsExperience} ${d("years", "years")}` : d("no_value", "—") },
+                   { label: d("education", "Education"), value: prov.education || d("no_value", "—") },
+                   { label: d("rating", "Rating"), value: prov.rating ? `${Number(prov.rating).toFixed(1)} ★  (${prov.totalReviews || 0} ${d("reviews", "reviews")})` : d("no_reviews", "No reviews yet") },
+                   { label: d("affiliated_hospital", "Affiliated Hospital"), value: prov.affiliatedHospital || d("no_value", "—") },
                 ].map(({ label, value }) => (
                   <div key={label} className="flex items-start gap-2 text-sm">
                     <span className="text-xs text-slate-400 w-36 flex-shrink-0 pt-0.5">{label}</span>
@@ -1621,7 +1625,7 @@ function ProviderCommandCenter({
               {prov.bio && (
                 <div className="px-4 pb-4">
                   <Separator className="mb-3" />
-                  <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Bio</p>
+                   <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">{d("bio", "Bio")}</p>
                   <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">{prov.bio}</p>
                 </div>
               )}
@@ -1631,22 +1635,22 @@ function ProviderCommandCenter({
             <div className="rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
               <div className="px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 flex items-center gap-2">
                 <MapPin className="h-3.5 w-3.5 text-green-500" />
-                <span className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Location</span>
+                 <span className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">{d("location", "Location")}</span>
               </div>
               <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
                 {[
-                  { label: "Country",              value: humanLabel(prov.countryCode) },
-                  { label: "City",                 value: prov.city || user?.city || "—" },
-                  { label: "Timezone",             value: user?.timezone || "—" },
-                  { label: "Practice Address",     value: [prov.clinicAddressLine1, prov.clinicAddressLine2].filter(Boolean).join(", ") || prov.clinicFormattedAddress || "—" },
-                  { label: "Practice Postal",      value: prov.clinicPostalCode || "—" },
-                  { label: "Home Address",         value: [prov.permanentAddressLine1, prov.permanentAddressLine2].filter(Boolean).join(", ") || "—" },
-                  { label: "Home City",            value: prov.permanentCity || "—" },
-                  { label: "Home Postal",          value: prov.permanentPostalCode || "—" },
-                  { label: "Home Country",         value: prov.permanentCountry || "—" },
-                  { label: "Support Email",        value: prov.supportEmail || "—" },
-                  { label: "Support Phone",        value: prov.supportPhone || "—" },
-                  { label: "Primary Location",     value: humanLabel(prov.primaryServiceLocation) },
+                   { label: d("country", "Country"), value: humanLabel(prov.countryCode) },
+                   { label: d("city", "City"), value: prov.city || user?.city || d("no_value", "—") },
+                   { label: d("timezone", "Timezone"), value: user?.timezone || d("no_value", "—") },
+                   { label: d("practice_address", "Practice Address"), value: [prov.clinicAddressLine1, prov.clinicAddressLine2].filter(Boolean).join(", ") || prov.clinicFormattedAddress || d("no_value", "—") },
+                   { label: d("practice_postal", "Practice Postal"), value: prov.clinicPostalCode || d("no_value", "—") },
+                   { label: d("home_address", "Home Address"), value: [prov.permanentAddressLine1, prov.permanentAddressLine2].filter(Boolean).join(", ") || d("no_value", "—") },
+                   { label: d("home_city", "Home City"), value: prov.permanentCity || d("no_value", "—") },
+                   { label: d("home_postal", "Home Postal"), value: prov.permanentPostalCode || d("no_value", "—") },
+                   { label: d("home_country", "Home Country"), value: prov.permanentCountry || d("no_value", "—") },
+                   { label: d("support_email", "Support Email"), value: prov.supportEmail || d("no_value", "—") },
+                   { label: d("support_phone", "Support Phone"), value: prov.supportPhone || d("no_value", "—") },
+                   { label: d("primary_location", "Primary Location"), value: humanLabel(prov.primaryServiceLocation) },
                 ].map(({ label, value }) => (
                   <div key={label} className="flex items-start gap-2 text-sm">
                     <span className="text-xs text-slate-400 w-36 flex-shrink-0 pt-0.5">{label}</span>
@@ -1660,7 +1664,7 @@ function ProviderCommandCenter({
             <div className="rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
               <div className="px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 flex items-center gap-2">
                 <Banknote className="h-3.5 w-3.5 text-emerald-500" />
-                <span className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Currency & Billing</span>
+                 <span className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">{d("currency_billing", "Currency & Billing")}</span>
               </div>
               <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
                 {(() => {
