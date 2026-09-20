@@ -31,8 +31,18 @@ import {
   Heart, CreditCard, Home, BookOpen, Banknote, Coffee, Trash2,
   RotateCcw, CalendarDays, AlarmClock, Info, EyeOff,
 } from "lucide-react";
-import { format, differenceInDays, parseISO } from "date-fns";
+import { differenceInDays, parseISO } from "date-fns";
+import i18n from "@/lib/i18n";
 import { Switch } from "@/components/ui/switch";
+
+function formatAdminDate(value: string | Date, mode: "monthYear" | "date" | "dateTime") {
+  const options: Intl.DateTimeFormatOptions = mode === "monthYear"
+    ? { month: "short", year: "numeric" }
+    : mode === "dateTime"
+      ? { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" }
+      : { month: "short", day: "numeric", year: "numeric" };
+  return new Intl.DateTimeFormat(i18n.language, options).format(new Date(value));
+}
 import { LayoutGrid } from "lucide-react";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
@@ -664,7 +674,7 @@ function DocumentRow({
                 </div>
                 {status === "approved" && doc.verifiedAt && (
                   <p className="text-xs text-slate-400">
-                    {t("admin_tools.ops.verified", "Verified")} {format(new Date(doc.verifiedAt), "MMM d, yyyy")}
+                    {t("admin_tools.ops.verified", "Verified")} {formatAdminDate(doc.verifiedAt, "date")}
                     {doc.verifiedBy && <span className="ml-1">{t("admin_tools.ops.by_admin", "by admin")}</span>}
                   </p>
                 )}
@@ -673,7 +683,7 @@ function DocumentRow({
                 )}
                 {doc.createdAt && (
                   <p className="text-xs text-slate-400">
-                    {t("admin_tools.ops.uploaded", "Uploaded")} {format(new Date(doc.createdAt), "MMM d, yyyy")}
+                          {t("admin_tools.ops.uploaded", "Uploaded")} {formatAdminDate(doc.createdAt, "date")}
                     {doc.fileName && ` · ${doc.fileName}`}
                   </p>
                 )}
@@ -1034,7 +1044,7 @@ function CategoryPermissionsTab({ providerId }: { providerId: string }) {
       {isDirty && (
         <p className="text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1">
           <AlertTriangle className="h-3 w-3" />
-          You have unsaved changes. Click Save to apply.
+           {t("admin_tools.ops.unsaved_changes", "You have unsaved changes. Click Save to apply.")}
         </p>
       )}
     </div>
@@ -1120,7 +1130,7 @@ function ProviderCommandHeader({
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">{fullName}</h2>
-            {prov.isVerified && <span title="Verified"><ShieldCheck className="h-4 w-4 text-blue-500" /></span>}
+            {prov.isVerified && <span title={t("admin_tools.ops.verified", "Verified")}><ShieldCheck className="h-4 w-4 text-blue-500" /></span>}
             {isSuspended && <Badge variant="destructive" className="text-xs">{t("admin_tools.ops.suspended", "Suspended")}</Badge>}
           </div>
           <div className="flex items-center gap-2 mt-1 flex-wrap">
@@ -1140,7 +1150,7 @@ function ProviderCommandHeader({
               {user?.phone && <span className="text-xs text-slate-500 flex items-center gap-1"><Phone className="h-3 w-3" />{user.phone}</span>}
               {user?.createdAt && (
                 <span className="text-xs text-slate-400 flex items-center gap-1">
-              <Calendar className="h-3 w-3" />{t("admin_tools.ops.joined", "Joined")} {format(new Date(user.createdAt), "MMM yyyy")}
+              <Calendar className="h-3 w-3" />{t("admin_tools.ops.joined", "Joined")} {formatAdminDate(user.createdAt, "monthYear")}
                 </span>
               )}
             </div>
@@ -1243,7 +1253,7 @@ function ProviderCommandHeader({
             </DropdownMenuContent>
           </DropdownMenu>
 
-          <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={onRefresh} title="Refresh">
+          <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={onRefresh} title={t("common.refresh", "Refresh")}>
             <RefreshCw className="h-3.5 w-3.5" />
           </Button>
         </div>
@@ -1591,8 +1601,8 @@ function ProviderCommandCenter({
                    { label: d("verification_status", "Verification Status"), value: prov.isVerified ? `✓ ${d("verified", "Verified")}` : d("not_verified", "Not Verified") },
                    { label: d("provider_status", "Provider Status"), value: humanLabel(prov.status) },
                    { label: d("risk_level", "Risk Level"), value: riskLabel(metrics.computedRisk).label },
-                   { label: d("joined", "Joined"), value: user?.createdAt ? format(new Date(user.createdAt), "MMM d, yyyy") : d("no_value", "—") },
-                   { label: d("last_updated", "Last Updated"), value: prov.updatedAt ? format(new Date(prov.updatedAt), "MMM d, yyyy") : d("no_value", "—") },
+                   { label: d("joined", "Joined"), value: user?.createdAt ? formatAdminDate(user.createdAt, "date") : d("no_value", "—") },
+                   { label: d("last_updated", "Last Updated"), value: prov.updatedAt ? formatAdminDate(prov.updatedAt, "date") : d("no_value", "—") },
                    { label: d("bookings", "Bookings"), value: prov.bookingsEnabled === false ? d("disabled", "Disabled") : d("enabled", "Enabled") },
                 ].map(({ label, value, mono }) => (
                   <div key={label} className="flex items-start gap-2 text-sm">
@@ -1679,13 +1689,13 @@ function ProviderCommandCenter({
                   const nativeCcy = currencyForCountry(prov.countryCode);
                   const walletCcy = financials.walletCurrency || "USD";
                   return [
-                    { label: "Native Currency",    value: humanLabel(nativeCcy), note: "Provider pricing currency" },
-                    { label: "Country Currency",   value: humanLabel(nativeCcy), note: `Based on ${humanLabel(prov.countryCode)}` },
-                    { label: "Wallet Currency",    value: humanLabel(walletCcy), note: "Wallet stored in" },
-                    { label: "Payment Methods",    value: (prov.paymentMethods || []).join(", ") || "—" },
-                    { label: "Insurance Accepted", value: (prov.insuranceAccepted || []).join(", ") || "—" },
-                    { label: "Wallet Balance",     value: fmtUSD(financials.walletBalance), note: "Admin (USD)" },
-                    { label: "Provider Earnings",  value: fmtUSD(financials.revenueUsd), note: "Lifetime (USD)" },
+                    { label: d("native_currency", "Native Currency"), value: humanLabel(nativeCcy), note: d("provider_pricing_currency", "Provider pricing currency") },
+                    { label: d("country_currency", "Country Currency"), value: humanLabel(nativeCcy), note: d("based_on_country", "Based on {{country}}", { country: humanLabel(prov.countryCode) }) },
+                    { label: d("wallet_currency", "Wallet Currency"), value: humanLabel(walletCcy), note: d("wallet_stored_in", "Wallet stored in") },
+                    { label: d("payment_methods", "Payment Methods"), value: (prov.paymentMethods || []).join(", ") || "—" },
+                    { label: d("insurance_accepted", "Insurance Accepted"), value: (prov.insuranceAccepted || []).join(", ") || "—" },
+                    { label: d("wallet_balance", "Wallet Balance"), value: fmtUSD(financials.walletBalance), note: d("admin_usd", "Admin (USD)") },
+                    { label: d("provider_earnings", "Provider Earnings"), value: fmtUSD(financials.revenueUsd), note: d("lifetime_usd", "Lifetime (USD)") },
                   ].map(({ label, value, note }) => (
                     <div key={label} className="flex items-start gap-2 text-sm">
                       <div className="w-36 flex-shrink-0">
@@ -1703,18 +1713,18 @@ function ProviderCommandCenter({
             <div className="rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
               <div className="px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 flex items-center gap-2">
                 <Heart className="h-3.5 w-3.5 text-red-500" />
-                <span className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Emergency Contact</span>
+                <span className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">{d("emergency_contact", "Emergency Contact")}</span>
               </div>
               <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
                 {[
-                  { label: "Name",        value: user?.emergencyContactName || "Not Provided" },
-                  { label: "Relationship",value: user?.emergencyContactRelation || "Not Provided" },
-                  { label: "Phone",       value: user?.emergencyContactPhone || "Not Provided" },
-                  { label: "Alt. Note",   value: prov.emergencyContact || "Not Provided" },
+                  { label: d("name", "Name"), value: user?.emergencyContactName || d("not_provided", "Not Provided") },
+                  { label: d("relationship", "Relationship"), value: user?.emergencyContactRelation || d("not_provided", "Not Provided") },
+                  { label: d("phone", "Phone"), value: user?.emergencyContactPhone || d("not_provided", "Not Provided") },
+                  { label: d("alternate_note", "Alt. Note"), value: prov.emergencyContact || d("not_provided", "Not Provided") },
                 ].map(({ label, value }) => (
                   <div key={label} className="flex items-start gap-2 text-sm">
                     <span className="text-xs text-slate-400 w-36 flex-shrink-0 pt-0.5">{label}</span>
-                    <span className={`text-sm font-medium ${value === "Not Provided" ? "text-slate-400 italic" : "text-slate-700 dark:text-slate-300"}`}>{value}</span>
+                  <span className={`text-sm font-medium ${value === d("not_provided", "Not Provided") ? "text-slate-400 italic" : "text-slate-700 dark:text-slate-300"}`}>{value}</span>
                   </div>
                 ))}
               </div>
@@ -1725,30 +1735,30 @@ function ProviderCommandCenter({
           <TabsContent value="kycdocs" className="p-5 space-y-5 mt-0">
             {/* Verification Status */}
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300">Verification Center</h3>
+              <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300">{d("verification_center", "Verification Center")}</h3>
               <span className={`text-xs px-2 py-1 rounded border font-medium ${
                 ["approved","active"].includes(prov.status) && prov.isVerified ? "bg-green-50 border-green-200 text-green-700"
                 : (prov.status === "under_review" || prov.status === "documents_verified") ? "bg-blue-50 border-blue-200 text-blue-700"
                 : prov.status === "action_required" ? "bg-orange-50 border-orange-200 text-orange-700"
                 : "bg-slate-50 border-slate-200 text-slate-600"
               }`}>
-                {["approved","active"].includes(prov.status) && prov.isVerified ? "Fully Verified"
-                  : (prov.status === "under_review" || prov.status === "documents_verified") ? "Under Review"
-                  : prov.status === "action_required" ? "Action Required"
-                  : (prov.status === "submitted" || prov.status === "pending_approval") ? "Awaiting Review"
-                  : "Not Submitted"}
+                {["approved","active"].includes(prov.status) && prov.isVerified ? d("fully_verified", "Fully Verified")
+                  : (prov.status === "under_review" || prov.status === "documents_verified") ? d("under_review", "Under Review")
+                  : prov.status === "action_required" ? d("action_required", "Action Required")
+                  : (prov.status === "submitted" || prov.status === "pending_approval") ? d("awaiting_review", "Awaiting Review")
+                  : d("not_submitted", "Not Submitted")}
               </span>
             </div>
 
             {/* Professional credentials */}
             <div className="rounded-lg border border-slate-200 dark:border-slate-700 p-4 space-y-2">
-              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Professional Credentials</p>
+              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">{d("professional_credentials", "Professional Credentials")}</p>
               {[
-                { label: "License Number",      value: prov.licenseNumber },
-                { label: "Licensing Authority", value: prov.licensingAuthority },
-                { label: "License Expiry",      value: prov.licenseExpiryDate ? format(new Date(prov.licenseExpiryDate), "MMM d, yyyy") : null },
-                { label: "Govt. Photo ID Number", value: prov.nationalProviderId },
-                { label: "Agreements",          value: (prov.providerAgreementAccepted && prov.dataProcessingAgreementAccepted) ? "Provider + Data Processing" : prov.providerAgreementAccepted ? "Provider only" : "Not accepted" },
+                { label: d("license_number", "License Number"), value: prov.licenseNumber },
+                { label: d("licensing_authority", "Licensing Authority"), value: prov.licensingAuthority },
+                { label: d("license_expiry", "License Expiry"),      value: prov.licenseExpiryDate ? formatAdminDate(prov.licenseExpiryDate, "date") : null },
+                { label: d("government_id", "Govt. Photo ID Number"), value: prov.nationalProviderId },
+                { label: d("agreements", "Agreements"), value: (prov.providerAgreementAccepted && prov.dataProcessingAgreementAccepted) ? d("provider_data_processing", "Provider + Data Processing") : prov.providerAgreementAccepted ? d("provider_only", "Provider only") : d("not_accepted", "Not accepted") },
               ].map(({ label, value }) => (
                 <div key={label} className="flex items-center justify-between text-sm">
                   <span className="text-slate-400 text-xs">{label}</span>
@@ -1759,10 +1769,10 @@ function ProviderCommandCenter({
 
             {prov.submittedAt && (
               <div className="rounded-lg border border-slate-200 dark:border-slate-700 p-3 space-y-1 text-xs">
-                <p className="font-medium text-slate-600 dark:text-slate-400">Submission History</p>
-                <div className="flex justify-between"><span className="text-slate-400">First submitted</span><span>{format(new Date(prov.submittedAt), "MMM d, yyyy")}</span></div>
-                {prov.lastResubmittedAt && <div className="flex justify-between"><span className="text-slate-400">Last resubmitted</span><span>{format(new Date(prov.lastResubmittedAt), "MMM d, yyyy")}</span></div>}
-                {prov.profileUpdatedAfterSubmission && <p className="text-orange-600 font-medium">⚠ Profile updated after submission</p>}
+                <p className="font-medium text-slate-600 dark:text-slate-400">{d("submission_history", "Submission History")}</p>
+                <div className="flex justify-between"><span className="text-slate-400">{d("first_submitted", "First submitted")}</span><span>{formatAdminDate(prov.submittedAt, "date")}</span></div>
+                {prov.lastResubmittedAt && <div className="flex justify-between"><span className="text-slate-400">{d("last_resubmitted", "Last resubmitted")}</span><span>{formatAdminDate(prov.lastResubmittedAt, "date")}</span></div>}
+                {prov.profileUpdatedAfterSubmission && <p className="text-orange-600 font-medium">⚠ {d("profile_updated_after_submission", "Profile updated after submission")}</p>}
               </div>
             )}
 
@@ -1787,11 +1797,11 @@ function ProviderCommandCenter({
                 <div className="rounded-lg border border-orange-200 dark:border-orange-800 bg-orange-50/60 dark:bg-orange-950/20 p-3 flex items-start gap-2 flex-wrap">
                   <AlertTriangle className="h-3.5 w-3.5 text-orange-600 flex-shrink-0 mt-0.5" />
                   <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className="text-xs font-semibold text-orange-800 dark:text-orange-300">Attention required</span>
-                    {urgencyExpired > 0  && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-red-100 text-red-700 border border-red-200 font-medium">{urgencyExpired} expired</span>}
-                    {urgencyExpiring > 0 && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 border border-amber-200 font-medium">{urgencyExpiring} expiring soon</span>}
-                    {urgencyReupload > 0 && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-orange-100 text-orange-700 border border-orange-200 font-medium">{urgencyReupload} need re-upload</span>}
-                    {urgencyMissing > 0  && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-red-100 text-red-700 border border-red-200 font-medium">{urgencyMissing} mandatory missing</span>}
+                    <span className="text-xs font-semibold text-orange-800 dark:text-orange-300">{d("attention_required", "Attention required")}</span>
+                    {urgencyExpired > 0  && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-red-100 text-red-700 border border-red-200 font-medium">{urgencyExpired} {d("expired", "expired")}</span>}
+                    {urgencyExpiring > 0 && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 border border-amber-200 font-medium">{urgencyExpiring} {d("expiring_soon", "expiring soon")}</span>}
+                    {urgencyReupload > 0 && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-orange-100 text-orange-700 border border-orange-200 font-medium">{urgencyReupload} {d("need_reupload", "need re-upload")}</span>}
+                    {urgencyMissing > 0  && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-red-100 text-red-700 border border-red-200 font-medium">{urgencyMissing} {d("mandatory_missing", "mandatory missing")}</span>}
                   </div>
                 </div>
               )}
@@ -1938,7 +1948,7 @@ function ProviderCommandCenter({
                           <StatusBadge status={appt.status} className="text-xs" />
                         </div>
                         <div className="text-xs text-slate-400 mt-0.5">
-                          {appt.date && format(new Date(appt.date), "MMM d, yyyy")}{appt.startTime && ` · ${appt.startTime}`}
+                          {appt.date && formatAdminDate(appt.date, "date")}{appt.startTime && ` · ${appt.startTime}`}
                           {appt.locationMode && <span className="ml-1.5 text-slate-300">· {humanLabel(appt.locationMode)}</span>}
                         </div>
                       </div>
@@ -2087,7 +2097,7 @@ function ProviderCommandCenter({
                             {/* P6: humanLabel converts snake_case/enum values to readable text */}
                             <span className="text-xs font-medium text-slate-700 dark:text-slate-300">{humanLabel(entry.action)}</span>
                             <span className="text-[10px] text-slate-400">
-                              {entry.createdAt && format(new Date(entry.createdAt), "MMM d, yyyy HH:mm")}
+                              {entry.createdAt && formatAdminDate(entry.createdAt, "dateTime")}
                             </span>
                           </div>
                           <p className="text-xs text-slate-500 mt-0.5">{humanLabel(entry.entityType)}</p>
@@ -2123,6 +2133,8 @@ function ProviderCommandCenter({
 // ─── Provider Notes Panel (standalone for hook compliance) ────────────────────
 function ProviderNotesPanel({ providerId }: { providerId: string }) {
   const { t } = useTranslation();
+  const d = (key: string, fallback: string, options?: Record<string, unknown>) =>
+    String(t(`admin_extra.provider.${key}`, { defaultValue: fallback, ...options }));
   const [noteText, setNoteText] = useState("");
   const qc = useQueryClient();
   const notesQueryKey = [`/api/admin/providers/${providerId}/notes`];
@@ -2154,14 +2166,14 @@ function ProviderNotesPanel({ providerId }: { providerId: string }) {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300">Internal Admin Notes</h3>
-        <span className="text-xs text-slate-400">{notes.length} note{notes.length !== 1 ? "s" : ""}</span>
+        <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300">{d("internal_admin_notes", "Internal Admin Notes")}</h3>
+        <span className="text-xs text-slate-400">{d("notes_count", "{{count}} note(s)", { count: notes.length })}</span>
       </div>
       <div className="space-y-2">
         <Textarea
           value={noteText}
           onChange={e => setNoteText(e.target.value)}
-          placeholder="Add an internal note about this provider — only admins can see this…"
+          placeholder={d("add_note_placeholder", "Add an internal note about this provider — only admins can see this…")}
           className="min-h-[80px] text-sm resize-none"
           data-testid="input-admin-note"
         />
@@ -2173,13 +2185,13 @@ function ProviderNotesPanel({ providerId }: { providerId: string }) {
           data-testid="button-add-note"
         >
           {addNote.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
-          Add Note
+          {d("add_note", "Add Note")}
         </Button>
       </div>
       {notesLoading ? (
         <div className="space-y-2">{[1,2].map(i => <div key={i} className="h-20 bg-slate-100 dark:bg-slate-800 rounded-lg animate-pulse" />)}</div>
       ) : notes.length === 0 ? (
-        <div className="text-center py-10 text-slate-400 text-sm">No notes yet — add the first one above.</div>
+        <div className="text-center py-10 text-slate-400 text-sm">{d("no_notes", "No notes yet — add the first one above.")}</div>
       ) : (
         <div className="space-y-2">
           {notes.map((note: any) => (
@@ -2281,9 +2293,9 @@ export function ProviderOperationsConsole({ jumpToProviderId }: { jumpToProvider
             <div className="w-16 h-16 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center mb-4">
               <Briefcase className="h-7 w-7 text-slate-400" />
             </div>
-            <h3 className="text-lg font-semibold text-slate-700 dark:text-slate-300">Provider Command Center</h3>
+             <h3 className="text-lg font-semibold text-slate-700 dark:text-slate-300">{t("admin_tools.ops.provider_command_center", "Provider Command Center")}</h3>
             <p className="text-sm text-slate-400 mt-2 max-w-xs">
-              Select a provider from the directory to manage their profile, documents, services, and operations.
+               {t("admin_tools.ops.select_provider_to_manage", "Select a provider from the directory to manage their profile, documents, services, and operations.")}
             </p>
           </div>
         ) : consoleLoading ? (
@@ -2294,7 +2306,7 @@ export function ProviderOperationsConsole({ jumpToProviderId }: { jumpToProvider
           <ProviderCommandCenter data={consoleData} onRefresh={refetchConsole} />
         ) : (
           <div className="flex items-center justify-center h-full text-slate-400 text-sm">
-            Failed to load provider data
+             {t("admin_tools.ops.failed_provider_data", "Failed to load provider data")}
           </div>
         )}
       </div>

@@ -23,9 +23,18 @@ import {
   ClipboardList, ArrowUpRight, ArrowDownRight, Hash,
   Languages, Stethoscope, CreditCard, Package, ShieldOff,
 } from "lucide-react";
-import { format } from "date-fns";
 import type { User } from "@shared/schema";
 import { useTranslation } from "react-i18next";
+import i18n from "@/lib/i18n";
+
+function formatAdminDate(value: string | Date, mode: "monthYear" | "short" | "date") {
+  const options: Intl.DateTimeFormatOptions = mode === "monthYear"
+    ? { month: "short", year: "numeric" }
+    : mode === "short"
+      ? { month: "short", day: "numeric" }
+      : { month: "short", day: "numeric", year: "numeric" };
+  return new Intl.DateTimeFormat(i18n.language, options).format(new Date(value));
+}
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface ClientListItem extends Omit<User, 'isSuspended'> {
@@ -352,7 +361,7 @@ function ClientWorkspace({
               )}
               {client.createdAt && (
                 <span className="text-xs text-slate-400 flex items-center gap-1">
-                 <Calendar className="h-3 w-3" />{tr("joined", "Joined")} {format(new Date(client.createdAt), "MMM yyyy")}
+                 <Calendar className="h-3 w-3" />{tr("joined", "Joined")} {formatAdminDate(client.createdAt, "monthYear")}
                 </span>
               )}
             </div>
@@ -558,7 +567,7 @@ function ClientWorkspace({
                       <div className="text-right flex-shrink-0">
                         <div className={`text-sm font-bold ${color}`}>{tx.amount}</div>
                         {tx.createdAt && (
-                          <div className="text-[10px] text-slate-400">{format(new Date(tx.createdAt), "MMM d")}</div>
+                          <div className="text-[10px] text-slate-400">{formatAdminDate(tx.createdAt, "short")}</div>
                         )}
                       </div>
                     </div>
@@ -712,33 +721,33 @@ function ClientWorkspace({
 
                     <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-slate-500 dark:text-slate-400">
                       <div className="flex items-center gap-1">
-                        <span className="text-slate-400">Paid:</span>
+                          <span className="text-slate-400">{tr("paid", "Paid")}:</span>
                         <span className="font-medium text-slate-700 dark:text-slate-300">${pkg.price_paid}</span>
                       </div>
                       {pkg.purchased_at && (
                         <div className="flex items-center gap-1">
-                          <span className="text-slate-400">Purchased:</span>
-                          <span>{format(new Date(pkg.purchased_at), "MMM d, yyyy")}</span>
+                           <span className="text-slate-400">{tr("purchased", "Purchased")}:</span>
+                           <span>{formatAdminDate(pkg.purchased_at, "date")}</span>
                         </div>
                       )}
                       {pkg.activated_at && (
                         <div className="flex items-center gap-1">
-                          <span className="text-slate-400">Activated:</span>
-                          <span>{format(new Date(pkg.activated_at), "MMM d, yyyy")}</span>
+                           <span className="text-slate-400">{tr("activated", "Activated")}:</span>
+                           <span>{formatAdminDate(pkg.activated_at, "date")}</span>
                         </div>
                       )}
                       {pkg.expires_at && (
                         <div className="flex items-center gap-1">
-                          <span className="text-slate-400">Expires:</span>
+                           <span className="text-slate-400">{tr("expires", "Expires")}:</span>
                           <span className={new Date(pkg.expires_at) < new Date() ? "text-red-500 font-medium" : ""}>
-                            {format(new Date(pkg.expires_at), "MMM d, yyyy")}
+                             {formatAdminDate(pkg.expires_at, "date")}
                           </span>
                         </div>
                       )}
                       {pkg.cancelled_at && (
                         <div className="flex items-center gap-1 col-span-2">
-                          <span className="text-slate-400">Cancelled:</span>
-                          <span>{format(new Date(pkg.cancelled_at), "MMM d, yyyy")}</span>
+                           <span className="text-slate-400">{tr("cancelled", "Cancelled")}:</span>
+                           <span>{formatAdminDate(pkg.cancelled_at, "date")}</span>
                         </div>
                       )}
                     </div>
@@ -972,7 +981,7 @@ function ClientActionsPanel({
                 <div>
                    <Label className="text-[10px] text-slate-400 uppercase tracking-wide">{tr("note", "Note")}</Label>
                   <Input
-                    placeholder="Reason…"
+                    placeholder={tr("reason_placeholder", "Reason…")}
                     value={walletNote}
                     onChange={(e) => setWalletNote(e.target.value)}
                     className="h-7 text-xs mt-1"
@@ -1127,7 +1136,7 @@ export function ClientOperationsConsole() {
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center gap-3 text-slate-400">
             <Users className="h-12 w-12 text-slate-200 dark:text-slate-700" />
-            <p className="text-sm">Select a member to view their workspace</p>
+            <p className="text-sm">{tr("select_member_workspace", "Select a member to view their workspace")}</p>
             <p className="text-xs">{clients.length} clients loaded</p>
           </div>
         )}
@@ -1143,7 +1152,7 @@ export function ClientOperationsConsole() {
           />
         ) : (
           <div className="flex-1 flex items-center justify-center bg-white dark:bg-slate-950 border-l border-slate-200 dark:border-slate-800">
-            <p className="text-xs text-slate-300 p-4 text-center">Select a member to see actions</p>
+            <p className="text-xs text-slate-300 p-4 text-center">{tr("select_member_actions", "Select a member to see actions")}</p>
           </div>
         )}
       </div>

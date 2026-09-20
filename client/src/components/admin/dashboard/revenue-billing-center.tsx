@@ -1235,13 +1235,13 @@ function RevenueSimulatorPanel() {
     <div className="space-y-4">
       <div className="flex items-start justify-between">
         <div>
-          <h3 className="font-semibold flex items-center gap-2"><Zap className="h-4 w-4 text-primary" />Live Revenue Simulator</h3>
+           <h3 className="font-semibold flex items-center gap-2"><Zap className="h-4 w-4 text-primary" />{tr("live_simulator", "Live Revenue Simulator")}</h3>
           <p className="text-sm text-muted-foreground mt-0.5">
-            Uses your real admin-configured rules — no hardcoded values. Every result reflects what the booking engine would actually charge.
+             {tr("live_simulator_desc", "Uses your real admin-configured rules — no hardcoded values. Every result reflects what the booking engine would actually charge.")}
           </p>
         </div>
         <Button size="sm" variant="outline" onClick={() => refetchRules()} disabled={rulesLoading} data-testid="button-reload-rules">
-          <RefreshCw className={cn("h-3.5 w-3.5 mr-1.5", rulesLoading && "animate-spin")} />Reload Rules
+           <RefreshCw className={cn("h-3.5 w-3.5 mr-1.5", rulesLoading && "animate-spin")} />{tr("reload_rules", "Reload Rules")}
         </Button>
       </div>
 
@@ -1252,9 +1252,9 @@ function RevenueSimulatorPanel() {
 
           {/* Booking Context */}
           <Card><CardContent className="pt-4 space-y-4">
-            <SimSection label="Booking Context" icon={Target}>
+             <SimSection label={tr("booking_context", "Booking Context")} icon={Target}>
               <div className="grid grid-cols-2 gap-2">
-                <SimField label="Currency" span2>
+                 <SimField label={tr("currency", "Currency")} span2>
                   <Select value={currency} onValueChange={v => { setCurrency(v); setResult(null); }}>
                     <SelectTrigger data-testid="select-sim-currency"><SelectValue /></SelectTrigger>
                     <SelectContent>
@@ -1262,30 +1262,30 @@ function RevenueSimulatorPanel() {
                     </SelectContent>
                   </Select>
                 </SimField>
-                <SimField label="Country">
+                 <SimField label={tr("country", "Country")}>
                   <Select value={countryCode} onValueChange={setCountryCode}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="any">Any / Global</SelectItem>
-                      <SelectItem value="HU">HU — Hungary</SelectItem>
-                      <SelectItem value="IR">IR — Iran</SelectItem>
-                      <SelectItem value="US">US — United States</SelectItem>
-                      <SelectItem value="DE">DE — Germany</SelectItem>
-                      <SelectItem value="GB">GB — United Kingdom</SelectItem>
+                       <SelectItem value="any">{tr("any_global", "Any / Global")}</SelectItem>
+                       <SelectItem value="HU">HU — {tr("hungary", "Hungary")}</SelectItem>
+                       <SelectItem value="IR">IR — {tr("iran", "Iran")}</SelectItem>
+                       <SelectItem value="US">US — {tr("united_states", "United States")}</SelectItem>
+                       <SelectItem value="DE">DE — {tr("germany", "Germany")}</SelectItem>
+                       <SelectItem value="GB">GB — {tr("united_kingdom", "United Kingdom")}</SelectItem>
                     </SelectContent>
                   </Select>
                 </SimField>
-                <SimField label="Provider Type">
+                 <SimField label={tr("provider_type", "Provider Type")}>
                   <Select value={providerType} onValueChange={setProviderType}>
                     <SelectTrigger data-testid="select-sim-provider-type"><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="none">Any / None</SelectItem>
+                       <SelectItem value="none">{tr("any_none", "Any / None")}</SelectItem>
                       {PROVIDER_TYPES.map(p => <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </SimField>
-                <SimField label="Service Category" span2>
-                  <Input value={serviceCategory} onChange={e => setServiceCategory(e.target.value)} placeholder="e.g. physiotherapy, cardiology…" className="text-sm" data-testid="input-sim-service-category" />
+                 <SimField label={tr("service_category", "Service Category")} span2>
+                   <Input value={serviceCategory} onChange={e => setServiceCategory(e.target.value)} placeholder={tr("service_category_placeholder", "e.g. physiotherapy, cardiology…")} className="text-sm" data-testid="input-sim-service-category" />
                 </SimField>
               </div>
             </SimSection>
@@ -1293,21 +1293,21 @@ function RevenueSimulatorPanel() {
 
           {/* Pricing */}
           <Card><CardContent className="pt-4 space-y-4">
-            <SimSection label="Pricing" icon={DollarSign}>
+             <SimSection label={tr("pricing", "Pricing")} icon={DollarSign}>
               <div className="grid grid-cols-2 gap-2">
                 <SimField label={`Base Price (${sym})`} span2>
                   <Input type="number" step="0.01" value={basePrice} onChange={e => setBasePrice(e.target.value)} className="text-sm font-mono" data-testid="input-sim-base-price" />
                 </SimField>
-                <SimField label="Sessions">
+                 <SimField label={tr("sessions", "Sessions")}>
                   <Input type="number" min="1" step="1" value={sessions} onChange={e => setSessions(e.target.value)} className="text-sm" data-testid="input-sim-sessions" />
                 </SimField>
-                <SimField label="Visit Type">
+                 <SimField label={tr("visit_type", "Visit Type")}>
                   <Select value={visitType} onValueChange={v => { setVisitType(v); setResult(null); }}>
                     <SelectTrigger data-testid="select-sim-visit-type"><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="clinic">Clinic</SelectItem>
-                      <SelectItem value="home">Home Visit</SelectItem>
-                      <SelectItem value="online">Online / Video</SelectItem>
+                       <SelectItem value="clinic">{tr("clinic", "Clinic")}</SelectItem>
+                       <SelectItem value="home">{tr("home_visit", "Home Visit")}</SelectItem>
+                       <SelectItem value="online">{tr("online_video", "Online / Video")}</SelectItem>
                     </SelectContent>
                   </Select>
                 </SimField>
@@ -1316,7 +1316,7 @@ function RevenueSimulatorPanel() {
                 </SimField>
                 <div className="col-span-2 flex items-center gap-2 pt-1">
                   <Switch checked={isEmergency} onCheckedChange={setIsEmergency} data-testid="switch-sim-emergency" />
-                  <Label className="text-sm cursor-pointer">Emergency appointment</Label>
+                   <Label className="text-sm cursor-pointer">{tr("emergency_appointment", "Emergency appointment")}</Label>
                 </div>
               </div>
             </SimSection>
@@ -1324,15 +1324,15 @@ function RevenueSimulatorPanel() {
 
           {/* Service-level fee overrides */}
           <Card><CardContent className="pt-4 space-y-4">
-            <SimSection label="Service Fee Overrides" icon={Receipt}>
-              <p className="text-xs text-muted-foreground -mt-2">These mimic per-service configured fees. Leave 0 if the service uses defaults.</p>
+             <SimSection label={tr("service_fee_overrides", "Service Fee Overrides")} icon={Receipt}>
+               <p className="text-xs text-muted-foreground -mt-2">{tr("service_fee_overrides_desc", "These mimic per-service configured fees. Leave 0 if the service uses defaults.")}</p>
               <div className="grid grid-cols-2 gap-2">
                 <SimField label={`Home Visit (${sym})`}><Input type="number" step="0.01" value={homeVisitFee} onChange={e => setHomeVisitFee(e.target.value)} disabled={visitType !== "home"} className="text-sm font-mono" /></SimField>
                 <SimField label={`Clinic (${sym})`}><Input type="number" step="0.01" value={clinicFee} onChange={e => setClinicFee(e.target.value)} disabled={visitType !== "clinic"} className="text-sm font-mono" /></SimField>
                 <SimField label={`Telemedicine (${sym})`}><Input type="number" step="0.01" value={telemedicineFee} onChange={e => setTelemedicineFee(e.target.value)} disabled={visitType !== "online"} className="text-sm font-mono" /></SimField>
                 <SimField label={`Emergency (${sym})`}><Input type="number" step="0.01" value={emergencyFee} onChange={e => setEmergencyFee(e.target.value)} disabled={!isEmergency} className="text-sm font-mono" /></SimField>
-                <SimField label={`Platform Override (${sym})`} span2>
-                  <Input type="number" step="0.01" value={platformFeeOverride} onChange={e => setPlatformFeeOverride(e.target.value)} placeholder="Blank = use platform fee rules" className="text-sm font-mono" data-testid="input-sim-platform-override" />
+                 <SimField label={`${tr("platform_override", "Platform Override")} (${sym})`} span2>
+                   <Input type="number" step="0.01" value={platformFeeOverride} onChange={e => setPlatformFeeOverride(e.target.value)} placeholder={tr("platform_override_placeholder", "Blank = use platform fee rules")} className="text-sm font-mono" data-testid="input-sim-platform-override" />
                 </SimField>
               </div>
             </SimSection>
@@ -1340,9 +1340,9 @@ function RevenueSimulatorPanel() {
 
           {/* Payment & Travel */}
           <Card><CardContent className="pt-4 space-y-4">
-            <SimSection label="Payment & Travel" icon={CreditCard}>
+             <SimSection label={tr("payment_travel", "Payment & Travel")} icon={CreditCard}>
               <div className="grid grid-cols-2 gap-2">
-                <SimField label="Payment Method" span2>
+                 <SimField label={tr("payment_method", "Payment Method")} span2>
                   <Select value={paymentMethod} onValueChange={setPaymentMethod}>
                     <SelectTrigger data-testid="select-sim-payment"><SelectValue /></SelectTrigger>
                     <SelectContent>
@@ -1350,8 +1350,8 @@ function RevenueSimulatorPanel() {
                     </SelectContent>
                   </Select>
                 </SimField>
-                <SimField label="Travel Distance (km)" span2>
-                  <Input type="number" step="0.5" value={travelKm} onChange={e => setTravelKm(e.target.value)} disabled={visitType !== "home"} className="text-sm" placeholder="0 = no travel charge" data-testid="input-sim-travel-km" />
+                 <SimField label={tr("travel_distance", "Travel Distance (km)")} span2>
+                   <Input type="number" step="0.5" value={travelKm} onChange={e => setTravelKm(e.target.value)} disabled={visitType !== "home"} className="text-sm" placeholder={tr("travel_distance_placeholder", "0 = no travel charge")} data-testid="input-sim-travel-km" />
                 </SimField>
               </div>
             </SimSection>
@@ -1359,33 +1359,33 @@ function RevenueSimulatorPanel() {
 
           {/* Discounts & Membership */}
           <Card><CardContent className="pt-4 space-y-4">
-            <SimSection label="Discounts & Membership" icon={Percent}>
+             <SimSection label={tr("discounts_membership", "Discounts & Membership")} icon={Percent}>
               <div className="grid grid-cols-2 gap-2">
-                <SimField label="Promo Type">
+                 <SimField label={tr("promo_type", "Promo Type")}>
                   <Select value={promoType} onValueChange={setPromoType}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="none">None</SelectItem>
-                      <SelectItem value="percent">Percent (%)</SelectItem>
+                       <SelectItem value="none">{tr("none", "None")}</SelectItem>
+                       <SelectItem value="percent">{tr("percent_label", "Percent (%)")}</SelectItem>
                       <SelectItem value="fixed">{tr("fixed_amount_option", "Fixed Amount")}</SelectItem>
                     </SelectContent>
                   </Select>
                 </SimField>
-                <SimField label="Promo Value">
+                 <SimField label={tr("promo_value", "Promo Value")}>
                   <Input type="number" step="0.01" value={promoValue} onChange={e => setPromoValue(e.target.value)} disabled={promoType === "none"} className="text-sm" />
                 </SimField>
-                <SimField label="Promo Code (label)" span2>
+                 <SimField label={`${tr("promo_code", "Promo Code")} (${tr("label", "label")})`} span2>
                   <Input value={promoCode} onChange={e => setPromoCode(e.target.value)} disabled={promoType === "none"} placeholder="CODE10" className="text-sm" />
                 </SimField>
-                <div className="col-span-2 text-xs text-muted-foreground border-t pt-2">Membership benefits applied to this booking:</div>
-                <SimField label="Service Discount (%)">
+                 <div className="col-span-2 text-xs text-muted-foreground border-t pt-2">{tr("membership_benefits", "Membership benefits applied to this booking:")}</div>
+                 <SimField label={tr("service_discount", "Service Discount (%)")}>
                   <Input type="number" step="1" min="0" max="100" value={membershipSvcPct} onChange={e => setMembershipSvcPct(e.target.value)} className="text-sm" />
                 </SimField>
-                <SimField label="Platform Fee Off (%)">
+                 <SimField label={tr("platform_fee_off", "Platform Fee Off (%)")}>
                   <Input type="number" step="1" min="0" max="100" value={membershipPlatformPct} onChange={e => setMembershipPlatformPct(e.target.value)} className="text-sm" />
                 </SimField>
-                <SimField label="Commission Reduction (pts)" span2>
-                  <Input type="number" step="1" min="0" value={membershipCommRedPct} onChange={e => setMembershipCommRedPct(e.target.value)} placeholder="Pts subtracted from commission rate" className="text-sm" data-testid="input-sim-membership-comm-red" />
+                 <SimField label={tr("commission_reduction", "Commission Reduction (pts)")} span2>
+                   <Input type="number" step="1" min="0" value={membershipCommRedPct} onChange={e => setMembershipCommRedPct(e.target.value)} placeholder={tr("commission_reduction_placeholder", "Pts subtracted from commission rate")} className="text-sm" data-testid="input-sim-membership-comm-red" />
                 </SimField>
               </div>
             </SimSection>
@@ -1397,8 +1397,8 @@ function RevenueSimulatorPanel() {
 
           <Button className="w-full" size="lg" onClick={() => simMutation.mutate()} disabled={simMutation.isPending} data-testid="button-run-simulation">
             {simMutation.isPending
-              ? <><RefreshCw className="h-4 w-4 mr-2 animate-spin" />Simulating…</>
-              : <><Zap className="h-4 w-4 mr-2" />Run Live Simulation</>}
+               ? <><RefreshCw className="h-4 w-4 mr-2 animate-spin" />{tr("simulating", "Simulating…")}</>
+               : <><Zap className="h-4 w-4 mr-2" />{tr("simulate_live", "Run Live Simulation")}</>}
           </Button>
         </div>
 
@@ -1407,11 +1407,11 @@ function RevenueSimulatorPanel() {
           <CardHeader className="pb-2">
             <CardTitle className="text-sm flex items-center gap-2">
               <Activity className="h-4 w-4 text-primary" />
-              Live Active Rules
+               {tr("active_rules", "Live Active Rules")}
             </CardTitle>
             <p className="text-xs text-muted-foreground">
-              Exactly what the engine will use — pulled directly from your admin config.
-              {rulesLoading && <span className="ml-1 text-amber-500">Refreshing…</span>}
+               {tr("active_rules_desc", "Exactly what the engine will use — pulled directly from your admin config.")}
+               {rulesLoading && <span className="ml-1 text-amber-500">{tr("refreshing", "Refreshing…")}</span>}
             </p>
           </CardHeader>
           <CardContent className="space-y-5 text-sm">
@@ -1420,15 +1420,15 @@ function RevenueSimulatorPanel() {
             <div className="space-y-2">
               <div className="flex items-center gap-1.5">
                 <TrendingUp className="h-3.5 w-3.5 text-muted-foreground" />
-                <span className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">Commission</span>
+                 <span className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">{tr("commission", "Commission")}</span>
                 <Badge variant={activeCommission.length > 0 ? "default" : "secondary"} className="text-[10px] ml-auto py-0">
-                  {activeCommission.length} active
+                   {activeCommission.length} {tr("active", "active").toLowerCase()}
                 </Badge>
               </div>
               {activeCommission.length === 0 ? (
                 <div className="flex items-start gap-1.5 text-xs text-amber-600 bg-amber-50 dark:bg-amber-900/20 rounded-md p-2 border border-amber-200/50">
                   <AlertCircle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
-                  No commission rules — engine charges 0%
+                   {tr("no_commission_rules_active", "No commission rules — engine charges 0%")}
                 </div>
               ) : (
                 <div className="space-y-1">
@@ -1446,15 +1446,15 @@ function RevenueSimulatorPanel() {
             <div className="space-y-2">
               <div className="flex items-center gap-1.5">
                 <Percent className="h-3.5 w-3.5 text-muted-foreground" />
-                <span className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">Platform Fees</span>
+                 <span className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">{tr("platform_fees", "Platform Fees")}</span>
                 <Badge variant={activePlatformFee.length > 0 ? "default" : "secondary"} className="text-[10px] ml-auto py-0">
-                  {activePlatformFee.length} active
+                   {activePlatformFee.length} {tr("active", "active").toLowerCase()}
                 </Badge>
               </div>
               {activePlatformFee.length === 0 ? (
                 <div className="flex items-start gap-1.5 text-xs text-amber-600 bg-amber-50 dark:bg-amber-900/20 rounded-md p-2 border border-amber-200/50">
                   <AlertCircle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
-                  No platform fee rules — uses service-level fee only
+                   {tr("no_platform_rules_active", "No platform fee rules — uses service-level fee only")}
                 </div>
               ) : (
                 <div className="space-y-1">
@@ -1472,9 +1472,9 @@ function RevenueSimulatorPanel() {
             <div className="space-y-2">
               <div className="flex items-center gap-1.5">
                 <CreditCard className="h-3.5 w-3.5 text-muted-foreground" />
-                <span className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">Payment Methods</span>
+                 <span className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">{tr("payment_methods", "Payment Methods")}</span>
                 <Badge variant={activePayment.length > 0 ? "default" : "secondary"} className="text-[10px] ml-auto py-0">
-                  {activePayment.length} active
+                   {activePayment.length} {tr("active", "active").toLowerCase()}
                 </Badge>
               </div>
               <div className="space-y-1">
@@ -1497,7 +1497,7 @@ function RevenueSimulatorPanel() {
                     />
                   );
                 })}
-                {activePayment.length === 0 && <p className="text-xs text-muted-foreground">No payment rules active</p>}
+                 {activePayment.length === 0 && <p className="text-xs text-muted-foreground">{tr("no_active_payment_rules", "No payment rules active")}</p>}
               </div>
             </div>
 
@@ -1505,13 +1505,13 @@ function RevenueSimulatorPanel() {
             <div className="space-y-2">
               <div className="flex items-center gap-1.5">
                 <Car className="h-3.5 w-3.5 text-muted-foreground" />
-                <span className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">Travel Fees</span>
+                 <span className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">{tr("travel_fees", "Travel Fees")}</span>
                 <Badge variant={activeTravelFee.length > 0 ? "default" : "secondary"} className="text-[10px] ml-auto py-0">
-                  {activeTravelFee.length} active
+                   {activeTravelFee.length} {tr("active", "active").toLowerCase()}
                 </Badge>
               </div>
               {activeTravelFee.length === 0 ? (
-                <p className="text-xs text-muted-foreground">No travel fee rules — distance charges disabled</p>
+                 <p className="text-xs text-muted-foreground">{tr("no_travel_rules", "No travel fee rules — distance charges disabled")}</p>
               ) : (
                 <div className="space-y-1">
                   {activeTravelFee.map((r: any) => (
@@ -1529,8 +1529,8 @@ function RevenueSimulatorPanel() {
               <div className="space-y-2">
                 <div className="flex items-center gap-1.5">
                   <Users className="h-3.5 w-3.5 text-muted-foreground" />
-                  <span className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">Revenue Shares</span>
-                  <Badge variant="default" className="text-[10px] ml-auto py-0">{activeRevShare.length} active</Badge>
+                   <span className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">{tr("revenue_shares", "Revenue Shares")}</span>
+                   <Badge variant="default" className="text-[10px] ml-auto py-0">{activeRevShare.length} {tr("active", "active").toLowerCase()}</Badge>
                 </div>
                 <div className="space-y-1">
                   {activeRevShare.map((r: any) => (
@@ -1547,7 +1547,7 @@ function RevenueSimulatorPanel() {
           <CardHeader className="pb-2">
             <CardTitle className="text-sm flex items-center gap-2">
               <BarChart3 className="h-4 w-4 text-primary" />
-              Simulation Results
+               {tr("simulation_results", "Simulation Results")}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -1555,8 +1555,8 @@ function RevenueSimulatorPanel() {
               <div className="h-64 flex flex-col items-center justify-center text-muted-foreground gap-3">
                 <Zap className="h-10 w-10 opacity-15" />
                 <div className="text-center">
-                  <p className="text-sm font-medium">No results yet</p>
-                  <p className="text-xs opacity-70 mt-1">Configure the inputs and click "Run Live Simulation"</p>
+                   <p className="text-sm font-medium">{tr("no_results", "No results yet")}</p>
+                   <p className="text-xs opacity-70 mt-1">{tr("configure_inputs", "Configure the inputs and click \"Run Live Simulation\"")}</p>
                 </div>
               </div>
             ) : (
@@ -1572,22 +1572,22 @@ function RevenueSimulatorPanel() {
                 {/* 3-card summary */}
                 <div className="grid grid-cols-3 gap-2">
                   <div className="rounded-lg bg-blue-50 dark:bg-blue-900/20 p-2.5 text-center">
-                    <p className="text-[10px] text-blue-600 font-semibold uppercase tracking-wide">Member Pays</p>
+                     <p className="text-[10px] text-blue-600 font-semibold uppercase tracking-wide">{tr("member_pays", "Member Pays")}</p>
                     <p className="text-base font-bold text-blue-700 mt-0.5 font-mono leading-tight">{currFmt(result.patientPayable, result.bookingCurrency)}</p>
                   </div>
                   <div className="rounded-lg bg-emerald-50 dark:bg-emerald-900/20 p-2.5 text-center">
-                    <p className="text-[10px] text-emerald-600 font-semibold uppercase tracking-wide">Provider Earns</p>
+                     <p className="text-[10px] text-emerald-600 font-semibold uppercase tracking-wide">{tr("provider_earns", "Provider Earns")}</p>
                     <p className="text-base font-bold text-emerald-700 mt-0.5 font-mono leading-tight">{currFmt(result.providerEarnings, result.bookingCurrency)}</p>
                   </div>
                   <div className="rounded-lg bg-violet-50 dark:bg-violet-900/20 p-2.5 text-center">
-                    <p className="text-[10px] text-violet-600 font-semibold uppercase tracking-wide">Platform</p>
+                     <p className="text-[10px] text-violet-600 font-semibold uppercase tracking-wide">{tr("platform", "Platform")}</p>
                     <p className="text-base font-bold text-violet-700 mt-0.5 font-mono leading-tight">{currFmt(result.platformRevenue, result.bookingCurrency)}</p>
                   </div>
                 </div>
 
                 {/* Full breakdown */}
                 <div className="border rounded-lg overflow-hidden">
-                  <div className="bg-muted/60 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">Breakdown</div>
+                   <div className="bg-muted/60 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">{tr("breakdown", "Breakdown")}</div>
                   <div className="px-3 py-2 space-y-1 text-sm">
                     {result.lines.map((l, i) => (
                       <div key={i} className="flex justify-between">
@@ -1601,7 +1601,7 @@ function RevenueSimulatorPanel() {
                     ))}
                     {result.paymentSurcharge !== 0 && (
                       <div className="flex justify-between">
-                        <span className="text-muted-foreground">Payment surcharge</span>
+                         <span className="text-muted-foreground">{tr("payment_surcharge", "Payment surcharge")}</span>
                         <span className={cn("font-mono font-medium", result.paymentSurcharge > 0 ? "text-red-600" : "text-emerald-600")}>
                           {result.paymentSurcharge > 0 ? "+" : "−"}{currFmt(Math.abs(result.paymentSurcharge), result.bookingCurrency)}
                         </span>
@@ -1609,12 +1609,12 @@ function RevenueSimulatorPanel() {
                     )}
                     {result.engineTravelFee > 0 && (
                       <div className="flex justify-between">
-                        <span className="text-muted-foreground">Travel fee</span>
+                         <span className="text-muted-foreground">{tr("travel_fee", "Travel fee")}</span>
                         <span className="font-mono font-medium text-red-600">+{currFmt(result.engineTravelFee, result.bookingCurrency)}</span>
                       </div>
                     )}
                     <div className="border-t pt-1.5 mt-1 flex justify-between font-semibold">
-                      <span>Total Payable</span>
+                       <span>{tr("total_payable", "Total Payable")}</span>
                       <span className="font-mono">{currFmt(result.patientPayable, result.bookingCurrency)}</span>
                     </div>
                   </div>
@@ -1622,18 +1622,18 @@ function RevenueSimulatorPanel() {
 
                 {/* Commission */}
                 <div className="border rounded-lg overflow-hidden">
-                  <div className="bg-muted/60 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">Commission</div>
+                   <div className="bg-muted/60 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">{tr("commission", "Commission")}</div>
                   <div className="px-3 py-2 space-y-1 text-sm">
-                    <div className="flex justify-between"><span className="text-muted-foreground">Rate</span><span className="font-mono">{result.commissionRate}%</span></div>
-                    <div className="flex justify-between"><span className="text-muted-foreground">Amount deducted</span><span className="font-mono text-red-600">−{currFmt(result.commissionAmount, result.bookingCurrency)}</span></div>
-                    <div className="flex justify-between font-medium border-t pt-1 mt-0.5"><span>Provider net</span><span className="font-mono text-emerald-600">{currFmt(result.providerEarnings, result.bookingCurrency)}</span></div>
+                     <div className="flex justify-between"><span className="text-muted-foreground">{tr("rate", "Rate")}</span><span className="font-mono">{result.commissionRate}%</span></div>
+                     <div className="flex justify-between"><span className="text-muted-foreground">{tr("amount_deducted", "Amount deducted")}</span><span className="font-mono text-red-600">−{currFmt(result.commissionAmount, result.bookingCurrency)}</span></div>
+                     <div className="flex justify-between font-medium border-t pt-1 mt-0.5"><span>{tr("provider_net", "Provider net")}</span><span className="font-mono text-emerald-600">{currFmt(result.providerEarnings, result.bookingCurrency)}</span></div>
                   </div>
                 </div>
 
                 {/* Revenue shares */}
                 {result.revenueShares.length > 0 && (
                   <div className="border rounded-lg overflow-hidden">
-                    <div className="bg-muted/60 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">Revenue Split</div>
+                     <div className="bg-muted/60 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">{tr("revenue_split", "Revenue Split")}</div>
                     <div className="px-3 py-2 space-y-1 text-sm">
                       {result.revenueShares.map((s, i) => (
                         <div key={i} className="flex justify-between">
@@ -1650,14 +1650,14 @@ function RevenueSimulatorPanel() {
                   <div className="flex items-start gap-2 text-xs bg-amber-50 dark:bg-amber-900/20 border border-amber-200/60 rounded-lg p-3">
                     <AlertCircle className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
                     <div>
-                      <p className="font-semibold text-amber-700">No rules matched this scenario</p>
-                      <p className="text-muted-foreground mt-0.5">Results use only base price + service fees. Add commission and platform fee rules in their respective tabs to see rule-driven output.</p>
+                       <p className="font-semibold text-amber-700">{tr("no_rules_matched", "No rules matched this scenario")}</p>
+                       <p className="text-muted-foreground mt-0.5">{tr("no_rules_matched_desc", "Results use only base price + service fees. Add commission and platform fee rules in their respective tabs to see rule-driven output.")}</p>
                     </div>
                   </div>
                 ) : (
                   <div className="border rounded-lg overflow-hidden">
                     <div className="bg-muted/60 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
-                      Rules That Fired ({result.appliedRules.length})
+                       {tr("rules_fired", "Rules That Fired")} ({result.appliedRules.length})
                     </div>
                     <div className="px-3 py-2 space-y-2">
                       {result.appliedRules.map((r, i) => (

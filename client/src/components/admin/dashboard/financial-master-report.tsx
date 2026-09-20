@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useAdminCurrency, formatInCurrency } from "@/lib/currency";
 import { formatCount } from "@/lib/format-utils";
 import { useTranslation } from "react-i18next";
-import { format } from "date-fns";
+import i18n from "@/lib/i18n";
 import {
   Card, CardContent, CardHeader, CardTitle,
 } from "@/components/ui/card";
@@ -169,12 +169,26 @@ function n(v: string | number | null | undefined) { return Number(v) || 0; }
 
 function fmtDate(iso: string | null | undefined) {
   if (!iso) return "—";
-  try { return format(new Date(iso), "d MMM yyyy"); } catch { return "—"; }
+  try {
+    return new Intl.DateTimeFormat(i18n.resolvedLanguage || i18n.language || "en", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    }).format(new Date(iso));
+  } catch { return "—"; }
 }
 
 function fmtDateTime(iso: string | null | undefined) {
   if (!iso) return "—";
-  try { return format(new Date(iso), "d MMM yyyy HH:mm"); } catch { return "—"; }
+  try {
+    return new Intl.DateTimeFormat(i18n.resolvedLanguage || i18n.language || "en", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    }).format(new Date(iso));
+  } catch { return "—"; }
 }
 
 // ── Currency helpers ───────────────────────────────────────────────────────────
@@ -336,6 +350,7 @@ function InvestigationDrawer({
 }) {
   const { t } = useTranslation();
   const r = (key: string, fallback: string) => String(t(`admin_extra.financial.${key}`, { defaultValue: fallback }));
+  const a = (key: string, fallback: string) => String(t(`admin.${key}`, { defaultValue: fallback }));
   if (!row) return null;
   const cur = row.display_currency ?? "USD";
   const fmtLocal = (v: number) => fmtBooking(v, cur);
@@ -389,45 +404,45 @@ function InvestigationDrawer({
           </Section>
 
           {/* Section B — Member */}
-          <Section title="B · Member" icon={Users}>
-            <Row label="Member ID"  value={row.patient_id} />
-            <Row label="Name"        value={`${row.patient_first_name} ${row.patient_last_name}`} />
-            <Row label="Email"       value={row.patient_email} />
-            <Row label="City"        value={row.patient_city} />
-            <Row label="Country"     value={row.patient_country} />
+           <Section title={`B · ${r("member", "Member")}`} icon={Users}>
+             <Row label={r("member_id", "Member ID")} value={row.patient_id} />
+             <Row label={r("name", "Name")} value={`${row.patient_first_name} ${row.patient_last_name}`} />
+             <Row label={r("email", "Email")} value={row.patient_email} />
+             <Row label={r("city", "City")} value={row.patient_city} />
+             <Row label={r("country", "Country")} value={row.patient_country} />
           </Section>
 
           {/* Section C — Provider */}
-          <Section title="C · Provider" icon={CreditCard}>
-            <Row label="Provider ID"  value={row.provider_id} />
-            <Row label="Name"         value={`${row.provider_first_name} ${row.provider_last_name}`} />
-            <Row label="Email"        value={row.provider_email} />
-            <Row label="Category"     value={row.provider_category?.replace(/_/g, " ")} />
-            <Row label="City"         value={row.provider_city} />
-            <Row label="Country"      value={row.provider_country} />
-            <Row label="Clinic Name"  value={row.clinic_name} />
+           <Section title={`C · ${r("provider", "Provider")}`} icon={CreditCard}>
+             <Row label={r("provider_id", "Provider ID")} value={row.provider_id} />
+             <Row label={r("name", "Name")} value={`${row.provider_first_name} ${row.provider_last_name}`} />
+             <Row label={r("email", "Email")} value={row.provider_email} />
+             <Row label={r("category", "Category")} value={row.provider_category?.replace(/_/g, " ")} />
+             <Row label={r("city", "City")} value={row.provider_city} />
+             <Row label={r("country", "Country")} value={row.provider_country} />
+             <Row label={r("clinic_name", "Clinic Name")} value={row.clinic_name} />
           </Section>
 
           {/* Section D — Service */}
-          <Section title="D · Service" icon={BookOpen}>
-            <Row label="Service ID"       value={row.service_id} />
-            <Row label="Service"          value={row.service_name} />
-            <Row label="Category"         value={row.service_category?.replace(/_/g, " ")} />
-            <Row label="Duration"         value={row.service_duration ? `${row.service_duration} min` : null} />
+           <Section title={`D · ${r("service", "Service")}`} icon={BookOpen}>
+             <Row label={r("service_id", "Service ID")} value={row.service_id} />
+             <Row label={r("service", "Service")} value={row.service_name} />
+             <Row label={r("category", "Category")} value={row.service_category?.replace(/_/g, " ")} />
+             <Row label={r("duration", "Duration")} value={row.service_duration ? `${row.service_duration} min` : null} />
           </Section>
 
           {/* Section E — Financial */}
-          <Section title="E · Financial" icon={DollarSign}>
-            <Row label="Booking Currency" value={
+           <Section title={`E · ${r("financial", "Financial")}`} icon={DollarSign}>
+             <Row label={r("booking_currency", "Booking Currency")} value={
               <Badge variant="outline" className="text-xs font-mono">{cur}</Badge>
             } />
-            <Row label="Base Price"      value={fmtLocal(n(row.service_price_snapshot))} />
-            <Row label="Booking Amount"  value={
+             <Row label={r("base_price", "Base Price")} value={fmtLocal(n(row.service_price_snapshot))} />
+             <Row label={r("booking_amount", "Booking Amount")} value={
               <span className="font-semibold">
                 {fmtLocal(n(row.total_amount))}
               </span>
             } />
-            <Row label="Normalized (USD)" value={
+             <Row label={r("normalized_usd", "Normalized (USD)")} value={
               <span className="text-muted-foreground text-xs">
                 {cur !== "USD" ? fmt(usdNorm) : "—"}
               </span>
@@ -513,7 +528,7 @@ function ExpandedRow({ row, fmt }: { row: MasterRow; fmt: (n: number) => string 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="space-y-1 text-sm">
             <p className="font-semibold text-xs uppercase tracking-wider text-muted-foreground mb-2">
-              Pricing · {cur}
+              {a("pricing", "Pricing")} · {cur}
             </p>
             <div className="flex justify-between"><span className="text-muted-foreground">Base Price</span><span>{fmtLocal(n(row.service_price_snapshot))}</span></div>
             <div className="flex justify-between"><span className="text-muted-foreground">Platform Fee</span><span>{fmtLocal(n(row.platform_fee_amount))}</span></div>
@@ -533,19 +548,19 @@ function ExpandedRow({ row, fmt }: { row: MasterRow; fmt: (n: number) => string 
           </div>
 
           <div className="space-y-1 text-sm">
-            <p className="font-semibold text-xs uppercase tracking-wider text-muted-foreground mb-2">Payment</p>
-            <div className="flex justify-between"><span className="text-muted-foreground">Method</span><span className="capitalize">{row.payment_method ?? row.appt_payment_method ?? "—"}</span></div>
-            <div className="flex justify-between"><span className="text-muted-foreground">Status</span><StatusBadge value={row.payment_record_status} /></div>
+            <p className="font-semibold text-xs uppercase tracking-wider text-muted-foreground mb-2">{a("payment", "Payment")}</p>
+            <div className="flex justify-between"><span className="text-muted-foreground">{a("method", "Method")}</span><span className="capitalize">{row.payment_method ?? row.appt_payment_method ?? "—"}</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">{a("status", "Status")}</span><StatusBadge value={row.payment_record_status} /></div>
             {row.stripe_payment_id && (
               <div className="flex justify-between"><span className="text-muted-foreground">Stripe ID</span><span className="font-mono text-xs truncate max-w-[140px]">{row.stripe_payment_id}</span></div>
             )}
             {n(row.refund_amount) > 0 && (
-              <div className="flex justify-between text-rose-600"><span>Refund</span><span>{fmtLocal(n(row.refund_amount))}</span></div>
+              <div className="flex justify-between text-rose-600"><span>{a("refund", "Refund")}</span><span>{fmtLocal(n(row.refund_amount))}</span></div>
             )}
           </div>
 
           <div className="space-y-1 text-sm">
-            <p className="font-semibold text-xs uppercase tracking-wider text-muted-foreground mb-2">Lifecycle</p>
+            <p className="font-semibold text-xs uppercase tracking-wider text-muted-foreground mb-2">{a("lifecycle", "Lifecycle")}</p>
             <LifecycleTimeline appointmentId={row.id} />
           </div>
         </div>
@@ -584,6 +599,8 @@ export function FinancialMasterReport() {
   const { t } = useTranslation();
   const r = (key: string, fallback: string, options?: Record<string, unknown>) =>
     String(t(`admin.report.${key}`, { defaultValue: fallback, ...options }));
+  const a = (key: string, fallback: string, options?: Record<string, unknown>) =>
+    String(t(`admin.${key}`, { defaultValue: fallback, ...options }));
 
   // Filters
   const [search, setSearch] = useState("");
@@ -990,10 +1007,10 @@ export function FinancialMasterReport() {
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
             <CardTitle className="text-base">
-              {isLoading ? "Loading…" : `${formatCount(total)} booking${total !== 1 ? "s" : ""}`}
+              {isLoading ? a("loading", "Loading…") : `${formatCount(total)} ${a("booking", "booking")}${total !== 1 ? "s" : ""}`}
             </CardTitle>
             <span className="text-sm text-muted-foreground no-print">
-              Page {page} of {totalPages}
+              {a("page_of", "Page {{page}} of {{total}}", { page, total: totalPages })}
             </span>
           </div>
         </CardHeader>
@@ -1004,46 +1021,46 @@ export function FinancialMasterReport() {
                 <tr className="border-b bg-muted/50">
                   <th className="w-8 px-3 py-2.5" />
                   <th className="px-3 py-2.5 text-left font-medium cursor-pointer select-none whitespace-nowrap" onClick={() => toggleSort("created_at")}>
-                    Created <SortIcon field="created_at" />
+                    {a("created", "Created")} <SortIcon field="created_at" />
                   </th>
                   {visibleCols.has("ref") && (
-                    <th className="px-3 py-2.5 text-left font-medium whitespace-nowrap">Ref</th>
+                    <th className="px-3 py-2.5 text-left font-medium whitespace-nowrap">{a("ref", "Ref")}</th>
                   )}
                   {visibleCols.has("patient") && (
-                    <th className="px-3 py-2.5 text-left font-medium whitespace-nowrap">Member</th>
+                    <th className="px-3 py-2.5 text-left font-medium whitespace-nowrap">{a("member", "Member")}</th>
                   )}
                   {visibleCols.has("provider") && (
-                    <th className="px-3 py-2.5 text-left font-medium whitespace-nowrap">Provider</th>
+                    <th className="px-3 py-2.5 text-left font-medium whitespace-nowrap">{a("provider", "Provider")}</th>
                   )}
                   {visibleCols.has("service") && (
-                    <th className="px-3 py-2.5 text-left font-medium whitespace-nowrap">Service</th>
+                    <th className="px-3 py-2.5 text-left font-medium whitespace-nowrap">{a("service", "Service")}</th>
                   )}
                   {visibleCols.has("type") && (
-                    <th className="px-3 py-2.5 text-left font-medium whitespace-nowrap">Type</th>
+                    <th className="px-3 py-2.5 text-left font-medium whitespace-nowrap">{a("visit_type", "Type")}</th>
                   )}
                   {visibleCols.has("status") && (
                     <th className="px-3 py-2.5 text-left font-medium cursor-pointer select-none whitespace-nowrap" onClick={() => toggleSort("status")}>
-                      Status <SortIcon field="status" />
+                      {a("status", "Status")} <SortIcon field="status" />
                     </th>
                   )}
                   {visibleCols.has("payment") && (
-                    <th className="px-3 py-2.5 text-left font-medium whitespace-nowrap">Payment</th>
+                    <th className="px-3 py-2.5 text-left font-medium whitespace-nowrap">{a("payment", "Payment")}</th>
                   )}
                   {visibleCols.has("gross") && (
                     <th className="px-3 py-2.5 text-right font-medium cursor-pointer select-none whitespace-nowrap" onClick={() => toggleSort("total_amount")}>
-                      Booking Amount <SortIcon field="total_amount" />
+                      {a("booking_amount", "Booking Amount")} <SortIcon field="total_amount" />
                     </th>
                   )}
                    {visibleCols.has("commission") && (
-                     <th className="px-3 py-2.5 text-right font-medium whitespace-nowrap">Provider Commission</th>
+                     <th className="px-3 py-2.5 text-right font-medium whitespace-nowrap">{a("provider_side_commission", "Provider Commission")}</th>
                    )}
                   {visibleCols.has("net") && (
-                    <th className="px-3 py-2.5 text-right font-medium whitespace-nowrap">Net (USD)</th>
+                    <th className="px-3 py-2.5 text-right font-medium whitespace-nowrap">{a("net_usd", "Net (USD)")}</th>
                   )}
                   {visibleCols.has("earning") && (
-                    <th className="px-3 py-2.5 text-right font-medium whitespace-nowrap">Earning</th>
+                    <th className="px-3 py-2.5 text-right font-medium whitespace-nowrap">{a("provider_net_earnings", "Earning")}</th>
                   )}
-                  <th className="px-3 py-2.5 text-right font-medium whitespace-nowrap no-print">Actions</th>
+                  <th className="px-3 py-2.5 text-right font-medium whitespace-nowrap no-print">{a("actions", "Actions")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -1057,7 +1074,7 @@ export function FinancialMasterReport() {
                   <tr>
                     <td colSpan={14} className="py-12 text-center text-muted-foreground">
                       <AlertCircle className="h-8 w-8 mx-auto mb-2 text-muted-foreground/40" />
-                      No records match your filters.
+                      {a("no_bookings_match", "No records match your filters.")}
                     </td>
                   </tr>
                 ) : rows.map((row) => {
@@ -1179,7 +1196,7 @@ export function FinancialMasterReport() {
                             onClick={() => setDrawerRow(row)}
                             data-testid={`button-investigate-${row.id}`}
                           >
-                            Investigate
+                            {a("investigate", "Investigate")}
                           </Button>
                         </td>
                       </tr>
@@ -1197,7 +1214,11 @@ export function FinancialMasterReport() {
           {totalPages > 1 && (
             <div className="flex items-center justify-between px-4 py-3 border-t no-print">
               <p className="text-sm text-muted-foreground">
-                Showing {((page - 1) * LIMIT) + 1}–{Math.min(page * LIMIT, total)} of {formatCount(total)}
+                 {a("range_of_total", "Showing {{from}}–{{to}} of {{total}}", {
+                   from: ((page - 1) * LIMIT) + 1,
+                   to: Math.min(page * LIMIT, total),
+                   total: formatCount(total),
+                 })}
               </p>
               <div className="flex items-center gap-2">
                 <Button variant="outline" size="sm" disabled={page === 1} onClick={() => setPage(p => p - 1)} data-testid="button-prev-page">
