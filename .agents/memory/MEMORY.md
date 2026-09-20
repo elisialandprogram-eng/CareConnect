@@ -135,3 +135,4 @@
 - [Stripe webhook idempotency schema compatibility](idempotency-schema-compat.md) — claim only portable key/scope/expiry fields with untargeted ON CONFLICT; legacy DBs differ from current idempotency schema
 - [Client localization parity](client-localization-parity.md) — keep en/fa/hu translation keys identical; page-facing literals should use useTranslation, including public/legal and patient dashboard UI
 - [Provider generated-copy localization](provider-generated-copy-localization.md) — server-generated provider copy must return translation keys plus interpolation data; the client renders the active locale
+- [Admin localization sweep](admin-localization-sweep.md) — keep admin additions in a merged overlay with identical en/hu/fa keys; map dynamic notification types to translated semantic labels

@@ -55,6 +55,8 @@ function StatTile({ label, value, sub, icon: Icon, color = "text-indigo-500" }: 
 export function RevenueIntelligenceDashboard() {
   const { t } = useTranslation();
   const { format: fmtMoney } = useAdminCurrency();
+  const r = (key: string, fallback: string, options?: Record<string, unknown>) =>
+    String(t(`admin.report.${key}`, { defaultValue: fallback, ...options }));
 
   const { data: trendsData, isLoading: trendsLoading } = useQuery<{ trends: RevenueTrend[] }>({
     queryKey: ["/api/admin/financial/revenue-trends"],
@@ -75,9 +77,9 @@ export function RevenueIntelligenceDashboard() {
   const giftCards = commercialData?.giftCards;
 
   const pieData = [
-    { name: "Active", value: giftCards?.activeCards ?? 0 },
-    { name: "Redeemed", value: giftCards?.redeemedCards ?? 0 },
-    { name: "Expired", value: giftCards?.expiredCards ?? 0 },
+    { name: r("active", "Active"), value: giftCards?.activeCards ?? 0 },
+    { name: r("redeemed", "Redeemed"), value: giftCards?.redeemedCards ?? 0 },
+    { name: r("expired", "Expired"), value: giftCards?.expiredCards ?? 0 },
   ];
 
   if (trendsLoading || commercialLoading) {
@@ -95,32 +97,32 @@ export function RevenueIntelligenceDashboard() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-semibold">Revenue Intelligence</h2>
-        <p className="text-sm text-muted-foreground">12-month revenue trends, commercial conversion, and growth analytics</p>
+        <h2 className="text-xl font-semibold">{r("revenue_intelligence", "Revenue Intelligence")}</h2>
+        <p className="text-sm text-muted-foreground">{r("revenue_intelligence_desc", "12-month revenue trends, commercial conversion, and growth analytics")}</p>
       </div>
 
       {/* KPI tiles */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatTile label="Gross Revenue (12mo)" value={fmtMoney(totalGross)} icon={TrendingUp} color="text-green-500" />
-        <StatTile label="Platform Fees (12mo)" value={fmtMoney(totalFees)} sub={`${totalGross > 0 ? Math.round(totalFees * 100 / totalGross) : 0}% take rate`} icon={ArrowUpRight} color="text-indigo-500" />
-        <StatTile label="Total Refunds (12mo)" value={fmtMoney(totalRefunds)} icon={Package} color="text-amber-500" />
-        <StatTile label="Completed Sessions" value={formatCount(totalCompleted)} icon={Users} color="text-blue-500" />
+        <StatTile label={r("gross_revenue_12mo", "Gross Revenue (12mo)")} value={fmtMoney(totalGross)} icon={TrendingUp} color="text-green-500" />
+        <StatTile label={r("platform_fees_12mo", "Platform Fees (12mo)")} value={fmtMoney(totalFees)} sub={`${totalGross > 0 ? Math.round(totalFees * 100 / totalGross) : 0}% ${r("take_rate", "take rate")}`} icon={ArrowUpRight} color="text-indigo-500" />
+        <StatTile label={r("total_refunds_12mo", "Total Refunds (12mo)")} value={fmtMoney(totalRefunds)} icon={Package} color="text-amber-500" />
+        <StatTile label={r("completed_sessions", "Completed Sessions")} value={formatCount(totalCompleted)} icon={Users} color="text-blue-500" />
       </div>
 
       <Tabs defaultValue="trends">
         <TabsList className="mb-4">
-          <TabsTrigger value="trends">Revenue Trends</TabsTrigger>
-          <TabsTrigger value="promo">Promo Codes</TabsTrigger>
-          <TabsTrigger value="packages">Packages</TabsTrigger>
-          <TabsTrigger value="conversion">Conversion</TabsTrigger>
+          <TabsTrigger value="trends">{r("revenue_trends", "Revenue Trends")}</TabsTrigger>
+          <TabsTrigger value="promo">{r("promo_codes", "Promo Codes")}</TabsTrigger>
+          <TabsTrigger value="packages">{r("packages", "Packages")}</TabsTrigger>
+          <TabsTrigger value="conversion">{r("conversion", "Conversion")}</TabsTrigger>
         </TabsList>
 
         {/* ── Revenue Trends ── */}
         <TabsContent value="trends" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Monthly Revenue (12 months)</CardTitle>
-              <CardDescription>Gross, fees, and refunds — USD</CardDescription>
+              <CardTitle className="text-base">{r("monthly_revenue", "Monthly Revenue (12 months)")}</CardTitle>
+              <CardDescription>{r("gross_fees_refunds", "Gross, fees, and refunds — USD")}</CardDescription>
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={280}>
@@ -140,9 +142,9 @@ export function RevenueIntelligenceDashboard() {
                   <YAxis tick={{ fontSize: 11 }} tickLine={false} tickFormatter={(v) => formatInCurrency(Number(v), "USD")} />
                   <Tooltip formatter={(v: any) => [formatInCurrency(Number(v), "USD"), ""]} />
                   <Legend />
-                  <Area type="monotone" dataKey="gross_usd" name="Gross" stroke="#6366f1" fill="url(#gradGross)" strokeWidth={2} />
-                  <Area type="monotone" dataKey="fees_usd" name="Fees" stroke="#22c55e" fill="url(#gradFees)" strokeWidth={2} />
-                  <Area type="monotone" dataKey="refunds_usd" name="Refunds" stroke="#ef4444" fill="none" strokeDasharray="4 2" strokeWidth={1.5} />
+                   <Area type="monotone" dataKey="gross_usd" name={r("gross", "Gross")} stroke="#6366f1" fill="url(#gradGross)" strokeWidth={2} />
+                   <Area type="monotone" dataKey="fees_usd" name={r("fees", "Fees")} stroke="#22c55e" fill="url(#gradFees)" strokeWidth={2} />
+                   <Area type="monotone" dataKey="refunds_usd" name={r("refunds", "Refunds")} stroke="#ef4444" fill="none" strokeDasharray="4 2" strokeWidth={1.5} />
                 </AreaChart>
               </ResponsiveContainer>
             </CardContent>
@@ -150,7 +152,7 @@ export function RevenueIntelligenceDashboard() {
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Booking Volume</CardTitle>
+              <CardTitle className="text-base">{r("booking_volume", "Booking Volume")}</CardTitle>
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={220}>
@@ -160,8 +162,8 @@ export function RevenueIntelligenceDashboard() {
                   <YAxis tick={{ fontSize: 11 }} tickLine={false} />
                   <Tooltip />
                   <Legend />
-                  <Bar dataKey="completed_count" name="Completed" fill="#22c55e" radius={[3, 3, 0, 0]} />
-                  <Bar dataKey="cancelled_count" name="Cancelled" fill="#f87171" radius={[3, 3, 0, 0]} />
+                   <Bar dataKey="completed_count" name={r("completed", "Completed")} fill="#22c55e" radius={[3, 3, 0, 0]} />
+                   <Bar dataKey="cancelled_count" name={t("admin.cancelled", "Cancelled")} fill="#f87171" radius={[3, 3, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </CardContent>
@@ -172,16 +174,16 @@ export function RevenueIntelligenceDashboard() {
         <TabsContent value="promo">
           <Card>
             <CardHeader>
-              <CardTitle className="text-base flex items-center gap-2"><Tag className="h-4 w-4" /> Promo Code Effectiveness</CardTitle>
-              <CardDescription>Usage count and revenue impact per code</CardDescription>
+              <CardTitle className="text-base flex items-center gap-2"><Tag className="h-4 w-4" /> {r("promo_effectiveness", "Promo Code Effectiveness")}</CardTitle>
+              <CardDescription>{r("promo_usage_desc", "Usage count and revenue impact per code")}</CardDescription>
             </CardHeader>
             <CardContent>
               {!commercialData?.promoEffectiveness?.length ? (
-                <p className="text-sm text-muted-foreground py-8 text-center">No promo code usage data</p>
+                <p className="text-sm text-muted-foreground py-8 text-center">{r("no_promo_data", "No promo code usage data")}</p>
               ) : (
                 <div className="space-y-2">
                   <div className="grid grid-cols-4 text-xs font-medium text-muted-foreground pb-1 border-b">
-                    <span>Code</span><span className="text-right">Uses</span><span className="text-right">Gross Rev</span><span className="text-right">Discount</span>
+                     <span>{r("code", "Code")}</span><span className="text-right">{r("uses", "Uses")}</span><span className="text-right">{r("gross_rev", "Gross Rev")}</span><span className="text-right">{r("discount", "Discount")}</span>
                   </div>
                   {commercialData.promoEffectiveness.map((p) => (
                     <div key={p.code} className="grid grid-cols-4 text-sm items-center py-1.5 hover:bg-muted/30 rounded px-1">
@@ -201,16 +203,16 @@ export function RevenueIntelligenceDashboard() {
         <TabsContent value="packages">
           <Card>
             <CardHeader>
-              <CardTitle className="text-base flex items-center gap-2"><Gift className="h-4 w-4" /> Package & Membership Conversion</CardTitle>
-              <CardDescription>Purchases, active subscriptions, and revenue per package</CardDescription>
+              <CardTitle className="text-base flex items-center gap-2"><Gift className="h-4 w-4" /> {r("package_membership_conversion", "Package & Membership Conversion")}</CardTitle>
+              <CardDescription>{r("package_conversion_desc", "Purchases, active subscriptions, and revenue per package")}</CardDescription>
             </CardHeader>
             <CardContent>
               {!commercialData?.packageConversion?.length ? (
-                <p className="text-sm text-muted-foreground py-8 text-center">No package data</p>
+                <p className="text-sm text-muted-foreground py-8 text-center">{r("no_package_data", "No package data")}</p>
               ) : (
                 <div className="space-y-2">
                   <div className="grid grid-cols-5 text-xs font-medium text-muted-foreground pb-1 border-b">
-                    <span className="col-span-2">Package</span><span className="text-right">Sold</span><span className="text-right">Active</span><span className="text-right">Revenue</span>
+                     <span className="col-span-2">{r("package", "Package")}</span><span className="text-right">{r("sold", "Sold")}</span><span className="text-right">{r("active", "Active")}</span><span className="text-right">{r("revenue", "Revenue")}</span>
                   </div>
                   {commercialData.packageConversion.map((p, i) => (
                     <div key={i} className="grid grid-cols-5 text-sm items-center py-1.5 hover:bg-muted/30 rounded px-1">

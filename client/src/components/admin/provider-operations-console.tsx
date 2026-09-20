@@ -1386,6 +1386,8 @@ function ProviderCommandCenter({
   const { provider: prov, user, services, practitioners, documents, appointments, financials, metrics, timeline } = data;
   const fullName = `${user?.firstName || ""} ${user?.lastName || ""}`.trim();
   const label = (key: string, fallback: string) => t(`admin_tools.ops.${key}`, fallback);
+  const d = (key: string, fallback: string, options?: Record<string, unknown>) =>
+    t(`admin_provider_details.${key}`, fallback, options);
 
   // P3: Service admin actions
   const serviceActionMutation = useMutation({

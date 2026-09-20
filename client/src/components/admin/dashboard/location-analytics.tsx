@@ -6,6 +6,7 @@
  */
 
 import { useQuery } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import { formatCount } from "@/lib/format-utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -103,6 +104,9 @@ function CityBar({
 }
 
 export function LocationAnalyticsPanel() {
+  const { t } = useTranslation();
+  const r = (key: string, fallback: string) =>
+    String(t(`admin.report.${key}`, { defaultValue: fallback }));
   const { data, isLoading, error } = useQuery<LocationAnalytics>({
     queryKey: ["/api/admin/analytics/location"],
   });
@@ -111,7 +115,7 @@ export function LocationAnalyticsPanel() {
     return (
       <div className="p-8 text-center text-muted-foreground">
         <MapPin className="h-10 w-10 mx-auto mb-3 opacity-30" />
-        <p>Failed to load location analytics.</p>
+        <p>{r("location_load_error", "Failed to load location analytics.")}</p>
       </div>
     );
   }
@@ -151,27 +155,27 @@ export function LocationAnalyticsPanel() {
           <>
             <StatCard
               icon={Users}
-              label="Total Bookings"
+              label={r("total_bookings", "Total Bookings")}
               value={total}
               color="bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
             />
             <StatCard
               icon={Building2}
-              label="Clinic"
+              label={r("clinic", "Clinic")}
               value={clinicCount}
               sub={total ? `${Math.round((clinicCount / total) * 100)}%` : undefined}
               color="bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400"
             />
             <StatCard
               icon={Home}
-              label="Home Visit"
+              label={r("home_visit", "Home Visit")}
               value={homeCount}
               sub={total ? `${Math.round((homeCount / total) * 100)}%` : undefined}
               color="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
             />
             <StatCard
               icon={Video}
-              label="Online"
+              label={r("online", "Online")}
               value={onlineCount}
               sub={total ? `${Math.round((onlineCount / total) * 100)}%` : undefined}
               color="bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400"
@@ -195,7 +199,7 @@ export function LocationAnalyticsPanel() {
                 <Skeleton key={i} className="h-8 rounded" />
               ))
             ) : !data?.bookingsByCity.length ? (
-              <p className="text-sm text-muted-foreground text-center py-4">No data yet.</p>
+              <p className="text-sm text-muted-foreground text-center py-4">{r("no_data_yet", "No data yet.")}</p>
             ) : (
               data.bookingsByCity.map((row, i) => (
                 <CityBar

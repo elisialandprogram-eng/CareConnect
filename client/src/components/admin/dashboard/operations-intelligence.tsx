@@ -68,6 +68,8 @@ function StatTile({ label, value, sub, icon: Icon, color = "text-indigo-500" }: 
 
 export function OperationsIntelligenceDashboard() {
   const { t } = useTranslation();
+  const r = (key: string, fallback: string, options?: Record<string, unknown>) =>
+    String(t(`admin.report.${key}`, { defaultValue: fallback, ...options }));
 
   const { data: supportData, isLoading: supportLoading } = useQuery<SupportAnalytics>({
     queryKey: ["/api/admin/support/analytics"],
@@ -96,34 +98,34 @@ export function OperationsIntelligenceDashboard() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-semibold">Operations Intelligence</h2>
-        <p className="text-sm text-muted-foreground">Support SLA, booking patterns, member growth and retention</p>
+        <h2 className="text-xl font-semibold">{r("operations_intelligence", "Operations Intelligence")}</h2>
+        <p className="text-sm text-muted-foreground">{r("operations_intelligence_desc", "Support SLA, booking patterns, member growth and retention")}</p>
       </div>
 
       <Tabs defaultValue="support">
         <TabsList className="mb-4">
-          <TabsTrigger value="support">Support Analytics</TabsTrigger>
-          <TabsTrigger value="growth">Growth & Acquisition</TabsTrigger>
-          <TabsTrigger value="marketplace">Marketplace Health</TabsTrigger>
+          <TabsTrigger value="support">{r("support_analytics", "Support Analytics")}</TabsTrigger>
+          <TabsTrigger value="growth">{r("growth_acquisition", "Growth & Acquisition")}</TabsTrigger>
+          <TabsTrigger value="marketplace">{r("marketplace_health", "Marketplace Health")}</TabsTrigger>
         </TabsList>
 
         {/* ── Support Analytics ── */}
         <TabsContent value="support" className="space-y-4">
           {/* KPI tiles */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <StatTile label="Open Tickets" value={ov?.openCount ?? 0} sub="Awaiting response" icon={MessageSquare} color="text-amber-500" />
-            <StatTile label="Escalated" value={ov?.escalatedCount ?? 0} sub={`${ov?.escalationRatePct ?? 0}% of total`} icon={AlertTriangle} color="text-red-500" />
+            <StatTile label={r("open_tickets", "Open Tickets")} value={ov?.openCount ?? 0} sub={r("awaiting_response", "Awaiting response")} icon={MessageSquare} color="text-amber-500" />
+            <StatTile label={r("escalated", "Escalated")} value={ov?.escalatedCount ?? 0} sub={`${ov?.escalationRatePct ?? 0}% ${r("of_total", "of total")}`} icon={AlertTriangle} color="text-red-500" />
             <StatTile
-              label="Avg Resolution"
+              label={r("avg_resolution", "Avg Resolution")}
               value={sla?.avgResolutionHrs != null ? `${sla.avgResolutionHrs}h` : "—"}
-              sub={sla?.medianResolutionHrs != null ? `Median: ${sla.medianResolutionHrs}h` : undefined}
+              sub={sla?.medianResolutionHrs != null ? `${r("median", "Median")}: ${sla.medianResolutionHrs}h` : undefined}
               icon={Clock}
               color="text-blue-500"
             />
             <StatTile
-              label="P90 Resolution"
+              label={r("p90_resolution", "P90 Resolution")}
               value={sla?.p90ResolutionHrs != null ? `${sla.p90ResolutionHrs}h` : "—"}
-              sub="90th percentile SLA"
+              sub={r("p90_sla", "90th percentile SLA")}
               icon={Activity}
               color="text-indigo-500"
             />
@@ -132,12 +134,12 @@ export function OperationsIntelligenceDashboard() {
           {/* Daily trend chart */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Daily Ticket Volume (30 days)</CardTitle>
-              <CardDescription>Tickets created vs resolved per day</CardDescription>
+              <CardTitle className="text-base">{r("daily_volume", "Daily Ticket Volume (30 days)")}</CardTitle>
+              <CardDescription>{r("created_vs_resolved", "Tickets created vs resolved per day")}</CardDescription>
             </CardHeader>
             <CardContent>
               {!supportData?.dailyTrend?.length ? (
-                <p className="text-sm text-muted-foreground py-8 text-center">No ticket data in window</p>
+                <p className="text-sm text-muted-foreground py-8 text-center">{r("no_ticket_data", "No ticket data in window")}</p>
               ) : (
                 <ResponsiveContainer width="100%" height={240}>
                   <BarChart data={supportData.dailyTrend} margin={{ top: 4, right: 12, left: 0, bottom: 0 }}>
@@ -147,8 +149,8 @@ export function OperationsIntelligenceDashboard() {
                     <YAxis tick={{ fontSize: 11 }} tickLine={false} allowDecimals={false} />
                     <Tooltip />
                     <Legend />
-                    <Bar dataKey="created" name="Created" fill="#f59e0b" radius={[3, 3, 0, 0]} />
-                    <Bar dataKey="resolved" name="Resolved" fill="#22c55e" radius={[3, 3, 0, 0]} />
+                    <Bar dataKey="created" name={r("created", "Created")} fill="#f59e0b" radius={[3, 3, 0, 0]} />
+                    <Bar dataKey="resolved" name={r("resolved", "Resolved")} fill="#22c55e" radius={[3, 3, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               )}
@@ -158,11 +160,11 @@ export function OperationsIntelligenceDashboard() {
           {/* By priority */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Tickets by Priority</CardTitle>
+              <CardTitle className="text-base">{r("tickets_by_priority", "Tickets by Priority")}</CardTitle>
             </CardHeader>
             <CardContent>
               {!supportData?.byPriority?.length ? (
-                <p className="text-sm text-muted-foreground text-center py-4">No data</p>
+                <p className="text-sm text-muted-foreground text-center py-4">{r("no_data", "No data")}</p>
               ) : (
                 <div className="space-y-2">
                   {supportData.byPriority.map((p) => (
@@ -181,7 +183,7 @@ export function OperationsIntelligenceDashboard() {
                         />
                       </div>
                       <span className="text-xs text-muted-foreground w-20 text-right">
-                        {p.resolved}/{p.total} resolved
+                         {p.resolved}/{p.total} {r("resolved", "resolved")}
                       </span>
                     </div>
                   ))}
@@ -195,21 +197,21 @@ export function OperationsIntelligenceDashboard() {
         <TabsContent value="growth" className="space-y-4">
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             <StatTile
-              label="Repeat Booking Rate"
+              label={r("repeat_booking_rate", "Repeat Booking Rate")}
               value={`${growth?.repeatBooking.repeatRatePct ?? 0}%`}
-              sub={`${growth?.repeatBooking.repeatPatients ?? 0} repeat / ${growth?.repeatBooking.totalPatients ?? 0} total members`}
+               sub={`${growth?.repeatBooking.repeatPatients ?? 0} ${r("repeat", "repeat")} / ${growth?.repeatBooking.totalPatients ?? 0} ${r("total_members", "total members")}`}
               icon={UserCheck}
               color="text-green-500"
             />
             <StatTile
-              label="Member Retention (90d)"
+              label={r("member_retention", "Member Retention (90d)")}
               value={`${growth?.retention.retentionRatePct ?? 0}%`}
-              sub={`${growth?.retention.activePatients ?? 0} active vs ${growth?.retention.churnedPatients ?? 0} churned`}
+              sub={`${growth?.retention.activePatients ?? 0} ${r("active", "active")} vs ${growth?.retention.churnedPatients ?? 0} ${r("churned", "churned")}`}
               icon={Activity}
               color="text-indigo-500"
             />
             <StatTile
-              label="Total Members w/ Appts"
+              label={r("members_with_appointments", "Total Members w/ Appts")}
               value={formatCount(growth?.retention.totalWithAppointments ?? 0)}
               icon={Users as any}
               color="text-blue-500"
@@ -218,12 +220,12 @@ export function OperationsIntelligenceDashboard() {
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Weekly New Member Acquisition</CardTitle>
-              <CardDescription>New member registrations per week (last 12 weeks)</CardDescription>
+              <CardTitle className="text-base">{r("weekly_acquisition", "Weekly New Member Acquisition")}</CardTitle>
+              <CardDescription>{r("weekly_acquisition_desc", "New member registrations per week (last 12 weeks)")}</CardDescription>
             </CardHeader>
             <CardContent>
               {!growth?.acquisition?.weeklyTrend?.length ? (
-                <p className="text-sm text-muted-foreground py-8 text-center">No acquisition data</p>
+                <p className="text-sm text-muted-foreground py-8 text-center">{r("no_acquisition_data", "No acquisition data")}</p>
               ) : (
                 <ResponsiveContainer width="100%" height={240}>
                   <LineChart data={growth.acquisition.weeklyTrend} margin={{ top: 4, right: 12, left: 0, bottom: 0 }}>
@@ -232,7 +234,7 @@ export function OperationsIntelligenceDashboard() {
                       tickFormatter={(v) => v.slice(5)} />
                     <YAxis tick={{ fontSize: 11 }} tickLine={false} allowDecimals={false} />
                     <Tooltip />
-                    <Line type="monotone" dataKey="newPatients" name="New Members" stroke="#6366f1" strokeWidth={2} dot={{ r: 3 }} />
+                    <Line type="monotone" dataKey="newPatients" name={r("new_members", "New Members")} stroke="#6366f1" strokeWidth={2} dot={{ r: 3 }} />
                   </LineChart>
                 </ResponsiveContainer>
               )}
@@ -245,13 +247,13 @@ export function OperationsIntelligenceDashboard() {
           <Card>
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
-                <TrendingDown className="h-4 w-4 text-red-500" /> No-Show Analysis by Visit Type
+                 <TrendingDown className="h-4 w-4 text-red-500" /> {r("no_show_analysis", "No-Show Analysis by Visit Type")}
               </CardTitle>
-              <CardDescription>No-show rates broken down by appointment modality</CardDescription>
+               <CardDescription>{r("no_show_desc", "No-show rates broken down by appointment modality")}</CardDescription>
             </CardHeader>
             <CardContent>
               {!growth?.noShowAnalysis?.length ? (
-                <p className="text-sm text-muted-foreground py-8 text-center">No data available</p>
+                <p className="text-sm text-muted-foreground py-8 text-center">{r("no_data_available", "No data available")}</p>
               ) : (
                 <div className="space-y-4">
                   <ResponsiveContainer width="100%" height={200}>
@@ -259,8 +261,8 @@ export function OperationsIntelligenceDashboard() {
                       <CartesianGrid strokeDasharray="3 3" className="stroke-border/40" horizontal={false} />
                       <XAxis type="number" tick={{ fontSize: 11 }} tickLine={false} tickFormatter={(v) => `${v}%`} domain={[0, 100]} />
                       <YAxis type="category" dataKey="visitType" tick={{ fontSize: 11 }} tickLine={false} />
-                      <Tooltip formatter={(v: any) => [`${v}%`, "No-show rate"]} />
-                      <Bar dataKey="noShowRatePct" name="No-show Rate %" fill="#ef4444" radius={[0, 3, 3, 0]} />
+                       <Tooltip formatter={(v: any) => [`${v}%`, r("no_show_rate", "No-show rate")]} />
+                       <Bar dataKey="noShowRatePct" name={r("no_show_rate_pct", "No-show Rate %")} fill="#ef4444" radius={[0, 3, 3, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
 

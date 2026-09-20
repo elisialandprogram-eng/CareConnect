@@ -11,6 +11,7 @@ import { memberSweepTranslations } from '../i18n/member-sweep';
 import { providerSweepTranslations } from '../i18n/provider-sweep';
 import { providerDashboardSweepTranslations } from '../i18n/provider-dashboard-sweep';
 import { adminProviderDetailsTranslations } from '../i18n/admin-provider-details';
+import { adminSweepTranslations } from '../i18n/admin-sweep';
 
 const SUPPORTED = ['en', 'hu', 'fa'] as const;
 type Lang = (typeof SUPPORTED)[number];
@@ -69,6 +70,10 @@ async function ensureLanguage(lng: string) {
       translation,
       adminProviderDetailsTranslations[code] as unknown as Record<string, unknown>,
     );
+      translation = mergeTranslationAdditions(
+        translation,
+        adminSweepTranslations[code] as unknown as Record<string, unknown>,
+      );
     i18n.addResourceBundle(
       code,
       'translation',
@@ -101,13 +106,18 @@ i18n
           mergeTranslationAdditions(
             mergeTranslationAdditions(
               mergeTranslationAdditions(
-                enTranslation as Record<string, unknown>,
-                memberSweepTranslations.en as unknown as Record<string, unknown>,
+                mergeTranslationAdditions(
+                  enTranslation as Record<string, unknown>,
+                  memberSweepTranslations.en as unknown as Record<string, unknown>,
+                ),
+                providerSweepTranslations.en as unknown as Record<string, unknown>,
               ),
-              providerSweepTranslations.en as unknown as Record<string, unknown>,
+              providerDashboardSweepTranslations.en as unknown as Record<string, unknown>,
             ),
-            providerDashboardSweepTranslations.en as unknown as Record<string, unknown>,
-            adminProviderDetailsTranslations.en as unknown as Record<string, unknown>,
+            mergeTranslationAdditions(
+              adminProviderDetailsTranslations.en as unknown as Record<string, unknown>,
+              adminSweepTranslations.en as unknown as Record<string, unknown>,
+            ),
           ),
           'en',
         ),

@@ -129,10 +129,9 @@ function timeAgo(iso: string, t: (key: string, options?: any) => string): string
 }
 
 
-function actionLabel(action: string): string {
-  return action
-    .replace(/_/g, " ")
-    .replace(/\b\w/g, c => c.toUpperCase());
+function actionLabel(action: string, t: (key: string, fallback: string) => string): string {
+  const key = action.toLowerCase().replace(/[^a-z0-9]+/g, "_");
+  return t(`admin.activity_action_${key}`, action.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase()));
 }
 
 function entityIcon(entityType: string) {
@@ -302,21 +301,21 @@ function useOperationalMessage(data: HomeSummary | undefined): string {
       msgs.push(t("admin.admin_home_all_clear"));
     }
     if (data.providers.totalNeedsReview > 0)
-      msgs.push(`${data.providers.totalNeedsReview} provider${data.providers.totalNeedsReview !== 1 ? "s" : ""} ${data.providers.totalNeedsReview !== 1 ? "require" : "requires"} review.`);
+      msgs.push(t("admin.admin_home_review_count", `${data.providers.totalNeedsReview} provider(s) require review.`, { count: data.providers.totalNeedsReview }));
     if (data.providers.docsPending > 0)
-      msgs.push(`${data.providers.docsPending} document${data.providers.docsPending !== 1 ? "s" : ""} pending approval.`);
+      msgs.push(t("admin.admin_home_documents_count", `${data.providers.docsPending} document(s) pending approval.`, { count: data.providers.docsPending }));
     if (data.support.urgentTickets > 0)
-      msgs.push(`${data.support.urgentTickets} urgent support ticket${data.support.urgentTickets !== 1 ? "s" : ""} need${data.support.urgentTickets === 1 ? "s" : ""} attention.`);
+      msgs.push(t("admin.admin_home_urgent_count", `${data.support.urgentTickets} urgent support ticket(s) need attention.`, { count: data.support.urgentTickets }));
     if (data.financial.pendingRefunds > 0)
-      msgs.push(`${data.financial.pendingRefunds} refund${data.financial.pendingRefunds !== 1 ? "s" : ""} awaiting resolution.`);
+      msgs.push(t("admin.admin_home_refund_count", `${data.financial.pendingRefunds} refund(s) awaiting resolution.`, { count: data.financial.pendingRefunds }));
     if (data.compliance.expiringCredentials > 0)
-      msgs.push(`${data.compliance.expiringCredentials} provider credential${data.compliance.expiringCredentials !== 1 ? "s" : ""} expire${data.compliance.expiringCredentials === 1 ? "s" : ""} within 30 days.`);
+      msgs.push(t("admin.admin_home_expiry_count", `${data.compliance.expiringCredentials} provider credential(s) expire within 30 days.`, { count: data.compliance.expiringCredentials }));
     if (data.financial.revenueToday > 0)
-      msgs.push(`Today's revenue: ${formatInCurrency(data.financial.revenueToday, "USD")}.`);
+      msgs.push(t("admin.admin_home_revenue_message", `Today's revenue: ${formatInCurrency(data.financial.revenueToday, "USD")}.`, { amount: formatInCurrency(data.financial.revenueToday, "USD") }));
     if (data.appointments.totalToday > 0)
-      msgs.push(`${data.appointments.totalToday} appointment${data.appointments.totalToday !== 1 ? "s" : ""} scheduled today.`);
+      msgs.push(t("admin.admin_home_appointments_count", `${data.appointments.totalToday} appointment(s) scheduled today.`, { count: data.appointments.totalToday }));
     if (data.scheduler.failingJobs > 0)
-      msgs.push(`${data.scheduler.failingJobs} background job${data.scheduler.failingJobs !== 1 ? "s" : ""} ${data.scheduler.failingJobs !== 1 ? "are" : "is"} failing.`);
+      msgs.push(t("admin.admin_home_jobs_count", `${data.scheduler.failingJobs} background job(s) are failing.`, { count: data.scheduler.failingJobs }));
 
      if (msgs.length === 0) msgs.push(t("admin.admin_home_platform_healthy"));
     return msgs;
@@ -988,7 +987,7 @@ export default function AdminHome() {
                 <div className="flex flex-wrap gap-2">
                    <HealthPill label={t("admin.admin_home_database")} status="ok" />
                    <HealthPill label={t("admin.admin_home_api_server")} status="ok" />
-                  <HealthPill label={`Scheduler (${d.scheduler.totalJobs} jobs)`} status={schedulerHealth} />
+                   <HealthPill label={t("admin.admin_home_scheduler", { count: d.scheduler.totalJobs })} status={schedulerHealth} />
                    <HealthPill label={t("admin.admin_home_notifications")} status="ok" />
                    <HealthPill label={t("admin.admin_home_video_service")} status="ok" />
                    <HealthPill label={t("admin.admin_home_email_queue")} status="ok" />
@@ -1072,9 +1071,9 @@ export default function AdminHome() {
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="flex items-center gap-1 text-xs text-muted-foreground">
                             {entityIcon(event.entityType)}
-                            <span className="capitalize">{event.entityType?.replace(/_/g, " ") ?? "system"}</span>
+                            <span className="capitalize">{t(`admin.activity_entity_${event.entityType?.toLowerCase().replace(/[^a-z0-9]+/g, "_")}`, event.entityType?.replace(/_/g, " ") ?? t("admin.system", "system"))}</span>
                           </span>
-                          <span className="text-xs font-medium text-foreground">{actionLabel(event.action)}</span>
+                          <span className="text-xs font-medium text-foreground">{actionLabel(event.action, t)}</span>
                         </div>
                         <p className="text-xs text-muted-foreground mt-0.5">
                            {t("admin.admin_home_by")} <span className="font-medium text-foreground/80">{event.actorName}</span>
@@ -1148,12 +1147,12 @@ export default function AdminHome() {
         {/* ── Contextual link to full dashboard ───────────────────────────── */}
         <div className="flex items-center justify-between py-2 border-t border-border/50">
           <p className="text-xs text-muted-foreground">
-            {d && `Data as of ${formatTime(d.generatedAt, { hour: "numeric", minute: "2-digit" })} · Auto-refreshes every 60s`}
+            {d && t("admin.admin_home_data_as_of", { time: formatTime(d.generatedAt, { hour: "numeric", minute: "2-digit" }) })}
           </p>
           <Link href="/admin">
             <Button variant="outline" size="sm" className="gap-2 h-8 text-xs" data-testid="button-open-full-dashboard">
               <LayoutDashboard className="h-3.5 w-3.5" />
-              Full Admin Dashboard
+               {t("admin.admin_home_full_dashboard")}
             </Button>
           </Link>
         </div>

@@ -32,9 +32,9 @@ type ReportResult = {
 type SavedReport = { id: string; name: string; definition: Definition };
 
 const OPERATOR_LABELS: Record<string, string> = {
-  eq: "Equals", neq: "Does not equal", contains: "Contains", starts_with: "Starts with",
-  in: "Is one of", gt: "Greater than", gte: "At least", lt: "Less than", lte: "At most",
-  between: "Between", is_null: "Is empty", is_not_null: "Is not empty",
+  eq: "equals", neq: "not_equal", contains: "contains", starts_with: "starts_with",
+  in: "one_of", gt: "greater_than", gte: "at_least", lt: "less_than", lte: "at_most",
+  between: "between", is_null: "empty", is_not_null: "not_empty",
 };
 
 const AGGREGATIONS = ["COUNT", "SUM", "AVG", "MIN", "MAX"];
@@ -44,9 +44,9 @@ function emptyDefinition(source?: Source): Definition {
   return { source: source?.key ?? "", fields, filters: [], groupBy: [], aggregations: [] };
 }
 
-function displayValue(value: unknown, type: FieldType): string {
+function displayValue(value: unknown, type: FieldType, t: (key: string, fallback: string) => string): string {
   if (value === null || value === undefined) return "—";
-  if (type === "boolean") return value ? "Yes" : "No";
+  if (type === "boolean") return value ? t("common.yes", "Yes") : t("common.no", "No");
   if (type === "number" && typeof value === "number") return value.toLocaleString();
   if (type === "datetime") {
     const parsed = new Date(String(value));
@@ -57,6 +57,8 @@ function displayValue(value: unknown, type: FieldType): string {
 
 export function CustomReportsBuilder() {
   const { t } = useTranslation();
+  const translate = (key: string, fallback: string, options?: Record<string, unknown>) =>
+    String(t(key, { defaultValue: fallback, ...options }));
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const metadataQuery = useQuery<{ sources: Source[] }>({
@@ -78,7 +80,8 @@ export function CustomReportsBuilder() {
   const source = sources.find(item => item.key === definition.source);
   const fields = source?.fields ?? [];
   const fieldMap = useMemo(() => new Map(fields.map(item => [item.key, item])), [fields]);
-  const visibleFields = fields.filter(item => item.label.toLowerCase().includes(fieldSearch.toLowerCase()));
+  const localize = (key: string, fallback: string) => translate(`admin_tools.custom.metadata.${key}`, fallback);
+  const visibleFields = fields.filter(item => localize(item.key, item.label).toLowerCase().includes(fieldSearch.toLowerCase()));
 
   useEffect(() => {
     if (!sourceInitialized && sources.length) {
@@ -234,10 +237,10 @@ export function CustomReportsBuilder() {
           <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
             <div className="space-y-2">
                <Label htmlFor="custom-report-source">{t("admin_tools.custom.data_source", "Data source")}</Label>
-              <select id="custom-report-source" value={definition.source} onChange={event => changeSource(event.target.value)} className="h-10 w-full rounded-md border bg-background px-3 text-sm">
-                {sources.map(item => <option key={item.key} value={item.key}>{item.label}</option>)}
+               <select id="custom-report-source" value={definition.source} onChange={event => changeSource(event.target.value)} className="h-10 w-full rounded-md border bg-background px-3 text-sm">
+                 {sources.map(item => <option key={item.key} value={item.key}>{localize(item.key, item.label)}</option>)}
               </select>
-              <p className="text-xs text-muted-foreground">{source?.description}</p>
+               <p className="text-xs text-muted-foreground">{source && localize(`${source.key}_description`, source.description)}</p>
             </div>
             <div className="space-y-2">
                <Label>{t("admin_tools.custom.saved_reports", "Saved reports")}</Label>
@@ -262,7 +265,7 @@ export function CustomReportsBuilder() {
                 {visibleFields.map(item => (
                   <label key={item.key} className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-muted">
                     <input type="checkbox" checked={definition.fields.includes(item.key)} onChange={() => toggleField(item.key)} />
-                    <span>{item.label}</span>
+                     <span>{localize(item.key, item.label)}</span>
                   </label>
                 ))}
               </div>
@@ -276,7 +279,7 @@ export function CustomReportsBuilder() {
                   return item ? (
                     <label key={key} className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-muted">
                       <input type="checkbox" checked={definition.groupBy.includes(key)} onChange={() => setDefinition(current => ({ ...current, groupBy: current.groupBy.includes(key) ? current.groupBy.filter(value => value !== key) : [...current.groupBy, key] }))} />
-                      <span>{item.label}</span>
+                     <span>{localize(item.key, item.label)}</span>
                     </label>
                   ) : null;
                 })}
@@ -297,10 +300,10 @@ export function CustomReportsBuilder() {
                 return (
                   <div key={`${filter.field}-${index}`} className="grid gap-2 md:grid-cols-[1.2fr_1fr_1.5fr_1.5fr_auto]">
                     <select value={filter.field} onChange={event => setDefinition(current => ({ ...current, filters: current.filters.map((item, itemIndex) => itemIndex === index ? { field: event.target.value, operator: fieldMap.get(event.target.value)?.operators[0] ?? "eq" } : item) }))} className="h-9 rounded-md border bg-background px-2 text-sm">
-                      {fields.map(item => <option key={item.key} value={item.key}>{item.label}</option>)}
+                       {fields.map(item => <option key={item.key} value={item.key}>{localize(item.key, item.label)}</option>)}
                     </select>
                     <select value={filter.operator} onChange={event => setDefinition(current => ({ ...current, filters: current.filters.map((item, itemIndex) => itemIndex === index ? { ...item, operator: event.target.value } : item) }))} className="h-9 rounded-md border bg-background px-2 text-sm">
-                      {operators.map(operator => <option key={operator} value={operator}>{OPERATOR_LABELS[operator] ?? operator}</option>)}
+                       {operators.map(operator => <option key={operator} value={operator}>{translate(`admin_tools.custom.operator_${OPERATOR_LABELS[operator] ?? operator}`, operator.replace(/_/g, " "))}</option>)}
                     </select>
                     {showValue ? <Input value={Array.isArray(filter.value) ? filter.value.join(", ") : String(filter.value ?? "")} onChange={event => setDefinition(current => ({ ...current, filters: current.filters.map((item, itemIndex) => itemIndex === index ? { ...item, value: event.target.value } : item) }))} placeholder={filterField?.type === "number" ? "Number" : "Value"} /> : <div />}
                      {filter.operator === "between" ? <Input value={String(filter.valueTo ?? "")} onChange={event => setDefinition(current => ({ ...current, filters: current.filters.map((item, itemIndex) => itemIndex === index ? { ...item, valueTo: event.target.value } : item) }))} placeholder={t("admin_tools.custom.and", "And…")} /> : <div />}
@@ -322,8 +325,8 @@ export function CustomReportsBuilder() {
                       {AGGREGATIONS.map(item => <option key={item}>{item}</option>)}
                     </select>
                     <select value={aggregation.field} onChange={event => setDefinition(current => ({ ...current, aggregations: current.aggregations.map((item, itemIndex) => itemIndex === index ? { ...item, field: event.target.value } : item) }))} className="h-9 min-w-0 flex-1 rounded-md border bg-background px-2 text-sm">
-                      <option value="__all__">All rows</option>
-                      {fields.filter(item => item.aggregatable).map(item => <option key={item.key} value={item.key}>{item.label}</option>)}
+                      <option value="__all__">{t("admin_tools.custom.all_rows", "All rows")}</option>
+                   {fields.filter(item => item.aggregatable).map(item => <option key={item.key} value={item.key}>{localize(item.key, item.label)}</option>)}
                     </select>
                      <Button size="icon" variant="ghost" aria-label={t("admin_tools.custom.remove_aggregation", "Remove aggregation")} onClick={() => setDefinition(current => ({ ...current, aggregations: current.aggregations.filter((_, itemIndex) => itemIndex !== index) }))}><Trash2 className="h-4 w-4" /></Button>
                   </div>
@@ -336,8 +339,8 @@ export function CustomReportsBuilder() {
               <div className="mt-2 flex gap-2">
                 <select value={definition.sort?.field ?? ""} onChange={event => setDefinition(current => ({ ...current, sort: event.target.value ? { field: event.target.value, direction: current.sort?.direction ?? "asc" } : undefined }))} className="h-9 min-w-0 flex-1 rounded-md border bg-background px-2 text-sm">
                    <option value="">{t("admin_tools.custom.default_order", "Default order")}</option>
-                  {definition.fields.map(key => <option key={key} value={key}>{fieldMap.get(key)?.label ?? key}</option>)}
-                  {definition.aggregations.map((aggregation, index) => <option key={`agg_${index}`} value={`agg_${index}`}>{aggregation.function} result {index + 1}</option>)}
+                   {definition.fields.map(key => <option key={key} value={key}>{localize(key, fieldMap.get(key)?.label ?? key)}</option>)}
+                   {definition.aggregations.map((aggregation, index) => <option key={`agg_${index}`} value={`agg_${index}`}>{translate("admin_tools.custom.aggregation_result", `${aggregation.function} result ${index + 1}`, { function: aggregation.function, index: index + 1 })}</option>)}
                 </select>
                 <select value={definition.sort?.direction ?? "asc"} onChange={event => setDefinition(current => current.sort ? { ...current, sort: { ...current.sort, direction: event.target.value as "asc" | "desc" } } : current)} className="h-9 rounded-md border bg-background px-2 text-sm">
                    <option value="asc">{t("admin_tools.custom.ascending", "Ascending")}</option><option value="desc">{t("admin_tools.custom.descending", "Descending")}</option>
@@ -367,7 +370,7 @@ export function CustomReportsBuilder() {
             <div className="overflow-x-auto rounded-md border">
               <table className="w-full min-w-[720px] text-sm">
                 <thead className="bg-muted/50"><tr>{result.columns.map(column => <th key={column.key} className="whitespace-nowrap px-3 py-2 text-left font-medium">{column.label}</th>)}</tr></thead>
-                <tbody>{result.rows.map((row, rowIndex) => <tr key={rowIndex} className="border-t">{result.columns.map(column => <td key={column.key} className="whitespace-nowrap px-3 py-2">{displayValue(row[column.key], column.type)}</td>)}</tr>)}</tbody>
+                <tbody>{result.rows.map((row, rowIndex) => <tr key={rowIndex} className="border-t">{result.columns.map(column => <td key={column.key} className="whitespace-nowrap px-3 py-2">{displayValue(row[column.key], column.type, (key, fallback) => translate(key, fallback))}</td>)}</tr>)}</tbody>
               </table>
                {!result.rows.length && <p className="p-6 text-center text-sm text-muted-foreground">{t("admin_tools.custom.no_rows", "No rows matched the current report.")}</p>}
             </div>

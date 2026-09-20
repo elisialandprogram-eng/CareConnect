@@ -11,6 +11,7 @@ import {
 import { formatDistanceToNow } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
 
 interface AdminNotification {
   id: string;
@@ -38,18 +39,18 @@ const SEV_CFG = {
 
 // Human-readable labels for each tab destination shown in the notification hint.
 const TAB_LABELS: Record<string, string> = {
-  "service-requests":   "Service Requests",
-  "doc-queue":          "Docs Approval",
-  "doc-expiry":         "Expiry Monitor",
-  "verification-queue": "Provider Review",
-  "wallets":            "Wallets",
-  "payouts":            "Payouts",
-  "refunds":            "Refunds",
-  "support":            "Support",
-  "providers":          "Providers",
-  "title-requests":     "Title Requests",
-  "type-requests":      "Type Requests",
-  "financial":          "Financial",
+  "service-requests":   "destination_service_requests",
+  "doc-queue":          "destination_doc_queue",
+  "doc-expiry":         "destination_doc_expiry",
+  "verification-queue": "destination_verification_queue",
+  "wallets":            "destination_wallets",
+  "payouts":            "destination_payouts",
+  "refunds":            "destination_refunds",
+  "support":            "destination_support",
+  "providers":          "destination_providers",
+  "title-requests":     "destination_title_requests",
+  "type-requests":      "destination_type_requests",
+  "financial":          "destination_financial",
 };
 
 // Maps notification type → the admin tab that should be activated on click.
@@ -80,6 +81,26 @@ const NOTIF_TAB_MAP: Record<string, { tab: string; useProvider?: boolean }> = {
   type_change_request:     { tab: "type-requests" },
 };
 
+const NOTIFICATION_TITLE_KEYS: Record<string, string> = {
+  service_added: "service_request",
+  service_request: "service_request",
+  document_uploaded: "document_uploaded",
+  document_expiring_soon: "document_expiring",
+  kyc_submitted: "kyc_submitted",
+  kyc_resubmitted: "kyc_resubmitted",
+  provider_registered: "provider_registered",
+  provider_signup: "provider_registered",
+  payout_requested: "payout_requested",
+  payout_overdue: "payout_overdue",
+  refund_requested: "refund_requested",
+  support_ticket: "support_ticket",
+  bug_report: "bug_report",
+  provider_suspended: "provider_suspended",
+  provider_deactivated: "provider_deactivated",
+  title_request: "title_request",
+  type_change_request: "type_change_request",
+};
+
 export function AdminNotificationCenter({
   onSelectProvider,
   onOpenDocQueue,
@@ -90,6 +111,7 @@ export function AdminNotificationCenter({
   onNavigate?: (tab: string) => void;
 }) {
   const [open, setOpen] = useState(false);
+  const { t } = useTranslation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -115,7 +137,7 @@ export function AdminNotificationCenter({
     mutationFn: () => apiRequest("PATCH", "/api/admin/notifications/mark-all-read"),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/notifications"] });
-      toast({ title: "All notifications marked as read" });
+       toast({ title: t("admin.notifications.all_marked_read", "All notifications marked as read") });
     },
   });
 
@@ -149,7 +171,7 @@ export function AdminNotificationCenter({
         ) : (
           <Bell className="h-4 w-4" />
         )}
-        <span className="hidden sm:inline text-sm">Notifications</span>
+        <span className="hidden sm:inline text-sm">{t("admin.notifications.label", "Notifications")}</span>
         {unreadCount > 0 && (
           <Badge
             variant="destructive"
@@ -168,9 +190,9 @@ export function AdminNotificationCenter({
             <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 dark:border-slate-800 flex-shrink-0">
               <div className="flex items-center gap-2">
                 <Bell className="h-4 w-4 text-slate-500" />
-                <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Notifications</span>
+                 <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">{t("admin.notifications.label", "Notifications")}</span>
                 {unreadCount > 0 && (
-                  <Badge variant="secondary" className="text-[11px] px-1.5">{unreadCount} new</Badge>
+                   <Badge variant="secondary" className="text-[11px] px-1.5">{t("admin.notifications.new", "{{count}} new", { count: unreadCount })}</Badge>
                 )}
               </div>
               <div className="flex items-center gap-1">
@@ -184,7 +206,7 @@ export function AdminNotificationCenter({
                     data-testid="button-mark-all-read"
                   >
                     <CheckCheck className="h-3.5 w-3.5 mr-1" />
-                    All read
+                     {t("admin.notifications.all_read", "All read")}
                   </Button>
                 )}
                 {onOpenDocQueue && (
@@ -194,7 +216,7 @@ export function AdminNotificationCenter({
                     className="text-xs h-7 px-2 text-blue-500 hover:text-blue-700"
                     onClick={() => { setOpen(false); onOpenDocQueue(); }}
                   >
-                    Doc Queue
+                     {t("admin.notifications.doc_queue", "Docs queue")}
                   </Button>
                 )}
                 <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-400" onClick={() => setOpen(false)}>
@@ -208,9 +230,9 @@ export function AdminNotificationCenter({
               {notifications.length === 0 ? (
                 <div className="py-14 text-center">
                   <Bell className="h-8 w-8 text-slate-200 dark:text-slate-700 mx-auto mb-3" />
-                  <p className="text-sm text-slate-400">No notifications yet</p>
+                   <p className="text-sm text-slate-400">{t("admin.notifications.empty", "No notifications yet")}</p>
                   <p className="text-xs text-slate-300 dark:text-slate-600 mt-1">
-                    Activity will appear here as providers make changes
+                     {t("admin.notifications.empty_desc", "Activity will appear here as providers make changes")}
                   </p>
                 </div>
               ) : (
@@ -221,6 +243,9 @@ export function AdminNotificationCenter({
                     const name = n.first_name
                       ? `${n.first_name} ${n.last_name ?? ""}`.trim()
                       : (n.provider_name ?? null);
+                    const title = NOTIFICATION_TITLE_KEYS[n.type]
+                      ? t(`admin.notifications.title_${NOTIFICATION_TITLE_KEYS[n.type]}`, n.title)
+                      : n.title;
                     return (
                       <div
                         key={n.id}
@@ -251,7 +276,7 @@ export function AdminNotificationCenter({
                         <div className="flex-1 min-w-0">
                           <div className="flex items-start justify-between gap-1">
                             <p className="text-xs font-semibold text-slate-700 dark:text-slate-300 leading-snug">
-                              {n.title}
+                              {title}
                             </p>
                             <div className="flex items-center gap-1 flex-shrink-0">
                               {!n.is_read && <span className={cn("h-2 w-2 rounded-full flex-shrink-0 mt-1", cfg.dot)} />}
@@ -272,7 +297,7 @@ export function AdminNotificationCenter({
                             )}
                             {(() => {
                               const m = NOTIF_TAB_MAP[n.type] ?? NOTIF_TAB_MAP[n.action_type ?? ""];
-                              const label = m ? TAB_LABELS[m.tab] : null;
+                               const label = m ? t(`admin.notifications.${TAB_LABELS[m.tab]}`, TAB_LABELS[m.tab]) : null;
                               return label ? (
                                 <span className="text-[11px] text-blue-500 flex items-center gap-0.5 font-medium">
                                   → {label}
@@ -290,7 +315,7 @@ export function AdminNotificationCenter({
                           <button
                             className="flex-shrink-0 p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-700"
                             onClick={(e) => { e.stopPropagation(); markOneMutation.mutate(n.id); }}
-                            title="Mark as read"
+                             title={t("admin.notifications.mark_read", "Mark as read")}
                           >
                             <Check className="h-3 w-3" />
                           </button>
@@ -305,7 +330,7 @@ export function AdminNotificationCenter({
             {/* Footer */}
             {notifications.length > 0 && (
               <div className="px-4 py-2 border-t border-slate-100 dark:border-slate-800 flex-shrink-0">
-                <p className="text-[11px] text-slate-400 text-center">{data?.total ?? 0} total</p>
+                 <p className="text-[11px] text-slate-400 text-center">{t("admin.notifications.total", "{{count}} total", { count: data?.total ?? 0 })}</p>
               </div>
             )}
           </div>

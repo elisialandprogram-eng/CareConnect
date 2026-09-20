@@ -575,6 +575,8 @@ function persistSavedFilters(filters: FilterPreset[]) {
 export function FinancialMasterReport() {
   const { format: fmt } = useAdminCurrency();
   const { t } = useTranslation();
+  const r = (key: string, fallback: string, options?: Record<string, unknown>) =>
+    String(t(`admin.report.${key}`, { defaultValue: fallback, ...options }));
 
   // Filters
   const [search, setSearch] = useState("");
@@ -772,26 +774,26 @@ export function FinancialMasterReport() {
         <div>
           <h2 className="text-2xl font-bold flex items-center gap-2">
             <BarChart3 className="h-6 w-6" />
-            Financial Master Report
+             {r("master_report", "Financial Master Report")}
           </h2>
           <p className="text-sm text-muted-foreground mt-0.5">
-            Full financial traceability: booking → payment → earnings → payout
+             {r("master_report_desc", "Full financial traceability: booking → payment → earnings → payout")}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" size="sm" onClick={() => refetch()} data-testid="button-master-refresh">
-            <RefreshCw className="h-4 w-4 me-1.5" />Refresh
+             <RefreshCw className="h-4 w-4 me-1.5" />{r("refresh", "Refresh")}
           </Button>
 
           {/* Column visibility */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="sm" data-testid="button-column-visibility">
-                <Columns className="h-4 w-4 me-1.5" />Columns
+                 <Columns className="h-4 w-4 me-1.5" />{r("columns", "Columns")}
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">
-              <DropdownMenuLabel>Toggle Columns</DropdownMenuLabel>
+               <DropdownMenuLabel>{r("toggle_columns", "Toggle Columns")}</DropdownMenuLabel>
               <DropdownMenuSeparator />
               {COLUMN_GROUPS.map(grp => (
                 <DropdownMenuCheckboxItem
@@ -851,31 +853,31 @@ export function FinancialMasterReport() {
               data-testid="button-master-filters"
               className={hasActiveFilters ? "border-primary text-primary" : ""}
             >
-              <Filter className="h-4 w-4 me-1.5" />
-              Filters
+             <Filter className="h-4 w-4 me-1.5" />
+               {r("filters", "Filters")}
               {hasActiveFilters && <Badge className="ms-1.5 h-4 w-4 rounded-full p-0 text-[9px] flex items-center justify-center">!</Badge>}
             </Button>
 
             {hasActiveFilters && (
               <>
                 <Button variant="ghost" size="sm" onClick={clearFilters} data-testid="button-master-clear">
-                  Clear all
+                   {r("clear_all", "Clear all")}
                 </Button>
                 {showSaveInput ? (
                   <div className="flex items-center gap-1.5">
                     <Input
                       value={saveFilterName}
                       onChange={e => setSaveFilterName(e.target.value)}
-                      placeholder="Filter name…"
+                       placeholder={r("filter_name", "Filter name…")}
                       className="h-8 text-sm w-36"
                       onKeyDown={e => e.key === "Enter" && saveCurrentFilter()}
                     />
-                    <Button size="sm" className="h-8" onClick={saveCurrentFilter}>Save</Button>
-                    <Button size="sm" variant="ghost" className="h-8" onClick={() => setShowSaveInput(false)}>×</Button>
+                     <Button size="sm" className="h-8" onClick={saveCurrentFilter}>{r("save", "Save")}</Button>
+                     <Button size="sm" variant="ghost" className="h-8" onClick={() => setShowSaveInput(false)}>×</Button>
                   </div>
                 ) : (
                   <Button variant="outline" size="sm" onClick={() => setShowSaveInput(true)} data-testid="button-save-filter">
-                    <Save className="h-3.5 w-3.5 me-1" />Save
+                     <Save className="h-3.5 w-3.5 me-1" />{r("save", "Save")}
                   </Button>
                 )}
               </>
@@ -885,63 +887,63 @@ export function FinancialMasterReport() {
           {filtersOpen && (
             <div className="pt-3 border-t grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
               <div>
-                <label className="text-xs text-muted-foreground mb-1 block">Date From</label>
+                 <label className="text-xs text-muted-foreground mb-1 block">{r("date_from", "Date From")}</label>
                 <Input type="date" value={dateFrom} onChange={e => { setDateFrom(e.target.value); setPage(1); }} className="h-8 text-sm" data-testid="input-date-from" />
               </div>
               <div>
-                <label className="text-xs text-muted-foreground mb-1 block">Date To</label>
+                 <label className="text-xs text-muted-foreground mb-1 block">{r("date_to", "Date To")}</label>
                 <Input type="date" value={dateTo} onChange={e => { setDateTo(e.target.value); setPage(1); }} className="h-8 text-sm" data-testid="input-date-to" />
               </div>
               <div>
-                <label className="text-xs text-muted-foreground mb-1 block">Booking Status</label>
+                 <label className="text-xs text-muted-foreground mb-1 block">{r("booking_status", "Booking Status")}</label>
                 <Select value={statusFilter} onValueChange={v => { setStatusFilter(v); setPage(1); }}>
                   <SelectTrigger className="h-8 text-sm" data-testid="select-booking-status"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All Statuses</SelectItem>
-                    <SelectItem value="pending">Pending</SelectItem>
-                    <SelectItem value="confirmed">Confirmed</SelectItem>
-                    <SelectItem value="in_progress">In Progress</SelectItem>
-                    <SelectItem value="completed">Completed</SelectItem>
-                    <SelectItem value="cancelled">Cancelled</SelectItem>
-                    <SelectItem value="no_show">No Show</SelectItem>
+                     <SelectItem value="all">{r("all_statuses", "All Statuses")}</SelectItem>
+                     <SelectItem value="pending">{r("pending", "Pending")}</SelectItem>
+                     <SelectItem value="confirmed">{r("confirmed", "Confirmed")}</SelectItem>
+                     <SelectItem value="in_progress">{r("in_progress", "In Progress")}</SelectItem>
+                     <SelectItem value="completed">{r("completed", "Completed")}</SelectItem>
+                     <SelectItem value="cancelled">{r("cancelled", "Cancelled")}</SelectItem>
+                     <SelectItem value="no_show">{r("no_show", "No Show")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div>
-                <label className="text-xs text-muted-foreground mb-1 block">Payment Status</label>
+                 <label className="text-xs text-muted-foreground mb-1 block">{r("payment_status", "Payment Status")}</label>
                 <Select value={paymentStatusFilter} onValueChange={v => { setPaymentStatusFilter(v); setPage(1); }}>
                   <SelectTrigger className="h-8 text-sm" data-testid="select-payment-status"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All</SelectItem>
-                    <SelectItem value="pending">Pending</SelectItem>
-                    <SelectItem value="completed">Completed</SelectItem>
-                    <SelectItem value="refunded">Refunded</SelectItem>
-                    <SelectItem value="failed">Failed</SelectItem>
+                     <SelectItem value="all">{r("all", "All")}</SelectItem>
+                     <SelectItem value="pending">{r("pending", "Pending")}</SelectItem>
+                     <SelectItem value="completed">{r("completed", "Completed")}</SelectItem>
+                     <SelectItem value="refunded">{r("refunded", "Refunded")}</SelectItem>
+                     <SelectItem value="failed">{r("failed", "Failed")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div>
-                <label className="text-xs text-muted-foreground mb-1 block">Visit Type</label>
+                 <label className="text-xs text-muted-foreground mb-1 block">{r("visit_type", "Visit Type")}</label>
                 <Select value={visitTypeFilter} onValueChange={v => { setVisitTypeFilter(v); setPage(1); }}>
                   <SelectTrigger className="h-8 text-sm" data-testid="select-visit-type"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All Types</SelectItem>
-                    <SelectItem value="clinic">Clinic</SelectItem>
-                    <SelectItem value="home_visit">Home Visit</SelectItem>
-                    <SelectItem value="video">Video</SelectItem>
-                    <SelectItem value="telemedicine">Telemedicine</SelectItem>
+                     <SelectItem value="all">{r("all_types", "All Types")}</SelectItem>
+                     <SelectItem value="clinic">{r("clinic", "Clinic")}</SelectItem>
+                     <SelectItem value="home_visit">{r("home_visit", "Home Visit")}</SelectItem>
+                     <SelectItem value="video">{r("video", "Video")}</SelectItem>
+                     <SelectItem value="telemedicine">{r("telemedicine", "Telemedicine")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div>
-                <label className="text-xs text-muted-foreground mb-1 block">Refund Status</label>
+                 <label className="text-xs text-muted-foreground mb-1 block">{r("refund_status", "Refund Status")}</label>
                 <Select value={refundStatusFilter} onValueChange={v => { setRefundStatusFilter(v); setPage(1); }}>
                   <SelectTrigger className="h-8 text-sm" data-testid="select-refund-status"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All</SelectItem>
-                    <SelectItem value="none">None</SelectItem>
-                    <SelectItem value="pending">Pending</SelectItem>
-                    <SelectItem value="processed">Processed</SelectItem>
+                     <SelectItem value="all">{r("all", "All")}</SelectItem>
+                     <SelectItem value="none">{r("none", "None")}</SelectItem>
+                     <SelectItem value="pending">{r("pending", "Pending")}</SelectItem>
+                     <SelectItem value="processed">{r("processed", "Processed")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -951,7 +953,7 @@ export function FinancialMasterReport() {
           {/* Saved filter presets */}
           {savedFilters.length > 0 && (
             <div className="flex flex-wrap gap-1.5 pt-2 border-t">
-              <span className="text-xs text-muted-foreground self-center">Saved:</span>
+               <span className="text-xs text-muted-foreground self-center">{r("saved", "Saved")}:</span>
               {savedFilters.map(preset => (
                 <div key={preset.name} className="flex items-center gap-0.5">
                   <Button

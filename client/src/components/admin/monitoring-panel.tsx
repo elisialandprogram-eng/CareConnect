@@ -47,12 +47,12 @@ const SEVERITY_ICONS: Record<string, any> = {
 };
 
 const TYPE_LABELS: Record<string, string> = {
-  api_error: "API Error",
-  payment_failure: "Payment Failure",
-  notification_failure: "Notification Failure",
-  slow_endpoint: "Slow Endpoint",
-  failed_job: "Failed Job",
-  auth_failure: "Auth Failure",
+  api_error: "type_api_error",
+  payment_failure: "type_payment_failure",
+  notification_failure: "type_notification_failure",
+  slow_endpoint: "type_slow_endpoint",
+  failed_job: "type_failed_job",
+  auth_failure: "type_auth_failure",
 };
 
 const PAGE_SIZE = 30;
@@ -68,6 +68,10 @@ function StatPill({ label, value, color }: { label: string; value: number; color
 
 export default function MonitoringPanel() {
   const { t } = useTranslation();
+  const severityLabel = (severity: string) =>
+    t(`admin.monitoring.severity_${severity}`, severity.charAt(0).toUpperCase() + severity.slice(1));
+  const typeLabel = (type: string) =>
+    t(`admin.monitoring.${TYPE_LABELS[type] ?? type}`, type.replace(/_/g, " "));
   const { toast } = useToast();
   const [page, setPage] = useState(0);
   const [typeFilter, setTypeFilter] = useState("all");
@@ -143,7 +147,7 @@ export default function MonitoringPanel() {
               <CardContent className="pt-5">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-muted-foreground capitalize">{sev}</p>
+                    <p className="text-sm text-muted-foreground">{severityLabel(sev)}</p>
                     <p className="text-2xl font-bold tabular-nums mt-1">{statsLoading ? "…" : count}</p>
                   </div>
                   <Icon className={`h-7 w-7 ${sev === "critical" ? "text-rose-400" : sev === "error" ? "text-orange-400" : sev === "warning" ? "text-amber-400" : "text-sky-400"}`} />
@@ -162,8 +166,8 @@ export default function MonitoringPanel() {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-              {Object.entries(stats.byType).map(([type, cnt]) => (
-                <StatPill key={type} label={TYPE_LABELS[type] ?? type} value={cnt} color="bg-muted border" />
+                {Object.entries(stats.byType).map(([type, cnt]) => (
+                <StatPill key={type} label={typeLabel(type)} value={cnt} color="bg-muted border" />
               ))}
             </div>
           </CardContent>
@@ -193,8 +197,8 @@ export default function MonitoringPanel() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">{t("admin.monitoring.all_types", "All types")}</SelectItem>
-                {Object.entries(TYPE_LABELS).map(([k, v]) => (
-                  <SelectItem key={k} value={k}>{v}</SelectItem>
+                {Object.entries(TYPE_LABELS).map(([k]) => (
+                  <SelectItem key={k} value={k}>{typeLabel(k)}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -205,7 +209,7 @@ export default function MonitoringPanel() {
               <SelectContent>
                 <SelectItem value="all">{t("admin.monitoring.all_severities", "All severities")}</SelectItem>
                 {["critical", "error", "warning", "info"].map((s) => (
-                  <SelectItem key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</SelectItem>
+                  <SelectItem key={s} value={s}>{severityLabel(s)}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -249,10 +253,10 @@ export default function MonitoringPanel() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${SEVERITY_COLORS[ev.severity] ?? ""}`}>
-                            {ev.severity}
+                            {severityLabel(ev.severity)}
                           </span>
                           <span className="text-xs font-medium bg-muted px-2 py-0.5 rounded-full">
-                            {TYPE_LABELS[ev.eventType] ?? ev.eventType}
+                            {typeLabel(ev.eventType)}
                           </span>
                           {ev.countryCode && (
                             <Badge variant="outline" className="text-xs h-5">{ev.countryCode}</Badge>
