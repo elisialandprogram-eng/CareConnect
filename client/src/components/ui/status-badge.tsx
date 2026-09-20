@@ -8,6 +8,7 @@
 
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
 
 // ─── Status maps ─────────────────────────────────────────────────────────────
 
@@ -150,13 +151,21 @@ export function StatusBadge({
   className,
   "data-testid": testId,
 }: StatusBadgeProps) {
+  const { t } = useTranslation();
   const { label, classes } = resolve(status, domain);
+  const normalizedStatus = (status ?? "").toLowerCase();
+  const translatedLabel =
+    domain === "appointment"
+      ? t(`member_status.appointment.${normalizedStatus}`, label)
+      : domain === "payment"
+        ? t(`member_status.payment.${normalizedStatus}`, label)
+        : label;
   return (
     <Badge
       className={cn("border font-medium", classes, className)}
       data-testid={testId}
     >
-      {label}
+      {translatedLabel}
     </Badge>
   );
 }

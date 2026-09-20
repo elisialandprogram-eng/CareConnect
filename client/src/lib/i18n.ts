@@ -7,6 +7,7 @@ import {
   memberTerminologyPostProcessor,
   normalizeTranslationTree,
 } from '../i18n/member-terminology';
+import { memberSweepTranslations } from '../i18n/member-sweep';
 
 const SUPPORTED = ['en', 'hu', 'fa'] as const;
 type Lang = (typeof SUPPORTED)[number];
@@ -19,15 +20,45 @@ const loaders: Record<Lang, () => Promise<{ default: Record<string, unknown> }>>
 
 const loaded = new Set<Lang>(['en']);
 
+function mergeTranslationAdditions(
+  base: Record<string, unknown>,
+  additions: Record<string, unknown>,
+): Record<string, unknown> {
+  const output: Record<string, unknown> = { ...base };
+  for (const [key, value] of Object.entries(additions)) {
+    const current = output[key];
+    if (
+      current &&
+      typeof current === 'object' &&
+      !Array.isArray(current) &&
+      value &&
+      typeof value === 'object' &&
+      !Array.isArray(value)
+    ) {
+      output[key] = mergeTranslationAdditions(
+        current as Record<string, unknown>,
+        value as Record<string, unknown>,
+      );
+    } else {
+      output[key] = value;
+    }
+  }
+  return output;
+}
+
 async function ensureLanguage(lng: string) {
   const code = (SUPPORTED as readonly string[]).includes(lng) ? (lng as Lang) : 'en';
   if (loaded.has(code)) return;
   try {
     const mod = await loaders[code]();
+    const translation = mergeTranslationAdditions(
+      mod.default,
+      memberSweepTranslations[code] as unknown as Record<string, unknown>,
+    );
     i18n.addResourceBundle(
       code,
       'translation',
-      normalizeTranslationTree(mod.default, code),
+      normalizeTranslationTree(translation, code),
       true,
       true,
     );
@@ -51,7 +82,15 @@ i18n
   .use(initReactI18next)
   .init({
     resources: {
-      en: { translation: normalizeTranslationTree(enTranslation, 'en') },
+      en: {
+        translation: normalizeTranslationTree(
+          mergeTranslationAdditions(
+            enTranslation as Record<string, unknown>,
+            memberSweepTranslations.en as unknown as Record<string, unknown>,
+          ),
+          'en',
+        ),
+      },
     },
     postProcess: ['memberTerminology'],
     fallbackLng: 'en',

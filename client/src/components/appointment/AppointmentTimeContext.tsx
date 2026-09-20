@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -26,7 +27,16 @@ function resolveApptMs(date: string, startTime: string, startAtUtc?: string | nu
   return d.getTime();
 }
 
-function getRelativeLabel(date: string, startTime: string, status: string, startAtUtc?: string | null): string {
+type TimeTranslator = (key: string, fallback: string, options?: Record<string, unknown>) => string;
+
+function getRelativeLabel(
+  date: string,
+  startTime: string,
+  status: string,
+  startAtUtc?: string | null,
+  translate?: TimeTranslator,
+): string {
+  const tr = translate ?? ((_key: string, fallback: string) => fallback);
   try {
     const apptMs = resolveApptMs(date, startTime, startAtUtc);
     const now = new Date();
@@ -37,30 +47,29 @@ function getRelativeLabel(date: string, startTime: string, status: string, start
     const days    = Math.floor(hrs / 24);
 
     if (status === "in_progress") {
-      if (mins < 60) return `Started ${mins}m ago`;
-      return `Started ${hrs}h ${mins % 60}m ago`;
+      const elapsed = mins < 60 ? `${mins}m` : `${hrs}h ${mins % 60}m`;
+      return tr("member_time.started_ago", "Started {{time}} ago", { time: elapsed });
     }
 
     if (TERMINAL.includes(status)) {
-      if (days === 0) return "Today";
-      if (days === 1) return "Yesterday";
-      return `${days} days ago`;
+      if (days === 0) return tr("member_time.today", "Today");
+      if (days === 1) return tr("member_time.yesterday", "Yesterday");
+      return tr("member_time.days_ago", "{{count}} days ago", { count: days });
     }
 
     // Past but status not yet terminal (e.g. confirmed but overdue)
     if (diffMs <= 0) {
-      if (mins < 5)  return "Starting now";
-      if (mins < 60) return `${mins}m overdue`;
-      if (hrs < 24)  return `${hrs}h overdue`;
-      return `${days}d overdue`;
+      if (mins < 5) return tr("member_time.starting_now", "Starting now");
+      const overdue = mins < 60 ? `${mins}m` : hrs < 24 ? `${hrs}h` : `${days}d`;
+      return tr("member_time.overdue", "{{time}} overdue", { time: overdue });
     }
 
     // Future — use "Starts in" phrasing for imminent appointments (<60 min)
-    if (mins < 60)  return `Starts in ${mins}m`;
-    if (hrs < 2)    return `In ${hrs}h ${mins % 60}m`;
-    if (hrs < 24)   return `In ${hrs}h`;
-    if (days === 1) return "Tomorrow";
-    return `In ${days} days`;
+    if (mins < 60) return tr("member_time.starts_in_short", "Starts in {{time}}", { time: `${mins}m` });
+    if (hrs < 2) return tr("member_time.in_time", "In {{time}}", { time: `${hrs}h ${mins % 60}m` });
+    if (hrs < 24) return tr("member_time.in_time", "In {{time}}", { time: `${hrs}h` });
+    if (days === 1) return tr("member_time.tomorrow", "Tomorrow");
+    return tr("member_time.in_days", "In {{count}} days", { count: days });
   } catch {
     return "";
   }
@@ -80,14 +89,16 @@ function getUrgencyClass(date: string, startTime: string, status: string, startA
 }
 
 export function AppointmentTimeContext({ date, startTime, startAtUtc, status, className = "", showIcon = true }: Props) {
-  const [label, setLabel] = useState(() => getRelativeLabel(date, startTime, status, startAtUtc));
+  const { t } = useTranslation();
+  const translate: TimeTranslator = (key, fallback, options) => String(t(key, fallback, options));
+  const [label, setLabel] = useState(() => getRelativeLabel(date, startTime, status, startAtUtc, translate));
 
   useEffect(() => {
-    setLabel(getRelativeLabel(date, startTime, status, startAtUtc));
+    setLabel(getRelativeLabel(date, startTime, status, startAtUtc, translate));
     if (TERMINAL.includes(status)) return;
-    const id = setInterval(() => setLabel(getRelativeLabel(date, startTime, status, startAtUtc)), 30_000);
+    const id = setInterval(() => setLabel(getRelativeLabel(date, startTime, status, startAtUtc, translate)), 30_000);
     return () => clearInterval(id);
-  }, [date, startTime, startAtUtc, status]);
+  }, [date, startTime, startAtUtc, status, translate]);
 
   if (!label) return null;
 

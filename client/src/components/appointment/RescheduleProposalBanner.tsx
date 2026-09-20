@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useTranslation } from "react-i18next";
 
 interface ProposedTime {
   date: string;
@@ -32,6 +33,7 @@ function parseProposedTime(events: any[]): ProposedTime | null {
 }
 
 export function RescheduleProposalBanner({ appointmentId, appointmentNumber, invalidateKeys = [], onSettled }: Props) {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const [reason, setReason] = useState("");
   const [showReason, setShowReason] = useState(false);
@@ -58,10 +60,10 @@ export function RescheduleProposalBanner({ appointmentId, appointmentNumber, inv
     },
     onSuccess: (data, accept) => {
       toast({
-        title: accept ? "Reschedule accepted" : "Appointment cancelled",
+        title: accept ? t("member_reschedule.accepted", "Reschedule accepted") : t("member_reschedule.cancelled", "Appointment cancelled"),
         description: accept
-          ? `Your appointment has been rescheduled to ${proposedTime?.date} at ${proposedTime?.startTime}.`
-          : "You declined the reschedule. The appointment has been cancelled and a full refund issued to your wallet.",
+          ? t("member_reschedule.accepted_desc", "Your appointment has been rescheduled to {{date}} at {{time}}.", { date: proposedTime?.date, time: proposedTime?.startTime })
+          : t("member_reschedule.declined_desc", "You declined the reschedule. The appointment has been cancelled and a full refund issued to your wallet."),
       });
       for (const key of invalidateKeys) {
         queryClient.invalidateQueries({ queryKey: Array.isArray(key) ? key : [key] });
@@ -71,8 +73,8 @@ export function RescheduleProposalBanner({ appointmentId, appointmentNumber, inv
     },
     onError: (err: any) => {
       toast({
-        title: "Action failed",
-        description: err?.message || "Please try again.",
+        title: t("member_reschedule.action_failed", "Action failed"),
+        description: err?.message || t("member_reschedule.try_again", "Please try again."),
         variant: "destructive",
       });
     },
@@ -82,7 +84,7 @@ export function RescheduleProposalBanner({ appointmentId, appointmentNumber, inv
     return (
       <div className="flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/30 px-4 py-3 text-sm text-amber-700 dark:text-amber-400">
         <Loader2 className="h-4 w-4 animate-spin shrink-0" />
-        Loading reschedule proposal…
+        {t("member_reschedule.loading", "Loading reschedule proposal…")}
       </div>
     );
   }
@@ -96,7 +98,7 @@ export function RescheduleProposalBanner({ appointmentId, appointmentNumber, inv
         <CalendarDays className="h-5 w-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
         <div className="flex-1 min-w-0">
           <p className="font-semibold text-sm text-amber-900 dark:text-amber-200">
-            Your provider proposed a new appointment time{apptRef}
+            {t("member_reschedule.title", "Your provider proposed a new appointment time{{reference}}", { reference: apptRef })}
           </p>
           {proposedTime ? (
             <div className="mt-1 flex items-center gap-2 text-sm text-amber-800 dark:text-amber-300">
@@ -108,11 +110,11 @@ export function RescheduleProposalBanner({ appointmentId, appointmentNumber, inv
             </div>
           ) : (
             <p className="mt-1 text-xs text-amber-700 dark:text-amber-400">
-              Check your appointment details for the proposed time.
+              {t("member_reschedule.check_details", "Check your appointment details for the proposed time.")}
             </p>
           )}
           <p className="mt-1.5 text-xs text-amber-700 dark:text-amber-400">
-            Accept to move to the new time, or decline to cancel the appointment with a full refund.
+            {t("member_reschedule.instruction", "Accept to move to the new time, or decline to cancel the appointment with a full refund.")}
           </p>
         </div>
       </div>
@@ -120,12 +122,12 @@ export function RescheduleProposalBanner({ appointmentId, appointmentNumber, inv
       {showReason && (
         <div className="space-y-1.5">
           <label className="text-xs font-medium text-amber-800 dark:text-amber-300">
-            Reason for declining (optional)
+            {t("member_reschedule.decline_reason", "Reason for declining (optional)")}
           </label>
           <Textarea
             value={reason}
             onChange={(e) => setReason(e.target.value)}
-            placeholder="Let your provider know why you can't make the new time…"
+            placeholder={t("member_reschedule.decline_placeholder", "Let your provider know why you can't make the new time…")}
             rows={2}
             maxLength={500}
             className="text-sm"
@@ -147,7 +149,7 @@ export function RescheduleProposalBanner({ appointmentId, appointmentNumber, inv
           ) : (
             <CheckCircle2 className="h-3.5 w-3.5 mr-1.5" />
           )}
-          Accept new time
+          {t("member_reschedule.accept", "Accept new time")}
         </Button>
         {!showReason ? (
           <Button
@@ -159,7 +161,7 @@ export function RescheduleProposalBanner({ appointmentId, appointmentNumber, inv
             data-testid="button-decline-reschedule"
           >
             <X className="h-3.5 w-3.5 mr-1.5" />
-            Decline
+             {t("member_reschedule.decline", "Decline")}
           </Button>
         ) : (
           <Button
@@ -175,7 +177,7 @@ export function RescheduleProposalBanner({ appointmentId, appointmentNumber, inv
             ) : (
               <X className="h-3.5 w-3.5 mr-1.5" />
             )}
-            Confirm decline
+             {t("member_reschedule.confirm_decline", "Confirm decline")}
           </Button>
         )}
       </div>

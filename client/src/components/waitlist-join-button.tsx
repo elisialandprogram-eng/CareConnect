@@ -18,6 +18,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { Bell, Loader2 } from "lucide-react";
 import { useLocation } from "wouter";
+import { useTranslation } from "react-i18next";
 
 interface WaitlistJoinButtonProps {
   providerId: string;
@@ -42,6 +43,7 @@ export function WaitlistJoinButton({
   className,
 }: WaitlistJoinButtonProps) {
   const { user } = useAuth();
+  const { t } = useTranslation();
   const { toast } = useToast();
   const [, navigate] = useLocation();
   const queryClient = useQueryClient();
@@ -65,15 +67,15 @@ export function WaitlistJoinButton({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/waitlist/me"] });
       toast({
-        title: "You're on the waitlist",
-        description: "We'll send you a notification the moment a slot opens.",
+        title: t("member_waitlist.joined_title", "You're on the waitlist"),
+        description: t("member_waitlist.joined_description", "We'll send you a notification the moment a slot opens."),
       });
       setOpen(false);
     },
     onError: (e: any) => {
       toast({
-        title: "Couldn't join waitlist",
-        description: e?.message || "Please try again.",
+        title: t("member_waitlist.join_failed", "Couldn't join waitlist"),
+        description: e?.message || t("member_waitlist.retry", "Please try again."),
         variant: "destructive",
       });
     },
@@ -96,23 +98,21 @@ export function WaitlistJoinButton({
         data-testid="button-join-waitlist"
       >
         <Bell className="h-4 w-4 mr-2" />
-        Join waitlist
+        {t("member_waitlist.join_button", "Join waitlist")}
       </Button>
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Join the waitlist</DialogTitle>
+            <DialogTitle>{t("member_waitlist.join_title", "Join the waitlist")}</DialogTitle>
             <DialogDescription>
-              We'll notify you the moment a slot opens up
-              {providerName ? ` with ${providerName}` : ""}. Set a preferred date
-              and time window, or leave blank for any opening.
+              {t("member_waitlist.join_description", "We'll notify you the moment a slot opens up{{provider}}. Set a preferred date and time window, or leave blank for any opening.", { provider: providerName ? ` with ${providerName}` : "" })}
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-3">
             <div className="space-y-1">
-              <Label htmlFor="wl-date">Preferred date (optional)</Label>
+             <Label htmlFor="wl-date">{t("member_waitlist.preferred_date", "Preferred date (optional)")}</Label>
               <Input
                 id="wl-date"
                 type="date"
@@ -123,7 +123,7 @@ export function WaitlistJoinButton({
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
-                <Label htmlFor="wl-start">Earliest time</Label>
+                 <Label htmlFor="wl-start">{t("member_waitlist.earliest_time", "Earliest time")}</Label>
                 <Input
                   id="wl-start"
                   type="time"
@@ -133,7 +133,7 @@ export function WaitlistJoinButton({
                 />
               </div>
               <div className="space-y-1">
-                <Label htmlFor="wl-end">Latest time</Label>
+                 <Label htmlFor="wl-end">{t("member_waitlist.latest_time", "Latest time")}</Label>
                 <Input
                   id="wl-end"
                   type="time"
@@ -144,12 +144,12 @@ export function WaitlistJoinButton({
               </div>
             </div>
             <div className="space-y-1">
-              <Label htmlFor="wl-notes">Notes (optional)</Label>
+               <Label htmlFor="wl-notes">{t("member_waitlist.notes", "Notes (optional)")}</Label>
               <Textarea
                 id="wl-notes"
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                placeholder="Anything the provider should know..."
+                 placeholder={t("member_waitlist.notes_placeholder", "Anything the provider should know...")}
                 rows={2}
                 maxLength={500}
                 data-testid="input-waitlist-notes"
@@ -159,7 +159,7 @@ export function WaitlistJoinButton({
 
           <DialogFooter>
             <Button variant="ghost" onClick={() => setOpen(false)}>
-              Cancel
+              {t("member_waitlist.cancel", "Cancel")}
             </Button>
             <Button
               onClick={() => joinMutation.mutate()}
@@ -167,7 +167,7 @@ export function WaitlistJoinButton({
               data-testid="button-confirm-waitlist"
             >
               {joinMutation.isPending && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
-              Join waitlist
+              {t("member_waitlist.join_button", "Join waitlist")}
             </Button>
           </DialogFooter>
         </DialogContent>

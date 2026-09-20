@@ -251,8 +251,8 @@ function AppointmentsTab({ data }: { data: PatientAnalytics }) {
                 <XAxis dataKey="month" tick={{ fontSize: 10 }} />
                 <YAxis tick={{ fontSize: 10 }} />
                 <Tooltip />
-                <Area type="monotone" dataKey="completed" name="Completed" stroke="#10b981" fill="url(#cmpGrad)" strokeWidth={2} />
-                <Area type="monotone" dataKey="cancelled" name="Cancelled" stroke="#f43f5e" fill="none" strokeWidth={1.5} strokeDasharray="4 2" />
+                <Area type="monotone" dataKey="completed" name={t("patient_reporting.completed", "Completed")} stroke="#10b981" fill="url(#cmpGrad)" strokeWidth={2} />
+                <Area type="monotone" dataKey="cancelled" name={t("patient_reporting.cancelled", "Cancelled")} stroke="#f43f5e" fill="none" strokeWidth={1.5} strokeDasharray="4 2" />
               </AreaChart>
             </ResponsiveContainer>
           </CardContent>

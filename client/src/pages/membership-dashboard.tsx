@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { QK } from "@/lib/query-keys";
 import { Link } from "wouter";
-import { formatDistanceToNow, isPast } from "date-fns";
+import { isPast } from "date-fns";
 import { formatDate } from "@/lib/datetime";
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
@@ -34,9 +34,17 @@ function fmtDate(d: string | Date | null | undefined) {
   return formatDate(new Date(d), { day: "numeric", month: "short", year: "numeric" });
 }
 
+function formatMembershipDistance(date: Date, language: string): string {
+  const diffMs = date.getTime() - Date.now();
+  const hours = Math.round(diffMs / 3_600_000);
+  if (Math.abs(hours) < 24) {
+    return new Intl.RelativeTimeFormat(language, { numeric: "auto" }).format(hours, "hour");
+  }
+  return new Intl.RelativeTimeFormat(language, { numeric: "auto" }).format(Math.round(hours / 24), "day");
+}
 
 export default function MembershipDashboard() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { toast } = useToast();
   const qc = useQueryClient();
 
@@ -214,7 +222,7 @@ function PlanCard({
   onToggleAutoRenew?: (v: boolean) => void;
   isPausing?: boolean; isResuming?: boolean; isCancelling?: boolean; isAutoRenewPending?: boolean;
 }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const cfg = STATUS_CONFIG[up.status] ?? STATUS_CONFIG.pending;
   const expiresAt = up.expiresAt ? new Date(up.expiresAt) : null;
   const isExpiringSoon = expiresAt && !isPast(expiresAt) &&
@@ -253,7 +261,7 @@ function PlanCard({
              <p className="text-muted-foreground text-xs">{t("patient_ui.membership.expires", "Expires")}</p>
             <p className={`font-medium ${isExpiringSoon ? "text-amber-600" : ""}`}>
               {fmtDate(up.expiresAt)}
-              {isExpiringSoon && <span className="text-xs ml-1">({formatDistanceToNow(expiresAt!)})</span>}
+             {isExpiringSoon && <span className="text-xs ml-1">({formatMembershipDistance(expiresAt!, i18n.language)})</span>}
             </p>
           </div>
           {(up as any).pausedAt && (

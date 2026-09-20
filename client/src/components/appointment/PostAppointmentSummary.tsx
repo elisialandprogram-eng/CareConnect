@@ -2,6 +2,7 @@ import { formatInCurrency } from "@/lib/currency";
 import { CheckCircle2, Star, FileText, RefreshCw, MessageSquare, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
+import { useTranslation } from "react-i18next";
 
 interface Props {
   appointmentId: string;
@@ -30,6 +31,7 @@ export function PostAppointmentSummary({
   currency,
   className = "",
 }: Props) {
+  const { t } = useTranslation();
   const total = Number(totalAmount ?? 0);
 
   return (
@@ -42,9 +44,9 @@ export function PostAppointmentSummary({
           <CheckCircle2 className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
         </div>
         <div>
-          <h4 className="font-semibold text-emerald-900 dark:text-emerald-200">Session Completed</h4>
+          <h4 className="font-semibold text-emerald-900 dark:text-emerald-200">{t("member_summary.session_completed", "Session completed")}</h4>
           {providerName && (
-            <p className="text-xs text-emerald-700 dark:text-emerald-400">with {providerName}</p>
+            <p className="text-xs text-emerald-700 dark:text-emerald-400">{t("member_summary.with_provider", "with {{name}}", { name: providerName })}</p>
           )}
         </div>
       </div>
@@ -53,7 +55,7 @@ export function PostAppointmentSummary({
       <div className="grid grid-cols-2 gap-2">
         {total > 0 && (
           <div className="rounded-lg bg-white dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 px-3 py-2 text-center">
-            <p className="text-xs text-muted-foreground">Paid</p>
+            <p className="text-xs text-muted-foreground">{t("member_summary.paid", "Paid")}</p>
             <p className="font-semibold text-sm">
               {formatInCurrency(total ?? 0, currency ?? "USD")}
             </p>
@@ -61,7 +63,7 @@ export function PostAppointmentSummary({
         )}
         {prescriptionsCount > 0 && (
           <div className="rounded-lg bg-white dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 px-3 py-2 text-center">
-            <p className="text-xs text-muted-foreground">Prescriptions</p>
+            <p className="text-xs text-muted-foreground">{t("member_summary.prescriptions", "Prescriptions")}</p>
             <p className="font-semibold text-sm">{prescriptionsCount}</p>
           </div>
         )}
@@ -73,7 +75,7 @@ export function PostAppointmentSummary({
           <Button size="sm" variant="default" asChild className="bg-emerald-600 hover:bg-emerald-700 text-white border-0" data-testid="button-post-leave-review">
             <Link href={`/review/${appointmentId}`}>
               <Star className="h-3.5 w-3.5 mr-1.5" />
-              Leave a review
+              {t("member_summary.leave_review", "Leave a review")}
             </Link>
           </Button>
         )}
@@ -81,7 +83,7 @@ export function PostAppointmentSummary({
           <Button size="sm" variant="outline" asChild data-testid="button-post-rebook">
             <Link href={`/book?providerId=${providerId}${serviceId ? `&serviceId=${serviceId}` : ""}&visitType=${visitType ?? "clinic"}`}>
               <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
-              Book again
+              {t("member_summary.book_again", "Book again")}
             </Link>
           </Button>
         )}
@@ -89,7 +91,7 @@ export function PostAppointmentSummary({
           <Button size="sm" variant="outline" asChild data-testid="button-post-invoice">
             <a href={`/api/invoices/by-appointment/${appointmentId}/download`} target="_blank" rel="noreferrer">
               <FileText className="h-3.5 w-3.5 mr-1.5" />
-              Download invoice
+              {t("member_summary.download_invoice", "Download invoice")}
             </a>
           </Button>
         )}
@@ -97,7 +99,7 @@ export function PostAppointmentSummary({
           <Button size="sm" variant="ghost" asChild data-testid="button-post-message">
             <Link href="/messages">
               <MessageSquare className="h-3.5 w-3.5 mr-1.5" />
-              Message provider
+              {t("member_summary.message_provider", "Message provider")}
             </Link>
           </Button>
         )}

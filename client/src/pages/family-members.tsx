@@ -104,7 +104,7 @@ export default function FamilyMembersPage() {
     mutationFn: (data: typeof EMPTY_FORM) => apiRequest("POST", "/api/family-members", data).then(r => r.json()),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QK.familyMembers() });
-      toast({ title: "Family member added" });
+      toast({ title: t("family_members.added_toast", "Family member added") });
       closeDialog();
     },
     onError: (err: any) => toast({ title: t("common.failed", "Failed"), description: err?.message, variant: "destructive" }),
@@ -115,7 +115,7 @@ export default function FamilyMembersPage() {
       apiRequest("PATCH", `/api/family-members/${id}`, data).then(r => r.json()),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QK.familyMembers() });
-      toast({ title: "Family member updated" });
+      toast({ title: t("family_members.updated_toast", "Family member updated") });
       closeDialog();
     },
     onError: (err: any) => toast({ title: t("common.failed", "Failed"), description: err?.message, variant: "destructive" }),
@@ -125,7 +125,7 @@ export default function FamilyMembersPage() {
     mutationFn: (id: string) => apiRequest("DELETE", `/api/family-members/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QK.familyMembers() });
-      toast({ title: "Family member removed" });
+      toast({ title: t("family_members.removed_toast", "Family member removed") });
       setDeleteTarget(null);
     },
     onError: (err: any) => toast({ title: t("common.failed", "Failed"), description: err?.message, variant: "destructive" }),
@@ -227,16 +227,16 @@ export default function FamilyMembersPage() {
     <div className="min-h-screen flex flex-col bg-background">
       <Header />
       <main className="flex-1 container mx-auto px-4 py-8 max-w-3xl">
-        <PageBreadcrumbs items={[{ label: "Family Members" }]} />
+        <PageBreadcrumbs items={[{ label: t("family_members.meta_title", "Family Members") }]} />
 
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-2xl font-bold flex items-center gap-2">
               <Users className="h-6 w-6 text-primary" />
-              Family Members
+              {t("family_members.meta_title", "Family Members")}
             </h1>
             <p className="text-sm text-muted-foreground mt-1">
-              Manage health profiles for your family and book appointments on their behalf.
+              {t("family_members.description", "Manage health profiles for your family and book appointments on their behalf.")}
             </p>
           </div>
           <Button onClick={openAdd} data-testid="button-add-family-member">
@@ -472,7 +472,7 @@ export default function FamilyMembersPage() {
               <div className="flex items-center justify-between">
                 <Label className="text-sm font-medium flex items-center gap-1.5">
                   <MapPin className="h-4 w-4 text-muted-foreground" />
-                  Home Address
+                  {t("family_members.home_address", "Home address")}
                 </Label>
               </div>
 

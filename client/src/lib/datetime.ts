@@ -1,4 +1,17 @@
 const TZ_STORAGE_KEY = "userTimezone";
+const LANGUAGE_STORAGE_KEY = "i18nextLng";
+
+function getDateLocale(): string | undefined {
+  if (typeof window === "undefined") return undefined;
+  try {
+    const language = window.localStorage.getItem(LANGUAGE_STORAGE_KEY)?.split("-")[0];
+    if (language === "hu") return "hu-HU";
+    if (language === "fa") return "fa-IR";
+  } catch {
+    /* ignore */
+  }
+  return "en-US";
+}
 
 export function getUserTimezone(): string {
   if (typeof window === "undefined") return "UTC";
@@ -39,7 +52,7 @@ export function formatDate(
   const d = toDate(value);
   if (!d) return "";
   try {
-    return d.toLocaleDateString(undefined, { ...options, timeZone: getUserTimezone() });
+    return d.toLocaleDateString(getDateLocale(), { ...options, timeZone: getUserTimezone() });
   } catch {
     return d.toLocaleDateString(undefined, options);
   }
@@ -52,7 +65,7 @@ export function formatTime(
   const d = toDate(value);
   if (!d) return "";
   try {
-    return d.toLocaleTimeString(undefined, { ...options, timeZone: getUserTimezone() });
+    return d.toLocaleTimeString(getDateLocale(), { ...options, timeZone: getUserTimezone() });
   } catch {
     return d.toLocaleTimeString(undefined, options);
   }
@@ -71,7 +84,7 @@ export function formatDateTime(
   const d = toDate(value);
   if (!d) return "";
   try {
-    return d.toLocaleString(undefined, { ...options, timeZone: getUserTimezone() });
+    return d.toLocaleString(getDateLocale(), { ...options, timeZone: getUserTimezone() });
   } catch {
     return d.toLocaleString(undefined, options);
   }

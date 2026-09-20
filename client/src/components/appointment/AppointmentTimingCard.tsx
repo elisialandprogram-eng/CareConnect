@@ -12,6 +12,7 @@
  */
 
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { Clock, Timer, CheckCircle2, XCircle, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -49,12 +50,17 @@ function durMins(startTime: string, endTime: string): number {
   } catch { return 0; }
 }
 
-function fmtDur(mins: number): string {
+type TimingTranslator = (key: string, fallback: string, options?: Record<string, unknown>) => string;
+
+function fmtDur(mins: number, t?: TimingTranslator): string {
   if (mins <= 0) return "—";
-  if (mins < 60) return `${mins} min`;
+  const tr = t ?? ((_key: string, fallback: string) => fallback);
+  if (mins < 60) return tr("member_time.minutes", "{{count}} min", { count: mins });
   const h = Math.floor(mins / 60);
   const m = mins % 60;
-  return m > 0 ? `${h}h ${m}m` : `${h}h`;
+  return m > 0
+    ? `${tr("member_time.hours_short", "{{count}}h", { count: h })} ${tr("member_time.minutes_short", "{{count}}m", { count: m })}`
+    : tr("member_time.hours_short", "{{count}}h", { count: h });
 }
 
 /** ms until appointment start (negative if past).
@@ -80,34 +86,36 @@ function arrivalConfidence(minsAway: number): ArrivalConfidence {
   return null;
 }
 
-const CONF_STYLES: Record<NonNullable<ArrivalConfidence>, { bar: string; text: string; label: string }> = {
-  comfortable: { bar: "bg-emerald-500", text: "text-emerald-700 dark:text-emerald-400", label: "Comfortable Arrival Window" },
-  limited:     { bar: "bg-amber-500",   text: "text-amber-700 dark:text-amber-400",   label: "Limited Preparation Time" },
-  immediate:   { bar: "bg-orange-500",  text: "text-orange-700 dark:text-orange-400", label: "Immediate Attendance Required" },
+const CONF_STYLES: Record<NonNullable<ArrivalConfidence>, { bar: string; text: string; labelKey: string; label: string }> = {
+  comfortable: { bar: "bg-emerald-500", text: "text-emerald-700 dark:text-emerald-400", labelKey: "comfortable_arrival", label: "Comfortable Arrival Window" },
+  limited:     { bar: "bg-amber-500",   text: "text-amber-700 dark:text-amber-400",   labelKey: "limited_preparation", label: "Limited Preparation Time" },
+  immediate:   { bar: "bg-orange-500",  text: "text-orange-700 dark:text-orange-400", labelKey: "immediate_attendance", label: "Immediate Attendance Required" },
 };
 
-function fmtCountdown(ms: number): string {
-  if (ms <= 0) return "Now";
+function fmtCountdown(ms: number, t?: TimingTranslator): string {
+  const tr = t ?? ((_key: string, fallback: string) => fallback);
+  if (ms <= 0) return tr("member_time.now", "Now");
   const totalSecs = Math.floor(ms / 1_000);
   const days  = Math.floor(totalSecs / 86_400);
   const hrs   = Math.floor((totalSecs % 86_400) / 3_600);
   const mins  = Math.floor((totalSecs % 3_600) / 60);
   const secs  = totalSecs % 60;
-  if (days > 1)  return `${days} Days ${hrs}h`;
-  if (days === 1) return hrs > 0 ? `1 Day ${hrs}h` : "1 Day";
+  if (days > 1) return `${tr("member_time.days_other", "{{count}} days", { count: days })} ${hrs}h`;
+  if (days === 1) return hrs > 0 ? `${tr("member_time.days_one", "{{count}} day", { count: 1 })} ${hrs}h` : tr("member_time.days_one", "{{count}} day", { count: 1 });
   if (hrs > 0)   return mins > 0 ? `${hrs}h ${mins}m` : `${hrs}h`;
   if (mins > 0)  return secs > 0 ? `${mins}m ${secs}s` : `${mins}m`;
   return `${secs}s`;
 }
 
-function fmtElapsed(ms: number): string {
+function fmtElapsed(ms: number, t?: TimingTranslator): string {
+  const tr = t ?? ((_key: string, fallback: string) => fallback);
   const totalSecs = Math.floor(Math.abs(ms) / 1_000);
   const hrs  = Math.floor(totalSecs / 3_600);
   const mins = Math.floor((totalSecs % 3_600) / 60);
   const secs = totalSecs % 60;
   if (hrs > 0) return mins > 0 ? `${hrs}h ${mins}m` : `${hrs}h`;
   if (mins > 0) return secs > 5 ? `${mins}m ${secs}s` : `${mins}m`;
-  return `${secs}s`;
+  return tr("member_time.seconds_short", "{{count}}s", { count: secs });
 }
 
 function localTimeStr(): string {
@@ -120,6 +128,8 @@ function localTimeStr(): string {
 /* ─────────────────────────────────────────────────────────────────────────── */
 
 export function AppointmentTimingCard({ date, startTime, endTime = "", startAtUtc, status, compact = false, className }: Props) {
+  const { t } = useTranslation();
+  const translate: TimingTranslator = (key, fallback, options) => String(t(key, fallback, options));
   const [tick, setTick] = useState(0);
 
   useEffect(() => {
@@ -158,13 +168,13 @@ export function AppointmentTimingCard({ date, startTime, endTime = "", startAtUt
               minsAway <= 10 ? "text-red-600 dark:text-red-400 text-base" :
               minsAway <= 30 ? "text-amber-600 dark:text-amber-400" : "text-foreground"
             )}>
-              {fmtCountdown(msStart)}
+              {fmtCountdown(msStart, translate)}
             </span>
           </div>
-          {confStyle && (
+              {confStyle && (
             <div className={cn("flex items-center gap-2 text-xs font-medium mt-1", confStyle.text)}>
               <span className={cn("h-2 w-2 rounded-full shrink-0", confStyle.bar)} />
-              {confStyle.label}
+              {t(`member_time.${confStyle.labelKey}`, confStyle.label)}
             </div>
           )}
         </div>
@@ -196,10 +206,10 @@ export function AppointmentTimingCard({ date, startTime, endTime = "", startAtUt
          isTerminal   ? <CheckCircle2 className="h-4 w-4" /> :
                         <Clock className="h-4 w-4" />}
         <span>
-          {isInProgress ? "Session In Progress" :
-           status === "completed" ? "Session Completed" :
-           TERMINAL.includes(status) ? "Appointment Closed" :
-           "Appointment Timing"}
+          {isInProgress ? t("member_time.session_in_progress", "Session in progress") :
+           status === "completed" ? t("member_time.session_completed", "Session completed") :
+           TERMINAL.includes(status) ? t("member_time.appointment_closed", "Appointment closed") :
+           t("member_time.appointment_timing", "Appointment timing")}
         </span>
       </div>
 
@@ -207,21 +217,21 @@ export function AppointmentTimingCard({ date, startTime, endTime = "", startAtUt
         {/* ── UPCOMING ── */}
         {isUpcoming && (
           <>
-            <Row label="Current Time" value={<span className="font-mono tabular-nums">{localTimeStr()}</span>} />
-            <Row label="Appointment" value={`${fmt12(startTime)}${endTime ? ` – ${fmt12(endTime)}` : ""}`} />
-            {dur > 0 && <Row label="Duration" value={fmtDur(dur)} />}
+            <Row label={t("member_time.current_time", "Current time")} value={<span className="font-mono tabular-nums">{localTimeStr()}</span>} />
+            <Row label={t("member_time.appointment", "Appointment")} value={`${fmt12(startTime)}${endTime ? ` – ${fmt12(endTime)}` : ""}`} />
+            {dur > 0 && <Row label={t("member_time.duration", "Duration")} value={fmtDur(dur, translate)} />}
             <div className="border-t my-2" />
             {msStart > 0 ? (
               <>
                 <Row
-                  label="Starts In"
+                  label={t("member_time.starts_in", "Starts in")}
                   value={
                     <span className={cn(
                       "font-bold tabular-nums",
                       minsAway <= 10 ? "text-red-600 dark:text-red-400 text-base" :
                       minsAway <= 30 ? "text-amber-600 dark:text-amber-400" : "text-emerald-600 dark:text-emerald-400",
                     )}>
-                      {fmtCountdown(msStart)}
+                      {fmtCountdown(msStart, translate)}
                     </span>
                   }
                   highlight
@@ -233,13 +243,13 @@ export function AppointmentTimingCard({ date, startTime, endTime = "", startAtUt
                   return (
                     <div className={cn("flex items-center gap-2 mt-2 text-xs font-medium", s.text)} data-testid="arrival-confidence">
                       <span className={cn("h-2 w-2 rounded-full shrink-0", s.bar)} />
-                      {s.label}
+                      {t(`member_time.${s.labelKey}`, s.label)}
                     </div>
                   );
                 })()}
               </>
             ) : (
-              <Row label="Status" value={<span className="text-amber-600 dark:text-amber-400 font-semibold">Starting now</span>} highlight />
+              <Row label={t("common.status", "Status")} value={<span className="text-amber-600 dark:text-amber-400 font-semibold">{t("member_time.starting_now", "Starting now")}</span>} highlight />
             )}
           </>
         )}
@@ -247,19 +257,19 @@ export function AppointmentTimingCard({ date, startTime, endTime = "", startAtUt
         {/* ── IN PROGRESS ── */}
         {isInProgress && (
           <>
-            <Row label="Current Time" value={<span className="font-mono tabular-nums">{localTimeStr()}</span>} />
-            <Row label="Started At" value={fmt12(startTime)} />
-            {dur > 0 && <Row label="Duration" value={fmtDur(dur)} />}
+            <Row label={t("member_time.current_time", "Current time")} value={<span className="font-mono tabular-nums">{localTimeStr()}</span>} />
+            <Row label={t("member_time.started_at", "Started at")} value={fmt12(startTime)} />
+            {dur > 0 && <Row label={t("member_time.duration", "Duration")} value={fmtDur(dur, translate)} />}
             <div className="border-t my-2" />
             <Row
-              label="Elapsed"
-              value={<span className="font-bold text-blue-700 dark:text-blue-300 tabular-nums">{fmtElapsed(-msStart)}</span>}
+              label={t("member_time.elapsed", "Elapsed")}
+              value={<span className="font-bold text-blue-700 dark:text-blue-300 tabular-nums">{fmtElapsed(-msStart, translate)}</span>}
               highlight
             />
             {endTime && dur > 0 && (() => {
               const msEnd = msStart + dur * 60_000;
               return msEnd > 0 ? (
-                <Row label="Time Remaining" value={<span className="tabular-nums text-emerald-700 dark:text-emerald-300">{fmtCountdown(msEnd)}</span>} />
+                <Row label={t("member_time.time_remaining", "Time remaining")} value={<span className="tabular-nums text-emerald-700 dark:text-emerald-300">{fmtCountdown(msEnd, translate)}</span>} />
               ) : null;
             })()}
           </>
@@ -268,16 +278,16 @@ export function AppointmentTimingCard({ date, startTime, endTime = "", startAtUt
         {/* ── TERMINAL ── */}
         {isTerminal && (
           <>
-            <Row label="Appointment" value={`${fmt12(startTime)}${endTime ? ` – ${fmt12(endTime)}` : ""}`} />
-            {dur > 0 && <Row label="Duration" value={fmtDur(dur)} />}
+            <Row label={t("member_time.appointment", "Appointment")} value={`${fmt12(startTime)}${endTime ? ` – ${fmt12(endTime)}` : ""}`} />
+            {dur > 0 && <Row label={t("member_time.duration", "Duration")} value={fmtDur(dur, translate)} />}
             <Row
-              label={status === "completed" ? "Completed" : "Closed"}
+              label={status === "completed" ? t("member_time.completed", "Completed") : t("member_time.closed", "Closed")}
               value={(() => {
                 const diff = Math.abs(msStart);
                 const days = Math.floor(diff / 86_400_000);
-                if (days === 0) return "Today";
-                if (days === 1) return "Yesterday";
-                return `${days} days ago`;
+                 if (days === 0) return t("member_time.today", "Today");
+                 if (days === 1) return t("member_time.yesterday", "Yesterday");
+                 return t("member_time.days_ago", "{{count}} days ago", { count: days });
               })()}
             />
           </>
@@ -310,6 +320,8 @@ interface BookingAwarenessPanelProps {
 }
 
 export function BookingAwarenessPanel({ slot, onBeginCheckout, isLoading }: BookingAwarenessPanelProps) {
+  const { t } = useTranslation();
+  const translate: TimingTranslator = (key, fallback, options) => String(t(key, fallback, options));
   const [tick, setTick] = useState(0);
   useEffect(() => {
     const id = setInterval(() => setTick(t => t + 1), 1_000);
@@ -335,17 +347,17 @@ export function BookingAwarenessPanel({ slot, onBeginCheckout, isLoading }: Book
       {/* Slot headline */}
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-xs uppercase font-semibold tracking-wide text-muted-foreground mb-0.5">Selected time</p>
+          <p className="text-xs uppercase font-semibold tracking-wide text-muted-foreground mb-0.5">{t("member_time.selected_time", "Selected time")}</p>
           <p className="text-2xl font-bold tabular-nums leading-none">
             {slot.startTime}
             {slot.endTime && <span className="text-base font-normal text-muted-foreground"> – {slot.endTime}</span>}
           </p>
           {dur > 0 && (
-            <p className="text-xs text-muted-foreground mt-1">{fmtDur(dur)}</p>
+            <p className="text-xs text-muted-foreground mt-1">{fmtDur(dur, translate)}</p>
           )}
         </div>
         <div className="text-right">
-          <p className="text-xs text-muted-foreground mb-0.5">Current time</p>
+          <p className="text-xs text-muted-foreground mb-0.5">{t("member_time.current_time", "Current time")}</p>
           <p className="font-mono font-semibold tabular-nums">{localTimeStr()}</p>
         </div>
       </div>
@@ -354,20 +366,20 @@ export function BookingAwarenessPanel({ slot, onBeginCheckout, isLoading }: Book
       {msStart > 0 ? (
         <div className="flex items-center gap-2">
           <Timer className="h-4 w-4 text-muted-foreground shrink-0" />
-          <span className="text-sm text-muted-foreground">Starts in</span>
+          <span className="text-sm text-muted-foreground">{t("member_time.starts_in", "Starts in")}</span>
           <span className={cn(
             "text-lg font-bold tabular-nums",
             minsAway <= 10 ? "text-red-600 dark:text-red-400" :
             minsAway <= 30 ? "text-amber-600 dark:text-amber-400" :
             "text-emerald-600 dark:text-emerald-400",
           )}>
-            {fmtCountdown(msStart)}
+            {fmtCountdown(msStart, translate)}
           </span>
         </div>
       ) : (
         <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400">
           <AlertCircle className="h-4 w-4 shrink-0" />
-          <span className="text-sm font-semibold">Starting now</span>
+          <span className="text-sm font-semibold">{t("member_time.starting_now", "Starting now")}</span>
         </div>
       )}
 
@@ -375,7 +387,7 @@ export function BookingAwarenessPanel({ slot, onBeginCheckout, isLoading }: Book
       {confStyle && (
         <div className={cn("flex items-center gap-2 text-xs font-medium", confStyle.text)}>
           <span className={cn("h-2 w-2 rounded-full shrink-0", confStyle.bar)} />
-          {confStyle.label}
+          {t(`member_time.${confStyle.labelKey}`, confStyle.label)}
         </div>
       )}
 
@@ -390,9 +402,9 @@ export function BookingAwarenessPanel({ slot, onBeginCheckout, isLoading }: Book
         {isLoading ? (
           <>
             <span className="h-4 w-4 rounded-full border-2 border-primary-foreground/30 border-t-primary-foreground animate-spin" />
-            Reserving slot…
+            {t("member_time.reserving_slot", "Reserving slot…")}
           </>
-        ) : "Begin Checkout →"}
+        ) : t("member_time.begin_checkout", "Begin checkout →")}
       </button>
     </div>
   );

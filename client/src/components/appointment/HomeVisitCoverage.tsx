@@ -1,4 +1,5 @@
 import { MapPin, Navigation, Home, AlertCircle } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 interface Props {
   patientAddress?: string | null;
@@ -15,6 +16,7 @@ export function HomeVisitCoverage({
   distanceKm,
   className = "",
 }: Props) {
+  const { t } = useTranslation();
   if (!patientAddress && !homeVisitRadiusKm && !distanceKm) return null;
 
   const inRange = homeVisitRadiusKm != null && distanceKm != null ? distanceKm <= homeVisitRadiusKm : null;
@@ -28,7 +30,7 @@ export function HomeVisitCoverage({
         <div className="h-8 w-8 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center shrink-0">
           <Home className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
         </div>
-        <h4 className="text-sm font-semibold">Home Visit Details</h4>
+        <h4 className="text-sm font-semibold">{t("member_home_visit.title", "Home visit details")}</h4>
       </div>
 
       <div className="space-y-2 text-sm">
@@ -36,7 +38,7 @@ export function HomeVisitCoverage({
           <div className="flex items-start gap-2">
             <MapPin className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
             <div>
-              <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Your address</p>
+              <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">{t("member_home_visit.your_address", "Your address")}</p>
               <p className="font-medium">{patientAddress}</p>
             </div>
           </div>
@@ -46,7 +48,7 @@ export function HomeVisitCoverage({
           <div className="flex items-start gap-2">
             <Navigation className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
             <div>
-              <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Provider base</p>
+              <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">{t("member_home_visit.provider_base", "Provider base")}</p>
               <p className="font-medium">{providerCity}</p>
             </div>
           </div>
@@ -65,21 +67,21 @@ export function HomeVisitCoverage({
             >
               {inRange === true && (
                 <p className="text-emerald-700 dark:text-emerald-300 font-medium text-xs">
-                  ✓ Within coverage zone ({homeVisitRadiusKm} km radius)
-                  {distanceKm != null && ` · ${distanceKm.toFixed(1)} km away`}
+                  {t("member_home_visit.within_zone", "✓ Within coverage zone ({{radius}} km radius)", { radius: homeVisitRadiusKm })}
+                  {distanceKm != null && ` · ${t("member_home_visit.away", "{{distance}} km away", { distance: distanceKm.toFixed(1) })}`}
                 </p>
               )}
               {inRange === false && (
                 <div className="flex items-center gap-1.5">
                   <AlertCircle className="h-3.5 w-3.5 text-rose-500 shrink-0" />
                   <p className="text-rose-700 dark:text-rose-300 font-medium text-xs">
-                    Outside coverage zone — {distanceKm?.toFixed(1)} km away (max {homeVisitRadiusKm} km)
+                    {t("member_home_visit.outside_zone", "Outside coverage zone — {{distance}} km away (max {{radius}} km)", { distance: distanceKm?.toFixed(1), radius: homeVisitRadiusKm })}
                   </p>
                 </div>
               )}
               {inRange === null && (
                 <p className="text-muted-foreground text-xs">
-                  Provider covers up to {homeVisitRadiusKm} km from their base
+                  {t("member_home_visit.covers_up_to", "Provider covers up to {{radius}} km from their base", { radius: homeVisitRadiusKm })}
                 </p>
               )}
             </div>
