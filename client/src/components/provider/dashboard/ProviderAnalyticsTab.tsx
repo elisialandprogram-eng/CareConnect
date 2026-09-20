@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { useCurrency } from "@/lib/currency";
 import { QK } from "@/lib/query-keys";
+import { formatMonthLabel } from "@/lib/datetime";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -141,7 +142,8 @@ export function ProviderAnalyticsTabContent() {
     );
   }
 
-  const { serviceBreakdown, ratingDistribution, monthlyTrend, referralStats, scheduleHealth, packagePerformance = [] } = data;
+  const { serviceBreakdown, ratingDistribution, referralStats, scheduleHealth, packagePerformance = [] } = data;
+  const monthlyTrend = data.monthlyTrend.map((m) => ({ ...m, month: formatMonthLabel(m.month) }));
 
   const totalRevenue = monthlyTrend.reduce((s, m) => s + m.revenue, 0);
   const totalBookings = monthlyTrend.reduce((s, m) => s + m.bookings, 0);

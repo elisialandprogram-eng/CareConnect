@@ -1,4 +1,4 @@
-import { formatDate } from "@/lib/datetime";
+import { formatDate, formatWeekLabel } from "@/lib/datetime";
 import React, { useState, useEffect, useMemo, Component } from "react";
 import { useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -210,6 +210,7 @@ function ProfileCompletenessCard({
 function ProviderInsightsTab({ data, fmtMoney }: { data: InsightsData; fmtMoney: (v: number) => string; }) {
   const { t } = useTranslation();
   const DAYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"] as const;
+  const weeklyRevenue = data.weeklyRevenue.map((w) => ({ ...w, week: formatWeekLabel(w.week) }));
   const BUSINESS_HOURS = Array.from({ length: 14 }, (_, i) => i + 7);
   const heatMax = Math.max(1, ...(data.heatmap ?? []).flatMap((row) => row));
 
@@ -242,7 +243,7 @@ function ProviderInsightsTab({ data, fmtMoney }: { data: InsightsData; fmtMoney:
         <CardHeader><CardTitle className="text-base flex items-center gap-2"><TrendingUp className="h-4 w-4" /> {t("provider_dashboard.insights_revenue_12_weeks", "Revenue · last 12 weeks")}</CardTitle></CardHeader>
         <CardContent style={{ height: 260 }}>
           <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={data.weeklyRevenue}>
+            <AreaChart data={weeklyRevenue}>
               <Tooltip formatter={(v: any) => fmtMoney(Number(v))} />
               <Area type="monotone" dataKey="revenue" stroke="hsl(var(--primary))" strokeWidth={2} fill="hsl(var(--primary) / 0.1)" />
             </AreaChart>

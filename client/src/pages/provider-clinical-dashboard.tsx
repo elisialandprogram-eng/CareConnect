@@ -165,7 +165,7 @@ export default function ProviderClinicalDashboard() {
                   onClick={() => setSearchType(type)}
                   data-testid={`button-search-type-${type}`}
                 >
-                  {type}
+                  {t(`clinical_dashboard.search_type_${type}`, type)}
                 </Button>
               ))}
             </div>
@@ -193,7 +193,9 @@ export default function ProviderClinicalDashboard() {
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
                         {result.date && <span className="text-xs text-muted-foreground">{formatDate(result.date)}</span>}
-                        <Badge variant="outline" className="text-[10px] capitalize py-0">{result.result_type.replace("_", " ")}</Badge>
+                         <Badge variant="outline" className="text-[10px] capitalize py-0">
+                           {t(`clinical_dashboard.result_${result.result_type}`, result.result_type.replace("_", " "))}
+                         </Badge>
                       </div>
                     </div>
                   ))}
@@ -229,7 +231,9 @@ export default function ProviderClinicalDashboard() {
                       <p className="text-sm font-medium truncate">{appt.patient_name}</p>
                       <p className="text-xs text-muted-foreground">{appt.service_name ?? "—"} · {formatDate(appt.start_at)}</p>
                     </div>
-                    <Badge variant="secondary" className="text-[10px] capitalize">{appt.status}</Badge>
+                       <Badge variant="secondary" className="text-[10px] capitalize">
+                         {t(`provider_dashboard.status_${appt.status}`, appt.status.replace("_", " "))}
+                       </Badge>
                   </div>
                 ))}
               </div>
@@ -258,7 +262,9 @@ export default function ProviderClinicalDashboard() {
                   <div key={d.id} className="p-2 rounded-lg border" data-testid={`recent-diagnosis-${d.id}`}>
                     <div className="flex items-center gap-1.5 flex-wrap">
                       <p className="text-sm font-medium flex-1">{d.title}</p>
-                      <Badge variant="outline" className="text-[10px] capitalize py-0">{d.category}</Badge>
+                       <Badge variant="outline" className="text-[10px] capitalize py-0">
+                         {t(`clinical.${d.category}`, d.category.replace("_", " "))}
+                       </Badge>
                     </div>
                     <p className="text-xs text-muted-foreground">{d.patient_name} · {formatDate(d.diagnosed_at)}</p>
                   </div>

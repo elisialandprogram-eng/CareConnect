@@ -10,6 +10,7 @@ import {
 import { memberSweepTranslations } from '../i18n/member-sweep';
 import { providerSweepTranslations } from '../i18n/provider-sweep';
 import { providerDashboardSweepTranslations } from '../i18n/provider-dashboard-sweep';
+import { providerClinicalSweepTranslations } from '../i18n/provider-clinical-sweep';
 import { adminProviderDetailsTranslations } from '../i18n/admin-provider-details';
 import { adminSweepTranslations } from '../i18n/admin-sweep';
 
@@ -68,6 +69,10 @@ async function ensureLanguage(lng: string) {
     );
     translation = mergeTranslationAdditions(
       translation,
+      providerClinicalSweepTranslations[code] as unknown as Record<string, unknown>,
+    );
+    translation = mergeTranslationAdditions(
+      translation,
       adminProviderDetailsTranslations[code] as unknown as Record<string, unknown>,
     );
       translation = mergeTranslationAdditions(
@@ -115,8 +120,11 @@ i18n
               providerDashboardSweepTranslations.en as unknown as Record<string, unknown>,
             ),
             mergeTranslationAdditions(
-              adminProviderDetailsTranslations.en as unknown as Record<string, unknown>,
-              adminSweepTranslations.en as unknown as Record<string, unknown>,
+              providerClinicalSweepTranslations.en as unknown as Record<string, unknown>,
+              mergeTranslationAdditions(
+                adminProviderDetailsTranslations.en as unknown as Record<string, unknown>,
+                adminSweepTranslations.en as unknown as Record<string, unknown>,
+              ),
             ),
           ),
           'en',

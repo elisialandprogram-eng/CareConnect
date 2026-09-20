@@ -1,4 +1,4 @@
-import { formatDate } from "@/lib/datetime";
+import { formatDate, formatMonthLabel, formatWeekLabel } from "@/lib/datetime";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
@@ -116,7 +116,8 @@ function OverviewTab({ analytics, insights, fmtMoney }: { analytics?: AnalyticsD
   if (!analytics && !insights) return <EmptyState icon={BarChart3} message={t("provider_dashboard.reporting_complete_appointments", "Complete some appointments to see your overview.")} />;
 
   const kpi = insights?.kpi;
-  const totalRevenue = (analytics?.monthlyTrend ?? []).reduce((s, m) => s + m.revenue, 0);
+  const monthlyTrend = (analytics?.monthlyTrend ?? []).map((m) => ({ ...m, month: formatMonthLabel(m.month) }));
+  const totalRevenue = monthlyTrend.reduce((s, m) => s + m.revenue, 0);
 
   return (
     <div className="space-y-6">
@@ -127,7 +128,7 @@ function OverviewTab({ analytics, insights, fmtMoney }: { analytics?: AnalyticsD
         <KpiCard icon={Activity} label={t("provider_dashboard.reporting_utilization", "Utilization")} value={`${(kpi?.utilizationPct ?? 0).toFixed(1)}%`} sub={t("provider_dashboard.reporting_slots_filled", "of slots filled")} color="text-amber-600" />
       </div>
 
-      {(analytics?.monthlyTrend ?? []).length > 0 && (
+      {monthlyTrend.length > 0 && (
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
@@ -136,7 +137,7 @@ function OverviewTab({ analytics, insights, fmtMoney }: { analytics?: AnalyticsD
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={200}>
-              <AreaChart data={analytics!.monthlyTrend}>
+              <AreaChart data={monthlyTrend}>
                 <defs>
                   <linearGradient id="revOvGrad" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
@@ -183,7 +184,8 @@ function RevenueTab({ analytics, insights, fmtMoney }: { analytics?: AnalyticsDa
   const { t } = useTranslation();
   if (!analytics) return <EmptyState icon={DollarSign} message={t("provider_dashboard.reporting_no_revenue", "No revenue data yet.")} />;
 
-  const trend = analytics.monthlyTrend ?? [];
+  const trend = (analytics.monthlyTrend ?? []).map((m) => ({ ...m, month: formatMonthLabel(m.month) }));
+  const weeklyRevenue = (insights?.weeklyRevenue ?? []).map((w) => ({ ...w, week: formatWeekLabel(w.week) }));
   const totalRevenue = trend.reduce((s, m) => s + m.revenue, 0);
   const avgMonthly = trend.length ? totalRevenue / trend.length : 0;
   const bestMonth = trend.reduce((b, m) => m.revenue > b.revenue ? m : b, trend[0] ?? { revenue: 0, month: "" });
@@ -215,14 +217,14 @@ function RevenueTab({ analytics, insights, fmtMoney }: { analytics?: AnalyticsDa
         </Card>
       )}
 
-      {(insights?.weeklyRevenue ?? []).length > 0 && (
+      {weeklyRevenue.length > 0 && (
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium">{t("provider_dashboard.reporting_12_week_revenue", "12-Week Revenue")}</CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={180}>
-              <AreaChart data={insights!.weeklyRevenue}>
+              <AreaChart data={weeklyRevenue}>
                 <defs>
                   <linearGradient id="wkRevGrad" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3} />
@@ -311,7 +313,7 @@ function BookingsTab({ analytics, fmtMoney }: { analytics?: AnalyticsData; fmtMo
   const { t } = useTranslation();
   if (!analytics) return <EmptyState icon={Calendar} message={t("provider_dashboard.reporting_no_booking_data", "No booking data yet.")} />;
 
-  const trend = analytics.monthlyTrend ?? [];
+  const trend = (analytics.monthlyTrend ?? []).map((m) => ({ ...m, month: formatMonthLabel(m.month) }));
   const totalBookings = trend.reduce((s, m) => s + m.bookings, 0);
   const totalCancellations = trend.reduce((s, m) => s + m.cancellations, 0);
   const totalNoShows = trend.reduce((s, m) => s + m.noShows, 0);
@@ -659,7 +661,7 @@ function PayoutsTab({ fmtMoney, enabled }: { fmtMoney: (v: number) => string; en
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={180}>
-              <BarChart data={wallet!.monthly}>
+               <BarChart data={wallet!.monthly.map((m) => ({ ...m, month: formatMonthLabel(m.month) }))}>
                 <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.3} />
                 <XAxis dataKey="month" tick={{ fontSize: 10 }} />
                 <YAxis tick={{ fontSize: 10 }} tickFormatter={v => fmtMoney(v)} width={65} />
@@ -679,6 +681,7 @@ function GrowthTab({ insights, fmtMoney }: { insights?: InsightsData; fmtMoney: 
   if (!insights) return <EmptyState icon={TrendingUp} message={t("provider_dashboard.reporting_no_growth", "No growth data yet.")} />;
 
   const kpi = insights.kpi;
+  const weeklyRevenue = insights.weeklyRevenue.map((w) => ({ ...w, week: formatWeekLabel(w.week) }));
 
   return (
     <div className="space-y-6">
@@ -688,14 +691,14 @@ function GrowthTab({ insights, fmtMoney }: { insights?: InsightsData; fmtMoney: 
         <KpiCard icon={Clock} label={t("provider_dashboard.reporting_lost_bookings", "Lost Bookings")} value={String(kpi.lostBookings)} sub={t("provider_dashboard.analytics_last_12_months", "last 12 months")} color="text-rose-600" />
       </div>
 
-      {insights.weeklyRevenue.length > 0 && (
+       {weeklyRevenue.length > 0 && (
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium">{t("provider_dashboard.reporting_12_week_trend", "12-Week Revenue Trend")}</CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={200}>
-              <AreaChart data={insights.weeklyRevenue}>
+               <AreaChart data={weeklyRevenue}>
                 <defs>
                   <linearGradient id="growthGrad" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3} />

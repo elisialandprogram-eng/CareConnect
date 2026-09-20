@@ -1118,9 +1118,10 @@ export function registerProviderRoutes(app: Express): void {
         const mon = new Date(d);
         mon.setDate(d.getDate() - diff);
         const key = mon.toISOString().slice(0, 10);
-        const label = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", timeZone: "UTC" }).format(mon);
         const found = revMap.get(key);
-        weeklyRevenue.push({ week: label, revenue: found?.revenue ?? 0, count: found?.count ?? 0 });
+         // Keep the wire value locale-neutral; provider dashboards format it
+         // with the active browser locale.
+         weeklyRevenue.push({ week: key, revenue: found?.revenue ?? 0, count: found?.count ?? 0 });
       }
 
       // Heatmap matrix [dow 0-6][hour 0-23]
@@ -1241,7 +1242,7 @@ export function registerProviderRoutes(app: Express): void {
         );
         // 3. Monthly trend — last 12 months (completed + cancelled + no_show)
         monthRows = await _ac.query<{ month: string; revenue: string; bookings: string; cancellations: string; no_shows: string }>(
-          `SELECT TO_CHAR(DATE_TRUNC('month', date::date), 'Mon YY') AS month,
+           `SELECT TO_CHAR(DATE_TRUNC('month', date::date), 'YYYY-MM') AS month,
                   COALESCE(SUM(pe.provider_net_earnings_amount_usd::numeric) FILTER (WHERE a.status = 'completed'), 0) AS revenue,
                   COUNT(*) FILTER (WHERE a.status = 'completed') AS bookings,
                   COUNT(*) FILTER (WHERE a.status IN ('cancelled','cancelled_by_patient','cancelled_by_provider','rejected','expired')) AS cancellations,
