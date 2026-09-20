@@ -81,13 +81,13 @@ export function CashFeeSettlementsPanel() {
               <tbody>{rows.map((row) => (
                 <tr key={row.id} className="border-b last:border-0">
                   <td className="p-2"><div className="font-medium">{row.provider_name}</div><div className="text-xs text-muted-foreground">{row.country_code}</div></td>
-                  <td className="p-2">{row.appointment_number || row.id.slice(0, 8)}<div className="text-xs text-muted-foreground">{row.appointment_date || "—"}</div></td>
-                  <td className="p-2 capitalize">{row.payment_method.replace("_", " ")}</td>
+                   <td className="p-2">{row.appointment_number || row.id.slice(0, 8)}<div className="text-xs text-muted-foreground">{row.appointment_date || "—"}</div></td>
+                   <td className="p-2 capitalize">{row.payment_method === "bank_transfer" ? t("admin.bank_transfer") : t("admin.cash")}</td>
                   <td className="p-2 text-right">{format(Number(row.service_earnings_usd || 0))}</td>
                   <td className="p-2 text-right text-emerald-700">{format(Number(row.tax_pass_through_usd || 0))}</td>
                   <td className="p-2 text-right text-amber-700">{format(Number(row.cash_platform_fee_deduction_usd || 0))}</td>
                   <td className="p-2 text-right font-medium">{format(Number(row.final_settlement_usd || 0))}</td>
-                  <td className="p-2"><Badge variant={row.deduction_status === "applied" ? "secondary" : "outline"}>{row.deduction_status}</Badge></td>
+                   <td className="p-2"><Badge variant={row.deduction_status === "applied" ? "secondary" : "outline"}>{row.deduction_status === "applied" ? t("admin.applied") : t("status.pending")}</Badge></td>
                 </tr>
               ))}</tbody>
             </table>

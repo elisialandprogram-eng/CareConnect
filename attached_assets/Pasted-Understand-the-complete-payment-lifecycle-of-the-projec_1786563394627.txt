@@ -1,0 +1,91 @@
+Understand the **complete payment lifecycle of the project before making any changes**.
+
+Do NOT modify code, database schema, payment records, or UI yet.
+
+Trace the full payment cycle for **every supported payment method**, from:
+
+1. Client selects a service
+2. Booking price/quote is calculated
+3. Appointment is created
+4. Payment is initiated
+5. Payment provider/wallet/cash processing occurs
+6. Payment success, pending, or failure is recorded
+7. Webhooks/callbacks are processed
+8. Appointment payment status is updated
+9. Refund/cancellation flows occur
+10. Provider earnings/settlement is calculated
+11. Provider payout is created/processed
+12. Final payment/settlement state is displayed
+
+Cover at minimum:
+
+* Stripe/card
+* Wallet
+* Cash/offline payment
+* Failed payments
+* Refunds/partial refunds
+* Payment retries
+* Webhook synchronization
+* Provider settlement/payout
+
+For each stage, identify:
+
+* Which backend route/service handles it
+* Which database tables/fields are involved
+* Which status fields are written
+* What the source of truth currently is
+* How the status changes
+* Which users/screens consume that status
+* Any duplicated or conflicting payment-status logic
+* Any legacy payment fields or paths still being used
+* Any cases where two users could see different payment statuses for the same appointment
+
+### Important
+
+Do not fix anything yet.
+
+Do not remove legacy code yet.
+
+Do not change the database.
+
+Do not make assumptions about what the canonical payment architecture should be.
+
+The goal of this task is to produce a **complete current-state map of the payment lifecycle** and identify every inconsistency that must be addressed afterward.
+
+At the end, provide:
+
+**A. Current payment lifecycle**
+
+```text
+Booking
+→ Payment initiation
+→ Payment processing
+→ Payment confirmation
+→ Appointment payment state
+→ Refund/cancellation
+→ Provider earnings
+→ Settlement
+→ Payout
+```
+
+**B. Payment-method differences**
+
+Clearly explain how Stripe/card, wallet, and cash currently behave differently.
+
+**C. Status inventory**
+
+List every payment-related status/field currently used and where it comes from.
+
+**D. Inconsistencies**
+
+List every place where the same booking can currently show different payment states.
+
+**E. Legacy paths**
+
+Identify payment/settlement fields and code paths that appear obsolete or duplicated.
+
+**F. Recommended canonicalization plan**
+
+Only after understanding the current system, recommend how we should create **one canonical payment state and synchronization flow** for all users and payment methods.
+
+No implementation in this task.

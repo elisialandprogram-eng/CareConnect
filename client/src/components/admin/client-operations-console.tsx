@@ -163,10 +163,10 @@ function ClientDirectory({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">{t("admin.all_roles")}</SelectItem>
-                <SelectItem value="patient">Member</SelectItem>
-                <SelectItem value="provider">Provider</SelectItem>
-                <SelectItem value="admin">Admin</SelectItem>
-                <SelectItem value="global_admin">Global Admin</SelectItem>
+                <SelectItem value="patient">{t("admin_extra.member.member", "Member")}</SelectItem>
+                <SelectItem value="provider">{t("admin_extra.member.provider", "Provider")}</SelectItem>
+                <SelectItem value="admin">{t("admin_extra.member.admin", "Admin")}</SelectItem>
+                <SelectItem value="global_admin">{t("admin_extra.member.global_admin", "Global Admin")}</SelectItem>
               </SelectContent>
             </Select>
             <Select value={countryFilter} onValueChange={setCountryFilter}>
@@ -175,18 +175,18 @@ function ClientDirectory({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">{t("admin.all_countries")}</SelectItem>
-                <SelectItem value="HU">Hungary</SelectItem>
-                <SelectItem value="IR">Iran</SelectItem>
+                <SelectItem value="HU">{t("admin_extra.member.hungary", "Hungary")}</SelectItem>
+                <SelectItem value="IR">{t("admin_extra.member.iran", "Iran")}</SelectItem>
               </SelectContent>
             </Select>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger className="h-7 text-xs" data-testid="select-client-status-filter">
-                <SelectValue placeholder="Status" />
+                <SelectValue placeholder={t("admin.status", "Status")} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All statuses</SelectItem>
-                <SelectItem value="active">Active</SelectItem>
-                <SelectItem value="suspended">Suspended</SelectItem>
+                <SelectItem value="all">{t("admin.all_statuses", "All statuses")}</SelectItem>
+                <SelectItem value="active">{t("admin.active", "Active")}</SelectItem>
+                <SelectItem value="suspended">{t("admin.suspended", "Suspended")}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -254,6 +254,9 @@ function ClientWorkspace({
   client: ClientListItem;
   onRefresh: () => void;
 }) {
+  const { t } = useTranslation();
+  const tr = (key: string, fallback: string, options?: Record<string, unknown>) =>
+    String(t(`admin_extra.member.${key}`, { defaultValue: fallback, ...options }));
   const { toast } = useToast();
   const { format: fmtUSD } = useAdminCurrency();
   const fullName = clientName(client);
@@ -296,10 +299,10 @@ function ClientWorkspace({
       return r.json();
     },
     onSuccess: () => {
-      toast({ title: "Package disabled", description: "The package has been cancelled for this user." });
+      toast({ title: tr("package_disabled", "Package disabled"), description: tr("package_disabled_desc", "The package has been cancelled for this user.") });
       refetchPackages();
     },
-    onError: (e: Error) => toast({ title: "Failed", description: e.message, variant: "destructive" }),
+    onError: (e: Error) => toast({ title: t("common.failed", "Failed"), description: e.message, variant: "destructive" }),
   });
 
   const bookings: BookingItem[] = Array.isArray(bookingsData) ? bookingsData : [];
@@ -328,7 +331,7 @@ function ClientWorkspace({
             <div className="flex items-center gap-2 flex-wrap">
               <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">{fullName}</h2>
               {client.isEmailVerified && <CheckCircle className="h-4 w-4 text-green-500" />}
-              {client.isSuspended && <Badge variant="destructive" className="text-xs">Suspended</Badge>}
+               {client.isSuspended && <Badge variant="destructive" className="text-xs">{t("admin.suspended", "Suspended")}</Badge>}
             </div>
             <div className="flex items-center gap-3 mt-1 flex-wrap">
               <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${roleColor(client.role)}`}>
@@ -349,7 +352,7 @@ function ClientWorkspace({
               )}
               {client.createdAt && (
                 <span className="text-xs text-slate-400 flex items-center gap-1">
-                  <Calendar className="h-3 w-3" />Joined {format(new Date(client.createdAt), "MMM yyyy")}
+                 <Calendar className="h-3 w-3" />{tr("joined", "Joined")} {format(new Date(client.createdAt), "MMM yyyy")}
                 </span>
               )}
             </div>
@@ -362,12 +365,12 @@ function ClientWorkspace({
         {/* Quick Metrics */}
         <div className="grid grid-cols-4 gap-3 lg:grid-cols-6">
           {[
-            { icon: Calendar, label: "Bookings", value: bookings.length },
-            { icon: CheckCircle, label: "Completed", value: completedCount },
-            { icon: Activity, label: "Active", value: activeCount },
-            { icon: XCircle, label: "Cancelled", value: cancelledCount },
-            { icon: Wallet, label: "Balance", value: walletData ? fmtUSD(walletData.balance) : "—" },
-            { icon: Receipt, label: "Transactions", value: transactions.length },
+             { icon: Calendar, label: tr("bookings", "Bookings"), value: bookings.length },
+             { icon: CheckCircle, label: tr("completed", "Completed"), value: completedCount },
+             { icon: Activity, label: t("admin.active", "Active"), value: activeCount },
+             { icon: XCircle, label: tr("cancelled", "Cancelled"), value: cancelledCount },
+             { icon: Wallet, label: tr("balance", "Balance"), value: walletData ? fmtUSD(walletData.balance) : "—" },
+             { icon: Receipt, label: tr("transactions", "Transactions"), value: transactions.length },
           ].map(({ icon: Icon, label, value }) => (
             <div key={label} className="bg-slate-50 dark:bg-slate-900 rounded-lg p-2.5 text-center">
               <Icon className="h-4 w-4 text-slate-400 mx-auto mb-1" />
@@ -382,14 +385,14 @@ function ClientWorkspace({
       <Tabs defaultValue="overview" className="flex-1 flex flex-col min-h-0">
         <div className="border-b border-slate-200 dark:border-slate-800 px-4 bg-white dark:bg-slate-950">
           <TabsList className="h-auto bg-transparent border-0 p-0 gap-0 overflow-x-auto flex">
-            {["overview", "bookings", "wallet", "health", "packages"].map((tab) => (
+             {["overview", "bookings", "wallet", "health", "packages"].map((tab) => (
               <TabsTrigger
                 key={tab}
                 value={tab}
                 data-testid={`tab-client-${tab}`}
                 className="text-xs capitalize px-4 py-2.5 rounded-none border-b-2 border-transparent data-[state=active]:border-teal-500 data-[state=active]:bg-transparent data-[state=active]:text-teal-600 dark:data-[state=active]:text-teal-400"
               >
-                {tab}
+                 {tr(tab, tab)}
               </TabsTrigger>
             ))}
           </TabsList>
@@ -400,14 +403,14 @@ function ClientWorkspace({
           <TabsContent value="overview" className="p-5 space-y-5 mt-0">
             <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
               <div className="space-y-3">
-                <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300">Contact</h3>
+                <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300">{tr("contact", "Contact")}</h3>
                 <div className="space-y-2 text-sm">
                   {[
-                    { icon: Mail, label: "Email", value: client.email },
-                    { icon: Phone, label: "Phone", value: client.phone },
-                    { icon: MapPin, label: "City", value: client.city },
-                    { icon: Globe, label: "Country", value: client.countryCode },
-                    { icon: Hash, label: "ID", value: client.id },
+                     { icon: Mail, label: t("common.email", "Email"), value: client.email },
+                     { icon: Phone, label: t("common.phone", "Phone"), value: client.phone },
+                     { icon: MapPin, label: tr("city", "City"), value: client.city },
+                     { icon: Globe, label: tr("country", "Country"), value: client.countryCode },
+                     { icon: Hash, label: "ID", value: client.id },
                   ].map(({ icon: Icon, label, value }) => value ? (
                     <div key={label} className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
                       <Icon className="h-3.5 w-3.5 text-slate-400 flex-shrink-0" />
@@ -418,16 +421,16 @@ function ClientWorkspace({
                 </div>
               </div>
               <div className="space-y-3">
-                <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300">Account</h3>
+                <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300">{tr("account", "Account")}</h3>
                 <div className="space-y-2 text-sm">
                   {[
-                    { label: "Role", value: client.role },
-                    { label: "Status", value: client.isSuspended ? "Suspended" : "Active" },
-                    { label: "Email verified", value: client.isEmailVerified ? "Yes" : "No" },
-                    { label: "Language", value: client.languagePreference },
-                    { label: "Currency", value: client.preferredCurrency },
-                    { label: "Timezone", value: client.timezone },
-                    { label: "Suspension reason", value: client.suspensionReason },
+                     { label: tr("role", "Role"), value: client.role },
+                     { label: t("admin.status", "Status"), value: client.isSuspended ? t("admin.suspended", "Suspended") : t("admin.active", "Active") },
+                     { label: tr("email_verified", "Email verified"), value: client.isEmailVerified ? t("common.yes", "Yes") : t("common.no", "No") },
+                     { label: t("common.language", "Language"), value: client.languagePreference },
+                     { label: tr("currency", "Currency"), value: client.preferredCurrency },
+                     { label: tr("timezone", "Timezone"), value: client.timezone },
+                     { label: tr("suspension_reason", "Suspension reason"), value: client.suspensionReason },
                   ].map(({ label, value }) => value ? (
                     <div key={label} className="flex items-start gap-2">
                       <span className="text-slate-400 text-xs w-28 flex-shrink-0 pt-0.5">{label}</span>
@@ -440,7 +443,7 @@ function ClientWorkspace({
             {/* Address */}
             {(client.address || client.zipCode) && (
               <div>
-                <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Address</h3>
+                 <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">{tr("address", "Address")}</h3>
                 <p className="text-sm text-slate-600 dark:text-slate-400">
                   {[client.address, client.zipCode, client.state, client.city].filter(Boolean).join(", ")}
                 </p>
@@ -469,7 +472,7 @@ function ClientWorkspace({
             )}
 
             {!bookingsLoading && bookings.length === 0 && (
-              <div className="text-center py-10 text-slate-400 text-sm">No bookings found</div>
+               <div className="text-center py-10 text-slate-400 text-sm">{tr("no_bookings", "No bookings found")}</div>
             )}
 
             <div className="space-y-2">
@@ -503,7 +506,7 @@ function ClientWorkspace({
               <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-gradient-to-br from-teal-50 to-blue-50 dark:from-teal-950/30 dark:to-blue-950/30 p-5">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-slate-500">Wallet Balance</p>
+                     <p className="text-sm text-slate-500">{tr("wallet_balance", "Wallet Balance")}</p>
                     <p className="text-3xl font-bold text-slate-900 dark:text-slate-100 mt-1">
                       {fmtUSD(walletData.balance)}
                     </p>
@@ -511,24 +514,24 @@ function ClientWorkspace({
                   <div className="flex flex-col items-end gap-2">
                     <Wallet className="h-8 w-8 text-teal-400" />
                     {walletData.isFrozen && (
-                      <Badge variant="destructive" className="text-xs">Frozen</Badge>
+                       <Badge variant="destructive" className="text-xs">{tr("frozen", "Frozen")}</Badge>
                     )}
                   </div>
                 </div>
               </div>
             ) : (
-              <div className="text-center py-8 text-slate-400 text-sm">No wallet found</div>
+               <div className="text-center py-8 text-slate-400 text-sm">{tr("no_wallet", "No wallet found")}</div>
             )}
 
             <div>
               <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3">
-                Recent Transactions ({transactions.length})
+                 {tr("recent_transactions", "Recent Transactions")} ({transactions.length})
               </h3>
               {txLoading && (
                 <div className="flex justify-center py-4"><Loader2 className="h-5 w-5 animate-spin text-slate-400" /></div>
               )}
               {!txLoading && transactions.length === 0 && (
-                <div className="text-center py-6 text-slate-400 text-sm">No transactions</div>
+                 <div className="text-center py-6 text-slate-400 text-sm">{tr("no_transactions", "No transactions")}</div>
               )}
               <div className="space-y-2">
                 {transactions.slice(0, 20).map((tx) => {
@@ -570,7 +573,7 @@ function ClientWorkspace({
             <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
               <div className="space-y-3">
                 <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-2">
-                  <Stethoscope className="h-4 w-4" />Basic Health Info
+                   <Stethoscope className="h-4 w-4" />{tr("basic_health", "Basic Health Info")}
                 </h3>
                 <div className="space-y-2">
                   {[
@@ -590,7 +593,7 @@ function ClientWorkspace({
               </div>
               <div className="space-y-3">
                 <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-2">
-                  <ClipboardList className="h-4 w-4" />Medical History
+                   <ClipboardList className="h-4 w-4" />{tr("medical_history", "Medical History")}
                 </h3>
                 <div className="space-y-3">
                   {[
@@ -605,7 +608,7 @@ function ClientWorkspace({
                     </div>
                   ) : null)}
                   {!(client as any).knownAllergies && !(client as any).medicalConditions && !(client as any).currentMedications && !(client as any).pastSurgeries && (
-                    <p className="text-sm text-slate-400">No medical history recorded</p>
+                     <p className="text-sm text-slate-400">{tr("no_medical_history", "No medical history recorded")}</p>
                   )}
                 </div>
               </div>
@@ -613,7 +616,7 @@ function ClientWorkspace({
             {/* Emergency contact */}
             {(client as any).emergencyContactName && (
               <div>
-                <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Emergency Contact</h3>
+                 <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">{tr("emergency_contact", "Emergency Contact")}</h3>
                 <div className="space-y-1.5">
                   {[
                     { label: "Name", value: (client as any).emergencyContactName },
@@ -635,10 +638,10 @@ function ClientWorkspace({
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-2">
                 <Package className="h-4 w-4" />
-                Packages &amp; Memberships
+                 {tr("packages_memberships", "Packages & Memberships")}
               </h3>
               <span className="text-xs text-slate-400">
-                {packagesData?.total ?? 0} total
+                 {packagesData?.total ?? 0} {tr("total", "total")}
               </span>
             </div>
 
@@ -651,7 +654,7 @@ function ClientWorkspace({
             {!packagesLoading && (!packagesData?.purchases?.length) && (
               <div className="flex flex-col items-center justify-center py-12 gap-2 text-slate-400">
                 <Package className="h-8 w-8 text-slate-200 dark:text-slate-700" />
-                <p className="text-sm">No packages found for this user</p>
+                 <p className="text-sm">{tr("no_packages", "No packages found for this user")}</p>
               </div>
             )}
 
@@ -683,7 +686,7 @@ function ClientWorkspace({
                           </span>
                           {pkg.auto_renew && (
                             <span className="text-[10px] text-teal-600 bg-teal-50 border border-teal-200 px-2 py-0.5 rounded-full">
-                              Auto-renew
+                               {tr("auto_renew", "Auto-renew")}
                             </span>
                           )}
                         </div>
@@ -702,7 +705,7 @@ function ClientWorkspace({
                           ) : (
                             <ShieldOff className="h-3 w-3 mr-1" />
                           )}
-                          Disable
+                           {tr("disable", "Disable")}
                         </Button>
                       )}
                     </div>
@@ -758,6 +761,9 @@ function ClientActionsPanel({
   client: ClientListItem;
   onActionDone: () => void;
 }) {
+  const { t } = useTranslation();
+  const tr = (key: string, fallback: string, options?: Record<string, unknown>) =>
+    String(t(`admin_extra.member.${key}`, { defaultValue: fallback, ...options }));
   const { toast } = useToast();
   const qc = useQueryClient();
   const [suspendReason, setSuspendReason] = useState("");
@@ -784,11 +790,11 @@ function ClientActionsPanel({
       return r.json();
     },
     onSuccess: (_, vars) => {
-      toast({ title: vars.suspend ? "User suspended" : "User unsuspended" });
+      toast({ title: vars.suspend ? tr("user_suspended", "User suspended") : tr("user_unsuspended", "User unsuspended") });
       setSuspendReason("");
       invalidate();
     },
-    onError: () => toast({ title: "Failed", variant: "destructive" }),
+    onError: () => toast({ title: t("common.failed", "Failed"), variant: "destructive" }),
   });
 
   const notifMutation = useMutation({
@@ -801,12 +807,12 @@ function ClientActionsPanel({
       return r.json();
     },
     onSuccess: () => {
-      toast({ title: "Notification sent" });
+      toast({ title: tr("notification_sent", "Notification sent") });
       setNotifTitle("");
       setNotifBody("");
       setActiveSection(null);
     },
-    onError: () => toast({ title: "Failed to send", variant: "destructive" }),
+    onError: () => toast({ title: tr("send_failed", "Failed to send"), variant: "destructive" }),
   });
 
   const walletMutation = useMutation({
@@ -821,14 +827,14 @@ function ClientActionsPanel({
       return r.json();
     },
     onSuccess: () => {
-      toast({ title: "Wallet adjusted" });
+      toast({ title: tr("wallet_adjusted", "Wallet adjusted") });
       setWalletAmount("");
       setWalletNote("");
       setActiveSection(null);
       qc.invalidateQueries({ queryKey: ["/api/wallet", client.id] });
       qc.invalidateQueries({ queryKey: ["/api/admin/wallets", client.id, "transactions"] });
     },
-    onError: (e: Error) => toast({ title: e.message || "Failed", variant: "destructive" }),
+    onError: (e: Error) => toast({ title: e.message || t("common.failed", "Failed"), variant: "destructive" }),
   });
 
   const migrateMutation = useMutation({
@@ -841,12 +847,12 @@ function ClientActionsPanel({
       return r.json();
     },
     onSuccess: () => {
-      toast({ title: `Migrated to ${migrateTarget}` });
+      toast({ title: tr("migrated_to", "Migrated to {{country}}", { country: migrateTarget }) });
       setMigrateReason("");
       setActiveSection(null);
       invalidate();
     },
-    onError: () => toast({ title: "Migration failed", variant: "destructive" }),
+    onError: () => toast({ title: tr("migration_failed", "Migration failed"), variant: "destructive" }),
   });
 
   const toggleSection = (s: string) => setActiveSection((cur) => cur === s ? null : s);
@@ -854,7 +860,7 @@ function ClientActionsPanel({
   return (
     <div className="flex flex-col h-full bg-white dark:bg-slate-950 border-l border-slate-200 dark:border-slate-800">
       <div className="p-4 border-b border-slate-200 dark:border-slate-800">
-        <h2 className="font-semibold text-sm text-slate-900 dark:text-slate-100">Actions</h2>
+        <h2 className="font-semibold text-sm text-slate-900 dark:text-slate-100">{tr("actions", "Actions")}</h2>
         <p className="text-xs text-slate-400 mt-0.5 truncate">{clientName(client)}</p>
       </div>
 
@@ -869,16 +875,16 @@ function ClientActionsPanel({
               data-testid="button-toggle-suspend-section"
             >
               {client.isSuspended ? (
-                <><Unlock className="h-4 w-4 text-green-600" /><span className="text-green-700 dark:text-green-500">Unsuspend account</span></>
+                 <><Unlock className="h-4 w-4 text-green-600" /><span className="text-green-700 dark:text-green-500">{tr("unsuspend_account", "Unsuspend account")}</span></>
               ) : (
-                <><Ban className="h-4 w-4 text-red-500" /><span className="text-red-600">Suspend account</span></>
+                 <><Ban className="h-4 w-4 text-red-500" /><span className="text-red-600">{tr("suspend_account", "Suspend account")}</span></>
               )}
             </button>
             {activeSection === "suspend" && (
               <div className="px-3 pb-3 space-y-2 border-t border-slate-100 dark:border-slate-800 pt-2">
                 {!client.isSuspended && (
                   <Textarea
-                    placeholder="Reason for suspension…"
+                     placeholder={tr("suspension_reason_placeholder", "Reason for suspension…")}
                     value={suspendReason}
                     onChange={(e) => setSuspendReason(e.target.value)}
                     className="text-xs h-20 resize-none"
@@ -894,7 +900,7 @@ function ClientActionsPanel({
                   data-testid="button-confirm-suspend"
                 >
                   {suspendMutation.isPending && <Loader2 className="h-3 w-3 mr-1.5 animate-spin" />}
-                  {client.isSuspended ? "Confirm Unsuspend" : "Confirm Suspend"}
+                   {client.isSuspended ? tr("confirm_unsuspend", "Confirm Unsuspend") : tr("confirm_suspend", "Confirm Suspend")}
                 </Button>
               </div>
             )}
@@ -908,19 +914,19 @@ function ClientActionsPanel({
               data-testid="button-toggle-notify-section"
             >
               <Bell className="h-4 w-4 text-blue-500" />
-              Send notification
+               {tr("send_notification", "Send notification")}
             </button>
             {activeSection === "notify" && (
               <div className="px-3 pb-3 space-y-2 border-t border-slate-100 dark:border-slate-800 pt-2">
                 <Input
-                  placeholder="Title"
+                   placeholder={tr("notification_title", "Title")}
                   value={notifTitle}
                   onChange={(e) => setNotifTitle(e.target.value)}
                   className="h-7 text-xs"
                   data-testid="input-notify-title"
                 />
                 <Textarea
-                  placeholder="Message body…"
+                   placeholder={tr("message_body", "Message body…")}
                   value={notifBody}
                   onChange={(e) => setNotifBody(e.target.value)}
                   className="text-xs h-16 resize-none"
@@ -934,7 +940,7 @@ function ClientActionsPanel({
                   data-testid="button-send-notify"
                 >
                   {notifMutation.isPending ? <Loader2 className="h-3 w-3 mr-1.5 animate-spin" /> : <Send className="h-3 w-3 mr-1.5" />}
-                  Send
+                   {tr("send", "Send")}
                 </Button>
               </div>
             )}
@@ -948,12 +954,12 @@ function ClientActionsPanel({
               data-testid="button-toggle-wallet-section"
             >
               <Wallet className="h-4 w-4 text-emerald-500" />
-              Adjust wallet
+               {tr("adjust_wallet", "Adjust wallet")}
             </button>
             {activeSection === "wallet" && (
               <div className="px-3 pb-3 space-y-2 border-t border-slate-100 dark:border-slate-800 pt-2">
                 <div>
-                  <Label className="text-[10px] text-slate-400 uppercase tracking-wide">Amount (+ credit / − debit)</Label>
+                   <Label className="text-[10px] text-slate-400 uppercase tracking-wide">{tr("amount_adjustment", "Amount (+ credit / − debit)")}</Label>
                   <Input
                     type="number"
                     placeholder="e.g. 50 or -20"
@@ -964,7 +970,7 @@ function ClientActionsPanel({
                   />
                 </div>
                 <div>
-                  <Label className="text-[10px] text-slate-400 uppercase tracking-wide">Note</Label>
+                   <Label className="text-[10px] text-slate-400 uppercase tracking-wide">{tr("note", "Note")}</Label>
                   <Input
                     placeholder="Reason…"
                     value={walletNote}
@@ -981,7 +987,7 @@ function ClientActionsPanel({
                   data-testid="button-apply-wallet-adjustment"
                 >
                   {walletMutation.isPending && <Loader2 className="h-3 w-3 mr-1.5 animate-spin" />}
-                  Apply adjustment
+                   {tr("apply_adjustment", "Apply adjustment")}
                 </Button>
               </div>
             )}
@@ -995,22 +1001,22 @@ function ClientActionsPanel({
               data-testid="button-toggle-migrate-section"
             >
               <Globe className="h-4 w-4 text-purple-500" />
-              Migrate country
+               {tr("migrate_country", "Migrate country")}
             </button>
             {activeSection === "migrate" && (
               <div className="px-3 pb-3 space-y-2 border-t border-slate-100 dark:border-slate-800 pt-2">
-                <p className="text-[10px] text-slate-400">Currently: <strong>{client.countryCode || "—"}</strong></p>
+                 <p className="text-[10px] text-slate-400">{tr("currently", "Currently")}: <strong>{client.countryCode || "—"}</strong></p>
                 <Select value={migrateTarget} onValueChange={setMigrateTarget}>
                   <SelectTrigger className="h-7 text-xs" data-testid="select-migrate-target">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="HU">Hungary (HU)</SelectItem>
-                    <SelectItem value="IR">Iran (IR)</SelectItem>
+                   <SelectItem value="HU">{tr("hungary_code", "Hungary (HU)")}</SelectItem>
+                   <SelectItem value="IR">{tr("iran_code", "Iran (IR)")}</SelectItem>
                   </SelectContent>
                 </Select>
                 <Textarea
-                  placeholder="Migration reason…"
+                   placeholder={tr("migration_reason_placeholder", "Migration reason…")}
                   value={migrateReason}
                   onChange={(e) => setMigrateReason(e.target.value)}
                   className="text-xs h-14 resize-none"
@@ -1025,7 +1031,7 @@ function ClientActionsPanel({
                   data-testid="button-confirm-migrate"
                 >
                   {migrateMutation.isPending && <Loader2 className="h-3 w-3 mr-1.5 animate-spin" />}
-                  Migrate to {migrateTarget}
+                   {tr("migrate_to", "Migrate to {{country}}", { country: migrateTarget })}
                 </Button>
               </div>
             )}
@@ -1037,18 +1043,18 @@ function ClientActionsPanel({
           <div className="space-y-2 text-xs text-slate-500">
             <div className="flex items-center gap-2">
               <Shield className="h-3.5 w-3.5 text-slate-400" />
-              <span>Role: <strong>{client.role}</strong></span>
+               <span>{tr("role", "Role")}: <strong>{client.role}</strong></span>
             </div>
             {client.referralCode && (
               <div className="flex items-center gap-2">
                 <Hash className="h-3.5 w-3.5 text-slate-400" />
-                <span>Referral: <strong>{client.referralCode}</strong></span>
+                 <span>{tr("referral", "Referral")}: <strong>{client.referralCode}</strong></span>
               </div>
             )}
             {client.insuranceProvider && (
               <div className="flex items-center gap-2">
                 <CreditCard className="h-3.5 w-3.5 text-slate-400" />
-                <span className="truncate">Insurance: {client.insuranceProvider}</span>
+                 <span className="truncate">{tr("insurance", "Insurance")}: {client.insuranceProvider}</span>
               </div>
             )}
           </div>

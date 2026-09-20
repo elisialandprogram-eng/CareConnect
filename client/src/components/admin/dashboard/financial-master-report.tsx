@@ -204,11 +204,12 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 function StatusBadge({ value }: { value: string | null | undefined }) {
+  const { t } = useTranslation();
   if (!value) return <span className="text-muted-foreground">—</span>;
   const cls = STATUS_COLORS[value.toLowerCase()] ?? "bg-muted text-muted-foreground";
   return (
     <Badge variant="outline" className={`capitalize text-xs ${cls}`}>
-      {value.replace(/_/g, " ")}
+      {String(t(`admin_extra.financial.status_${value.toLowerCase()}`, { defaultValue: value.replace(/_/g, " ") }))}
     </Badge>
   );
 }
@@ -237,19 +238,21 @@ function DualAmount({
 // ── Summary Cards ─────────────────────────────────────────────────────────────
 
 function SummaryCards({ summary, fmt }: { summary: Summary; fmt: (n: number) => string }) {
+  const { t } = useTranslation();
+  const r = (key: string, fallback: string) => String(t(`admin_extra.financial.${key}`, { defaultValue: fallback }));
   const cards = [
-    { label: "Gross Revenue",      value: fmt(summary.grossRevenue),      icon: DollarSign,    color: "from-emerald-500 to-teal-600", id: "gross", note: "USD" },
-    { label: "Platform Revenue",   value: fmt(summary.platformRevenue),   icon: TrendingUp,    color: "from-blue-500 to-indigo-600",  id: "platform", note: "USD" },
-    { label: "Provider Commission", value: fmt(summary.providerCommission), icon: TrendingUp, color: "from-violet-500 to-purple-600", id: "provider-commission", note: "USD" },
-    { label: "Provider Earnings",  value: fmt(summary.providerEarnings),  icon: Wallet,        color: "from-purple-500 to-fuchsia-600", id: "provider", note: "USD" },
-    { label: "Pending Payouts",    value: fmt(summary.pendingPayouts),    icon: Clock,         color: "from-amber-500 to-orange-500", id: "pending-payout", note: "USD" },
-    { label: "Total Refunds",      value: fmt(summary.totalRefunds),      icon: RefreshCw,     color: "from-rose-500 to-pink-600",    id: "refunds", note: "USD" },
-    { label: "Taxes Collected",    value: fmt(summary.taxesCollected),    icon: Receipt,       color: "from-slate-500 to-gray-600",   id: "taxes", note: "USD" },
-    { label: "Promo Discounts",    value: fmt(summary.promoDiscounts),    icon: Banknote,      color: "from-teal-500 to-cyan-600",    id: "promos", note: "USD" },
-    { label: "Total Bookings",     value: String(summary.totalBookings),  icon: CalendarDays,  color: "from-violet-500 to-purple-600", id: "bookings", isCount: true },
-    { label: "Completed",          value: String(summary.completedCount), icon: CheckCircle2,  color: "from-green-500 to-emerald-600", id: "completed", isCount: true },
-    { label: "Cancelled",          value: String(summary.cancelledCount), icon: XCircle,       color: "from-red-500 to-rose-600",     id: "cancelled", isCount: true },
-    { label: "Refunded",           value: String(summary.refundedCount),  icon: RefreshCw,     color: "from-orange-500 to-amber-600", id: "refunded", isCount: true },
+    { label: r("gross_revenue", "Gross Revenue"), value: fmt(summary.grossRevenue), icon: DollarSign, color: "from-emerald-500 to-teal-600", id: "gross", note: "USD" },
+    { label: r("platform_revenue", "Platform Revenue"), value: fmt(summary.platformRevenue), icon: TrendingUp, color: "from-blue-500 to-indigo-600", id: "platform", note: "USD" },
+    { label: r("provider_commission", "Provider Commission"), value: fmt(summary.providerCommission), icon: TrendingUp, color: "from-violet-500 to-purple-600", id: "provider-commission", note: "USD" },
+    { label: r("provider_earnings", "Provider Earnings"), value: fmt(summary.providerEarnings), icon: Wallet, color: "from-purple-500 to-fuchsia-600", id: "provider", note: "USD" },
+    { label: r("pending_payouts", "Pending Payouts"), value: fmt(summary.pendingPayouts), icon: Clock, color: "from-amber-500 to-orange-500", id: "pending-payout", note: "USD" },
+    { label: r("total_refunds", "Total Refunds"), value: fmt(summary.totalRefunds), icon: RefreshCw, color: "from-rose-500 to-pink-600", id: "refunds", note: "USD" },
+    { label: r("taxes_collected", "Taxes Collected"), value: fmt(summary.taxesCollected), icon: Receipt, color: "from-slate-500 to-gray-600", id: "taxes", note: "USD" },
+    { label: r("promo_discounts", "Promo Discounts"), value: fmt(summary.promoDiscounts), icon: Banknote, color: "from-teal-500 to-cyan-600", id: "promos", note: "USD" },
+    { label: r("total_bookings", "Total Bookings"), value: String(summary.totalBookings), icon: CalendarDays, color: "from-violet-500 to-purple-600", id: "bookings", isCount: true },
+    { label: r("completed", "Completed"), value: String(summary.completedCount), icon: CheckCircle2, color: "from-green-500 to-emerald-600", id: "completed", isCount: true },
+    { label: r("cancelled", "Cancelled"), value: String(summary.cancelledCount), icon: XCircle, color: "from-red-500 to-rose-600", id: "cancelled", isCount: true },
+    { label: r("refunded", "Refunded"), value: String(summary.refundedCount), icon: RefreshCw, color: "from-orange-500 to-amber-600", id: "refunded", isCount: true },
   ];
 
   return (
@@ -283,13 +286,15 @@ function SummaryCards({ summary, fmt }: { summary: Summary; fmt: (n: number) => 
 // ── Lifecycle Timeline ────────────────────────────────────────────────────────
 
 function LifecycleTimeline({ appointmentId }: { appointmentId: string }) {
+  const { t } = useTranslation();
+  const r = (key: string, fallback: string) => String(t(`admin_extra.financial.${key}`, { defaultValue: fallback }));
   const { data: events = [], isLoading } = useQuery<LifecycleEvent[]>({
     queryKey: ["/api/admin/financial/master-report", appointmentId, "events"],
     queryFn: () => authFetch(`/api/admin/financial/master-report/${appointmentId}/events`),
   });
 
   if (isLoading) return <div className="flex justify-center py-4"><Loader2 className="h-5 w-5 animate-spin" /></div>;
-  if (!events.length) return <p className="text-sm text-muted-foreground py-2">No lifecycle events recorded.</p>;
+  if (!events.length) return <p className="text-sm text-muted-foreground py-2">{r("no_lifecycle_events", "No lifecycle events recorded.")}</p>;
 
   return (
     <div className="relative ps-4">
@@ -298,13 +303,13 @@ function LifecycleTimeline({ appointmentId }: { appointmentId: string }) {
         {events.map((ev) => {
           const actor = ev.actor_first_name
             ? `${ev.actor_first_name} ${ev.actor_last_name}`
-            : ev.actor_email ?? ev.actor_role ?? "System";
+            : ev.actor_email ?? ev.actor_role ?? r("system", "System");
           return (
             <div key={ev.id} className="relative flex gap-3 items-start">
               <div className="absolute -start-1.5 top-1 h-3 w-3 rounded-full bg-primary border-2 border-background" />
               <div className="ps-2 min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-xs font-semibold capitalize">{ev.action.replace(/_/g, " ")}</span>
+                   <span className="text-xs font-semibold capitalize">{r(`action_${ev.action}`, ev.action.replace(/_/g, " "))}</span>
                   {ev.from_status && ev.to_status && (
                     <span className="text-xs text-muted-foreground">
                       {ev.from_status} → {ev.to_status}
@@ -329,6 +334,8 @@ function InvestigationDrawer({
 }: {
   row: MasterRow | null; open: boolean; onClose: () => void; fmt: (n: number) => string;
 }) {
+  const { t } = useTranslation();
+  const r = (key: string, fallback: string) => String(t(`admin_extra.financial.${key}`, { defaultValue: fallback }));
   if (!row) return null;
   const cur = row.display_currency ?? "USD";
   const fmtLocal = (v: number) => fmtBooking(v, cur);
@@ -357,28 +364,28 @@ function InvestigationDrawer({
         <SheetHeader className="mb-4">
           <SheetTitle className="flex items-center gap-2">
             <FileText className="h-5 w-5" />
-            Investigation: {row.appointment_number ?? row.id.slice(0, 8)}
+             {r("investigation", "Investigation")}: {row.appointment_number ?? row.id.slice(0, 8)}
           </SheetTitle>
         </SheetHeader>
 
         <div className="space-y-6 pb-10">
 
           {/* Section A — Booking */}
-          <Section title="A · Booking" icon={CalendarDays}>
-            <Row label="Appointment ID"  value={row.id} />
-            <Row label="Booking Ref"     value={row.appointment_number} />
-            <Row label="Status"          value={<StatusBadge value={row.status} />} />
-            <Row label="Payment Status"  value={<StatusBadge value={row.payment_status} />} />
-            <Row label="Visit Type"      value={row.visit_type} />
-            <Row label="Location Type"   value={row.location_mode ?? row.visit_type} />
-            <Row label="Created"         value={fmtDateTime(row.created_at)} />
-            <Row label="Appointment At"  value={fmtDateTime(row.start_at)} />
-            <Row label="Completion Date" value={fmtDateTime(row.end_at)} />
-            <Row label="Last Updated"    value={fmtDateTime(row.updated_at)} />
-            <Row label="Timezone"        value={row.provider_timezone} />
-            <Row label="Country"         value={row.country_code} />
-             <Row label="Booking Note"    value={row.booking_note} />
-            <Row label="Audit Reference" value={<span className="font-mono text-xs">{row.id}</span>} />
+          <Section title={r("booking_section", "A · Booking")} icon={CalendarDays}>
+            <Row label={r("appointment_id", "Appointment ID")} value={row.id} />
+            <Row label={r("booking_ref", "Booking Ref")} value={row.appointment_number} />
+            <Row label={r("status", "Status")} value={<StatusBadge value={row.status} />} />
+            <Row label={r("payment_status", "Payment Status")} value={<StatusBadge value={row.payment_status} />} />
+            <Row label={r("visit_type", "Visit Type")} value={row.visit_type} />
+            <Row label={r("location_type", "Location Type")} value={row.location_mode ?? row.visit_type} />
+            <Row label={r("created", "Created")} value={fmtDateTime(row.created_at)} />
+            <Row label={r("appointment_at", "Appointment At")} value={fmtDateTime(row.start_at)} />
+            <Row label={r("completion_date", "Completion Date")} value={fmtDateTime(row.end_at)} />
+            <Row label={r("last_updated", "Last Updated")} value={fmtDateTime(row.updated_at)} />
+            <Row label={r("timezone", "Timezone")} value={row.provider_timezone} />
+            <Row label={r("country", "Country")} value={row.country_code} />
+            <Row label={r("booking_note", "Booking Note")} value={row.booking_note} />
+            <Row label={r("audit_reference", "Audit Reference")} value={<span className="font-mono text-xs">{row.id}</span>} />
           </Section>
 
           {/* Section B — Member */}

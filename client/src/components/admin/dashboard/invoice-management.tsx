@@ -15,6 +15,9 @@ import { FileText, Settings, Plus, Save, Loader2 } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 
 function InvoiceTemplateEditor() {
+  const { t } = useTranslation();
+  const tr = (key: string, fallback: string) =>
+    String(t(`admin_extra.invoice.${key}`, { defaultValue: fallback }));
   const { toast } = useToast();
   const { data: template, isLoading } = useQuery<any>({
     queryKey: ["/api/admin/invoice-template"],
@@ -34,14 +37,14 @@ function InvoiceTemplateEditor() {
       return res.json();
     },
     onSuccess: (data) => {
-      toast({ title: "Invoice template saved" });
+      toast({ title: tr("saved", "Invoice template saved") });
       setForm({ ...data });
       queryClient.setQueryData(["/api/admin/invoice-template"], data);
       setPreviewBust((n) => n + 1);
     },
     onError: (e: any) =>
       toast({
-        title: "Save failed",
+        title: tr("save_failed", "Save failed"),
         description: e?.message,
         variant: "destructive",
       }),
@@ -59,7 +62,7 @@ function InvoiceTemplateEditor() {
       window.open(url, "_blank");
     } catch (e: any) {
       toast({
-        title: "Preview failed",
+        title: tr("preview_failed", "Preview failed"),
         description: e?.message,
         variant: "destructive",
       });
@@ -82,41 +85,41 @@ function InvoiceTemplateEditor() {
     placeholder?: string;
     help?: string;
   }> = [
-    { key: "companyName", label: "Company name", placeholder: "Golden Life" },
+    { key: "companyName", label: tr("company_name", "Company name"), placeholder: "Golden Life" },
     {
       key: "tagline",
-      label: "Tagline / subtitle",
+      label: tr("tagline", "Tagline / subtitle"),
       placeholder: "Quality healthcare delivered.",
     },
-    { key: "brandColorHex", label: "Brand color", type: "color" },
-    { key: "accentColorHex", label: "Accent color", type: "color" },
-    { key: "addressLine1", label: "Address line 1", placeholder: "123 Main St" },
-    { key: "addressLine2", label: "Address line 2", placeholder: "Suite 200" },
-    { key: "city", label: "City", placeholder: "Budapest" },
-    { key: "country", label: "Country", placeholder: "Hungary" },
+    { key: "brandColorHex", label: tr("brand_color", "Brand color"), type: "color" },
+    { key: "accentColorHex", label: tr("accent_color", "Accent color"), type: "color" },
+    { key: "addressLine1", label: tr("address_line_1", "Address line 1"), placeholder: "123 Main St" },
+    { key: "addressLine2", label: tr("address_line_2", "Address line 2"), placeholder: "Suite 200" },
+    { key: "city", label: tr("city", "City"), placeholder: "Budapest" },
+    { key: "country", label: tr("country", "Country"), placeholder: "Hungary" },
     {
       key: "email",
-      label: "Billing email",
+      label: tr("billing_email", "Billing email"),
       placeholder: "billing@goldenlife.health",
     },
-    { key: "phone", label: "Phone", placeholder: "+36 1 234 5678" },
-    { key: "website", label: "Website", placeholder: "goldenlife.health" },
-    { key: "taxId", label: "Tax ID / VAT number", placeholder: "HU12345678" },
+    { key: "phone", label: tr("phone", "Phone"), placeholder: "+36 1 234 5678" },
+    { key: "website", label: tr("website", "Website"), placeholder: "goldenlife.health" },
+    { key: "taxId", label: tr("tax_id", "Tax ID / VAT number"), placeholder: "HU12345678" },
     {
       key: "footerText",
-      label: "Footer text",
+      label: tr("footer_text", "Footer text"),
       type: "textarea",
       placeholder: "Thank you for choosing…",
     },
     {
       key: "paymentInstructions",
-      label: "Payment instructions",
+      label: tr("payment_instructions", "Payment instructions"),
       type: "textarea",
       placeholder: "Pay via the My Invoices section…",
     },
     {
       key: "termsText",
-      label: "Terms text",
+      label: tr("terms_text", "Terms text"),
       type: "textarea",
       placeholder: "Payment is due within 7 days…",
     },
@@ -126,10 +129,9 @@ function InvoiceTemplateEditor() {
     <div className="space-y-6">
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <h3 className="text-lg font-medium">Invoice template</h3>
+          <h3 className="text-lg font-medium">{tr("title", "Invoice template")}</h3>
           <p className="text-sm text-muted-foreground">
-            Customize the company details, branding, and footer that appear on
-            every generated invoice PDF.
+            {tr("description", "Customize the company details, branding, and footer that appear on every generated invoice PDF.")}
           </p>
         </div>
         <div className="flex gap-2">
@@ -139,7 +141,7 @@ function InvoiceTemplateEditor() {
             data-testid="button-invoice-template-preview"
           >
             <FileText className="h-4 w-4 mr-1.5" />
-            Preview PDF
+            {tr("preview_pdf", "Preview PDF")}
           </Button>
           <Button
             onClick={() => saveMut.mutate()}
@@ -151,7 +153,7 @@ function InvoiceTemplateEditor() {
             ) : (
               <Save className="h-4 w-4 mr-2" />
             )}
-            Save changes
+            {tr("save_changes", "Save changes")}
           </Button>
         </div>
       </div>
@@ -160,7 +162,7 @@ function InvoiceTemplateEditor() {
         <CardContent className="p-6">
           <div className="flex items-start gap-6 flex-wrap">
             <div className="flex-shrink-0">
-              <Label className="text-sm font-medium block mb-2">Logo</Label>
+              <Label className="text-sm font-medium block mb-2">{tr("logo", "Logo")}</Label>
               <div
                 className="h-28 w-28 rounded-lg border-2 border-dashed flex items-center justify-center bg-muted/30 overflow-hidden"
                 data-testid="preview-tpl-logo"
@@ -173,16 +175,15 @@ function InvoiceTemplateEditor() {
                   />
                 ) : (
                   <span className="text-xs text-muted-foreground text-center px-2">
-                    No logo
+                     {tr("no_logo", "No logo")}
                   </span>
                 )}
               </div>
             </div>
             <div className="flex-1 min-w-[240px] space-y-2">
-              <Label className="text-sm font-medium">Upload logo</Label>
+               <Label className="text-sm font-medium">{tr("upload_logo", "Upload logo")}</Label>
               <p className="text-xs text-muted-foreground">
-                PNG or JPEG, ideally square. Max 1 MB. Shown at the top-left of
-                every invoice.
+                 {tr("upload_logo_help", "PNG or JPEG, ideally square. Max 1 MB. Shown at the top-left of every invoice.")}
               </p>
               <div className="flex items-center gap-2 flex-wrap">
                 <Input
@@ -193,8 +194,8 @@ function InvoiceTemplateEditor() {
                     if (!file) return;
                     if (file.size > 1024 * 1024) {
                       toast({
-                        title: "Logo too large",
-                        description: "Please choose an image under 1 MB.",
+                         title: tr("logo_too_large", "Logo too large"),
+                         description: tr("logo_too_large_desc", "Please choose an image under 1 MB."),
                         variant: "destructive",
                       });
                       e.target.value = "";
@@ -207,7 +208,7 @@ function InvoiceTemplateEditor() {
                     };
                     reader.onerror = () => {
                       toast({
-                        title: "Could not read file",
+                         title: tr("read_failed", "Could not read file"),
                         variant: "destructive",
                       });
                     };
@@ -224,13 +225,13 @@ function InvoiceTemplateEditor() {
                     onClick={() => set("logoUrl", "")}
                     data-testid="button-tpl-logo-remove"
                   >
-                    Remove
+                     {tr("remove", "Remove")}
                   </Button>
                 )}
               </div>
               <details className="text-xs text-muted-foreground">
                 <summary className="cursor-pointer select-none">
-                  Or paste a hosted URL
+                   {tr("paste_url", "Or paste a hosted URL")}
                 </summary>
                 <Input
                   type="url"
@@ -306,8 +307,7 @@ function InvoiceTemplateEditor() {
       </Card>
 
       <p className="text-xs text-muted-foreground">
-        Tip: Click <strong>Preview PDF</strong> to open a sample invoice with
-        the current (unsaved) values in a new tab.
+         {tr("tip", "Tip: Click")} <strong>{tr("preview_pdf", "Preview PDF")}</strong> {tr("tip_suffix", "to open a sample invoice with the current (unsaved) values in a new tab.")}
       </p>
       {previewBust > 0 && null}
     </div>
@@ -353,11 +353,11 @@ export function InvoiceManagement() {
       <TabsList className="tabs-colorful">
         <TabsTrigger value="list" data-testid="tab-invoice-list">
           <FileText className="h-4 w-4 mr-1.5" />
-          Invoices
+          {t("admin_extra.invoice.invoices", "Invoices")}
         </TabsTrigger>
         <TabsTrigger value="template" data-testid="tab-invoice-template">
           <Settings className="h-4 w-4 mr-1.5" />
-          Template
+          {t("admin_extra.invoice.template", "Template")}
         </TabsTrigger>
       </TabsList>
 
@@ -442,7 +442,7 @@ export function InvoiceManagement() {
                               invoice.status === "paid" ? "default" : "secondary"
                             }
                           >
-                            {invoice.status}
+                            {t(`admin_extra.invoice.status_${invoice.status}`, invoice.status)}
                           </Badge>
                         </td>
                         <td className="p-4 text-right">
@@ -453,7 +453,7 @@ export function InvoiceManagement() {
                               rel="noreferrer"
                             >
                               <FileText className="h-4 w-4 mr-2" />
-                              PDF
+                               {t("admin_extra.invoice.pdf", "PDF")}
                             </a>
                           </Button>
                         </td>

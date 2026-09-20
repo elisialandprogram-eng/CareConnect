@@ -342,7 +342,7 @@ function ScheduleTab({ providerId }: { providerId: string }) {
           <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300">
             {t("admin_tools.ops.scheduled_time_off", "Scheduled Time Off")}
           </h3>
-          <span className="text-xs text-slate-400">({timeOff.length} entries)</span>
+              <span className="text-xs text-slate-400">({timeOff.length} {t("admin_extra.provider.entries", "entries")})</span>
         </div>
         {timeOff.length === 0 ? (
           <p className="text-xs text-slate-400 py-2">{t("admin_tools.ops.no_time_off", "No time-off periods scheduled")}</p>
@@ -365,7 +365,7 @@ function ScheduleTab({ providerId }: { providerId: string }) {
           <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300">
             {t("admin_tools.ops.schedule_overrides", "Schedule Overrides / Blocked Dates")}
           </h3>
-          <span className="text-xs text-slate-400">({exceptions.length} entries)</span>
+           <span className="text-xs text-slate-400">({exceptions.length} {t("admin_extra.provider.entries", "entries")})</span>
         </div>
         {exceptions.length === 0 ? (
           <p className="text-xs text-slate-400 py-2">{t("admin_tools.ops.no_blocked_dates", "No blocked dates")}</p>
@@ -395,8 +395,10 @@ function ProviderDirectory({
   onSelect: (id: string) => void;
 }) {
   const { t } = useTranslation();
-  const d = (key: string, fallback: string, options?: Record<string, unknown>) =>
-    t(`admin_provider_details.${key}`, fallback, options);
+  const d = (key: string, fallback: string, options?: Record<string, unknown>) => {
+    const existing = String(t(`admin_tools.ops.${key}`, { defaultValue: "" }));
+    return String(t(`admin_extra.provider.${key}`, { defaultValue: existing || fallback, ...options }));
+  };
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
@@ -460,13 +462,13 @@ function ProviderDirectory({
                <SelectTrigger className="h-7 text-xs"><SelectValue placeholder={t("admin.status")} /></SelectTrigger>
               <SelectContent>
                  <SelectItem value="all">{t("admin.all_statuses")}</SelectItem>
-                <SelectItem value="approved">Approved</SelectItem>
-                <SelectItem value="submitted">Submitted</SelectItem>
-                <SelectItem value="under_review">Under Review</SelectItem>
-                <SelectItem value="action_required">Action Required</SelectItem>
-                <SelectItem value="suspended">Suspended</SelectItem>
-                <SelectItem value="deactivated">Deactivated</SelectItem>
-                <SelectItem value="draft">Draft</SelectItem>
+                 <SelectItem value="approved">{d("approved", "Approved")}</SelectItem>
+                 <SelectItem value="submitted">{d("submitted", "Submitted")}</SelectItem>
+                 <SelectItem value="under_review">{d("under_review", "Under Review")}</SelectItem>
+                 <SelectItem value="action_required">{d("action_required", "Action Required")}</SelectItem>
+                 <SelectItem value="suspended">{d("suspended", "Suspended")}</SelectItem>
+                 <SelectItem value="deactivated">{d("deactivated", "Deactivated")}</SelectItem>
+                 <SelectItem value="draft">{d("draft", "Draft")}</SelectItem>
               </SelectContent>
             </Select>
             <Select value={typeFilter} onValueChange={setTypeFilter}>
@@ -677,7 +679,7 @@ function DocumentRow({
                 )}
               </div>
             ) : (
-              <span className="text-xs text-slate-400">Not uploaded</span>
+              <span className="text-xs text-slate-400">{t("admin_extra.provider.not_uploaded", "Not uploaded")}</span>
             )}
           </div>
         </div>
@@ -1054,8 +1056,10 @@ function ProviderCommandHeader({
   const qc = useQueryClient();
   const { format: fmtUSD } = useAdminCurrency();
   const { provider: prov, user, metrics, appointments, financials } = data;
-  const d = (key: string, fallback: string, options?: Record<string, unknown>) =>
-    t(`admin_provider_details.${key}`, fallback, options);
+  const d = (key: string, fallback: string, options?: Record<string, unknown>) => {
+    const existing = String(t(`admin_tools.ops.${key}`, { defaultValue: "" }));
+    return String(t(`admin_extra.provider.${key}`, { defaultValue: existing || fallback, ...options }));
+  };
 
   const [confirmAction, setConfirmAction] = useState<string | null>(null);
   const [reason, setReason] = useState("");
@@ -1386,8 +1390,10 @@ function ProviderCommandCenter({
   const { provider: prov, user, services, practitioners, documents, appointments, financials, metrics, timeline } = data;
   const fullName = `${user?.firstName || ""} ${user?.lastName || ""}`.trim();
   const label = (key: string, fallback: string) => t(`admin_tools.ops.${key}`, fallback);
-  const d = (key: string, fallback: string, options?: Record<string, unknown>) =>
-    t(`admin_provider_details.${key}`, fallback, options);
+  const d = (key: string, fallback: string, options?: Record<string, unknown>) => {
+    const existing = String(t(`admin_tools.ops.${key}`, { defaultValue: "" }));
+    return String(t(`admin_extra.provider.${key}`, { defaultValue: existing || fallback, ...options }));
+  };
 
   // P3: Service admin actions
   const serviceActionMutation = useMutation({
@@ -1407,17 +1413,17 @@ function ProviderCommandCenter({
       return r.json();
     },
     onSuccess: (_, vars) => {
-      const msgs: Record<string, string> = {
-        activate: "Service reactivated",
-        deactivate: "Service suspended",
-        delete: "Service archived",
-        restore: "Service restored",
+       const msgs: Record<string, string> = {
+         activate: d("service_reactivated", "Service reactivated"),
+         deactivate: d("service_suspended", "Service suspended"),
+         delete: d("service_archived", "Service archived"),
+         restore: d("service_restored", "Service restored"),
       };
-      toast({ title: msgs[vars.action] || "Service updated" });
+       toast({ title: msgs[vars.action] || d("service_updated", "Service updated") });
       qc.invalidateQueries({ queryKey: ["/api/admin/providers", prov.id, "console"] });
       onRefresh();
     },
-    onError: (e: any) => toast({ title: e?.message || "Action failed", variant: "destructive" }),
+     onError: (e: any) => toast({ title: e?.message || d("action_failed", "Action failed"), variant: "destructive" }),
   });
 
   // Track which heavy tabs have been mounted at least once (lazy render)
@@ -1825,7 +1831,7 @@ function ProviderCommandCenter({
                   </div>
                 )}
               </div>
-              {services.length === 0 && <div className="text-center py-10 text-slate-400 text-sm">No services configured</div>}
+               {services.length === 0 && <div className="text-center py-10 text-slate-400 text-sm">{d("no_services", "No services configured")}</div>}
               <div className="space-y-2">
                 {services.map((svc: any) => {
                   const svcCcy = svc.currency || currencyForCountry(prov.countryCode);
@@ -1835,13 +1841,13 @@ function ProviderCommandCenter({
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="text-sm font-medium text-slate-900 dark:text-slate-100">{svc.name}</span>
-                          {svc.isActive === false && <Badge variant="outline" className="text-[10px] text-slate-500">Inactive</Badge>}
-                          {svc.deletedAt && <Badge variant="outline" className="text-[10px] text-red-500 border-red-200">Archived</Badge>}
+                           {svc.isActive === false && <Badge variant="outline" className="text-[10px] text-slate-500">{d("inactive", "Inactive")}</Badge>}
+                           {svc.deletedAt && <Badge variant="outline" className="text-[10px] text-red-500 border-red-200">{d("archived", "Archived")}</Badge>}
                         </div>
                         <div className="flex items-center gap-3 mt-1 flex-wrap text-xs text-slate-500">
                           {/* P5: use native currency, never fmtUSD */}
                           <span className="font-medium text-slate-700 dark:text-slate-300">{fmtSvcPrice(svc.price, svcCcy)}</span>
-                          {svc.duration && <span>{svc.duration}min</span>}
+                           {svc.duration && <span>{svc.duration}min</span>}
                           {svc.locationMode && <span>{humanLabel(svc.locationMode)}</span>}
                           {Number(svc.homeVisitFee) > 0 && (
                             <span className="flex items-center gap-0.5">
@@ -1853,7 +1859,7 @@ function ProviderCommandCenter({
                               <CreditCard className="h-2.5 w-2.5" />{fmtSvcPrice(svc.telemedicineFee, svcCcy)}
                             </span>
                           )}
-                          {svc.bufferBefore > 0 && <span>+{svc.bufferBefore}m buffer</span>}
+                           {svc.bufferBefore > 0 && <span>+{svc.bufferBefore}m {d("buffer", "buffer")}</span>}
                         </div>
                         {svc.description && <p className="text-xs text-slate-400 mt-1 line-clamp-1">{svc.description}</p>}
                       </div>
@@ -1864,19 +1870,19 @@ function ProviderCommandCenter({
                         ) : svc.deletedAt ? (
                           <Button size="sm" variant="ghost" className="h-7 px-2 text-xs text-blue-600 hover:text-blue-700"
                             onClick={() => serviceActionMutation.mutate({ svcId: svc.id, action: "restore" })}
-                            title="Restore archived service">
+                             title={d("restore_archived_service", "Restore archived service")}>
                             <RotateCcw className="h-3 w-3" />
                           </Button>
                         ) : (
                           <>
                             <Button size="sm" variant="ghost" className={`h-7 px-2 text-xs ${svc.isActive !== false ? "text-amber-600 hover:text-amber-700" : "text-green-600 hover:text-green-700"}`}
                               onClick={() => serviceActionMutation.mutate({ svcId: svc.id, action: svc.isActive !== false ? "deactivate" : "activate" })}
-                              title={svc.isActive !== false ? "Suspend service" : "Reactivate service"}>
+                               title={svc.isActive !== false ? d("suspend_service", "Suspend service") : d("reactivate_service", "Reactivate service")}>
                               {svc.isActive !== false ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
                             </Button>
                             <Button size="sm" variant="ghost" className="h-7 px-2 text-xs text-red-500 hover:text-red-600"
                               onClick={() => serviceActionMutation.mutate({ svcId: svc.id, action: "delete" })}
-                              title="Archive service">
+                              title={d("archive_service", "Archive service")}>
                               <Trash2 className="h-3 w-3" />
                             </Button>
                           </>
@@ -1891,7 +1897,7 @@ function ProviderCommandCenter({
             <Separator />
 
             <div>
-              <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3">Category Permissions</h3>
+               <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3">{d("category_permissions", "Category Permissions")}</h3>
               <CategoryPermissionsTab providerId={prov.id} />
             </div>
           </TabsContent>
@@ -1902,10 +1908,10 @@ function ProviderCommandCenter({
               <>
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                   {[
-                    { label: "Total",     value: appointments.total,     color: "text-slate-900 dark:text-slate-100" },
-                    { label: "Completed", value: appointments.completed,  color: "text-green-600" },
-                    { label: "Active",    value: appointments.active,     color: "text-blue-600"  },
-                    { label: "Cancelled", value: appointments.cancelled,  color: "text-red-600"   },
+                    { label: d("total", "Total"), value: appointments.total, color: "text-slate-900 dark:text-slate-100" },
+                    { label: d("completed", "Completed"), value: appointments.completed, color: "text-green-600" },
+                    { label: d("active", "Active"), value: appointments.active, color: "text-blue-600" },
+                    { label: d("cancelled", "Cancelled"), value: appointments.cancelled, color: "text-red-600" },
                   ].map(({ label, value, color }) => (
                     <div key={label} className="bg-slate-50 dark:bg-slate-900 rounded-lg p-4 text-center">
                       <div className={`text-2xl font-bold ${color}`}>{value}</div>
@@ -1914,13 +1920,13 @@ function ProviderCommandCenter({
                   ))}
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-sm text-slate-500">Cancellation rate:</span>
+                  <span className="text-sm text-slate-500">{d("cancellation_rate", "Cancellation rate")}:</span>
                   <span className={`text-sm font-semibold ${appointments.cancellationRate >= 30 ? "text-red-600" : appointments.cancellationRate >= 15 ? "text-yellow-600" : "text-green-600"}`}>
                     {appointments.cancellationRate}%
                   </span>
                 </div>
-                <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300">Recent Bookings</h3>
-                {appointments.recent.length === 0 && <div className="text-center py-6 text-slate-400 text-sm">No bookings</div>}
+                <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300">{d("recent_bookings", "Recent Bookings")}</h3>
+                {appointments.recent.length === 0 && <div className="text-center py-6 text-slate-400 text-sm">{d("no_bookings", "No bookings")}</div>}
                 <div className="space-y-2">
                   {appointments.recent.slice(0, 15).map((appt: any) => (
                     <div key={appt.id} className="rounded-lg border border-slate-200 dark:border-slate-700 p-3 flex items-center justify-between gap-3">
@@ -1960,9 +1966,9 @@ function ProviderCommandCenter({
                 <div className="space-y-4">
                   <div className="grid grid-cols-3 gap-3">
                     {[
-                      { label: "Unique Members", value: uniqueNames.length },
-                      { label: "Total Bookings",  value: appointments.total  },
-                      { label: "Completed",        value: appointments.completed },
+                      { label: d("unique_members", "Unique Members"), value: uniqueNames.length },
+                      { label: d("total_bookings", "Total Bookings"), value: appointments.total },
+                      { label: d("completed", "Completed"), value: appointments.completed },
                     ].map(({ label, value }) => (
                       <div key={label} className="bg-slate-50 dark:bg-slate-900 rounded-lg p-3 text-center">
                         <div className="text-2xl font-bold text-slate-900 dark:text-slate-100">{value}</div>
@@ -1971,11 +1977,11 @@ function ProviderCommandCenter({
                     ))}
                   </div>
                   <div className="rounded-lg border border-slate-200 dark:border-slate-700 p-4 space-y-2">
-                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Engagement Metrics</p>
+                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">{d("engagement_metrics", "Engagement Metrics")}</p>
                     {[
-                      { label: "Completion rate",  value: appointments.total > 0 ? `${Math.round((appointments.completed / appointments.total) * 100)}%` : "—" },
-                      { label: "Cancellation rate", value: `${appointments.cancellationRate}%` },
-                      { label: "Active bookings",  value: appointments.active },
+                      { label: d("completion_rate", "Completion rate"), value: appointments.total > 0 ? `${Math.round((appointments.completed / appointments.total) * 100)}%` : "—" },
+                      { label: d("cancellation_rate", "Cancellation rate"), value: `${appointments.cancellationRate}%` },
+                      { label: d("active_bookings", "Active bookings"), value: appointments.active },
                     ].map(({ label, value }) => (
                       <div key={label} className="flex items-center justify-between text-sm">
                         <span className="text-slate-400">{label}</span>
@@ -1985,7 +1991,7 @@ function ProviderCommandCenter({
                   </div>
                   {uniqueNames.length > 0 && (
                     <div className="space-y-1">
-                      <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Recent Members</p>
+                      <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">{d("recent_members", "Recent Members")}</p>
                       {uniqueNames.slice(0, 10).map((name, i) => (
                         <div key={i} className="flex items-center gap-2 py-1.5 text-sm">
                           <div className="h-7 w-7 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-xs font-medium text-slate-500">
@@ -2010,23 +2016,23 @@ function ProviderCommandCenter({
                     <DollarSign className="h-6 w-6 text-green-500 mx-auto" />
                     {/* Canonical provider net earnings are already USD. */}
                     <div className="text-2xl font-bold text-slate-900 dark:text-slate-100">{fmtUSD(financials.revenueUsd)}</div>
-                    <div className="text-xs text-slate-400">Lifetime Earnings (USD)</div>
+                    <div className="text-xs text-slate-400">{d("lifetime_earnings_usd", "Lifetime Earnings (USD)")}</div>
                   </div>
                   <div className="bg-slate-50 dark:bg-slate-900 rounded-xl p-5 text-center space-y-1">
                     <Wallet className="h-6 w-6 text-blue-500 mx-auto" />
                     <div className="text-2xl font-bold text-slate-900 dark:text-slate-100">{fmtUSD(financials.walletBalance)}</div>
-                    <div className="text-xs text-slate-400">Wallet Balance (USD)</div>
+                    <div className="text-xs text-slate-400">{d("wallet_balance_usd", "Wallet Balance (USD)")}</div>
                   </div>
                 </div>
                 <div className="rounded-lg border border-slate-200 dark:border-slate-700 p-4 space-y-3">
-                  <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300">Financial Summary</h3>
+                  <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300">{d("financial_summary", "Financial Summary")}</h3>
                   <div className="space-y-2 text-sm">
                     {[
-                      { label: "Completed appointments", value: appointments.completed },
-                      { label: "Cancellation rate",      value: `${appointments.cancellationRate}%` },
-                      { label: "Avg earnings / appt",    value: appointments.completed > 0 ? fmtUSD(Number(financials.revenueUsd) / appointments.completed) : "—" },
-                      { label: "Native currency",        value: humanLabel(currencyForCountry(prov.countryCode)) },
-                      { label: "Wallet currency",        value: humanLabel(financials.walletCurrency || "USD") },
+                      { label: d("completed_appointments", "Completed appointments"), value: appointments.completed },
+                      { label: d("cancellation_rate", "Cancellation rate"), value: `${appointments.cancellationRate}%` },
+                      { label: d("avg_earnings_appt", "Avg earnings / appt"), value: appointments.completed > 0 ? fmtUSD(Number(financials.revenueUsd) / appointments.completed) : "—" },
+                      { label: d("native_currency", "Native currency"), value: humanLabel(currencyForCountry(prov.countryCode)) },
+                      { label: d("wallet_currency", "Wallet currency"), value: humanLabel(financials.walletCurrency || "USD") },
                     ].map(({ label, value }) => (
                       <div key={label} className="flex items-center justify-between">
                         <span className="text-slate-500">{label}</span>
@@ -2044,7 +2050,7 @@ function ProviderCommandCenter({
             <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300">
               Staff / Practitioners ({practitioners.length})
             </h3>
-            {practitioners.length === 0 && <div className="text-center py-10 text-slate-400 text-sm">No staff members</div>}
+            {practitioners.length === 0 && <div className="text-center py-10 text-slate-400 text-sm">{d("no_staff", "No staff members")}</div>}
             <div className="space-y-2">
               {practitioners.map((prac: any) => (
                 <div key={prac.id} className="rounded-lg border border-slate-200 dark:border-slate-700 p-3 flex items-center gap-3">
@@ -2068,8 +2074,8 @@ function ProviderCommandCenter({
           <TabsContent value="timeline" className="p-5 space-y-3 mt-0">
             {mountedTabs.has("timeline") ? (
               <>
-                <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300">Activity Timeline</h3>
-                {timeline.length === 0 && <div className="text-center py-10 text-slate-400 text-sm">No activity recorded</div>}
+                <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300">{d("activity_timeline", "Activity Timeline")}</h3>
+                {timeline.length === 0 && <div className="text-center py-10 text-slate-400 text-sm">{d("no_activity", "No activity recorded")}</div>}
                 <div className="relative">
                   <div className="absolute left-4 top-0 bottom-0 w-px bg-slate-200 dark:bg-slate-700" />
                   <div className="space-y-4">

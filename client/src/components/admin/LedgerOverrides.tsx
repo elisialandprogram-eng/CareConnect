@@ -1,6 +1,7 @@
 import { formatDate } from "@/lib/datetime";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import { apiRequest } from "@/lib/queryClient";
 import { useAdminCurrency } from "@/lib/currency";
 import { useToast } from "@/hooks/use-toast";
@@ -66,6 +67,9 @@ const PAYMENT_STATUS_COLORS: Record<string, string> = {
 
 export function LedgerOverrides() {
   const { format: fmt } = useAdminCurrency();
+  const { t } = useTranslation();
+  const tr = (key: string, fallback: string, options?: Record<string, unknown>) =>
+    String(t(`admin_extra.ledger.${key}`, { defaultValue: fallback, ...options }));
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -95,7 +99,7 @@ export function LedgerOverrides() {
       return res.json();
     },
     onSuccess: () => {
-      toast({ title: "Ledger override applied", description: "Audit log entry created." });
+      toast({ title: tr("success", "Ledger override applied"), description: tr("audit_created", "Audit log entry created.") });
       setSelected(null);
       setOverrideReason("");
       setOverrideAmount("");
@@ -104,7 +108,7 @@ export function LedgerOverrides() {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/financial/ledger-overrides"] });
     },
     onError: (err: Error) => {
-      toast({ title: "Override failed", description: err.message, variant: "destructive" });
+      toast({ title: tr("failed", "Override failed"), description: err.message, variant: "destructive" });
     },
   });
 
@@ -128,7 +132,7 @@ export function LedgerOverrides() {
   function handleSubmit() {
     if (!selected) return;
     if (!overrideReason.trim()) {
-      toast({ title: "A reason is required for every ledger override", variant: "destructive" });
+      toast({ title: tr("reason_required", "A reason is required for every ledger override"), variant: "destructive" });
       return;
     }
     setConfirmOpen(true);
@@ -151,14 +155,14 @@ export function LedgerOverrides() {
         <div>
           <h2 className="text-xl font-bold flex items-center gap-2">
             <Lock className="h-5 w-5 text-primary" />
-            Escrow Override & Ledger Adjustments
+            {tr("title", "Escrow Override & Ledger Adjustments")}
           </h2>
           <p className="text-sm text-muted-foreground mt-0.5">
-            Manually release stuck escrows or apply platform fee splits. Every action is audit-logged.
+            {tr("description", "Manually release stuck escrows or apply platform fee splits. Every action is audit-logged.")}
           </p>
         </div>
         <Button variant="outline" size="sm" onClick={() => refetch()} data-testid="button-refresh-escrow">
-          <RefreshCw className="h-3.5 w-3.5 mr-1.5" /> Refresh
+          <RefreshCw className="h-3.5 w-3.5 mr-1.5" /> {tr("refresh", "Refresh")}
         </Button>
       </div>
 
@@ -167,13 +171,13 @@ export function LedgerOverrides() {
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between flex-wrap gap-3">
             <div>
-              <CardTitle className="text-base">Pending / Stuck Escrow Appointments</CardTitle>
-              <CardDescription>Appointments with unresolved payment states eligible for manual intervention.</CardDescription>
+            <CardTitle className="text-base">{tr("pending_title", "Pending / Stuck Escrow Appointments")}</CardTitle>
+            <CardDescription>{tr("pending_description", "Appointments with unresolved payment states eligible for manual intervention.")}</CardDescription>
             </div>
             <div className="relative">
               <Search className="absolute start-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
               <Input
-                placeholder="Search by name or number…"
+                placeholder={tr("search", "Search by name or number…")}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="pl-8 h-8 text-sm w-56"
@@ -190,8 +194,8 @@ export function LedgerOverrides() {
           ) : filtered.length === 0 ? (
             <div className="py-12 text-center text-muted-foreground">
               <Unlock className="h-10 w-10 mx-auto mb-3 opacity-30" />
-              <p className="font-medium text-sm">No stuck escrows found</p>
-              <p className="text-xs mt-1">{search ? "Try a different search." : "All payments are resolved."}</p>
+              <p className="font-medium text-sm">{tr("no_stuck", "No stuck escrows found")}</p>
+              <p className="text-xs mt-1">{search ? tr("try_search", "Try a different search.") : tr("all_resolved", "All payments are resolved.")}</p>
             </div>
           ) : (
             <div className="divide-y">
@@ -232,15 +236,15 @@ export function LedgerOverrides() {
       {/* Override history */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-base flex items-center gap-2">
+            <CardTitle className="text-base flex items-center gap-2">
             <FileText className="h-4 w-4 text-muted-foreground" />
-            Override History
+            {tr("history", "Override History")}
           </CardTitle>
-          <CardDescription>Recent manual ledger adjustments made by administrators.</CardDescription>
+          <CardDescription>{tr("history_description", "Recent manual ledger adjustments made by administrators.")}</CardDescription>
         </CardHeader>
         <CardContent className="p-0">
           {overrideHistory.length === 0 ? (
-            <p className="px-4 py-6 text-sm text-muted-foreground text-center">No overrides recorded yet.</p>
+            <p className="px-4 py-6 text-sm text-muted-foreground text-center">{tr("no_history", "No overrides recorded yet.")}</p>
           ) : (
             <div className="divide-y">
               {overrideHistory.slice(0, 20).map((row) => (
@@ -253,7 +257,7 @@ export function LedgerOverrides() {
                       )}
                     </div>
                     <p className="text-xs text-muted-foreground mt-1 truncate">{row.reason}</p>
-                    <p className="text-xs text-muted-foreground/60 mt-0.5">by {row.admin_name}</p>
+                    <p className="text-xs text-muted-foreground/60 mt-0.5">{tr("by", "by")} {row.admin_name}</p>
                   </div>
                   <div className="flex-shrink-0 text-right">
                     {row.amount && parseFloat(row.amount) !== 0 && (
@@ -274,10 +278,10 @@ export function LedgerOverrides() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <AlertTriangle className="h-5 w-5 text-amber-500" />
-              Manual Ledger Override
+              {tr("manual_title", "Manual Ledger Override")}
             </DialogTitle>
             <DialogDescription>
-              Appointment{" "}
+              {tr("appointment", "Appointment")}{" "}
               <span className="font-mono font-semibold">{selected?.appointment_number}</span> ·{" "}
               {selected?.patient_name} → {selected?.provider_name}
             </DialogDescription>
@@ -285,17 +289,17 @@ export function LedgerOverrides() {
 
           <div className="space-y-4 py-2">
             <div className="space-y-1.5">
-              <Label className="text-sm">Override action</Label>
+              <Label className="text-sm">{tr("action", "Override action")}</Label>
               <Select value={overrideAction} onValueChange={setOverrideAction}>
                 <SelectTrigger data-testid="select-override-action">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="release_escrow">Release escrow to provider</SelectItem>
-                  <SelectItem value="refund_patient">Full refund to member</SelectItem>
-                  <SelectItem value="partial_refund">Partial refund to member</SelectItem>
-                  <SelectItem value="fee_split_adjust">Adjust platform fee split</SelectItem>
-                  <SelectItem value="void_charge">Void charge (no money moved)</SelectItem>
+                  <SelectItem value="release_escrow">{tr("release_escrow", "Release escrow to provider")}</SelectItem>
+                  <SelectItem value="refund_patient">{tr("refund_patient", "Full refund to member")}</SelectItem>
+                  <SelectItem value="partial_refund">{tr("partial_refund", "Partial refund to member")}</SelectItem>
+                  <SelectItem value="fee_split_adjust">{tr("fee_split_adjust", "Adjust platform fee split")}</SelectItem>
+                  <SelectItem value="void_charge">{tr("void_charge", "Void charge (no money moved)")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -303,9 +307,9 @@ export function LedgerOverrides() {
             {(overrideAction === "partial_refund" || overrideAction === "fee_split_adjust") && (
               <div className="space-y-1.5">
                 <Label className="text-sm">
-                  Amount (USD){" "}
+                  {tr("amount_usd", "Amount (USD)")}{" "}
                   <span className="text-muted-foreground font-normal">
-                    · original: {fmt(parseFloat(selected?.total_amount || "0"))}
+                    · {tr("original", "original")}: {fmt(parseFloat(selected?.total_amount || "0"))}
                   </span>
                 </Label>
                 <Input
@@ -323,23 +327,23 @@ export function LedgerOverrides() {
 
             <div className="space-y-1.5">
               <Label className="text-sm">
-                Administrative reason <span className="text-red-500">*</span>
+                {tr("reason", "Administrative reason")} <span className="text-red-500">*</span>
               </Label>
               <Textarea
                 value={overrideReason}
                 onChange={(e) => setOverrideReason(e.target.value)}
-                placeholder="Describe the reason for this manual override (saved to audit log)…"
+                placeholder={tr("reason_placeholder", "Describe the reason for this manual override (saved to audit log)…")}
                 className="min-h-[80px] text-sm"
                 data-testid="textarea-override-reason"
               />
               {!overrideReason.trim() && (
-                <p className="text-xs text-muted-foreground">Required — this is saved permanently in the audit log.</p>
+                <p className="text-xs text-muted-foreground">{tr("required", "Required — this is saved permanently in the audit log.")}</p>
               )}
             </div>
           </div>
 
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setSelected(null)}>Cancel</Button>
+            <Button variant="ghost" onClick={() => setSelected(null)}>{tr("cancel", "Cancel")}</Button>
             <Button
               onClick={handleSubmit}
               disabled={!overrideReason.trim() || isPending}
@@ -347,7 +351,7 @@ export function LedgerOverrides() {
               data-testid="button-submit-override"
             >
               {isPending ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />}
-              Apply Override
+              {tr("apply", "Apply Override")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -357,17 +361,17 @@ export function LedgerOverrides() {
       <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Confirm ledger override</AlertDialogTitle>
+            <AlertDialogTitle>{tr("confirm_title", "Confirm ledger override")}</AlertDialogTitle>
             <AlertDialogDescription>
-              This action is irreversible and will be recorded in the permanent audit log.
+              {tr("confirm_description", "This action is irreversible and will be recorded in the permanent audit log.")}
               <br /><br />
-              <strong>Action:</strong> {overrideAction.replace(/_/g, " ")}
+              <strong>{tr("actions", "Action")}:</strong> {overrideAction.replace(/_/g, " ")}
               <br />
-              <strong>Reason:</strong> {overrideReason}
+              <strong>{tr("reason", "Reason")}:</strong> {overrideReason}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isPending}>Go back</AlertDialogCancel>
+            <AlertDialogCancel disabled={isPending}>{tr("go_back", "Go back")}</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleConfirmed}
               disabled={isPending}
@@ -375,7 +379,7 @@ export function LedgerOverrides() {
               data-testid="button-confirm-override"
             >
               {isPending ? <RefreshCw className="h-4 w-4 animate-spin mr-2" /> : null}
-              Confirm Override
+              {tr("confirm", "Confirm Override")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
