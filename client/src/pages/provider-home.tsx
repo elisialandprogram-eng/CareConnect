@@ -197,7 +197,7 @@ function AppointmentRow({ appt }: { appt: Appointment }) {
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-sm font-semibold text-foreground truncate">{patientName(appt)}</p>
-        <p className="text-xs text-muted-foreground truncate">{appt.serviceName ?? t("appointments.appointment", "Appointment")}</p>
+        <p className="text-xs text-muted-foreground truncate">{appt.serviceName ?? t("provider_sweep.appointment", "Appointment")}</p>
       </div>
       <div className="flex flex-col items-end gap-1 flex-shrink-0">
         <div className="flex items-center gap-1 text-xs text-muted-foreground">
@@ -641,6 +641,14 @@ export default function ProviderHome() {
             <div className="p-4 space-y-2">
               {documents.slice(0, 4).map(doc => {
                 const isExpiring = expiringSoon.some(e => e.id === doc.id);
+                const documentLabel = t(
+                  `provider_dashboard.doc_${doc.documentType}`,
+                  doc.documentType.replace(/_/g, " "),
+                );
+                const documentStatus = t(
+                  `provider_dashboard.status_${doc.verificationStatus}`,
+                  doc.verificationStatus.replace(/_/g, " "),
+                );
                 const statusColor = {
                   approved:          "text-emerald-700 dark:text-emerald-400",
                   expired:           "text-rose-700 dark:text-rose-400",
@@ -651,10 +659,10 @@ export default function ProviderHome() {
                 }[doc.verificationStatus] ?? "text-muted-foreground";
                 return (
                   <div key={doc.id} className="flex items-center justify-between gap-2 text-sm">
-                    <span className="text-muted-foreground text-xs truncate">{doc.documentType.replace(/_/g, " ")}</span>
+                     <span className="text-muted-foreground text-xs truncate">{documentLabel}</span>
                     <div className="flex items-center gap-1.5 flex-shrink-0">
                       {isExpiring && <AlertTriangle className="w-3 h-3 text-orange-500" />}
-                      <span className={`text-xs font-medium capitalize ${statusColor}`}>{doc.verificationStatus.replace(/_/g, " ")}</span>
+                       <span className={`text-xs font-medium capitalize ${statusColor}`}>{documentStatus}</span>
                     </div>
                   </div>
                 );
@@ -687,7 +695,7 @@ export default function ProviderHome() {
                   <div className="flex-1 pb-1">
                     <p className="text-sm font-medium text-foreground">{patientName(appt)}</p>
                     <p className="text-xs text-muted-foreground">
-                      {appt.serviceName ?? t("appointments.appointment", "Appointment")} · <span className="capitalize">{t(`provider_dashboard.status_${appt.status}`, appt.status.replace(/_/g, " "))}</span>
+                       {appt.serviceName ?? t("provider_sweep.appointment", "Appointment")} · <span className="capitalize">{t(`provider_dashboard.status_${appt.status}`, appt.status.replace(/_/g, " "))}</span>
                     </p>
                     <p className="text-[10px] text-muted-foreground/60 mt-0.5">{relativeLabel(appt.startAt, (key, fallback, options) => String(t(key, fallback, options)))}</p>
                   </div>
