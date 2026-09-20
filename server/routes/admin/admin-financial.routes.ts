@@ -3221,13 +3221,13 @@ export function registerAdminFinancialRoutes(app: Express): void {
         const expiryRes = await client.query(
           `SELECT
              pd.document_type,
-             COUNT(*) FILTER (WHERE pd.expires_at BETWEEN NOW() AND NOW() + INTERVAL '30 days') AS expiring_30d,
-             COUNT(*) FILTER (WHERE pd.expires_at BETWEEN NOW() AND NOW() + INTERVAL '60 days') AS expiring_60d,
-             COUNT(*) FILTER (WHERE pd.expires_at BETWEEN NOW() AND NOW() + INTERVAL '90 days') AS expiring_90d,
-             COUNT(*) FILTER (WHERE pd.expires_at < NOW())                                        AS already_expired
+              COUNT(*) FILTER (WHERE NULLIF(pd.expiry_date, '')::date BETWEEN CURRENT_DATE AND CURRENT_DATE + 30) AS expiring_30d,
+              COUNT(*) FILTER (WHERE NULLIF(pd.expiry_date, '')::date BETWEEN CURRENT_DATE AND CURRENT_DATE + 60) AS expiring_60d,
+              COUNT(*) FILTER (WHERE NULLIF(pd.expiry_date, '')::date BETWEEN CURRENT_DATE AND CURRENT_DATE + 90) AS expiring_90d,
+              COUNT(*) FILTER (WHERE NULLIF(pd.expiry_date, '')::date < CURRENT_DATE)                         AS already_expired
            FROM provider_documents pd
            JOIN providers p ON p.id = pd.provider_id
-           WHERE pd.expires_at IS NOT NULL
+            WHERE NULLIF(pd.expiry_date, '') IS NOT NULL
              ${countryFilter ? `AND p.country_code::text = $1` : ""}
            GROUP BY pd.document_type`,
           params,

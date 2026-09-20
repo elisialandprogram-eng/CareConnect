@@ -24,6 +24,7 @@ import { isAdminRole } from "@/lib/roles";
 import { formatInCurrency } from "@/lib/currency";
 import { formatTime } from "@/lib/datetime";
 import { useTranslation } from "react-i18next";
+import type { ElementType } from "react";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface HomeSummary {
@@ -121,17 +122,26 @@ function timeAgo(iso: string, t: (key: string, options?: any) => string): string
   const diff = Date.now() - new Date(iso).getTime();
   const mins = Math.floor(diff / 60000);
   if (mins < 1) return t("admin.admin_home_just_now");
-  if (mins < 60) return `${mins}m`;
+  if (mins < 60) return t("admin.admin_home_minutes", { count: mins });
   const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h`;
+  if (hrs < 24) return t("admin.admin_home_hours", { count: hrs });
   const days = Math.floor(hrs / 24);
-  return `${days}d`;
+  return t("admin.admin_home_days", { count: days });
 }
-
 
 function actionLabel(action: string, t: (key: string, fallback: string) => string): string {
   const key = action.toLowerCase().replace(/[^a-z0-9]+/g, "_");
   return t(`admin.activity_action_${key}`, action.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase()));
+}
+
+function localizedEnum(
+  value: string | null | undefined,
+  prefix: "activity_entity" | "role",
+  t: (key: string, fallback: string) => string,
+): string {
+  const normalized = value?.toLowerCase().replace(/[^a-z0-9]+/g, "_");
+  if (!normalized) return t("admin.system", "system");
+  return t(`admin.${prefix}_${normalized}`, value!.replace(/_/g, " "));
 }
 
 function entityIcon(entityType: string) {
@@ -157,7 +167,7 @@ function StatCard({
 }: {
   label: string;
   value: number | string;
-  icon: React.ElementType;
+  icon: ElementType;
   color?: "blue" | "green" | "amber" | "red" | "purple" | "teal";
   badge?: string;
   loading?: boolean;
@@ -206,7 +216,7 @@ function ActionItem({
   href,
   urgent,
 }: {
-  icon: React.ElementType;
+  icon: ElementType;
   iconColor: string;
   title: string;
   count: number;
@@ -386,18 +396,24 @@ export default function AdminHome() {
   const insightsList = useMemo((): string[] => {
     if (!d) return [];
     const ins: string[] = [];
-    if (d.providers.totalNeedsReview >= 5) ins.push("Provider approval queue is growing — consider scheduling a review session.");
-    if (d.compliance.expiringCredentials >= 3) ins.push("Several provider credentials expire this month — proactive outreach recommended.");
-    if (d.financial.pendingRefunds >= 5) ins.push("Refund volume is elevated this week — review refund policies.");
-    if (d.support.openTickets < 5) ins.push("Support queue is well-managed — response times are healthy.");
+    if (d.providers.totalNeedsReview >= 5) ins.push(t("admin.admin_home_insight_review_queue"));
+    if (d.compliance.expiringCredentials >= 3) ins.push(t("admin.admin_home_insight_expiring_credentials"));
+    if (d.financial.pendingRefunds >= 5) ins.push(t("admin.admin_home_insight_refunds"));
+    if (d.support.openTickets < 5) ins.push(t("admin.admin_home_insight_support"));
     if (d.appointments.completedToday > d.appointments.cancelledToday && d.appointments.totalToday > 0)
-      ins.push("Appointment completion rate is strong today.");
-    if (d.financial.revenueToday > 0) ins.push(`Platform generated ${formatInCurrency(d.financial.revenueToday, "USD")} in revenue today.`);
-    if (d.platform.newUsersToday > 0) ins.push(`${d.platform.newUsersToday} new user${d.platform.newUsersToday !== 1 ? "s" : ""} joined the platform today.`);
-    if (d.bugs.criticalBugs > 0) ins.push(`${d.bugs.criticalBugs} critical bug${d.bugs.criticalBugs !== 1 ? "s" : ""} require${d.bugs.criticalBugs === 1 ? "s" : ""} immediate attention.`);
-    if (ins.length === 0) ins.push("All key platform metrics are within normal range.");
+      ins.push(t("admin.admin_home_insight_completion"));
+    if (d.financial.revenueToday > 0) {
+      ins.push(t("admin.admin_home_insight_revenue", { amount: formatInCurrency(d.financial.revenueToday, "USD") }));
+    }
+    if (d.platform.newUsersToday > 0) {
+      ins.push(t("admin.admin_home_insight_new_users", { count: d.platform.newUsersToday }));
+    }
+    if (d.bugs.criticalBugs > 0) {
+      ins.push(t("admin.admin_home_insight_critical_bugs", { count: d.bugs.criticalBugs }));
+    }
+    if (ins.length === 0) ins.push(t("admin.admin_home_insight_normal"));
     return ins.slice(0, 4);
-  }, [d]);
+  }, [d, t]);
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -1071,13 +1087,13 @@ export default function AdminHome() {
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="flex items-center gap-1 text-xs text-muted-foreground">
                             {entityIcon(event.entityType)}
-                            <span className="capitalize">{t(`admin.activity_entity_${event.entityType?.toLowerCase().replace(/[^a-z0-9]+/g, "_")}`, event.entityType?.replace(/_/g, " ") ?? t("admin.system", "system"))}</span>
+                           <span className="capitalize">{localizedEnum(event.entityType, "activity_entity", t)}</span>
                           </span>
                           <span className="text-xs font-medium text-foreground">{actionLabel(event.action, t)}</span>
                         </div>
                         <p className="text-xs text-muted-foreground mt-0.5">
                            {t("admin.admin_home_by")} <span className="font-medium text-foreground/80">{event.actorName}</span>
-                          {event.actorRole && <span className="capitalize"> ({event.actorRole.replace(/_/g, " ")})</span>}
+                           {event.actorRole && <span className="capitalize"> ({localizedEnum(event.actorRole, "role", t)})</span>}
                         </p>
                       </div>
 

@@ -204,8 +204,8 @@ function AdminMembershipsPanel() {
                 <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.3} />
                 <XAxis dataKey="month" tick={{ fontSize: 10 }} />
                 <YAxis tick={{ fontSize: 10 }} />
-                <Tooltip formatter={(v: number, name: string) => [name === "revenueUsd" ? fmt(v) : v, name === "revenueUsd" ? "Revenue" : "Purchases"]} />
-                <Bar dataKey="purchases" name="purchases" fill="#6366f1" radius={[4, 4, 0, 0]} />
+                 <Tooltip formatter={(v: number, name: string) => [name === "revenueUsd" ? fmt(v) : v, name === "revenueUsd" ? r("revenue", "Revenue") : r("purchases", "Purchases")]} />
+                 <Bar dataKey="purchases" name={r("purchases", "Purchases")} fill="#6366f1" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
@@ -381,7 +381,7 @@ function AdminCompliancePanel() {
                 .map((s, i) => (
                   <div key={i} className="flex items-center justify-between">
                     <Badge className={`text-xs capitalize ${PROVIDER_STATUS_COLOR[s.status] ?? "bg-muted text-muted-foreground"}`}>
-                      {s.status.replace(/_/g, " ")}
+                      {r(`status_${s.status}`, s.status.replace(/_/g, " "))}
                     </Badge>
                     <span className="text-sm font-semibold">{s.count}</span>
                   </div>
@@ -401,7 +401,7 @@ function AdminCompliancePanel() {
               <div className="space-y-3">
                 {data.documentExpiry.map((d, i) => (
                   <div key={i} className="space-y-1">
-                    <p className="text-xs font-medium capitalize">{d.documentType.replace(/_/g, " ")}</p>
+                    <p className="text-xs font-medium capitalize">{r(`document_${d.documentType}`, d.documentType.replace(/_/g, " "))}</p>
                     <div className="grid grid-cols-3 gap-2 text-xs text-muted-foreground">
                       <span className={d.expiring30d > 0 ? "text-orange-600 font-medium" : ""}>{r("in_days", `${d.expiring30d} in 30d`, { count: d.expiring30d, days: 30 })}</span>
                       <span>{r("in_days", `${d.expiring60d} in 60d`, { count: d.expiring60d, days: 60 })}</span>
@@ -432,8 +432,8 @@ function AdminCompliancePanel() {
               <tbody>
                 {data.documentStatusBreakdown.map((d, i) => (
                   <tr key={i} className="border-b last:border-0">
-                    <td className="py-2 capitalize">{d.documentType.replace(/_/g, " ")}</td>
-                    <td className="text-end py-2 capitalize">{d.verificationStatus.replace(/_/g, " ")}</td>
+                    <td className="py-2 capitalize">{r(`document_${d.documentType}`, d.documentType.replace(/_/g, " "))}</td>
+                    <td className="text-end py-2 capitalize">{r(`status_${d.verificationStatus}`, d.verificationStatus.replace(/_/g, " "))}</td>
                     <td className="text-end py-2 font-semibold">{d.count}</td>
                   </tr>
                 ))}
@@ -668,7 +668,7 @@ const SECTIONS = [
     { value: "patients",     label: "Members",               icon: Crown           },
   { value: "memberships",  label: "Memberships",           icon: Package         },
   { value: "packages",     label: "Packages",              icon: Package         },
-  { value: "revenue",      label: "Revenue Intel",         icon: TrendingUp      },
+  { value: "revenue",      label: "Revenue intelligence",  icon: TrendingUp      },
   { value: "geographic",   label: "Geographic",            icon: Globe           },
   { value: "compliance",   label: "Compliance",            icon: ShieldCheck     },
   { value: "support",      label: "Support",               icon: Headphones      },

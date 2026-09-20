@@ -136,4 +136,5 @@
 - [Client localization parity](client-localization-parity.md) — keep en/fa/hu translation keys identical; page-facing literals should use useTranslation, including public/legal and patient dashboard UI
 - [Provider generated-copy localization](provider-generated-copy-localization.md) — server-generated provider copy must return translation keys plus interpolation data; the client renders the active locale
 - [Admin localization sweep](admin-localization-sweep.md) — keep admin additions in a merged overlay with identical en/hu/fa keys; map dynamic notification types to translated semantic labels
+- [Provider document expiry column](provider-document-expiry-column.md) — provider_documents stores expiry_date text and expired_at timestamp; compliance analytics must not query expires_at
 - [Analytics label locale](analytics-label-locale.md) — APIs return ISO month/week keys; the client formats visible chart labels with the active locale
