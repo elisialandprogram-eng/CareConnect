@@ -58,6 +58,15 @@ type Modality = "none" | "clinic" | "home_visit" | "video";
 
 const DOW_SHORT  = ["sun_short","mon_short","tue_short","wed_short","thu_short","fri_short","sat_short"] as const;
 const DOW_FALLBACK = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"] as const;
+const DOW_BY_KEY: Record<string, number> = {
+  sun: 0,
+  mon: 1,
+  tue: 2,
+  wed: 3,
+  thu: 4,
+  fri: 5,
+  sat: 6,
+};
 
 const ORDERED_DAYS = [1,2,3,4,5,6,0]; // Mon–Sun display order
 
@@ -379,7 +388,7 @@ function InsightsPanel({ weekMatrix, weekSummary, totalHours, enabledDays }: Ins
   const utilPct      = totalSlots > 0 ? Math.round((bookedSlots / totalSlots) * 100) : 0;
   const hasData      = weekSummary != null;
 
-  const dayBreakdown: Array<{ dow: number; total: number; booked: number }> =
+  const dayBreakdown: Array<{ dow?: number; dayKey?: string; total: number; booked: number }> =
     weekSummary?.days ?? [];
 
   return (
@@ -431,10 +440,13 @@ function InsightsPanel({ weekMatrix, weekSummary, totalHours, enabledDays }: Ins
           ) : dayBreakdown.length > 0 ? (
             <div className="space-y-2">
               {dayBreakdown.map((d: any) => {
+                const dow = typeof d.dow === "number"
+                  ? d.dow
+                  : DOW_BY_KEY[String(d.dayKey ?? "").toLowerCase()] ?? 0;
                 const pct = d.total > 0 ? Math.round((d.booked / d.total) * 100) : 0;
                 return (
-                  <div key={d.dow} className="flex items-center gap-3">
-                    <span className="text-xs w-8 text-muted-foreground shrink-0">{t(`provider_sweep.days.${DOW_SHORT[d.dow]}`, DOW_FALLBACK[d.dow])}</span>
+                  <div key={d.dayKey ?? d.dow ?? dow} className="flex items-center gap-3">
+                    <span className="text-xs w-8 text-muted-foreground shrink-0">{t(`provider_sweep.days.${DOW_SHORT[dow]}`, DOW_FALLBACK[dow])}</span>
                     <div className="flex-1 bg-muted rounded-full h-2 overflow-hidden">
                       <div
                         className="h-full bg-primary rounded-full transition-all"
