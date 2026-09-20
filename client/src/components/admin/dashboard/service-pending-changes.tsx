@@ -1,5 +1,6 @@
 import { formatInCurrency } from "@/lib/currency";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -83,15 +84,15 @@ interface UnifiedItem {
   submittedAt?: string;
 }
 
-function statusBadge(status: string) {
+function statusBadge(status: string, c: (key: string, fallback: string) => string) {
   if (status === "pending")
-    return <Badge className="bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300">Pending</Badge>;
+    return <Badge className="bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300">{c("pending", "Pending")}</Badge>;
   if (status === "approved")
-    return <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300">Approved</Badge>;
-  return <Badge className="bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-300">Rejected</Badge>;
+    return <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300">{c("approved", "Approved")}</Badge>;
+  return <Badge className="bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-300">{c("rejected", "Rejected")}</Badge>;
 }
 
-function typeBadge(label: string) {
+function typeBadge(label: string, c: (key: string, fallback: string) => string) {
   const isNew = label === "New Service";
   const isEdit = label === "Edit Request";
   return (
@@ -101,7 +102,7 @@ function typeBadge(label: string) {
         : isEdit ? "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300"
           : "bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300",
     )}>
-      {label}
+       {isNew ? c("new_service", "New service") : isEdit ? c("edit_request", "Edit request") : c("service_request", "Service request")}
     </span>
   );
 }
@@ -111,6 +112,9 @@ const DEFAULT_APPROVE = { duration: "30", finalPrice: "", bufferBefore: "0", buf
 
 export function ServicePendingChangesPanel() {
   const { toast } = useToast();
+  const { t } = useTranslation();
+  const c = (key: string, fallback: string, options?: Record<string, unknown>) =>
+    String(t(`admin.config.${key}`, { defaultValue: fallback, ...options }));
 
   const svcQuery = useQuery<any[]>({ queryKey: ["/api/admin/services/pending-changes"], staleTime: 30_000 });
   const reqQuery = useQuery<any[]>({ queryKey: ["/api/admin/service-requests"], staleTime: 30_000 });
@@ -139,8 +143,8 @@ export function ServicePendingChangesPanel() {
       const res = await apiRequest("POST", `/api/admin/services/${id}/approve-changes`, {});
       return res.json();
     },
-    onSuccess: () => { toast({ title: "Approved", description: "Service is now live." }); setApproving(null); invalidate(); },
-    onError: (e: any) => toast({ title: "Approve failed", description: e?.message, variant: "destructive" }),
+    onSuccess: () => { toast({ title: c("approved", "Approved"), description: c("service_live", "Service is now live.") }); setApproving(null); invalidate(); },
+    onError: (e: any) => toast({ title: c("approve_failed", "Approve failed"), description: e?.message, variant: "destructive" }),
   });
 
   const approveReqMut = useMutation({
@@ -148,8 +152,8 @@ export function ServicePendingChangesPanel() {
       const res = await apiRequest("POST", `/api/admin/service-requests/${id}/approve`, data);
       return res.json();
     },
-    onSuccess: () => { toast({ title: "Approved", description: "Service created and provider notified." }); setApproving(null); invalidate(); },
-    onError: (e: any) => toast({ title: "Approve failed", description: e?.message, variant: "destructive" }),
+    onSuccess: () => { toast({ title: c("approved", "Approved"), description: c("service_created_notified", "Service created and provider notified.") }); setApproving(null); invalidate(); },
+    onError: (e: any) => toast({ title: c("approve_failed", "Approve failed"), description: e?.message, variant: "destructive" }),
   });
 
   const rejectSvcMut = useMutation({
@@ -157,8 +161,8 @@ export function ServicePendingChangesPanel() {
       const res = await apiRequest("POST", `/api/admin/services/${id}/reject-changes`, { reason });
       return res.json();
     },
-    onSuccess: () => { toast({ title: "Rejected" }); setRejecting(null); setRejectionReason(""); invalidate(); },
-    onError: (e: any) => toast({ title: "Reject failed", description: e?.message, variant: "destructive" }),
+    onSuccess: () => { toast({ title: c("rejected", "Rejected") }); setRejecting(null); setRejectionReason(""); invalidate(); },
+    onError: (e: any) => toast({ title: c("reject_failed", "Reject failed"), description: e?.message, variant: "destructive" }),
   });
 
   const rejectReqMut = useMutation({
@@ -166,8 +170,8 @@ export function ServicePendingChangesPanel() {
       const res = await apiRequest("POST", `/api/admin/service-requests/${id}/reject`, { rejectionReason: reason });
       return res.json();
     },
-    onSuccess: () => { toast({ title: "Rejected" }); setRejecting(null); setRejectionReason(""); invalidate(); },
-    onError: (e: any) => toast({ title: "Reject failed", description: e?.message, variant: "destructive" }),
+    onSuccess: () => { toast({ title: c("rejected", "Rejected") }); setRejecting(null); setRejectionReason(""); invalidate(); },
+    onError: (e: any) => toast({ title: c("reject_failed", "Reject failed"), description: e?.message, variant: "destructive" }),
   });
 
   const handleApprove = (item: UnifiedItem) => {
@@ -303,7 +307,7 @@ export function ServicePendingChangesPanel() {
             }
           </div>
           {row.pending_change_reason && (
-            <p className="text-xs text-muted-foreground"><strong>Reason:</strong> {row.pending_change_reason}</p>
+             <p className="text-xs text-muted-foreground"><strong>{c("reason", "Reason")}:</strong> {row.pending_change_reason}</p>
           )}
         </div>
       );
@@ -313,11 +317,11 @@ export function ServicePendingChangesPanel() {
       <div className="mt-3 border-t pt-3 space-y-2">
         <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-xs">
           {[
-            { field: "category",      label: "Category",         val: item.category },
-            { field: "subServiceName",label: "Sub-service",      val: item.subServiceName },
-            { field: "suggestedPrice",label: "Suggested price",  val: item.suggestedPrice ? formatInCurrency(Number(item.suggestedPrice), item.currency ?? "USD") : undefined },
-            { field: "duration",      label: "Duration (min)",   val: item.durationMinutes },
-            { field: "location_mode", label: "Delivery Mode",    val: item.locationMode },
+            { field: "category",      label: c("category", "Category"),         val: item.category },
+            { field: "subServiceName",label: c("sub_service", "Sub-service"),      val: item.subServiceName },
+            { field: "suggestedPrice",label: c("suggested_price", "Suggested price"),  val: item.suggestedPrice ? formatInCurrency(Number(item.suggestedPrice), item.currency ?? "USD") : undefined },
+            { field: "duration",      label: c("duration_min", "Duration (min)"),   val: item.durationMinutes },
+            { field: "location_mode", label: c("delivery_mode", "Delivery mode"),    val: item.locationMode },
           ].filter(f => f.val != null && f.val !== "").map(f => (
             <div key={f.label} className="flex items-center justify-between gap-2 border rounded px-2 py-1.5 bg-muted/30">
               <span className="text-muted-foreground">{f.label}</span>
@@ -325,9 +329,9 @@ export function ServicePendingChangesPanel() {
             </div>
           ))}
         </div>
-        {item.description && <p className="text-xs"><strong>Description:</strong> {item.description}</p>}
-        {item.adminNotes && <p className="text-xs text-muted-foreground"><strong>Admin notes:</strong> {item.adminNotes}</p>}
-        {item.rejectionReason && <p className="text-xs text-rose-600 dark:text-rose-400"><strong>Rejection reason:</strong> {item.rejectionReason}</p>}
+         {item.description && <p className="text-xs"><strong>{c("description", "Description")}:</strong> {item.description}</p>}
+         {item.adminNotes && <p className="text-xs text-muted-foreground"><strong>{c("admin_notes", "Admin notes")}:</strong> {item.adminNotes}</p>}
+         {item.rejectionReason && <p className="text-xs text-rose-600 dark:text-rose-400"><strong>{c("rejection_reason", "Rejection reason")}:</strong> {item.rejectionReason}</p>}
       </div>
     );
   };
@@ -341,7 +345,7 @@ export function ServicePendingChangesPanel() {
           <div className="flex items-center justify-between flex-wrap gap-2">
             <div>
               <CardTitle className="flex items-center gap-2">
-                Service Requests
+                 {c("service_requests", "Service requests")}
                 {pendingCount > 0 && (
                   <span className="inline-flex items-center justify-center rounded-full bg-amber-500 text-white text-[11px] font-bold w-5 h-5">
                     {pendingCount}
@@ -349,11 +353,11 @@ export function ServicePendingChangesPanel() {
                 )}
               </CardTitle>
               <CardDescription className="mt-0.5">
-                New services and edit requests from providers. Click a row to expand details.
+                 {c("new_services_edit_requests", "New services and edit requests from providers. Click a row to expand details.")}
               </CardDescription>
             </div>
             <Button variant="outline" size="sm" onClick={refetch} data-testid="button-refresh-service-requests">
-              <RefreshCw className="h-4 w-4 mr-1.5" /> Refresh
+               <RefreshCw className="h-4 w-4 mr-1.5" /> {c("refresh", "Refresh")}
             </Button>
           </div>
         </CardHeader>
@@ -362,10 +366,10 @@ export function ServicePendingChangesPanel() {
             <Select value={filter} onValueChange={setFilter}>
               <SelectTrigger className="w-[180px]" data-testid="select-request-filter"><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="pending">Pending</SelectItem>
-                <SelectItem value="approved">Approved</SelectItem>
-                <SelectItem value="rejected">Rejected</SelectItem>
-                <SelectItem value="all">All</SelectItem>
+                 <SelectItem value="pending">{c("pending", "Pending")}</SelectItem>
+                 <SelectItem value="approved">{c("approved", "Approved")}</SelectItem>
+                 <SelectItem value="rejected">{c("rejected", "Rejected")}</SelectItem>
+                 <SelectItem value="all">{c("all", "All")}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -375,8 +379,8 @@ export function ServicePendingChangesPanel() {
           ) : filtered.length === 0 ? (
             <EmptyState
               icon={CheckCircle}
-              title={filter === "pending" ? "No pending requests" : "No requests in this view"}
-              description="Switch the filter above to see requests with a different status."
+               title={filter === "pending" ? c("no_pending_requests", "No pending requests") : c("no_requests_view", "No requests in this view")}
+               description={c("switch_filter", "Switch the filter above to see requests with a different status.")}
             />
           ) : (
             <div className="space-y-2">
@@ -405,13 +409,13 @@ export function ServicePendingChangesPanel() {
                           <span className="font-semibold text-sm" data-testid={`text-request-name-${item.id}`}>
                             {item.name}
                           </span>
-                          {typeBadge(item.typeBadge)}
-                          {statusBadge(item.status)}
+                           {typeBadge(item.typeBadge, c)}
+                           {statusBadge(item.status, c)}
                         </div>
                         {/* Row 2: provider name + ID */}
                         <div className="ml-6 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
                           <span>
-                            Provider:{" "}
+                             {c("provider", "Provider")}:{" "}
                             <span className="font-medium text-foreground" data-testid={`text-provider-name-${item.id}`}>
                               {item.providerName}
                             </span>
@@ -445,7 +449,7 @@ export function ServicePendingChangesPanel() {
                             data-testid={`button-approve-${item.id}`}
                           >
                             {(approveSvcMut.isPending || approveReqMut.isPending) && <Loader2 className="h-3 w-3 mr-1 animate-spin" />}
-                            {item.isNewService ? "Activate" : "Approve"}
+                             {item.isNewService ? c("activate", "Activate") : c("approve", "Approve")}
                           </Button>
                           <Button
                             size="sm"
@@ -454,7 +458,7 @@ export function ServicePendingChangesPanel() {
                             onClick={() => handleReject(item)}
                             data-testid={`button-reject-${item.id}`}
                           >
-                            Reject
+                             {c("reject", "Reject")}
                           </Button>
                         </div>
                       )}
@@ -478,34 +482,34 @@ export function ServicePendingChangesPanel() {
       <Dialog open={!!approving} onOpenChange={v => !v && setApproving(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Approve &amp; create service</DialogTitle>
+             <DialogTitle>{c("approve_create_service", "Approve & create service")}</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
             <p className="text-sm text-muted-foreground">
-              This creates <strong>"{approving?.name}"</strong> in the catalog and assigns it to the provider.
+               {c("creates_catalog_service", "This creates")} <strong>"{approving?.name}"</strong> {c("assigns_provider", "in the catalog and assigns it to the provider.")}
             </p>
             <div>
-              <label className="text-sm font-medium">Duration (minutes)</label>
+               <label className="text-sm font-medium">{c("duration_minutes", "Duration (minutes)")}</label>
               <Input type="number" min={5} max={480} value={approveForm.duration}
                 onChange={e => setApproveForm({ ...approveForm, duration: e.target.value })}
                 data-testid="input-approve-duration" />
             </div>
             <div>
-              <label className="text-sm font-medium">Final price</label>
+               <label className="text-sm font-medium">{c("final_price", "Final price")}</label>
               <Input type="number" step="0.01" value={approveForm.finalPrice}
                 onChange={e => setApproveForm({ ...approveForm, finalPrice: e.target.value })}
                 data-testid="input-approve-price" />
             </div>
             <div className="grid grid-cols-2 gap-3 rounded-lg border bg-muted/30 p-3">
-              <p className="col-span-2 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Buffer Time</p>
+               <p className="col-span-2 text-xs font-semibold text-muted-foreground uppercase tracking-wide">{c("buffer_time", "Buffer time")}</p>
               <div>
-                <label className="text-xs font-medium">Before (min)</label>
+                 <label className="text-xs font-medium">{c("before_min", "Before (min)")}</label>
                 <Input type="number" min={0} max={60} value={approveForm.bufferBefore}
                   onChange={e => setApproveForm({ ...approveForm, bufferBefore: e.target.value })}
                   data-testid="input-approve-buffer-before" />
               </div>
               <div>
-                <label className="text-xs font-medium">After (min)</label>
+                 <label className="text-xs font-medium">{c("after_min", "After (min)")}</label>
                 <Input type="number" min={0} max={60} value={approveForm.bufferAfter}
                   onChange={e => setApproveForm({ ...approveForm, bufferAfter: e.target.value })}
                   data-testid="input-approve-buffer-after" />
@@ -513,10 +517,10 @@ export function ServicePendingChangesPanel() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setApproving(null)}>Cancel</Button>
+             <Button variant="outline" onClick={() => setApproving(null)}>{c("cancel", "Cancel")}</Button>
             <Button onClick={confirmApproveRequest} disabled={approveReqMut.isPending} data-testid="button-confirm-approve">
               {approveReqMut.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              Approve
+               {c("approve", "Approve")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -526,23 +530,23 @@ export function ServicePendingChangesPanel() {
       <Dialog open={!!rejecting} onOpenChange={v => { if (!v) { setRejecting(null); setRejectionReason(""); } }}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Reject request — {rejecting?.name}</DialogTitle>
+             <DialogTitle>{c("reject_request", "Reject request")} — {rejecting?.name}</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
-            <p className="text-sm text-muted-foreground">The provider will be notified with this reason.</p>
+           <p className="text-sm text-muted-foreground">{c("provider_notified_reason", "The provider will be notified with this reason.")}</p>
             <div>
-              <label className="text-sm font-medium">Reason</label>
+               <label className="text-sm font-medium">{c("reason", "Reason")}</label>
               <Textarea
                 value={rejectionReason}
                 onChange={e => setRejectionReason(e.target.value)}
                 rows={3}
-                placeholder="Explain why this service request is being rejected…"
+                 placeholder={c("rejection_reason_placeholder", "Explain why this service request is being rejected…")}
                 data-testid="textarea-reject-reason"
               />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => { setRejecting(null); setRejectionReason(""); }}>Cancel</Button>
+           <Button variant="outline" onClick={() => { setRejecting(null); setRejectionReason(""); }}>{c("cancel", "Cancel")}</Button>
             <Button
               variant="destructive"
               onClick={confirmReject}
@@ -550,7 +554,7 @@ export function ServicePendingChangesPanel() {
               data-testid="button-confirm-reject"
             >
               {(rejectSvcMut.isPending || rejectReqMut.isPending) && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              Reject
+               {c("reject", "Reject")}
             </Button>
           </DialogFooter>
         </DialogContent>

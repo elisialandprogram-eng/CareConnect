@@ -1,5 +1,6 @@
 import { formatDate } from "@/lib/datetime";
 import { useState, useMemo, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { useAdminCurrency } from "@/lib/currency";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
@@ -72,6 +73,10 @@ const BENEFIT_KEYS = [
   { key: "free_cancellations",       label: "Free Cancellations", unit: "count", icon: CheckCircle, description: "Number of free cancellations per month" },
 ] as const;
 
+function configText(t: any, key: string, fallback: string, options?: Record<string, unknown>) {
+  return String(t(`admin.config.${key}`, { defaultValue: fallback, ...options }));
+}
+
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
 function fmtDate(iso: string | null) {
@@ -80,13 +85,14 @@ function fmtDate(iso: string | null) {
 }
 
 function statusBadge(status: string) {
+  const { t } = useTranslation();
   const map: Record<string, string> = {
     active:    "bg-green-50 text-green-700",
     pending:   "bg-yellow-50 text-yellow-700",
     expired:   "bg-muted/50 text-muted-foreground",
     cancelled: "bg-red-50 text-red-700",
   };
-  return <Badge variant="outline" className={`text-xs ${map[status] ?? ""}`}>{status}</Badge>;
+  return <Badge variant="outline" className={`text-xs ${map[status] ?? ""}`}>{configText(t, status, status)}</Badge>;
 }
 
 // ── Benefit editor row ─────────────────────────────────────────────────────────
@@ -100,16 +106,17 @@ function BenefitRow({
   onChange: (b: PackageBenefit) => void;
   onRemove: () => void;
 }) {
+  const { t } = useTranslation();
   const meta = BENEFIT_KEYS.find(b => b.key === benefit.benefitKey);
   return (
     <div className="flex items-center gap-2 flex-wrap">
       <Select value={benefit.benefitKey} onValueChange={v => onChange({ ...benefit, benefitKey: v })}>
         <SelectTrigger className="w-56 text-xs">
-          <SelectValue placeholder="Benefit type" />
+           <SelectValue placeholder={configText(t, "benefit_type", "Benefit type")} />
         </SelectTrigger>
         <SelectContent>
-          {BENEFIT_KEYS.map(b => (
-            <SelectItem key={b.key} value={b.key} className="text-xs">{b.label}</SelectItem>
+           {BENEFIT_KEYS.map(b => (
+             <SelectItem key={b.key} value={b.key} className="text-xs">{configText(t, `benefit_${b.key}`, b.label)}</SelectItem>
           ))}
         </SelectContent>
       </Select>
@@ -120,7 +127,7 @@ function BenefitRow({
           className="w-24 text-xs"
           value={benefit.benefitValue}
           onChange={e => onChange({ ...benefit, benefitValue: e.target.value })}
-          placeholder="Value"
+           placeholder={configText(t, "value", "Value")}
           data-testid="input-benefit-value"
         />
         {meta && <span className="text-xs text-muted-foreground">{meta.unit}</span>}
@@ -129,7 +136,7 @@ function BenefitRow({
         className="flex-1 min-w-32 text-xs"
         value={benefit.notes ?? ""}
         onChange={e => onChange({ ...benefit, notes: e.target.value })}
-        placeholder="Notes (optional)"
+         placeholder={configText(t, "notes_optional", "Notes (optional)")}
         data-testid="input-benefit-notes"
       />
       <Button size="sm" variant="ghost" className="text-destructive" onClick={onRemove} data-testid="button-remove-benefit">
@@ -174,6 +181,7 @@ function PackageFormDialog({
 }) {
   const { toast } = useToast();
   const qc = useQueryClient();
+  const { t } = useTranslation();
   const [form, setForm] = useState<PackageFormData>(() =>
     initial
       ? {
@@ -206,7 +214,7 @@ function PackageFormDialog({
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!form.name.trim()) { toast({ title: "Package name is required", variant: "destructive" }); return; }
+    if (!form.name.trim()) { toast({ title: configText(t, "package_name_required", "Package name is required"), variant: "destructive" }); return; }
     setLoading(true);
     try {
       const payload = {
@@ -221,15 +229,15 @@ function PackageFormDialog({
       };
       if (initial) {
         await apiRequest("PATCH", `/api/admin/packages/${initial.id}`, payload);
-        toast({ title: "Package updated" });
+        toast({ title: configText(t, "package_updated", "Package updated") });
       } else {
         await apiRequest("POST", "/api/admin/packages", payload);
-        toast({ title: "Package created" });
+        toast({ title: configText(t, "package_created", "Package created") });
       }
       qc.invalidateQueries({ queryKey: ["/api/admin/packages"] });
       onSaved();
     } catch (err: any) {
-      toast({ title: err?.message ?? "Failed to save package", variant: "destructive" });
+      toast({ title: err?.message ?? configText(t, "save_package_failed", "Failed to save package"), variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -239,24 +247,24 @@ function PackageFormDialog({
     <Dialog open={open} onOpenChange={v => { if (!v) onClose(); }}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" data-testid="dialog-package-form">
         <DialogHeader>
-          <DialogTitle>{initial ? "Edit Package" : "Create Package"}</DialogTitle>
+          <DialogTitle>{initial ? configText(t, "edit_package", "Edit package") : configText(t, "create_package", "Create package")}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 py-2">
           <div className="grid grid-cols-2 gap-3">
             <div className="col-span-2 space-y-1">
-              <Label>Package Name *</Label>
-              <Input data-testid="input-pkg-name" value={form.name} onChange={e => setField("name", e.target.value)} placeholder="e.g. Premium Care Plan" />
+              <Label>{configText(t, "package_name", "Package name")} *</Label>
+              <Input data-testid="input-pkg-name" value={form.name} onChange={e => setField("name", e.target.value)} placeholder={configText(t, "package_name_placeholder", "e.g. Premium Care Plan")} />
             </div>
             <div className="col-span-2 space-y-1">
-              <Label>Description</Label>
-              <Textarea data-testid="input-pkg-desc" value={form.description} onChange={e => setField("description", e.target.value)} placeholder="What does this package offer?" rows={2} />
+              <Label>{configText(t, "description", "Description")}</Label>
+              <Textarea data-testid="input-pkg-desc" value={form.description} onChange={e => setField("description", e.target.value)} placeholder={configText(t, "package_description_placeholder", "What does this package offer?")} rows={2} />
             </div>
             <div className="space-y-1">
-              <Label>Price</Label>
+              <Label>{configText(t, "price", "Price")}</Label>
               <Input data-testid="input-pkg-price" type="number" min="0" step="0.01" value={form.price} onChange={e => setField("price", e.target.value)} />
             </div>
             <div className="space-y-1">
-              <Label>Currency</Label>
+              <Label>{configText(t, "currency", "Currency")}</Label>
               <Select value={form.currency} onValueChange={v => setField("currency", v)}>
                 <SelectTrigger data-testid="select-pkg-currency"><SelectValue /></SelectTrigger>
                 <SelectContent>
@@ -268,37 +276,37 @@ function PackageFormDialog({
               </Select>
             </div>
             <div className="space-y-1">
-              <Label>Duration (days)</Label>
+              <Label>{configText(t, "duration_days", "Duration (days)")}</Label>
               <Input data-testid="input-pkg-duration" type="number" min="1" value={form.durationDays} onChange={e => setField("durationDays", Number(e.target.value))} />
             </div>
             <div className="space-y-1">
-              <Label>Target User</Label>
+              <Label>{configText(t, "target_user", "Target user")}</Label>
               <Select value={form.targetUserType} onValueChange={v => setField("targetUserType", v)}>
                 <SelectTrigger data-testid="select-pkg-target"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="patient">Members</SelectItem>
-                  <SelectItem value="provider">Providers</SelectItem>
-                  <SelectItem value="both">Both</SelectItem>
+                  <SelectItem value="patient">{configText(t, "members", "Members")}</SelectItem>
+                  <SelectItem value="provider">{configText(t, "providers", "Providers")}</SelectItem>
+                  <SelectItem value="both">{configText(t, "both", "Both")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-1">
-              <Label>Country Scope</Label>
+              <Label>{configText(t, "country_scope", "Country scope")}</Label>
               <Select value={form.countryCode || "__global__"} onValueChange={v => setField("countryCode", v === "__global__" ? "" : v)}>
                 <SelectTrigger data-testid="select-pkg-country"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="__global__">Global (all countries)</SelectItem>
-                  <SelectItem value="HU">Hungary (HU)</SelectItem>
-                  <SelectItem value="IR">Iran (IR)</SelectItem>
+                  <SelectItem value="__global__">{configText(t, "global_all_countries", "Global (all countries)")}</SelectItem>
+                  <SelectItem value="HU">{configText(t, "hungary", "Hungary")} (HU)</SelectItem>
+                  <SelectItem value="IR">{configText(t, "iran", "Iran")} (IR)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-1">
-              <Label>Max Purchases (leave blank = unlimited)</Label>
-              <Input data-testid="input-pkg-max" type="number" min="1" value={form.maxPurchases} onChange={e => setField("maxPurchases", e.target.value)} placeholder="Unlimited" />
+              <Label>{configText(t, "max_purchases", "Max purchases (leave blank = unlimited)")}</Label>
+              <Input data-testid="input-pkg-max" type="number" min="1" value={form.maxPurchases} onChange={e => setField("maxPurchases", e.target.value)} placeholder={configText(t, "unlimited", "Unlimited")} />
             </div>
             <div className="space-y-1">
-              <Label>Sort Order</Label>
+              <Label>{configText(t, "sort_order", "Sort order")}</Label>
               <Input data-testid="input-pkg-sort" type="number" value={form.sortOrder} onChange={e => setField("sortOrder", Number(e.target.value))} />
             </div>
             <div className="flex items-center gap-2 pt-4">
@@ -307,20 +315,20 @@ function PackageFormDialog({
                 onCheckedChange={v => setField("isActive", v)}
                 data-testid="switch-pkg-active"
               />
-              <Label>Active</Label>
+               <Label>{configText(t, "active", "Active")}</Label>
             </div>
           </div>
 
           {/* Benefits */}
           <div className="space-y-2 pt-2 border-t">
             <div className="flex items-center justify-between">
-              <Label className="text-sm font-semibold">Benefits</Label>
+              <Label className="text-sm font-semibold">{configText(t, "benefits", "Benefits")}</Label>
               <Button type="button" size="sm" variant="outline" onClick={addBenefit} data-testid="button-add-benefit">
-                <Plus className="h-3.5 w-3.5 mr-1" /> Add Benefit
+                <Plus className="h-3.5 w-3.5 mr-1" /> {configText(t, "add_benefit", "Add benefit")}
               </Button>
             </div>
             {form.benefits.length === 0 && (
-              <p className="text-xs text-muted-foreground py-2">No benefits added yet.</p>
+              <p className="text-xs text-muted-foreground py-2">{configText(t, "no_benefits", "No benefits added yet.")}</p>
             )}
             <div className="space-y-2">
               {form.benefits.map((b, i) => (
@@ -339,9 +347,9 @@ function PackageFormDialog({
           </div>
 
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
+            <Button type="button" variant="outline" onClick={onClose}>{configText(t, "cancel", "Cancel")}</Button>
             <Button type="submit" disabled={loading} data-testid="button-save-package">
-              {loading ? "Saving…" : initial ? "Save Changes" : "Create Package"}
+              {loading ? configText(t, "saving", "Saving…") : initial ? configText(t, "save_changes", "Save changes") : configText(t, "create_package", "Create package")}
             </Button>
           </DialogFooter>
         </form>
@@ -355,6 +363,8 @@ function PackageFormDialog({
 export default function PackageManagement() {
   const { toast } = useToast();
   const qc = useQueryClient();
+  const { t } = useTranslation();
+  const c = (key: string, fallback: string, options?: Record<string, unknown>) => configText(t, key, fallback, options);
   const { format: fmtMoney } = useAdminCurrency();
   const [tab, setTab] = useState("packages");
   const [search, setSearch] = useState("");
@@ -382,37 +392,37 @@ export default function PackageManagement() {
       const res = await apiRequest("DELETE", `/api/admin/packages/${id}`);
       if (res.status === 409) {
         const body = await res.json();
-        throw new Error(body.message ?? "Cannot delete — package has subscribers");
+        throw new Error(body.message ?? c("cannot_delete_subscribers", "Cannot delete — package has subscribers"));
       }
     },
-    onSuccess: () => { toast({ title: "Package deleted" }); qc.invalidateQueries({ queryKey: ["/api/admin/packages"] }); setDeleteTarget(null); },
-    onError: (e: any) => toast({ title: e?.message ?? "Failed to delete", variant: "destructive", duration: 7000 }),
+    onSuccess: () => { toast({ title: c("package_deleted", "Package deleted") }); qc.invalidateQueries({ queryKey: ["/api/admin/packages"] }); setDeleteTarget(null); },
+    onError: (e: any) => toast({ title: e?.message ?? c("delete_failed", "Failed to delete"), variant: "destructive", duration: 7000 }),
   });
 
   const cloneMutation = useMutation({
     mutationFn: (id: string) => apiRequest("POST", `/api/admin/packages/${id}/clone`, {}),
-    onSuccess: () => { toast({ title: "Package cloned" }); qc.invalidateQueries({ queryKey: ["/api/admin/packages"] }); setCloneTarget(null); },
-    onError: (e: any) => toast({ title: e?.message ?? "Failed to clone", variant: "destructive" }),
+    onSuccess: () => { toast({ title: c("package_cloned", "Package cloned") }); qc.invalidateQueries({ queryKey: ["/api/admin/packages"] }); setCloneTarget(null); },
+    onError: (e: any) => toast({ title: e?.message ?? c("clone_failed", "Failed to clone"), variant: "destructive" }),
   });
 
   const toggleActiveMutation = useMutation({
     mutationFn: ({ id, isActive }: { id: string; isActive: boolean }) =>
       apiRequest("PATCH", `/api/admin/packages/${id}`, { isActive }),
     onSuccess: (_data, vars) => {
-      toast({ title: vars.isActive ? "Package restored — now visible to new users" : "Package archived — existing subscribers keep access" });
+      toast({ title: vars.isActive ? c("package_restored", "Package restored — now visible to new users") : c("package_archived", "Package archived — existing subscribers keep access") });
       qc.invalidateQueries({ queryKey: ["/api/admin/packages"] });
     },
-    onError: (e: any) => toast({ title: e?.message ?? "Failed", variant: "destructive" }),
+    onError: (e: any) => toast({ title: e?.message ?? c("failed", "Failed"), variant: "destructive" }),
   });
 
   const disableAllMutation = useMutation({
     mutationFn: () => apiRequest("POST", "/api/admin/packages/disable-all-active", {}).then(r => r.json()),
     onSuccess: (data: { disabled: number }) => {
-      toast({ title: `${data.disabled} package${data.disabled !== 1 ? "s" : ""} disabled — existing subscribers keep access until expiry` });
+      toast({ title: c("packages_disabled", `${data.disabled} package${data.disabled !== 1 ? "s" : ""} disabled — existing subscribers keep access until expiry`, { count: data.disabled }) });
       qc.invalidateQueries({ queryKey: ["/api/admin/packages"] });
       setShowDisableAll(false);
     },
-    onError: (e: any) => toast({ title: e?.message ?? "Failed", variant: "destructive" }),
+    onError: (e: any) => toast({ title: e?.message ?? c("failed", "Failed"), variant: "destructive" }),
   });
 
   const activeCount = packages.filter(p => p.isActive).length;
@@ -480,10 +490,10 @@ export default function PackageManagement() {
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
-          { label: "Total Packages",    value: stats.total,    icon: ShoppingBag },
-          { label: "Active",            value: stats.active,   icon: CheckCircle },
-          { label: "Member Packages",  value: stats.patient,  icon: Users },
-          { label: "Provider Packages", value: stats.provider, icon: Shield },
+          { label: c("total_packages", "Total packages"),    value: stats.total,    icon: ShoppingBag },
+          { label: c("active", "Active"),            value: stats.active,   icon: CheckCircle },
+          { label: c("member_packages", "Member packages"),  value: stats.patient,  icon: Users },
+          { label: c("provider_packages", "Provider packages"), value: stats.provider, icon: Shield },
         ].map(s => (
           <Card key={s.label}>
             <CardContent className="pt-4 pb-3 flex items-center gap-3">
@@ -499,8 +509,8 @@ export default function PackageManagement() {
 
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList>
-          <TabsTrigger value="packages" data-testid="tab-pkg-list">Packages</TabsTrigger>
-          <TabsTrigger value="purchases" data-testid="tab-pkg-purchases">Purchases</TabsTrigger>
+           <TabsTrigger value="packages" data-testid="tab-pkg-list">{c("packages", "Packages")}</TabsTrigger>
+           <TabsTrigger value="purchases" data-testid="tab-pkg-purchases">{c("purchases", "Purchases")}</TabsTrigger>
         </TabsList>
 
         {/* ── Packages list ── */}
@@ -508,7 +518,7 @@ export default function PackageManagement() {
           <div className="flex items-center justify-between gap-3 flex-wrap">
             <div className="flex items-center gap-2 flex-wrap">
               <Input
-                placeholder="Search packages…"
+                 placeholder={c("search_packages", "Search packages…")}
                 className="w-48"
                 value={search}
                 onChange={e => setSearch(e.target.value)}
@@ -516,23 +526,23 @@ export default function PackageManagement() {
               />
               <Select value={filterCountry} onValueChange={setFilterCountry}>
                 <SelectTrigger className="w-36" data-testid="select-filter-country">
-                  <SelectValue placeholder="Country" />
+                   <SelectValue placeholder={c("country", "Country")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Countries</SelectItem>
-                  <SelectItem value="global">Global</SelectItem>
-                  <SelectItem value="HU">Hungary</SelectItem>
-                  <SelectItem value="IR">Iran</SelectItem>
+                   <SelectItem value="all">{c("all_countries", "All countries")}</SelectItem>
+                   <SelectItem value="global">{c("global", "Global")}</SelectItem>
+                   <SelectItem value="HU">{c("hungary", "Hungary")}</SelectItem>
+                   <SelectItem value="IR">{c("iran", "Iran")}</SelectItem>
                 </SelectContent>
               </Select>
               <Select value={filterTarget} onValueChange={setFilterTarget}>
                 <SelectTrigger className="w-36" data-testid="select-filter-target">
-                  <SelectValue placeholder="Target" />
+                   <SelectValue placeholder={c("target", "Target")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Users</SelectItem>
-                  <SelectItem value="patient">Members</SelectItem>
-                  <SelectItem value="provider">Providers</SelectItem>
+                   <SelectItem value="all">{c("all_users", "All users")}</SelectItem>
+                   <SelectItem value="patient">{c("members", "Members")}</SelectItem>
+                   <SelectItem value="provider">{c("providers", "Providers")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -545,11 +555,11 @@ export default function PackageManagement() {
                   data-testid="button-disable-all-active"
                 >
                   <XCircle className="h-4 w-4 mr-1.5" />
-                  Disable All Active ({activeCount})
+                   {c("disable_all_active", "Disable all active")} ({activeCount})
                 </Button>
               )}
               <Button onClick={() => { setEditPkg(null); setShowForm(true); }} data-testid="button-create-package">
-                <Plus className="h-4 w-4 mr-1.5" /> New Package
+                 <Plus className="h-4 w-4 mr-1.5" /> {c("new_package", "New package")}
               </Button>
             </div>
           </div>
@@ -558,7 +568,7 @@ export default function PackageManagement() {
           {someSelected && (
             <div className="flex items-center gap-3 px-4 py-2.5 rounded-lg border bg-primary/5 border-primary/20" data-testid="bulk-toolbar">
               <SquareCheck className="h-4 w-4 text-primary shrink-0" />
-              <span className="text-sm font-medium text-primary">{selectedIds.size} selected</span>
+               <span className="text-sm font-medium text-primary">{selectedIds.size} {c("selected", "selected")}</span>
               <div className="flex items-center gap-2 ml-2">
                 <Button
                   size="sm" variant="outline"
@@ -568,7 +578,7 @@ export default function PackageManagement() {
                   data-testid="button-bulk-archive"
                 >
                   <Archive className="h-3.5 w-3.5 mr-1" />
-                  Archive {selectedIds.size > 1 ? `${selectedIds.size} packages` : "package"}
+                   {c("archive", "Archive")} {selectedIds.size > 1 ? `${selectedIds.size} ${c("packages", "packages")}` : c("package", "package")}
                 </Button>
                 <Button
                   size="sm" variant="outline"
@@ -578,7 +588,7 @@ export default function PackageManagement() {
                   data-testid="button-bulk-restore"
                 >
                   <ArchiveRestore className="h-3.5 w-3.5 mr-1" />
-                  Restore {selectedIds.size > 1 ? `${selectedIds.size} packages` : "package"}
+                   {c("restore", "Restore")} {selectedIds.size > 1 ? `${selectedIds.size} ${c("packages", "packages")}` : c("package", "package")}
                 </Button>
               </div>
               <Button
@@ -587,7 +597,7 @@ export default function PackageManagement() {
                 onClick={() => setSelectedIds(new Set())}
                 data-testid="button-clear-selection"
               >
-                Clear
+                 {c("clear", "Clear")}
               </Button>
             </div>
           )}
@@ -602,27 +612,27 @@ export default function PackageManagement() {
                         <Checkbox
                           checked={allFilteredSelected}
                           onCheckedChange={toggleSelectAll}
-                          aria-label="Select all"
+                           aria-label={c("select_all", "Select all")}
                           data-testid="checkbox-select-all"
                         />
                       </TableHead>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Scope</TableHead>
-                      <TableHead>Target</TableHead>
-                      <TableHead>Price</TableHead>
-                      <TableHead>Duration</TableHead>
-                      <TableHead>Benefits</TableHead>
-                      <TableHead>Purchases</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
+                       <TableHead>{c("name", "Name")}</TableHead>
+                       <TableHead>{c("scope", "Scope")}</TableHead>
+                       <TableHead>{c("target", "Target")}</TableHead>
+                       <TableHead>{c("price", "Price")}</TableHead>
+                       <TableHead>{c("duration", "Duration")}</TableHead>
+                       <TableHead>{c("benefits", "Benefits")}</TableHead>
+                       <TableHead>{c("purchases", "Purchases")}</TableHead>
+                       <TableHead>{c("status", "Status")}</TableHead>
+                       <TableHead className="text-right">{c("actions", "Actions")}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {isLoading && (
-                      <TableRow><TableCell colSpan={10} className="text-center text-muted-foreground py-8">Loading…</TableCell></TableRow>
+                       <TableRow><TableCell colSpan={10} className="text-center text-muted-foreground py-8">{c("loading", "Loading…")}</TableCell></TableRow>
                     )}
                     {!isLoading && filtered.length === 0 && (
-                      <TableRow><TableCell colSpan={10} className="text-center text-muted-foreground py-8">No packages found.</TableCell></TableRow>
+                       <TableRow><TableCell colSpan={10} className="text-center text-muted-foreground py-8">{c("no_packages", "No packages found.")}</TableCell></TableRow>
                     )}
                     {filtered.map(pkg => (
                       <TableRow key={pkg.id} data-testid={`row-pkg-${pkg.id}`} className={`${!pkg.isActive ? "opacity-60" : ""} ${selectedIds.has(pkg.id) ? "bg-primary/5" : ""}`}>
@@ -643,20 +653,20 @@ export default function PackageManagement() {
                         <TableCell>
                           {pkg.countryCode
                             ? <span className="flex items-center gap-1 text-xs"><MapPin className="h-3 w-3" />{pkg.countryCode}</span>
-                            : <span className="flex items-center gap-1 text-xs text-muted-foreground"><Globe className="h-3 w-3" />Global</span>
+                             : <span className="flex items-center gap-1 text-xs text-muted-foreground"><Globe className="h-3 w-3" />{c("global", "Global")}</span>
                           }
                         </TableCell>
                         <TableCell>
                           <Badge variant="outline" className="text-xs capitalize">{pkg.targetUserType}</Badge>
                         </TableCell>
                         <TableCell className="font-medium text-sm tabular-nums">
-                          {Number(pkg.price) === 0 ? <span className="text-green-600">Free</span> : fmtMoney(pkg.price)}
+                           {Number(pkg.price) === 0 ? <span className="text-green-600">{c("free", "Free")}</span> : fmtMoney(pkg.price)}
                         </TableCell>
                         <TableCell className="text-sm">{pkg.durationDays}d</TableCell>
                         <TableCell>
                           <div className="flex flex-wrap gap-1">
                             {pkg.benefits.length === 0
-                              ? <span className="text-xs text-muted-foreground">None</span>
+                               ? <span className="text-xs text-muted-foreground">{c("none", "None")}</span>
                               : pkg.benefits.map((b, i) => {
                                   const meta = BENEFIT_KEYS.find(bk => bk.key === b.benefitKey);
                                   return (
@@ -671,16 +681,16 @@ export default function PackageManagement() {
                         <TableCell className="text-sm tabular-nums">{pkg.purchaseCount ?? 0}{pkg.maxPurchases ? `/${pkg.maxPurchases}` : ""}</TableCell>
                         <TableCell>
                           {pkg.isActive
-                            ? <Badge className="bg-green-50 text-green-700 border-green-200 text-xs">Active</Badge>
-                            : <Badge variant="outline" className="text-xs text-muted-foreground">Archived</Badge>
+                             ? <Badge className="bg-green-50 text-green-700 border-green-200 text-xs">{c("active", "Active")}</Badge>
+                             : <Badge variant="outline" className="text-xs text-muted-foreground">{c("archived", "Archived")}</Badge>
                           }
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-1">
-                            <Button size="sm" variant="ghost" onClick={() => { setEditPkg(pkg); setShowForm(true); }} data-testid={`button-edit-pkg-${pkg.id}`} title="Edit">
+                            <Button size="sm" variant="ghost" onClick={() => { setEditPkg(pkg); setShowForm(true); }} data-testid={`button-edit-pkg-${pkg.id}`} title={c("edit", "Edit")}>
                               <Pencil className="h-3.5 w-3.5" />
                             </Button>
-                            <Button size="sm" variant="ghost" onClick={() => setCloneTarget(pkg)} data-testid={`button-clone-pkg-${pkg.id}`} title="Clone">
+                            <Button size="sm" variant="ghost" onClick={() => setCloneTarget(pkg)} data-testid={`button-clone-pkg-${pkg.id}`} title={c("clone", "Clone")}>
                               <Copy className="h-3.5 w-3.5" />
                             </Button>
                             {pkg.isActive ? (
@@ -689,7 +699,7 @@ export default function PackageManagement() {
                                 className="text-amber-600 hover:text-amber-700 hover:bg-amber-50"
                                 onClick={() => toggleActiveMutation.mutate({ id: pkg.id, isActive: false })}
                                 data-testid={`button-archive-pkg-${pkg.id}`}
-                                title="Archive (hides from catalog, keeps user access)"
+                                title={c("archive_package_title", "Archive (hides from catalog, keeps user access)")}
                               >
                                 <Archive className="h-3.5 w-3.5" />
                               </Button>
@@ -699,12 +709,12 @@ export default function PackageManagement() {
                                 className="text-green-600 hover:text-green-700 hover:bg-green-50"
                                 onClick={() => toggleActiveMutation.mutate({ id: pkg.id, isActive: true })}
                                 data-testid={`button-restore-pkg-${pkg.id}`}
-                                title="Restore (make visible again)"
+                                title={c("restore_package_title", "Restore (make visible again)")}
                               >
                                 <ArchiveRestore className="h-3.5 w-3.5" />
                               </Button>
                             )}
-                            <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive" onClick={() => setDeleteTarget(pkg)} data-testid={`button-delete-pkg-${pkg.id}`} title="Delete permanently">
+                            <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive" onClick={() => setDeleteTarget(pkg)} data-testid={`button-delete-pkg-${pkg.id}`} title={c("delete_permanently", "Delete permanently")}>
                               <Trash2 className="h-3.5 w-3.5" />
                             </Button>
                           </div>
@@ -722,25 +732,25 @@ export default function PackageManagement() {
         <TabsContent value="purchases" className="pt-4">
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">User Purchases</CardTitle>
-              <CardDescription>All package purchases and their current status.</CardDescription>
+              <CardTitle className="text-base">{c("user_purchases", "User purchases")}</CardTitle>
+              <CardDescription>{c("purchases_desc", "All package purchases and their current status.")}</CardDescription>
             </CardHeader>
             <CardContent className="p-0">
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>User</TableHead>
-                      <TableHead>Package</TableHead>
-                      <TableHead>Price Paid</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Purchased</TableHead>
-                      <TableHead>Expires</TableHead>
+                      <TableHead>{c("user", "User")}</TableHead>
+                      <TableHead>{c("package", "Package")}</TableHead>
+                      <TableHead>{c("price_paid", "Price paid")}</TableHead>
+                      <TableHead>{c("status", "Status")}</TableHead>
+                      <TableHead>{c("purchased", "Purchased")}</TableHead>
+                      <TableHead>{c("expires", "Expires")}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {!purchasesData && <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">Loading…</TableCell></TableRow>}
-                    {purchasesData?.purchases.length === 0 && <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">No purchases yet.</TableCell></TableRow>}
+                    {!purchasesData && <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">{c("loading", "Loading…")}</TableCell></TableRow>}
+                    {purchasesData?.purchases.length === 0 && <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">{c("no_purchases", "No purchases yet.")}</TableCell></TableRow>}
                     {purchasesData?.purchases.map(p => (
                       <TableRow key={p.id} data-testid={`row-purchase-${p.id}`}>
                         <TableCell>
@@ -801,7 +811,7 @@ export default function PackageManagement() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{c("cancel", "Cancel")}</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive hover:bg-destructive/90"
               onClick={() => disableAllMutation.mutate()}
@@ -818,14 +828,14 @@ export default function PackageManagement() {
       <AlertDialog open={!!cloneTarget} onOpenChange={v => { if (!v) setCloneTarget(null); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Clone Package</AlertDialogTitle>
+            <AlertDialogTitle>{c("clone_package", "Clone package")}</AlertDialogTitle>
             <AlertDialogDescription>
               Create a copy of <strong>{cloneTarget?.name}</strong>? The clone will be inactive by default.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={() => cloneTarget && cloneMutation.mutate(cloneTarget.id)} data-testid="button-confirm-clone">Clone</AlertDialogAction>
+            <AlertDialogCancel>{c("cancel", "Cancel")}</AlertDialogCancel>
+            <AlertDialogAction onClick={() => cloneTarget && cloneMutation.mutate(cloneTarget.id)} data-testid="button-confirm-clone">{c("clone", "Clone")}</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -834,7 +844,7 @@ export default function PackageManagement() {
       <AlertDialog open={!!deleteTarget} onOpenChange={v => { if (!v) setDeleteTarget(null); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Package</AlertDialogTitle>
+            <AlertDialogTitle>{c("delete_package", "Delete package")}</AlertDialogTitle>
             <AlertDialogDescription asChild>
               <div className="space-y-3">
                 <p>
@@ -844,19 +854,19 @@ export default function PackageManagement() {
                   <div className="rounded-lg border border-amber-200 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-800 px-4 py-3 flex gap-3">
                     <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
                     <div className="text-sm text-amber-800 dark:text-amber-300 space-y-1">
-                      <p className="font-semibold">{deleteTarget.purchaseCount} user{(deleteTarget.purchaseCount ?? 0) > 1 ? "s have" : " has"} purchased this package.</p>
-                      <p>Deleting is blocked — use <strong>Archive</strong> instead. Archived packages are hidden from the catalog but existing subscribers keep their access until expiry.</p>
+                      <p className="font-semibold">{deleteTarget.purchaseCount} {c("users_purchased", "user(s) have purchased this package.")}</p>
+                      <p>{c("delete_blocked_archive", "Deleting is blocked — use Archive instead. Archived packages are hidden from the catalog but existing subscribers keep their access until expiry.")}</p>
                     </div>
                   </div>
                 )}
                 {deleteTarget && (deleteTarget.purchaseCount ?? 0) === 0 && (
-                  <p className="text-sm text-muted-foreground">No users have purchased this package — it is safe to delete.</p>
+                  <p className="text-sm text-muted-foreground">{c("safe_to_delete", "No users have purchased this package — it is safe to delete.")}</p>
                 )}
               </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{c("cancel", "Cancel")}</AlertDialogCancel>
             {deleteTarget && (deleteTarget.purchaseCount ?? 0) > 0 ? (
               <AlertDialogAction
                 className="bg-amber-600 hover:bg-amber-700"

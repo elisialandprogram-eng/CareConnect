@@ -1,6 +1,7 @@
 import { formatDateTime } from "@/lib/datetime";
 import { formatCount } from "@/lib/format-utils";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { formatInCurrency } from "@/lib/currency";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -113,6 +114,10 @@ function timeAgo(iso: string | null): string {
   return `${Math.floor(hrs / 24)}d ago`;
 }
 
+function configText(t: any, key: string, fallback: string, options?: Record<string, unknown>) {
+  return String(t(`admin.config.${key}`, { defaultValue: fallback, ...options }));
+}
+
 const profileColorClass: Record<string, string> = {
   destructive: "border-red-300 dark:border-red-700 bg-red-50/50 dark:bg-red-950/20",
   amber:       "border-amber-300 dark:border-amber-700 bg-amber-50/50 dark:bg-amber-950/20",
@@ -147,6 +152,7 @@ function StatCard({ label, value, sub, icon: Icon }: { label: string; value: str
 // ── Overview / Snapshot tab ────────────────────────────────────────────────────
 
 function OverviewTab() {
+  const { t } = useTranslation();
   const { data: snapData, isFetching, refetch } = useQuery<{ snapshot: SnapshotData }>({
     queryKey: ["/api/admin/dev/env/snapshot"],
     refetchOnWindowFocus: false,
@@ -163,55 +169,55 @@ function OverviewTab() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="font-semibold text-base">Environment Snapshot</h3>
+          <h3 className="font-semibold text-base">{configText(t, "environment_snapshot", "Environment snapshot")}</h3>
           <p className="text-sm text-muted-foreground">
-            {snap ? `Captured at ${formatDateTime(snap.capturedAt)}` : "Live platform statistics and configuration overview."}
+            {snap ? `${configText(t, "captured_at", "Captured at")} ${formatDateTime(snap.capturedAt)}` : configText(t, "live_platform_overview", "Live platform statistics and configuration overview.")}
           </p>
         </div>
         <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching} data-testid="button-refresh-snapshot">
           <RefreshCw className={`h-4 w-4 mr-2 ${isFetching ? "animate-spin" : ""}`} />
-          Refresh
+          {configText(t, "refresh", "Refresh")}
         </Button>
       </div>
 
       {stats && (
         <>
           <div>
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-3">Users</p>
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-3">{configText(t, "users", "Users")}</p>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <StatCard label="Total Users" value={stats.users.total} icon={User} />
-              <StatCard label="Members" value={stats.users.patients} icon={User} />
-              <StatCard label="Providers" value={stats.users.providers} icon={Stethoscope} />
-              <StatCard label="Admins / Staff" value={stats.users.admins} icon={Shield} />
+               <StatCard label={configText(t, "total_users", "Total users")} value={stats.users.total} icon={User} />
+               <StatCard label={configText(t, "members", "Members")} value={stats.users.patients} icon={User} />
+               <StatCard label={configText(t, "providers", "Providers")} value={stats.users.providers} icon={Stethoscope} />
+               <StatCard label={configText(t, "admins_staff", "Admins / staff")} value={stats.users.admins} icon={Shield} />
             </div>
           </div>
 
           <div>
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-3">Appointments</p>
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-3">{configText(t, "appointments", "Appointments")}</p>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <StatCard label="Total" value={stats.appointments.total} icon={Calendar} />
-              <StatCard label="Upcoming" value={stats.appointments.upcoming} />
-              <StatCard label="Completed" value={stats.appointments.completed} />
-              <StatCard label="Cancelled" value={stats.appointments.cancelled} />
+               <StatCard label={configText(t, "total", "Total")} value={stats.appointments.total} icon={Calendar} />
+               <StatCard label={configText(t, "upcoming", "Upcoming")} value={stats.appointments.upcoming} />
+               <StatCard label={configText(t, "completed", "Completed")} value={stats.appointments.completed} />
+               <StatCard label={configText(t, "cancelled", "Cancelled")} value={stats.appointments.cancelled} />
             </div>
           </div>
 
           <div>
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-3">Platform Content</p>
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-3">{configText(t, "platform_content", "Platform content")}</p>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <StatCard label="Services" value={stats.content.services} icon={BookOpen} />
-              <StatCard label="Categories" value={stats.content.categories} />
-              <StatCard label="Reviews" value={stats.content.reviews} />
-              <StatCard label="Support Tickets" value={stats.content.supportTickets} />
+               <StatCard label={configText(t, "services", "Services")} value={stats.content.services} icon={BookOpen} />
+               <StatCard label={configText(t, "categories", "Categories")} value={stats.content.categories} />
+               <StatCard label={configText(t, "reviews", "Reviews")} value={stats.content.reviews} />
+               <StatCard label={configText(t, "support_tickets", "Support tickets")} value={stats.content.supportTickets} />
             </div>
           </div>
 
           <div>
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-3">Financial</p>
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-3">{configText(t, "financial", "Financial")}</p>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-              <StatCard label="Total Payments" value={stats.financial.totalPayments} icon={Wallet} />
-              <StatCard label="Wallet Balance (USD)" value={formatInCurrency(parseFloat(stats.financial.totalWalletBalance), "USD")} />
-              <StatCard label="Provider Earnings" value={formatInCurrency(parseFloat(stats.financial.totalProviderEarnings), "USD")} />
+               <StatCard label={configText(t, "total_payments", "Total payments")} value={stats.financial.totalPayments} icon={Wallet} />
+               <StatCard label={configText(t, "wallet_balance_usd", "Wallet balance (USD)")} value={formatInCurrency(parseFloat(stats.financial.totalWalletBalance), "USD")} />
+               <StatCard label={configText(t, "provider_earnings", "Provider earnings")} value={formatInCurrency(parseFloat(stats.financial.totalProviderEarnings), "USD")} />
             </div>
           </div>
         </>
@@ -222,9 +228,9 @@ function OverviewTab() {
           <CardHeader>
             <CardTitle className="text-sm flex items-center gap-2">
               <Shield className="h-4 w-4 text-emerald-600" />
-              Configuration Protection — Protected Assets
+              {configText(t, "configuration_protection", "Configuration protection — protected assets")}
             </CardTitle>
-            <CardDescription>These items are preserved across all reset operations.</CardDescription>
+            <CardDescription>{configText(t, "protected_assets_desc", "These items are preserved across all reset operations.")}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
@@ -260,6 +266,7 @@ function OverviewTab() {
 // ── Reset Profiles tab ─────────────────────────────────────────────────────────
 
 function ResetProfilesTab() {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const [selectedProfile, setSelectedProfile] = useState<ResetProfile | null>(null);
   const [preview, setPreview] = useState<ProfilePreview | null>(null);
@@ -281,9 +288,9 @@ function ResetProfilesTab() {
       setPreview(data.preview);
       setUnderstood(false);
       setConfirmText("");
-      toast({ title: "Preview ready", description: `${data.preview.totalRows} rows will be affected.` });
+      toast({ title: configText(t, "preview_ready", "Preview ready"), description: `${data.preview.totalRows} ${configText(t, "rows_will_be_affected", "rows will be affected.")}` });
     },
-    onError: (err: Error) => toast({ title: "Preview failed", description: err.message, variant: "destructive" }),
+    onError: (err: Error) => toast({ title: configText(t, "preview_failed", "Preview failed"), description: err.message, variant: "destructive" }),
   });
 
   const executeMutation = useMutation({
@@ -301,9 +308,9 @@ function ResetProfilesTab() {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/dev/reset/history"] });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/dev/env/snapshot"] });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/dev/env/platform-stats"] });
-      toast({ title: "Profile reset complete", description: `${data.rowsDeleted} rows removed in ${data.durationMs}ms.` });
+      toast({ title: configText(t, "profile_reset_complete", "Profile reset complete"), description: `${data.rowsDeleted} ${configText(t, "rows_removed_in", `rows removed in ${data.durationMs}ms.`, { time: data.durationMs })}` });
     },
-    onError: (err: Error) => toast({ title: "Reset failed", description: err.message, variant: "destructive" }),
+    onError: (err: Error) => toast({ title: configText(t, "reset_failed", "Reset failed"), description: err.message, variant: "destructive" }),
   });
 
   const expectedPhrase = selectedProfile ? `RESET ${selectedProfile.id.toUpperCase()}` : "";
@@ -312,8 +319,8 @@ function ResetProfilesTab() {
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="font-semibold text-base">Reset Profiles</h3>
-        <p className="text-sm text-muted-foreground">Select a targeted reset profile. Each profile shows affected tables and a dry-run preview before any data is deleted.</p>
+        <h3 className="font-semibold text-base">{configText(t, "reset_profiles", "Reset profiles")}</h3>
+        <p className="text-sm text-muted-foreground">{configText(t, "reset_profiles_desc", "Select a targeted reset profile. Each profile shows affected tables and a dry-run preview before any data is deleted.")}</p>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -326,7 +333,7 @@ function ResetProfilesTab() {
           >
             <div className="flex items-start justify-between gap-2">
               <div className="font-medium text-sm">{p.name}</div>
-              <Badge className={`text-xs shrink-0 ${profileBadgeClass[p.color]}`}>{p.affectedTables.length} tables</Badge>
+              <Badge className={`text-xs shrink-0 ${profileBadgeClass[p.color]}`}>{p.affectedTables.length} {configText(t, "tables", "tables")}</Badge>
             </div>
             <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{p.description}</p>
           </button>
@@ -459,6 +466,7 @@ function ResetProfilesTab() {
 // ── Full Reset tab (existing behavior) ────────────────────────────────────────
 
 function FullResetTab() {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const CONFIRMATION_PHRASE = "RESET DATABASE";
   const [previewCounts, setPreviewCounts] = useState<ResetCounts | null>(null);
@@ -517,7 +525,7 @@ function FullResetTab() {
         <CardHeader>
           <div className="flex items-center gap-2">
             <ShieldAlert className="h-5 w-5 text-destructive" />
-            <CardTitle className="text-destructive">Full Non-System Reset</CardTitle>
+            <CardTitle className="text-destructive">{configText(t, "full_non_system_reset", "Full non-system reset")}</CardTitle>
           </div>
           <CardDescription>
             Removes ALL patient, provider, and operational test data.
@@ -527,7 +535,7 @@ function FullResetTab() {
         <CardContent className="space-y-3">
           <div className="rounded-md border border-amber-300 bg-amber-50 dark:border-amber-700 dark:bg-amber-950/30 p-3 text-sm text-amber-800 dark:text-amber-300 flex gap-2">
             <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
-            <span><strong>Destructive and irreversible.</strong> Use targeted Reset Profiles for selective cleanup. This removes all 40+ operational tables.</span>
+            <span>{configText(t, "full_reset_warning", "Destructive and irreversible. Use targeted Reset Profiles for selective cleanup. This removes all 40+ operational tables.")}</span>
           </div>
           <Button variant="outline" onClick={() => previewMutation.mutate()} disabled={previewMutation.isPending}
             data-testid="button-preview-reset" className="w-full">
@@ -544,7 +552,7 @@ function FullResetTab() {
               <Eye className="h-4 w-4" />
               Impact Summary — {formatCount(totalToDelete)} rows
             </CardTitle>
-            <CardDescription>No data has been modified yet.</CardDescription>
+            <CardDescription>{configText(t, "no_data_modified", "No data has been modified yet.")}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-1.5">
             {countEntries.map(({ label, key, danger }) => (
@@ -571,7 +579,7 @@ function FullResetTab() {
               <input type="checkbox" id="full-understood" checked={understood} onChange={(e) => setUnderstood(e.target.checked)}
                 className="mt-1 h-4 w-4 cursor-pointer accent-destructive" data-testid="checkbox-understood" />
               <Label htmlFor="full-understood" className="text-sm leading-snug cursor-pointer">
-                I understand this operation is <strong>destructive and cannot be undone</strong>.
+                {configText(t, "destructive_warning", "I understand this operation is destructive and cannot be undone.")}
               </Label>
             </div>
             <div className="space-y-1.5">
@@ -581,7 +589,7 @@ function FullResetTab() {
               <Input value={confirmText} onChange={(e) => setConfirmText(e.target.value)}
                 placeholder={CONFIRMATION_PHRASE} className="font-mono" data-testid="input-confirmation-phrase" autoComplete="off" />
               {confirmText === CONFIRMATION_PHRASE && (
-                <p className="text-xs text-emerald-600 flex items-center gap-1"><CheckCircle2 className="h-3 w-3" /> Phrase confirmed</p>
+                <p className="text-xs text-emerald-600 flex items-center gap-1"><CheckCircle2 className="h-3 w-3" /> {configText(t, "phrase_confirmed", "Phrase confirmed")}</p>
               )}
             </div>
             <Button variant="destructive" className="w-full" disabled={!canExecute} onClick={() => executeMutation.mutate()} data-testid="button-execute-reset">
@@ -620,6 +628,7 @@ function FullResetTab() {
 // ── Test Data Detection tab ────────────────────────────────────────────────────
 
 function TestDataTab() {
+  const { t } = useTranslation();
   const { data, isFetching, refetch } = useQuery<{ report: TestDataReport }>({
     queryKey: ["/api/admin/dev/env/test-data"],
     refetchOnWindowFocus: false,
@@ -630,8 +639,8 @@ function TestDataTab() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="font-semibold text-base">Test Data Detection</h3>
-          <p className="text-sm text-muted-foreground">Automatically identifies seeded, demo, and dummy accounts by email pattern.</p>
+          <h3 className="font-semibold text-base">{configText(t, "test_data_detection", "Test data detection")}</h3>
+          <p className="text-sm text-muted-foreground">{configText(t, "test_data_desc", "Automatically identifies seeded, demo, and dummy accounts by email pattern.")}</p>
         </div>
         <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching} data-testid="button-refresh-testdata">
           <RefreshCw className={`h-4 w-4 mr-2 ${isFetching ? "animate-spin" : ""}`} />
@@ -644,38 +653,38 @@ function TestDataTab() {
           <div className="grid grid-cols-3 gap-3">
             <div className="rounded-lg border bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800 p-4 text-center">
               <div className="text-2xl font-bold text-green-700 dark:text-green-400">{report.classification.safeToDelete}</div>
-              <div className="text-xs text-muted-foreground mt-1">Safe to Delete</div>
+              <div className="text-xs text-muted-foreground mt-1">{configText(t, "safe_to_delete", "Safe to delete")}</div>
             </div>
             <div className="rounded-lg border bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800 p-4 text-center">
               <div className="text-2xl font-bold text-amber-700 dark:text-amber-400">{report.classification.reviewRequired}</div>
-              <div className="text-xs text-muted-foreground mt-1">Review Required</div>
+              <div className="text-xs text-muted-foreground mt-1">{configText(t, "review_required", "Review required")}</div>
             </div>
             <div className="rounded-lg border bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800 p-4 text-center">
               <div className="text-2xl font-bold text-blue-700 dark:text-blue-400">{report.classification.protected}</div>
-              <div className="text-xs text-muted-foreground mt-1">Protected</div>
+              <div className="text-xs text-muted-foreground mt-1">{configText(t, "protected", "Protected")}</div>
             </div>
           </div>
 
           {report.seededUsers.length === 0 ? (
             <div className="rounded-lg border bg-emerald-50 dark:bg-emerald-950/20 p-6 text-center">
               <CheckCircle2 className="h-8 w-8 text-emerald-600 mx-auto mb-2" />
-              <p className="text-sm font-medium text-emerald-700 dark:text-emerald-400">No test data detected</p>
-              <p className="text-xs text-muted-foreground mt-1">No accounts matched test/demo/uat/seed email patterns.</p>
+              <p className="text-sm font-medium text-emerald-700 dark:text-emerald-400">{configText(t, "no_test_data", "No test data detected")}</p>
+              <p className="text-xs text-muted-foreground mt-1">{configText(t, "no_test_data_desc", "No accounts matched test/demo/uat/seed email patterns.")}</p>
             </div>
           ) : (
             <Card>
               <CardHeader>
                 <CardTitle className="text-sm">Detected Test Users ({report.totalTestUsers})</CardTitle>
-                <CardDescription>Matched by email pattern: test, demo, uat, seed, fake, dummy, example.com</CardDescription>
+                <CardDescription>{configText(t, "matched_email_pattern", "Matched by email pattern: test, demo, uat, seed, fake, dummy, example.com")}</CardDescription>
               </CardHeader>
               <CardContent>
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Email</TableHead>
-                      <TableHead>Role</TableHead>
-                      <TableHead>Created</TableHead>
-                      <TableHead>Status</TableHead>
+                      <TableHead>{configText(t, "email", "Email")}</TableHead>
+                      <TableHead>{configText(t, "role", "Role")}</TableHead>
+                      <TableHead>{configText(t, "created", "Created")}</TableHead>
+                      <TableHead>{configText(t, "status", "Status")}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -712,9 +721,9 @@ function TestDataTab() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Provider ID</TableHead>
-                      <TableHead>Clinic / Name</TableHead>
-                      <TableHead>Status</TableHead>
+                      <TableHead>{configText(t, "provider_id", "Provider ID")}</TableHead>
+                      <TableHead>{configText(t, "clinic_name", "Clinic / name")}</TableHead>
+                      <TableHead>{configText(t, "status", "Status")}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -733,7 +742,7 @@ function TestDataTab() {
 
           <div className="rounded-md bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 p-3 flex gap-2 text-sm text-blue-700 dark:text-blue-300">
             <Info className="h-4 w-4 mt-0.5 shrink-0" />
-            <span>To remove detected test data, use the <strong>Reset Profiles</strong> tab — select Member Data Reset or Provider Data Reset.</span>
+            <span>{configText(t, "remove_test_data_hint", "To remove detected test data, use the Reset Profiles tab — select Member Data Reset or Provider Data Reset.")}</span>
           </div>
         </>
       )}
@@ -744,6 +753,7 @@ function TestDataTab() {
 // ── DB Health tab ──────────────────────────────────────────────────────────────
 
 function DbHealthTab() {
+  const { t } = useTranslation();
   const { data, isFetching, refetch } = useQuery<DbHealthData>({
     queryKey: ["/api/admin/dev/env/db-health"],
     refetchOnWindowFocus: false,
@@ -753,8 +763,8 @@ function DbHealthTab() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="font-semibold text-base">Database Health</h3>
-          <p className="text-sm text-muted-foreground">Table sizes, row counts, cache hit rates, and unused indexes.</p>
+          <h3 className="font-semibold text-base">{configText(t, "database_health", "Database health")}</h3>
+          <p className="text-sm text-muted-foreground">{configText(t, "database_health_desc", "Table sizes, row counts, cache hit rates, and unused indexes.")}</p>
         </div>
         <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching} data-testid="button-refresh-dbhealth">
           <RefreshCw className={`h-4 w-4 mr-2 ${isFetching ? "animate-spin" : ""}`} />
@@ -783,12 +793,12 @@ function DbHealthTab() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Table</TableHead>
-                    <TableHead className="text-right">Live Rows</TableHead>
-                    <TableHead className="text-right">Dead Rows</TableHead>
-                    <TableHead className="text-right">Total Size</TableHead>
-                    <TableHead className="text-right">Index Size</TableHead>
-                    <TableHead>Last Vacuum</TableHead>
+                    <TableHead>{configText(t, "table", "Table")}</TableHead>
+                    <TableHead className="text-right">{configText(t, "live_rows", "Live rows")}</TableHead>
+                    <TableHead className="text-right">{configText(t, "dead_rows", "Dead rows")}</TableHead>
+                    <TableHead className="text-right">{configText(t, "total_size", "Total size")}</TableHead>
+                    <TableHead className="text-right">{configText(t, "index_size", "Index size")}</TableHead>
+                    <TableHead>{configText(t, "last_vacuum", "Last vacuum")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -816,15 +826,15 @@ function DbHealthTab() {
                   <AlertTriangle className="h-4 w-4 text-amber-500" />
                   Low-Usage Indexes ({data.unusedIndexes.length})
                 </CardTitle>
-                <CardDescription>Indexes with fewer than 5 scans since last statistics reset. Review before dropping.</CardDescription>
+                <CardDescription>{configText(t, "unused_indexes_desc", "Indexes with fewer than 5 scans since last statistics reset. Review before dropping.")}</CardDescription>
               </CardHeader>
               <CardContent>
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Table</TableHead>
-                      <TableHead>Index</TableHead>
-                      <TableHead className="text-right">Scans</TableHead>
+                      <TableHead>{configText(t, "table", "Table")}</TableHead>
+                      <TableHead>{configText(t, "index", "Index")}</TableHead>
+                      <TableHead className="text-right">{configText(t, "scans", "Scans")}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -849,6 +859,7 @@ function DbHealthTab() {
 // ── Audit Log tab ──────────────────────────────────────────────────────────────
 
 function AuditLogTab() {
+  const { t } = useTranslation();
   const { data, isFetching, refetch } = useQuery<{ history: HistoryRow[] }>({
     queryKey: ["/api/admin/dev/reset/history"],
     refetchOnWindowFocus: false,
@@ -858,8 +869,8 @@ function AuditLogTab() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="font-semibold text-base">Reset Audit Log</h3>
-          <p className="text-sm text-muted-foreground">Every reset operation logged with admin, timestamp, profile, and row counts.</p>
+          <h3 className="font-semibold text-base">{configText(t, "reset_audit_log", "Reset audit log")}</h3>
+          <p className="text-sm text-muted-foreground">{configText(t, "reset_audit_log_desc", "Every reset operation logged with admin, timestamp, profile, and row counts.")}</p>
         </div>
         <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching} data-testid="button-refresh-audit">
           <RefreshCw className={`h-4 w-4 mr-2 ${isFetching ? "animate-spin" : ""}`} />
@@ -870,7 +881,7 @@ function AuditLogTab() {
       {data?.history.length === 0 && (
         <div className="rounded-lg border bg-muted/30 p-8 text-center">
           <FileText className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-          <p className="text-sm text-muted-foreground">No reset operations recorded yet.</p>
+          <p className="text-sm text-muted-foreground">{configText(t, "no_reset_operations", "No reset operations recorded yet.")}</p>
         </div>
       )}
 
@@ -880,10 +891,10 @@ function AuditLogTab() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Action</TableHead>
-                  <TableHead>Admin</TableHead>
-                  <TableHead>Details</TableHead>
-                  <TableHead>When</TableHead>
+                  <TableHead>{configText(t, "action", "Action")}</TableHead>
+                  <TableHead>{configText(t, "admin", "Admin")}</TableHead>
+                  <TableHead>{configText(t, "details", "Details")}</TableHead>
+                  <TableHead>{configText(t, "when", "When")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -924,40 +935,41 @@ function AuditLogTab() {
 // ── Main Console ───────────────────────────────────────────────────────────────
 
 export function EnvironmentManagementConsole() {
+  const { t } = useTranslation();
   return (
     <div className="space-y-4">
       <div className="mb-2">
         <h2 className="text-xl font-semibold flex items-center gap-2">
           <Server className="h-5 w-5" />
-          Environment Management
+          {configText(t, "environment_management", "Environment management")}
         </h2>
         <p className="text-sm text-muted-foreground mt-1">
-          Reset, clean, audit, and monitor the platform environment. All operations preserve protected configuration and admin accounts.
+          {configText(t, "environment_management_desc", "Reset, clean, audit, and monitor the platform environment. All operations preserve protected configuration and admin accounts.")}
         </p>
       </div>
 
       <Tabs defaultValue="overview">
         <TabsList className="flex flex-wrap h-auto gap-1 mb-4 w-full justify-start">
           <TabsTrigger value="overview" data-testid="tab-overview" className="flex items-center gap-1.5">
-            <BarChart3 className="h-3.5 w-3.5" /> Overview
+            <BarChart3 className="h-3.5 w-3.5" /> {configText(t, "overview", "Overview")}
           </TabsTrigger>
           <TabsTrigger value="profiles" data-testid="tab-profiles" className="flex items-center gap-1.5">
-            <Database className="h-3.5 w-3.5" /> Reset Profiles
+            <Database className="h-3.5 w-3.5" /> {configText(t, "reset_profiles", "Reset profiles")}
           </TabsTrigger>
           <TabsTrigger value="full-reset" data-testid="tab-full-reset" className="flex items-center gap-1.5">
-            <ShieldAlert className="h-3.5 w-3.5" /> Full Reset
+            <ShieldAlert className="h-3.5 w-3.5" /> {configText(t, "full_reset", "Full reset")}
           </TabsTrigger>
           <TabsTrigger value="demo-data" data-testid="tab-demo-data" className="flex items-center gap-1.5">
-            <Sprout className="h-3.5 w-3.5" /> Demo Data
+            <Sprout className="h-3.5 w-3.5" /> {configText(t, "demo_data", "Demo data")}
           </TabsTrigger>
           <TabsTrigger value="test-data" data-testid="tab-test-data" className="flex items-center gap-1.5">
-            <Search className="h-3.5 w-3.5" /> Test Data
+            <Search className="h-3.5 w-3.5" /> {configText(t, "test_data", "Test data")}
           </TabsTrigger>
           <TabsTrigger value="db-health" data-testid="tab-db-health" className="flex items-center gap-1.5">
-            <Activity className="h-3.5 w-3.5" /> DB Health
+            <Activity className="h-3.5 w-3.5" /> {configText(t, "db_health", "DB health")}
           </TabsTrigger>
           <TabsTrigger value="audit-log" data-testid="tab-audit-log" className="flex items-center gap-1.5">
-            <Clock className="h-3.5 w-3.5" /> Audit Log
+            <Clock className="h-3.5 w-3.5" /> {configText(t, "audit_log", "Audit log")}
           </TabsTrigger>
         </TabsList>
 

@@ -169,7 +169,7 @@ function AddAdminDialog({
                 type={showPass ? "text" : "password"}
                 value={form.password}
                 onChange={e => set("password", e.target.value)}
-                placeholder="Secure password"
+                 placeholder={t("admin.config.secure_password", "Secure password")}
                 className="pr-10"
               />
               <button
@@ -234,7 +234,7 @@ function AddAdminDialog({
               data-testid="input-admin-notes"
               value={form.notes}
               onChange={e => set("notes", e.target.value)}
-              placeholder="Reason for access, team, reporting line, etc."
+               placeholder={t("admin.config.access_reason_placeholder", "Reason for access, team, reporting line, etc.")}
               rows={2}
             />
           </div>
@@ -375,7 +375,7 @@ export default function AdminAccessPanel() {
       qc.invalidateQueries({ queryKey: ["/api/admin/admin-users"] });
       setToggleTarget(null);
     },
-    onError: (e: any) => toast({ title: e?.message ?? "Failed", variant: "destructive" }),
+     onError: (e: any) => toast({ title: e?.message ?? t("admin.config.failed", "Failed"), variant: "destructive" }),
   });
 
   const filtered = useMemo(() => {
@@ -398,9 +398,9 @@ export default function AdminAccessPanel() {
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-4">
           {[
-            { label: "Total Admins", value: stats.total },
-            { label: "Active",       value: stats.active },
-            { label: "Roles",        value: stats.roles },
+             { label: t("admin.config.total_admins", "Total admins"), value: stats.total },
+             { label: t("admin.config.active", "Active"),       value: stats.active },
+             { label: t("admin.roles", "Roles"),        value: stats.roles },
           ].map(s => (
             <div key={s.label} className="text-center">
               <p className="text-2xl font-bold tabular-nums" data-testid={`stat-rbac-${s.label.toLowerCase()}`}>{s.value}</p>
@@ -489,8 +489,8 @@ export default function AdminAccessPanel() {
                           <TableCell className="text-xs text-muted-foreground">{fmtDate(u.last_login_at)}</TableCell>
                           <TableCell>
                             {isActive
-                              ? <span className="flex items-center gap-1 text-xs text-green-600"><CheckCircle className="h-3.5 w-3.5" />Active</span>
-                              : <span className="flex items-center gap-1 text-xs text-red-500"><XCircle className="h-3.5 w-3.5" />Inactive</span>
+                               ? <span className="flex items-center gap-1 text-xs text-green-600"><CheckCircle className="h-3.5 w-3.5" />{t("admin.config.active", "Active")}</span>
+                               : <span className="flex items-center gap-1 text-xs text-red-500"><XCircle className="h-3.5 w-3.5" />{t("admin.inactive", "Inactive")}</span>
                             }
                           </TableCell>
                           <TableCell className="text-right">
@@ -540,7 +540,7 @@ export default function AdminAccessPanel() {
                 </CardHeader>
                 <CardContent className="pt-0">
                   <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">
-                     {r.permissions.length} {t("admin.permissions", "permission")}{r.permissions.length !== 1 ? "s" : ""}
+                     {t("admin.config.permissions_granted", "{{count}} permissions granted", { count: r.permissions.length })}
                   </p>
                   <div className="flex flex-wrap gap-1">
                     {r.permissions.slice(0, 6).map(p => {
@@ -584,23 +584,23 @@ export default function AdminAccessPanel() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {toggleTarget?.activate ? "Activate Admin Account" : "Deactivate Admin Account"}
+               {toggleTarget?.activate ? t("admin.config.activate_admin_account", "Activate admin account") : t("admin.config.deactivate_admin_account", "Deactivate admin account")}
             </AlertDialogTitle>
             <AlertDialogDescription>
               {toggleTarget?.activate
-                ? `Re-enable admin access for ${toggleTarget.user.first_name} ${toggleTarget.user.last_name}?`
-                : `Suspend admin access for ${toggleTarget?.user.first_name} ${toggleTarget?.user.last_name}? They will not be able to log in.`
+                 ? `${t("admin.reenable_access_for", "Re-enable admin access for")} ${toggleTarget.user.first_name} ${toggleTarget.user.last_name}?`
+                 : `${t("admin.suspend_access_for", "Suspend admin access for")} ${toggleTarget?.user.first_name} ${toggleTarget?.user.last_name}? ${t("admin.cannot_login", "They will not be able to log in.")}`
               }
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+             <AlertDialogCancel>{t("common.cancel", "Cancel")}</AlertDialogCancel>
             <AlertDialogAction
               className={toggleTarget?.activate ? "" : "bg-destructive hover:bg-destructive/90"}
               onClick={() => toggleTarget && deactivateMutation.mutate({ id: toggleTarget.user.id, isActive: toggleTarget.activate })}
               data-testid="button-confirm-toggle"
             >
-              {toggleTarget?.activate ? "Activate" : "Deactivate"}
+               {toggleTarget?.activate ? t("admin.config.activate", "Activate") : t("admin.config.deactivate", "Deactivate")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

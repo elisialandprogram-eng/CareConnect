@@ -109,6 +109,9 @@ function DocRow({
   onPreview: (doc: DocQueueItem) => void;
   onSelectProvider: (id: string) => void;
 }) {
+  const { t } = useTranslation();
+  const c = (key: string, fallback: string, options?: Record<string, unknown>) =>
+    String(t(`admin.config.${key}`, { defaultValue: fallback, ...options }));
   const crit = CRIT_CFG[doc.document_criticality ?? "optional"] ?? CRIT_CFG.optional;
   const daysLeft = doc.expiry_date
     ? differenceInDays(new Date(doc.expiry_date), new Date())
@@ -143,12 +146,12 @@ function DocRow({
             <ExternalLink className="h-3 w-3 opacity-60" />
           </button>
           <Badge variant="outline" className={cn("text-[11px] px-1.5 py-0 h-5", crit.cls)}>
-            {crit.label}
+             {c(doc.document_criticality ?? "optional", crit.label)}
           </Badge>
           <Badge variant="outline" className="text-[11px] px-1.5 py-0 h-5">{doc.country_code}</Badge>
           {doc.deleted_at && (
             <Badge className="text-[11px] px-1.5 py-0 h-5 bg-slate-200 text-slate-600 border-slate-300 dark:bg-slate-700 dark:text-slate-400">
-              Deleted by provider
+               {c("deleted_by_provider", "Deleted by provider")}
             </Badge>
           )}
         </div>
@@ -156,7 +159,7 @@ function DocRow({
         <div className="flex items-center gap-3 mt-0.5 flex-wrap text-xs text-slate-500">
           <span className="flex items-center gap-1">
             <FileText className="h-3 w-3 opacity-60" />
-            {DOC_LABELS[doc.document_type] ?? doc.document_type}
+             {c(`doc_${doc.document_type}`, DOC_LABELS[doc.document_type] ?? doc.document_type)}
           </span>
           {doc.created_at && (
             <span className="flex items-center gap-1">
@@ -170,7 +173,7 @@ function DocRow({
               daysLeft <= 0 ? "text-red-600" : daysLeft <= 7 ? "text-red-500" : daysLeft <= 30 ? "text-amber-500" : "text-green-600"
             )}>
               <AlertTriangle className="h-3 w-3" />
-              {daysLeft <= 0 ? "Expired" : `${daysLeft}d left`}
+               {daysLeft <= 0 ? c("expired", "Expired") : c("days_left", "{{count}}d left", { count: daysLeft })}
             </span>
           )}
           {doc.admin_note && (
@@ -187,7 +190,7 @@ function DocRow({
             variant="ghost" size="icon"
             className="h-8 w-8 text-slate-400 hover:text-blue-600"
             onClick={() => onPreview(doc)}
-            title="Preview document"
+             title={c("preview_document", "Preview document")}
             data-testid={`button-preview-doc-${doc.id ?? doc.provider_id}`}
           >
             <Eye className="h-4 w-4" />
@@ -199,7 +202,7 @@ function DocRow({
             variant="ghost" size="icon"
             className="h-8 w-8 text-green-600 hover:text-green-700 hover:bg-green-50 dark:hover:bg-green-950/30"
             onClick={() => onAction(doc, "approve")}
-            title="Approve"
+             title={c("approve", "Approve")}
             data-testid={`button-approve-doc-${doc.id}`}
           >
             <Check className="h-4 w-4" />
@@ -211,7 +214,7 @@ function DocRow({
             variant="ghost" size="icon"
             className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30"
             onClick={() => onAction(doc, "reject")}
-            title={isApproved ? "Revoke approval" : "Reject"}
+             title={isApproved ? c("revoke_approval", "Revoke approval") : c("reject", "Reject")}
             data-testid={`button-reject-doc-${doc.id}`}
           >
             <X className="h-4 w-4" />
@@ -223,7 +226,7 @@ function DocRow({
             variant="ghost" size="icon"
             className="h-8 w-8 text-amber-500 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/30"
             onClick={() => onAction(doc, "reupload")}
-            title="Request re-upload"
+             title={c("request_reupload", "Request re-upload")}
             data-testid={`button-reupload-doc-${doc.id}`}
           >
             <RefreshCw className="h-4 w-4" />
@@ -235,7 +238,7 @@ function DocRow({
             variant="ghost" size="icon"
             className="h-8 w-8 text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800"
             onClick={() => onAction(doc, "expire")}
-            title="Mark as expired"
+             title={c("mark_expired", "Mark as expired")}
             data-testid={`button-expire-doc-${doc.id}`}
           >
             <Clock className="h-4 w-4" />
@@ -294,6 +297,8 @@ export function DocumentQueue({ onSelectProvider }: { onSelectProvider: (id: str
   const [previewDoc, setPreviewDoc] = useState<DocQueueItem | null>(null);
   const { toast } = useToast();
   const { t } = useTranslation();
+  const c = (key: string, fallback: string, options?: Record<string, unknown>) =>
+    String(t(`admin.config.${key}`, { defaultValue: fallback, ...options }));
   const queryClient = useQueryClient();
 
   const { data, isLoading, refetch } = useQuery<DocQueueData>({
@@ -353,11 +358,11 @@ export function DocumentQueue({ onSelectProvider }: { onSelectProvider: (id: str
   };
 
   const tabs = [
-    { key: "pending",  label: "Pending Review",     count: data?.pending?.length  ?? 0, countCls: "bg-yellow-100 text-yellow-700 dark:bg-yellow-950/30 dark:text-yellow-400" },
-    { key: "expiring", label: "Expiring Soon",       count: data?.expiring?.length ?? 0, countCls: "bg-orange-100 text-orange-700 dark:bg-orange-950/30 dark:text-orange-400" },
-    { key: "rejected", label: "Rejected",            count: data?.rejected?.length ?? 0, countCls: "bg-red-100 text-red-700 dark:bg-red-950/30 dark:text-red-400" },
-    { key: "reupload", label: "Reupload Requested",  count: data?.reupload?.length ?? 0, countCls: "bg-purple-100 text-purple-700 dark:bg-purple-950/30 dark:text-purple-400" },
-    { key: "missing",  label: "Missing Mandatory",   count: data?.missing?.length  ?? 0, countCls: "bg-rose-100 text-rose-700 dark:bg-rose-950/30 dark:text-rose-400" },
+     { key: "pending",  label: c("pending_review", "Pending review"),     count: data?.pending?.length  ?? 0, countCls: "bg-yellow-100 text-yellow-700 dark:bg-yellow-950/30 dark:text-yellow-400" },
+     { key: "expiring", label: c("expiring_soon", "Expiring soon"),       count: data?.expiring?.length ?? 0, countCls: "bg-orange-100 text-orange-700 dark:bg-orange-950/30 dark:text-orange-400" },
+     { key: "rejected", label: c("rejected", "Rejected"),            count: data?.rejected?.length ?? 0, countCls: "bg-red-100 text-red-700 dark:bg-red-950/30 dark:text-red-400" },
+     { key: "reupload", label: c("reupload_requested", "Re-upload requested"),  count: data?.reupload?.length ?? 0, countCls: "bg-purple-100 text-purple-700 dark:bg-purple-950/30 dark:text-purple-400" },
+     { key: "missing",  label: c("missing_mandatory", "Missing mandatory"),   count: data?.missing?.length  ?? 0, countCls: "bg-rose-100 text-rose-700 dark:bg-rose-950/30 dark:text-rose-400" },
   ];
 
   const totalActionable =
@@ -375,7 +380,7 @@ export function DocumentQueue({ onSelectProvider }: { onSelectProvider: (id: str
             {t("admin.docs_approval")}
             {totalActionable > 0 && (
               <Badge className="bg-blue-500 hover:bg-blue-600 text-white text-xs">
-                {totalActionable} need action
+                 {totalActionable} {c("need_action", "need action")}
               </Badge>
             )}
           </h2>
@@ -424,7 +429,7 @@ export function DocumentQueue({ onSelectProvider }: { onSelectProvider: (id: str
             <TabsContent value="pending">
               <DocList
                 docs={data?.pending ?? []}
-                emptyMsg="No documents pending review — all caught up!"
+                 emptyMsg={c("no_pending_documents", "No documents pending review — all caught up!")}
                 emptyIcon={FileCheck}
                 onAction={handleAction}
                 onPreview={handlePreview}
@@ -434,7 +439,7 @@ export function DocumentQueue({ onSelectProvider }: { onSelectProvider: (id: str
             <TabsContent value="expiring">
               <DocList
                 docs={data?.expiring ?? []}
-                emptyMsg="No documents expiring soon"
+                 emptyMsg={c("no_expiring_documents", "No documents expiring soon")}
                 emptyIcon={Clock}
                 onAction={handleAction}
                 onPreview={handlePreview}
@@ -444,7 +449,7 @@ export function DocumentQueue({ onSelectProvider }: { onSelectProvider: (id: str
             <TabsContent value="rejected">
               <DocList
                 docs={data?.rejected ?? []}
-                emptyMsg="No rejected documents"
+                 emptyMsg={c("no_rejected_documents", "No rejected documents")}
                 emptyIcon={X}
                 onAction={handleAction}
                 onPreview={handlePreview}
@@ -454,7 +459,7 @@ export function DocumentQueue({ onSelectProvider }: { onSelectProvider: (id: str
             <TabsContent value="reupload">
               <DocList
                 docs={data?.reupload ?? []}
-                emptyMsg="No re-upload requests pending"
+                 emptyMsg={c("no_reupload_requests", "No re-upload requests pending")}
                 emptyIcon={RefreshCw}
                 onAction={handleAction}
                 onPreview={handlePreview}
@@ -464,7 +469,7 @@ export function DocumentQueue({ onSelectProvider }: { onSelectProvider: (id: str
             <TabsContent value="missing">
               <DocList
                 docs={data?.missing ?? []}
-                emptyMsg="All providers have their mandatory documents uploaded"
+                 emptyMsg={c("all_mandatory_uploaded", "All providers have their mandatory documents uploaded")}
                 emptyIcon={Shield}
                 onAction={handleAction}
                 onPreview={handlePreview}
@@ -480,7 +485,7 @@ export function DocumentQueue({ onSelectProvider }: { onSelectProvider: (id: str
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>
-              {dialog?.action === "reject" ? "Reject Document" : "Request Re-upload"}
+               {dialog?.action === "reject" ? c("reject_document", "Reject document") : c("request_reupload", "Request re-upload")}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-1">
@@ -493,15 +498,15 @@ export function DocumentQueue({ onSelectProvider }: { onSelectProvider: (id: str
             </p>
             <div className="space-y-1.5">
               <Label htmlFor="admin-note-dlg">
-                {dialog?.action === "reject" ? "Rejection reason" : "Instructions for provider"}
-                <span className="text-slate-400 font-normal ml-1 text-xs">(optional)</span>
+               {dialog?.action === "reject" ? c("rejection_reason", "Rejection reason") : c("provider_instructions", "Instructions for provider")}
+                 <span className="text-slate-400 font-normal ml-1 text-xs">({c("optional", "optional")})</span>
               </Label>
               <Textarea
                 id="admin-note-dlg"
                 placeholder={
                   dialog?.action === "reject"
-                    ? "e.g. Document appears expired or illegible"
-                    : "e.g. Please upload a clearer, higher-resolution scan"
+                     ? c("reject_note_placeholder", "e.g. Document appears expired or illegible")
+                     : c("reupload_note_placeholder", "e.g. Please upload a clearer, higher-resolution scan")
                 }
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
@@ -512,7 +517,7 @@ export function DocumentQueue({ onSelectProvider }: { onSelectProvider: (id: str
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => { setDialog(null); setNote(""); }}>
-              Cancel
+               {c("cancel", "Cancel")}
             </Button>
             <Button
               variant={dialog?.action === "reject" ? "destructive" : "default"}
@@ -521,7 +526,7 @@ export function DocumentQueue({ onSelectProvider }: { onSelectProvider: (id: str
               data-testid="button-confirm-doc-action"
             >
               {actionMutation.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-              {dialog?.action === "reject" ? "Reject Document" : "Request Re-upload"}
+               {dialog?.action === "reject" ? c("reject_document", "Reject document") : c("request_reupload", "Request re-upload")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -533,7 +538,7 @@ export function DocumentQueue({ onSelectProvider }: { onSelectProvider: (id: str
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <FileText className="h-4 w-4 text-slate-400" />
-              {DOC_LABELS[previewDoc?.document_type ?? ""] ?? previewDoc?.document_type ?? "Document"}
+               {previewDoc ? c(`doc_${previewDoc.document_type}`, DOC_LABELS[previewDoc.document_type] ?? previewDoc.document_type) : c("document", "Document")}
             </DialogTitle>
           </DialogHeader>
           {previewDoc && (
@@ -541,34 +546,34 @@ export function DocumentQueue({ onSelectProvider }: { onSelectProvider: (id: str
               {/* Metadata grid */}
               <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm border rounded-lg p-3 bg-slate-50 dark:bg-slate-900">
                 <div className="flex items-center gap-2">
-                  <span className="text-slate-500 text-xs w-20 flex-shrink-0">Provider</span>
+                   <span className="text-slate-500 text-xs w-20 flex-shrink-0">{c("provider", "Provider")}</span>
                   <span className="font-medium">{previewDoc.first_name} {previewDoc.last_name}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-slate-500 text-xs w-20 flex-shrink-0">Status</span>
-                  {statusBadge(previewDoc.verification_status)}
+                   <span className="text-slate-500 text-xs w-20 flex-shrink-0">{c("status", "Status")}</span>
+                   {statusBadge(previewDoc.verification_status)}
                 </div>
                 {previewDoc.created_at && (
                   <div className="flex items-center gap-2">
-                    <span className="text-slate-500 text-xs w-20 flex-shrink-0">Uploaded</span>
+                     <span className="text-slate-500 text-xs w-20 flex-shrink-0">{c("uploaded", "Uploaded")}</span>
                     <span>{format(new Date(previewDoc.created_at), "MMM d, yyyy")}</span>
                   </div>
                 )}
                 {previewDoc.expiry_date && (
                   <div className="flex items-center gap-2">
-                    <span className="text-slate-500 text-xs w-20 flex-shrink-0">Expires</span>
+                     <span className="text-slate-500 text-xs w-20 flex-shrink-0">{c("expires", "Expires")}</span>
                     <span>{previewDoc.expiry_date}</span>
                   </div>
                 )}
                 {previewDoc.file_name && (
                   <div className="flex items-center gap-2 col-span-2">
-                    <span className="text-slate-500 text-xs w-20 flex-shrink-0">File</span>
+                     <span className="text-slate-500 text-xs w-20 flex-shrink-0">{c("file", "File")}</span>
                     <span className="font-mono text-xs truncate">{previewDoc.file_name}</span>
                   </div>
                 )}
                 {previewDoc.admin_note && (
                   <div className="flex items-start gap-2 col-span-2">
-                    <span className="text-slate-500 text-xs w-20 flex-shrink-0 mt-0.5">Admin note</span>
+                     <span className="text-slate-500 text-xs w-20 flex-shrink-0 mt-0.5">{c("admin_note", "Admin note")}</span>
                     <span className="text-xs italic text-slate-600 dark:text-slate-400">{previewDoc.admin_note}</span>
                   </div>
                 )}
@@ -580,13 +585,13 @@ export function DocumentQueue({ onSelectProvider }: { onSelectProvider: (id: str
                   {isImageUrl(previewDoc.document_url, previewDoc.file_name) ? (
                     <img
                       src={previewDoc.document_url}
-                      alt="Document preview"
+                       alt={c("preview_document", "Document preview")}
                       className="max-w-full max-h-[52vh] object-contain"
                     />
                   ) : (
                     <iframe
                       src={previewDoc.document_url}
-                      title="Document preview"
+                       title={c("preview_document", "Document preview")}
                       className="w-full"
                       style={{ height: "52vh" }}
                     />
@@ -594,7 +599,7 @@ export function DocumentQueue({ onSelectProvider }: { onSelectProvider: (id: str
                 </div>
               ) : (
                 <div className="border rounded-lg p-10 text-center text-slate-400 text-sm">
-                  No file preview available
+                   {c("no_file_preview", "No file preview available")}
                 </div>
               )}
 
@@ -603,12 +608,12 @@ export function DocumentQueue({ onSelectProvider }: { onSelectProvider: (id: str
                 <div className="flex gap-2">
                   <Button variant="outline" size="sm" asChild>
                     <a href={previewDoc.document_url} target="_blank" rel="noopener noreferrer">
-                      <ExternalLink className="h-3.5 w-3.5 mr-1.5" /> Open in new tab
+                       <ExternalLink className="h-3.5 w-3.5 mr-1.5" /> {c("open_new_tab", "Open in new tab")}
                     </a>
                   </Button>
                   <Button variant="outline" size="sm" asChild>
                     <a href={previewDoc.document_url} download={previewDoc.file_name || "document"} rel="noopener noreferrer">
-                      <Download className="h-3.5 w-3.5 mr-1.5" /> Download
+                       <Download className="h-3.5 w-3.5 mr-1.5" /> {c("download", "Download")}
                     </a>
                   </Button>
                 </div>

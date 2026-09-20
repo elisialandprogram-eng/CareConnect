@@ -518,6 +518,8 @@ function InvestigationDrawer({
 // ── Expanded Row ──────────────────────────────────────────────────────────────
 
 function ExpandedRow({ row, fmt }: { row: MasterRow; fmt: (n: number) => string }) {
+  const { t } = useTranslation();
+  const a = (key: string, fallback: string) => String(t(`admin.${key}`, { defaultValue: fallback }));
   const cur = row.display_currency ?? "USD";
   const fmtLocal = (v: number) => fmtBooking(v, cur);
   const usdNorm = n(row.final_total_usd ?? row.total_amount);

@@ -442,7 +442,7 @@ export function InvoiceManagement() {
                               invoice.status === "paid" ? "default" : "secondary"
                             }
                           >
-                            {t(`admin_extra.invoice.status_${invoice.status}`, invoice.status)}
+                             {String(t(`admin_extra.invoice.status_${invoice.status}`, invoice.status))}
                           </Badge>
                         </td>
                         <td className="p-4 text-right">

@@ -1075,6 +1075,8 @@ function ClientActionsPanel({
 
 // ─── Main: Client Operations Console ─────────────────────────────────────────
 export function ClientOperationsConsole() {
+  const { t } = useTranslation();
+  const tr = (key: string, fallback: string) => String(t(`admin.${key}`, { defaultValue: fallback }));
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
   const qc = useQueryClient();
 

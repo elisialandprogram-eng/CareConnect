@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -59,7 +60,7 @@ function StatusDot({ active, label }: { active: boolean; label: string }) {
         className={`ml-auto text-xs ${active ? "text-emerald-600 dark:text-emerald-400 border-emerald-300 dark:border-emerald-700" : ""}`}
         data-testid={`badge-seed-${label.toLowerCase().replace(/\s+/g, "-")}`}
       >
-        {active ? "exists" : "missing"}
+         {active ? "exists" : "missing"}
       </Badge>
     </div>
   );
@@ -154,6 +155,9 @@ function AccountCard({ acct }: { acct: SeedAccount }) {
 
 export function SeedUatTool() {
   const { toast } = useToast();
+  const { t } = useTranslation();
+  const c = (key: string, fallback: string, options?: Record<string, unknown>) =>
+    String(t(`admin.config.${key}`, { defaultValue: fallback, ...options }));
   const [result, setResult] = useState<SeedResult | null>(null);
 
   const { data: status, refetch: refetchStatus, isLoading: statusLoading } =
@@ -172,15 +176,15 @@ export function SeedUatTool() {
       refetchStatus();
       queryClient.invalidateQueries({ queryKey: ["/api/admin/dev/reset/history"] });
       const newCount = Object.values(data.created).reduce((a, b) => a + b, 0);
-      toast({
-        title: data.alreadyExists ? "UAT data already seeded" : "UAT data seeded",
+       toast({
+         title: data.alreadyExists ? c("uat_already_seeded", "UAT data already seeded") : c("uat_seeded", "UAT data seeded"),
         description: data.alreadyExists
-          ? "All accounts already exist — no changes made."
-          : `Created ${newCount} records across 4 UAT accounts.`,
+           ? c("all_accounts_exist", "All accounts already exist — no changes made.")
+           : c("created_records", "Created {{count}} records across 4 UAT accounts.", { count: newCount }),
       });
     },
     onError: (err: Error) => {
-      toast({ title: "Seed failed", description: err.message, variant: "destructive" });
+       toast({ title: c("seed_failed", "Seed failed"), description: err.message, variant: "destructive" });
     },
   });
 
@@ -194,12 +198,10 @@ export function SeedUatTool() {
         <CardHeader>
           <div className="flex items-center gap-2">
             <Sprout className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
-            <CardTitle className="text-emerald-700 dark:text-emerald-400">Seed UAT Data</CardTitle>
+             <CardTitle className="text-emerald-700 dark:text-emerald-400">{c("seed_uat_data", "Seed UAT data")}</CardTitle>
           </div>
           <CardDescription>
-            Populates the platform with 2 patient and 2 provider accounts, services, scheduled
-            appointments, wallets, and reviews — ready for end-to-end UAT testing.
-            Safe to run multiple times; existing accounts are never overwritten.
+             {c("seed_description", "Populates the platform with 2 member and 2 provider accounts, services, scheduled appointments, wallets, and reviews — ready for end-to-end UAT testing. Safe to run multiple times; existing accounts are never overwritten.")}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
@@ -207,16 +209,16 @@ export function SeedUatTool() {
           {/* Account status */}
           <div className="space-y-1.5">
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">
-              Seed account status
+               {c("seed_account_status", "Seed account status")}
             </p>
-            <StatusDot active={!!status?.patient1} label="Emma Kovács (member)" />
-            <StatusDot active={!!status?.patient2} label="Dávid Barros (member)" />
-            <StatusDot active={!!status?.physio}   label="Dr. Anna Szabó (rehabilitation)" />
-            <StatusDot active={!!status?.physician} label="Dr. Bence Molnár (physician)" />
+             <StatusDot active={!!status?.patient1} label="Emma Kovács (member)" />
+             <StatusDot active={!!status?.patient2} label="Dávid Barros (member)" />
+             <StatusDot active={!!status?.physio}   label="Dr. Anna Szabó (rehabilitation)" />
+             <StatusDot active={!!status?.physician} label="Dr. Bence Molnár (physician)" />
             {status && (
               <div className="flex items-center gap-2 py-1.5 px-3 rounded-md bg-muted/40">
                 <Calendar className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                <span className="text-sm text-muted-foreground">Appointments seeded</span>
+                 <span className="text-sm text-muted-foreground">{c("appointments_seeded", "Appointments seeded")}</span>
                 <Badge variant="outline" className="ml-auto font-mono text-xs">
                   {status.appointments}
                 </Badge>
@@ -233,10 +235,10 @@ export function SeedUatTool() {
             >
               <Sprout className="h-4 w-4 mr-2" />
               {seedMutation.isPending
-                ? "Seeding…"
+                 ? c("seeding", "Seeding…")
                 : allPresent
-                  ? "Re-Seed (idempotent)"
-                  : "Seed UAT Data"
+                   ? c("reseed_idempotent", "Re-seed (idempotent)")
+                   : c("seed_uat_data", "Seed UAT data")
               }
             </Button>
             <Button
@@ -245,7 +247,7 @@ export function SeedUatTool() {
               onClick={() => refetchStatus()}
               disabled={statusLoading}
               data-testid="button-refresh-seed-status"
-              title="Refresh status"
+               title={c("refresh_status", "Refresh status")}
             >
               <RefreshCw className={`h-4 w-4 ${statusLoading ? "animate-spin" : ""}`} />
             </Button>
@@ -259,12 +261,12 @@ export function SeedUatTool() {
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2 text-emerald-700 dark:text-emerald-400">
               <CheckCircle2 className="h-4 w-4" />
-              {result.alreadyExists ? "Existing Credentials" : "Seed Complete — Credentials"}
+               {result.alreadyExists ? c("existing_credentials", "Existing credentials") : c("seed_complete_credentials", "Seed complete — credentials")}
             </CardTitle>
             <CardDescription>
               {result.alreadyExists
-                ? "All accounts already existed. No data was modified."
-                : "Use these accounts to walk through the full booking, payment, and review workflows."
+                 ? c("no_data_modified", "All accounts already existed. No data was modified.")
+                 : c("uat_workflows", "Use these accounts to walk through the full booking, payment, and review workflows.")
               }
             </CardDescription>
           </CardHeader>
@@ -275,7 +277,7 @@ export function SeedUatTool() {
               <>
                 <div className="rounded-md bg-muted/40 px-3 py-2 space-y-1">
                   <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">
-                    Records created
+                     {c("records_created", "Records created")}
                   </p>
                   <CreatedCountRow label="Users"        value={result.created.users} />
                   <CreatedCountRow label="Providers"    value={result.created.providers} />
