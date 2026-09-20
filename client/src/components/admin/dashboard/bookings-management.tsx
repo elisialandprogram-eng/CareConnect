@@ -856,7 +856,7 @@ export function BookingsManagementComponent() {
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
             <CardTitle className="text-sm font-medium">
-               {isLoading ? t("admin.loading", "Loading…") : t("admin.bookings_count", "{{count}} booking(s)", { count: formatCount(total) })}
+                {isLoading ? t("admin.loading", "Loading…") : t("admin.bookings_count", "{{count}} booking(s)", { count: total })}
             </CardTitle>
              <span className="text-xs text-muted-foreground no-print">{t("admin.page_of", "Page {{page}} of {{total}}", { page, total: totalPages })}</span>
           </div>

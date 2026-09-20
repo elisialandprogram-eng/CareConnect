@@ -13,6 +13,7 @@ import {
   ChevronDown, ChevronUp, FileText,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
 
 interface AuditLog {
   id: string;
@@ -67,6 +68,8 @@ function formatState(v: unknown): string | null {
 
 function LogRow({ log }: { log: AuditLog }) {
   const [expanded, setExpanded] = useState(false);
+  const { t } = useTranslation();
+  const tr = (key: string, fallback: string) => String(t(`admin.audit_panel.${key}`, { defaultValue: fallback }));
   const hasDetail = !!(log.details || log.beforeState || log.afterState);
 
   return (
@@ -86,9 +89,9 @@ function LogRow({ log }: { log: AuditLog }) {
                 actionClass(log.action)
               )}
             >
-              {log.action.replace(/_/g, " ")}
+              {tr(log.action, log.action.replace(/_/g, " "))}
             </span>
-            <span className="text-xs font-medium text-foreground">{log.entityType}</span>
+            <span className="text-xs font-medium text-foreground">{tr(log.entityType, log.entityType.replace(/_/g, " "))}</span>
             {log.entityId && (
               <span className="text-xs text-muted-foreground font-mono">#{log.entityId.slice(0, 10)}</span>
             )}
@@ -124,7 +127,7 @@ function LogRow({ log }: { log: AuditLog }) {
         <div className="px-4 pb-4 space-y-3 bg-muted/20">
           {log.details && (
             <div>
-              <p className="text-xs font-semibold text-muted-foreground mb-1">Details</p>
+              <p className="text-xs font-semibold text-muted-foreground mb-1">{tr("details", "Details")}</p>
               <pre className="text-xs bg-background rounded-lg border p-3 overflow-x-auto whitespace-pre-wrap break-words max-h-48">
                 {formatState(log.details)}
               </pre>
@@ -134,7 +137,7 @@ function LogRow({ log }: { log: AuditLog }) {
             <div className="grid grid-cols-2 gap-3">
               {log.beforeState && (
                 <div>
-                  <p className="text-xs font-semibold text-rose-600 mb-1">Before</p>
+                  <p className="text-xs font-semibold text-rose-600 mb-1">{tr("before", "Before")}</p>
                   <pre className="text-xs bg-rose-50 dark:bg-rose-950/20 rounded-lg border border-rose-100 p-3 overflow-x-auto whitespace-pre-wrap break-words max-h-40">
                     {formatState(log.beforeState)}
                   </pre>
@@ -142,7 +145,7 @@ function LogRow({ log }: { log: AuditLog }) {
               )}
               {log.afterState && (
                 <div>
-                  <p className="text-xs font-semibold text-emerald-600 mb-1">After</p>
+                  <p className="text-xs font-semibold text-emerald-600 mb-1">{tr("after", "After")}</p>
                   <pre className="text-xs bg-emerald-50 dark:bg-emerald-950/20 rounded-lg border border-emerald-100 p-3 overflow-x-auto whitespace-pre-wrap break-words max-h-40">
                     {formatState(log.afterState)}
                   </pre>
@@ -160,6 +163,9 @@ function LogRow({ log }: { log: AuditLog }) {
 }
 
 export default function AdminAuditLogs() {
+  const { t } = useTranslation();
+  const tr = (key: string, fallback: string, options?: Record<string, unknown>) =>
+    String(t(`admin.audit_panel.${key}`, { defaultValue: fallback, ...options }));
   const [page, setPage] = useState(0);
   const [actionFilter, setActionFilter] = useState("all");
   const [entityFilter, setEntityFilter] = useState("all");
@@ -194,15 +200,15 @@ export default function AdminAuditLogs() {
           <div>
             <CardTitle className="flex items-center gap-2">
               <Activity className="h-5 w-5 text-primary" />
-              Admin Activity Log
+              {tr("title", "Admin Activity Log")}
             </CardTitle>
             <CardDescription>
-              Structural administration changes: identity updates, fee mutations, document decisions, role changes.
+              {tr("description", "Structural administration changes: identity updates, fee mutations, document decisions, role changes.")}
             </CardDescription>
           </div>
           <Button variant="outline" size="sm" onClick={() => refetch()} data-testid="button-refresh-audit">
             <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
-            Refresh
+            {tr("refresh", "Refresh")}
           </Button>
         </div>
 
@@ -211,7 +217,7 @@ export default function AdminAuditLogs() {
           <div className="relative">
             <Search className="absolute start-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
             <Input
-              placeholder="Filter logs…"
+              placeholder={tr("filter_logs", "Filter logs…")}
               value={search}
               onChange={(e) => { setSearch(e.target.value); setPage(0); }}
               className="pl-8 h-8 text-sm w-48"
@@ -221,46 +227,46 @@ export default function AdminAuditLogs() {
 
           <Select value={actionFilter} onValueChange={(v) => { setActionFilter(v); setPage(0); }}>
             <SelectTrigger className="h-8 text-sm w-44" data-testid="select-audit-action">
-              <SelectValue placeholder="All actions" />
+              <SelectValue placeholder={tr("all_actions", "All actions")} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All actions</SelectItem>
-              <SelectItem value="create">Create</SelectItem>
-              <SelectItem value="update">Update</SelectItem>
-              <SelectItem value="delete">Delete</SelectItem>
-              <SelectItem value="approve">Approve</SelectItem>
-              <SelectItem value="reject">Reject</SelectItem>
-              <SelectItem value="refund">Refund</SelectItem>
-              <SelectItem value="wallet_adjust">Wallet adjust</SelectItem>
-              <SelectItem value="ledger_override">Ledger override</SelectItem>
-              <SelectItem value="circuit_breaker">Circuit breaker</SelectItem>
-              <SelectItem value="role_change">Role change</SelectItem>
-              <SelectItem value="document_verify">Document verify</SelectItem>
-              <SelectItem value="suspend">Suspend</SelectItem>
-              <SelectItem value="export">Export</SelectItem>
+              <SelectItem value="all">{tr("all_actions", "All actions")}</SelectItem>
+              <SelectItem value="create">{tr("create", "Create")}</SelectItem>
+              <SelectItem value="update">{tr("update", "Update")}</SelectItem>
+              <SelectItem value="delete">{tr("delete", "Delete")}</SelectItem>
+              <SelectItem value="approve">{tr("approve", "Approve")}</SelectItem>
+              <SelectItem value="reject">{tr("reject", "Reject")}</SelectItem>
+              <SelectItem value="refund">{tr("refund", "Refund")}</SelectItem>
+              <SelectItem value="wallet_adjust">{tr("wallet_adjust", "Wallet adjust")}</SelectItem>
+              <SelectItem value="ledger_override">{tr("ledger_override", "Ledger override")}</SelectItem>
+              <SelectItem value="circuit_breaker">{tr("circuit_breaker", "Circuit breaker")}</SelectItem>
+              <SelectItem value="role_change">{tr("role_change", "Role change")}</SelectItem>
+              <SelectItem value="document_verify">{tr("document_verify", "Document verify")}</SelectItem>
+              <SelectItem value="suspend">{tr("suspend", "Suspend")}</SelectItem>
+              <SelectItem value="export">{tr("export", "Export")}</SelectItem>
             </SelectContent>
           </Select>
 
           <Select value={entityFilter} onValueChange={(v) => { setEntityFilter(v); setPage(0); }}>
             <SelectTrigger className="h-8 text-sm w-44" data-testid="select-audit-entity">
-              <SelectValue placeholder="All entities" />
+              <SelectValue placeholder={tr("all_entities", "All entities")} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All entities</SelectItem>
-              <SelectItem value="user">User</SelectItem>
-              <SelectItem value="provider">Provider</SelectItem>
-              <SelectItem value="appointment">Appointment</SelectItem>
-              <SelectItem value="wallet">Wallet</SelectItem>
-              <SelectItem value="provider_document">Provider document</SelectItem>
-              <SelectItem value="payout_request">Payout request</SelectItem>
-              <SelectItem value="tax_setting">Tax setting</SelectItem>
-              <SelectItem value="platform_settings">Platform settings</SelectItem>
+              <SelectItem value="all">{tr("all_entities", "All entities")}</SelectItem>
+              <SelectItem value="user">{tr("user", "User")}</SelectItem>
+              <SelectItem value="provider">{tr("provider", "Provider")}</SelectItem>
+              <SelectItem value="appointment">{tr("appointment", "Appointment")}</SelectItem>
+              <SelectItem value="wallet">{tr("wallet", "Wallet")}</SelectItem>
+              <SelectItem value="provider_document">{tr("provider_document", "Provider document")}</SelectItem>
+              <SelectItem value="payout_request">{tr("payout_request", "Payout request")}</SelectItem>
+              <SelectItem value="tax_setting">{tr("tax_setting", "Tax setting")}</SelectItem>
+              <SelectItem value="platform_settings">{tr("platform_settings", "Platform settings")}</SelectItem>
             </SelectContent>
           </Select>
 
           {total > 0 && (
             <span className="text-xs text-muted-foreground self-center ml-auto">
-              {formatCount(total)} total records
+              {formatCount(total)} {tr("total_records", "total records")}
             </span>
           )}
         </div>
@@ -276,8 +282,8 @@ export default function AdminAuditLogs() {
         ) : logs.length === 0 ? (
           <div className="py-16 text-center text-muted-foreground">
             <FileText className="h-10 w-10 mx-auto mb-3 opacity-30" />
-            <p className="text-sm font-medium">No audit log entries found</p>
-            <p className="text-xs mt-1">Try adjusting your filters.</p>
+            <p className="text-sm font-medium">{tr("no_entries", "No audit log entries found")}</p>
+            <p className="text-xs mt-1">{tr("adjust_filters", "Try adjusting your filters.")}</p>
           </div>
         ) : (
           <div>
@@ -289,7 +295,11 @@ export default function AdminAuditLogs() {
         {totalPages > 1 && (
           <div className="flex items-center justify-between px-4 py-3 border-t">
             <p className="text-xs text-muted-foreground">
-              Page {page + 1} of {totalPages} · {formatCount(total)} entries
+              {tr("page_entries", `Page ${page + 1} of ${totalPages} · ${formatCount(total)} entries`, {
+                page: page + 1,
+                totalPages,
+                total: formatCount(total),
+              })}
             </p>
             <div className="flex gap-1">
               <Button

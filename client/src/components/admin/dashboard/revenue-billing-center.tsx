@@ -864,6 +864,7 @@ const rsDefaults: RsForm = {
 
 function RevenueSharePanel() {
   const qc = useQueryClient(); const { toast } = useToast();
+  const tr = useRevenueCenterText();
   const { data: rules = [], isLoading } = useQuery<any[]>({ queryKey: ["/api/admin/revenue/share-rules"] });
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -879,13 +880,13 @@ function RevenueSharePanel() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["/api/admin/revenue/share-rules"] });
       qc.invalidateQueries({ queryKey: ["/api/admin/revenue/overview"] });
-      toast({ title: "Saved" }); setShowForm(false); setEditingId(null); form.reset(rsDefaults);
+      toast({ title: tr("saved", "Saved") }); setShowForm(false); setEditingId(null); form.reset(rsDefaults);
     },
-    onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+    onError: (e: any) => toast({ title: tr("error", "Error"), description: e.message, variant: "destructive" }),
   });
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => (await apiRequest("DELETE", `/api/admin/revenue/share-rules/${id}`)).json(),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["/api/admin/revenue/share-rules"] }); toast({ title: "Deleted" }); setDelTarget(null); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["/api/admin/revenue/share-rules"] }); toast({ title: tr("deleted", "Deleted") }); setDelTarget(null); },
   });
 
   function openEdit(r: any) {
@@ -894,29 +895,33 @@ function RevenueSharePanel() {
     setShowForm(true);
   }
 
-  const PT_LABELS: Record<string, string> = { provider: "Provider", clinic: "Clinic", franchise: "Franchise", partner: "Partner", referral_partner: "Referral Partner", platform: "GoldenLife" };
+  const PT_LABELS: Record<string, string> = {
+    provider: tr("provider", "Provider"), clinic: tr("clinic", "Clinic"), franchise: tr("franchise", "Franchise"),
+    partner: tr("partner", "Partner"), referral_partner: tr("referral_partner", "Referral Partner"),
+    platform: tr("goldenlife_platform", "GoldenLife (Platform)"),
+  };
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <div><h3 className="font-semibold">Revenue Sharing Rules</h3><p className="text-sm text-muted-foreground">Split revenue among providers, clinics, partners, and the platform</p></div>
-        <Button size="sm" onClick={() => { setEditingId(null); form.reset(rsDefaults); setShowForm(true); }} data-testid="button-add-share-rule"><Plus className="h-4 w-4 mr-1" />Add Rule</Button>
+        <div><h3 className="font-semibold">{tr("revenue_sharing_rules", "Revenue Sharing Rules")}</h3><p className="text-sm text-muted-foreground">{tr("revenue_sharing_desc", "Split revenue among providers, clinics, partners, and the platform")}</p></div>
+        <Button size="sm" onClick={() => { setEditingId(null); form.reset(rsDefaults); setShowForm(true); }} data-testid="button-add-share-rule"><Plus className="h-4 w-4 mr-1" />{tr("add_rule", "Add Rule")}</Button>
       </div>
-      {isLoading ? <div className="h-24 flex items-center justify-center text-muted-foreground">Loading…</div> : (
+      {isLoading ? <div className="h-24 flex items-center justify-center text-muted-foreground">{tr("loading", "Loading…")}</div> : (
         <Table>
           <TableHeader><TableRow>
-            <TableHead>Name</TableHead><TableHead>Participant</TableHead><TableHead>Share %</TableHead>
-            <TableHead>Fixed</TableHead><TableHead>Scope</TableHead><TableHead>Status</TableHead><TableHead className="w-20" />
+            <TableHead>{tr("name", "Name")}</TableHead><TableHead>{tr("participant", "Participant")}</TableHead><TableHead>{tr("share_percent", "Share %")}</TableHead>
+            <TableHead>{tr("fixed", "Fixed")}</TableHead><TableHead>{tr("scope", "Scope")}</TableHead><TableHead>{tr("status", "Status")}</TableHead><TableHead className="w-20" />
           </TableRow></TableHeader>
           <TableBody>
-            {rules.length === 0 && <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">No revenue share rules configured.</TableCell></TableRow>}
+            {rules.length === 0 && <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">{tr("no_revenue_share_rules", "No revenue share rules configured.")}</TableCell></TableRow>}
             {rules.map((r: any) => (
               <TableRow key={r.id}>
                 <TableCell className="font-medium">{r.name}</TableCell>
                 <TableCell><Badge variant="secondary">{PT_LABELS[r.participantType] ?? r.participantType}</Badge></TableCell>
                 <TableCell>{fmtPct(r.sharePercent)}</TableCell>
                 <TableCell>{Number(r.fixedAmount) > 0 ? fmt(r.fixedAmount) : "—"}</TableCell>
-                <TableCell className="text-xs">{r.countryCode ?? "Global"}</TableCell>
+                <TableCell className="text-xs">{r.countryCode ?? tr("global", "Global")}</TableCell>
                 <TableCell><StatusBadge enabled={r.enabled} /></TableCell>
                 <TableCell>
                   <div className="flex gap-1">
@@ -931,37 +936,37 @@ function RevenueSharePanel() {
       )}
       <Dialog open={showForm} onOpenChange={v => { if (!v) { setShowForm(false); setEditingId(null); } }}>
         <DialogContent className="max-w-lg">
-          <DialogHeader><DialogTitle>{editingId ? "Edit" : "Add"} Revenue Share Rule</DialogTitle></DialogHeader>
-          <form onSubmit={form.handleSubmit(d => saveMutation.mutate(d), () => toast({ title: "Name is required", variant: "destructive" }))} className="space-y-4">
+          <DialogHeader><DialogTitle>{editingId ? tr("edit", "Edit") : tr("add", "Add")} {tr("revenue_sharing_rules", "Revenue Share Rule")}</DialogTitle></DialogHeader>
+          <form onSubmit={form.handleSubmit(d => saveMutation.mutate(d), () => toast({ title: tr("name_required", "Name is required"), variant: "destructive" }))} className="space-y-4">
             <div className="grid grid-cols-2 gap-3">
               <div className="col-span-2">
-                <Label>Name *</Label>
+                <Label>{tr("name", "Name")} *</Label>
                 <Input {...form.register("name")} className={form.formState.errors.name ? "border-destructive" : ""} />
-                {form.formState.errors.name && <p className="text-xs text-destructive mt-1">Name is required</p>}
+                {form.formState.errors.name && <p className="text-xs text-destructive mt-1">{tr("name_required", "Name is required")}</p>}
               </div>
               <div>
-                <Label>Participant Type</Label>
+                <Label>{tr("participant_type", "Participant Type")}</Label>
                 <Select value={form.watch("participantType")} onValueChange={v => form.setValue("participantType", v)}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="provider">Provider</SelectItem>
-                    <SelectItem value="clinic">Clinic</SelectItem>
-                    <SelectItem value="franchise">Franchise</SelectItem>
-                    <SelectItem value="partner">Partner</SelectItem>
-                    <SelectItem value="referral_partner">Referral Partner</SelectItem>
-                    <SelectItem value="platform">GoldenLife (Platform)</SelectItem>
+                    <SelectItem value="provider">{tr("provider", "Provider")}</SelectItem>
+                    <SelectItem value="clinic">{tr("clinic", "Clinic")}</SelectItem>
+                    <SelectItem value="franchise">{tr("franchise", "Franchise")}</SelectItem>
+                    <SelectItem value="partner">{tr("partner", "Partner")}</SelectItem>
+                    <SelectItem value="referral_partner">{tr("referral_partner", "Referral Partner")}</SelectItem>
+                    <SelectItem value="platform">{tr("goldenlife_platform", "GoldenLife (Platform)")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-              <div><Label>Share %</Label><Input type="number" step="0.01" {...form.register("sharePercent")} /></div>
-              <div><Label>Fixed Amount ($)</Label><Input type="number" step="0.01" {...form.register("fixedAmount")} /></div>
-              <div><Label>Priority</Label><Input type="number" {...form.register("priority")} /></div>
-              <div><Label>Country Code</Label><Input {...form.register("countryCode")} placeholder="HU, IR… (blank = all)" /></div>
-              <div className="col-span-2 flex items-center gap-2"><Switch checked={form.watch("enabled")} onCheckedChange={v => form.setValue("enabled", v)} /><Label>Enabled</Label></div>
+              <div><Label>{tr("share_percent", "Share %")}</Label><Input type="number" step="0.01" {...form.register("sharePercent")} /></div>
+              <div><Label>{tr("fixed_amount", "Fixed Amount ($)")}</Label><Input type="number" step="0.01" {...form.register("fixedAmount")} /></div>
+              <div><Label>{tr("priority", "Priority")}</Label><Input type="number" {...form.register("priority")} /></div>
+              <div><Label>{tr("country_code", "Country Code")}</Label><Input {...form.register("countryCode")} placeholder={tr("country_code_placeholder", "HU, IR… (blank = all)")} /></div>
+              <div className="col-span-2 flex items-center gap-2"><Switch checked={form.watch("enabled")} onCheckedChange={v => form.setValue("enabled", v)} /><Label>{tr("enabled", "Enabled")}</Label></div>
             </div>
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setShowForm(false)}>Cancel</Button>
-              <Button type="submit" disabled={saveMutation.isPending}>{saveMutation.isPending ? "Saving…" : "Save"}</Button>
+              <Button type="button" variant="outline" onClick={() => setShowForm(false)}>{tr("cancel", "Cancel")}</Button>
+              <Button type="submit" disabled={saveMutation.isPending}>{saveMutation.isPending ? tr("saving", "Saving…") : tr("save", "Save")}</Button>
             </DialogFooter>
           </form>
         </DialogContent>
@@ -974,6 +979,7 @@ function RevenueSharePanel() {
 // ── Wallet Rules ──────────────────────────────────────────────────────────────
 function WalletRulesPanel() {
   const qc = useQueryClient(); const { toast } = useToast();
+  const tr = useRevenueCenterText();
   const { data: rules = [], isLoading } = useQuery<any[]>({ queryKey: ["/api/admin/revenue/wallet-rules"] });
   const [editing, setEditing] = useState<any | null>(null);
   const [editEnabled, setEditEnabled] = useState(true);
@@ -986,7 +992,7 @@ function WalletRulesPanel() {
   const saveMutation = useMutation({
     mutationFn: async ({ id, ...data }: { id: string } & Record<string, unknown>) =>
       (await apiRequest("PATCH", `/api/admin/revenue/wallet-rules/${id}`, data)).json(),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["/api/admin/revenue/wallet-rules"] }); toast({ title: "Saved" }); setEditing(null); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["/api/admin/revenue/wallet-rules"] }); toast({ title: tr("saved", "Saved") }); setEditing(null); },
   });
 
   function openEdit(r: any) {
@@ -998,19 +1004,19 @@ function WalletRulesPanel() {
 
   return (
     <div className="space-y-4">
-      <div><h3 className="font-semibold">Wallet Rules</h3><p className="text-sm text-muted-foreground">Usage rules for each credit type — balance limits, expiry, stacking</p></div>
-      {isLoading ? <div className="h-24 flex items-center justify-center text-muted-foreground">Loading…</div> : (
+      <div><h3 className="font-semibold">{tr("wallet_rules", "Wallet Rules")}</h3><p className="text-sm text-muted-foreground">{tr("wallet_rules_desc", "Usage rules for each credit type — balance limits, expiry, stacking")}</p></div>
+      {isLoading ? <div className="h-24 flex items-center justify-center text-muted-foreground">{tr("loading", "Loading…")}</div> : (
         <Table>
           <TableHeader><TableRow>
-            <TableHead>Credit Type</TableHead><TableHead>Max Balance</TableHead><TableHead>Expiry</TableHead>
-            <TableHead>Combine w/ Promo</TableHead><TableHead>Combine w/ Membership</TableHead><TableHead>Status</TableHead><TableHead className="w-20" />
+            <TableHead>{tr("credit_type", "Credit Type")}</TableHead><TableHead>{tr("max_balance", "Max Balance")}</TableHead><TableHead>{tr("expiry", "Expiry")}</TableHead>
+            <TableHead>{tr("combine_promo", "Combine w/ Promo")}</TableHead><TableHead>{tr("combine_membership", "Combine w/ Membership")}</TableHead><TableHead>{tr("status", "Status")}</TableHead><TableHead className="w-20" />
           </TableRow></TableHeader>
           <TableBody>
             {rules.map((r: any) => (
               <TableRow key={r.id}>
                 <TableCell className="font-medium">{r.label}<br /><span className="text-xs font-mono text-muted-foreground">{r.creditType}</span></TableCell>
-                <TableCell>{r.maxBalanceUsd ? fmt(r.maxBalanceUsd) : "Unlimited"}</TableCell>
-                <TableCell>{r.expiryDays ? `${r.expiryDays}d` : "Never"}</TableCell>
+                <TableCell>{r.maxBalanceUsd ? fmt(r.maxBalanceUsd) : tr("unlimited", "Unlimited")}</TableCell>
+                <TableCell>{r.expiryDays ? `${r.expiryDays}d` : tr("never", "Never")}</TableCell>
                 <TableCell>{r.canCombineWithPromo ? <CheckCircle2 className="h-4 w-4 text-emerald-500" /> : <XCircle className="h-4 w-4 text-muted-foreground" />}</TableCell>
                 <TableCell>{r.canCombineWithMembership ? <CheckCircle2 className="h-4 w-4 text-emerald-500" /> : <XCircle className="h-4 w-4 text-muted-foreground" />}</TableCell>
                 <TableCell><StatusBadge enabled={r.enabled} /></TableCell>
@@ -1022,22 +1028,22 @@ function WalletRulesPanel() {
       )}
       <Dialog open={!!editing} onOpenChange={v => !v && setEditing(null)}>
         <DialogContent className="max-w-md">
-          <DialogHeader><DialogTitle>Edit {editing?.label}</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{tr("edit", "Edit")} {editing?.label}</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-3">
-              <div><Label>Max Balance ($)</Label><Input type="number" step="0.01" value={editMaxBalance} onChange={e => setEditMaxBalance(e.target.value)} placeholder="Unlimited" /></div>
-              <div><Label>Expiry (days)</Label><Input type="number" value={editExpiryDays} onChange={e => setEditExpiryDays(e.target.value)} placeholder="Never" /></div>
+              <div><Label>{tr("max_balance", "Max Balance")} ($)</Label><Input type="number" step="0.01" value={editMaxBalance} onChange={e => setEditMaxBalance(e.target.value)} placeholder={tr("unlimited", "Unlimited")} /></div>
+              <div><Label>{tr("expiry_days", "Expiry (days)")}</Label><Input type="number" value={editExpiryDays} onChange={e => setEditExpiryDays(e.target.value)} placeholder={tr("never", "Never")} /></div>
             </div>
             <div className="space-y-2">
-              <div className="flex items-center gap-2"><Switch checked={editCanPromo} onCheckedChange={setEditCanPromo} /><Label>Can combine with promo codes</Label></div>
-              <div className="flex items-center gap-2"><Switch checked={editCanMembership} onCheckedChange={setEditCanMembership} /><Label>Can combine with memberships</Label></div>
-              <div className="flex items-center gap-2"><Switch checked={editEnabled} onCheckedChange={setEditEnabled} /><Label>Enabled</Label></div>
+              <div className="flex items-center gap-2"><Switch checked={editCanPromo} onCheckedChange={setEditCanPromo} /><Label>{tr("can_combine_promo", "Can combine with promo codes")}</Label></div>
+              <div className="flex items-center gap-2"><Switch checked={editCanMembership} onCheckedChange={setEditCanMembership} /><Label>{tr("can_combine_membership", "Can combine with memberships")}</Label></div>
+              <div className="flex items-center gap-2"><Switch checked={editEnabled} onCheckedChange={setEditEnabled} /><Label>{tr("enabled", "Enabled")}</Label></div>
             </div>
-            <div><Label>Notes</Label><Input value={editNotes} onChange={e => setEditNotes(e.target.value)} /></div>
+            <div><Label>{tr("notes", "Notes")}</Label><Input value={editNotes} onChange={e => setEditNotes(e.target.value)} /></div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setEditing(null)}>Cancel</Button>
-            <Button onClick={() => editing && saveMutation.mutate({ id: editing.id, enabled: editEnabled, maxBalanceUsd: editMaxBalance || undefined, expiryDays: editExpiryDays ? Number(editExpiryDays) : undefined, canCombineWithPromo: editCanPromo, canCombineWithMembership: editCanMembership, notes: editNotes })} disabled={saveMutation.isPending}>Save</Button>
+            <Button variant="outline" onClick={() => setEditing(null)}>{tr("cancel", "Cancel")}</Button>
+            <Button onClick={() => editing && saveMutation.mutate({ id: editing.id, enabled: editEnabled, maxBalanceUsd: editMaxBalance || undefined, expiryDays: editExpiryDays ? Number(editExpiryDays) : undefined, canCombineWithPromo: editCanPromo, canCombineWithMembership: editCanMembership, notes: editNotes })} disabled={saveMutation.isPending}>{tr("save", "Save")}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -1136,6 +1142,7 @@ function RulePill({ name, value, highlight }: { name: string; value: string; hig
 
 function RevenueSimulatorPanel() {
   const { toast } = useToast();
+  const tr = useRevenueCenterText();
 
   // ── Booking context ──────────────────────────────────────────────────────
   const [currency,        setCurrency]        = useState("USD");
@@ -1221,7 +1228,7 @@ function RevenueSimulatorPanel() {
       return res.json() as Promise<SimResult>;
     },
     onSuccess: (data) => setResult(data),
-    onError: (e: any) => toast({ title: "Simulation error", description: e.message, variant: "destructive" }),
+    onError: (e: any) => toast({ title: tr("simulation_error", "Simulation error"), description: e.message, variant: "destructive" }),
   });
 
   return (
@@ -1360,7 +1367,7 @@ function RevenueSimulatorPanel() {
                     <SelectContent>
                       <SelectItem value="none">None</SelectItem>
                       <SelectItem value="percent">Percent (%)</SelectItem>
-                      <SelectItem value="fixed">Fixed Amount</SelectItem>
+                      <SelectItem value="fixed">{tr("fixed_amount_option", "Fixed Amount")}</SelectItem>
                     </SelectContent>
                   </Select>
                 </SimField>
@@ -1385,7 +1392,7 @@ function RevenueSimulatorPanel() {
           </CardContent></Card>
 
           <div className="rounded-md border border-blue-200 bg-blue-50/50 p-3 text-xs text-blue-900 dark:border-blue-900 dark:bg-blue-950/20 dark:text-blue-200">
-            Tax is resolved from the active canonical service and platform rules for the selected country.
+            {tr("tax_notice", "Tax is resolved from the active canonical service and platform rules for the selected country.")}
           </div>
 
           <Button className="w-full" size="lg" onClick={() => simMutation.mutate()} disabled={simMutation.isPending} data-testid="button-run-simulation">
@@ -1680,6 +1687,7 @@ function RevenueSimulatorPanel() {
 // ── Canonical tax rule management ─────────────────────────────────────────────
 function TaxSettingsPanel() {
   const { toast } = useToast();
+  const tr = useRevenueCenterText();
   const qc = useQueryClient();
   const { data, isLoading } = useQuery<{ serviceRules: any[]; platformRules: any[] }>({
     queryKey: ["/api/admin/tax-rules"],
@@ -1708,8 +1716,8 @@ function TaxSettingsPanel() {
       editingPlatform?.id ? `/api/admin/tax-rules/platform/${editingPlatform.id}` : "/api/admin/tax-rules/platform",
       vals,
     ),
-    onSuccess: () => { toast({ title: "Platform tax rule saved" }); invalidate(); setEditingPlatform(null); },
-    onError: () => toast({ title: "Save failed", variant: "destructive" }),
+    onSuccess: () => { toast({ title: tr("saved", "Saved") }); invalidate(); setEditingPlatform(null); },
+    onError: () => toast({ title: tr("save_failed", "Save failed"), variant: "destructive" }),
   });
   const saveService = useMutation({
     mutationFn: (vals: any) => apiRequest(
@@ -1717,16 +1725,16 @@ function TaxSettingsPanel() {
       editingService?.id ? `/api/admin/tax-rules/service/${editingService.id}` : "/api/admin/tax-rules/service",
       vals,
     ),
-    onSuccess: () => { toast({ title: "Sub-service tax rule saved" }); invalidate(); setEditingService(null); },
-    onError: () => toast({ title: "Save failed", variant: "destructive" }),
+    onSuccess: () => { toast({ title: tr("saved", "Saved") }); invalidate(); setEditingService(null); },
+    onError: () => toast({ title: tr("save_failed", "Save failed"), variant: "destructive" }),
   });
   const deleteRule = useMutation({
     mutationFn: ({ kind, id }: { kind: "platform" | "service"; id: string }) =>
       apiRequest("DELETE", `/api/admin/tax-rules/${kind}/${id}`),
-    onSuccess: () => { toast({ title: "Tax rule deleted" }); invalidate(); },
-    onError: () => toast({ title: "Delete failed", variant: "destructive" }),
+    onSuccess: () => { toast({ title: tr("deleted", "Deleted") }); invalidate(); },
+    onError: () => toast({ title: tr("delete_failed", "Delete failed"), variant: "destructive" }),
   });
-  if (isLoading) return <p className="text-sm text-muted-foreground p-4">Loading canonical tax rules…</p>;
+  if (isLoading) return <p className="text-sm text-muted-foreground p-4">{tr("tax_rules_loading", "Loading canonical tax rules…")}</p>;
   const platformRules = data?.platformRules ?? [];
   const serviceRules = data?.serviceRules ?? [];
   const beginPlatform = (rule?: any) => {
@@ -1752,16 +1760,16 @@ function TaxSettingsPanel() {
   return (
     <div className="space-y-6">
       <div className="rounded-md border border-blue-200 bg-blue-50/50 p-3 text-xs text-blue-900 dark:border-blue-900 dark:bg-blue-950/20 dark:text-blue-200">
-        Tax is resolved only from these country-specific canonical rules. The legacy sub-service tax percentage is not used.
+        {tr("tax_rules_notice", "Tax is resolved only from these country-specific canonical rules. The legacy sub-service tax percentage is not used.")}
       </div>
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0">
-          <CardTitle className="text-base flex items-center gap-2"><Receipt className="h-4 w-4" /> Platform tax / VAT rules</CardTitle>
-          <Button size="sm" onClick={() => beginPlatform()} data-testid="btn-add-platform-tax-rule"><Plus className="h-4 w-4 mr-1" />Add rule</Button>
+          <CardTitle className="text-base flex items-center gap-2"><Receipt className="h-4 w-4" /> {tr("platform_tax_rules", "Platform tax / VAT rules")}</CardTitle>
+          <Button size="sm" onClick={() => beginPlatform()} data-testid="btn-add-platform-tax-rule"><Plus className="h-4 w-4 mr-1" />{tr("add_tax_rule", "Add rule")}</Button>
         </CardHeader>
         <CardContent className="space-y-4">
           <Table>
-            <TableHeader><TableRow><TableHead>Country</TableHead><TableHead>Name</TableHead><TableHead>Rate</TableHead><TableHead>Effective</TableHead><TableHead>Active</TableHead><TableHead /></TableRow></TableHeader>
+            <TableHeader><TableRow><TableHead>{tr("country", "Country")}</TableHead><TableHead>{tr("name", "Name")}</TableHead><TableHead>{tr("rate", "Rate")}</TableHead><TableHead>{tr("effective", "Effective")}</TableHead><TableHead>{tr("active", "Active")}</TableHead><TableHead /></TableRow></TableHeader>
             <TableBody>
               {platformRules.map((r: any) => (
                 <TableRow key={r.id}>
@@ -1776,18 +1784,18 @@ function TaxSettingsPanel() {
                   </TableCell>
                 </TableRow>
               ))}
-              {!platformRules.length && <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground text-sm">No platform tax rules configured</TableCell></TableRow>}
+              {!platformRules.length && <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground text-sm">{tr("no_platform_tax_rules", "No platform tax rules configured")}</TableCell></TableRow>}
             </TableBody>
           </Table>
           {editingPlatform !== null && (
             <Card className="bg-muted/20"><CardContent className="pt-4 space-y-3">
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                <div><Label>Country code</Label><Input {...platformForm.register("countryCode")} placeholder="HU / IR" /></div>
+                <div><Label>{tr("country_code_short", "Country code")}</Label><Input {...platformForm.register("countryCode")} placeholder="HU / IR" /></div>
                 <div><Label>Tax name</Label><Input {...platformForm.register("taxName")} placeholder="VAT" /></div>
                 <div><Label>Rate (%)</Label><Input type="number" min="0" max="100" step="0.01" {...platformForm.register("taxRate", { valueAsNumber: true })} /></div>
                 <div><Label>Year</Label><Input type="number" {...platformForm.register("year", { valueAsNumber: true })} /></div>
-                <div><Label>Effective from</Label><Input type="datetime-local" {...platformForm.register("effectiveFrom")} /></div>
-                <div><Label>Effective to</Label><Input type="datetime-local" {...platformForm.register("effectiveTo")} /></div>
+                <div><Label>{tr("effective_from", "Effective from")}</Label><Input type="datetime-local" {...platformForm.register("effectiveFrom")} /></div>
+                <div><Label>{tr("effective_to", "Effective to")}</Label><Input type="datetime-local" {...platformForm.register("effectiveTo")} /></div>
                 <label className="flex items-center gap-2 pt-6 text-sm"><Switch checked={platformForm.watch("isActive")} onCheckedChange={v => platformForm.setValue("isActive", v)} />Active</label>
               </div>
               <div className="flex gap-2"><Button size="sm" onClick={platformForm.handleSubmit(v => savePlatform.mutate(v))} disabled={savePlatform.isPending}>Save</Button><Button size="sm" variant="ghost" onClick={() => setEditingPlatform(null)}>Cancel</Button></div>
@@ -1797,12 +1805,12 @@ function TaxSettingsPanel() {
       </Card>
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0">
-          <CardTitle className="text-base flex items-center gap-2"><Percent className="h-4 w-4" /> Sub-service tax rules</CardTitle>
-          <Button size="sm" onClick={() => beginService()} data-testid="btn-add-service-tax-rule"><Plus className="h-4 w-4 mr-1" />Add rule</Button>
+          <CardTitle className="text-base flex items-center gap-2"><Percent className="h-4 w-4" /> {tr("subservice_tax_rules", "Sub-service tax rules")}</CardTitle>
+          <Button size="sm" onClick={() => beginService()} data-testid="btn-add-service-tax-rule"><Plus className="h-4 w-4 mr-1" />{tr("add_tax_rule", "Add rule")}</Button>
         </CardHeader>
         <CardContent className="space-y-4">
           <Table>
-            <TableHeader><TableRow><TableHead>Sub-service</TableHead><TableHead>Country</TableHead><TableHead>Rate</TableHead><TableHead>Effective</TableHead><TableHead>Active</TableHead><TableHead /></TableRow></TableHeader>
+            <TableHeader><TableRow><TableHead>{tr("subservice", "Sub-service")}</TableHead><TableHead>{tr("country", "Country")}</TableHead><TableHead>{tr("rate", "Rate")}</TableHead><TableHead>{tr("effective", "Effective")}</TableHead><TableHead>{tr("active", "Active")}</TableHead><TableHead /></TableRow></TableHeader>
             <TableBody>
               {serviceRules.map((r: any) => (
                 <TableRow key={r.id}>
@@ -1817,18 +1825,18 @@ function TaxSettingsPanel() {
                   </TableCell>
                 </TableRow>
               ))}
-              {!serviceRules.length && <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground text-sm">No sub-service tax rules configured</TableCell></TableRow>}
+              {!serviceRules.length && <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground text-sm">{tr("no_subservice_tax_rules", "No sub-service tax rules configured")}</TableCell></TableRow>}
             </TableBody>
           </Table>
           {editingService !== null && (
             <Card className="bg-muted/20"><CardContent className="pt-4 space-y-3">
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                <div className="col-span-2"><Label>Sub-service</Label><Select value={serviceForm.watch("subServiceId") || ""} onValueChange={v => serviceForm.setValue("subServiceId", v)} disabled={!!editingService?.id}><SelectTrigger><SelectValue placeholder="Select sub-service" /></SelectTrigger><SelectContent>{subServices.map((s: any) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent></Select></div>
-                <div><Label>Country code</Label><Input {...serviceForm.register("countryCode")} placeholder="HU / IR" /></div>
+                <div className="col-span-2"><Label>{tr("subservice", "Sub-service")}</Label><Select value={serviceForm.watch("subServiceId") || ""} onValueChange={v => serviceForm.setValue("subServiceId", v)} disabled={!!editingService?.id}><SelectTrigger><SelectValue placeholder={tr("select_subservice", "Select sub-service")} /></SelectTrigger><SelectContent>{subServices.map((s: any) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent></Select></div>
+                <div><Label>{tr("country_code_short", "Country code")}</Label><Input {...serviceForm.register("countryCode")} placeholder="HU / IR" /></div>
                 <div><Label>Rate (%)</Label><Input type="number" min="0" max="100" step="0.01" {...serviceForm.register("taxRate", { valueAsNumber: true })} /></div>
-                <div><Label>Effective from</Label><Input type="datetime-local" {...serviceForm.register("effectiveFrom")} /></div>
-                <div><Label>Effective to</Label><Input type="datetime-local" {...serviceForm.register("effectiveTo")} /></div>
-                <label className="flex items-center gap-2 pt-6 text-sm"><Switch checked={serviceForm.watch("isActive")} onCheckedChange={v => serviceForm.setValue("isActive", v)} />Active</label>
+                <div><Label>{tr("effective_from", "Effective from")}</Label><Input type="datetime-local" {...serviceForm.register("effectiveFrom")} /></div>
+                <div><Label>{tr("effective_to", "Effective to")}</Label><Input type="datetime-local" {...serviceForm.register("effectiveTo")} /></div>
+                <label className="flex items-center gap-2 pt-6 text-sm"><Switch checked={serviceForm.watch("isActive")} onCheckedChange={v => serviceForm.setValue("isActive", v)} />{tr("active", "Active")}</label>
               </div>
               <div className="flex gap-2"><Button size="sm" onClick={serviceForm.handleSubmit(v => saveService.mutate(v))} disabled={saveService.isPending}>Save</Button><Button size="sm" variant="ghost" onClick={() => setEditingService(null)}>Cancel</Button></div>
             </CardContent></Card>
@@ -1842,57 +1850,58 @@ function TaxSettingsPanel() {
 // ── W5/W9: Gift Cards Admin Panel ─────────────────────────────────────────────
 function GiftCardsAdminPanel() {
   const { toast } = useToast();
+  const tr = useRevenueCenterText();
   const qc = useQueryClient();
   const { data: cards = [], isLoading } = useQuery<any[]>({ queryKey: ["/api/admin/gift-cards"] });
   const [issuing, setIssuing] = useState(false);
   const form = useForm<any>({ defaultValues: { amount: 50, recipientEmail: "", currency: "USD", daysValid: 365 } });
   const issueMut = useMutation({
     mutationFn: (vals: any) => apiRequest("POST", "/api/admin/gift-cards/issue", vals),
-    onSuccess: () => { toast({ title: "Gift card issued" }); qc.invalidateQueries({ queryKey: ["/api/admin/gift-cards"] }); setIssuing(false); },
-    onError: () => toast({ title: "Issue failed", variant: "destructive" }),
+    onSuccess: () => { toast({ title: tr("gift_card_issued", "Gift card issued") }); qc.invalidateQueries({ queryKey: ["/api/admin/gift-cards"] }); setIssuing(false); },
+    onError: () => toast({ title: tr("issue_failed", "Issue failed"), variant: "destructive" }),
   });
   const deactivateMut = useMutation({
     mutationFn: (id: string) => apiRequest("POST", `/api/admin/gift-cards/${id}/deactivate`),
-    onSuccess: () => { toast({ title: "Gift card deactivated" }); qc.invalidateQueries({ queryKey: ["/api/admin/gift-cards"] }); },
-    onError: () => toast({ title: "Failed", variant: "destructive" }),
+    onSuccess: () => { toast({ title: tr("gift_card_deactivated", "Gift card deactivated") }); qc.invalidateQueries({ queryKey: ["/api/admin/gift-cards"] }); },
+    onError: () => toast({ title: tr("error", "Error"), variant: "destructive" }),
   });
-  if (isLoading) return <p className="text-sm text-muted-foreground p-4">Loading…</p>;
+  if (isLoading) return <p className="text-sm text-muted-foreground p-4">{tr("loading", "Loading…")}</p>;
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="font-semibold flex items-center gap-2"><Gift className="h-4 w-4" /> Gift Cards</h3>
-        <Button size="sm" onClick={() => setIssuing(true)} data-testid="btn-issue-gift-card"><Plus className="h-4 w-4 mr-1" />Issue Card</Button>
+        <h3 className="font-semibold flex items-center gap-2"><Gift className="h-4 w-4" /> {tr("tab_gift_cards", "Gift Cards")}</h3>
+        <Button size="sm" onClick={() => setIssuing(true)} data-testid="btn-issue-gift-card"><Plus className="h-4 w-4 mr-1" />{tr("issue_card", "Issue Card")}</Button>
       </div>
       {issuing && (
         <Card><CardContent className="pt-4 space-y-3">
           <div className="grid grid-cols-2 gap-3">
-            <div><Label>Amount</Label><Input type="number" {...form.register("amount", { valueAsNumber: true })} data-testid="input-gc-amount" /></div>
-            <div><Label>Currency</Label><Input {...form.register("currency")} data-testid="input-gc-currency" /></div>
-            <div><Label>Recipient Email</Label><Input {...form.register("recipientEmail")} data-testid="input-gc-email" /></div>
-            <div><Label>Valid Days</Label><Input type="number" {...form.register("daysValid", { valueAsNumber: true })} data-testid="input-gc-days" /></div>
+            <div><Label>{tr("amount", "Amount")}</Label><Input type="number" {...form.register("amount", { valueAsNumber: true })} data-testid="input-gc-amount" /></div>
+            <div><Label>{tr("currency", "Currency")}</Label><Input {...form.register("currency")} data-testid="input-gc-currency" /></div>
+            <div><Label>{tr("recipient_email", "Recipient Email")}</Label><Input {...form.register("recipientEmail")} data-testid="input-gc-email" /></div>
+            <div><Label>{tr("valid_days", "Valid Days")}</Label><Input type="number" {...form.register("daysValid", { valueAsNumber: true })} data-testid="input-gc-days" /></div>
           </div>
           <div className="flex gap-2">
-            <Button size="sm" onClick={form.handleSubmit(vals => issueMut.mutate(vals))} disabled={issueMut.isPending} data-testid="btn-confirm-issue-gc">Issue</Button>
-            <Button size="sm" variant="ghost" onClick={() => setIssuing(false)}>Cancel</Button>
+            <Button size="sm" onClick={form.handleSubmit(vals => issueMut.mutate(vals))} disabled={issueMut.isPending} data-testid="btn-confirm-issue-gc">{tr("issue", "Issue")}</Button>
+            <Button size="sm" variant="ghost" onClick={() => setIssuing(false)}>{tr("cancel", "Cancel")}</Button>
           </div>
         </CardContent></Card>
       )}
       <Table>
-        <TableHeader><TableRow><TableHead>Code</TableHead><TableHead>Balance</TableHead><TableHead>Issued To</TableHead><TableHead>Expires</TableHead><TableHead>Active</TableHead><TableHead /></TableRow></TableHeader>
+        <TableHeader><TableRow><TableHead>{tr("code", "Code")}</TableHead><TableHead>{tr("balance", "Balance")}</TableHead><TableHead>{tr("issued_to", "Issued To")}</TableHead><TableHead>{tr("expires", "Expires")}</TableHead><TableHead>{tr("active", "Active")}</TableHead><TableHead /></TableRow></TableHeader>
         <TableBody>
           {(cards as any[]).map((c: any) => (
             <TableRow key={c.id}>
               <TableCell className="font-mono text-xs">{c.code}</TableCell>
               <TableCell>{formatInCurrency(Number(c.balance), c.currency as string)}</TableCell>
               <TableCell className="text-xs text-muted-foreground">{c.recipient_email ?? c.purchaser_email ?? "—"}</TableCell>
-              <TableCell className="text-xs">{c.expires_at ? formatDate(c.expires_at) : "No expiry"}</TableCell>
+              <TableCell className="text-xs">{c.expires_at ? formatDate(c.expires_at) : tr("no_expiry", "No expiry")}</TableCell>
               <TableCell>{c.is_active ? <CheckCircle2 className="h-4 w-4 text-green-500" /> : <XCircle className="h-4 w-4 text-muted-foreground" />}</TableCell>
               <TableCell>
-                {c.is_active && <Button size="sm" variant="outline" className="text-xs h-7" onClick={() => deactivateMut.mutate(c.id)} data-testid={`btn-deactivate-gc-${c.id}`}>Deactivate</Button>}
+                {c.is_active && <Button size="sm" variant="outline" className="text-xs h-7" onClick={() => deactivateMut.mutate(c.id)} data-testid={`btn-deactivate-gc-${c.id}`}>{tr("deactivate", "Deactivate")}</Button>}
               </TableCell>
             </TableRow>
           ))}
-          {cards.length === 0 && <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground text-sm">No gift cards issued</TableCell></TableRow>}
+          {cards.length === 0 && <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground text-sm">{tr("no_gift_cards", "No gift cards issued")}</TableCell></TableRow>}
         </TableBody>
       </Table>
     </div>

@@ -1,6 +1,7 @@
 import { formatDate } from "@/lib/datetime";
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAdminCurrency, formatInCurrency } from "@/lib/currency";
@@ -60,12 +61,13 @@ interface RefundRule {
 // ─── Refund status badge ──────────────────────────────────────────────────────
 
 function RefundStatusBadge({ status }: { status: string | null }) {
+  const { t } = useTranslation();
   if (status === "processed")
-    return <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200 text-xs">Processed</Badge>;
+    return <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200 text-xs">{t("admin_refunds.processed")}</Badge>;
   if (status === "pending")
-    return <Badge className="bg-amber-100 text-amber-700 border-amber-200 text-xs">Pending</Badge>;
+    return <Badge className="bg-amber-100 text-amber-700 border-amber-200 text-xs">{t("admin_refunds.pending")}</Badge>;
   if (status === "none")
-    return <Badge className="bg-muted text-muted-foreground border-border text-xs">None</Badge>;
+    return <Badge className="bg-muted text-muted-foreground border-border text-xs">{t("admin_refunds.none")}</Badge>;
   return <Badge variant="secondary" className="text-xs">{status ?? "—"}</Badge>;
 }
 
@@ -81,6 +83,7 @@ function ProcessRefundDialog({
   onOpenChange: (v: boolean) => void;
 }) {
   const { toast } = useToast();
+  const { t } = useTranslation();
   const { format: fmtMoney } = useAdminCurrency();
   const [action, setAction] = useState<"approve" | "reject" | "partial" | "manual">("approve");
   const [amount, setAmount] = useState(refund.refund_amount || "0");
@@ -95,43 +98,45 @@ function ProcessRefundDialog({
       }).then(r => r.json()),
     onSuccess: (data) => {
       toast({
-        title: action === "reject" ? "Refund declined" : "Refund processed",
-        description: action === "reject" ? "No funds were moved." : `${fmtMoney(data.refundAmt)} issued to member wallet.`,
+        title: action === "reject" ? t("admin_refunds.refund_declined") : t("admin_refunds.refund_processed"),
+        description: action === "reject"
+          ? t("admin_refunds.no_funds_moved")
+          : t("admin_refunds.issued_to_wallet", { amount: fmtMoney(data.refundAmt) }),
       });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/refunds"] });
       onOpenChange(false);
     },
-    onError: (e: any) => toast({ title: "Failed", description: e?.message, variant: "destructive" }),
+    onError: (e: any) => toast({ title: t("common.failed"), description: e?.message, variant: "destructive" }),
   });
 
   const totalPaid = Number(refund.total_amount || 0);
   const suggestedRefund = Number(refund.refund_amount || 0);
-  const patientName = [refund.patient_first, refund.patient_last].filter(Boolean).join(" ") || refund.patient_email || "Unknown";
+  const patientName = [refund.patient_first, refund.patient_last].filter(Boolean).join(" ") || refund.patient_email || t("admin_refunds.unknown_member");
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md" data-testid={`dialog-process-refund-${refund.id}`}>
         <DialogHeader>
-          <DialogTitle>Process refund</DialogTitle>
+          <DialogTitle>{t("admin_refunds.process_title")}</DialogTitle>
           <DialogDescription>
-            Appointment {refund.appointment_number ?? "#" + refund.id.slice(0, 8)} · {patientName}
+            {t("admin_refunds.appointment")} {refund.appointment_number ?? "#" + refund.id.slice(0, 8)} · {patientName}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-2">
           {/* Summary */}
           <div className="grid grid-cols-2 gap-2 text-sm rounded-lg bg-muted/50 p-3">
-            <span className="text-muted-foreground">Paid</span>
+            <span className="text-muted-foreground">{t("admin_refunds.paid")}</span>
             <span className="font-medium text-right">{fmtMoney(totalPaid)}</span>
-            <span className="text-muted-foreground">Policy refund</span>
+            <span className="text-muted-foreground">{t("admin_refunds.policy_refund")}</span>
             <span className="font-medium text-right">{fmtMoney(suggestedRefund)}</span>
-            <span className="text-muted-foreground">Cancelled by</span>
+            <span className="text-muted-foreground">{t("admin_refunds.cancelled_by")}</span>
             <span className="font-medium text-right capitalize">{refund.cancelled_by ?? "—"}</span>
           </div>
 
           {/* Action picker */}
           <div className="space-y-2">
-            <Label>Action</Label>
+            <Label>{t("admin_refunds.action")}</Label>
             <div className="grid grid-cols-2 gap-2">
               {(["approve", "partial", "manual", "reject"] as const).map(a => (
                 <button
@@ -141,10 +146,10 @@ function ProcessRefundDialog({
                   data-testid={`refund-action-${a}`}
                   className={`text-sm py-2 px-3 rounded-lg border-2 transition-all capitalize ${action === a ? "border-primary bg-primary/5 font-medium" : "border-border hover:border-primary/40"}`}
                 >
-                  {a === "approve" && "✓ Approve"}
-                  {a === "partial" && "½ Partial"}
-                  {a === "manual" && "✎ Manual"}
-                  {a === "reject" && "✕ Reject"}
+                  {a === "approve" && `✓ ${t("admin_refunds.approve")}`}
+                  {a === "partial" && `½ ${t("admin_refunds.partial")}`}
+                  {a === "manual" && `✎ ${t("admin_refunds.manual")}`}
+                  {a === "reject" && `✕ ${t("admin_refunds.reject")}`}
                 </button>
               ))}
             </div>
@@ -153,7 +158,7 @@ function ProcessRefundDialog({
           {/* Amount override (partial / manual) */}
           {(action === "partial" || action === "manual") && (
             <div className="space-y-1.5">
-              <Label>Refund amount</Label>
+              <Label>{t("admin_refunds.refund_amount")}</Label>
               <div className="relative">
                 <DollarSign className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -167,16 +172,16 @@ function ProcessRefundDialog({
                   data-testid="input-refund-amount-override"
                 />
               </div>
-              <p className="text-xs text-muted-foreground">Maximum: {fmtMoney(totalPaid)}</p>
+              <p className="text-xs text-muted-foreground">{t("admin_refunds.maximum", { amount: fmtMoney(totalPaid) })}</p>
             </div>
           )}
 
           {/* Note */}
           <div className="space-y-1.5">
-            <Label>Admin note <span className="text-muted-foreground">(optional)</span></Label>
+            <Label>{t("admin_refunds.admin_note")} <span className="text-muted-foreground">({t("admin_refunds.optional")})</span></Label>
             <Textarea
               rows={2}
-              placeholder="Reason or internal note..."
+              placeholder={t("admin_refunds.reason_placeholder")}
               value={note}
               onChange={e => setNote(e.target.value)}
               data-testid="textarea-refund-note"
@@ -186,13 +191,13 @@ function ProcessRefundDialog({
           {action === "reject" && (
             <div className="flex items-start gap-2 p-2 rounded-lg bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-300 text-xs border border-amber-200 dark:border-amber-800">
               <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
-              <span>No funds will be moved. The member will be notified.</span>
+              <span>{t("admin_refunds.reject_notice")}</span>
             </div>
           )}
         </div>
 
         <DialogFooter>
-          <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button variant="ghost" onClick={() => onOpenChange(false)}>{t("common.cancel")}</Button>
           <Button
             disabled={mut.isPending}
             variant={action === "reject" ? "destructive" : "default"}
@@ -200,10 +205,10 @@ function ProcessRefundDialog({
             data-testid="button-confirm-refund-process"
           >
             {mut.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
-            {action === "approve" && "Approve & send to wallet"}
-            {action === "partial" && "Send partial refund"}
-            {action === "manual" && "Send manual refund"}
-            {action === "reject" && "Decline refund"}
+            {action === "approve" && t("admin_refunds.approve_send_wallet")}
+            {action === "partial" && t("admin_refunds.partial_send")}
+            {action === "manual" && t("admin_refunds.manual_send")}
+            {action === "reject" && t("admin_refunds.decline")}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -214,6 +219,7 @@ function ProcessRefundDialog({
 // ─── Refund Management Panel ──────────────────────────────────────────────────
 
 export function RefundManagementPanel() {
+  const { t } = useTranslation();
   const { format: fmtMoney } = useAdminCurrency();
   const [statusFilter, setStatusFilter] = useState("pending");
   const [countryFilter, setCountryFilter] = useState("all");
@@ -244,9 +250,9 @@ export function RefundManagementPanel() {
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-lg">
             <RotateCcw className="h-5 w-5 text-primary" />
-            Refund operations center
+            {t("admin_refunds.operations_title")}
           </CardTitle>
-          <CardDescription>Review, approve, reject, or manually adjust refunds for cancelled appointments.</CardDescription>
+          <CardDescription>{t("admin_refunds.operations_desc")}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex flex-wrap gap-3 items-end">
@@ -260,7 +266,7 @@ export function RefundManagementPanel() {
                   data-testid={`filter-refund-${s}`}
                   className={`px-3 py-1 rounded-full text-xs font-medium border capitalize transition-all ${statusFilter === s ? "bg-primary text-primary-foreground border-primary" : "border-border hover:bg-muted"}`}
                 >
-                  {s}
+                  {t(`admin_refunds.status.${s}`)}
                 </button>
               ))}
             </div>
@@ -271,9 +277,9 @@ export function RefundManagementPanel() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All countries</SelectItem>
-                <SelectItem value="HU">Hungary</SelectItem>
-                <SelectItem value="IR">Iran</SelectItem>
+                <SelectItem value="all">{t("admin_refunds.all_countries")}</SelectItem>
+                <SelectItem value="HU">{t("admin_refunds.hungary")}</SelectItem>
+                <SelectItem value="IR">{t("admin_refunds.iran")}</SelectItem>
               </SelectContent>
             </Select>
 
@@ -283,13 +289,15 @@ export function RefundManagementPanel() {
               <Input
                 value={search}
                 onChange={e => { setSearch(e.target.value); setPage(1); }}
-                placeholder="Search appointment, member, provider..."
+                placeholder={t("admin_refunds.search_placeholder")}
                 className="pl-9 h-8 text-xs"
                 data-testid="input-refund-search"
               />
             </div>
 
-            <span className="text-xs text-muted-foreground ml-auto">{total} result{total !== 1 ? "s" : ""}</span>
+            <span className="text-xs text-muted-foreground ml-auto">
+              {t(total === 1 ? "admin_refunds.result_one" : "admin_refunds.result_many", { count: total })}
+            </span>
           </div>
         </CardContent>
       </Card>
@@ -304,23 +312,23 @@ export function RefundManagementPanel() {
           ) : refunds.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
               <CheckCircle className="h-10 w-10 mx-auto mb-2 opacity-20" />
-              <p className="text-sm">No refunds match this filter.</p>
+              <p className="text-sm">{t("admin_refunds.no_match")}</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead className="bg-muted/40 text-xs text-muted-foreground uppercase tracking-wide">
                   <tr>
-                    <th className="text-left px-4 py-3">Appt #</th>
-                    <th className="text-left px-4 py-3">Member</th>
-                    <th className="text-left px-4 py-3">Provider</th>
-                    <th className="text-left px-4 py-3">Service</th>
-                    <th className="text-right px-4 py-3">Paid</th>
-                    <th className="text-right px-4 py-3">Refund</th>
-                    <th className="text-center px-4 py-3">Status</th>
-                    <th className="text-center px-4 py-3">By</th>
-                    <th className="text-center px-4 py-3">Country</th>
-                    <th className="text-center px-4 py-3">Date</th>
+                    <th className="text-left px-4 py-3">{t("admin_refunds.appt_number")}</th>
+                    <th className="text-left px-4 py-3">{t("admin_refunds.member")}</th>
+                    <th className="text-left px-4 py-3">{t("admin_refunds.provider")}</th>
+                    <th className="text-left px-4 py-3">{t("admin_refunds.service")}</th>
+                    <th className="text-right px-4 py-3">{t("admin_refunds.paid")}</th>
+                    <th className="text-right px-4 py-3">{t("admin_refunds.refund")}</th>
+                    <th className="text-center px-4 py-3">{t("admin_refunds.status_label")}</th>
+                    <th className="text-center px-4 py-3">{t("admin_refunds.by")}</th>
+                    <th className="text-center px-4 py-3">{t("admin_refunds.country")}</th>
+                    <th className="text-center px-4 py-3">{t("admin_refunds.date")}</th>
                     <th className="px-4 py-3"></th>
                   </tr>
                 </thead>
@@ -356,13 +364,13 @@ export function RefundManagementPanel() {
                               onClick={() => setSelected(r)}
                               data-testid={`button-process-refund-${r.id}`}
                             >
-                              Review
+                              {t("admin_refunds.review")}
                             </Button>
                           )}
                           {r.refund_status === "processed" && (
                             <span className="text-xs text-emerald-600 flex items-center gap-1">
                               <CheckCircle className="h-3.5 w-3.5" />
-                              Done
+                              {t("admin_refunds.done")}
                             </span>
                           )}
                           {r.refund_notes && (
@@ -383,7 +391,7 @@ export function RefundManagementPanel() {
               <Button size="sm" variant="ghost" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}>
                 <ChevronLeft className="h-4 w-4" />
               </Button>
-              <span className="text-xs text-muted-foreground">Page {page} / {totalPages}</span>
+              <span className="text-xs text-muted-foreground">{t("admin_refunds.page_of", { page, total: totalPages })}</span>
               <Button size="sm" variant="ghost" onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}>
                 <ChevronRight className="h-4 w-4" />
               </Button>
@@ -411,6 +419,7 @@ function RuleRow({ rule, onSave }: { rule: RefundRule; onSave: (id: string, patc
   const [draft, setDraft] = useState({ ...rule });
   const [saving, setSaving] = useState(false);
   const { toast } = useToast();
+  const { t } = useTranslation();
 
   const handleSave = async () => {
     setSaving(true);
@@ -423,17 +432,11 @@ function RuleRow({ rule, onSave }: { rule: RefundRule; onSave: (id: string, patc
         description: draft.description,
       } as any);
       setEditing(false);
-    } catch { toast({ title: "Save failed", variant: "destructive" }); }
+    } catch { toast({ title: t("admin_refunds.save_failed"), variant: "destructive" }); }
     finally { setSaving(false); }
   };
 
-  const scenarioLabel = {
-    patient_cancel: "Member cancel",
-    provider_cancel: "Provider cancel",
-    no_show: "No-show",
-    late_cancel: "Late cancel",
-    service_failure: "Service failure",
-  }[rule.scenario] ?? rule.scenario;
+  const scenarioLabel = t(`admin_refunds.scenarios.${rule.scenario}`, { defaultValue: rule.scenario });
 
   return (
     <tr className={`border-b text-sm ${!rule.is_active ? "opacity-50" : ""}`} data-testid={`row-rule-${rule.id}`}>
@@ -460,9 +463,9 @@ function RuleRow({ rule, onSave }: { rule: RefundRule; onSave: (id: string, patc
           </td>
           <td className="px-4 py-3 flex gap-1">
             <Button size="sm" className="h-7 text-xs" onClick={handleSave} disabled={saving}>
-              {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : "Save"}
+              {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : t("admin_refunds.save")}
             </Button>
-            <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => { setDraft({ ...rule }); setEditing(false); }}>Cancel</Button>
+            <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => { setDraft({ ...rule }); setEditing(false); }}>{t("common.cancel")}</Button>
           </td>
         </>
       ) : (
@@ -471,11 +474,11 @@ function RuleRow({ rule, onSave }: { rule: RefundRule; onSave: (id: string, patc
           <td className="px-4 py-3">{rule.partial_refund_hours}h</td>
           <td className="px-4 py-3">{rule.partial_refund_percent}%</td>
           <td className="px-4 py-3">
-            {rule.is_active ? <Badge className="bg-emerald-100 text-emerald-700 text-xs">Active</Badge> : <Badge variant="secondary" className="text-xs">Off</Badge>}
+            {rule.is_active ? <Badge className="bg-emerald-100 text-emerald-700 text-xs">{t("admin_refunds.active")}</Badge> : <Badge variant="secondary" className="text-xs">{t("admin_refunds.off")}</Badge>}
           </td>
           <td className="px-4 py-3 text-xs text-muted-foreground max-w-[200px] truncate">{rule.description ?? "—"}</td>
           <td className="px-4 py-3">
-            <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setEditing(true)} data-testid={`button-edit-rule-${rule.id}`}>Edit</Button>
+            <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setEditing(true)} data-testid={`button-edit-rule-${rule.id}`}>{t("admin_refunds.edit")}</Button>
           </td>
         </>
       )}
@@ -485,6 +488,7 @@ function RuleRow({ rule, onSave }: { rule: RefundRule; onSave: (id: string, patc
 
 export function RefundRulesPanel() {
   const { toast } = useToast();
+  const { t } = useTranslation();
   const { data: rules = [], isLoading } = useQuery<RefundRule[]>({
     queryKey: ["/api/admin/refund-rules"],
   });
@@ -494,9 +498,9 @@ export function RefundRulesPanel() {
       apiRequest("PUT", `/api/admin/refund-rules/${id}`, patch).then(r => r.json()),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/refund-rules"] });
-      toast({ title: "Rule saved" });
+      toast({ title: t("admin_refunds.rule_saved") });
     },
-    onError: () => toast({ title: "Save failed", variant: "destructive" }),
+    onError: () => toast({ title: t("admin_refunds.save_failed"), variant: "destructive" }),
   });
 
   return (
@@ -504,10 +508,10 @@ export function RefundRulesPanel() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-lg">
           <Settings2 className="h-5 w-5 text-primary" />
-          Refund policy rules
+          {t("admin_refunds.policy_title")}
         </CardTitle>
         <CardDescription>
-          Configurable time-based refund thresholds per scenario and country. These rules drive the auto-quote shown to clients and admins at cancellation time.
+          {t("admin_refunds.policy_desc")}
         </CardDescription>
       </CardHeader>
       <CardContent className="p-0">
@@ -518,13 +522,13 @@ export function RefundRulesPanel() {
             <table className="w-full text-sm">
               <thead className="bg-muted/40 text-xs text-muted-foreground uppercase tracking-wide">
                 <tr>
-                  <th className="text-left px-4 py-3">Scenario</th>
-                  <th className="text-left px-4 py-3">Country</th>
-                  <th className="text-left px-4 py-3">Full refund if &gt;</th>
-                  <th className="text-left px-4 py-3">Partial refund if &gt;</th>
-                  <th className="text-left px-4 py-3">Partial %</th>
-                  <th className="text-left px-4 py-3">Status</th>
-                  <th className="text-left px-4 py-3">Description</th>
+                  <th className="text-left px-4 py-3">{t("admin_refunds.scenario")}</th>
+                  <th className="text-left px-4 py-3">{t("admin_refunds.country")}</th>
+                  <th className="text-left px-4 py-3">{t("admin_refunds.full_refund_if")}</th>
+                  <th className="text-left px-4 py-3">{t("admin_refunds.partial_refund_if")}</th>
+                  <th className="text-left px-4 py-3">{t("admin_refunds.partial_percent")}</th>
+                  <th className="text-left px-4 py-3">{t("admin_refunds.status_label")}</th>
+                  <th className="text-left px-4 py-3">{t("admin_refunds.description")}</th>
                   <th className="px-4 py-3"></th>
                 </tr>
               </thead>
@@ -537,7 +541,7 @@ export function RefundRulesPanel() {
                   />
                 ))}
                 {rules.length === 0 && (
-                  <tr><td colSpan={8} className="text-center py-8 text-muted-foreground text-sm">No rules found. They will be seeded on next server restart.</td></tr>
+                  <tr><td colSpan={8} className="text-center py-8 text-muted-foreground text-sm">{t("admin_refunds.no_rules")}</td></tr>
                 )}
               </tbody>
             </table>

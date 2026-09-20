@@ -1,7 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
+import { type ElementType } from "react";
 import { useAdminCurrency, formatInCurrency } from "@/lib/currency";
 import { formatCount } from "@/lib/format-utils";
+import { formatMonthLabel } from "@/lib/datetime";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -34,7 +36,7 @@ interface CommercialAnalytics {
 const CHART_COLORS = ["#6366f1", "#22c55e", "#f59e0b", "#ef4444", "#8b5cf6", "#06b6d4"];
 
 function StatTile({ label, value, sub, icon: Icon, color = "text-indigo-500" }: {
-  label: string; value: string | number; sub?: string; icon: React.ElementType; color?: string;
+  label: string; value: string | number; sub?: string; icon: ElementType; color?: string;
 }) {
   return (
     <Card>
@@ -53,10 +55,10 @@ function StatTile({ label, value, sub, icon: Icon, color = "text-indigo-500" }: 
 }
 
 export function RevenueIntelligenceDashboard() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { format: fmtMoney } = useAdminCurrency();
   const r = (key: string, fallback: string, options?: Record<string, unknown>) =>
-    String(t(`admin.report.${key}`, { defaultValue: fallback, ...options }));
+    String(t(`admin_report.${key}`, { defaultValue: fallback, ...options }));
 
   const { data: trendsData, isLoading: trendsLoading } = useQuery<{ trends: RevenueTrend[] }>({
     queryKey: ["/api/admin/financial/revenue-trends"],
@@ -81,6 +83,12 @@ export function RevenueIntelligenceDashboard() {
     { name: r("redeemed", "Redeemed"), value: giftCards?.redeemedCards ?? 0 },
     { name: r("expired", "Expired"), value: giftCards?.expiredCards ?? 0 },
   ];
+
+  const monthLabel = (value: string) => {
+    const localized = formatMonthLabel(value);
+    if (localized !== value) return localized;
+    return new Intl.DateTimeFormat(i18n.language, { month: "short", year: "numeric" }).format(new Date(`${value}-01T00:00:00Z`));
+  };
 
   if (trendsLoading || commercialLoading) {
     return (
@@ -138,9 +146,9 @@ export function RevenueIntelligenceDashboard() {
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-border/40" />
-                  <XAxis dataKey="month" tick={{ fontSize: 11 }} tickLine={false} />
+                  <XAxis dataKey="month" tick={{ fontSize: 11 }} tickLine={false} tickFormatter={monthLabel} />
                   <YAxis tick={{ fontSize: 11 }} tickLine={false} tickFormatter={(v) => formatInCurrency(Number(v), "USD")} />
-                  <Tooltip formatter={(v: any) => [formatInCurrency(Number(v), "USD"), ""]} />
+                  <Tooltip formatter={(v: any, name: any) => [formatInCurrency(Number(v), "USD"), String(name ?? "")]} />
                   <Legend />
                    <Area type="monotone" dataKey="gross_usd" name={r("gross", "Gross")} stroke="#6366f1" fill="url(#gradGross)" strokeWidth={2} />
                    <Area type="monotone" dataKey="fees_usd" name={r("fees", "Fees")} stroke="#22c55e" fill="url(#gradFees)" strokeWidth={2} />
@@ -158,7 +166,7 @@ export function RevenueIntelligenceDashboard() {
               <ResponsiveContainer width="100%" height={220}>
                 <BarChart data={trends} margin={{ top: 4, right: 12, left: 0, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-border/40" />
-                  <XAxis dataKey="month" tick={{ fontSize: 11 }} tickLine={false} />
+                  <XAxis dataKey="month" tick={{ fontSize: 11 }} tickLine={false} tickFormatter={monthLabel} />
                   <YAxis tick={{ fontSize: 11 }} tickLine={false} />
                   <Tooltip />
                   <Legend />
@@ -236,16 +244,16 @@ export function RevenueIntelligenceDashboard() {
             {/* Referral */}
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm">Referral Conversion</CardTitle>
+                <CardTitle className="text-sm">{r("referral_conversion", "Referral Conversion")}</CardTitle>
               </CardHeader>
               <CardContent>
-                {!referral ? <p className="text-xs text-muted-foreground">No data</p> : (
+                {!referral ? <p className="text-xs text-muted-foreground">{r("no_data", "No data")}</p> : (
                   <div className="space-y-2">
-                    <div className="flex justify-between text-sm"><span className="text-muted-foreground">Total Referrals</span><span className="font-semibold">{referral.total}</span></div>
-                    <div className="flex justify-between text-sm"><span className="text-muted-foreground">Qualified</span><span className="font-semibold text-green-600">{referral.qualified}</span></div>
-                    <div className="flex justify-between text-sm"><span className="text-muted-foreground">Rewarded</span><span className="font-semibold text-indigo-600">{referral.rewarded}</span></div>
+                    <div className="flex justify-between text-sm"><span className="text-muted-foreground">{r("total_referrals", "Total Referrals")}</span><span className="font-semibold">{referral.total}</span></div>
+                    <div className="flex justify-between text-sm"><span className="text-muted-foreground">{r("qualified", "Qualified")}</span><span className="font-semibold text-green-600">{referral.qualified}</span></div>
+                    <div className="flex justify-between text-sm"><span className="text-muted-foreground">{r("rewarded", "Rewarded")}</span><span className="font-semibold text-indigo-600">{referral.rewarded}</span></div>
                     <div className="pt-2 border-t flex justify-between text-sm font-semibold">
-                      <span>Conversion Rate</span>
+                      <span>{r("conversion_rate", "Conversion Rate")}</span>
                       <Badge variant="secondary">{referral.conversionRatePct}%</Badge>
                     </div>
                   </div>
@@ -256,16 +264,16 @@ export function RevenueIntelligenceDashboard() {
             {/* Waitlist */}
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm">Waitlist Conversion</CardTitle>
+                <CardTitle className="text-sm">{r("waitlist_conversion", "Waitlist Conversion")}</CardTitle>
               </CardHeader>
               <CardContent>
-                {!waitlist ? <p className="text-xs text-muted-foreground">No data</p> : (
+                {!waitlist ? <p className="text-xs text-muted-foreground">{r("no_data", "No data")}</p> : (
                   <div className="space-y-2">
-                    <div className="flex justify-between text-sm"><span className="text-muted-foreground">Total Entries</span><span className="font-semibold">{waitlist.total}</span></div>
-                    <div className="flex justify-between text-sm"><span className="text-muted-foreground">Active</span><span className="font-semibold">{waitlist.active}</span></div>
-                    <div className="flex justify-between text-sm"><span className="text-muted-foreground">Fulfilled</span><span className="font-semibold text-green-600">{waitlist.fulfilled}</span></div>
+                    <div className="flex justify-between text-sm"><span className="text-muted-foreground">{r("total_entries", "Total Entries")}</span><span className="font-semibold">{waitlist.total}</span></div>
+                    <div className="flex justify-between text-sm"><span className="text-muted-foreground">{r("active", "Active")}</span><span className="font-semibold">{waitlist.active}</span></div>
+                    <div className="flex justify-between text-sm"><span className="text-muted-foreground">{r("fulfilled", "Fulfilled")}</span><span className="font-semibold text-green-600">{waitlist.fulfilled}</span></div>
                     <div className="pt-2 border-t flex justify-between text-sm font-semibold">
-                      <span>Fulfillment Rate</span>
+                      <span>{r("fulfillment_rate", "Fulfillment Rate")}</span>
                       <Badge variant="secondary">{waitlist.fulfillmentRatePct}%</Badge>
                     </div>
                   </div>
@@ -276,15 +284,15 @@ export function RevenueIntelligenceDashboard() {
             {/* Gift Cards */}
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm">Gift Card Performance</CardTitle>
+                <CardTitle className="text-sm">{r("gift_card_performance", "Gift Card Performance")}</CardTitle>
               </CardHeader>
               <CardContent>
-                {!giftCards ? <p className="text-xs text-muted-foreground">No data</p> : (
+                {!giftCards ? <p className="text-xs text-muted-foreground">{r("no_data", "No data")}</p> : (
                   <div className="space-y-2">
-                    <div className="flex justify-between text-sm"><span className="text-muted-foreground">Total Issued</span><span className="font-semibold">{giftCards.totalIssued}</span></div>
-                    <div className="flex justify-between text-sm"><span className="text-muted-foreground">Redeemed</span><span className="font-semibold text-green-600">{giftCards.redeemedCards}</span></div>
-                    <div className="flex justify-between text-sm"><span className="text-muted-foreground">Value Issued</span><span className="font-semibold">{fmtMoney(giftCards.totalValueUsd)}</span></div>
-                    <div className="flex justify-between text-sm"><span className="text-muted-foreground">Value Redeemed</span><span className="font-semibold text-indigo-600">{fmtMoney(giftCards.redeemedValueUsd)}</span></div>
+                    <div className="flex justify-between text-sm"><span className="text-muted-foreground">{r("total_issued", "Total Issued")}</span><span className="font-semibold">{giftCards.totalIssued}</span></div>
+                    <div className="flex justify-between text-sm"><span className="text-muted-foreground">{r("redeemed", "Redeemed")}</span><span className="font-semibold text-green-600">{giftCards.redeemedCards}</span></div>
+                    <div className="flex justify-between text-sm"><span className="text-muted-foreground">{r("value_issued", "Value Issued")}</span><span className="font-semibold">{fmtMoney(giftCards.totalValueUsd)}</span></div>
+                    <div className="flex justify-between text-sm"><span className="text-muted-foreground">{r("value_redeemed", "Value Redeemed")}</span><span className="font-semibold text-indigo-600">{fmtMoney(giftCards.redeemedValueUsd)}</span></div>
                     {giftCards.totalIssued > 0 && (
                       <div className="pt-2 border-t">
                         <ResponsiveContainer width="100%" height={80}>
