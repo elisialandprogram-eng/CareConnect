@@ -236,7 +236,7 @@ function ClientDirectory({
                     </div>
                     <div className="flex items-center gap-1.5 flex-wrap">
                       <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${roleColor(c.role)}`}>
-                        {c.role}
+                        {t(`admin_extra.member.${c.role === "patient" ? "member" : c.role}`, c.role)}
                       </span>
                       {c.countryCode && (
                         <span className="text-[10px] text-slate-400">{c.countryCode}</span>
@@ -376,7 +376,7 @@ function ClientWorkspace({
           {[
              { icon: Calendar, label: tr("bookings", "Bookings"), value: bookings.length },
              { icon: CheckCircle, label: tr("completed", "Completed"), value: completedCount },
-             { icon: Activity, label: t("admin.active", "Active"), value: activeCount },
+             { icon: Activity, label: tr("active", "Active"), value: activeCount },
              { icon: XCircle, label: tr("cancelled", "Cancelled"), value: cancelledCount },
              { icon: Wallet, label: tr("balance", "Balance"), value: walletData ? fmtUSD(walletData.balance) : "—" },
              { icon: Receipt, label: tr("transactions", "Transactions"), value: transactions.length },
@@ -433,8 +433,8 @@ function ClientWorkspace({
                 <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300">{tr("account", "Account")}</h3>
                 <div className="space-y-2 text-sm">
                   {[
-                     { label: tr("role", "Role"), value: client.role },
-                     { label: t("admin.status", "Status"), value: client.isSuspended ? t("admin.suspended", "Suspended") : t("admin.active", "Active") },
+                     { label: tr("role", "Role"), value: tr(client.role === "patient" ? "member" : client.role, client.role) },
+                     { label: t("admin.status", "Status"), value: client.isSuspended ? t("admin.suspended", "Suspended") : tr("active", "Active") },
                      { label: tr("email_verified", "Email verified"), value: client.isEmailVerified ? t("common.yes", "Yes") : t("common.no", "No") },
                      { label: t("common.language", "Language"), value: client.languagePreference },
                      { label: tr("currency", "Currency"), value: client.preferredCurrency },
@@ -464,10 +464,10 @@ function ClientWorkspace({
           <TabsContent value="bookings" className="p-5 space-y-4 mt-0">
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
               {[
-                { label: "Total", value: bookings.length, color: "text-slate-900 dark:text-slate-100" },
-                { label: "Completed", value: completedCount, color: "text-green-600" },
-                { label: "Active", value: activeCount, color: "text-blue-600" },
-                { label: "Cancelled", value: cancelledCount, color: "text-red-600" },
+                { label: tr("total", "Total"), value: bookings.length, color: "text-slate-900 dark:text-slate-100" },
+                { label: tr("completed", "Completed"), value: completedCount, color: "text-green-600" },
+                { label: tr("active", "Active"), value: activeCount, color: "text-blue-600" },
+                { label: tr("cancelled", "Cancelled"), value: cancelledCount, color: "text-red-600" },
               ].map(({ label, value, color }) => (
                 <div key={label} className="bg-slate-50 dark:bg-slate-900 rounded-lg p-4 text-center">
                   <div className={`text-2xl font-bold ${color}`}>{value}</div>
@@ -691,7 +691,7 @@ function ClientWorkspace({
                         </p>
                         <div className="flex items-center gap-2 mt-1 flex-wrap">
                           <span className={`text-[10px] px-2 py-0.5 rounded-full border font-medium capitalize ${statusClass}`}>
-                            {pkg.status}
+                            {tr(`status_${pkg.status}`, pkg.status.replace(/_/g, " "))}
                           </span>
                           {pkg.auto_renew && (
                             <span className="text-[10px] text-teal-600 bg-teal-50 border border-teal-200 px-2 py-0.5 rounded-full">

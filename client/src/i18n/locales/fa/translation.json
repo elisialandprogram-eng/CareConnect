@@ -5903,7 +5903,17 @@
       "expires": "منقضی می‌شود",
       "reason_placeholder": "دلیل…",
       "select_member_workspace": "برای مشاهده فضای کاری، یک بیمار انتخاب کنید",
-      "select_member_actions": "برای مشاهده عملیات، یک بیمار انتخاب کنید"
+      "select_member_actions": "برای مشاهده عملیات، یک بیمار انتخاب کنید",
+      "overview": "نمای کلی",
+      "wallet": "کیف پول",
+      "health": "سلامت",
+      "packages": "بسته‌ها",
+      "active": "فعال",
+      "status_active": "فعال",
+      "status_pending": "در انتظار",
+      "status_paused": "متوقف‌شده",
+      "status_expired": "منقضی‌شده",
+      "status_cancelled": "لغوشده"
     },
     "provider": {
       "entries": "مورد",

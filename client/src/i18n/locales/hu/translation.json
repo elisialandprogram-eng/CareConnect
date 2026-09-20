@@ -5903,7 +5903,17 @@
       "expires": "Lejár",
       "reason_placeholder": "Indok…",
       "select_member_workspace": "Válasszon pácienst a munkaterület megtekintéséhez",
-      "select_member_actions": "Válasszon pácienst a műveletekhez"
+      "select_member_actions": "Válasszon pácienst a műveletekhez",
+      "overview": "Áttekintés",
+      "wallet": "Pénztárca",
+      "health": "Egészség",
+      "packages": "Csomagok",
+      "active": "Aktív",
+      "status_active": "Aktív",
+      "status_pending": "Függőben",
+      "status_paused": "Szüneteltetve",
+      "status_expired": "Lejárt",
+      "status_cancelled": "Törölve"
     },
     "provider": {
       "entries": "bejegyzés",

@@ -5967,7 +5967,17 @@
       "expires": "Expires",
       "reason_placeholder": "Reason…",
       "select_member_workspace": "Select a member to view their workspace",
-      "select_member_actions": "Select a member to see actions"
+      "select_member_actions": "Select a member to see actions",
+      "overview": "Overview",
+      "wallet": "Wallet",
+      "health": "Health",
+      "packages": "Packages",
+      "active": "Active",
+      "status_active": "Active",
+      "status_pending": "Pending",
+      "status_paused": "Paused",
+      "status_expired": "Expired",
+      "status_cancelled": "Cancelled"
     },
     "provider": {
       "entries": "entries",

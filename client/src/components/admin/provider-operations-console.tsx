@@ -1402,8 +1402,13 @@ function ProviderCommandCenter({
   const label = (key: string, fallback: string) => t(`admin_tools.ops.${key}`, fallback);
   const d = (key: string, fallback: string, options?: Record<string, unknown>) => {
     const existing = String(t(`admin_tools.ops.${key}`, { defaultValue: "" }));
-    return String(t(`admin_extra.provider.${key}`, { defaultValue: existing || fallback, ...options }));
+    const details = String(t(`admin_provider_details.${key}`, { defaultValue: "" }));
+    return String(t(`admin_extra.provider.${key}`, { defaultValue: details || existing || fallback, ...options }));
   };
+  const statusLabel = (status: string | null | undefined) =>
+    String(t(`admin_tools.review.status.${status || ""}`, {
+      defaultValue: d(String(status || ""), humanLabel(status)),
+    }));
 
   // P3: Service admin actions
   const serviceActionMutation = useMutation({
@@ -1463,7 +1468,7 @@ function ProviderCommandCenter({
   const healthScore = Math.max(0, 100 - metrics.computedRisk);
   const healthFactors = [
     { label: t("admin_tools.ops.identity_verified", "Identity Verified"), pass: prov.isVerified, impact: "high" as const, note: prov.isVerified ? t("admin_tools.ops.kyc_confirmed", "KYC identity confirmed") : t("admin_tools.ops.verification_incomplete", "Admin has not finalized verification") },
-    { label: t("admin_tools.ops.account_status", "Account Status"), pass: ["approved","active"].includes(prov.status), impact: "high" as const, note: `${t("admin_tools.ops.current_status", "Current status")}: ${humanLabel(prov.status)}` },
+    { label: t("admin_tools.ops.account_status", "Account Status"), pass: ["approved","active"].includes(prov.status), impact: "high" as const, note: `${t("admin_tools.ops.current_status", "Current status")}: ${statusLabel(prov.status)}` },
     { label: t("admin_tools.ops.mandatory_docs", "Mandatory Docs Approved"), pass: metrics.pendingDocs === 0 && metrics.approvedDocs >= 3, impact: "high" as const, note: t("admin_tools.ops.documents_approved", "{{approved}}/{{total}} documents approved", { approved: metrics.approvedDocs, total: metrics.totalDocs }) },
     { label: t("admin_tools.ops.low_cancellation", "Low Cancellation Rate"), pass: appointments.cancellationRate < 20, impact: "medium" as const, note: `${appointments.cancellationRate}% ${t("admin_tools.ops.cancellation_rate", "cancellation rate")}` },
     { label: t("admin_tools.ops.has_services", "Has Services"), pass: metrics.servicesCount > 0, impact: "medium" as const, note: t("admin_tools.ops.services_configured", "{{count}} service(s) configured", { count: metrics.servicesCount }) },
@@ -1599,7 +1604,7 @@ function ProviderCommandCenter({
                    { label: d("email", "Email"), value: user?.email },
                    { label: d("mobile", "Mobile"), value: user?.phone || prov.supportPhone || d("no_value", "—") },
                    { label: d("verification_status", "Verification Status"), value: prov.isVerified ? `✓ ${d("verified", "Verified")}` : d("not_verified", "Not Verified") },
-                   { label: d("provider_status", "Provider Status"), value: humanLabel(prov.status) },
+                   { label: d("provider_status", "Provider Status"), value: statusLabel(prov.status) },
                    { label: d("risk_level", "Risk Level"), value: riskLabel(metrics.computedRisk).label },
                    { label: d("joined", "Joined"), value: user?.createdAt ? formatAdminDate(user.createdAt, "date") : d("no_value", "—") },
                    { label: d("last_updated", "Last Updated"), value: prov.updatedAt ? formatAdminDate(prov.updatedAt, "date") : d("no_value", "—") },
@@ -1782,14 +1787,14 @@ function ProviderCommandCenter({
             <div className="space-y-3">
               <div className="flex items-center justify-between flex-wrap gap-2">
                 <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300">
-                  Documents & Verification
+                  {d("documents_verification", "Documents & Verification")}
                 </h3>
                 <div className="flex items-center gap-2 text-xs text-slate-400">
-                  <span className="text-green-600 font-medium">{metrics.approvedDocs} approved</span>
+                  <span className="text-green-600 font-medium">{d("approved_count", "{{count}} approved", { count: metrics.approvedDocs })}</span>
                   <span>·</span>
-                  <span className="text-yellow-600 font-medium">{metrics.pendingDocs} pending</span>
+                  <span className="text-yellow-600 font-medium">{d("pending_count", "{{count}} pending", { count: metrics.pendingDocs })}</span>
                   <span>·</span>
-                  <span>{metrics.verificationPct}% verified</span>
+                  <span>{d("verified_percent", "{{percent}}% verified", { percent: metrics.verificationPct })}</span>
                 </div>
               </div>
 
@@ -1832,12 +1837,12 @@ function ProviderCommandCenter({
           <TabsContent value="services" className="p-5 space-y-5 mt-0">
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300">Services & Pricing ({services.length})</h3>
+                <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300">{d("services_pricing", "Services & Pricing ({{count}})", { count: services.length })}</h3>
                 {services.length > 0 && (
                   <div className="flex items-center gap-2 text-xs text-slate-400">
-                    <span>{services.filter((s: any) => s.isActive).length} active</span>
+                    <span>{d("active_count", "{{count}} active", { count: services.filter((s: any) => s.isActive).length })}</span>
                     <span>·</span>
-                    <span>{services.filter((s: any) => !s.isActive).length} inactive</span>
+                    <span>{d("inactive_count", "{{count}} inactive", { count: services.filter((s: any) => !s.isActive).length })}</span>
                   </div>
                 )}
               </div>
