@@ -47,7 +47,7 @@ interface SeedResult {
   alreadyExists: boolean;
 }
 
-function StatusDot({ active, label }: { active: boolean; label: string }) {
+function StatusDot({ active, label, existsLabel, missingLabel }: { active: boolean; label: string; existsLabel: string; missingLabel: string }) {
   return (
     <div className="flex items-center gap-2 py-1.5 px-3 rounded-md bg-muted/40">
       {active
@@ -60,7 +60,7 @@ function StatusDot({ active, label }: { active: boolean; label: string }) {
         className={`ml-auto text-xs ${active ? "text-emerald-600 dark:text-emerald-400 border-emerald-300 dark:border-emerald-700" : ""}`}
         data-testid={`badge-seed-${label.toLowerCase().replace(/\s+/g, "-")}`}
       >
-         {active ? "exists" : "missing"}
+         {active ? existsLabel : missingLabel}
       </Badge>
     </div>
   );
@@ -211,10 +211,10 @@ export function SeedUatTool() {
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">
                {c("seed_account_status", "Seed account status")}
             </p>
-             <StatusDot active={!!status?.patient1} label="Emma Kovács (member)" />
-             <StatusDot active={!!status?.patient2} label="Dávid Barros (member)" />
-             <StatusDot active={!!status?.physio}   label="Dr. Anna Szabó (rehabilitation)" />
-             <StatusDot active={!!status?.physician} label="Dr. Bence Molnár (physician)" />
+              <StatusDot active={!!status?.patient1} label={c("uat_member_one", "Emma Kovács (member)")} existsLabel={c("exists", "exists")} missingLabel={c("missing", "missing")} />
+              <StatusDot active={!!status?.patient2} label={c("uat_member_two", "Dávid Barros (member)")} existsLabel={c("exists", "exists")} missingLabel={c("missing", "missing")} />
+              <StatusDot active={!!status?.physio} label={c("uat_rehabilitation_provider", "Dr. Anna Szabó (rehabilitation)")} existsLabel={c("exists", "exists")} missingLabel={c("missing", "missing")} />
+              <StatusDot active={!!status?.physician} label={c("uat_physician_provider", "Dr. Bence Molnár (physician)")} existsLabel={c("exists", "exists")} missingLabel={c("missing", "missing")} />
             {status && (
               <div className="flex items-center gap-2 py-1.5 px-3 rounded-md bg-muted/40">
                 <Calendar className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
@@ -295,7 +295,7 @@ export function SeedUatTool() {
             {/* Account cards */}
             <div className="space-y-2">
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                Login credentials
+                 {c("login_credentials", "Login credentials")}
               </p>
               {result.accounts.map((acct) => (
                 <AccountCard key={acct.email} acct={acct} />
@@ -305,14 +305,14 @@ export function SeedUatTool() {
             {/* UAT scenario hints */}
             <div className="rounded-md border bg-blue-50/50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800 p-3 space-y-1.5">
               <p className="text-xs font-semibold text-blue-700 dark:text-blue-400 uppercase tracking-wide">
-                UAT scenarios covered
+                 {c("uat_scenarios", "UAT scenarios covered")}
               </p>
               <ul className="text-xs text-blue-700/80 dark:text-blue-300/80 space-y-1 list-disc list-inside">
-                <li>Member booking flow (online, home, clinic)</li>
-                <li>Provider dashboard — upcoming &amp; past appointments</li>
-                <li>Review submission (2 completed appointments pre-seeded)</li>
-                <li>Wallet balance — members have $150 / $200 pre-loaded</li>
-                <li>Provider profiles visible on /providers listing</li>
+                 <li>{c("uat_scenario_booking", "Member booking flow (online, home, clinic)")}</li>
+                 <li>{c("uat_scenario_provider", "Provider dashboard — upcoming &amp; past appointments")}</li>
+                 <li>{c("uat_scenario_review", "Review submission (2 completed appointments pre-seeded)")}</li>
+                 <li>{c("uat_scenario_wallet", "Wallet balance — members have $150 / $200 pre-loaded")}</li>
+                 <li>{c("uat_scenario_profiles", "Provider profiles visible on /providers listing")}</li>
               </ul>
             </div>
           </CardContent>

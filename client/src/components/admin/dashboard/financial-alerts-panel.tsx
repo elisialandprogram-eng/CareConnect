@@ -44,33 +44,29 @@ type StatusFilter = "all" | "open" | "acknowledged" | "resolved";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-const SEVERITY_CONFIG: Record<string, { label: string; classes: string; icon: typeof AlertTriangle }> = {
+const SEVERITY_CONFIG: Record<string, { classes: string; icon: typeof AlertTriangle }> = {
   critical: {
-    label: "Critical",
     classes: "bg-red-100 text-red-700 border-red-200/60 dark:bg-red-900/30 dark:text-red-400 dark:border-red-700/40",
     icon: AlertCircle,
   },
   error: {
-    label: "Error",
     classes: "bg-orange-100 text-orange-700 border-orange-200/60 dark:bg-orange-900/30 dark:text-orange-400 dark:border-orange-700/40",
     icon: AlertTriangle,
   },
   warning: {
-    label: "Warning",
     classes: "bg-amber-100 text-amber-700 border-amber-200/60 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-700/40",
     icon: Info,
   },
   info: {
-    label: "Info",
     classes: "bg-blue-100 text-blue-700 border-blue-200/60 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-700/40",
     icon: Info,
   },
 };
 
-const STATUS_CONFIG: Record<string, { label: string; classes: string }> = {
-  open:         { label: "Open",         classes: "bg-red-100 text-red-700 border-red-200/60 dark:bg-red-900/30 dark:text-red-400" },
-  acknowledged: { label: "Acknowledged", classes: "bg-amber-100 text-amber-700 border-amber-200/60 dark:bg-amber-900/30 dark:text-amber-400" },
-  resolved:     { label: "Resolved",     classes: "bg-green-100 text-green-700 border-green-200/60 dark:bg-green-900/30 dark:text-green-400" },
+const STATUS_CONFIG: Record<string, { classes: string }> = {
+  open:         { classes: "bg-red-100 text-red-700 border-red-200/60 dark:bg-red-900/30 dark:text-red-400" },
+  acknowledged: { classes: "bg-amber-100 text-amber-700 border-amber-200/60 dark:bg-amber-900/30 dark:text-amber-400" },
+  resolved:     { classes: "bg-green-100 text-green-700 border-green-200/60 dark:bg-green-900/30 dark:text-green-400" },
 };
 
 function humanCheckType(checkType: string) {
@@ -79,15 +75,15 @@ function humanCheckType(checkType: string) {
     .replace(/\b\w/g, c => c.toUpperCase());
 }
 
-function formatRelative(iso: string) {
+function formatRelative(iso: string, labels: { justNow: string; minutesAgo: (n: number) => string; hoursAgo: (n: number) => string; daysAgo: (n: number) => string }) {
   const diff = Date.now() - new Date(iso).getTime();
   const mins = Math.floor(diff / 60_000);
-  if (mins < 1) return "just now";
-  if (mins < 60) return `${mins}m ago`;
+  if (mins < 1) return labels.justNow;
+  if (mins < 60) return labels.minutesAgo(mins);
   const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
+  if (hrs < 24) return labels.hoursAgo(hrs);
   const days = Math.floor(hrs / 24);
-  return `${days}d ago`;
+  return labels.daysAgo(days);
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -122,17 +118,17 @@ export function FinancialAlertsPanel() {
       qc.invalidateQueries({ queryKey: ["/api/admin/financial/alerts"] });
       qc.invalidateQueries({ queryKey: ["/api/admin/health/financial"] });
     },
-     onError: () => toast({ title: t("admin.failed_update_alert"), variant: "destructive" }),
+      onError: () => toast({ title: t("admin.config.failed_update_alert", "Failed to update alert"), variant: "destructive" }),
   });
 
   const generateMutation = useMutation({
     mutationFn: () => apiRequest("POST", "/api/admin/financial/alerts/generate", {}).then(r => r.json()),
     onSuccess: (d: any) => {
-       toast({ title: `${d.generated} ${t("admin.info").toLowerCase()}` });
+       toast({ title: `${d.generated} ${t("admin.config.alerts_generated", "alerts generated")}` });
       qc.invalidateQueries({ queryKey: ["/api/admin/financial/alerts"] });
       qc.invalidateQueries({ queryKey: ["/api/admin/health/financial"] });
     },
-     onError: () => toast({ title: t("admin.failed_generate_alerts"), variant: "destructive" }),
+      onError: () => toast({ title: t("admin.config.failed_generate_alerts", "Failed to generate alerts"), variant: "destructive" }),
   });
 
   const alerts = alertsData?.alerts ?? [];
@@ -143,17 +139,17 @@ export function FinancialAlertsPanel() {
   for (const s of health?.alerts.bySeverity ?? []) bySeverity[s.severity] = s.count;
 
   const statCards = [
-    { label: "Unresolved",  value: unresolved,                 color: unresolved > 0 ? "text-red-600 dark:text-red-400" : "text-foreground" },
-    { label: t("admin.critical"), value: bySeverity["critical"] ?? 0, color: (bySeverity["critical"] ?? 0) > 0 ? "text-red-600 dark:text-red-400" : "text-foreground" },
-    { label: t("admin.error"), value: bySeverity["error"] ?? 0, color: (bySeverity["error"] ?? 0) > 0 ? "text-orange-600 dark:text-orange-400" : "text-foreground" },
-    { label: t("admin.warning"), value: bySeverity["warning"] ?? 0, color: "text-amber-600 dark:text-amber-400" },
+    { label: t("admin.config.unresolved", "Unresolved"),  value: unresolved,                 color: unresolved > 0 ? "text-red-600 dark:text-red-400" : "text-foreground" },
+    { label: t("admin.config.critical", "Critical"), value: bySeverity["critical"] ?? 0, color: (bySeverity["critical"] ?? 0) > 0 ? "text-red-600 dark:text-red-400" : "text-foreground" },
+    { label: t("admin.config.error", "Error"), value: bySeverity["error"] ?? 0, color: (bySeverity["error"] ?? 0) > 0 ? "text-orange-600 dark:text-orange-400" : "text-foreground" },
+    { label: t("admin.config.warning", "Warning"), value: bySeverity["warning"] ?? 0, color: "text-amber-600 dark:text-amber-400" },
   ];
 
   const STATUS_TABS: { value: StatusFilter; label: string }[] = [
-    { value: "open",         label: t("admin.open") },
-    { value: "acknowledged", label: t("admin.acknowledged") },
-    { value: "resolved",     label: t("admin.resolved") },
-    { value: "all",          label: t("admin.all_statuses") },
+    { value: "open",         label: t("admin.config.open", "Open") },
+    { value: "acknowledged", label: t("admin.config.acknowledged", "Acknowledged") },
+    { value: "resolved",     label: t("admin.config.resolved", "Resolved") },
+    { value: "all",          label: t("admin.config.all_statuses", "All statuses") },
   ];
 
   const SEVERITY_FILTERS = ["all", "critical", "error", "warning", "info"];
@@ -165,7 +161,7 @@ export function FinancialAlertsPanel() {
         <div>
           <h2 className="text-xl font-semibold flex items-center gap-2">
             <Bell className="h-5 w-5" />
-            {t("admin.financial_alerts_title")}
+            {t("admin.config.financial_alerts_title", "Financial alerts")}
             {unresolved > 0 && (
               <Badge className="bg-red-500 text-white text-xs px-1.5 py-0.5">
                 {unresolved}
@@ -173,7 +169,7 @@ export function FinancialAlertsPanel() {
             )}
           </h2>
           <p className="text-sm text-muted-foreground mt-0.5">
-            {t("admin.financial_alerts_desc")}
+            {t("admin.config.financial_alerts_desc", "Review automated checks for payment, ledger, and settlement inconsistencies.")}
           </p>
         </div>
         <div className="flex gap-2">
@@ -184,7 +180,7 @@ export function FinancialAlertsPanel() {
             data-testid="button-refresh-alerts"
           >
             <RefreshCw className="h-3.5 w-3.5 me-1.5" />
-            {t("admin.refresh")}
+             {t("admin.config.refresh", "Refresh")}
           </Button>
           <Button
             size="sm"
@@ -192,7 +188,7 @@ export function FinancialAlertsPanel() {
             disabled={generateMutation.isPending}
             data-testid="button-generate-alerts"
           >
-            {generateMutation.isPending ? t("common.loading") : t("admin.generate_alerts")}
+             {generateMutation.isPending ? t("common.loading", "Loading…") : t("admin.config.generate_alerts", "Generate alerts")}
           </Button>
         </div>
       </div>
@@ -260,11 +256,11 @@ export function FinancialAlertsPanel() {
           ) : alerts.length === 0 ? (
             <div className="p-12 text-center space-y-2">
               <CheckCircle2 className="h-10 w-10 mx-auto text-green-500" />
-              <p className="text-sm font-medium">{t("admin.no_alerts_found", "No alerts found")}</p>
+              <p className="text-sm font-medium">{t("admin.config.no_alerts_found", "No alerts found")}</p>
               <p className="text-xs text-muted-foreground">
                 {statusFilter === "open"
-                  ? "All financial checks are passing — no open alerts."
-                  : "No alerts match these filters."}
+                   ? t("admin.config.no_open_alerts", "All financial checks are passing — no open alerts.")
+                   : t("admin.config.no_alerts_match_filters", "No alerts match these filters.")}
               </p>
             </div>
           ) : (
@@ -272,12 +268,12 @@ export function FinancialAlertsPanel() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b bg-muted/40">
-                    <th className="text-start font-medium text-muted-foreground px-4 py-2.5 w-[110px]">Severity</th>
-                    <th className="text-start font-medium text-muted-foreground px-4 py-2.5">Check / Message</th>
-                    <th className="text-start font-medium text-muted-foreground px-4 py-2.5 w-[90px]">Country</th>
-                    <th className="text-start font-medium text-muted-foreground px-4 py-2.5 w-[110px]">Status</th>
-                    <th className="text-start font-medium text-muted-foreground px-4 py-2.5 w-[90px]">Age</th>
-                    <th className="text-end font-medium text-muted-foreground px-4 py-2.5 w-[170px]">Actions</th>
+                    <th className="text-start font-medium text-muted-foreground px-4 py-2.5 w-[110px]">{t("admin.config.severity", "Severity")}</th>
+                    <th className="text-start font-medium text-muted-foreground px-4 py-2.5">{t("admin.config.check_message", "Check / Message")}</th>
+                    <th className="text-start font-medium text-muted-foreground px-4 py-2.5 w-[90px]">{t("admin.config.country", "Country")}</th>
+                    <th className="text-start font-medium text-muted-foreground px-4 py-2.5 w-[110px]">{t("admin.config.status", "Status")}</th>
+                    <th className="text-start font-medium text-muted-foreground px-4 py-2.5 w-[90px]">{t("admin.config.age", "Age")}</th>
+                    <th className="text-end font-medium text-muted-foreground px-4 py-2.5 w-[170px]">{t("admin.config.actions", "Actions")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -298,7 +294,7 @@ export function FinancialAlertsPanel() {
                         <td className="px-4 py-3">
                           <Badge className={cn("flex items-center gap-1 w-fit text-xs border", sev.classes)}>
                             <SevIcon className="h-3 w-3 flex-shrink-0" />
-                            {sev.label}
+                            {t(`admin.config.severity_${alert.severity}`, alert.severity)}
                           </Badge>
                         </td>
                         <td className="px-4 py-3 max-w-[360px]">
@@ -318,11 +314,16 @@ export function FinancialAlertsPanel() {
                         </td>
                         <td className="px-4 py-3">
                           <Badge className={cn("text-xs border", sta.classes)}>
-                            {sta.label}
+                             {t(`admin.config.alert_status_${alert.status}`, alert.status)}
                           </Badge>
                         </td>
                         <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">
-                          {formatRelative(alert.created_at)}
+                           {formatRelative(alert.created_at, {
+                             justNow: t("admin.config.just_now", "Just now"),
+                             minutesAgo: n => t("admin.config.minutes_ago", "{{count}}m ago", { count: n }),
+                             hoursAgo: n => t("admin.config.hours_ago", "{{count}}h ago", { count: n }),
+                             daysAgo: n => t("admin.config.days_ago", "{{count}}d ago", { count: n }),
+                           })}
                         </td>
                         <td className="px-4 py-3 text-end">
                           <div className="flex justify-end gap-1.5">
@@ -335,7 +336,7 @@ export function FinancialAlertsPanel() {
                                 onClick={() => updateMutation.mutate({ id: alert.id, status: "acknowledged" })}
                                 data-testid={`button-acknowledge-${alert.id}`}
                               >
-                                Acknowledge
+                                 {t("admin.config.acknowledge", "Acknowledge")}
                               </Button>
                             )}
                             {alert.status !== "resolved" && (
@@ -347,7 +348,7 @@ export function FinancialAlertsPanel() {
                                 onClick={() => updateMutation.mutate({ id: alert.id, status: "resolved" })}
                                 data-testid={`button-resolve-${alert.id}`}
                               >
-                                Resolve
+                                 {t("admin.config.resolve", "Resolve")}
                               </Button>
                             )}
                           </div>
@@ -359,7 +360,7 @@ export function FinancialAlertsPanel() {
               </table>
               {total > alerts.length && (
                 <div className="px-4 py-2.5 border-t text-xs text-muted-foreground text-center">
-                  Showing {alerts.length} of {total} alerts
+                   {t("admin.config.showing_alerts", "Showing {{shown}} of {{total}} alerts", { shown: alerts.length, total })}
                 </div>
               )}
             </div>

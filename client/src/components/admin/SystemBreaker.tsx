@@ -1,5 +1,6 @@
 import { formatDateTime } from "@/lib/datetime";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/lib/auth";
@@ -31,6 +32,7 @@ interface CircuitBreakerState {
 }
 
 export function SystemBreaker() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -50,10 +52,10 @@ export function SystemBreaker() {
     },
     onSuccess: (_, vars) => {
       toast({
-        title: vars.frozen ? "⚠ Platform frozen" : "Platform restored",
+          title: vars.frozen ? `⚠ ${t("admin.config.platform_frozen", "Platform frozen")}` : t("admin.config.platform_restored", "Platform restored"),
         description: vars.frozen
-          ? "All new bookings and withdrawals are now blocked."
-          : "Normal operations have resumed.",
+            ? t("admin.config.all_new_bookings_withdrawals_blocked", "All new bookings and withdrawals are now blocked.")
+            : t("admin.config.normal_operations_resumed", "Normal operations have resumed."),
         variant: vars.frozen ? "destructive" : "default",
       });
       setConfirmOpen(false);
@@ -62,7 +64,7 @@ export function SystemBreaker() {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/system/circuit-breaker"] });
     },
     onError: () => {
-      toast({ title: "Failed to update circuit breaker", variant: "destructive" });
+      toast({ title: t("admin.config.circuit_breaker_update_failed", "Failed to update circuit breaker"), variant: "destructive" });
     },
   });
 
@@ -77,7 +79,7 @@ export function SystemBreaker() {
   function handleConfirm() {
     if (!pendingAction) return;
     if (pendingAction === "freeze" && !reason.trim()) {
-      toast({ title: "A reason is required to freeze the platform", variant: "destructive" });
+      toast({ title: t("admin.config.reason_required_freeze", "A reason is required to freeze the platform"), variant: "destructive" });
       return;
     }
     toggle({ frozen: pendingAction === "freeze", reason: reason.trim() });
@@ -118,7 +120,7 @@ export function SystemBreaker() {
                       frozen ? "text-red-700 dark:text-red-400" : "text-emerald-700 dark:text-emerald-400"
                     )}
                   >
-                    {frozen ? "PLATFORM FROZEN" : "SYSTEM ACTIVE"}
+                    {frozen ? t("admin.config.platform_frozen_upper", "PLATFORM FROZEN") : t("admin.config.system_active_upper", "SYSTEM ACTIVE")}
                   </span>
                   <span
                     className={cn(
@@ -129,13 +131,13 @@ export function SystemBreaker() {
                     )}
                     data-testid="badge-system-status"
                   >
-                    {frozen ? "● FROZEN" : "● LIVE"}
+                    {frozen ? `● ${t("admin.config.frozen_badge", "FROZEN")}` : `● ${t("admin.config.live_badge", "LIVE")}`}
                   </span>
                 </div>
                 <p className={cn("text-sm", frozen ? "text-red-600 dark:text-red-400" : "text-emerald-600 dark:text-emerald-400")}>
                   {frozen
-                    ? "New bookings and wallet withdrawals are currently blocked."
-                    : "All platform operations are running normally."}
+                    ? t("admin.config.new_bookings_withdrawals_blocked", "New bookings and wallet withdrawals are currently blocked.")
+                    : t("admin.config.all_operations_normal", "All platform operations are running normally.")}
                 </p>
               </div>
             </div>
@@ -179,7 +181,7 @@ export function SystemBreaker() {
 
           {frozen && data?.reason && (
             <div className="mt-4 rounded-xl border border-red-200 bg-white/60 dark:bg-red-900/10 dark:border-red-800 p-3">
-              <p className="text-xs font-semibold text-red-700 dark:text-red-400 mb-1">Freeze reason</p>
+              <p className="text-xs font-semibold text-red-700 dark:text-red-400 mb-1">{t("admin.config.freeze_reason", "Freeze reason")}</p>
               <p className="text-sm text-red-800 dark:text-red-300">{data.reason}</p>
             </div>
           )}
@@ -193,7 +195,7 @@ export function SystemBreaker() {
                 <CardContent className="py-4 flex items-center gap-3">
                   <Clock className="h-5 w-5 text-red-500 flex-shrink-0" />
                   <div>
-                    <p className="text-xs text-muted-foreground">Frozen at</p>
+                    <p className="text-xs text-muted-foreground">{t("admin.config.frozen_at", "Frozen at")}</p>
                     <p className="text-sm font-medium">{formatDateTime(data.frozenAt)}</p>
                   </div>
                 </CardContent>
@@ -204,7 +206,7 @@ export function SystemBreaker() {
                 <CardContent className="py-4 flex items-center gap-3">
                   <ShieldAlert className="h-5 w-5 text-red-500 flex-shrink-0" />
                   <div>
-                    <p className="text-xs text-muted-foreground">Frozen by</p>
+                    <p className="text-xs text-muted-foreground">{t("admin.config.frozen_by", "Frozen by")}</p>
                     <p className="text-sm font-medium">{data.frozenByName}</p>
                   </div>
                 </CardContent>
@@ -218,19 +220,19 @@ export function SystemBreaker() {
           <CardHeader className="pb-3">
             <CardTitle className="text-base flex items-center gap-2">
               <AlertTriangle className="h-4 w-4 text-amber-500" />
-              What the emergency freeze blocks
+              {t("admin.config.emergency_freeze_blocks", "What the emergency freeze blocks")}
             </CardTitle>
             <CardDescription>
-              When activated, the following operations are immediately rejected platform-wide.
+              {t("admin.config.emergency_freeze_desc", "When activated, the following operations are immediately rejected platform-wide.")}
             </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {[
-                { label: "New appointment bookings", desc: "Members cannot book any new slots" },
-                { label: "Wallet withdrawals", desc: "Provider payout requests are blocked" },
-                { label: "Slot reservations", desc: "Real-time slot holds are prevented" },
-                { label: "New payment charges", desc: "Stripe charges for bookings are halted" },
+                { label: t("admin.config.new_appointment_bookings", "New appointment bookings"), desc: t("admin.config.new_appointment_bookings_desc", "Members cannot book any new slots") },
+                { label: t("admin.config.wallet_withdrawals", "Wallet withdrawals"), desc: t("admin.config.wallet_withdrawals_desc", "Provider payout requests are blocked") },
+                { label: t("admin.config.slot_reservations", "Slot reservations"), desc: t("admin.config.slot_reservations_desc", "Real-time slot holds are prevented") },
+                { label: t("admin.config.new_payment_charges", "New payment charges"), desc: t("admin.config.new_payment_charges_desc", "Stripe charges for bookings are halted") },
               ].map(({ label, desc }) => (
                 <div
                   key={label}
@@ -254,21 +256,21 @@ export function SystemBreaker() {
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
               {pendingAction === "freeze" ? (
-                <><Zap className="h-5 w-5 text-red-500" /> Emergency Platform Freeze</>
+                <><Zap className="h-5 w-5 text-red-500" /> {t("admin.config.emergency_platform_freeze", "Emergency Platform Freeze")}</>
               ) : (
-                <><ShieldCheck className="h-5 w-5 text-emerald-500" /> Restore Platform Operations</>
+                <><ShieldCheck className="h-5 w-5 text-emerald-500" /> {t("admin.config.restore_platform_operations", "Restore Platform Operations")}</>
               )}
             </AlertDialogTitle>
             <AlertDialogDescription>
               {pendingAction === "freeze"
-                ? "This will immediately block all new bookings and wallet withdrawals platform-wide. All in-progress operations are unaffected."
-                : "This will restore normal platform operations. Members will be able to book and providers can request payouts again."}
+                ? t("admin.config.freeze_confirm_desc", "This will immediately block all new bookings and wallet withdrawals platform-wide. All in-progress operations are unaffected.")
+                : t("admin.config.restore_confirm_desc", "This will restore normal platform operations. Members will be able to book and providers can request payouts again.")}
             </AlertDialogDescription>
           </AlertDialogHeader>
 
           <div className="space-y-2 py-2">
             <Label htmlFor="breaker-reason" className="text-sm font-medium">
-              {pendingAction === "freeze" ? "Reason for freeze" : "Reason for restoration"}
+              {pendingAction === "freeze" ? t("admin.config.reason_for_freeze", "Reason for freeze") : t("admin.config.reason_for_restoration", "Reason for restoration")}
               {pendingAction === "freeze" && <span className="text-red-500 ml-1">*</span>}
             </Label>
             <Textarea
@@ -277,19 +279,19 @@ export function SystemBreaker() {
               onChange={(e) => setReason(e.target.value)}
               placeholder={
                 pendingAction === "freeze"
-                  ? "e.g. Suspicious payment pattern detected — investigating..."
-                  : "e.g. Investigation complete — operations restored"
+                  ? t("admin.config.freeze_reason_placeholder", "e.g. Suspicious payment pattern detected — investigating...")
+                  : t("admin.config.restore_reason_placeholder", "e.g. Investigation complete — operations restored")
               }
               className="min-h-[72px] text-sm"
               data-testid="textarea-breaker-reason"
             />
             {pendingAction === "freeze" && !reason.trim() && (
-              <p className="text-xs text-red-500">A reason is required to freeze the platform.</p>
+              <p className="text-xs text-red-500">{t("admin.config.reason_required_freeze", "A reason is required to freeze the platform")}.</p>
             )}
           </div>
 
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={isPending}>{t("admin.config.cancel", "Cancel")}</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleConfirm}
               disabled={isPending || (pendingAction === "freeze" && !reason.trim())}
@@ -303,7 +305,7 @@ export function SystemBreaker() {
               {isPending ? (
                 <RefreshCw className="h-4 w-4 animate-spin mr-2" />
               ) : null}
-              {pendingAction === "freeze" ? "Freeze Platform" : "Restore Operations"}
+              {pendingAction === "freeze" ? t("admin.config.freeze_platform", "Freeze Platform") : t("admin.config.restore_operations", "Restore Operations")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

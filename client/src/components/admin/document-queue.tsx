@@ -83,14 +83,14 @@ function normalizeStatusForDisplay(s: string): string {
   return s;
 }
 
-function statusBadge(raw: string) {
+function statusBadge(raw: string, c: (key: string, fallback: string) => string) {
   const s = normalizeStatusForDisplay(raw);
-  if (s === "approved")          return <Badge className="text-[11px] px-1.5 py-0 h-5 bg-emerald-100 text-emerald-700 border-emerald-200">Approved</Badge>;
-  if (s === "rejected")          return <Badge className="text-[11px] px-1.5 py-0 h-5 bg-red-100 text-red-700 border-red-200">Rejected</Badge>;
-  if (s === "expired")           return <Badge className="text-[11px] px-1.5 py-0 h-5 bg-muted text-muted-foreground border-border">Expired</Badge>;
-  if (s === "reupload_required") return <Badge className="text-[11px] px-1.5 py-0 h-5 bg-purple-100 text-purple-700 border-purple-200">Re-upload Req.</Badge>;
-  if (s === "under_review")      return <Badge className="text-[11px] px-1.5 py-0 h-5 bg-blue-100 text-blue-700 border-blue-200">Under Review</Badge>;
-  return                                <Badge className="text-[11px] px-1.5 py-0 h-5 bg-yellow-100 text-yellow-700 border-yellow-200">Pending</Badge>;
+  if (s === "approved")          return <Badge className="text-[11px] px-1.5 py-0 h-5 bg-emerald-100 text-emerald-700 border-emerald-200">{c("approved", "Approved")}</Badge>;
+  if (s === "rejected")          return <Badge className="text-[11px] px-1.5 py-0 h-5 bg-red-100 text-red-700 border-red-200">{c("rejected", "Rejected")}</Badge>;
+  if (s === "expired")           return <Badge className="text-[11px] px-1.5 py-0 h-5 bg-muted text-muted-foreground border-border">{c("expired", "Expired")}</Badge>;
+  if (s === "reupload_required") return <Badge className="text-[11px] px-1.5 py-0 h-5 bg-purple-100 text-purple-700 border-purple-200">{c("reupload_required", "Re-upload Req.")}</Badge>;
+  if (s === "under_review")      return <Badge className="text-[11px] px-1.5 py-0 h-5 bg-blue-100 text-blue-700 border-blue-200">{c("under_review", "Under Review")}</Badge>;
+  return                                <Badge className="text-[11px] px-1.5 py-0 h-5 bg-yellow-100 text-yellow-700 border-yellow-200">{c("pending", "Pending")}</Badge>;
 }
 
 function isImageUrl(url: string, fileName?: string | null) {
@@ -551,7 +551,7 @@ export function DocumentQueue({ onSelectProvider }: { onSelectProvider: (id: str
                 </div>
                 <div className="flex items-center gap-2">
                    <span className="text-slate-500 text-xs w-20 flex-shrink-0">{c("status", "Status")}</span>
-                   {statusBadge(previewDoc.verification_status)}
+                    {statusBadge(previewDoc.verification_status, c)}
                 </div>
                 {previewDoc.created_at && (
                   <div className="flex items-center gap-2">

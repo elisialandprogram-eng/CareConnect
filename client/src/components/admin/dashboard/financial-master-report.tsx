@@ -223,7 +223,7 @@ function StatusBadge({ value }: { value: string | null | undefined }) {
   const cls = STATUS_COLORS[value.toLowerCase()] ?? "bg-muted text-muted-foreground";
   return (
     <Badge variant="outline" className={`capitalize text-xs ${cls}`}>
-      {String(t(`admin_extra.financial.status_${value.toLowerCase()}`, { defaultValue: value.replace(/_/g, " ") }))}
+       {String(t(`admin.booking_status_${value.toLowerCase()}`, { defaultValue: value.replace(/_/g, " ") }))}
     </Badge>
   );
 }
@@ -253,16 +253,16 @@ function DualAmount({
 
 function SummaryCards({ summary, fmt }: { summary: Summary; fmt: (n: number) => string }) {
   const { t } = useTranslation();
-  const r = (key: string, fallback: string) => String(t(`admin_extra.financial.${key}`, { defaultValue: fallback }));
+  const r = (key: string, fallback: string) => String(t(`admin.${key}`, { defaultValue: fallback }));
   const cards = [
-    { label: r("gross_revenue", "Gross Revenue"), value: fmt(summary.grossRevenue), icon: DollarSign, color: "from-emerald-500 to-teal-600", id: "gross", note: "USD" },
-    { label: r("platform_revenue", "Platform Revenue"), value: fmt(summary.platformRevenue), icon: TrendingUp, color: "from-blue-500 to-indigo-600", id: "platform", note: "USD" },
-    { label: r("provider_commission", "Provider Commission"), value: fmt(summary.providerCommission), icon: TrendingUp, color: "from-violet-500 to-purple-600", id: "provider-commission", note: "USD" },
-    { label: r("provider_earnings", "Provider Earnings"), value: fmt(summary.providerEarnings), icon: Wallet, color: "from-purple-500 to-fuchsia-600", id: "provider", note: "USD" },
-    { label: r("pending_payouts", "Pending Payouts"), value: fmt(summary.pendingPayouts), icon: Clock, color: "from-amber-500 to-orange-500", id: "pending-payout", note: "USD" },
-    { label: r("total_refunds", "Total Refunds"), value: fmt(summary.totalRefunds), icon: RefreshCw, color: "from-rose-500 to-pink-600", id: "refunds", note: "USD" },
-    { label: r("taxes_collected", "Taxes Collected"), value: fmt(summary.taxesCollected), icon: Receipt, color: "from-slate-500 to-gray-600", id: "taxes", note: "USD" },
-    { label: r("promo_discounts", "Promo Discounts"), value: fmt(summary.promoDiscounts), icon: Banknote, color: "from-teal-500 to-cyan-600", id: "promos", note: "USD" },
+    { label: r("gross_revenue", "Gross Revenue"), value: fmt(summary.grossRevenue), icon: DollarSign, color: "from-emerald-500 to-teal-600", id: "gross", note: r("usd_normalized", "USD normalized") },
+    { label: r("platform_revenue", "Platform Revenue"), value: fmt(summary.platformRevenue), icon: TrendingUp, color: "from-blue-500 to-indigo-600", id: "platform", note: r("usd_normalized", "USD normalized") },
+    { label: r("provider_commission", "Provider Commission"), value: fmt(summary.providerCommission), icon: TrendingUp, color: "from-violet-500 to-purple-600", id: "provider-commission", note: r("usd_normalized", "USD normalized") },
+    { label: r("provider_earnings", "Provider Earnings"), value: fmt(summary.providerEarnings), icon: Wallet, color: "from-purple-500 to-fuchsia-600", id: "provider", note: r("usd_normalized", "USD normalized") },
+    { label: r("pending_payouts", "Pending Payouts"), value: fmt(summary.pendingPayouts), icon: Clock, color: "from-amber-500 to-orange-500", id: "pending-payout", note: r("usd_normalized", "USD normalized") },
+    { label: r("total_refunds", "Total Refunds"), value: fmt(summary.totalRefunds), icon: RefreshCw, color: "from-rose-500 to-pink-600", id: "refunds", note: r("usd_normalized", "USD normalized") },
+    { label: r("taxes_collected", "Taxes Collected"), value: fmt(summary.taxesCollected), icon: Receipt, color: "from-slate-500 to-gray-600", id: "taxes", note: r("usd_normalized", "USD normalized") },
+    { label: r("promo_discounts", "Promo Discounts"), value: fmt(summary.promoDiscounts), icon: Banknote, color: "from-teal-500 to-cyan-600", id: "promos", note: r("usd_normalized", "USD normalized") },
     { label: r("total_bookings", "Total Bookings"), value: String(summary.totalBookings), icon: CalendarDays, color: "from-violet-500 to-purple-600", id: "bookings", isCount: true },
     { label: r("completed", "Completed"), value: String(summary.completedCount), icon: CheckCircle2, color: "from-green-500 to-emerald-600", id: "completed", isCount: true },
     { label: r("cancelled", "Cancelled"), value: String(summary.cancelledCount), icon: XCircle, color: "from-red-500 to-rose-600", id: "cancelled", isCount: true },
@@ -301,7 +301,7 @@ function SummaryCards({ summary, fmt }: { summary: Summary; fmt: (n: number) => 
 
 function LifecycleTimeline({ appointmentId }: { appointmentId: string }) {
   const { t } = useTranslation();
-  const r = (key: string, fallback: string) => String(t(`admin_extra.financial.${key}`, { defaultValue: fallback }));
+  const r = (key: string, fallback: string) => String(t(`admin.${key}`, { defaultValue: fallback }));
   const { data: events = [], isLoading } = useQuery<LifecycleEvent[]>({
     queryKey: ["/api/admin/financial/master-report", appointmentId, "events"],
     queryFn: () => authFetch(`/api/admin/financial/master-report/${appointmentId}/events`),
@@ -447,8 +447,8 @@ function InvestigationDrawer({
                 {cur !== "USD" ? fmt(usdNorm) : "—"}
               </span>
             } />
-            <Row label="Platform Fee"    value={fmtLocal(n(row.platform_fee_amount))} />
-             <Row label="Platform Commission" value={
+            <Row label={r("platform_fee", "Platform Fee")} value={fmtLocal(n(row.platform_fee_amount))} />
+             <Row label={r("platform_commission", "Platform Commission")} value={
                <span>
                  {fmtLocal(n(row.commission_amount))}
                  {cur !== "USD" && n(row.provider_commission_usd) > 0 && (
@@ -460,53 +460,53 @@ function InvestigationDrawer({
              } />
             <Row label={`Service tax (${n(row.service_tax_rate)}%)`} value={fmtLocal(n(row.service_tax_amount))} />
             <Row label={`Platform tax (${n(row.platform_tax_rate)}%)`} value={fmtLocal(n(row.platform_tax_amount))} />
-            <Row label="Total tax"       value={fmtLocal(n(row.tax_amount))} />
-            <Row label="Promo Discount"  value={n(row.promo_discount) > 0 ? fmtLocal(n(row.promo_discount)) : "—"} />
-            <Row label="Promo Code"      value={row.promo_code} />
-            <Row label="Refund Amount"   value={n(row.refund_amount) > 0 ? fmtLocal(n(row.refund_amount)) : "—"} />
-            <Row label="Refund Status"   value={<StatusBadge value={row.refund_status} />} />
+             <Row label={r("total_tax", "Total tax")} value={fmtLocal(n(row.tax_amount))} />
+             <Row label={r("promo_discount", "Promo Discount")} value={n(row.promo_discount) > 0 ? fmtLocal(n(row.promo_discount)) : "—"} />
+             <Row label={r("promo_code", "Promo Code")} value={row.promo_code} />
+             <Row label={r("refund_amount", "Refund Amount")} value={n(row.refund_amount) > 0 ? fmtLocal(n(row.refund_amount)) : "—"} />
+             <Row label={r("refund_status", "Refund Status")} value={<StatusBadge value={row.refund_status} />} />
             {cur !== "USD" && row.exchange_rate_used && (
-              <Row label="Exchange Rate"
+               <Row label={r("exchange_rate", "Exchange Rate")}
                 value={`1 USD = ${row.exchange_rate_used} ${cur}`}
               />
             )}
           </Section>
 
           {/* Section F — Payment */}
-          <Section title="F · Payment" icon={Banknote}>
-            <Row label="Payment ID"      value={row.payment_id} />
-            <Row label="Method"          value={row.payment_method ?? row.appt_payment_method} />
-            <Row label="Amount (USD)"    value={row.payment_amount ? fmt(n(row.payment_amount)) : null} />
-            <Row label="Status"          value={<StatusBadge value={row.payment_record_status} />} />
-            <Row label="Stripe Intent"   value={
+          <Section title={`F · ${r("payment", "Payment")}`} icon={Banknote}>
+            <Row label={r("payment_id", "Payment ID")} value={row.payment_id} />
+            <Row label={r("method", "Method")} value={row.payment_method ?? row.appt_payment_method} />
+            <Row label={r("amount_usd", "Amount (USD)")} value={row.payment_amount ? fmt(n(row.payment_amount)) : null} />
+            <Row label={r("status", "Status")} value={<StatusBadge value={row.payment_record_status} />} />
+            <Row label={r("stripe_intent", "Stripe Intent")} value={
               row.stripe_payment_id
                 ? <span className="font-mono text-xs">{row.stripe_payment_id}</span>
                 : null
             } />
-            <Row label="Refunded (USD)"  value={n(row.payment_refunded_amount) > 0 ? fmt(n(row.payment_refunded_amount)) : "—"} />
+            <Row label={r("refunded_usd", "Refunded (USD)")} value={n(row.payment_refunded_amount) > 0 ? fmt(n(row.payment_refunded_amount)) : "—"} />
           </Section>
 
           {/* Section G — Payout */}
-          <Section title="G · Payout" icon={Wallet}>
-            <Row label="Earning ID"      value={row.earning_id} />
-            <Row label="Provider Net Earnings (USD)" value={row.provider_net_earnings_usd ? fmt(n(row.provider_net_earnings_usd)) : null} />
-             <Row label="Provider-side Commission (USD)" value={
+          <Section title={`G · ${r("payout", "Payout")}`} icon={Wallet}>
+            <Row label={r("earning_id", "Earning ID")} value={row.earning_id} />
+            <Row label={r("provider_net_earnings_usd", "Provider Net Earnings (USD)")} value={row.provider_net_earnings_usd ? fmt(n(row.provider_net_earnings_usd)) : null} />
+             <Row label={r("provider_side_commission_usd", "Provider-side Commission (USD)")} value={
                row.provider_commission_usd != null ? fmt(n(row.provider_commission_usd)) : null
              } />
-            <Row label="Platform Fee (USD)"   value={row.earning_platform_fee ? fmt(n(row.earning_platform_fee)) : null} />
-            <Row label="Earnings Status" value={<StatusBadge value={row.earning_status} />} />
-            <Row label="Payout Reference" value={row.payout_reference} />
-            <Row label="Paid At"          value={fmtDateTime(row.earning_paid_at)} />
+            <Row label={r("platform_fee_usd", "Platform Fee (USD)")} value={row.earning_platform_fee ? fmt(n(row.earning_platform_fee)) : null} />
+            <Row label={r("earnings_status", "Earnings Status")} value={<StatusBadge value={row.earning_status} />} />
+            <Row label={r("payout_reference", "Payout Reference")} value={row.payout_reference} />
+            <Row label={r("paid_at", "Paid At")} value={fmtDateTime(row.earning_paid_at)} />
           </Section>
 
           {/* Section H — Audit */}
-          <Section title="H · Audit" icon={Receipt}>
-            <Row label="Invoice ID"      value={row.invoice_id} />
-            <Row label="Invoice Number"  value={row.invoice_number} />
-            <Row label="Invoice Status"  value={<StatusBadge value={row.invoice_status} />} />
+          <Section title={`H · ${r("audit", "Audit")}`} icon={Receipt}>
+            <Row label={r("invoice_id", "Invoice ID")} value={row.invoice_id} />
+            <Row label={r("invoice_number", "Invoice Number")} value={row.invoice_number} />
+            <Row label={r("invoice_status", "Invoice Status")} value={<StatusBadge value={row.invoice_status} />} />
           </Section>
 
-          <Section title="Lifecycle Events" icon={Clock}>
+          <Section title={r("lifecycle_events", "Lifecycle Events")} icon={Clock}>
             <LifecycleTimeline appointmentId={row.id} />
           </Section>
         </div>
@@ -532,19 +532,19 @@ function ExpandedRow({ row, fmt }: { row: MasterRow; fmt: (n: number) => string 
             <p className="font-semibold text-xs uppercase tracking-wider text-muted-foreground mb-2">
               {a("pricing", "Pricing")} · {cur}
             </p>
-            <div className="flex justify-between"><span className="text-muted-foreground">Base Price</span><span>{fmtLocal(n(row.service_price_snapshot))}</span></div>
-            <div className="flex justify-between"><span className="text-muted-foreground">Platform Fee</span><span>{fmtLocal(n(row.platform_fee_amount))}</span></div>
-            <div className="flex justify-between"><span className="text-muted-foreground">Provider Commission</span><span>{fmtLocal(n(row.commission_amount))}{cur !== "USD" && n(row.provider_commission_usd) > 0 ? ` (${fmt(n(row.provider_commission_usd))})` : ""}</span></div>
-            <div className="flex justify-between"><span className="text-muted-foreground">Service tax ({n(row.service_tax_rate)}%)</span><span>{fmtLocal(n(row.service_tax_amount))}</span></div>
-            <div className="flex justify-between"><span className="text-muted-foreground">Platform tax ({n(row.platform_tax_rate)}%)</span><span>{fmtLocal(n(row.platform_tax_amount))}</span></div>
-            <div className="flex justify-between"><span className="text-muted-foreground">Total tax</span><span>{fmtLocal(n(row.tax_amount))}</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">{r("base_price", "Base Price")}</span><span>{fmtLocal(n(row.service_price_snapshot))}</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">{r("platform_fee", "Platform Fee")}</span><span>{fmtLocal(n(row.platform_fee_amount))}</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">{r("provider_commission", "Provider Commission")}</span><span>{fmtLocal(n(row.commission_amount))}{cur !== "USD" && n(row.provider_commission_usd) > 0 ? ` (${fmt(n(row.provider_commission_usd))})` : ""}</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">{r("service_tax", "Service tax")} ({n(row.service_tax_rate)}%)</span><span>{fmtLocal(n(row.service_tax_amount))}</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">{r("platform_tax", "Platform tax")} ({n(row.platform_tax_rate)}%)</span><span>{fmtLocal(n(row.platform_tax_amount))}</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">{r("total_tax", "Total tax")}</span><span>{fmtLocal(n(row.tax_amount))}</span></div>
             {n(row.promo_discount) > 0 && (
-              <div className="flex justify-between text-green-600"><span>Promo ({row.promo_code})</span><span>−{fmtLocal(n(row.promo_discount))}</span></div>
+              <div className="flex justify-between text-green-600"><span>{r("promo", "Promo")} ({row.promo_code})</span><span>−{fmtLocal(n(row.promo_discount))}</span></div>
             )}
-            <div className="flex justify-between font-semibold border-t mt-1 pt-1"><span>Total</span><span>{fmtLocal(n(row.total_amount))}</span></div>
+            <div className="flex justify-between font-semibold border-t mt-1 pt-1"><span>{r("total", "Total")}</span><span>{fmtLocal(n(row.total_amount))}</span></div>
             {cur !== "USD" && (
               <div className="flex justify-between text-xs text-muted-foreground border-t pt-1">
-                <span>≈ USD</span><span>{fmt(usdNorm)}</span>
+                <span>≈ {r("usd", "USD")}</span><span>{fmt(usdNorm)}</span>
               </div>
             )}
           </div>
@@ -554,7 +554,7 @@ function ExpandedRow({ row, fmt }: { row: MasterRow; fmt: (n: number) => string 
             <div className="flex justify-between"><span className="text-muted-foreground">{a("method", "Method")}</span><span className="capitalize">{row.payment_method ?? row.appt_payment_method ?? "—"}</span></div>
             <div className="flex justify-between"><span className="text-muted-foreground">{a("status", "Status")}</span><StatusBadge value={row.payment_record_status} /></div>
             {row.stripe_payment_id && (
-              <div className="flex justify-between"><span className="text-muted-foreground">Stripe ID</span><span className="font-mono text-xs truncate max-w-[140px]">{row.stripe_payment_id}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">{a("stripe_id", "Stripe ID")}</span><span className="font-mono text-xs truncate max-w-[140px]">{row.stripe_payment_id}</span></div>
             )}
             {n(row.refund_amount) > 0 && (
               <div className="flex justify-between text-rose-600"><span>{a("refund", "Refund")}</span><span>{fmtLocal(n(row.refund_amount))}</span></div>
@@ -993,7 +993,7 @@ export function FinancialMasterReport() {
                   <button
                     onClick={() => deletePreset(preset.name)}
                     className="h-6 w-5 flex items-center justify-center text-muted-foreground hover:text-destructive"
-                    title="Delete preset"
+                    title={r("delete_preset", "Delete preset")}
                   >
                     <X className="h-3 w-3" />
                   </button>

@@ -1791,14 +1791,14 @@ function TaxSettingsPanel() {
             <Card className="bg-muted/20"><CardContent className="pt-4 space-y-3">
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 <div><Label>{tr("country_code_short", "Country code")}</Label><Input {...platformForm.register("countryCode")} placeholder="HU / IR" /></div>
-                <div><Label>Tax name</Label><Input {...platformForm.register("taxName")} placeholder="VAT" /></div>
-                <div><Label>Rate (%)</Label><Input type="number" min="0" max="100" step="0.01" {...platformForm.register("taxRate", { valueAsNumber: true })} /></div>
-                <div><Label>Year</Label><Input type="number" {...platformForm.register("year", { valueAsNumber: true })} /></div>
+                <div><Label>{tr("tax_name", "Tax name")}</Label><Input {...platformForm.register("taxName")} placeholder="VAT" /></div>
+                <div><Label>{tr("rate_percent", "Rate (%)")}</Label><Input type="number" min="0" max="100" step="0.01" {...platformForm.register("taxRate", { valueAsNumber: true })} /></div>
+                <div><Label>{tr("year", "Year")}</Label><Input type="number" {...platformForm.register("year", { valueAsNumber: true })} /></div>
                 <div><Label>{tr("effective_from", "Effective from")}</Label><Input type="datetime-local" {...platformForm.register("effectiveFrom")} /></div>
                 <div><Label>{tr("effective_to", "Effective to")}</Label><Input type="datetime-local" {...platformForm.register("effectiveTo")} /></div>
-                <label className="flex items-center gap-2 pt-6 text-sm"><Switch checked={platformForm.watch("isActive")} onCheckedChange={v => platformForm.setValue("isActive", v)} />Active</label>
+                <label className="flex items-center gap-2 pt-6 text-sm"><Switch checked={platformForm.watch("isActive")} onCheckedChange={v => platformForm.setValue("isActive", v)} />{tr("active", "Active")}</label>
               </div>
-              <div className="flex gap-2"><Button size="sm" onClick={platformForm.handleSubmit(v => savePlatform.mutate(v))} disabled={savePlatform.isPending}>Save</Button><Button size="sm" variant="ghost" onClick={() => setEditingPlatform(null)}>Cancel</Button></div>
+              <div className="flex gap-2"><Button size="sm" onClick={platformForm.handleSubmit(v => savePlatform.mutate(v))} disabled={savePlatform.isPending}>{tr("save", "Save")}</Button><Button size="sm" variant="ghost" onClick={() => setEditingPlatform(null)}>{tr("cancel", "Cancel")}</Button></div>
             </CardContent></Card>
           )}
         </CardContent>
@@ -1833,12 +1833,12 @@ function TaxSettingsPanel() {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 <div className="col-span-2"><Label>{tr("subservice", "Sub-service")}</Label><Select value={serviceForm.watch("subServiceId") || ""} onValueChange={v => serviceForm.setValue("subServiceId", v)} disabled={!!editingService?.id}><SelectTrigger><SelectValue placeholder={tr("select_subservice", "Select sub-service")} /></SelectTrigger><SelectContent>{subServices.map((s: any) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent></Select></div>
                 <div><Label>{tr("country_code_short", "Country code")}</Label><Input {...serviceForm.register("countryCode")} placeholder="HU / IR" /></div>
-                <div><Label>Rate (%)</Label><Input type="number" min="0" max="100" step="0.01" {...serviceForm.register("taxRate", { valueAsNumber: true })} /></div>
+                <div><Label>{tr("rate_percent", "Rate (%)")}</Label><Input type="number" min="0" max="100" step="0.01" {...serviceForm.register("taxRate", { valueAsNumber: true })} /></div>
                 <div><Label>{tr("effective_from", "Effective from")}</Label><Input type="datetime-local" {...serviceForm.register("effectiveFrom")} /></div>
                 <div><Label>{tr("effective_to", "Effective to")}</Label><Input type="datetime-local" {...serviceForm.register("effectiveTo")} /></div>
                 <label className="flex items-center gap-2 pt-6 text-sm"><Switch checked={serviceForm.watch("isActive")} onCheckedChange={v => serviceForm.setValue("isActive", v)} />{tr("active", "Active")}</label>
               </div>
-              <div className="flex gap-2"><Button size="sm" onClick={serviceForm.handleSubmit(v => saveService.mutate(v))} disabled={saveService.isPending}>Save</Button><Button size="sm" variant="ghost" onClick={() => setEditingService(null)}>Cancel</Button></div>
+              <div className="flex gap-2"><Button size="sm" onClick={serviceForm.handleSubmit(v => saveService.mutate(v))} disabled={saveService.isPending}>{tr("save", "Save")}</Button><Button size="sm" variant="ghost" onClick={() => setEditingService(null)}>{tr("cancel", "Cancel")}</Button></div>
             </CardContent></Card>
           )}
         </CardContent>

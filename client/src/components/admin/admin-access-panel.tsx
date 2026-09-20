@@ -56,8 +56,8 @@ interface AdminUser {
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
-function fmtDate(iso: string | null) {
-  if (!iso) return "Never";
+function fmtDate(iso: string | null, neverLabel: string) {
+  if (!iso) return neverLabel;
   return formatDate(iso, { year: "numeric", month: "short", day: "numeric" });
 }
 
@@ -74,8 +74,8 @@ const ROLE_COLORS: Record<string, string> = {
   audit_viewer:   "bg-muted/50 text-muted-foreground border-border",
 };
 
-function RoleBadge({ name, display }: { name: string | null; display?: string | null }) {
-  if (!name) return <span className="text-xs text-muted-foreground">No role</span>;
+function RoleBadge({ name, display, noRoleLabel }: { name: string | null; display?: string | null; noRoleLabel: string }) {
+  if (!name) return <span className="text-xs text-muted-foreground">{noRoleLabel}</span>;
   return (
     <Badge variant="outline" className={`text-xs ${ROLE_COLORS[name] ?? "bg-muted text-muted-foreground"}`}>
       {display ?? name.replace(/_/g, " ")}
@@ -479,14 +479,14 @@ export default function AdminAccessPanel() {
                               </div>
                             </div>
                           </TableCell>
-                          <TableCell><RoleBadge name={u.role_name} display={u.role_display_name} /></TableCell>
+                           <TableCell><RoleBadge name={u.role_name} display={u.role_display_name} noRoleLabel={t("admin.no_role", "No role")} /></TableCell>
                           <TableCell>
                             {u.assignment_country
                               ? <span className="flex items-center gap-1 text-xs"><MapPin className="h-3 w-3" />{u.assignment_country}</span>
                                : <span className="flex items-center gap-1 text-xs text-muted-foreground"><Globe className="h-3 w-3" />{t("admin.global", "Global")}</span>
                             }
                           </TableCell>
-                          <TableCell className="text-xs text-muted-foreground">{fmtDate(u.last_login_at)}</TableCell>
+                           <TableCell className="text-xs text-muted-foreground">{fmtDate(u.last_login_at, t("admin.never", "Never"))}</TableCell>
                           <TableCell>
                             {isActive
                                ? <span className="flex items-center gap-1 text-xs text-green-600"><CheckCircle className="h-3.5 w-3.5" />{t("admin.config.active", "Active")}</span>

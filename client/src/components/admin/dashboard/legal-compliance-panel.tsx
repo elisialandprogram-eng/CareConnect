@@ -266,37 +266,37 @@ function DocumentRegistry() {
       <Dialog open={showCreate} onOpenChange={setShowCreate}>
         <DialogContent className="max-w-xl">
           <DialogHeader>
-            <DialogTitle>Create Legal Document</DialogTitle>
-            <DialogDescription>Define the document registry entry. Actual content is added via versions.</DialogDescription>
+           <DialogTitle>{configText(t, "create_document", "Create Legal Document")}</DialogTitle>
+           <DialogDescription>{configText(t, "create_document_desc", "Define the document registry entry. Actual content is added via versions.")}</DialogDescription>
           </DialogHeader>
           <form onSubmit={form.handleSubmit(d => createMut.mutate(d))} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1">
-                <Label>Slug <span className="text-destructive">*</span></Label>
+                <Label>{configText(t, "slug", "Slug")} <span className="text-destructive">*</span></Label>
                 <Input {...form.register("slug")} placeholder="platform_terms" data-testid="input-doc-slug" />
                 {form.formState.errors.slug && <p className="text-xs text-destructive">{form.formState.errors.slug.message}</p>}
               </div>
               <div className="space-y-1">
-                <Label>Document Type <span className="text-destructive">*</span></Label>
+                <Label>{configText(t, "document_type", "Document Type")} <span className="text-destructive">*</span></Label>
                 <Select defaultValue="platform_terms" onValueChange={v => form.setValue("docType", v)}>
                   <SelectTrigger data-testid="select-doc-type"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {DOC_TYPES.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
+                    {DOC_TYPES.map(docType => <SelectItem key={docType.value} value={docType.value}>{configText(t, `doc_type_${docType.value}`, docType.label)}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
             </div>
             <div className="space-y-1">
-              <Label>Title <span className="text-destructive">*</span></Label>
+              <Label>{configText(t, "title", "Title")} <span className="text-destructive">*</span></Label>
               <Input {...form.register("title")} placeholder="Platform Terms of Service" data-testid="input-doc-title" />
               {form.formState.errors.title && <p className="text-xs text-destructive">{form.formState.errors.title.message}</p>}
             </div>
             <div className="space-y-1">
-              <Label>Description</Label>
+              <Label>{configText(t, "description", "Description")}</Label>
               <Textarea {...form.register("description")} rows={2} placeholder="Brief summary of this document's purpose" data-testid="textarea-doc-description" />
             </div>
             <div className="space-y-1">
-              <Label>Target Roles <span className="text-xs text-muted-foreground">(leave empty = all roles)</span></Label>
+              <Label>{configText(t, "target_roles", "Target Roles")} <span className="text-xs text-muted-foreground">{configText(t, "target_roles_hint", "(leave empty = all roles)")}</span></Label>
               <div className="flex gap-4">
                 {TARGET_ROLES.map(role => (
                   <label key={role} className="flex items-center gap-2 text-sm cursor-pointer">
@@ -317,17 +317,17 @@ function DocumentRegistry() {
             <div className="flex gap-6">
               <label className="flex items-center gap-2 text-sm cursor-pointer">
                 <Switch checked={form.watch("isRequired")} onCheckedChange={v => form.setValue("isRequired", v)} data-testid="switch-is-required" />
-                Required acceptance
+                {configText(t, "required_acceptance", "Required acceptance")}
               </label>
               <label className="flex items-center gap-2 text-sm cursor-pointer">
                 <Switch checked={form.watch("requiresReacceptance")} onCheckedChange={v => form.setValue("requiresReacceptance", v)} data-testid="switch-requires-reacceptance" />
-                Requires re-acceptance on update
+                {configText(t, "reacceptance_update", "Requires re-acceptance on update")}
               </label>
             </div>
             <div className="flex justify-end gap-3 pt-2">
-              <Button type="button" variant="outline" onClick={() => setShowCreate(false)}>Cancel</Button>
+              <Button type="button" variant="outline" onClick={() => setShowCreate(false)}>{configText(t, "cancel", "Cancel")}</Button>
               <Button type="submit" disabled={createMut.isPending} data-testid="button-submit-create-doc">
-                {createMut.isPending ? "Creating…" : "Create Document"}
+                {createMut.isPending ? configText(t, "creating", "Creating…") : configText(t, "create_document_button", "Create Document")}
               </Button>
             </div>
           </form>

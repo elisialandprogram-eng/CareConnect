@@ -42,15 +42,15 @@ const CURRENCY_NAMES: Record<string, string> = {
   EUR: "Euro",
 };
 
-function formatRelativeTime(isoString: string | null): string {
-  if (!isoString) return "Never";
+function formatRelativeTime(isoString: string | null, labels: { never: string; justNow: string; minutesAgo: (n: number) => string; hoursAgo: (n: number) => string; daysAgo: (n: number) => string }): string {
+  if (!isoString) return labels.never;
   const diff = Date.now() - new Date(isoString).getTime();
   const mins = Math.floor(diff / 60000);
-  if (mins < 1) return "Just now";
-  if (mins < 60) return `${mins}m ago`;
+  if (mins < 1) return labels.justNow;
+  if (mins < 60) return labels.minutesAgo(mins);
   const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
-  return `${Math.floor(hrs / 24)}d ago`;
+  if (hrs < 24) return labels.hoursAgo(hrs);
+  return labels.daysAgo(Math.floor(hrs / 24));
 }
 
 export function CurrencyRatesPanel() {
@@ -175,7 +175,7 @@ export function CurrencyRatesPanel() {
                   {rate.isManualOverride && (
                     <div className="absolute top-2 end-2">
                       <Badge variant="outline" className="text-amber-600 border-amber-400 text-xs">
-                        Manual
+                         {t("admin.config.manual", "Manual")}
                       </Badge>
                     </div>
                   )}
@@ -185,7 +185,7 @@ export function CurrencyRatesPanel() {
                       <span className="text-2xl">{CURRENCY_FLAGS[rate.code] ?? "💱"}</span>
                       <div>
                         <CardTitle className="text-base">{rate.code}</CardTitle>
-                        <CardDescription className="text-xs">{CURRENCY_NAMES[rate.code] ?? rate.code}</CardDescription>
+                         <CardDescription className="text-xs">{t(`admin.config.currency_${rate.code}`, CURRENCY_NAMES[rate.code] ?? rate.code)}</CardDescription>
                       </div>
                     </div>
                   </CardHeader>
@@ -194,7 +194,7 @@ export function CurrencyRatesPanel() {
                     {isEditing ? (
                       <div className="space-y-2">
                         <Label htmlFor={`rate-input-${rate.code}`} className="text-xs">
-                          1 USD =
+                           {t("admin.config.one_usd_equals", "1 USD =")}
                         </Label>
                         <div className="flex gap-2">
                           <Input
@@ -239,7 +239,7 @@ export function CurrencyRatesPanel() {
                     ) : (
                       <div className="flex items-end justify-between">
                         <div>
-                          <p className="text-xs text-muted-foreground">1 USD =</p>
+                           <p className="text-xs text-muted-foreground">{t("admin.config.one_usd_equals", "1 USD =")}</p>
                           <p className="text-2xl font-bold tabular-nums" data-testid={`text-rate-value-${rate.code}`}>
                             {isUSD ? "1" : rate.rateFromUsd.toLocaleString()}
                           </p>
@@ -254,7 +254,7 @@ export function CurrencyRatesPanel() {
                             data-testid={`button-edit-rate-${rate.code}`}
                           >
                             <Edit2 className="h-3 w-3 me-1" />
-                            Override
+                             {t("admin.config.override", "Override")}
                           </Button>
                         )}
                       </div>
@@ -263,7 +263,13 @@ export function CurrencyRatesPanel() {
                     <div className="flex items-center justify-between pt-1 border-t border-border/50">
                       <div className="flex items-center gap-1 text-xs text-muted-foreground">
                         <Clock className="h-3 w-3" />
-                        <span>{formatRelativeTime(rate.fetchedAt)}</span>
+                         <span>{formatRelativeTime(rate.fetchedAt, {
+                           never: t("admin.config.never", "Never"),
+                           justNow: t("admin.config.just_now", "Just now"),
+                           minutesAgo: n => t("admin.config.minutes_ago", "{{count}}m ago", { count: n }),
+                           hoursAgo: n => t("admin.config.hours_ago", "{{count}}h ago", { count: n }),
+                           daysAgo: n => t("admin.config.days_ago", "{{count}}d ago", { count: n }),
+                         })}</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <Badge
@@ -284,7 +290,7 @@ export function CurrencyRatesPanel() {
                             className="h-5 px-1.5 text-xs text-muted-foreground hover:text-destructive"
                             onClick={() => resetMutation.mutate(rate.code)}
                             disabled={resetMutation.isPending}
-                            title="Clear override — next sync will restore live rate"
+                             title={t("admin.config.clear_override_title", "Clear override — next sync will restore live rate")}
                             data-testid={`button-reset-override-${rate.code}`}
                           >
                             <RotateCcw className="h-3 w-3" />
@@ -302,24 +308,18 @@ export function CurrencyRatesPanel() {
         <CardHeader className="pb-3">
           <div className="flex items-center gap-2">
             <Info className="h-4 w-4 text-muted-foreground" />
-            <CardTitle className="text-sm font-medium">How rates are used</CardTitle>
+             <CardTitle className="text-sm font-medium">{t("admin.config.how_rates_used", "How rates are used")}</CardTitle>
           </div>
         </CardHeader>
         <CardContent className="text-sm text-muted-foreground space-y-2">
           <p>
-            <strong className="text-foreground">Wallet debiting</strong> — when a member pays
-            with wallet credits, the platform converts the appointment's USD total to the local
-            currency amount deducted from their balance.
+             <strong className="text-foreground">{t("admin.config.wallet_debiting", "Wallet debiting")}</strong> — {t("admin.config.wallet_debiting_desc", "when a member pays with wallet credits, the platform converts the appointment's USD total to the local currency amount deducted from their balance.")}
           </p>
           <p>
-            <strong className="text-foreground">Revenue engine</strong> — commission, tax, and
-            platform fee calculations all operate in USD; the rates here determine how those
-            figures display in HUF or IRR on provider dashboards and invoices.
+             <strong className="text-foreground">{t("admin.config.revenue_engine", "Revenue engine")}</strong> — {t("admin.config.revenue_engine_desc", "commission, tax, and platform fee calculations all operate in USD; the rates here determine how those figures display in HUF or IRR on provider dashboards and invoices.")}
           </p>
           <p>
-            <strong className="text-foreground">Service prices</strong> — service prices are
-            stored natively in the provider's currency and are never affected by these rates.
-            Rates only apply to USD-denominated accounting values.
+             <strong className="text-foreground">{t("admin.config.service_prices", "Service prices")}</strong> — {t("admin.config.service_prices_desc", "service prices are stored natively in the provider's currency and are never affected by these rates. Rates only apply to USD-denominated accounting values.")}
           </p>
         </CardContent>
       </Card>
