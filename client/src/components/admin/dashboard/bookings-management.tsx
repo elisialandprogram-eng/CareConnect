@@ -211,10 +211,15 @@ const STATUS_CLS: Record<string, string> = {
 };
 
 function SBadge({ value }: { value: string | null | undefined }) {
+  const { t } = useTranslation();
   if (!value) return <span className="text-muted-foreground text-xs">—</span>;
+  const normalized = value.toLowerCase().replace(/^refund:/, "");
+  const label = String(t(`admin.booking_status_${normalized}`, {
+    defaultValue: normalized.replace(/_/g, " "),
+  }));
   return (
     <Badge variant="outline" className={`capitalize text-xs ${STATUS_CLS[value.toLowerCase()] ?? "bg-muted text-muted-foreground"}`}>
-      {value.replace(/_/g, " ")}
+      {label}
     </Badge>
   );
 }
@@ -222,12 +227,13 @@ function SBadge({ value }: { value: string | null | undefined }) {
 // ── Lifecycle Timeline ──────────────────────────────────────────────────────────
 
 function Timeline({ id }: { id: string }) {
+  const { t } = useTranslation();
   const { data: events = [], isLoading } = useQuery<LifecycleEvent[]>({
     queryKey: ["/api/admin/financial/master-report", id, "events"],
     queryFn: () => authFetch(`/api/admin/financial/master-report/${id}/events`),
   });
   if (isLoading) return <Loader2 className="h-4 w-4 animate-spin" />;
-  if (!events.length) return <p className="text-xs text-muted-foreground">No events yet.</p>;
+   if (!events.length) return <p className="text-xs text-muted-foreground">{t("admin.no_lifecycle_events", "No events yet.")}</p>;
   return (
     <div className="relative ps-4 space-y-3">
       <div className="absolute start-1.5 top-0 bottom-0 w-0.5 bg-border" />
@@ -235,8 +241,8 @@ function Timeline({ id }: { id: string }) {
         <div key={ev.id} className="relative text-xs">
           <div className="absolute -start-1.5 top-1 h-2.5 w-2.5 rounded-full bg-primary border-2 border-background" />
           <p className="ps-2 font-medium capitalize">{ev.action.replace(/_/g, " ")}</p>
-          <p className="ps-2 text-muted-foreground">
-            {fmtDateTime(ev.created_at)} · {ev.actor_first_name ? `${ev.actor_first_name} ${ev.actor_last_name}` : ev.actor_role ?? "System"}
+           <p className="ps-2 text-muted-foreground">
+             {fmtDateTime(ev.created_at)} · {ev.actor_first_name ? `${ev.actor_first_name} ${ev.actor_last_name}` : ev.actor_role ?? t("admin.system", "System")}
           </p>
           {ev.from_status && ev.to_status && (
             <p className="ps-2 text-muted-foreground">{ev.from_status} → {ev.to_status}</p>
@@ -254,6 +260,7 @@ function InvestigationDrawer({
   row, open, onClose, fmt,
 }: { row: BookingRow | null; open: boolean; onClose: () => void; fmt: (n: number) => string }) {
   const [, navigate] = useLocation();
+  const { t } = useTranslation();
   if (!row) return null;
 
   const cur = row.display_currency ?? "USD";
@@ -283,37 +290,37 @@ function InvestigationDrawer({
         <SheetHeader className="mb-4">
           <SheetTitle className="flex items-center gap-2">
             <Shield className="h-5 w-5" />
-            {row.appointment_number ?? row.id.slice(0, 8)} — Investigation
+             {row.appointment_number ?? row.id.slice(0, 8)} — {t("admin.investigation", "Investigation")}
           </SheetTitle>
         </SheetHeader>
 
         {/* Quick Actions */}
         <div className="flex flex-wrap gap-2 mb-6 p-3 bg-muted/40 rounded-lg">
-          <p className="w-full text-xs font-semibold text-muted-foreground mb-1">Quick Actions</p>
+           <p className="w-full text-xs font-semibold text-muted-foreground mb-1">{t("admin.quick_actions", "Quick actions")}</p>
           <Button size="sm" variant="outline" className="h-7 text-xs gap-1" asChild>
             <a href={`/appointments/${row.id}`} target="_blank" rel="noreferrer">
-              <ExternalLink className="h-3 w-3" />Booking
+               <ExternalLink className="h-3 w-3" />{t("admin.booking", "Booking")}
             </a>
           </Button>
           <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => { onClose(); navigate(`/admin?tab=users&userId=${row.patient_id}`); }}>
-            <Users className="h-3 w-3" />Member
+               <Users className="h-3 w-3" />{t("admin.member", "Member")}
           </Button>
           <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => { onClose(); navigate(`/admin?tab=providers&id=${row.provider_id}`); }}>
-            <Building2 className="h-3 w-3" />Provider
+               <Building2 className="h-3 w-3" />{t("admin.provider", "Provider")}
           </Button>
           {row.invoice_id && (
             <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => { onClose(); navigate(`/admin?tab=invoices&id=${row.invoice_id}`); }}>
-              <FileText className="h-3 w-3" />Invoice
+               <FileText className="h-3 w-3" />{t("admin.invoice", "Invoice")}
             </Button>
           )}
           {row.payment_id && (
             <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => { onClose(); navigate(`/admin?tab=revenue-billing&sub=payments`); }}>
-              <CreditCard className="h-3 w-3" />Payment
+               <CreditCard className="h-3 w-3" />{t("admin.payment", "Payment")}
             </Button>
           )}
           {n(row.refund_amount) > 0 && (
             <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => { onClose(); navigate(`/admin?tab=revenue-billing&sub=refunds`); }}>
-              <RefreshCw className="h-3 w-3" />Refund
+               <RefreshCw className="h-3 w-3" />{t("admin.refund", "Refund")}
             </Button>
           )}
         </div>
@@ -321,70 +328,70 @@ function InvestigationDrawer({
         <div className="space-y-5 pb-10">
 
           {/* A: Booking */}
-          <Section title="A · Booking" icon={CalendarDays}>
-            <Row label="ID"             value={<span className="font-mono text-xs">{row.id}</span>} />
-            <Row label="Booking Ref"    value={row.appointment_number} />
-            <Row label="Booking Status" value={<SBadge value={row.status} />} />
-            <Row label="Payment Status" value={<SBadge value={row.payment_status} />} />
-            <Row label="Refund Status"  value={<SBadge value={row.refund_status} />} />
-            <Row label="Country"        value={row.country_code} />
-             <Row label="Booking Note"   value={row.booking_note?.trim() || "No booking note recorded"} />
-            <Row label="Created"        value={fmtDateTime(row.created_at)} />
-            <Row label="Last Updated"   value={fmtDateTime(row.updated_at)} />
-            <Row label="Audit Ref"      value={<span className="font-mono text-xs">{row.id}</span>} />
+           <Section title={`A · ${t("admin.booking", "Booking")}`} icon={CalendarDays}>
+             <Row label={t("admin.id", "ID")} value={<span className="font-mono text-xs">{row.id}</span>} />
+             <Row label={t("admin.booking_ref", "Booking ref")} value={row.appointment_number} />
+             <Row label={t("admin.booking_status", "Booking status")} value={<SBadge value={row.status} />} />
+             <Row label={t("admin.payment_status", "Payment status")} value={<SBadge value={row.payment_status} />} />
+             <Row label={t("admin.refund_status", "Refund status")} value={<SBadge value={row.refund_status} />} />
+             <Row label={t("admin.country", "Country")} value={row.country_code} />
+             <Row label={t("admin.booking_note", "Booking note")} value={row.booking_note?.trim() || t("admin.no_booking_note", "No booking note recorded")} />
+             <Row label={t("admin.created", "Created")} value={fmtDateTime(row.created_at)} />
+             <Row label={t("admin.last_updated", "Last updated")} value={fmtDateTime(row.updated_at)} />
+             <Row label={t("admin.audit_ref", "Audit ref")} value={<span className="font-mono text-xs">{row.id}</span>} />
           </Section>
 
           {/* B: Appointment */}
-          <Section title="B · Appointment" icon={Clock}>
-            <Row label="Date"         value={fmtDate(row.start_at)} />
-            <Row label="Start Time"   value={fmtTime(row.start_at)} />
-            <Row label="End Time"     value={fmtTime(row.end_at)} />
-            <Row label="Duration"     value={row.service_duration ? `${row.service_duration} min` : null} />
-            <Row label="Timezone"     value={row.provider_timezone} />
-            <Row label="Visit Type"   value={row.visit_type} />
-            <Row label="Location"     value={row.location_mode ?? row.visit_type} />
-            <Row label="Clinic"       value={row.clinic_name} />
+           <Section title={`B · ${t("admin.appointment", "Appointment")}`} icon={Clock}>
+             <Row label={t("admin.date", "Date")} value={fmtDate(row.start_at)} />
+             <Row label={t("admin.start_time", "Start time")} value={fmtTime(row.start_at)} />
+             <Row label={t("admin.end_time", "End time")} value={fmtTime(row.end_at)} />
+             <Row label={t("admin.duration", "Duration")} value={row.service_duration ? `${row.service_duration} min` : null} />
+             <Row label={t("admin.timezone", "Timezone")} value={row.provider_timezone} />
+             <Row label={t("admin.visit_type", "Visit type")} value={row.visit_type} />
+             <Row label={t("admin.location", "Location")} value={row.location_mode ?? row.visit_type} />
+             <Row label={t("admin.clinic", "Clinic")} value={row.clinic_name} />
           </Section>
 
           {/* C: Member */}
-          <Section title="C · Member" icon={Users}>
-            <Row label="Name"     value={`${row.patient_first_name} ${row.patient_last_name}`} />
-            <Row label="Email"    value={row.patient_email} />
-            <Row label="City"     value={row.patient_city} />
-            <Row label="Country"  value={row.patient_country} />
-            <Row label="Profile"  value={
+           <Section title={`C · ${t("admin.member", "Member")}`} icon={Users}>
+             <Row label={t("admin.name", "Name")} value={`${row.patient_first_name} ${row.patient_last_name}`} />
+             <Row label={t("admin.email", "Email")} value={row.patient_email} />
+             <Row label={t("admin.city", "City")} value={row.patient_city} />
+             <Row label={t("admin.country", "Country")} value={row.patient_country} />
+             <Row label={t("admin.profile", "Profile")} value={
               <Button size="sm" variant="ghost" className="h-5 p-0 text-xs" onClick={() => { onClose(); navigate(`/admin?tab=users&userId=${row.patient_id}`); }}>
-                View Member Profile →
+                 {t("admin.view_member_profile", "View member profile")} →
               </Button>
             } />
           </Section>
 
           {/* D: Provider */}
-          <Section title="D · Provider" icon={Building2}>
-            <Row label="Name"         value={`${row.provider_first_name} ${row.provider_last_name}`} />
-            <Row label="Email"        value={row.provider_email} />
-            <Row label="Category"     value={row.provider_category?.replace(/_/g, " ")} />
-            <Row label="City"         value={row.provider_city} />
-            <Row label="Country"      value={row.provider_country} />
-            <Row label="Clinic"       value={row.clinic_name} />
+           <Section title={`D · ${t("admin.provider", "Provider")}`} icon={Building2}>
+             <Row label={t("admin.name", "Name")} value={`${row.provider_first_name} ${row.provider_last_name}`} />
+             <Row label={t("admin.email", "Email")} value={row.provider_email} />
+             <Row label={t("admin.category", "Category")} value={row.provider_category?.replace(/_/g, " ")} />
+             <Row label={t("admin.city", "City")} value={row.provider_city} />
+             <Row label={t("admin.country", "Country")} value={row.provider_country} />
+             <Row label={t("admin.clinic", "Clinic")} value={row.clinic_name} />
           </Section>
 
           {/* E: Service */}
-          <Section title="E · Service" icon={Stethoscope}>
-            <Row label="Service"    value={row.service_name} />
-            <Row label="Category"   value={row.service_category?.replace(/_/g, " ")} />
-            <Row label="Visit Type" value={row.visit_type} />
-            <Row label="Duration"   value={row.service_duration ? `${row.service_duration} min` : null} />
+           <Section title={`E · ${t("admin.service", "Service")}`} icon={Stethoscope}>
+             <Row label={t("admin.service", "Service")} value={row.service_name} />
+             <Row label={t("admin.category", "Category")} value={row.service_category?.replace(/_/g, " ")} />
+             <Row label={t("admin.visit_type", "Visit type")} value={row.visit_type} />
+             <Row label={t("admin.duration", "Duration")} value={row.service_duration ? `${row.service_duration} min` : null} />
           </Section>
 
           {/* F: Financials */}
-          <Section title="F · Financials" icon={DollarSign}>
-            <Row label="Booking Currency" value={<Badge variant="outline" className="text-xs font-mono">{cur}</Badge>} />
-            <Row label="Base Price"        value={fmtLocal(n(row.service_price_snapshot))} />
-            <Row label="Booking Amount"    value={<strong>{fmtLocal(n(row.total_amount))}</strong>} />
-            {cur !== "USD" && usdNorm != null && <Row label="≈ USD" value={<span className="text-muted-foreground">{fmt(usdNorm)}</span>} />}
-            <Row label="Platform Fee"      value={fmtLocal(n(row.platform_fee_amount))} />
-             <Row label="Platform Commission" value={
+           <Section title={`F · ${t("admin.financials", "Financials")}`} icon={DollarSign}>
+             <Row label={t("admin.booking_currency", "Booking currency")} value={<Badge variant="outline" className="text-xs font-mono">{cur}</Badge>} />
+             <Row label={t("admin.base_price", "Base price")} value={fmtLocal(n(row.service_price_snapshot))} />
+             <Row label={t("admin.booking_amount", "Booking amount")} value={<strong>{fmtLocal(n(row.total_amount))}</strong>} />
+             {cur !== "USD" && usdNorm != null && <Row label="≈ USD" value={<span className="text-muted-foreground">{fmt(usdNorm)}</span>} />}
+             <Row label={t("admin.platform_fee", "Platform fee")} value={fmtLocal(n(row.platform_fee_amount))} />
+              <Row label={t("admin.platform_commission", "Platform commission")} value={
                <span>
                  {fmtLocal(n(row.commission_amount))}
                  {cur !== "USD" && row.provider_commission_usd != null && (
@@ -394,32 +401,32 @@ function InvestigationDrawer({
                  )}
                </span>
              } />
-            <Row label={`Service tax (${n(row.service_tax_rate)}%)`} value={fmtLocal(n(row.service_tax_amount))} />
-            <Row label={`Platform tax (${n(row.platform_tax_rate)}%)`} value={fmtLocal(n(row.platform_tax_amount))} />
-            <Row label="Total tax"          value={fmtLocal(n(row.tax_amount))} />
-            {n(row.promo_discount) > 0 && <Row label="Promo Discount" value={`−${fmtLocal(n(row.promo_discount))}`} />}
-            {row.promo_code && <Row label="Promo Code" value={row.promo_code} />}
-            {n(row.refund_amount) > 0 && <Row label="Refund Amount" value={fmtLocal(n(row.refund_amount))} />}
-            {row.exchange_rate_used && cur !== "USD" && <Row label="Exchange Rate" value={`1 USD = ${row.exchange_rate_used} ${cur}`} />}
-            <Row label="Provider Net Earnings (USD)" value={row.provider_net_earnings_usd ? fmt(n(row.provider_net_earnings_usd)) : null} />
-             <Row label="Provider-side Commission (USD)" value={
+             <Row label={`${t("admin.service_tax", "Service tax")} (${n(row.service_tax_rate)}%)`} value={fmtLocal(n(row.service_tax_amount))} />
+             <Row label={`${t("admin.platform_tax", "Platform tax")} (${n(row.platform_tax_rate)}%)`} value={fmtLocal(n(row.platform_tax_amount))} />
+             <Row label={t("admin.total_tax", "Total tax")} value={fmtLocal(n(row.tax_amount))} />
+             {n(row.promo_discount) > 0 && <Row label={t("admin.promo_discount", "Promo discount")} value={`−${fmtLocal(n(row.promo_discount))}`} />}
+             {row.promo_code && <Row label={t("admin.promo_code", "Promo code")} value={row.promo_code} />}
+             {n(row.refund_amount) > 0 && <Row label={t("admin.refund_amount", "Refund amount")} value={fmtLocal(n(row.refund_amount))} />}
+             {row.exchange_rate_used && cur !== "USD" && <Row label={t("admin.exchange_rate", "Exchange rate")} value={`1 USD = ${row.exchange_rate_used} ${cur}`} />}
+             <Row label={t("admin.provider_net_earnings", "Provider net earnings (USD)")} value={row.provider_net_earnings_usd ? fmt(n(row.provider_net_earnings_usd)) : null} />
+              <Row label={t("admin.provider_side_commission", "Provider-side commission (USD)")} value={
                row.provider_commission_usd != null ? fmt(n(row.provider_commission_usd)) : null
              } />
           </Section>
 
           {/* G: Payment */}
-          <Section title="G · Payment" icon={CreditCard}>
-            <Row label="Method"       value={row.payment_method ?? row.appt_payment_method} />
-            <Row label="Amount (USD)" value={row.payment_amount ? fmt(n(row.payment_amount)) : null} />
-            <Row label="Status"       value={<SBadge value={row.payment_record_status} />} />
-            <Row label="Stripe ID"    value={row.stripe_payment_id ? <span className="font-mono text-xs">{row.stripe_payment_id}</span> : null} />
-            <Row label="Invoice"      value={row.invoice_number} />
-            <Row label="Invoice Status" value={<SBadge value={row.invoice_status} />} />
-            <Row label="TX Ref"       value={row.payout_reference} />
+           <Section title={`G · ${t("admin.payment", "Payment")}`} icon={CreditCard}>
+             <Row label={t("admin.method", "Method")} value={row.payment_method ?? row.appt_payment_method} />
+             <Row label={t("admin.amount_usd", "Amount (USD)")} value={row.payment_amount ? fmt(n(row.payment_amount)) : null} />
+             <Row label={t("admin.status", "Status")} value={<SBadge value={row.payment_record_status} />} />
+             <Row label={t("admin.stripe_id", "Stripe ID")} value={row.stripe_payment_id ? <span className="font-mono text-xs">{row.stripe_payment_id}</span> : null} />
+             <Row label={t("admin.invoice", "Invoice")} value={row.invoice_number} />
+             <Row label={t("admin.invoice_status", "Invoice status")} value={<SBadge value={row.invoice_status} />} />
+             <Row label={t("admin.tx_ref", "Transaction ref")} value={row.payout_reference} />
           </Section>
 
           {/* H: Audit */}
-          <Section title="H · Audit & Timeline" icon={Shield}>
+           <Section title={`H · ${t("admin.audit_timeline", "Audit & timeline")}`} icon={Shield}>
             <Timeline id={row.id} />
           </Section>
         </div>
@@ -431,6 +438,7 @@ function InvestigationDrawer({
 // ── Expanded inline row ────────────────────────────────────────────────────────
 
 function ExpandedRow({ row, fmt }: { row: BookingRow; fmt: (n: number) => string }) {
+  const { t } = useTranslation();
   const cur = row.display_currency ?? "USD";
   const fmtLocal = (v: number) => fmtBooking(v, cur);
   // Only use final_total_usd when it is actually populated; falling back to total_amount
@@ -442,28 +450,28 @@ function ExpandedRow({ row, fmt }: { row: BookingRow; fmt: (n: number) => string
       <td colSpan={12} className="px-4 py-3 bg-muted/20 border-b text-sm">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="space-y-1">
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Appointment</p>
-            <div className="flex justify-between"><span className="text-muted-foreground">Date</span><span>{fmtDate(row.start_at)}</span></div>
-            <div className="flex justify-between"><span className="text-muted-foreground">Time</span><span>{fmtTime(row.start_at)} – {fmtTime(row.end_at)}</span></div>
-            <div className="flex justify-between"><span className="text-muted-foreground">Timezone</span><span className="text-xs">{row.provider_timezone ?? "—"}</span></div>
-            <div className="flex justify-between"><span className="text-muted-foreground">Location</span><span className="capitalize">{(row.location_mode ?? row.visit_type)?.replace(/_/g," ")}</span></div>
-            {row.clinic_name && <div className="flex justify-between"><span className="text-muted-foreground">Clinic</span><span>{row.clinic_name}</span></div>}
+             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">{t("admin.appointment", "Appointment")}</p>
+             <div className="flex justify-between"><span className="text-muted-foreground">{t("admin.date", "Date")}</span><span>{fmtDate(row.start_at)}</span></div>
+             <div className="flex justify-between"><span className="text-muted-foreground">{t("admin.time", "Time")}</span><span>{fmtTime(row.start_at)} – {fmtTime(row.end_at)}</span></div>
+             <div className="flex justify-between"><span className="text-muted-foreground">{t("admin.timezone", "Timezone")}</span><span className="text-xs">{row.provider_timezone ?? "—"}</span></div>
+             <div className="flex justify-between"><span className="text-muted-foreground">{t("admin.location", "Location")}</span><span className="capitalize">{(row.location_mode ?? row.visit_type)?.replace(/_/g," ")}</span></div>
+             {row.clinic_name && <div className="flex justify-between"><span className="text-muted-foreground">{t("admin.clinic", "Clinic")}</span><span>{row.clinic_name}</span></div>}
           </div>
           <div className="space-y-1">
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Financials · {cur}</p>
-            <div className="flex justify-between"><span className="text-muted-foreground">Base Price</span><span>{fmtLocal(n(row.service_price_snapshot))}</span></div>
-            <div className="flex justify-between"><span className="text-muted-foreground">Platform Fee</span><span>{fmtLocal(n(row.platform_fee_amount))}</span></div>
-            {n(row.promo_discount) > 0 && <div className="flex justify-between text-green-600"><span>Promo ({row.promo_code})</span><span>−{fmtLocal(n(row.promo_discount))}</span></div>}
-            <div className="flex justify-between font-semibold border-t pt-1 mt-1"><span>Total</span><span>{fmtLocal(n(row.total_amount))}</span></div>
+             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">{t("admin.financials", "Financials")} · {cur}</p>
+             <div className="flex justify-between"><span className="text-muted-foreground">{t("admin.base_price", "Base price")}</span><span>{fmtLocal(n(row.service_price_snapshot))}</span></div>
+             <div className="flex justify-between"><span className="text-muted-foreground">{t("admin.platform_fee", "Platform fee")}</span><span>{fmtLocal(n(row.platform_fee_amount))}</span></div>
+             {n(row.promo_discount) > 0 && <div className="flex justify-between text-green-600"><span>{t("admin.promo", "Promo")} ({row.promo_code})</span><span>−{fmtLocal(n(row.promo_discount))}</span></div>}
+             <div className="flex justify-between font-semibold border-t pt-1 mt-1"><span>{t("admin.total", "Total")}</span><span>{fmtLocal(n(row.total_amount))}</span></div>
             {cur !== "USD" && usdNorm != null && <div className="flex justify-between text-xs text-muted-foreground"><span>≈ USD</span><span>{fmt(usdNorm)}</span></div>}
           </div>
           <div className="space-y-1">
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Payment & Invoice</p>
-            <div className="flex justify-between"><span className="text-muted-foreground">Method</span><span className="capitalize">{(row.payment_method ?? row.appt_payment_method ?? "—").replace(/_/g," ")}</span></div>
-            <div className="flex justify-between"><span className="text-muted-foreground">Status</span><SBadge value={row.payment_record_status} /></div>
-            {row.stripe_payment_id && <div className="flex justify-between"><span className="text-muted-foreground">Stripe</span><span className="font-mono text-xs truncate max-w-[140px]">{row.stripe_payment_id}</span></div>}
-            {row.invoice_number && <div className="flex justify-between"><span className="text-muted-foreground">Invoice</span><span>{row.invoice_number}</span></div>}
-            {n(row.refund_amount) > 0 && <div className="flex justify-between text-rose-600"><span>Refunded</span><span>{fmtLocal(n(row.refund_amount))}</span></div>}
+             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">{t("admin.payment_invoice", "Payment & invoice")}</p>
+             <div className="flex justify-between"><span className="text-muted-foreground">{t("admin.method", "Method")}</span><span className="capitalize">{(row.payment_method ?? row.appt_payment_method ?? "—").replace(/_/g," ")}</span></div>
+             <div className="flex justify-between"><span className="text-muted-foreground">{t("admin.status", "Status")}</span><SBadge value={row.payment_record_status} /></div>
+             {row.stripe_payment_id && <div className="flex justify-between"><span className="text-muted-foreground">{t("admin.stripe", "Stripe")}</span><span className="font-mono text-xs truncate max-w-[140px]">{row.stripe_payment_id}</span></div>}
+             {row.invoice_number && <div className="flex justify-between"><span className="text-muted-foreground">{t("admin.invoice", "Invoice")}</span><span>{row.invoice_number}</span></div>}
+             {n(row.refund_amount) > 0 && <div className="flex justify-between text-rose-600"><span>{t("admin.refunded", "Refunded")}</span><span>{fmtLocal(n(row.refund_amount))}</span></div>}
           </div>
         </div>
       </td>
@@ -645,7 +653,7 @@ export function BookingsManagementComponent() {
 
           {/* Saved Views */}
           <DropdownMenu>
-            <DropdownMenuTrigger asChild>
+             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="sm" data-testid="button-saved-views">
                  <BookOpen className="h-4 w-4 me-1.5" />{t("admin.views", "Views")}
               </Button>
@@ -681,11 +689,11 @@ export function BookingsManagementComponent() {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="sm" data-testid="button-ops-columns">
-                <Columns className="h-4 w-4 me-1.5" />Columns
+                 <Columns className="h-4 w-4 me-1.5" />{t("admin.columns", "Columns")}
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">
-              <DropdownMenuLabel>Toggle Columns</DropdownMenuLabel>
+               <DropdownMenuLabel>{t("admin.toggle_columns", "Toggle columns")}</DropdownMenuLabel>
               <DropdownMenuSeparator />
               {COL_GROUPS.map(g => (
                 <DropdownMenuCheckboxItem
@@ -703,15 +711,15 @@ export function BookingsManagementComponent() {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="sm" data-testid="button-ops-export">
-                <Download className="h-4 w-4 me-1.5" />Export
+                 <Download className="h-4 w-4 me-1.5" />{t("admin.export", "Export")}
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem onClick={handleCsv}>
-                <Download className="h-4 w-4 me-1.5" />Export CSV
+                 <Download className="h-4 w-4 me-1.5" />{t("admin.export_csv", "Export CSV")}
               </DropdownMenuItem>
               <DropdownMenuItem onClick={handlePdf}>
-                <Printer className="h-4 w-4 me-1.5" />Export PDF
+                 <Printer className="h-4 w-4 me-1.5" />{t("admin.export_pdf", "Export PDF")}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -725,7 +733,7 @@ export function BookingsManagementComponent() {
             <div className="relative flex-1 min-w-[220px]">
               <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search ref, member, provider, service, promo, Stripe ID…"
+                 placeholder={t("admin.bookings_search", "Search ref, member, provider, service, promo, Stripe ID…")}
                 value={search}
                 onChange={e => { setSearch(e.target.value); setPage(1); }}
                 className="ps-9 h-9"
@@ -738,21 +746,21 @@ export function BookingsManagementComponent() {
               )}
             </div>
             <Button variant="outline" size="sm" onClick={() => setFiltersOpen(v => !v)} className={hasFilters ? "border-primary text-primary" : ""} data-testid="button-ops-filters">
-              <Filter className="h-4 w-4 me-1.5" />Filters
+               <Filter className="h-4 w-4 me-1.5" />{t("admin.filters", "Filters")}
               {hasFilters && <Badge className="ms-1 h-4 w-4 rounded-full p-0 text-[9px] flex items-center justify-center">!</Badge>}
             </Button>
             {hasFilters && (
               <>
-                <Button variant="ghost" size="sm" onClick={clearFilters}>Clear</Button>
+                 <Button variant="ghost" size="sm" onClick={clearFilters}>{t("admin.clear_all", "Clear all")}</Button>
                 {showSaveFilter ? (
                   <div className="flex gap-1">
-                    <Input value={filterName} onChange={e => setFilterName(e.target.value)} placeholder="Filter name…" className="h-8 text-sm w-32" onKeyDown={e => e.key === "Enter" && saveCurrentFilter()} />
-                    <Button size="sm" className="h-8" onClick={saveCurrentFilter}>Save</Button>
+                     <Input value={filterName} onChange={e => setFilterName(e.target.value)} placeholder={t("admin.filter_name", "Filter name…")} className="h-8 text-sm w-32" onKeyDown={e => e.key === "Enter" && saveCurrentFilter()} />
+                     <Button size="sm" className="h-8" onClick={saveCurrentFilter}>{t("common.save", "Save")}</Button>
                     <Button size="sm" variant="ghost" className="h-8" onClick={() => setShowSaveFilter(false)}>×</Button>
                   </div>
                 ) : (
                   <Button variant="outline" size="sm" onClick={() => setShowSaveFilter(true)}>
-                    <Save className="h-3.5 w-3.5 me-1" />Save Filter
+                     <Save className="h-3.5 w-3.5 me-1" />{t("admin.save_filter", "Save filter")}
                   </Button>
                 )}
               </>
@@ -762,64 +770,64 @@ export function BookingsManagementComponent() {
           {filtersOpen && (
             <div className="pt-3 border-t grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
               <div>
-                <label className="text-xs text-muted-foreground mb-1 block">From</label>
+                 <label className="text-xs text-muted-foreground mb-1 block">{t("admin.date_from", "From")}</label>
                 <Input type="date" value={dateFrom} onChange={e => { setDateFrom(e.target.value); setPage(1); }} className="h-8 text-sm" data-testid="input-ops-from" />
               </div>
               <div>
-                <label className="text-xs text-muted-foreground mb-1 block">To</label>
+                 <label className="text-xs text-muted-foreground mb-1 block">{t("admin.date_to", "To")}</label>
                 <Input type="date" value={dateTo} onChange={e => { setDateTo(e.target.value); setPage(1); }} className="h-8 text-sm" data-testid="input-ops-to" />
               </div>
               <div>
-                <label className="text-xs text-muted-foreground mb-1 block">Booking Status</label>
+                 <label className="text-xs text-muted-foreground mb-1 block">{t("admin.booking_status", "Booking status")}</label>
                 <Select value={statusFilter} onValueChange={v => { setStatusFilter(v); setPage(1); }}>
                   <SelectTrigger className="h-8 text-sm" data-testid="select-ops-status"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All</SelectItem>
-                    <SelectItem value="pending">Pending</SelectItem>
-                    <SelectItem value="confirmed">Confirmed</SelectItem>
-                    <SelectItem value="in_progress">In Progress</SelectItem>
-                    <SelectItem value="completed">Completed</SelectItem>
-                    <SelectItem value="cancelled">Cancelled</SelectItem>
-                    <SelectItem value="no_show">No Show</SelectItem>
-                    <SelectItem value="rescheduled">Rescheduled</SelectItem>
+                     <SelectItem value="all">{t("admin.all", "All")}</SelectItem>
+                     <SelectItem value="pending">{t("admin.booking_status_pending", "Pending")}</SelectItem>
+                     <SelectItem value="confirmed">{t("admin.booking_status_confirmed", "Confirmed")}</SelectItem>
+                     <SelectItem value="in_progress">{t("admin.booking_status_in_progress", "In progress")}</SelectItem>
+                     <SelectItem value="completed">{t("admin.booking_status_completed", "Completed")}</SelectItem>
+                     <SelectItem value="cancelled">{t("admin.booking_status_cancelled", "Cancelled")}</SelectItem>
+                     <SelectItem value="no_show">{t("admin.booking_status_no_show", "No show")}</SelectItem>
+                     <SelectItem value="rescheduled">{t("admin.booking_status_rescheduled", "Rescheduled")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div>
-                <label className="text-xs text-muted-foreground mb-1 block">Payment</label>
+                 <label className="text-xs text-muted-foreground mb-1 block">{t("admin.payment", "Payment")}</label>
                 <Select value={paymentFilter} onValueChange={v => { setPaymentFilter(v); setPage(1); }}>
                   <SelectTrigger className="h-8 text-sm" data-testid="select-ops-payment"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All</SelectItem>
-                    <SelectItem value="pending">Pending</SelectItem>
-                    <SelectItem value="completed">Completed</SelectItem>
-                    <SelectItem value="refunded">Refunded</SelectItem>
-                    <SelectItem value="failed">Failed</SelectItem>
+                     <SelectItem value="all">{t("admin.all", "All")}</SelectItem>
+                     <SelectItem value="pending">{t("admin.booking_status_pending", "Pending")}</SelectItem>
+                     <SelectItem value="completed">{t("admin.booking_status_completed", "Completed")}</SelectItem>
+                     <SelectItem value="refunded">{t("admin.booking_status_refunded", "Refunded")}</SelectItem>
+                     <SelectItem value="failed">{t("admin.booking_status_failed", "Failed")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div>
-                <label className="text-xs text-muted-foreground mb-1 block">Visit Type</label>
+                 <label className="text-xs text-muted-foreground mb-1 block">{t("admin.visit_type", "Visit type")}</label>
                 <Select value={typeFilter} onValueChange={v => { setTypeFilter(v); setPage(1); }}>
                   <SelectTrigger className="h-8 text-sm" data-testid="select-ops-type"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All</SelectItem>
-                    <SelectItem value="clinic">Clinic</SelectItem>
-                    <SelectItem value="home_visit">Home Visit</SelectItem>
-                    <SelectItem value="video">Video</SelectItem>
-                    <SelectItem value="telemedicine">Telemedicine</SelectItem>
+                     <SelectItem value="all">{t("admin.all", "All")}</SelectItem>
+                     <SelectItem value="clinic">{t("admin.clinic", "Clinic")}</SelectItem>
+                     <SelectItem value="home_visit">{t("admin.home_visit", "Home visit")}</SelectItem>
+                     <SelectItem value="video">{t("admin.video", "Video")}</SelectItem>
+                     <SelectItem value="telemedicine">{t("admin.telemedicine", "Telemedicine")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div>
-                <label className="text-xs text-muted-foreground mb-1 block">Refund</label>
+                 <label className="text-xs text-muted-foreground mb-1 block">{t("admin.refund_status", "Refund status")}</label>
                 <Select value={refundFilter} onValueChange={v => { setRefundFilter(v); setPage(1); }}>
                   <SelectTrigger className="h-8 text-sm" data-testid="select-ops-refund"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All</SelectItem>
-                    <SelectItem value="none">None</SelectItem>
-                    <SelectItem value="pending">Pending</SelectItem>
-                    <SelectItem value="processed">Processed</SelectItem>
+                     <SelectItem value="all">{t("admin.all", "All")}</SelectItem>
+                     <SelectItem value="none">{t("admin.booking_status_none", "None")}</SelectItem>
+                     <SelectItem value="pending">{t("admin.booking_status_pending", "Pending")}</SelectItem>
+                     <SelectItem value="processed">{t("admin.booking_status_processed", "Processed")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -829,7 +837,7 @@ export function BookingsManagementComponent() {
           {/* Saved filter presets */}
           {savedFilters.length > 0 && (
             <div className="flex flex-wrap gap-1.5 pt-2 border-t">
-              <span className="text-xs text-muted-foreground self-center">Saved:</span>
+               <span className="text-xs text-muted-foreground self-center">{t("admin.saved", "Saved")}:</span>
               {savedFilters.map(f => (
                 <div key={f.name} className="flex items-center">
                   <Button variant="outline" size="sm" className="h-6 text-xs px-2 rounded-e-none" onClick={() => applyFilter(f)}>{f.name}</Button>
@@ -848,9 +856,9 @@ export function BookingsManagementComponent() {
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
             <CardTitle className="text-sm font-medium">
-              {isLoading ? "Loading…" : `${formatCount(total)} booking${total !== 1 ? "s" : ""}`}
+               {isLoading ? t("admin.loading", "Loading…") : t("admin.bookings_count", "{{count}} booking(s)", { count: formatCount(total) })}
             </CardTitle>
-            <span className="text-xs text-muted-foreground no-print">Page {page} / {totalPages}</span>
+             <span className="text-xs text-muted-foreground no-print">{t("admin.page_of", "Page {{page}} of {{total}}", { page, total: totalPages })}</span>
           </div>
         </CardHeader>
         <CardContent className="p-0">
@@ -860,37 +868,37 @@ export function BookingsManagementComponent() {
                 <tr className="border-b bg-muted/40">
                   <th className="w-8 px-3 py-2" />
                   <th className="px-3 py-2 text-left font-medium text-xs cursor-pointer whitespace-nowrap" onClick={() => toggleSort("created_at")}>
-                    Created <SortIcon field="created_at" />
+                     {t("admin.created", "Created")} <SortIcon field="created_at" />
                   </th>
-                  {visibleCols.has("ref") && <th className="px-3 py-2 text-left font-medium text-xs whitespace-nowrap">Ref</th>}
-                  {visibleCols.has("patient") && <th className="px-3 py-2 text-left font-medium text-xs whitespace-nowrap">Member</th>}
-                  {visibleCols.has("provider") && <th className="px-3 py-2 text-left font-medium text-xs whitespace-nowrap">Provider</th>}
-                  {visibleCols.has("service") && <th className="px-3 py-2 text-left font-medium text-xs whitespace-nowrap">Service</th>}
+                   {visibleCols.has("ref") && <th className="px-3 py-2 text-left font-medium text-xs whitespace-nowrap">{t("admin.ref", "Ref")}</th>}
+                   {visibleCols.has("patient") && <th className="px-3 py-2 text-left font-medium text-xs whitespace-nowrap">{t("admin.member", "Member")}</th>}
+                   {visibleCols.has("provider") && <th className="px-3 py-2 text-left font-medium text-xs whitespace-nowrap">{t("admin.provider", "Provider")}</th>}
+                   {visibleCols.has("service") && <th className="px-3 py-2 text-left font-medium text-xs whitespace-nowrap">{t("admin.service", "Service")}</th>}
                   {visibleCols.has("appt") && (
                     <th className="px-3 py-2 text-left font-medium text-xs cursor-pointer whitespace-nowrap" onClick={() => toggleSort("start_at")}>
-                      Appointment <SortIcon field="start_at" />
+                       {t("admin.appointment", "Appointment")} <SortIcon field="start_at" />
                     </th>
                   )}
                   {visibleCols.has("status") && (
                     <th className="px-3 py-2 text-left font-medium text-xs cursor-pointer whitespace-nowrap" onClick={() => toggleSort("status")}>
-                      Status <SortIcon field="status" />
+                       {t("admin.status", "Status")} <SortIcon field="status" />
                     </th>
                   )}
-                  {visibleCols.has("payment") && <th className="px-3 py-2 text-left font-medium text-xs whitespace-nowrap">Payment</th>}
+                   {visibleCols.has("payment") && <th className="px-3 py-2 text-left font-medium text-xs whitespace-nowrap">{t("admin.payment", "Payment")}</th>}
                   {visibleCols.has("amount") && (
                     <th className="px-3 py-2 text-right font-medium text-xs cursor-pointer whitespace-nowrap" onClick={() => toggleSort("total_amount")}>
-                      Amount <SortIcon field="total_amount" />
+                       {t("admin.amount", "Amount")} <SortIcon field="total_amount" />
                     </th>
                   )}
-                  {visibleCols.has("method") && <th className="px-3 py-2 text-left font-medium text-xs whitespace-nowrap">Method</th>}
-                  <th className="px-3 py-2 text-right font-medium text-xs whitespace-nowrap no-print">Actions</th>
+                   {visibleCols.has("method") && <th className="px-3 py-2 text-left font-medium text-xs whitespace-nowrap">{t("admin.method", "Method")}</th>}
+                   <th className="px-3 py-2 text-right font-medium text-xs whitespace-nowrap no-print">{t("admin.actions", "Actions")}</th>
                 </tr>
               </thead>
               <tbody>
                 {isLoading ? (
                   <tr><td colSpan={12} className="py-12 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-muted-foreground" /></td></tr>
                 ) : rows.length === 0 ? (
-                  <tr><td colSpan={12} className="py-12 text-center text-muted-foreground"><AlertCircle className="h-8 w-8 mx-auto mb-2 text-muted-foreground/40" />No bookings match your filters.</td></tr>
+                   <tr><td colSpan={12} className="py-12 text-center text-muted-foreground"><AlertCircle className="h-8 w-8 mx-auto mb-2 text-muted-foreground/40" />{t("admin.no_bookings_match", "No bookings match your filters.")}</td></tr>
                 ) : rows.map(row => {
                   const isExpanded = expandedId === row.id;
                   const cur = row.display_currency ?? "USD";
@@ -975,17 +983,17 @@ export function BookingsManagementComponent() {
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="pending">Pending</SelectItem>
-                                <SelectItem value="confirmed">Confirmed</SelectItem>
-                                <SelectItem value="in_progress">In Progress</SelectItem>
-                                <SelectItem value="completed">Completed</SelectItem>
-                                <SelectItem value="cancelled">Cancelled</SelectItem>
-                                <SelectItem value="no_show">No Show</SelectItem>
-                                <SelectItem value="rescheduled">Rescheduled</SelectItem>
+                               <SelectItem value="pending">{t("admin.booking_status_pending", "Pending")}</SelectItem>
+                               <SelectItem value="confirmed">{t("admin.booking_status_confirmed", "Confirmed")}</SelectItem>
+                               <SelectItem value="in_progress">{t("admin.booking_status_in_progress", "In progress")}</SelectItem>
+                               <SelectItem value="completed">{t("admin.booking_status_completed", "Completed")}</SelectItem>
+                               <SelectItem value="cancelled">{t("admin.booking_status_cancelled", "Cancelled")}</SelectItem>
+                               <SelectItem value="no_show">{t("admin.booking_status_no_show", "No show")}</SelectItem>
+                               <SelectItem value="rescheduled">{t("admin.booking_status_rescheduled", "Rescheduled")}</SelectItem>
                               </SelectContent>
                             </Select>
                             <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={() => setDrawerRow(row)} data-testid={`button-ops-investigate-${row.id}`}>
-                              Investigate
+                               {t("admin.investigate", "Investigate")}
                             </Button>
                           </div>
                         </td>
@@ -1000,13 +1008,17 @@ export function BookingsManagementComponent() {
           {totalPages > 1 && (
             <div className="flex items-center justify-between px-4 py-3 border-t no-print">
               <p className="text-sm text-muted-foreground">
-                {((page-1)*LIMIT)+1}–{Math.min(page*LIMIT,total)} of {formatCount(total)}
+                 {t("admin.range_of_total", "{{from}}–{{to}} of {{total}}", {
+                   from: ((page - 1) * LIMIT) + 1,
+                   to: Math.min(page * LIMIT, total),
+                   total: formatCount(total),
+                 })}
               </p>
               <div className="flex items-center gap-2">
                 <Button variant="outline" size="sm" disabled={page===1} onClick={() => setPage(p => p-1)} data-testid="button-ops-prev">
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
-                <span className="text-sm tabular-nums">{page} / {totalPages}</span>
+                 <span className="text-sm tabular-nums">{t("admin.page_of", "Page {{page}} of {{total}}", { page, total: totalPages })}</span>
                 <Button variant="outline" size="sm" disabled={page>=totalPages} onClick={() => setPage(p => p+1)} data-testid="button-ops-next">
                   <ChevronRight className="h-4 w-4" />
                 </Button>
