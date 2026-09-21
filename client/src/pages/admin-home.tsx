@@ -24,6 +24,7 @@ import { isAdminRole } from "@/lib/roles";
 import { formatInCurrency } from "@/lib/currency";
 import { formatTime } from "@/lib/datetime";
 import { useTranslation } from "react-i18next";
+import { reportAuditActionLabel, reportRoleLabel, reportStatusLabel } from "@/lib/report-localization";
 import type { ElementType } from "react";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -131,7 +132,7 @@ function timeAgo(iso: string, t: (key: string, options?: any) => string): string
 
 function actionLabel(action: string, t: (key: string, fallback: string) => string): string {
   const key = action.toLowerCase().replace(/[^a-z0-9]+/g, "_");
-  return t(`admin.activity_action_${key}`, action.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase()));
+  return reportAuditActionLabel(t, action, String(t(`admin.activity_action_${key}`, { defaultValue: "" }) || ""));
 }
 
 function localizedEnum(
@@ -141,7 +142,7 @@ function localizedEnum(
 ): string {
   const normalized = value?.toLowerCase().replace(/[^a-z0-9]+/g, "_");
   if (!normalized) return t("admin.system", "system");
-  return t(`admin.${prefix}_${normalized}`, value!.replace(/_/g, " "));
+  return reportStatusLabel(t, normalized, String(t(`admin.${prefix}_${normalized}`, { defaultValue: "" }) || ""));
 }
 
 function entityIcon(entityType: string) {
@@ -441,7 +442,7 @@ export default function AdminHome() {
                     <h1 className="text-xl sm:text-2xl font-bold text-white leading-tight">
                       {getGreeting(t)}, {user.firstName} 👋
                     </h1>
-                    <p className="text-slate-400 text-sm capitalize">{user.role?.replace(/_/g, " ")}</p>
+                    <p className="text-slate-400 text-sm">{user.role ? reportRoleLabel(t, user.role) : ""}</p>
                   </div>
                 </div>
 

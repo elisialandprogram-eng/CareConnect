@@ -3,6 +3,7 @@ import { QK } from "@/lib/query-keys";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatDateTime } from "@/lib/datetime";
 import { useTranslation } from "react-i18next";
+import { reportLifecycleActionLabel } from "@/lib/report-localization";
 import {
   CheckCircle2, XCircle, Clock, CalendarClock, PlayCircle, RefreshCw,
   ThumbsUp, ThumbsDown, UserX, AlertCircle, RotateCcw, CreditCard,
@@ -54,8 +55,8 @@ function resolveConfig(eventType: string | undefined | null) {
   for (const [key, cfg] of Object.entries(EVENT_CONFIG)) {
     if (eventType.includes(key)) return cfg;
   }
-  return {
-    label: eventType.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase()),
+   return {
+    label: eventType,
     icon: <AlertCircle className="h-4 w-4" />,
     color: "bg-slate-400",
   };
@@ -102,7 +103,9 @@ export function AppointmentTimeline({ appointmentId, events: propEvents }: { app
               </div>
               <div className={`flex-1 min-w-0 rounded-lg border bg-card px-3 py-2 shadow-sm ${isLast ? "border-primary/30 bg-primary/5" : ""}`}>
                 <div className="flex items-start justify-between gap-2 flex-wrap">
-                  <p className="text-sm font-medium">{t(`provider_sweep.timeline.${cfg.labelKey}`, cfg.label)}</p>
+                  <p className="text-sm font-medium">{t(`provider_sweep.timeline.${cfg.labelKey}`, {
+                    defaultValue: reportLifecycleActionLabel(t, ev.eventType, cfg.label),
+                  })}</p>
                   <span className="text-[11px] text-muted-foreground shrink-0">{formatEventTime(ev.createdAt)}</span>
                 </div>
                 {(ev.actorName || ev.actorRole) && (

@@ -2,6 +2,7 @@ import { formatDate } from "@/lib/datetime";
 import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
+import { reportRelationshipLabel } from "@/lib/report-localization";
 import { usePageTitle } from "@/hooks/use-page-title";
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
@@ -75,8 +76,8 @@ const EMPTY_FORM = {
   useParentAddress: false,
 };
 
-function relLabel(r: string) {
-  return r.replace(/_/g, " / ").replace(/\b\w/g, c => c.toUpperCase());
+function relLabel(r: string, translate: (key: string, options?: any) => string) {
+  return reportRelationshipLabel(translate, r);
 }
 
 export default function FamilyMembersPage() {
@@ -275,7 +276,7 @@ export default function FamilyMembersPage() {
                         </CardTitle>
                         <CardDescription>
                           <Badge variant="secondary" className="text-xs mt-1">
-                            {relLabel(m.relationship)}
+                            {relLabel(m.relationship, t)}
                           </Badge>
                         </CardDescription>
                       </div>
@@ -412,7 +413,7 @@ export default function FamilyMembersPage() {
                   </SelectTrigger>
                   <SelectContent>
                     {RELATIONSHIPS.map(r => (
-                      <SelectItem key={r} value={r}>{relLabel(r)}</SelectItem>
+                      <SelectItem key={r} value={r}>{relLabel(r, t)}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>

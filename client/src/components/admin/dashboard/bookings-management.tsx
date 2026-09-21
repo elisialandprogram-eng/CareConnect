@@ -28,7 +28,13 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "react-i18next";
-import { reportPaymentMethodLabel, reportVisitTypeLabel } from "@/lib/report-localization";
+import {
+  reportLifecycleActionLabel,
+  reportPaymentMethodLabel,
+  reportProviderTypeLabel,
+  reportStatusLabel,
+  reportVisitTypeLabel,
+} from "@/lib/report-localization";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import {
   Search, Filter, X, Columns, Download, Printer, Save,
@@ -225,9 +231,10 @@ function SBadge({ value }: { value: string | null | undefined }) {
   const { t } = useTranslation();
   if (!value) return <span className="text-muted-foreground text-xs">—</span>;
   const normalized = value.toLowerCase().replace(/^refund:/, "");
-  const label = String(t(`admin.booking_status_${normalized}`, {
-    defaultValue: t(`admin.config.${normalized}`, normalized.replace(/_/g, " ")),
-  }));
+  const legacyLabel = String(t(`admin.booking_status_${normalized}`, {
+    defaultValue: t(`admin.config.${normalized}`, ""),
+  }) || "");
+  const label = reportStatusLabel(t, normalized, legacyLabel);
   return (
     <Badge variant="outline" className={`capitalize text-xs ${STATUS_CLS[value.toLowerCase()] ?? "bg-muted text-muted-foreground"}`}>
       {label}
@@ -251,7 +258,7 @@ function Timeline({ id }: { id: string }) {
       {events.map(ev => (
         <div key={ev.id} className="relative text-xs">
           <div className="absolute -start-1.5 top-1 h-2.5 w-2.5 rounded-full bg-primary border-2 border-background" />
-          <p className="ps-2 font-medium capitalize">{ev.action.replace(/_/g, " ")}</p>
+          <p className="ps-2 font-medium">{reportLifecycleActionLabel(t, ev.action)}</p>
            <p className="ps-2 text-muted-foreground">
              {fmtDateTime(ev.created_at)} · {ev.actor_first_name ? `${ev.actor_first_name} ${ev.actor_last_name}` : ev.actor_role ?? t("admin.system", "System")}
           </p>
@@ -279,11 +286,8 @@ function InvestigationDrawer({
   const enumLabel = (raw: string | null | undefined, prefix = "") => {
     if (!raw) return "—";
     const normalized = raw.toLowerCase();
-    return String(t(`admin.${prefix}${normalized}`, {
-      defaultValue: t(`admin.${normalized}`, {
-        defaultValue: t(`admin.config.${normalized}`, raw.replace(/_/g, " ")),
-      }),
-    }));
+    if (prefix === "provider_type_") return reportProviderTypeLabel(t, normalized);
+    return reportStatusLabel(t, normalized);
   };
   // Only use final_total_usd when it is actually populated (NULL for cash/bank-transfer
   // bookings) — using total_amount (HUF/IRR) as a USD fallback produces a wrong figure.
@@ -508,11 +512,8 @@ export function BookingsManagementComponent() {
   const enumLabel = (raw: string | null | undefined, prefix = "") => {
     if (!raw) return "—";
     const normalized = raw.toLowerCase();
-    return String(t(`admin.${prefix}${normalized}`, {
-      defaultValue: t(`admin.${normalized}`, {
-        defaultValue: t(`admin.config.${normalized}`, raw.replace(/_/g, " ")),
-      }),
-    }));
+    if (prefix === "provider_type_") return reportProviderTypeLabel(t, normalized);
+    return reportStatusLabel(t, normalized);
   };
 
   // Filters

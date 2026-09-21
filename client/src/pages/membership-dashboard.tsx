@@ -20,6 +20,7 @@ import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useTranslation } from "react-i18next";
+import { reportBenefitTypeLabel } from "@/lib/report-localization";
 
 const STATUS_CONFIG: Record<string, { labelKey: string; fallback: string; color: string; icon: React.ReactNode }> = {
   active:    { labelKey: "active",    fallback: "Active",    color: "bg-emerald-100 text-emerald-800 border-emerald-200",  icon: <CheckCircle2 className="h-4 w-4 text-emerald-600" /> },
@@ -325,7 +326,7 @@ function PlanCard({
                 {(usage ?? []).map((u: any) => (
                   <div key={u.id} className="flex justify-between text-xs">
                     <span className="text-muted-foreground">{fmtDate(u.createdAt)}</span>
-                    <span className="font-medium capitalize">{u.benefitType?.replace(/_/g, " ") ?? "—"}</span>
+                    <span className="font-medium">{u.benefitType ? reportBenefitTypeLabel(t, u.benefitType) : "—"}</span>
                     <span className="text-muted-foreground">{u.description ?? ""}</span>
                   </div>
                 ))}

@@ -1,6 +1,7 @@
 import { formatDateTime } from "@/lib/datetime";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { reportSystemEventTypeLabel } from "@/lib/report-localization";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -71,7 +72,7 @@ export default function MonitoringPanel() {
   const severityLabel = (severity: string) =>
     t(`admin.monitoring.severity_${severity}`, severity.charAt(0).toUpperCase() + severity.slice(1));
   const typeLabel = (type: string) =>
-    t(`admin.monitoring.${TYPE_LABELS[type] ?? type}`, type.replace(/_/g, " "));
+    reportSystemEventTypeLabel(t, type, String(t(`admin.monitoring.${TYPE_LABELS[type] ?? type}`, { defaultValue: "" }) || ""));
   const { toast } = useToast();
   const [page, setPage] = useState(0);
   const [typeFilter, setTypeFilter] = useState("all");

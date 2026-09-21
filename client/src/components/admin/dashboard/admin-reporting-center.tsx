@@ -14,7 +14,7 @@ import { AnalyticsOverview } from "./analytics-overview";
 import { useAdminCurrency } from "@/lib/currency";
 import { useTranslation } from "react-i18next";
 import { formatDate, formatMonthLabel } from "@/lib/datetime";
-import { reportStatusLabel } from "@/lib/report-localization";
+import { reportAuditActionLabel, reportDocumentTypeLabel, reportStatusLabel } from "@/lib/report-localization";
 import {
   BarChart, Bar, AreaChart, Area, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer,
@@ -403,7 +403,7 @@ function AdminCompliancePanel() {
               <div className="space-y-3">
                 {data.documentExpiry.map((d, i) => (
                   <div key={i} className="space-y-1">
-                    <p className="text-xs font-medium capitalize">{r(`document_${d.documentType}`, d.documentType.replace(/_/g, " "))}</p>
+                    <p className="text-xs font-medium">{reportDocumentTypeLabel(t, d.documentType)}</p>
                     <div className="grid grid-cols-3 gap-2 text-xs text-muted-foreground">
                       <span className={d.expiring30d > 0 ? "text-orange-600 font-medium" : ""}>{r("in_days", `${d.expiring30d} in 30d`, { count: d.expiring30d, days: 30 })}</span>
                       <span>{r("in_days", `${d.expiring60d} in 60d`, { count: d.expiring60d, days: 60 })}</span>
@@ -434,7 +434,7 @@ function AdminCompliancePanel() {
               <tbody>
                 {data.documentStatusBreakdown.map((d, i) => (
                   <tr key={i} className="border-b last:border-0">
-                    <td className="py-2 capitalize">{r(`document_${d.documentType}`, d.documentType.replace(/_/g, " "))}</td>
+                    <td className="py-2">{reportDocumentTypeLabel(t, d.documentType)}</td>
                     <td className="text-end py-2">{reportStatusLabel(t, d.verificationStatus)}</td>
                     <td className="text-end py-2 font-semibold">{d.count}</td>
                   </tr>
@@ -455,8 +455,8 @@ function AdminCompliancePanel() {
               {data.recentAuditActivity.map((a, i) => (
                 <div key={i} className="flex items-center justify-between text-sm py-1 border-b last:border-0">
                   <div className="min-w-0">
-                    <span className="font-mono text-xs bg-muted px-1.5 py-0.5 rounded">{a.action}</span>
-                    <span className="text-muted-foreground text-xs ml-2">{a.entityType}</span>
+                    <span className="font-mono text-xs bg-muted px-1.5 py-0.5 rounded">{reportAuditActionLabel(t, a.action)}</span>
+                    <span className="text-muted-foreground text-xs ml-2">{reportAuditActionLabel(t, a.entityType, a.entityType)}</span>
                   </div>
                   <Badge variant="secondary" className="text-xs">{a.count}x</Badge>
                 </div>

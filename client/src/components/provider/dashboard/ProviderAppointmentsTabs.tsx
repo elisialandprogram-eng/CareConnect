@@ -11,6 +11,7 @@ import type { AppointmentWithDetails } from "@shared/schema";
 import { AppointmentActionDialog, type AppointmentAction } from "@/components/appointment/AppointmentActionDialog";
 import { AvatarSM } from "@/components/ui/provider-image";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { reportPaymentMethodLabel } from "@/lib/report-localization";
 import { AppointmentTimeContext } from "@/components/appointment/AppointmentTimeContext";
 import { AppointmentTimeline } from "@/components/appointment/AppointmentTimeline";
 import { SmartEmptyState } from "@/components/appointment/SmartEmptyState";
@@ -398,7 +399,7 @@ export function ProviderAppointmentsTabs({ providerData, highlightApptId, active
                     <span className="capitalize">
                       {t(
                         `provider_dashboard.payment_${paymentMethod || "cash"}`,
-                        paymentMethod?.replace(/_/g, " ") || t("provider_dashboard.payment_cash", "Cash"),
+                        paymentMethod ? reportPaymentMethodLabel(t, paymentMethod) : t("provider_dashboard.payment_cash", "Cash"),
                       )}
                     </span>
                     <span>•</span>

@@ -23,7 +23,7 @@ import {
 } from "lucide-react";
 import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { reportStatusLabel, reportVisitTypeLabel } from "@/lib/report-localization";
+import { reportMedicalHistoryTypeLabel, reportStatusLabel, reportVisitTypeLabel } from "@/lib/report-localization";
 
 /* ── Types ─────────────────────────────────────────────────────────── */
 
@@ -194,7 +194,7 @@ export default function HealthRecordsPage() {
         date: mh.recordedAt ?? mh.recorded_at ?? mh.createdAt ?? mh.created_at ?? "",
         title: mh.title ?? mh.description ?? t("patient_ui.health_records.medical_record", "Medical Record"),
         subtitle: mh.type
-          ? `${mh.type.charAt(0).toUpperCase()}${mh.type.slice(1).replace(/_/g, " ")}`
+          ? reportMedicalHistoryTypeLabel(t, mh.type)
           : t("patient_ui.health_records.record", "Record"),
         meta: mh.description,
         raw: mh,

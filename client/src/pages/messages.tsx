@@ -24,6 +24,7 @@ import { clsx } from "clsx";
 import { isToday, isYesterday } from "date-fns";
 import { formatDate, formatTime } from "@/lib/datetime";
 import { useTranslation } from "react-i18next";
+import { reportStatusLabel } from "@/lib/report-localization";
 
 interface AppointmentContext {
   id: string;
@@ -466,7 +467,7 @@ export default function Messages() {
                                 statusColor(conv.appointment.status)
                               )}>
                                 <VisitIcon vt={conv.appointment.visitType} />
-                                {conv.appointment.status.replace(/_/g, " ")}
+                                {reportStatusLabel(t, conv.appointment.status)}
                               </span>
                               <span className="text-[10px] text-muted-foreground">
                                 {formatDate(conv.appointment.date + "T12:00:00", { month: "short", day: "numeric" })}
@@ -548,7 +549,7 @@ export default function Messages() {
                               statusColor(selected.appointment.status)
                             )}>
                               <VisitIcon vt={selected.appointment.visitType} />
-                              {selected.appointment.status.replace(/_/g, " ")}
+                              {reportStatusLabel(t, selected.appointment.status)}
                             </span>
                             <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
                               <Calendar className="h-2.5 w-2.5" />
@@ -627,7 +628,7 @@ export default function Messages() {
                             statusColor(selected.appointment.status)
                           )}>
                             <VisitIcon vt={selected.appointment.visitType} />
-                            {selected.appointment.status.replace(/_/g, " ")}
+                            {reportStatusLabel(t, selected.appointment.status)}
                           </span>
                         </div>
                       )}

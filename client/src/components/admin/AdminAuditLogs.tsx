@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "react-i18next";
+import { reportAuditActionLabel } from "@/lib/report-localization";
 
 interface AuditLog {
   id: string;
@@ -89,9 +90,9 @@ function LogRow({ log }: { log: AuditLog }) {
                 actionClass(log.action)
               )}
             >
-              {tr(log.action, log.action.replace(/_/g, " "))}
+              {reportAuditActionLabel(t, log.action, tr(log.action, ""))}
             </span>
-            <span className="text-xs font-medium text-foreground">{tr(log.entityType, log.entityType.replace(/_/g, " "))}</span>
+            <span className="text-xs font-medium text-foreground">{reportAuditActionLabel(t, log.entityType, tr(log.entityType, ""))}</span>
             {log.entityId && (
               <span className="text-xs text-muted-foreground font-mono">#{log.entityId.slice(0, 10)}</span>
             )}

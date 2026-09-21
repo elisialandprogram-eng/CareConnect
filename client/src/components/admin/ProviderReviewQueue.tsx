@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "react-i18next";
+import { reportDocumentTypeLabel, reportStatusLabel } from "@/lib/report-localization";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface KycDoc {
@@ -222,7 +223,7 @@ function DocRow({ doc, providerId, onDone }: DocRowProps) {
     >
       <div className="flex items-center justify-between gap-2">
         <div>
-          <p className="text-sm font-medium">{DOC_LABELS[doc.documentType] ?? doc.documentType.replace(/_/g, " ")}</p>
+          <p className="text-sm font-medium">{reportDocumentTypeLabel(t, doc.documentType, DOC_LABELS[doc.documentType] ?? "")}</p>
           {doc.fileName && (
             <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
               <FileText className="h-3 w-3" />{doc.fileName}
@@ -445,7 +446,7 @@ function DetailPanel({ entry, onClose }: DetailPanelProps) {
           </div>
         </div>
         <span className={cn("rounded-full border px-2.5 py-0.5 text-xs font-medium", ps)}>
-           {t(`admin_tools.review.provider_status.${entry.status}`, entry.status.replace(/_/g, " "))}
+           {reportStatusLabel(t, entry.status, t(`admin_tools.review.provider_status.${entry.status}`, { defaultValue: "" }))}
         </span>
       </div>
 
@@ -873,7 +874,7 @@ export function ProviderReviewQueue() {
                         </span>
                       )}
                       <span className={cn("rounded-full border px-2 py-0.5 text-xs font-medium", ps)}>
-                        {STATUS_LABEL[entry.status] ?? entry.status.replace(/_/g, " ")}
+                        {reportStatusLabel(t, entry.status, STATUS_LABEL[entry.status] ?? "")}
                       </span>
                       <ChevronRight className="h-4 w-4 text-muted-foreground" />
                     </div>

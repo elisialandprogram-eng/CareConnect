@@ -2,6 +2,7 @@ import { Link } from "wouter";
 import { X, CheckCircle, Activity, XCircle, Clock } from "lucide-react";
 import type { StatusUpdate } from "@/hooks/use-appointment-status-ws";
 import { useTranslation } from "react-i18next";
+import { reportStatusLabel } from "@/lib/report-localization";
 
 interface StatusCfg {
   icon: React.ReactNode;
@@ -92,7 +93,7 @@ function buildMessage(u: StatusUpdate, t: (key: string, fallback: string, option
     default:
       return t("member_ticker.status_changed", "Your appointment{{reference}} status changed to {{status}}.", {
         reference: ref,
-        status: t(`provider_sweep.status.${u.status}`, u.status.replace(/_/g, " ")),
+        status: reportStatusLabel(t, u.status),
       });
   }
 }

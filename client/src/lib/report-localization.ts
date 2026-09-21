@@ -8,14 +8,34 @@ function humanize(value: string): string {
 
 export function reportLabel(
   t: Translate,
-  group: "visit_type" | "payment_method" | "status" | "provider_type" | "package_status" | "priority" | "role" | "day_short",
+  group:
+    | "visit_type"
+    | "payment_method"
+    | "status"
+    | "provider_type"
+    | "package_status"
+    | "priority"
+    | "role"
+    | "day_short"
+    | "document_type"
+    | "lifecycle_action"
+    | "audit_action"
+    | "medical_history_type"
+    | "ledger_entry_type"
+    | "relationship"
+    | "benefit_type"
+    | "credential_type"
+    | "system_event_type"
+    | "location_mode",
   value: string | null | undefined,
   fallback?: string,
 ): string {
   const normalized = String(value ?? "").trim().toLowerCase();
   if (!normalized) return fallback ?? "";
   const translated = String(t(`reporting.${group}.${normalized}`, { defaultValue: "" }) ?? "");
-  return translated || fallback || humanize(normalized);
+  if (translated) return translated;
+  if (fallback && fallback !== humanize(normalized) && fallback !== normalized) return fallback;
+  return String(t("reporting.unknown", { defaultValue: "Unknown" }));
 }
 
 export function reportVisitTypeLabel(t: Translate, value: string | null | undefined, fallback?: string): string {
@@ -44,4 +64,44 @@ export function reportPriorityLabel(t: Translate, value: string | null | undefin
 
 export function reportRoleLabel(t: Translate, value: string | null | undefined, fallback?: string): string {
   return reportLabel(t, "role", value, fallback);
+}
+
+export function reportDocumentTypeLabel(t: Translate, value: string | null | undefined, fallback?: string): string {
+  return reportLabel(t, "document_type", value, fallback);
+}
+
+export function reportLifecycleActionLabel(t: Translate, value: string | null | undefined, fallback?: string): string {
+  return reportLabel(t, "lifecycle_action", value, fallback);
+}
+
+export function reportAuditActionLabel(t: Translate, value: string | null | undefined, fallback?: string): string {
+  return reportLabel(t, "audit_action", value, fallback);
+}
+
+export function reportMedicalHistoryTypeLabel(t: Translate, value: string | null | undefined, fallback?: string): string {
+  return reportLabel(t, "medical_history_type", value, fallback);
+}
+
+export function reportLedgerEntryTypeLabel(t: Translate, value: string | null | undefined, fallback?: string): string {
+  return reportLabel(t, "ledger_entry_type", value, fallback);
+}
+
+export function reportRelationshipLabel(t: Translate, value: string | null | undefined, fallback?: string): string {
+  return reportLabel(t, "relationship", value, fallback);
+}
+
+export function reportBenefitTypeLabel(t: Translate, value: string | null | undefined, fallback?: string): string {
+  return reportLabel(t, "benefit_type", value, fallback);
+}
+
+export function reportCredentialTypeLabel(t: Translate, value: string | null | undefined, fallback?: string): string {
+  return reportLabel(t, "credential_type", value, fallback);
+}
+
+export function reportSystemEventTypeLabel(t: Translate, value: string | null | undefined, fallback?: string): string {
+  return reportLabel(t, "system_event_type", value, fallback);
+}
+
+export function reportLocationModeLabel(t: Translate, value: string | null | undefined, fallback?: string): string {
+  return reportLabel(t, "location_mode", value, fallback);
 }

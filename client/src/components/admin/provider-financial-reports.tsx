@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "react-i18next";
+import { reportProviderTypeLabel } from "@/lib/report-localization";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -342,7 +343,7 @@ function ProviderDetail({ providerId, onBack }: { providerId: string; onBack: ()
                 <CheckCircle className="h-4 w-4 text-emerald-500" />
               )}
             </h2>
-            <p className="text-xs text-muted-foreground">{provider.email} · {provider.provider_type?.replace(/_/g, " ")}</p>
+            <p className="text-xs text-muted-foreground">{provider.email} · {provider.provider_type ? reportProviderTypeLabel(t, provider.provider_type) : ""}</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -707,7 +708,7 @@ function OverviewTable({ onSelect }: { onSelect: (id: string) => void }) {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline" className="text-xs capitalize">{r.provider_type?.replace(/_/g, " ")}</Badge>
+                      <Badge variant="outline" className="text-xs">{r.provider_type ? reportProviderTypeLabel(t, r.provider_type) : "—"}</Badge>
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="text-sm tabular-nums">

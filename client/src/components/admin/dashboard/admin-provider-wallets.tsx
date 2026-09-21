@@ -37,7 +37,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { fmtBalance } from "./utils";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "react-i18next";
-import { reportProviderTypeLabel, reportRoleLabel } from "@/lib/report-localization";
+import { reportLedgerEntryTypeLabel, reportProviderTypeLabel, reportRoleLabel } from "@/lib/report-localization";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface AdminWallet {
@@ -71,9 +71,11 @@ interface LedgerEntry {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function entryTypeLabel(entryType: string, translate: (key: string, options?: any) => string): string {
-  const key = `admin.provider_wallets.${entryType}`;
-  const translated = translate(key, { defaultValue: "" });
-  return translated || entryType.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+  return reportLedgerEntryTypeLabel(
+    translate,
+    entryType,
+    translate(`admin.provider_wallets.${entryType}`, { defaultValue: "" }),
+  );
 }
 
 function entryTypeColor(t: string): string {

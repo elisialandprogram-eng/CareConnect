@@ -4,7 +4,13 @@ import { useAdminCurrency, formatInCurrency } from "@/lib/currency";
 import { formatCount } from "@/lib/format-utils";
 import { useTranslation } from "react-i18next";
 import i18n from "@/lib/i18n";
-import { reportPaymentMethodLabel, reportProviderTypeLabel, reportStatusLabel, reportVisitTypeLabel } from "@/lib/report-localization";
+import {
+  reportLifecycleActionLabel,
+  reportPaymentMethodLabel,
+  reportProviderTypeLabel,
+  reportStatusLabel,
+  reportVisitTypeLabel,
+} from "@/lib/report-localization";
 import {
   Card, CardContent, CardHeader, CardTitle,
 } from "@/components/ui/card";
@@ -221,12 +227,14 @@ const STATUS_COLORS: Record<string, string> = {
 function StatusBadge({ value }: { value: string | null | undefined }) {
   const { t } = useTranslation();
   if (!value) return <span className="text-muted-foreground">—</span>;
-  const cls = STATUS_COLORS[value.toLowerCase()] ?? "bg-muted text-muted-foreground";
+  const normalized = value.toLowerCase();
+  const cls = STATUS_COLORS[normalized] ?? "bg-muted text-muted-foreground";
+  const legacyLabel = String(t(`admin.booking_status_${normalized}`, {
+    defaultValue: t(`admin.config.${normalized}`, ""),
+  }) || "");
   return (
     <Badge variant="outline" className={`capitalize text-xs ${cls}`}>
-       {String(t(`admin.booking_status_${value.toLowerCase()}`, {
-         defaultValue: t(`admin.config.${value.toLowerCase()}`, value.replace(/_/g, " ")),
-       }))}
+       {reportStatusLabel(t, normalized, legacyLabel)}
     </Badge>
   );
 }
@@ -326,7 +334,11 @@ function LifecycleTimeline({ appointmentId }: { appointmentId: string }) {
               <div className="absolute -start-1.5 top-1 h-3 w-3 rounded-full bg-primary border-2 border-background" />
               <div className="ps-2 min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
-                   <span className="text-xs font-semibold capitalize">{r(`action_${ev.action}`, ev.action.replace(/_/g, " "))}</span>
+                   <span className="text-xs font-semibold">{reportLifecycleActionLabel(
+                     t,
+                     ev.action,
+                     r(`action_${ev.action}`, ""),
+                   )}</span>
                   {ev.from_status && ev.to_status && (
                     <span className="text-xs text-muted-foreground">
                        <StatusBadge value={ev.from_status} /> → <StatusBadge value={ev.to_status} />

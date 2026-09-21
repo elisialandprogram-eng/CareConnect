@@ -1,7 +1,7 @@
 import { useMemo, useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import { reportStatusLabel, reportVisitTypeLabel } from "@/lib/report-localization";
+import { reportDocumentTypeLabel, reportStatusLabel, reportVisitTypeLabel } from "@/lib/report-localization";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/lib/auth";
 import { useCurrency } from "@/lib/currency";
@@ -642,7 +642,11 @@ export default function ProviderHome() {
             <div className="p-4 space-y-2">
               {documents.slice(0, 4).map(doc => {
                 const isExpiring = expiringSoon.some(e => e.id === doc.id);
-                const documentLabel = t(`provider_dashboard.doc_${doc.documentType}`, doc.documentType.replace(/_/g, " "));
+                const documentLabel = reportDocumentTypeLabel(
+                  t,
+                  doc.documentType,
+                  String(t(`provider_dashboard.doc_${doc.documentType}`, { defaultValue: "" }) || ""),
+                );
                 const documentStatus = reportStatusLabel(t, doc.verificationStatus);
                 const statusColor = {
                   approved:          "text-emerald-700 dark:text-emerald-400",

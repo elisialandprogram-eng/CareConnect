@@ -2,6 +2,7 @@ import { formatDate } from "@/lib/datetime";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
+import { reportAuditActionLabel } from "@/lib/report-localization";
 import { apiRequest } from "@/lib/queryClient";
 import { useAdminCurrency } from "@/lib/currency";
 import { useToast } from "@/hooks/use-toast";
@@ -251,7 +252,7 @@ export function LedgerOverrides() {
                 <div key={row.id} className="px-4 py-3 flex items-start justify-between gap-3" data-testid={`override-history-${row.id}`}>
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
-                      <Badge variant="outline" className="text-xs font-mono">{row.action.replace(/_/g, " ")}</Badge>
+                      <Badge variant="outline" className="text-xs font-mono">{reportAuditActionLabel(t, row.action)}</Badge>
                       {row.appointment_id && (
                         <span className="text-xs text-muted-foreground font-mono">appt:{row.appointment_id.slice(0, 8)}</span>
                       )}
@@ -365,7 +366,7 @@ export function LedgerOverrides() {
             <AlertDialogDescription>
               {tr("confirm_description", "This action is irreversible and will be recorded in the permanent audit log.")}
               <br /><br />
-              <strong>{tr("actions", "Action")}:</strong> {overrideAction.replace(/_/g, " ")}
+              <strong>{tr("actions", "Action")}:</strong> {reportAuditActionLabel(t, overrideAction)}
               <br />
               <strong>{tr("reason", "Reason")}:</strong> {overrideReason}
             </AlertDialogDescription>

@@ -1,6 +1,7 @@
 import { formatInCurrency } from "@/lib/currency";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { reportLocationModeLabel } from "@/lib/report-localization";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -48,7 +49,8 @@ const LOCATION_MODE_LABELS: Record<string, string> = {
   both:           "Home Visit & Clinic",
   all:            "Home Visit, Clinic & Online",
 };
-const formatLocationMode = (v: string) => LOCATION_MODE_LABELS[v] ?? v.replace(/_/g, " ");
+const formatLocationMode = (v: string, t: (key: string, options?: any) => string) =>
+  reportLocationModeLabel(t, v, LOCATION_MODE_LABELS[v] ?? "");
 
 const renderVal = (field: string, v: any) => {
   if (v == null || v === "") return "—";

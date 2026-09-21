@@ -20,6 +20,7 @@ import {
 import { useAuth } from "@/lib/auth";
 import { isAdminRole } from "@/lib/roles";
 import { useTranslation } from "react-i18next";
+import { reportStatusLabel } from "@/lib/report-localization";
 import { ClockAlert, Loader2, RefreshCw, ShieldAlert } from "lucide-react";
 
 interface StaleBookingItem {
@@ -247,9 +248,7 @@ export default function AdminStaleBookings() {
                             className={STATUS_TONE[item.status] || ""}
                             data-testid={`badge-status-${item.id}`}
                           >
-                             {t(`admin.booking_status_${item.status}`, {
-                               defaultValue: t(`admin.config.${item.status}`, item.status.replace(/_/g, " ")),
-                             })}
+                             {reportStatusLabel(t, item.status)}
                           </Badge>
                         </td>
                         <td className="py-2 pr-3 text-muted-foreground" data-testid={`text-reason-${item.id}`}>

@@ -2,6 +2,7 @@ import { formatDate } from "@/lib/datetime";
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
+import { reportStatusLabel } from "@/lib/report-localization";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient, invalidateProviderProfile } from "@/lib/queryClient";
 import { useCurrency, getCurrencySymbol, convertBetweenCurrencies, formatInCurrency, type SupportedCurrency } from "@/lib/currency";
@@ -667,7 +668,7 @@ export function ProviderServicesTab({ providerData, providerWithServices, setAct
                         <div className="flex items-center gap-2 shrink-0">
                           {dateStr && <span className="text-xs text-muted-foreground hidden sm:block">{dateStr}</span>}
                           <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium capitalize ${colorClass}`}>
-                            {String(t(`provider_dashboard.proposal_status_${proposal.status ?? "pending"}`, (proposal.status ?? "pending").replace(/_/g, " ")))}
+                            {reportStatusLabel(t, proposal.status ?? "pending", String(t(`provider_dashboard.proposal_status_${proposal.status ?? "pending"}`, { defaultValue: "" }) || ""))}
                           </span>
                         </div>
                       </div>

@@ -4,6 +4,7 @@ import { useRecentlyViewed } from "@/hooks/use-recently-viewed";
 import { useQuery } from "@tanstack/react-query";
 import { QK } from "@/lib/query-keys";
 import { useTranslation } from "react-i18next";
+import { reportCredentialTypeLabel, reportDocumentTypeLabel, reportProviderTypeLabel } from "@/lib/report-localization";
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
 import { Button } from "@/components/ui/button";
@@ -108,7 +109,7 @@ function VerifiedCredentialsSection({ providerId }: { providerId: string }) {
                 <p className="text-sm font-medium">{cred.title}</p>
                 <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                   <Badge variant="outline" className="text-xs">
-                    {CRED_LABELS[cred.credentialType] ?? cred.credentialType?.replace(/_/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase())}
+                    {reportCredentialTypeLabel(t, cred.credentialType, CRED_LABELS[cred.credentialType] ?? "")}
                   </Badge>
                   <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200 text-xs gap-1">
                     <CheckCircle className="h-3 w-3" />Verified
@@ -240,7 +241,7 @@ export default function ProviderProfile() {
       case "dental":           return t("common.dental_pros", "Dental Care Professionals");
       case "alternative_medicine": return t("common.alternative_medicine_pros", "Alternative, Holistic & Integrative Medicine");
       case "nursing":          return t("common.nursing_pros", "Maternal, Nursing & Allied Health Support");
-      default: return type.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+      default: return reportProviderTypeLabel(t, type);
     }
   };
 

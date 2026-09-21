@@ -16,6 +16,7 @@ import { format, parseISO } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "react-i18next";
+import { reportDocumentTypeLabel, reportStatusLabel } from "@/lib/report-localization";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 interface ExpiryDoc {
@@ -91,8 +92,8 @@ const DOC_TYPE_LABELS: Record<string, string> = {
   other:                       "Additional Document",
 };
 
-function docTypeLabel(t: string) {
-  return DOC_TYPE_LABELS[t] ?? t.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+function docTypeLabel(value: string, translate: (key: string, options?: any) => string) {
+  return reportDocumentTypeLabel(translate, value, DOC_TYPE_LABELS[value] ?? "");
 }
 
 function DaysLeftBadge({ days, t }: { days: number; t: (key: string, fallback: string, options?: Record<string, unknown>) => string }) {
@@ -117,7 +118,7 @@ function StatusBadge({ status, t }: { status: string; t: (key: string, fallback:
   };
   return (
     <span className={cn("inline-flex text-[10px] font-medium px-1.5 py-0.5 rounded border border-transparent", map[status] ?? "bg-muted text-muted-foreground")}>
-       {t(`admin_tools.expiry.status.${status}`, status.replace(/_/g, " "))}
+       {reportStatusLabel(t, status, t(`admin_tools.expiry.status.${status}`, { defaultValue: "" }))}
     </span>
   );
 }
@@ -461,7 +462,7 @@ export function DocumentExpiryMonitor({ onSelectProvider }: { onSelectProvider?:
                       <td className="px-3 py-2.5">
                         <div className="flex items-center gap-1.5">
                           <FileText className={cn("h-3.5 w-3.5 shrink-0", cfg.text)} />
-                          <span className="font-medium text-foreground whitespace-nowrap">{docTypeLabel(doc.document_type)}</span>
+                          <span className="font-medium text-foreground whitespace-nowrap">{docTypeLabel(doc.document_type, t)}</span>
                           {doc.document_criticality === "mandatory" && (
                            <Badge variant="outline" className="text-[9px] px-1 py-0 h-4 border-red-200 text-red-600 bg-red-50 dark:bg-red-950/20 dark:text-red-400 dark:border-red-800">
                                {t("admin_tools.expiry.mandatory", "mandatory")}
