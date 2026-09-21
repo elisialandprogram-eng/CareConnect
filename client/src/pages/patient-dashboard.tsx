@@ -66,6 +66,8 @@ import {
   Phone,
   Copy,
   CheckCircle,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from "lucide-react";
 import type { AppointmentWithDetails, Prescription, MedicalHistory, ProviderWithUser } from "@shared/schema";
 import { ProviderCard } from "@/components/provider-card";
@@ -78,6 +80,7 @@ import { RescheduleProposalBanner } from "@/components/appointment/ReschedulePro
 import { AppointmentStatusTicker } from "@/components/appointment/AppointmentStatusTicker";
 import { useAppointmentStatusWS } from "@/hooks/use-appointment-status-ws";
 import { usePageTitle } from "@/hooks/use-page-title";
+import { useDashboardSidebar } from "@/hooks/use-dashboard-sidebar";
 import { QK } from "@/lib/query-keys";
 import { SavedAddressesPicker } from "@/components/location/SavedAddressesPicker";
 import { PatientReportingCenter } from "@/components/patient/PatientReportingCenter";
@@ -168,6 +171,7 @@ export default function PatientDashboard() {
   const { format: fmtMoney } = useCurrency();
 
   const [activeTab, setActiveTab] = useState<string>("upcoming");
+  const { collapsed: sidebarCollapsed, toggle: toggleSidebar } = useDashboardSidebar("member");
   const [newTicketOpen, setNewTicketOpen] = useState(false);
   const [reportBugOpen, setReportBugOpen] = useState(false);
 
@@ -687,7 +691,19 @@ export default function PatientDashboard() {
       <PatientNavStrip />
       <div className="flex flex-1 overflow-hidden">
         {/* ── Left sidebar navigation ────────────────────────────────────────── */}
-        <aside className="hidden md:flex w-[260px] shrink-0 flex-col bg-[#121420] border-r border-[#1f2235] p-4 overflow-y-auto">
+        <aside className={`hidden md:flex shrink-0 flex-col bg-[#121420] border-r border-[#1f2235] overflow-y-auto transition-[width,padding] duration-200 ${sidebarCollapsed ? "w-[76px] p-3" : "w-[260px] p-4"}`}>
+          <div className={`flex items-center mb-3 ${sidebarCollapsed ? "justify-center" : "justify-end"}`}>
+            <button
+              type="button"
+              onClick={toggleSidebar}
+              className="h-8 w-8 inline-flex items-center justify-center rounded-lg text-white/50 hover:bg-white/10 hover:text-white transition-colors"
+              aria-label={sidebarCollapsed ? t("dashboard.expand_sidebar", "Expand navigation") : t("dashboard.collapse_sidebar", "Collapse navigation")}
+              title={sidebarCollapsed ? t("dashboard.expand_sidebar", "Expand navigation") : t("dashboard.collapse_sidebar", "Collapse navigation")}
+              data-testid="button-toggle-member-sidebar"
+            >
+              {sidebarCollapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
+            </button>
+          </div>
           {([
             { group: t("dashboard.my_appointments_group", "MY APPOINTMENTS"), items: [
               { label: t("dashboard.upcoming","Upcoming"), value: "upcoming", icon: <Calendar className="h-4 w-4" />, badge: upcomingAppointments.length },
@@ -723,13 +739,14 @@ export default function PatientDashboard() {
             ]},
           ] as { group: string; items: { label: string; value: string; icon: JSX.Element; badge: number }[] }[]).map(({ group, items }) => (
             <div key={group} className="mb-4">
-              <p className="text-[10px] font-semibold text-white/40 uppercase tracking-widest px-2 mb-1 mt-2">{group}</p>
+              <p className={`text-[10px] font-semibold text-white/40 uppercase tracking-widest px-2 mb-1 mt-2 ${sidebarCollapsed ? "sr-only" : ""}`}>{group}</p>
               {items.map(({ label, value, icon, badge }) => (
                 <button key={value} onClick={() => setActiveTab(value)} data-testid={`sidebar-nav-${value}`}
-                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors text-left ${activeTab === value ? "bg-white/15 text-white font-medium" : "text-white/60 hover:bg-white/10 hover:text-white/90"}`}>
+                  title={sidebarCollapsed ? label : undefined}
+                  className={`relative w-full flex items-center rounded-lg text-sm transition-colors text-left ${sidebarCollapsed ? "justify-center px-2 py-2" : "gap-2.5 px-3 py-2"} ${activeTab === value ? "bg-white/15 text-white font-medium" : "text-white/60 hover:bg-white/10 hover:text-white/90"}`}>
                   <span className="shrink-0 text-white/50">{icon}</span>
-                  <span className="flex-1 truncate">{label}</span>
-                  {badge > 0 ? <span className="shrink-0 rounded-full bg-white/20 text-white/90 text-[10px] px-1.5 py-0.5 min-w-[18px] text-center leading-tight">{badge}</span> : null}
+                  {!sidebarCollapsed && <span className="flex-1 truncate">{label}</span>}
+                  {badge > 0 ? <span className={`shrink-0 rounded-full bg-white/20 text-white/90 text-[10px] px-1.5 py-0.5 min-w-[18px] text-center leading-tight ${sidebarCollapsed ? "absolute -top-1 -end-1" : ""}`}>{badge}</span> : null}
                 </button>
               ))}
             </div>

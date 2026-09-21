@@ -33,6 +33,7 @@ import {
   Globe, Percent, Clock, ChevronRight, Wallet, Zap, BookOpen, MapPin, Layers,
   AlertTriangle, CreditCard, Database, Sprout, RotateCcw,
   Star,
+  PanelLeftClose, PanelLeftOpen,
 } from "lucide-react";
 import { RefundManagementPanel, RefundRulesPanel } from "@/components/admin/refund-management";
 import { RevenueBillingCenter } from "@/components/admin/dashboard/revenue-billing-center";
@@ -49,6 +50,7 @@ import { StripeSettingsPanel } from "@/components/admin/dashboard/platform-setti
 import { PaymentProvidersPanel } from "@/components/admin/dashboard/payment-providers-panel";
 import { ServicePendingChangesPanel } from "@/components/admin/dashboard/service-pending-changes";
 import { CurrencyRatesPanel } from "@/components/admin/dashboard/currency-rates-panel";
+import { useDashboardSidebar } from "@/hooks/use-dashboard-sidebar";
 
 // ── Lazy-loaded heavy panels ──────────────────────────────────────────────────
 const BookingsManagementComponent = lazy(() =>
@@ -257,6 +259,7 @@ export default function AdminDashboard() {
     }
   })();
   const [activeTab, setActiveTab] = useState(initialTab);
+  const { collapsed: sidebarCollapsed, toggle: toggleSidebar } = useDashboardSidebar("admin");
   const [jumpToProviderId, setJumpToProviderId] = useState<string | null>(null);
   const isGlobalAdmin = user?.role === "global_admin";
 
@@ -393,29 +396,41 @@ export default function AdminDashboard() {
         <div className="flex gap-6 items-start">
 
           {/* ── Desktop sidebar nav ── */}
-          <aside className="hidden lg:flex flex-col w-48 xl:w-52 flex-shrink-0 sticky top-20 self-start gap-5 max-h-[calc(100vh-8rem)] overflow-y-auto pb-4 pe-1">
+          <aside className={`hidden lg:flex flex-col flex-shrink-0 sticky top-20 self-start gap-5 max-h-[calc(100vh-8rem)] overflow-y-auto pb-4 transition-[width] duration-200 ${sidebarCollapsed ? "w-16" : "w-48 xl:w-52"} pe-1`}>
+            <div className={`flex items-center ${sidebarCollapsed ? "justify-center" : "justify-end"}`}>
+              <button
+                type="button"
+                onClick={toggleSidebar}
+                className="h-8 w-8 inline-flex items-center justify-center rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+                aria-label={sidebarCollapsed ? t("admin.expand_sidebar", "Expand navigation") : t("admin.collapse_sidebar", "Collapse navigation")}
+                title={sidebarCollapsed ? t("admin.expand_sidebar", "Expand navigation") : t("admin.collapse_sidebar", "Collapse navigation")}
+                data-testid="button-toggle-admin-sidebar"
+              >
+                {sidebarCollapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
+              </button>
+            </div>
             {navGroups.map(group => (
               <div key={group.label}>
-                <p className="text-[10px] font-bold text-muted-foreground/50 uppercase tracking-widest px-2.5 mb-1.5">
-                  {group.label}
-                </p>
+                {!sidebarCollapsed && <p className="text-[10px] font-bold text-muted-foreground/50 uppercase tracking-widest px-2.5 mb-1.5">{group.label}</p>}
                 <div className="space-y-0.5">
                   {group.items.map(item => (
                     <button
                       key={item.value}
                       onClick={() => setActiveTab(item.value)}
                       data-testid={`sidenav-${item.value}`}
+                      title={sidebarCollapsed ? item.label : undefined}
                       className={cn(
-                        "w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-sm transition-colors text-start",
+                        "relative w-full flex items-center rounded-md text-sm transition-colors text-start",
+                        sidebarCollapsed ? "justify-center px-2 py-2" : "gap-2.5 px-2.5 py-1.5",
                         activeTab === item.value
                           ? "bg-primary text-primary-foreground font-medium"
                           : "text-muted-foreground hover:text-foreground hover:bg-accent"
                       )}
                     >
                       <item.icon className="h-3.5 w-3.5 flex-shrink-0" />
-                      <span className="truncate flex-1">{item.label}</span>
+                      {!sidebarCollapsed && <span className="truncate flex-1">{item.label}</span>}
                       {item.badge != null && item.badge > 0 && (
-                        <span className="inline-flex items-center justify-center h-4 min-w-[1rem] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold leading-none flex-shrink-0">
+                        <span className={cn("inline-flex items-center justify-center h-4 min-w-[1rem] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold leading-none flex-shrink-0", sidebarCollapsed && "absolute -top-1 -end-1")}>
                           {item.badge > 99 ? "99+" : item.badge}
                         </span>
                       )}

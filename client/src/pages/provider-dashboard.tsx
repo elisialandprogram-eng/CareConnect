@@ -70,10 +70,13 @@ import {
   Loader2,
   ClipboardCheck,
   SendHorizonal,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from "lucide-react";
 import { ResponsiveContainer, AreaChart, Area, Tooltip } from "recharts";
 import type { AppointmentWithDetails, Provider, ProviderWithServices, ReviewWithPatient } from "@shared/schema";
 import { usePageTitle } from "@/hooks/use-page-title";
+import { useDashboardSidebar } from "@/hooks/use-dashboard-sidebar";
 
 // ── Extracted sub-components ──────────────────────────────────────────────────
 import { ProviderAppointmentsTabs } from "@/components/provider/dashboard/ProviderAppointmentsTabs";
@@ -342,6 +345,7 @@ export default function ProviderDashboard() {
   const [highlightApptId, setHighlightApptId] = useState<string | null>(null);
   const [profileOpenSection, setProfileOpenSection] = useState<ProfileSection | undefined>(undefined);
   const [profileSection, setProfileSection] = useState<ProfileSubSection>("overview");
+  const { collapsed: sidebarCollapsed, toggle: toggleSidebar } = useDashboardSidebar("provider");
   const [newTicketOpen, setNewTicketOpen] = useState(false);
   const [reportBugOpen, setReportBugOpen] = useState(false);
   const [replyDrafts, setReplyDrafts] = useState<Record<string, string>>({});
@@ -675,10 +679,22 @@ export default function ProviderDashboard() {
       <PageBreadcrumbs items={[{ label: t("provider_dashboard.provider_dashboard", "Provider Dashboard") }]} />
       <div className="flex flex-1 overflow-hidden">
         {/* ── Left sidebar navigation ────────────────────────────────────────── */}
-        <aside className="hidden md:flex w-[260px] shrink-0 flex-col bg-[#121420] border-r border-[#1f2235] p-4 overflow-y-auto">
+        <aside className={`hidden md:flex shrink-0 flex-col bg-[#121420] border-r border-[#1f2235] overflow-y-auto transition-[width,padding] duration-200 ${sidebarCollapsed ? "w-[76px] p-3" : "w-[260px] p-4"}`}>
+          <div className={`flex items-center mb-3 ${sidebarCollapsed ? "justify-center" : "justify-end"}`}>
+            <button
+              type="button"
+              onClick={toggleSidebar}
+              className="h-8 w-8 inline-flex items-center justify-center rounded-lg text-white/50 hover:bg-white/10 hover:text-white transition-colors"
+              aria-label={sidebarCollapsed ? t("provider_dashboard.expand_sidebar", "Expand navigation") : t("provider_dashboard.collapse_sidebar", "Collapse navigation")}
+              title={sidebarCollapsed ? t("provider_dashboard.expand_sidebar", "Expand navigation") : t("provider_dashboard.collapse_sidebar", "Collapse navigation")}
+              data-testid="button-toggle-provider-sidebar"
+            >
+              {sidebarCollapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
+            </button>
+          </div>
 
           {/* ── Sidebar status card ───────────────────────────────────────────── */}
-          {providerStatus && (() => {
+          {!sidebarCollapsed && providerStatus && (() => {
             const isActionRequired = providerStatus === "action_required";
             const isDraft = providerStatus === "draft";
             const isPending = providerStatus === "submitted" || providerStatus === "pending_approval" || providerStatus === "under_review";
@@ -793,7 +809,7 @@ export default function ProviderDashboard() {
             ]},
           ] as { group: string; items: { label: string; value: string; icon: React.ReactNode; badge: number; alert?: boolean; locked?: boolean; profileSection?: ProfileSubSection }[] }[]).map(({ group, items }) => (
             <div key={group} className="mb-4">
-              <p className="text-[10px] font-semibold text-white/40 uppercase tracking-widest px-2 mb-1 mt-2">{group}</p>
+              <p className={`text-[10px] font-semibold text-white/40 uppercase tracking-widest px-2 mb-1 mt-2 ${sidebarCollapsed ? "sr-only" : ""}`}>{group}</p>
               {items.map(({ label, value, icon, badge, alert: itemAlert, locked, profileSection: itemSection }) => {
                 const isActive = itemSection
                   ? activeTab === "profile" && profileSection === itemSection
@@ -807,17 +823,18 @@ export default function ProviderDashboard() {
                       else setActiveTab(value);
                     }}
                     data-testid={`sidebar-nav-${itemSection ?? value}`}
-                    className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors text-left ${
+                    title={sidebarCollapsed ? label : undefined}
+                    className={`relative w-full flex items-center rounded-lg text-sm transition-colors text-left ${sidebarCollapsed ? "justify-center px-2 py-2" : "gap-2.5 px-3 py-2"} ${
                       locked
                         ? "text-white/30 cursor-default"
                         : isActive ? "bg-white/15 text-white font-medium" : "text-white/60 hover:bg-white/10 hover:text-white/90"
                     }`}>
                     <span className={`shrink-0 ${locked ? "text-white/20" : itemAlert ? "text-rose-400" : "text-white/50"}`}>{icon}</span>
-                    <span className="flex-1 truncate">{label}</span>
+                    {!sidebarCollapsed && <span className="flex-1 truncate">{label}</span>}
                     {locked
-                      ? <Lock className="h-3 w-3 text-white/25 shrink-0" />
+                      ? <Lock className={`h-3 w-3 text-white/25 shrink-0 ${sidebarCollapsed ? "absolute -top-1 -end-1" : ""}`} />
                       : badge > 0
-                        ? <span className={`shrink-0 rounded-full text-[10px] px-1.5 py-0.5 min-w-[18px] text-center leading-tight font-semibold ${itemAlert ? "bg-rose-500 text-white" : "bg-white/20 text-white/90"}`}>{badge}</span>
+                        ? <span className={`shrink-0 rounded-full text-[10px] px-1.5 py-0.5 min-w-[18px] text-center leading-tight font-semibold ${sidebarCollapsed ? "absolute -top-1 -end-1" : ""} ${itemAlert ? "bg-rose-500 text-white" : "bg-white/20 text-white/90"}`}>{badge}</span>
                         : itemAlert ? <span className="shrink-0 h-2 w-2 rounded-full bg-rose-500 animate-pulse" /> : null}
                   </button>
                 );
