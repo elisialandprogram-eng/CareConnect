@@ -8,7 +8,7 @@ export function Footer() {
   const { user } = useAuth();
 
   return (
-    <footer className="border-t bg-card">
+    <footer className="mt-16 md:mt-24 border-t bg-card">
       <div className="container mx-auto px-4 py-12">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8">
           {/* Brand */}
