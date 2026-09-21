@@ -1,4 +1,4 @@
-import { useState, lazy, Suspense } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import { cn } from "@/lib/utils";
 import { PanelErrorBoundary } from "@/components/global-error-boundary";
 import { useQuery } from "@tanstack/react-query";
@@ -34,6 +34,7 @@ import {
   AlertTriangle, CreditCard, Database, Sprout, RotateCcw,
   Star,
   PanelLeftClose, PanelLeftOpen,
+  Maximize2, Minimize2,
 } from "lucide-react";
 import { RefundManagementPanel, RefundRulesPanel } from "@/components/admin/refund-management";
 import { RevenueBillingCenter } from "@/components/admin/dashboard/revenue-billing-center";
@@ -260,8 +261,25 @@ export default function AdminDashboard() {
   })();
   const [activeTab, setActiveTab] = useState(initialTab);
   const { collapsed: sidebarCollapsed, toggle: toggleSidebar } = useDashboardSidebar("admin");
+  const denseReportTabs = new Set([
+    "reports",
+    "custom-reports",
+    "bookings",
+    "financial-reports",
+    "platform-revenue",
+    "cash-fee-settlements",
+    "ledger-overrides",
+    "refunds",
+  ]);
+  const isDenseReportTab = denseReportTabs.has(activeTab);
+  const [focusModeOverride, setFocusModeOverride] = useState<boolean | null>(null);
+  const focusMode = focusModeOverride ?? isDenseReportTab;
   const [jumpToProviderId, setJumpToProviderId] = useState<string | null>(null);
   const isGlobalAdmin = user?.role === "global_admin";
+
+  useEffect(() => {
+    setFocusModeOverride(null);
+  }, [activeTab]);
 
   const openProvider = (id: string) => {
     setJumpToProviderId(id);
@@ -313,7 +331,7 @@ export default function AdminDashboard() {
     <div className="min-h-screen flex flex-col">
       <Header />
       <PageBreadcrumbs items={[{ label: t("admin.dashboard") }]} />
-      <main className="flex-1 container mx-auto px-4 py-8 overflow-x-hidden">
+       <main className={cn("flex-1 mx-auto px-4 py-8 overflow-x-hidden w-full", focusMode ? "max-w-none" : "container")}>
         {/* ── Header row ── */}
         <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
           <div>
@@ -349,6 +367,24 @@ export default function AdminDashboard() {
               onOpenDocQueue={() => setActiveTab("doc-queue")}
               onNavigate={setActiveTab}
             />
+            <Button
+              variant={focusMode ? "default" : "outline"}
+              size="sm"
+              onClick={() => setFocusModeOverride(!focusMode)}
+              aria-pressed={focusMode}
+              aria-label={focusMode
+                ? t("admin.exit_report_focus", "Exit report focus mode")
+                : t("admin.enter_report_focus", "Use report focus mode")}
+              title={focusMode
+                ? t("admin.exit_report_focus", "Exit report focus mode")
+                : t("admin.enter_report_focus", "Use report focus mode")}
+              data-testid="button-toggle-report-focus"
+            >
+              {focusMode ? <Minimize2 className="h-4 w-4 me-1.5" /> : <Maximize2 className="h-4 w-4 me-1.5" />}
+              {focusMode
+                ? t("admin.exit_report_focus", "Exit focus")
+                : t("admin.enter_report_focus", "Focus report")}
+            </Button>
           </div>
         </div>
 
@@ -393,10 +429,10 @@ export default function AdminDashboard() {
         })()}
 
         {/* ── Main layout: sidebar + content ── */}
-        <div className="flex gap-6 items-start">
+         <div className={cn("flex items-start", focusMode ? "gap-0" : "gap-6")}>
 
           {/* ── Desktop sidebar nav ── */}
-          <aside className={`hidden lg:flex flex-col flex-shrink-0 sticky top-20 self-start gap-5 max-h-[calc(100vh-8rem)] overflow-y-auto pb-4 transition-[width] duration-200 ${sidebarCollapsed ? "w-16" : "w-48 xl:w-52"} pe-1`}>
+          <aside className={`${focusMode ? "hidden" : "hidden lg:flex"} flex-col flex-shrink-0 sticky top-20 self-start gap-5 max-h-[calc(100vh-8rem)] overflow-y-auto pb-4 transition-[width] duration-200 ${sidebarCollapsed ? "w-16" : "w-48 xl:w-52"} pe-1`}>
             <div className={`flex items-center ${sidebarCollapsed ? "justify-center" : "justify-end"}`}>
               <button
                 type="button"
@@ -442,7 +478,7 @@ export default function AdminDashboard() {
           </aside>
 
           {/* ── Mobile nav: group pills + current group items ── */}
-          <div className="lg:hidden w-full mb-4 space-y-2">
+          <div className={`${focusMode ? "hidden" : "lg:hidden"} w-full mb-4 space-y-2`}>
             <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
               {navGroups.map(group => {
                 const isActive = group.items.some(i => i.value === activeTab);

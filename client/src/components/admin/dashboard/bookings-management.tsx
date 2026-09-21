@@ -892,12 +892,12 @@ export function BookingsManagementComponent() {
           </div>
         </CardHeader>
         <CardContent className="p-0">
-          <div className="overflow-x-auto">
+           <div className="relative max-w-full overflow-x-auto overscroll-x-contain">
             <table className="w-full text-sm min-w-[1000px]">
               <thead>
                 <tr className="border-b bg-muted/40">
-                  <th className="w-8 px-3 py-2" />
-                  <th className="px-3 py-2 text-left font-medium text-xs cursor-pointer whitespace-nowrap" onClick={() => toggleSort("created_at")}>
+                   <th className="sticky start-0 z-20 w-8 bg-muted/40 px-3 py-2" />
+                   <th className="sticky start-8 z-20 bg-muted/40 px-3 py-2 text-left font-medium text-xs cursor-pointer whitespace-nowrap" onClick={() => toggleSort("created_at")}>
                      {t("admin.created", "Created")} <SortIcon field="created_at" />
                   </th>
                    {visibleCols.has("ref") && <th className="px-3 py-2 text-left font-medium text-xs whitespace-nowrap">{t("admin.ref", "Ref")}</th>}
@@ -941,12 +941,12 @@ export function BookingsManagementComponent() {
                         className={`border-b last:border-0 hover:bg-muted/20 transition-colors ${isExpanded ? "bg-muted/10" : ""}`}
                         data-testid={`row-ops-${row.id}`}
                       >
-                        <td className="px-3 py-2.5">
+                         <td className="sticky start-0 z-10 bg-background px-3 py-2.5">
                           <button onClick={() => setExpandedId(prev => prev === row.id ? null : row.id)} className="p-0.5 rounded hover:bg-muted" data-testid={`button-ops-expand-${row.id}`}>
                             {isExpanded ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
                           </button>
                         </td>
-                        <td className="px-3 py-2.5 text-xs text-muted-foreground tabular-nums whitespace-nowrap">
+                         <td className="sticky start-8 z-10 bg-background px-3 py-2.5 text-xs text-muted-foreground tabular-nums whitespace-nowrap">
                           {fmtDate(row.created_at)}
                         </td>
                         {visibleCols.has("ref") && (
