@@ -52,7 +52,7 @@ interface LegalAcceptance {
   id: string; user_id: string; document_id: string; version_id: string;
   role_snapshot: string; ip_address?: string; source: string;
   email: string; first_name: string; last_name: string;
-  document_title?: string; version_number: string; accepted_at: string;
+  document_title?: string; document_slug?: string; version_number: string; accepted_at: string;
 }
 
 // ── Constants ──────────────────────────────────────────────────────────────────
@@ -117,6 +117,27 @@ function configText(t: any, key: string, fallback: string, options?: Record<stri
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
+function documentLabel(
+  t: any,
+  value: { docType?: string | null; slug?: string | null; title?: string | null },
+): string {
+  const type = value.docType ?? value.slug ?? "";
+  const knownType = DOC_TYPES.find(item => item.value === type);
+  if (knownType) {
+    return configText(t, `doc_type_${knownType.value}`, knownType.label);
+  }
+
+  const title = value.title?.trim();
+  if (title && title !== value.slug) return title;
+
+  const slug = value.slug?.trim();
+  if (!slug) return "—";
+  return slug
+    .split("_")
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+}
+
 function fmt(dt?: string | null) {
   if (!dt) return "—";
   return formatDate(dt, { day: "2-digit", month: "short", year: "numeric" });
@@ -209,7 +230,7 @@ function DocumentRegistry() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>{configText(t, "title_slug", "Title / Slug")}</TableHead>
+                <TableHead>{configText(t, "title", "Title")}</TableHead>
                 <TableHead>{configText(t, "type", "Type")}</TableHead>
                 <TableHead>{configText(t, "roles", "Roles")}</TableHead>
                 <TableHead>{configText(t, "version", "Version")}</TableHead>
@@ -226,8 +247,7 @@ function DocumentRegistry() {
               {docs.map(doc => (
                 <TableRow key={doc.id} data-testid={`row-doc-${doc.id}`}>
                   <TableCell>
-                    <div className="font-medium text-sm">{doc.title}</div>
-                    <div className="text-xs text-muted-foreground font-mono">{doc.slug}</div>
+                    <div className="font-medium text-sm">{documentLabel(t, { docType: doc.doc_type, slug: doc.slug, title: doc.title })}</div>
                   </TableCell>
                   <TableCell className="text-xs text-muted-foreground">{configText(t, `doc_type_${doc.doc_type}`, DOC_TYPES.find(x => x.value === doc.doc_type)?.label ?? doc.doc_type)}</TableCell>
                   <TableCell>
@@ -642,7 +662,7 @@ function AcceptanceAudit() {
           </SelectTrigger>
           <SelectContent>
              <SelectItem value="all">{configText(t, "all_documents", "All documents")}</SelectItem>
-            {docs.map(d => <SelectItem key={d.id} value={d.id}>{d.title}</SelectItem>)}
+             {docs.map(d => <SelectItem key={d.id} value={d.id}>{documentLabel(t, { docType: d.doc_type, slug: d.slug, title: d.title })}</SelectItem>)}
           </SelectContent>
         </Select>
         <Select value={source} onValueChange={setSource}>
@@ -687,7 +707,7 @@ function AcceptanceAudit() {
                     <div className="text-sm font-medium">{a.first_name} {a.last_name}</div>
                     <div className="text-xs text-muted-foreground">{a.email}</div>
                   </TableCell>
-                  <TableCell className="text-sm">{a.document_title ?? "—"}</TableCell>
+                  <TableCell className="text-sm">{documentLabel(t, { slug: a.document_slug, title: a.document_title })}</TableCell>
                   <TableCell className="text-sm font-mono">v{a.version_number}</TableCell>
                   <TableCell><Badge variant="outline" className="text-xs">{a.role_snapshot}</Badge></TableCell>
                   <TableCell className="text-xs">{a.source}</TableCell>
@@ -746,8 +766,7 @@ function PendingReacceptances() {
               {pending.map((item: any) => (
                 <TableRow key={item.document_id} data-testid={`row-pending-${item.document_id}`}>
                   <TableCell>
-                    <div className="font-medium text-sm">{item.title}</div>
-                    <div className="text-xs text-muted-foreground font-mono">{item.slug}</div>
+                    <div className="font-medium text-sm">{documentLabel(t, { slug: item.slug, title: item.title })}</div>
                   </TableCell>
                   <TableCell className="font-mono text-sm">v{item.current_version}</TableCell>
                   <TableCell>
@@ -813,17 +832,15 @@ function DocumentInventory() {
           <TableHeader>
             <TableRow>
                <TableHead>{configText(t, "document_type", "Document type")}</TableHead>
-               <TableHead>{configText(t, "registry_slug", "Registry slug")}</TableHead>
                <TableHead>{configText(t, "status", "Status")}</TableHead>
                <TableHead>{configText(t, "required", "Required")}</TableHead>
                <TableHead>{configText(t, "acceptances", "Acceptances")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {byType.map(({ value, label, doc }) => (
+             {byType.map(({ value, label, doc }) => (
               <TableRow key={value} data-testid={`row-inventory-${value}`}>
                <TableCell className="text-sm font-medium">{configText(t, `doc_type_${value}`, label)}</TableCell>
-                <TableCell className="font-mono text-xs text-muted-foreground">{doc?.slug ?? "—"}</TableCell>
                 <TableCell>
                    {doc ? <StatusBadge status={doc.status} /> : <span className="text-xs text-muted-foreground italic">{configText(t, "not_created", "Not created")}</span>}
                 </TableCell>
