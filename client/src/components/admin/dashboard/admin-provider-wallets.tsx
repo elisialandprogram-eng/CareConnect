@@ -37,6 +37,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { fmtBalance } from "./utils";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "react-i18next";
+import { reportProviderTypeLabel, reportRoleLabel } from "@/lib/report-localization";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface AdminWallet {
@@ -254,7 +255,7 @@ function LedgerHistorySheet({
                             <span className="text-[11px] text-muted-foreground">
                                {t("admin.provider_wallets.by")} <span className="font-medium">{entry.actorName}</span>
                               {entry.actorRole && (
-                                <span className="capitalize"> ({entry.actorRole.replace(/_/g, " ")})</span>
+                                <span> ({reportRoleLabel(t, entry.actorRole)})</span>
                               )}
                             </span>
                           )}
@@ -528,7 +529,7 @@ export function AdminProviderWalletsPanel() {
                       <td className="px-4 py-3">
                         <div className="font-medium">{w.provider_name}</div>
                         <div className="text-xs text-muted-foreground">
-                          {w.provider_email} · {w.provider_type}
+                          {w.provider_email} · {reportProviderTypeLabel(t, w.provider_type)}
                         </div>
                       </td>
                       <td className="px-4 py-3 text-right font-semibold text-emerald-600">

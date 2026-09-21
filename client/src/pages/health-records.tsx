@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
+import { reportStatusLabel, reportVisitTypeLabel } from "@/lib/report-localization";
 
 /* ── Types ─────────────────────────────────────────────────────────── */
 
@@ -148,7 +149,7 @@ export default function HealthRecordsPage() {
         type: "appointment",
         date: a.scheduledAt ?? a.scheduled_at ?? "",
         title: t("patient_ui.health_records.appointment_title", "{{visitType}} Appointment", {
-          visitType: `${a.visitType?.charAt(0).toUpperCase()}${a.visitType?.slice(1) ?? ""}`,
+          visitType: reportVisitTypeLabel(t, a.visitType),
         }),
         subtitle: t("patient_ui.health_records.with_provider", "with {{provider}}", { provider: providerName }),
         status: a.status,
@@ -368,7 +369,7 @@ export default function HealthRecordsPage() {
                                <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-slate-100 text-slate-500">{t("patient_ui.health_records.inactive", "Inactive")}</Badge>
                             )}
                             {ev.status && !["active","inactive"].includes(ev.status) && (
-                              <Badge variant="outline" className="text-[10px] px-1.5 py-0 capitalize">{ev.status}</Badge>
+                              <Badge variant="outline" className="text-[10px] px-1.5 py-0">{reportStatusLabel(t, ev.status)}</Badge>
                             )}
                           </div>
                           <p className="font-semibold text-sm truncate">{ev.title}</p>

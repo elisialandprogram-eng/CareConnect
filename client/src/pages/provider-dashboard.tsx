@@ -4,6 +4,7 @@ import { useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { QK } from "@/lib/query-keys";
 import { useTranslation } from "react-i18next";
+import { reportStatusLabel, reportVisitTypeLabel } from "@/lib/report-localization";
 import { Link } from "wouter";
 import { Header } from "@/components/header";
 import { PageBreadcrumbs } from "@/components/page-breadcrumbs";
@@ -727,7 +728,7 @@ export default function ProviderDashboard() {
                 <div className="flex items-center justify-between mb-1.5">
                     <span className="text-[10px] font-bold uppercase tracking-widest text-white/40">{t("provider_dashboard.account_status", "Account Status")}</span>
                   <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${pillCls}`}>
-                    {labelMap[providerStatus] ?? providerStatus.replace(/_/g, " ")}
+                    {reportStatusLabel(t, providerStatus, labelMap[providerStatus])}
                   </span>
                 </div>
                 {isActionRequired && rejectedDocCount > 0 && (
@@ -1362,7 +1363,7 @@ export default function ProviderDashboard() {
                         {svcName && <p className="text-xs text-muted-foreground truncate">{svcName}</p>}
                       </div>
                       <span className={`text-[11px] px-2 py-0.5 rounded-full font-medium whitespace-nowrap ${statusCls}`}>
-                         {t(`provider_dashboard.status_${a.status}`, a.status.replace(/_/g, " "))}
+                         {reportStatusLabel(t, a.status)}
                       </span>
                     </div>
                   );
@@ -1839,7 +1840,7 @@ export default function ProviderDashboard() {
                             <div className="flex items-center justify-between gap-2">
                               <p className="text-xs font-medium text-muted-foreground">{a.date} · {a.startTime ?? ""}</p>
                               <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full shrink-0 ${statusColor}`}>
-                                 {t(`provider_dashboard.status_${a.status}`, a.status.replace(/_/g, " "))}
+                                 {reportStatusLabel(t, a.status)}
                               </span>
                             </div>
                             {svcName && <p className="text-sm font-medium mt-0.5 truncate">{svcName}</p>}
@@ -1850,7 +1851,7 @@ export default function ProviderDashboard() {
                             )}
                             {(a as any).visitType && (
                               <Badge variant="outline" className="text-[10px] mt-1 capitalize">
-                                 {String(t(`provider_dashboard.type_${(a as any).visitType}`, (a as any).visitType.replace("_", " ")))}
+                                 {reportVisitTypeLabel(t, (a as any).visitType)}
                               </Badge>
                             )}
                           </div>

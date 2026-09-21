@@ -156,19 +156,25 @@ export function StatusBadge({
   const normalizedStatus = (status ?? "").toLowerCase();
   const translatedLabel = String(
     domain === "appointment"
-      ? t(`member_status.appointment.${normalizedStatus}`, {
-          defaultValue: t(`admin.booking_status_${normalizedStatus}`, {
-            defaultValue: t(`admin.config.${normalizedStatus}`, label),
-          }),
-        })
-      : domain === "payment"
-        ? t(`member_status.payment.${normalizedStatus}`, {
+      ? t(`reporting.status.${normalizedStatus}`, {
+          defaultValue: t(`member_status.appointment.${normalizedStatus}`, {
             defaultValue: t(`admin.booking_status_${normalizedStatus}`, {
               defaultValue: t(`admin.config.${normalizedStatus}`, label),
             }),
+          }),
+        })
+      : domain === "payment"
+        ? t(`reporting.status.${normalizedStatus}`, {
+            defaultValue: t(`member_status.payment.${normalizedStatus}`, {
+              defaultValue: t(`admin.booking_status_${normalizedStatus}`, {
+                defaultValue: t(`admin.config.${normalizedStatus}`, label),
+              }),
+            }),
           })
-        : t(`admin.config.${normalizedStatus}`, {
-            defaultValue: t(`admin.booking_status_${normalizedStatus}`, label),
+        : t(`reporting.status.${normalizedStatus}`, {
+            defaultValue: t(`admin.config.${normalizedStatus}`, {
+              defaultValue: t(`admin.booking_status_${normalizedStatus}`, label),
+            }),
           }),
   );
   return (

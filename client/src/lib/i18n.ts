@@ -13,6 +13,7 @@ import { providerDashboardSweepTranslations } from '../i18n/provider-dashboard-s
 import { providerClinicalSweepTranslations } from '../i18n/provider-clinical-sweep';
 import { adminProviderDetailsTranslations } from '../i18n/admin-provider-details';
 import { adminSweepTranslations } from '../i18n/admin-sweep';
+import { reportingSweepTranslations } from '../i18n/reporting-sweep';
 
 const SUPPORTED = ['en', 'hu', 'fa'] as const;
 type Lang = (typeof SUPPORTED)[number];
@@ -79,6 +80,10 @@ async function ensureLanguage(lng: string) {
         translation,
         adminSweepTranslations[code] as unknown as Record<string, unknown>,
       );
+      translation = mergeTranslationAdditions(
+        translation,
+        reportingSweepTranslations[code] as unknown as Record<string, unknown>,
+      );
     i18n.addResourceBundle(
       code,
       'translation',
@@ -123,7 +128,10 @@ i18n
               providerClinicalSweepTranslations.en as unknown as Record<string, unknown>,
               mergeTranslationAdditions(
                 adminProviderDetailsTranslations.en as unknown as Record<string, unknown>,
-                adminSweepTranslations.en as unknown as Record<string, unknown>,
+                mergeTranslationAdditions(
+                  adminSweepTranslations.en as unknown as Record<string, unknown>,
+                  reportingSweepTranslations.en as unknown as Record<string, unknown>,
+                ),
               ),
             ),
           ),

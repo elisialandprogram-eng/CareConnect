@@ -16,6 +16,7 @@ import {
   Star, MessageSquare, Clock, CheckCircle2, AlertCircle, ChevronRight, PlusCircle,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { reportVisitTypeLabel } from "@/lib/report-localization";
 
 /* ── Types ─────────────────────────────────────────────────────────── */
 interface MyReview {
@@ -175,7 +176,7 @@ export default function MyReviewsPage() {
                             {r.clinic_name && <span className="text-muted-foreground font-normal"> · {r.clinic_name}</span>}
                           </p>
                           <p className="text-xs text-muted-foreground capitalize mt-0.5">
-                            {r.visit_type?.replace("_", " ")} visit · {formatDate(r.scheduled_at)}
+                            {reportVisitTypeLabel(t, r.visit_type)} · {formatDate(r.scheduled_at)}
                           </p>
                           <Badge
                             variant={r.status === "approved" ? "default" : r.status === "rejected" ? "destructive" : "secondary"}
@@ -252,7 +253,7 @@ export default function MyReviewsPage() {
                         <div className="min-w-0">
                           <p className="font-semibold text-sm">{providerName}</p>
                           <p className="text-xs text-muted-foreground capitalize mt-0.5">
-                             {(a.visitType ?? a.visit_type ?? "").replace("_", " ")} {t("patient_ui.reviews.provider", "Provider").toLowerCase() === "provider" ? "visit" : ""}
+                            {reportVisitTypeLabel(t, a.visitType ?? a.visit_type)} {t("patient_ui.reviews.provider", "Provider").toLowerCase() === "provider" ? "visit" : ""}
                             {apptDate ? ` · ${formatDate(apptDate)}` : ""}
                           </p>
                           <div className="flex gap-0.5 mt-2">

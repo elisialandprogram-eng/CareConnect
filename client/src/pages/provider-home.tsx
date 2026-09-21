@@ -1,6 +1,7 @@
 import { useMemo, useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
+import { reportStatusLabel, reportVisitTypeLabel } from "@/lib/report-localization";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/lib/auth";
 import { useCurrency } from "@/lib/currency";
@@ -207,7 +208,7 @@ function AppointmentRow({ appt }: { appt: Appointment }) {
         <div className="flex items-center gap-1">
           <VisitIcon className="w-3 h-3 text-muted-foreground/60" />
           <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${statusCls}`}>
-            {t(`provider_dashboard.status_${appt.status}`, appt.status.replace(/_/g, " "))}
+            {reportStatusLabel(t, appt.status)}
           </span>
         </div>
       </div>
@@ -641,14 +642,8 @@ export default function ProviderHome() {
             <div className="p-4 space-y-2">
               {documents.slice(0, 4).map(doc => {
                 const isExpiring = expiringSoon.some(e => e.id === doc.id);
-                const documentLabel = t(
-                  `provider_dashboard.doc_${doc.documentType}`,
-                  doc.documentType.replace(/_/g, " "),
-                );
-                const documentStatus = t(
-                  `provider_dashboard.status_${doc.verificationStatus}`,
-                  doc.verificationStatus.replace(/_/g, " "),
-                );
+                const documentLabel = t(`provider_dashboard.doc_${doc.documentType}`, doc.documentType.replace(/_/g, " "));
+                const documentStatus = reportStatusLabel(t, doc.verificationStatus);
                 const statusColor = {
                   approved:          "text-emerald-700 dark:text-emerald-400",
                   expired:           "text-rose-700 dark:text-rose-400",
@@ -695,7 +690,7 @@ export default function ProviderHome() {
                   <div className="flex-1 pb-1">
                     <p className="text-sm font-medium text-foreground">{patientName(appt)}</p>
                     <p className="text-xs text-muted-foreground">
-                       {appt.serviceName ?? t("provider_sweep.appointment", "Appointment")} · <span className="capitalize">{t(`provider_dashboard.status_${appt.status}`, appt.status.replace(/_/g, " "))}</span>
+                       {appt.serviceName ?? t("provider_sweep.appointment", "Appointment")} · <span>{reportStatusLabel(t, appt.status)}</span>
                     </p>
                     <p className="text-[10px] text-muted-foreground/60 mt-0.5">{relativeLabel(appt.startAt, (key, fallback, options) => String(t(key, fallback, options)))}</p>
                   </div>

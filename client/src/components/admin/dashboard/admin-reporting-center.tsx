@@ -13,6 +13,8 @@ import { PanelErrorBoundary } from "@/components/global-error-boundary";
 import { AnalyticsOverview } from "./analytics-overview";
 import { useAdminCurrency } from "@/lib/currency";
 import { useTranslation } from "react-i18next";
+import { formatDate, formatMonthLabel } from "@/lib/datetime";
+import { reportStatusLabel } from "@/lib/report-localization";
 import {
   BarChart, Bar, AreaChart, Area, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer,
@@ -120,7 +122,7 @@ function AdminPatientsPanel() {
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.3} />
-                <XAxis dataKey="month" tick={{ fontSize: 10 }} />
+                <XAxis dataKey="month" tick={{ fontSize: 10 }} tickFormatter={(value) => formatMonthLabel(String(value))} />
                 <YAxis tick={{ fontSize: 10 }} />
                 <Tooltip />
                <Area type="monotone" dataKey="newUsers" name={r("new_members", "New Members")} stroke="#6366f1" fill="url(#patGrad)" strokeWidth={2} />
@@ -202,7 +204,7 @@ function AdminMembershipsPanel() {
             <ResponsiveContainer width="100%" height={180}>
               <BarChart data={data.trend}>
                 <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.3} />
-                <XAxis dataKey="month" tick={{ fontSize: 10 }} />
+                <XAxis dataKey="month" tick={{ fontSize: 10 }} tickFormatter={(value) => formatMonthLabel(String(value))} />
                 <YAxis tick={{ fontSize: 10 }} />
                  <Tooltip formatter={(v: number, name: string) => [name === "revenueUsd" ? fmt(v) : v, name === "revenueUsd" ? r("revenue", "Revenue") : r("purchases", "Purchases")]} />
                  <Bar dataKey="purchases" name={r("purchases", "Purchases")} fill="#6366f1" radius={[4, 4, 0, 0]} />
@@ -381,7 +383,7 @@ function AdminCompliancePanel() {
                 .map((s, i) => (
                   <div key={i} className="flex items-center justify-between">
                     <Badge className={`text-xs capitalize ${PROVIDER_STATUS_COLOR[s.status] ?? "bg-muted text-muted-foreground"}`}>
-                      {r(`status_${s.status}`, s.status.replace(/_/g, " "))}
+                      {reportStatusLabel(t, s.status)}
                     </Badge>
                     <span className="text-sm font-semibold">{s.count}</span>
                   </div>
@@ -433,7 +435,7 @@ function AdminCompliancePanel() {
                 {data.documentStatusBreakdown.map((d, i) => (
                   <tr key={i} className="border-b last:border-0">
                     <td className="py-2 capitalize">{r(`document_${d.documentType}`, d.documentType.replace(/_/g, " "))}</td>
-                    <td className="text-end py-2 capitalize">{r(`status_${d.verificationStatus}`, d.verificationStatus.replace(/_/g, " "))}</td>
+                    <td className="text-end py-2">{reportStatusLabel(t, d.verificationStatus)}</td>
                     <td className="text-end py-2 font-semibold">{d.count}</td>
                   </tr>
                 ))}
@@ -502,7 +504,7 @@ function AdminSupportPanel() {
             <ResponsiveContainer width="100%" height={180}>
               <BarChart data={trend}>
                 <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.3} />
-                <XAxis dataKey="day" tick={{ fontSize: 10 }} tickFormatter={(v: string) => v.slice(5)} />
+                <XAxis dataKey="day" tick={{ fontSize: 10 }} tickFormatter={(v: string) => formatDate(String(v), { month: "short", day: "numeric" })} />
                 <YAxis tick={{ fontSize: 10 }} />
                 <Tooltip />
                 <Bar dataKey="created" name={r("created", "Created")} fill="#f59e0b" radius={[4, 4, 0, 0]} />

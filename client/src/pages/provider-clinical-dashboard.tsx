@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
+import { reportStatusLabel } from "@/lib/report-localization";
 import { Link } from "wouter";
 import { apiRequest } from "@/lib/queryClient";
 import { Header } from "@/components/header";
@@ -232,7 +233,7 @@ export default function ProviderClinicalDashboard() {
                       <p className="text-xs text-muted-foreground">{appt.service_name ?? "—"} · {formatDate(appt.start_at)}</p>
                     </div>
                        <Badge variant="secondary" className="text-[10px] capitalize">
-                         {t(`provider_dashboard.status_${appt.status}`, appt.status.replace("_", " "))}
+                         {reportStatusLabel(t, appt.status)}
                        </Badge>
                   </div>
                 ))}

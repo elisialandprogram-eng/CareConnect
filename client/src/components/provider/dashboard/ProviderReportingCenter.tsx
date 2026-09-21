@@ -1,4 +1,5 @@
 import { formatDate, formatMonthLabel, formatWeekLabel } from "@/lib/datetime";
+import { reportStatusLabel } from "@/lib/report-localization";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
@@ -436,7 +437,9 @@ function ScheduleTab({ analytics, insights, fmtMoney }: { analytics?: AnalyticsD
         if (cnt > best.cnt) best = { dow, hour, cnt };
       });
     });
-    return best.cnt > 0 ? `${t(`provider_dashboard.day_${DOW_KEYS[best.dow]}_short`, DOW_KEYS[best.dow])} ${best.hour}:00` : null;
+     return best.cnt > 0
+       ? `${String(t(`reporting.day_short.${DOW_KEYS[best.dow]}`, { defaultValue: DOW_KEYS[best.dow] }))} ${best.hour}:00`
+       : null;
   })();
 
   return (
@@ -470,13 +473,15 @@ function ScheduleTab({ analytics, insights, fmtMoney }: { analytics?: AnalyticsD
                     const maxCnt = Math.max(...hours, 1);
                     return (
                       <div key={dow} className="contents">
-                        <div className="text-muted-foreground py-0.5">{t(`provider_dashboard.day_${DOW_KEYS[dow]}_short`, DOW_KEYS[dow])}</div>
+                        <div className="text-muted-foreground py-0.5">
+                          {String(t(`reporting.day_short.${DOW_KEYS[dow]}`, { defaultValue: DOW_KEYS[dow] }))}
+                        </div>
                         {hours.map((cnt, hour) => (
                           <div
                             key={hour}
                             className="h-6 rounded"
                             style={{ backgroundColor: cnt > 0 ? `rgba(99,102,241,${Math.max(0.1, cnt / maxCnt)})` : "transparent", border: "1px solid rgba(0,0,0,0.05)" }}
-                            title={`${t(`provider_dashboard.day_${DOW_KEYS[dow]}_short`, DOW_KEYS[dow])} ${hour}:00 — ${t("provider_dashboard.appointments_count", "{{count}} appointment(s)", { count: cnt })}`}
+                            title={`${String(t(`reporting.day_short.${DOW_KEYS[dow]}`, { defaultValue: DOW_KEYS[dow] }))} ${hour}:00 — ${t("provider_dashboard.appointments_count", "{{count}} appointment(s)", { count: cnt })}`}
                           />
                         ))}
                       </div>
@@ -606,9 +611,7 @@ function FinancialsTab({ fmtMoney, enabled }: { fmtMoney: (v: number) => string;
                       <td className="text-end py-2 font-medium text-emerald-600">{fmtMoney(Number(e.providerNetEarningsUsd ?? 0))}</td>
                       <td className="text-end py-2">
                         <Badge variant={["paid", "completed"].includes(e.paymentStatus) ? "default" : "secondary"} className="text-xs capitalize">
-                          {e.paymentStatus === "paid" || e.paymentStatus === "completed"
-                            ? t("provider_dashboard.payment_paid", "Paid")
-                            : String(t(`provider_dashboard.payment_${e.paymentStatus ?? "pending"}`, e.paymentStatus ?? t("provider_dashboard.payment_pending", "Pending")))}
+                          {reportStatusLabel(t, e.paymentStatus, t("provider_dashboard.payment_pending", "Pending"))}
                         </Badge>
                       </td>
                     </tr>

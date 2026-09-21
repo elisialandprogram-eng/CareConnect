@@ -1,6 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { formatCount } from "@/lib/format-utils";
+import { formatWeekLabel } from "@/lib/datetime";
+import { reportPriorityLabel, reportVisitTypeLabel } from "@/lib/report-localization";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -144,8 +146,8 @@ export function OperationsIntelligenceDashboard() {
                 <ResponsiveContainer width="100%" height={240}>
                   <BarChart data={supportData.dailyTrend} margin={{ top: 4, right: 12, left: 0, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" className="stroke-border/40" />
-                    <XAxis dataKey="day" tick={{ fontSize: 10 }} tickLine={false}
-                      tickFormatter={(v) => v.slice(5)} />
+                   <XAxis dataKey="day" tick={{ fontSize: 10 }} tickLine={false}
+                      tickFormatter={(v) => formatWeekLabel(String(v))} />
                     <YAxis tick={{ fontSize: 11 }} tickLine={false} allowDecimals={false} />
                     <Tooltip />
                     <Legend />
@@ -174,7 +176,7 @@ export function OperationsIntelligenceDashboard() {
                         className="w-16 justify-center text-xs capitalize"
                         style={{ borderColor: PRIORITY_COLORS[p.priority] ?? "#6b7280", color: PRIORITY_COLORS[p.priority] ?? "#6b7280" }}
                       >
-                        {p.priority}
+                         {reportPriorityLabel(t, p.priority)}
                       </Badge>
                       <div className="flex-1 bg-muted rounded-full h-2 overflow-hidden">
                         <div
@@ -230,8 +232,8 @@ export function OperationsIntelligenceDashboard() {
                 <ResponsiveContainer width="100%" height={240}>
                   <LineChart data={growth.acquisition.weeklyTrend} margin={{ top: 4, right: 12, left: 0, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" className="stroke-border/40" />
-                    <XAxis dataKey="weekStart" tick={{ fontSize: 10 }} tickLine={false}
-                      tickFormatter={(v) => v.slice(5)} />
+                     <XAxis dataKey="weekStart" tick={{ fontSize: 10 }} tickLine={false}
+                       tickFormatter={(v) => formatWeekLabel(String(v))} />
                     <YAxis tick={{ fontSize: 11 }} tickLine={false} allowDecimals={false} />
                     <Tooltip />
                     <Line type="monotone" dataKey="newPatients" name={r("new_members", "New Members")} stroke="#6366f1" strokeWidth={2} dot={{ r: 3 }} />
@@ -260,7 +262,8 @@ export function OperationsIntelligenceDashboard() {
                     <BarChart data={growth.noShowAnalysis} layout="vertical" margin={{ top: 4, right: 40, left: 40, bottom: 0 }}>
                       <CartesianGrid strokeDasharray="3 3" className="stroke-border/40" horizontal={false} />
                       <XAxis type="number" tick={{ fontSize: 11 }} tickLine={false} tickFormatter={(v) => `${v}%`} domain={[0, 100]} />
-                      <YAxis type="category" dataKey="visitType" tick={{ fontSize: 11 }} tickLine={false} />
+                     <YAxis type="category" dataKey="visitType" tick={{ fontSize: 11 }} tickLine={false}
+                       tickFormatter={(v) => reportVisitTypeLabel(t, String(v))} />
                        <Tooltip formatter={(v: any) => [`${v}%`, r("no_show_rate", "No-show rate")]} />
                        <Bar dataKey="noShowRatePct" name={r("no_show_rate_pct", "No-show Rate %")} fill="#ef4444" radius={[0, 3, 3, 0]} />
                     </BarChart>
@@ -270,7 +273,7 @@ export function OperationsIntelligenceDashboard() {
                     {growth.noShowAnalysis.map((ns) => (
                       <Card key={ns.visitType} className="bg-muted/40">
                         <CardContent className="pt-3 pb-3">
-                          <p className="text-xs text-muted-foreground capitalize mb-1">{ns.visitType}</p>
+                           <p className="text-xs text-muted-foreground mb-1">{reportVisitTypeLabel(t, ns.visitType)}</p>
                           <p className="text-lg font-bold">{ns.noShowRatePct}%</p>
                           <p className="text-xs text-muted-foreground">{ns.noShowCount} / {ns.totalAppointments}</p>
                         </CardContent>

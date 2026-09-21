@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { QK } from "@/lib/query-keys";
 import { useCurrency, formatInCurrency } from "@/lib/currency";
 import { useTranslation } from "react-i18next";
+import { reportPaymentMethodLabel } from "@/lib/report-localization";
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
 import { PageBreadcrumbs } from "@/components/page-breadcrumbs";
@@ -242,7 +243,7 @@ function EarningBreakdownRow({ e, fmt }: { e: RichEarning; fmt: (n: number) => s
                  <div><span className="font-medium text-foreground">{t("provider_dashboard.appt_status", "Appt status:")}</span> {e.appointmentStatus}</div>
               )}
               {e.paymentMethod && (
-                 <div><span className="font-medium text-foreground">{t("provider_dashboard.method", "Method:")}</span> {e.paymentMethod.replace("_", " ")}</div>
+                 <div><span className="font-medium text-foreground">{t("provider_dashboard.method", "Method:")}</span> {reportPaymentMethodLabel(t, e.paymentMethod)}</div>
               )}
               {e.cancelledBy && (
                 <div className="text-red-600">

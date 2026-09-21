@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { useAdminCurrency } from "@/lib/currency";
 import { useTranslation } from "react-i18next";
+import { reportPaymentMethodLabel, reportStatusLabel } from "@/lib/report-localization";
 
 type ReportRow = {
   id: string;
@@ -86,21 +87,12 @@ function dateLabel(value: string) {
   });
 }
 
-function statusLabel(value: string | null | undefined, t: (key: string, fallback: string) => string) {
-  if (!value) return t("unpaid", "Unpaid");
-  const normalized = value.toLowerCase();
-  const known: Record<string, string> = {
-    paid: t("paid", "Paid"),
-    pending: t("pending", "Pending"),
-    refunded: t("refunded", "Refunded"),
-    partially_refunded: t("partially_refunded", "Partially refunded"),
-    disputed: t("disputed", "Disputed"),
-    cash: t("cash", "Cash"),
-    card: t("card", "Card"),
-    wallet: t("wallet", "Wallet"),
-    bank_transfer: t("bank_transfer", "Bank transfer"),
-  };
-  return known[normalized] ?? t(`status_${normalized}`, value.replace(/_/g, " "));
+function statusLabel(value: string | null | undefined, translate: (key: string, options?: any) => unknown) {
+  return reportStatusLabel(translate, value, "Unpaid");
+}
+
+function paymentMethodLabel(value: string | null | undefined, translate: (key: string, options?: any) => unknown) {
+  return reportPaymentMethodLabel(translate, value);
 }
 
 export function PlatformRevenueReport() {
@@ -378,8 +370,8 @@ export function PlatformRevenueReport() {
                         <div className="text-xs text-muted-foreground truncate max-w-[180px]">{row.patient_email || row.patient_id}</div>
                       </td>
                       <td className="p-3 whitespace-nowrap">
-                         <Badge variant="outline" className="capitalize">{statusLabel(row.payment_status, t)}</Badge>
-                         <div className="text-xs text-muted-foreground mt-1 capitalize">{statusLabel(row.payment_method, t)}</div>
+                         <Badge variant="outline">{statusLabel(row.payment_status, translate)}</Badge>
+                         <div className="text-xs text-muted-foreground mt-1">{paymentMethodLabel(row.payment_method, translate)}</div>
                       </td>
                       <td className="p-3 text-end font-medium">{format(amount(row.commission_usd))}</td>
                       <td className="p-3 text-end">{format(amount(row.platform_fee_usd))}</td>

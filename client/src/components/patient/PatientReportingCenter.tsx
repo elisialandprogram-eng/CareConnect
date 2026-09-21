@@ -1,4 +1,5 @@
-import { formatDate } from "@/lib/datetime";
+import { formatDate, formatMonthLabel } from "@/lib/datetime";
+import { reportPackageStatusLabel, reportProviderTypeLabel } from "@/lib/report-localization";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
@@ -87,6 +88,10 @@ function EmptyState() {
 function OverviewTab({ data, formatPrice }: { data: PatientAnalytics; formatPrice: (v: number) => string }) {
   const { t } = useTranslation();
   const { stats, monthlySpend, topProviders } = data;
+  const localizedMonthlySpend = monthlySpend.map((month) => ({
+    ...month,
+    month: formatMonthLabel(month.month),
+  }));
   const completionRate = stats.total > 0 ? Math.round((stats.completed / stats.total) * 100) : 0;
 
   return (
@@ -109,7 +114,7 @@ function OverviewTab({ data, formatPrice }: { data: PatientAnalytics; formatPric
             ) : (
               <>
                 <ResponsiveContainer width="100%" height={140}>
-                  <BarChart data={monthlySpend}>
+                   <BarChart data={localizedMonthlySpend}>
                     <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.3} />
                     <XAxis dataKey="month" tick={{ fontSize: 9 }} />
                     <YAxis tick={{ fontSize: 9 }} tickFormatter={v => formatPrice(v)} width={55} />
@@ -143,7 +148,7 @@ function OverviewTab({ data, formatPrice }: { data: PatientAnalytics; formatPric
                       <span className="text-xs font-bold text-muted-foreground w-4">{i + 1}</span>
                       <div className="min-w-0">
                         <p className="text-sm font-medium truncate">{p.name}</p>
-                        <p className="text-xs text-muted-foreground capitalize">{p.type?.replace(/_/g, " ")}</p>
+                        <p className="text-xs text-muted-foreground">{reportProviderTypeLabel(t, p.type)}</p>
                       </div>
                     </div>
                     <div className="text-right shrink-0">
@@ -163,6 +168,10 @@ function OverviewTab({ data, formatPrice }: { data: PatientAnalytics; formatPric
 function HealthActivityTab({ data, formatPrice }: { data: PatientAnalytics; formatPrice: (v: number) => string }) {
   const { t } = useTranslation();
   const { monthlySpend, topProviders } = data;
+  const localizedMonthlySpend = monthlySpend.map((month) => ({
+    ...month,
+    month: formatMonthLabel(month.month),
+  }));
 
   return (
     <div className="space-y-6">
@@ -175,7 +184,7 @@ function HealthActivityTab({ data, formatPrice }: { data: PatientAnalytics; form
             <p className="text-sm text-muted-foreground text-center py-6">{t("patient_reporting.no_activity", "No activity yet.")}</p>
           ) : (
             <ResponsiveContainer width="100%" height={200}>
-              <BarChart data={monthlySpend}>
+               <BarChart data={localizedMonthlySpend}>
                 <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.3} />
                 <XAxis dataKey="month" tick={{ fontSize: 10 }} />
                 <YAxis tick={{ fontSize: 10 }} />
@@ -201,7 +210,7 @@ function HealthActivityTab({ data, formatPrice }: { data: PatientAnalytics; form
                     <span className="text-xs font-bold text-muted-foreground w-5">{i + 1}</span>
                     <div className="min-w-0">
                       <p className="text-sm font-medium truncate">{p.name}</p>
-                      <p className="text-xs text-muted-foreground capitalize">{p.type?.replace(/_/g, " ")}</p>
+                      <p className="text-xs text-muted-foreground">{reportProviderTypeLabel(t, p.type)}</p>
                     </div>
                   </div>
                   <div className="text-right shrink-0">
@@ -221,6 +230,10 @@ function HealthActivityTab({ data, formatPrice }: { data: PatientAnalytics; form
 function AppointmentsTab({ data }: { data: PatientAnalytics }) {
   const { t } = useTranslation();
   const { stats, monthlySpend } = data;
+  const localizedMonthlySpend = monthlySpend.map((month) => ({
+    ...month,
+    month: formatMonthLabel(month.month),
+  }));
   const completionRate = stats.total > 0 ? Math.round((stats.completed / stats.total) * 100) : 0;
   const cancelRate = stats.total > 0 ? Math.round((stats.cancelled / stats.total) * 100) : 0;
 
@@ -240,7 +253,7 @@ function AppointmentsTab({ data }: { data: PatientAnalytics }) {
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={200}>
-              <AreaChart data={monthlySpend}>
+                 <AreaChart data={localizedMonthlySpend}>
                 <defs>
                   <linearGradient id="cmpGrad" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
@@ -265,9 +278,13 @@ function AppointmentsTab({ data }: { data: PatientAnalytics }) {
 function SpendingTab({ data, formatPrice }: { data: PatientAnalytics; formatPrice: (v: number) => string }) {
   const { t } = useTranslation();
   const { stats, monthlySpend } = data;
+  const localizedMonthlySpend = monthlySpend.map((month) => ({
+    ...month,
+    month: formatMonthLabel(month.month),
+  }));
   const yearlySpend = monthlySpend.reduce((s, m) => s + m.spend, 0);
   const avgMonthly = monthlySpend.length ? yearlySpend / monthlySpend.length : 0;
-  const peak = monthlySpend.reduce((b, m) => m.spend > b.spend ? m : b, monthlySpend[0] ?? { spend: 0, month: "" });
+  const peak = localizedMonthlySpend.reduce((b, m) => m.spend > b.spend ? m : b, localizedMonthlySpend[0] ?? { spend: 0, month: "" });
 
   return (
     <div className="space-y-6">
@@ -288,7 +305,7 @@ function SpendingTab({ data, formatPrice }: { data: PatientAnalytics; formatPric
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={200}>
-              <BarChart data={monthlySpend}>
+                 <BarChart data={localizedMonthlySpend}>
                 <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.3} />
                 <XAxis dataKey="month" tick={{ fontSize: 10 }} />
                 <YAxis tick={{ fontSize: 10 }} tickFormatter={v => formatPrice(v)} width={60} />
@@ -335,7 +352,7 @@ function MembershipsTab({ data, formatPrice }: { data: PatientAnalytics; formatP
                   </p>
                 </div>
                 <Badge className={`text-xs capitalize shrink-0 ${PACKAGE_STATUS_COLOR[m.status] ?? "bg-muted text-muted-foreground"}`}>
-                   {t(`patient_reporting.status_${m.status}`, m.status)}
+                    {reportPackageStatusLabel(t, m.status)}
                 </Badge>
               </CardContent>
             </Card>
@@ -383,7 +400,7 @@ function PackagesTab({ data, formatPrice }: { data: PatientAnalytics; formatPric
                   <div className="flex items-center justify-between gap-2">
                     <p className="font-medium text-sm">{pkg.name}</p>
                     <Badge className={`text-xs capitalize ${PACKAGE_STATUS_COLOR[pkg.status] ?? "bg-muted text-muted-foreground"}`}>
-                       {t(`patient_reporting.status_${pkg.status}`, pkg.status)}
+                    {reportPackageStatusLabel(t, pkg.status)}
                     </Badge>
                   </div>
                   {pkg.totalSessions && (
@@ -477,7 +494,7 @@ function TimelineTab({ data, formatPrice }: { data: PatientAnalytics; formatPric
   const { monthlySpend, topProviders } = data;
   const eventsFromMonthly = [...monthlySpend].reverse().map(m => ({
     type: "monthly" as const,
-    month: m.month,
+    month: formatMonthLabel(m.month),
     completed: m.completed,
     cancelled: m.cancelled,
     spend: m.spend,
@@ -543,7 +560,7 @@ function TimelineTab({ data, formatPrice }: { data: PatientAnalytics; formatPric
                     <span className="text-xs text-muted-foreground w-4">{i + 1}</span>
                     <div className="min-w-0">
                       <p className="font-medium truncate">{p.name}</p>
-                      <p className="text-xs text-muted-foreground capitalize">{p.type?.replace(/_/g, " ")}</p>
+                      <p className="text-xs text-muted-foreground">{reportProviderTypeLabel(t, p.type)}</p>
                     </div>
                   </div>
                    <span className="text-xs text-muted-foreground shrink-0">{t("patient_reporting.visits", "{{count}} visits", { count: p.visitCount })}</span>

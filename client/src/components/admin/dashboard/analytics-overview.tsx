@@ -82,7 +82,7 @@ export function AnalyticsOverview({ onNavigate }: { onNavigate?: (tab: string) =
   const rawSeries: any[] = Array.isArray(analytics?.revenueSeries) && analytics.revenueSeries.length > 0
     ? analytics.revenueSeries
     : Array.from({ length: 12 }, (_, i) => ({
-        name: formatDate(new Date(0, i), { month: "short" }),
+        name: formatDate(new Date(Date.UTC(2024, i, 1)), { month: "short", timeZone: "UTC" }),
         revenue: 0,
         bookings: 0,
       }));

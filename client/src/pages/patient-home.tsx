@@ -46,6 +46,7 @@ import {
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { formatDate as formatDateTz } from "@/lib/datetime";
+import { reportVisitTypeLabel } from "@/lib/report-localization";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -94,9 +95,7 @@ function visitTypeLabel(
   vt: string | null | undefined,
   t: (key: string, fallback: string) => string,
 ) {
-  if (vt === "online") return t("patient_home.video_visit", "Video Visit");
-  if (vt === "home") return t("patient_home.home_visit", "Home Visit");
-  return t("patient_home.clinic_visit", "Clinic Visit");
+  return reportVisitTypeLabel(t as any, vt);
 }
 
 function timeAgoLabel(

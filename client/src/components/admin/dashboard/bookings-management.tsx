@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "react-i18next";
+import { reportPaymentMethodLabel, reportVisitTypeLabel } from "@/lib/report-localization";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import {
   Search, Filter, X, Columns, Download, Printer, Save,
@@ -367,8 +368,8 @@ function InvestigationDrawer({
              <Row label={t("admin.end_time", "End time")} value={fmtTime(row.end_at)} />
              <Row label={t("admin.duration", "Duration")} value={row.service_duration ? `${row.service_duration} min` : null} />
              <Row label={t("admin.timezone", "Timezone")} value={row.provider_timezone} />
-              <Row label={t("admin.visit_type", "Visit type")} value={enumLabel(row.visit_type)} />
-              <Row label={t("admin.location", "Location")} value={enumLabel(row.location_mode ?? row.visit_type)} />
+              <Row label={t("admin.visit_type", "Visit type")} value={reportVisitTypeLabel(t, row.visit_type)} />
+              <Row label={t("admin.location", "Location")} value={reportVisitTypeLabel(t, row.location_mode ?? row.visit_type)} />
              <Row label={t("admin.clinic", "Clinic")} value={row.clinic_name} />
           </Section>
 
@@ -399,7 +400,7 @@ function InvestigationDrawer({
            <Section title={`E · ${t("admin.service", "Service")}`} icon={Stethoscope}>
              <Row label={t("admin.service", "Service")} value={row.service_name} />
              <Row label={t("admin.category", "Category")} value={enumLabel(row.service_category, "provider_type_")} />
-             <Row label={t("admin.visit_type", "Visit type")} value={enumLabel(row.visit_type)} />
+             <Row label={t("admin.visit_type", "Visit type")} value={reportVisitTypeLabel(t, row.visit_type)} />
              <Row label={t("admin.duration", "Duration")} value={row.service_duration ? `${row.service_duration} min` : null} />
           </Section>
 
@@ -435,7 +436,7 @@ function InvestigationDrawer({
 
           {/* G: Payment */}
            <Section title={`G · ${t("admin.payment", "Payment")}`} icon={CreditCard}>
-             <Row label={t("admin.method", "Method")} value={row.payment_method ?? row.appt_payment_method} />
+             <Row label={t("admin.method", "Method")} value={reportPaymentMethodLabel(t, row.payment_method ?? row.appt_payment_method)} />
              <Row label={t("admin.amount_usd", "Amount (USD)")} value={row.payment_amount ? fmt(n(row.payment_amount)) : null} />
              <Row label={t("admin.status", "Status")} value={<SBadge value={row.payment_record_status} />} />
              <Row label={t("admin.stripe_id", "Stripe ID")} value={row.stripe_payment_id ? <span className="font-mono text-xs">{row.stripe_payment_id}</span> : null} />
@@ -473,7 +474,7 @@ function ExpandedRow({ row, fmt }: { row: BookingRow; fmt: (n: number) => string
              <div className="flex justify-between"><span className="text-muted-foreground">{t("admin.date", "Date")}</span><span>{fmtDate(row.start_at)}</span></div>
              <div className="flex justify-between"><span className="text-muted-foreground">{t("admin.time", "Time")}</span><span>{fmtTime(row.start_at)} – {fmtTime(row.end_at)}</span></div>
              <div className="flex justify-between"><span className="text-muted-foreground">{t("admin.timezone", "Timezone")}</span><span className="text-xs">{row.provider_timezone ?? "—"}</span></div>
-             <div className="flex justify-between"><span className="text-muted-foreground">{t("admin.location", "Location")}</span><span>{enumLabel(row.location_mode ?? row.visit_type)}</span></div>
+             <div className="flex justify-between"><span className="text-muted-foreground">{t("admin.location", "Location")}</span><span>{reportVisitTypeLabel(t, row.location_mode ?? row.visit_type)}</span></div>
              {row.clinic_name && <div className="flex justify-between"><span className="text-muted-foreground">{t("admin.clinic", "Clinic")}</span><span>{row.clinic_name}</span></div>}
           </div>
           <div className="space-y-1">
@@ -486,7 +487,7 @@ function ExpandedRow({ row, fmt }: { row: BookingRow; fmt: (n: number) => string
           </div>
           <div className="space-y-1">
              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">{t("admin.payment_invoice", "Payment & invoice")}</p>
-             <div className="flex justify-between"><span className="text-muted-foreground">{t("admin.method", "Method")}</span><span>{enumLabel(row.payment_method ?? row.appt_payment_method)}</span></div>
+             <div className="flex justify-between"><span className="text-muted-foreground">{t("admin.method", "Method")}</span><span>{reportPaymentMethodLabel(t, row.payment_method ?? row.appt_payment_method)}</span></div>
              <div className="flex justify-between"><span className="text-muted-foreground">{t("admin.status", "Status")}</span><SBadge value={row.payment_record_status} /></div>
              {row.stripe_payment_id && <div className="flex justify-between"><span className="text-muted-foreground">{t("admin.stripe", "Stripe")}</span><span className="font-mono text-xs truncate max-w-[140px]">{row.stripe_payment_id}</span></div>}
              {row.invoice_number && <div className="flex justify-between"><span className="text-muted-foreground">{t("admin.invoice", "Invoice")}</span><span>{row.invoice_number}</span></div>}

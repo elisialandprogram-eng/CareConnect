@@ -4,6 +4,7 @@ import { useAdminCurrency, formatInCurrency } from "@/lib/currency";
 import { formatCount } from "@/lib/format-utils";
 import { useTranslation } from "react-i18next";
 import i18n from "@/lib/i18n";
+import { reportPaymentMethodLabel, reportProviderTypeLabel, reportStatusLabel, reportVisitTypeLabel } from "@/lib/report-localization";
 import {
   Card, CardContent, CardHeader, CardTitle,
 } from "@/components/ui/card";
@@ -355,12 +356,14 @@ function InvestigationDrawer({
   const a = (key: string, fallback: string) => String(t(`admin.${key}`, { defaultValue: fallback }));
   const enumLabel = (raw: string | null | undefined, prefix = "") => {
     if (!raw) return "—";
-    const normalized = raw.toLowerCase();
-    return String(t(`admin.${prefix}${normalized}`, {
-      defaultValue: t(`admin.${normalized}`, {
-        defaultValue: t(`admin.config.${normalized}`, raw.replace(/_/g, " ")),
-      }),
-    }));
+    if (prefix === "provider_type_") return reportProviderTypeLabel(t, raw);
+    if (["online", "telemedicine", "home", "home_visit", "clinic", "clinic_visit"].includes(raw.toLowerCase())) {
+      return reportVisitTypeLabel(t, raw);
+    }
+    if (["card", "stripe", "wallet", "cash", "bank_transfer", "insurance"].includes(raw.toLowerCase())) {
+      return reportPaymentMethodLabel(t, raw);
+    }
+    return reportStatusLabel(t, raw);
   };
   if (!row) return null;
   const cur = row.display_currency ?? "USD";
@@ -534,12 +537,14 @@ function ExpandedRow({ row, fmt }: { row: MasterRow; fmt: (n: number) => string 
   const a = (key: string, fallback: string) => String(t(`admin.${key}`, { defaultValue: fallback }));
   const enumLabel = (raw: string | null | undefined, prefix = "") => {
     if (!raw) return "—";
-    const normalized = raw.toLowerCase();
-    return String(t(`admin.${prefix}${normalized}`, {
-      defaultValue: t(`admin.${normalized}`, {
-        defaultValue: t(`admin.config.${normalized}`, raw.replace(/_/g, " ")),
-      }),
-    }));
+    if (prefix === "provider_type_") return reportProviderTypeLabel(t, raw);
+    if (["online", "telemedicine", "home", "home_visit", "clinic", "clinic_visit"].includes(raw.toLowerCase())) {
+      return reportVisitTypeLabel(t, raw);
+    }
+    if (["card", "stripe", "wallet", "cash", "bank_transfer", "insurance"].includes(raw.toLowerCase())) {
+      return reportPaymentMethodLabel(t, raw);
+    }
+    return reportStatusLabel(t, raw);
   };
   const cur = row.display_currency ?? "USD";
   const fmtLocal = (v: number) => fmtBooking(v, cur);
@@ -626,12 +631,14 @@ export function FinancialMasterReport() {
     String(t(`admin.${key}`, { defaultValue: fallback, ...options }));
   const enumLabel = (raw: string | null | undefined, prefix = "") => {
     if (!raw) return "—";
-    const normalized = raw.toLowerCase();
-    return String(t(`admin.${prefix}${normalized}`, {
-      defaultValue: t(`admin.${normalized}`, {
-        defaultValue: t(`admin.config.${normalized}`, raw.replace(/_/g, " ")),
-      }),
-    }));
+    if (prefix === "provider_type_") return reportProviderTypeLabel(t, raw);
+    if (["online", "telemedicine", "home", "home_visit", "clinic", "clinic_visit"].includes(raw.toLowerCase())) {
+      return reportVisitTypeLabel(t, raw);
+    }
+    if (["card", "stripe", "wallet", "cash", "bank_transfer", "insurance"].includes(raw.toLowerCase())) {
+      return reportPaymentMethodLabel(t, raw);
+    }
+    return reportStatusLabel(t, raw);
   };
 
   // Filters
