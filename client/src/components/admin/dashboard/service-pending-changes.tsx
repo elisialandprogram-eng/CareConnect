@@ -52,10 +52,10 @@ const LOCATION_MODE_LABELS: Record<string, string> = {
 const formatLocationMode = (v: string, t: (key: string, options?: any) => string) =>
   reportLocationModeLabel(t, v, LOCATION_MODE_LABELS[v] ?? "");
 
-const renderVal = (field: string, v: any) => {
+const renderVal = (field: string, v: any, t: (key: string, options?: any) => string) => {
   if (v == null || v === "") return "—";
   if (typeof v === "boolean") return v ? "Yes" : "No";
-  if (field === "location_mode") return formatLocationMode(String(v));
+  if (field === "location_mode") return formatLocationMode(String(v), t);
   return String(v);
 };
 
@@ -293,7 +293,7 @@ export function ServicePendingChangesPanel() {
                   return (
                     <div key={k} className="flex items-center justify-between gap-2 border rounded px-2 py-1.5 bg-muted/30">
                       <span className="text-muted-foreground">{label}</span>
-                      <span className="font-semibold text-primary">{renderVal(k, val)}</span>
+                      <span className="font-semibold text-primary">{renderVal(k, val, t)}</span>
                     </div>
                   );
                 })
@@ -301,8 +301,8 @@ export function ServicePendingChangesPanel() {
                   <div key={k} className="flex items-center justify-between gap-2 border rounded px-2 py-1.5 bg-muted/30">
                     <span className="text-muted-foreground">{SVC_FIELD_LABELS[k] ?? k}</span>
                     <span>
-                      <span className="line-through text-muted-foreground mr-2">{renderVal(k, row[k])}</span>
-                      <span className="font-semibold text-primary">{renderVal(k, staged[k])}</span>
+                      <span className="line-through text-muted-foreground mr-2">{renderVal(k, row[k], t)}</span>
+                      <span className="font-semibold text-primary">{renderVal(k, staged[k], t)}</span>
                     </span>
                   </div>
                 ))
@@ -327,7 +327,7 @@ export function ServicePendingChangesPanel() {
           ].filter(f => f.val != null && f.val !== "").map(f => (
             <div key={f.label} className="flex items-center justify-between gap-2 border rounded px-2 py-1.5 bg-muted/30">
               <span className="text-muted-foreground">{f.label}</span>
-              <span className="font-semibold text-primary">{renderVal(f.field, f.val)}</span>
+              <span className="font-semibold text-primary">{renderVal(f.field, f.val, t)}</span>
             </div>
           ))}
         </div>

@@ -36,6 +36,7 @@ import { showErrorModal } from "@/components/error-modal";
 import { useAuth } from "@/lib/auth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useCurrency, formatInCurrency } from "@/lib/currency";
+import { reportStatusLabel } from "@/lib/report-localization";
 import {
   Calendar,
   Clock,
@@ -1543,7 +1544,7 @@ export default function PatientDashboard() {
                                 variant={inv.status === "paid" ? "default" : inv.status === "due" ? "outline" : "secondary"}
                                 data-testid={`status-invoice-${inv.id}`}
                               >
-                                {t(`patient_dashboard.status_${inv.status}`, inv.status)}
+                                {String(t(`patient_dashboard.status_${inv.status}`, inv.status))}
                               </Badge>
                             </div>
                             <Button
@@ -1614,7 +1615,7 @@ export default function PatientDashboard() {
             <div className="text-right">
               <p className="font-semibold">{fmtMoney(payment.amount)}</p>
               <Badge variant={payment.status === 'completed' ? 'default' : 'outline'}>
-                {payment.status}
+                {reportStatusLabel(t, payment.status, payment.status)}
               </Badge>
             </div>
           </div>

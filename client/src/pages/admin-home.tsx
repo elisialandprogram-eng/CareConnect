@@ -132,7 +132,7 @@ function timeAgo(iso: string, t: (key: string, options?: any) => string): string
 
 function actionLabel(action: string, t: (key: string, fallback: string) => string): string {
   const key = action.toLowerCase().replace(/[^a-z0-9]+/g, "_");
-  return reportAuditActionLabel(t, action, String(t(`admin.activity_action_${key}`, { defaultValue: "" }) || ""));
+  return reportAuditActionLabel(t, action, String(t(`admin.activity_action_${key}`, "") || ""));
 }
 
 function localizedEnum(
@@ -142,7 +142,7 @@ function localizedEnum(
 ): string {
   const normalized = value?.toLowerCase().replace(/[^a-z0-9]+/g, "_");
   if (!normalized) return t("admin.system", "system");
-  return reportStatusLabel(t, normalized, String(t(`admin.${prefix}_${normalized}`, { defaultValue: "" }) || ""));
+  return reportStatusLabel(t, normalized, String(t(`admin.${prefix}_${normalized}`, "") || ""));
 }
 
 function entityIcon(entityType: string) {

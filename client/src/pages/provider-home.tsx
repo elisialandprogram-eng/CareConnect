@@ -365,17 +365,17 @@ export default function ProviderHome() {
   const contextMessages = useMemo(() => {
     const msgs: string[] = [];
     if (todayAppts.length === 0 && cancelledTodayCount > 0)
-      msgs.push(`${cancelledTodayCount} appointment${cancelledTodayCount !== 1 ? "s" : ""} today ${cancelledTodayCount === 1 ? "was" : "were"} cancelled.`);
-    else if (todayAppts.length === 0) msgs.push("No appointments scheduled today — enjoy the quiet.");
-    else if (todayAppts.length === 1) msgs.push("You have 1 appointment today.");
-    else msgs.push(`You have ${todayAppts.length} appointments today.`);
-    if (completedToday.length > 0) msgs.push(`${completedToday.length} member${completedToday.length !== 1 ? "s" : ""} seen today.`);
-    if (patientsThisWeek > 0) msgs.push(`${patientsThisWeek} members seen this week.`);
-    if (last7Stats.rate >= 0.20 && last7Stats.total >= 3) msgs.push(`Cancellation rate is ${Math.round(last7Stats.rate * 100)}% this week — consider reviewing your schedule.`);
-    if (pendingReviewReplies > 0) msgs.push(`${pendingReviewReplies} review${pendingReviewReplies !== 1 ? "s" : ""} waiting for your reply.`);
-    if (expiredDocs.length > 0) msgs.push("Expired documents require your attention.");
-    if (alerts.length === 0) msgs.push("Everything looks good today.");
-    return msgs.length ? msgs : ["Welcome back — your members are counting on you."];
+      msgs.push(t("provider_dashboard.cancelled_today_context", "{{count}} appointment{{suffix}} today {{verb}} cancelled.", { count: cancelledTodayCount, suffix: cancelledTodayCount !== 1 ? "s" : "", verb: cancelledTodayCount === 1 ? "was" : "were" }));
+    else if (todayAppts.length === 0) msgs.push(t("provider_dashboard.no_appointments_quiet", "No appointments scheduled today — enjoy the quiet."));
+    else if (todayAppts.length === 1) msgs.push(t("provider_dashboard.one_appointment_today", "You have 1 appointment today."));
+    else msgs.push(t("provider_dashboard.appointments_today_context", "You have {{count}} appointments today.", { count: todayAppts.length }));
+    if (completedToday.length > 0) msgs.push(t("provider_dashboard.members_seen_today", "{{count}} member{{suffix}} seen today.", { count: completedToday.length, suffix: completedToday.length !== 1 ? "s" : "" }));
+    if (patientsThisWeek > 0) msgs.push(t("provider_dashboard.members_seen_week", "{{count}} members seen this week.", { count: patientsThisWeek }));
+    if (last7Stats.rate >= 0.20 && last7Stats.total >= 3) msgs.push(t("provider_dashboard.cancellation_rate_context", "Cancellation rate is {{rate}}% this week — consider reviewing your schedule.", { rate: Math.round(last7Stats.rate * 100) }));
+    if (pendingReviewReplies > 0) msgs.push(t("provider_dashboard.reviews_waiting_context", "{{count}} review{{suffix}} waiting for your reply.", { count: pendingReviewReplies, suffix: pendingReviewReplies !== 1 ? "s" : "" }));
+    if (expiredDocs.length > 0) msgs.push(t("provider_dashboard.expired_documents_context", "Expired documents require your attention."));
+    if (alerts.length === 0) msgs.push(t("provider_dashboard.everything_good_today", "Everything looks good today."));
+    return msgs.length ? msgs : [t("provider_dashboard.welcome_context", "Welcome back — your members are counting on you.")];
   }, [todayAppts, cancelledTodayCount, completedToday, patientsThisWeek, last7Stats, pendingReviewReplies, expiredDocs, alerts]);
 
   const currentMessage = useRotating(contextMessages, 8000);

@@ -118,7 +118,7 @@ function StatusBadge({ status, t }: { status: string; t: (key: string, fallback:
   };
   return (
     <span className={cn("inline-flex text-[10px] font-medium px-1.5 py-0.5 rounded border border-transparent", map[status] ?? "bg-muted text-muted-foreground")}>
-       {reportStatusLabel(t, status, t(`admin_tools.expiry.status.${status}`, { defaultValue: "" }))}
+       {reportStatusLabel(t, status, t(`admin_tools.expiry.status.${status}`, ""))}
     </span>
   );
 }

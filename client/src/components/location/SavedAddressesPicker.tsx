@@ -226,7 +226,10 @@ export function SavedAddressesPicker({
   showManageOnly = false,
   className,
 }: SavedAddressesPickerProps) {
+  const { t } = useTranslation();
   const { toast } = useToast();
+  const nicknameLabel = (nickname: string) =>
+    t(`saved_addresses.nickname_${nickname.toLowerCase()}`, nickname);
   const [addOpen, setAddOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<SavedAddress | null>(null);
 

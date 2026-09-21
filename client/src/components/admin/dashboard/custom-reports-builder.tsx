@@ -369,7 +369,7 @@ export function CustomReportsBuilder() {
           <CardContent>
             <div className="overflow-x-auto rounded-md border">
               <table className="w-full min-w-[720px] text-sm">
-                <thead className="bg-muted/50"><tr>{result.columns.map(column => <th key={column.key} className="whitespace-nowrap px-3 py-2 text-left font-medium">{column.label}</th>)}</tr></thead>
+                <thead className="bg-muted/50"><tr>{result.columns.map(column => <th key={column.key} className="whitespace-nowrap px-3 py-2 text-left font-medium">{localize(column.key, column.label)}</th>)}</tr></thead>
                 <tbody>{result.rows.map((row, rowIndex) => <tr key={rowIndex} className="border-t">{result.columns.map(column => <td key={column.key} className="whitespace-nowrap px-3 py-2">{displayValue(row[column.key], column.type, (key, fallback) => translate(key, fallback))}</td>)}</tr>)}</tbody>
               </table>
                {!result.rows.length && <p className="p-6 text-center text-sm text-muted-foreground">{t("admin_tools.custom.no_rows", "No rows matched the current report.")}</p>}

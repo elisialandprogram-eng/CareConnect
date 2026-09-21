@@ -167,6 +167,12 @@ function humanLabel(val: string | number | null | undefined): string {
   return key.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
 }
 
+function localizedAdminValue(t: (key: string, options?: any) => string, val: string | number | null | undefined): string {
+  if (val === null || val === undefined) return "—";
+  const key = String(val);
+  return String(t(`admin_provider_details.${key}`, { defaultValue: humanLabel(val) }));
+}
+
 /** Return the native currency code for a country code. */
 function currencyForCountry(cc: string | null | undefined): string {
   if (cc === "HU") return "HUF";
@@ -223,6 +229,15 @@ const DOC_PLACEHOLDERS = [
 function ScheduleTab({ providerId }: { providerId: string }) {
   const { t } = useTranslation();
   const DAY_NAMES = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+  const dayLabels = [
+    t("day_sun_full", "Sunday"),
+    t("day_mon_full", "Monday"),
+    t("day_tue_full", "Tuesday"),
+    t("day_wed_full", "Wednesday"),
+    t("day_thu_full", "Thursday"),
+    t("day_fri_full", "Friday"),
+    t("day_sat_full", "Saturday"),
+  ];
 
   const { data, isLoading, isError } = useQuery<{
     officeHours: any | null;
@@ -282,7 +297,7 @@ function ScheduleTab({ providerId }: { providerId: string }) {
             return (
               <div key={dayNum} className={`flex items-center gap-4 px-4 py-3 border-b border-slate-100 dark:border-slate-800 last:border-0 ${!enabled ? "opacity-50" : ""}`}>
                 <div className="w-24 flex-shrink-0">
-                  <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">{DAY_NAMES[dayNum]}</span>
+                  <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">{dayLabels[dayNum]}</span>
                 </div>
                 {enabled ? (
                   <div className="flex-1 flex items-center gap-3 flex-wrap">
@@ -291,22 +306,22 @@ function ScheduleTab({ providerId }: { providerId: string }) {
                         {ws.start}–{ws.end}
                       </span>
                     )}
-                    {tmpl.length > 0 && tmpl.map((t, i) => (
-                      <span key={i} className={`text-xs px-2 py-0.5 rounded border font-mono ${t.is_active ? "bg-green-50 dark:bg-green-950/30 text-green-700 dark:text-green-300 border-green-200 dark:border-green-900" : "bg-slate-50 text-slate-500 border-slate-200 line-through"}`}>
-                        {t.start_time}–{t.end_time}
-                        {t.modality && ` (${humanLabel(t.modality)})`}
+                    {tmpl.length > 0 && tmpl.map((template, i) => (
+                      <span key={i} className={`text-xs px-2 py-0.5 rounded border font-mono ${template.is_active ? "bg-green-50 dark:bg-green-950/30 text-green-700 dark:text-green-300 border-green-200 dark:border-green-900" : "bg-slate-50 text-slate-500 border-slate-200 line-through"}`}>
+                        {template.start_time}–{template.end_time}
+                        {template.modality && ` (${localizedAdminValue(t, template.modality)})`}
                       </span>
                     ))}
                     {ws?.breaks?.length > 0 && (
-                      <span className="text-xs text-slate-400">Breaks: {ws.breaks.map((b: any) => `${b.start}–${b.end}`).join(", ")}</span>
+                      <span className="text-xs text-slate-400">{t("admin_provider_details.breaks", "Breaks")}: {ws.breaks.map((b: any) => `${b.start}–${b.end}`).join(", ")}</span>
                     )}
                     {tmpl[0]?.max_patients_per_day && (
                       <span className="text-[10px] text-slate-400 flex items-center gap-0.5">
-                        <Users className="h-2.5 w-2.5" />{tmpl[0].max_patients_per_day} max/day
+                        <Users className="h-2.5 w-2.5" />{t("admin_provider_details.max_per_day", "{{count}} max/day", { count: tmpl[0].max_patients_per_day })}
                       </span>
                     )}
                     {tmpl[0]?.slot_duration_mins && (
-                      <span className="text-[10px] text-slate-400">{tmpl[0].slot_duration_mins}min slots</span>
+                      <span className="text-[10px] text-slate-400">{t("admin_provider_details.slot_minutes", "{{count}} min slots", { count: tmpl[0].slot_duration_mins })}</span>
                     )}
                   </div>
                 ) : (
@@ -326,18 +341,18 @@ function ScheduleTab({ providerId }: { providerId: string }) {
             <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300">{t("admin_tools.ops.schedule_templates", "Schedule Templates")} ({scheduleTemplates.length})</h3>
           </div>
           <div className="rounded-lg border border-slate-200 dark:border-slate-700 divide-y divide-slate-100 dark:divide-slate-800 overflow-hidden">
-            {scheduleTemplates.map((t: any) => (
-              <div key={t.id} className="flex items-center gap-4 px-4 py-2.5">
-                <span className="w-20 text-xs font-medium text-slate-700 dark:text-slate-300 flex-shrink-0">{DAY_NAMES[t.day_of_week]}</span>
-                <span className="text-xs font-mono text-slate-600 dark:text-slate-400 flex-shrink-0">{t.start_time}–{t.end_time}</span>
-                {t.modality && <Badge variant="outline" className="text-[10px]">{humanLabel(t.modality)}</Badge>}
-                {!t.is_active && <Badge variant="outline" className="text-[10px] text-slate-400">{t("admin_tools.ops.inactive", "Inactive")}</Badge>}
+            {scheduleTemplates.map((template: any) => (
+              <div key={template.id} className="flex items-center gap-4 px-4 py-2.5">
+                <span className="w-20 text-xs font-medium text-slate-700 dark:text-slate-300 flex-shrink-0">{dayLabels[template.day_of_week]}</span>
+                <span className="text-xs font-mono text-slate-600 dark:text-slate-400 flex-shrink-0">{template.start_time}–{template.end_time}</span>
+                {template.modality && <Badge variant="outline" className="text-[10px]">{localizedAdminValue(t, template.modality)}</Badge>}
+                {!template.is_active && <Badge variant="outline" className="text-[10px] text-slate-400">{t("admin_tools.ops.inactive", "Inactive")}</Badge>}
                 <div className="flex-1" />
                 <div className="flex items-center gap-3 text-[10px] text-slate-400 flex-wrap">
-                  {t.slot_duration_mins && <span>{t.slot_duration_mins}min slots</span>}
-                  {t.buffer_before_mins > 0 && <span>Buffer {t.buffer_before_mins}m before</span>}
-                  {t.buffer_after_mins > 0 && <span>{t.buffer_after_mins}m after</span>}
-                  {t.max_patients_per_day && <span><Users className="h-2.5 w-2.5 inline mr-0.5" />{t.max_patients_per_day}/day</span>}
+                  {template.slot_duration_mins && <span>{t("admin_provider_details.slot_minutes", "{{count}} min slots", { count: template.slot_duration_mins })}</span>}
+                  {template.buffer_before_mins > 0 && <span>{t("admin_provider_details.buffer_before", "Buffer {{count}}m before", { count: template.buffer_before_mins })}</span>}
+                  {template.buffer_after_mins > 0 && <span>{t("admin_provider_details.buffer_after", "{{count}}m after", { count: template.buffer_after_mins })}</span>}
+                  {template.max_patients_per_day && <span><Users className="h-2.5 w-2.5 inline mr-0.5" />{t("admin_provider_details.per_day", "{{count}}/day", { count: template.max_patients_per_day })}</span>}
                 </div>
               </div>
             ))}
@@ -1135,7 +1150,7 @@ function ProviderCommandHeader({
           </div>
           <div className="flex items-center gap-2 mt-1 flex-wrap">
             <span className="text-sm text-slate-500 capitalize">
-              {prov.displayTitle || prov.display_title || prov.providerCategory || humanLabel(prov.providerType)}
+              {prov.displayTitle || prov.display_title || d(String(prov.providerType), humanLabel(prov.providerType))}
             </span>
             <span className="text-slate-300">·</span>
             <StatusBadge status={prov.status} domain="provider" className="text-xs" />
@@ -1626,14 +1641,14 @@ function ProviderCommandCenter({
               </div>
               <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
                 {[
-                   { label: d("category", "Category"), value: prov.providerCategory || humanLabel(prov.providerType) },
+                   { label: d("category", "Category"), value: prov.providerCategory || d(String(prov.providerType), humanLabel(prov.providerType)) },
                    { label: d("subcategory", "Subcategory"), value: prov.providerSubcategory || d("no_value", "—") },
-                   { label: d("provider_type", "Provider Type"), value: humanLabel(prov.providerType) },
-                   { label: d("account_type", "Account Type"), value: humanLabel(prov.accountType) },
+                   { label: d("provider_type", "Provider Type"), value: d(String(prov.providerType), humanLabel(prov.providerType)) },
+                   { label: d("account_type", "Account Type"), value: d(String(prov.accountType), humanLabel(prov.accountType)) },
                    { label: d("specialization", "Specialization"), value: prov.specialization || d("no_value", "—") },
                    { label: d("professional_title", "Professional Title"), value: prov.professionalTitle || d("no_value", "—") },
                    { label: d("languages", "Languages"), value: (prov.languages || []).join(", ") || d("no_value", "—") },
-                   { label: d("service_modes", "Service Modes"), value: (prov.serviceModes || []).map(humanLabel).join(", ") || d("no_value", "—") },
+                   { label: d("service_modes", "Service Modes"), value: (prov.serviceModes || []).map((mode: string) => d(mode, humanLabel(mode))).join(", ") || d("no_value", "—") },
                    { label: d("years_experience", "Years Experience"), value: prov.yearsExperience != null ? `${prov.yearsExperience} ${d("years", "years")}` : d("no_value", "—") },
                    { label: d("education", "Education"), value: prov.education || d("no_value", "—") },
                    { label: d("rating", "Rating"), value: prov.rating ? `${Number(prov.rating).toFixed(1)} ★  (${prov.totalReviews || 0} ${d("reviews", "reviews")})` : d("no_reviews", "No reviews yet") },
@@ -1662,7 +1677,7 @@ function ProviderCommandCenter({
               </div>
               <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
                 {[
-                   { label: d("country", "Country"), value: humanLabel(prov.countryCode) },
+                   { label: d("country", "Country"), value: d(String(prov.countryCode), humanLabel(prov.countryCode)) },
                    { label: d("city", "City"), value: prov.city || user?.city || d("no_value", "—") },
                    { label: d("timezone", "Timezone"), value: user?.timezone || d("no_value", "—") },
                    { label: d("practice_address", "Practice Address"), value: [prov.clinicAddressLine1, prov.clinicAddressLine2].filter(Boolean).join(", ") || prov.clinicFormattedAddress || d("no_value", "—") },
@@ -1673,7 +1688,7 @@ function ProviderCommandCenter({
                    { label: d("home_country", "Home Country"), value: prov.permanentCountry || d("no_value", "—") },
                    { label: d("support_email", "Support Email"), value: prov.supportEmail || d("no_value", "—") },
                    { label: d("support_phone", "Support Phone"), value: prov.supportPhone || d("no_value", "—") },
-                   { label: d("primary_location", "Primary Location"), value: humanLabel(prov.primaryServiceLocation) },
+                   { label: d("primary_location", "Primary Location"), value: d(String(prov.primaryServiceLocation), humanLabel(prov.primaryServiceLocation)) },
                 ].map(({ label, value }) => (
                   <div key={label} className="flex items-start gap-2 text-sm">
                     <span className="text-xs text-slate-400 w-36 flex-shrink-0 pt-0.5">{label}</span>
@@ -1694,9 +1709,9 @@ function ProviderCommandCenter({
                   const nativeCcy = currencyForCountry(prov.countryCode);
                   const walletCcy = financials.walletCurrency || "USD";
                   return [
-                    { label: d("native_currency", "Native Currency"), value: humanLabel(nativeCcy), note: d("provider_pricing_currency", "Provider pricing currency") },
-                    { label: d("country_currency", "Country Currency"), value: humanLabel(nativeCcy), note: d("based_on_country", "Based on {{country}}", { country: humanLabel(prov.countryCode) }) },
-                    { label: d("wallet_currency", "Wallet Currency"), value: humanLabel(walletCcy), note: d("wallet_stored_in", "Wallet stored in") },
+                    { label: d("native_currency", "Native Currency"), value: d(nativeCcy, humanLabel(nativeCcy)), note: d("provider_pricing_currency", "Provider pricing currency") },
+                    { label: d("country_currency", "Country Currency"), value: d(nativeCcy, humanLabel(nativeCcy)), note: d("based_on_country", "Based on {{country}}", { country: d(String(prov.countryCode), humanLabel(prov.countryCode)) }) },
+                    { label: d("wallet_currency", "Wallet Currency"), value: d(walletCcy, humanLabel(walletCcy)), note: d("wallet_stored_in", "Wallet stored in") },
                     { label: d("payment_methods", "Payment Methods"), value: (prov.paymentMethods || []).join(", ") || "—" },
                     { label: d("insurance_accepted", "Insurance Accepted"), value: (prov.insuranceAccepted || []).join(", ") || "—" },
                     { label: d("wallet_balance", "Wallet Balance"), value: fmtUSD(financials.walletBalance), note: d("admin_usd", "Admin (USD)") },
@@ -1862,8 +1877,8 @@ function ProviderCommandCenter({
                         <div className="flex items-center gap-3 mt-1 flex-wrap text-xs text-slate-500">
                           {/* P5: use native currency, never fmtUSD */}
                           <span className="font-medium text-slate-700 dark:text-slate-300">{fmtSvcPrice(svc.price, svcCcy)}</span>
-                           {svc.duration && <span>{svc.duration}min</span>}
-                          {svc.locationMode && <span>{humanLabel(svc.locationMode)}</span>}
+                           {svc.duration && <span>{d("minutes", "{{count}} min", { count: svc.duration })}</span>}
+                          {svc.locationMode && <span>{d(String(svc.locationMode), humanLabel(svc.locationMode))}</span>}
                           {Number(svc.homeVisitFee) > 0 && (
                             <span className="flex items-center gap-0.5">
                               <Home className="h-2.5 w-2.5" />{fmtSvcPrice(svc.homeVisitFee, svcCcy)}
@@ -1874,7 +1889,7 @@ function ProviderCommandCenter({
                               <CreditCard className="h-2.5 w-2.5" />{fmtSvcPrice(svc.telemedicineFee, svcCcy)}
                             </span>
                           )}
-                           {svc.bufferBefore > 0 && <span>+{svc.bufferBefore}m {d("buffer", "buffer")}</span>}
+                           {svc.bufferBefore > 0 && <span>{d("buffer", "+{{count}}m buffer", { count: svc.bufferBefore })}</span>}
                         </div>
                         {svc.description && <p className="text-xs text-slate-400 mt-1 line-clamp-1">{svc.description}</p>}
                       </div>

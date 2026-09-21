@@ -70,6 +70,7 @@ function ProviderGallerySection({ providerId }: { providerId: string }) {
 }
 
 function VerifiedCredentialsSection({ providerId }: { providerId: string }) {
+  const { t } = useTranslation();
   const { data: credentials = [], isLoading } = useQuery<any[]>({
     queryKey: QK.providerPublicCredentials(providerId!),
     queryFn: () => fetch(`/api/providers/${providerId}/credentials`).then(r => r.ok ? r.json() : []),
