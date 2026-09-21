@@ -138,3 +138,4 @@
 - [Admin localization sweep](admin-localization-sweep.md) — keep admin additions in a merged overlay with identical en/hu/fa keys; map dynamic notification types to translated semantic labels
 - [Provider document expiry column](provider-document-expiry-column.md) — provider_documents stores expiry_date text and expired_at timestamp; compliance analytics must not query expires_at
 - [Analytics label locale](analytics-label-locale.md) — APIs return ISO month/week keys; the client formats visible chart labels with the active locale
+- [Admin database enum localization](admin-db-enum-localization.md) — render database-backed statuses, methods, visit modes, categories, and lifecycle values through locale keys

@@ -8,7 +8,6 @@ import { useState, useCallback, useRef, type ElementType, type ReactNode } from 
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAdminCurrency, formatInCurrency } from "@/lib/currency";
 import { formatCount } from "@/lib/format-utils";
-import { format } from "date-fns";
 import { useLocation } from "wouter";
 import {
   Card, CardContent, CardHeader, CardTitle,
@@ -165,17 +164,28 @@ function saveFilters(v: SavedFilter[]) { localStorage.setItem(FILTER_STORAGE_KEY
 const TOKEN = () => localStorage.getItem("token") || "";
 function authFetch(url: string) { return fetch(url, { headers: { Authorization: `Bearer ${TOKEN()}` } }).then(r => r.json()); }
 function n(v: string | number | null | undefined) { return Number(v) || 0; }
+function activeLocale() {
+  if (typeof document !== "undefined" && document.documentElement.lang) return document.documentElement.lang;
+  if (typeof navigator !== "undefined" && navigator.language) return navigator.language;
+  return "en";
+}
 function fmtDate(iso: string | null | undefined) {
   if (!iso) return "—";
-  try { return format(new Date(iso), "d MMM yyyy"); } catch { return "—"; }
+  try {
+    return new Intl.DateTimeFormat(activeLocale(), { day: "numeric", month: "short", year: "numeric" }).format(new Date(iso));
+  } catch { return "—"; }
 }
 function fmtDateTime(iso: string | null | undefined) {
   if (!iso) return "—";
-  try { return format(new Date(iso), "d MMM yyyy HH:mm"); } catch { return "—"; }
+  try {
+    return new Intl.DateTimeFormat(activeLocale(), {
+      day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit",
+    }).format(new Date(iso));
+  } catch { return "—"; }
 }
 function fmtTime(iso: string | null | undefined) {
   if (!iso) return "—";
-  try { return format(new Date(iso), "HH:mm"); } catch { return "—"; }
+  try { return new Intl.DateTimeFormat(activeLocale(), { hour: "2-digit", minute: "2-digit" }).format(new Date(iso)); } catch { return "—"; }
 }
 function fmtBooking(amount: number, currency: string | null | undefined) {
   return formatInCurrency(amount, currency ?? "USD");
@@ -215,7 +225,7 @@ function SBadge({ value }: { value: string | null | undefined }) {
   if (!value) return <span className="text-muted-foreground text-xs">—</span>;
   const normalized = value.toLowerCase().replace(/^refund:/, "");
   const label = String(t(`admin.booking_status_${normalized}`, {
-    defaultValue: normalized.replace(/_/g, " "),
+    defaultValue: t(`admin.config.${normalized}`, normalized.replace(/_/g, " ")),
   }));
   return (
     <Badge variant="outline" className={`capitalize text-xs ${STATUS_CLS[value.toLowerCase()] ?? "bg-muted text-muted-foreground"}`}>
@@ -244,9 +254,9 @@ function Timeline({ id }: { id: string }) {
            <p className="ps-2 text-muted-foreground">
              {fmtDateTime(ev.created_at)} · {ev.actor_first_name ? `${ev.actor_first_name} ${ev.actor_last_name}` : ev.actor_role ?? t("admin.system", "System")}
           </p>
-          {ev.from_status && ev.to_status && (
-            <p className="ps-2 text-muted-foreground">{ev.from_status} → {ev.to_status}</p>
-          )}
+           {ev.from_status && ev.to_status && (
+             <p className="ps-2 text-muted-foreground"><SBadge value={ev.from_status} /> → <SBadge value={ev.to_status} /></p>
+           )}
           {ev.reason && <p className="ps-2 italic text-muted-foreground">"{ev.reason}"</p>}
         </div>
       ))}
@@ -265,6 +275,15 @@ function InvestigationDrawer({
 
   const cur = row.display_currency ?? "USD";
   const fmtLocal = (v: number) => fmtBooking(v, cur);
+  const enumLabel = (raw: string | null | undefined, prefix = "") => {
+    if (!raw) return "—";
+    const normalized = raw.toLowerCase();
+    return String(t(`admin.${prefix}${normalized}`, {
+      defaultValue: t(`admin.${normalized}`, {
+        defaultValue: t(`admin.config.${normalized}`, raw.replace(/_/g, " ")),
+      }),
+    }));
+  };
   // Only use final_total_usd when it is actually populated (NULL for cash/bank-transfer
   // bookings) — using total_amount (HUF/IRR) as a USD fallback produces a wrong figure.
   const usdNorm = row.final_total_usd != null ? n(row.final_total_usd) : null;
@@ -348,8 +367,8 @@ function InvestigationDrawer({
              <Row label={t("admin.end_time", "End time")} value={fmtTime(row.end_at)} />
              <Row label={t("admin.duration", "Duration")} value={row.service_duration ? `${row.service_duration} min` : null} />
              <Row label={t("admin.timezone", "Timezone")} value={row.provider_timezone} />
-             <Row label={t("admin.visit_type", "Visit type")} value={row.visit_type} />
-             <Row label={t("admin.location", "Location")} value={row.location_mode ?? row.visit_type} />
+              <Row label={t("admin.visit_type", "Visit type")} value={enumLabel(row.visit_type)} />
+              <Row label={t("admin.location", "Location")} value={enumLabel(row.location_mode ?? row.visit_type)} />
              <Row label={t("admin.clinic", "Clinic")} value={row.clinic_name} />
           </Section>
 
@@ -370,7 +389,7 @@ function InvestigationDrawer({
            <Section title={`D · ${t("admin.provider", "Provider")}`} icon={Building2}>
              <Row label={t("admin.name", "Name")} value={`${row.provider_first_name} ${row.provider_last_name}`} />
              <Row label={t("admin.email", "Email")} value={row.provider_email} />
-             <Row label={t("admin.category", "Category")} value={row.provider_category?.replace(/_/g, " ")} />
+             <Row label={t("admin.category", "Category")} value={enumLabel(row.provider_category, "provider_type_")} />
              <Row label={t("admin.city", "City")} value={row.provider_city} />
              <Row label={t("admin.country", "Country")} value={row.provider_country} />
              <Row label={t("admin.clinic", "Clinic")} value={row.clinic_name} />
@@ -379,8 +398,8 @@ function InvestigationDrawer({
           {/* E: Service */}
            <Section title={`E · ${t("admin.service", "Service")}`} icon={Stethoscope}>
              <Row label={t("admin.service", "Service")} value={row.service_name} />
-             <Row label={t("admin.category", "Category")} value={row.service_category?.replace(/_/g, " ")} />
-             <Row label={t("admin.visit_type", "Visit type")} value={row.visit_type} />
+             <Row label={t("admin.category", "Category")} value={enumLabel(row.service_category, "provider_type_")} />
+             <Row label={t("admin.visit_type", "Visit type")} value={enumLabel(row.visit_type)} />
              <Row label={t("admin.duration", "Duration")} value={row.service_duration ? `${row.service_duration} min` : null} />
           </Section>
 
@@ -454,7 +473,7 @@ function ExpandedRow({ row, fmt }: { row: BookingRow; fmt: (n: number) => string
              <div className="flex justify-between"><span className="text-muted-foreground">{t("admin.date", "Date")}</span><span>{fmtDate(row.start_at)}</span></div>
              <div className="flex justify-between"><span className="text-muted-foreground">{t("admin.time", "Time")}</span><span>{fmtTime(row.start_at)} – {fmtTime(row.end_at)}</span></div>
              <div className="flex justify-between"><span className="text-muted-foreground">{t("admin.timezone", "Timezone")}</span><span className="text-xs">{row.provider_timezone ?? "—"}</span></div>
-             <div className="flex justify-between"><span className="text-muted-foreground">{t("admin.location", "Location")}</span><span className="capitalize">{(row.location_mode ?? row.visit_type)?.replace(/_/g," ")}</span></div>
+             <div className="flex justify-between"><span className="text-muted-foreground">{t("admin.location", "Location")}</span><span>{enumLabel(row.location_mode ?? row.visit_type)}</span></div>
              {row.clinic_name && <div className="flex justify-between"><span className="text-muted-foreground">{t("admin.clinic", "Clinic")}</span><span>{row.clinic_name}</span></div>}
           </div>
           <div className="space-y-1">
@@ -467,7 +486,7 @@ function ExpandedRow({ row, fmt }: { row: BookingRow; fmt: (n: number) => string
           </div>
           <div className="space-y-1">
              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">{t("admin.payment_invoice", "Payment & invoice")}</p>
-             <div className="flex justify-between"><span className="text-muted-foreground">{t("admin.method", "Method")}</span><span className="capitalize">{(row.payment_method ?? row.appt_payment_method ?? "—").replace(/_/g," ")}</span></div>
+             <div className="flex justify-between"><span className="text-muted-foreground">{t("admin.method", "Method")}</span><span>{enumLabel(row.payment_method ?? row.appt_payment_method)}</span></div>
              <div className="flex justify-between"><span className="text-muted-foreground">{t("admin.status", "Status")}</span><SBadge value={row.payment_record_status} /></div>
              {row.stripe_payment_id && <div className="flex justify-between"><span className="text-muted-foreground">{t("admin.stripe", "Stripe")}</span><span className="font-mono text-xs truncate max-w-[140px]">{row.stripe_payment_id}</span></div>}
              {row.invoice_number && <div className="flex justify-between"><span className="text-muted-foreground">{t("admin.invoice", "Invoice")}</span><span>{row.invoice_number}</span></div>}
@@ -485,6 +504,15 @@ export function BookingsManagementComponent() {
   const { format: fmt } = useAdminCurrency();
   const { toast } = useToast();
   const { t } = useTranslation();
+  const enumLabel = (raw: string | null | undefined, prefix = "") => {
+    if (!raw) return "—";
+    const normalized = raw.toLowerCase();
+    return String(t(`admin.${prefix}${normalized}`, {
+      defaultValue: t(`admin.${normalized}`, {
+        defaultValue: t(`admin.config.${normalized}`, raw.replace(/_/g, " ")),
+      }),
+    }));
+  };
 
   // Filters
   const [search, setSearch]                   = useState("");
@@ -903,7 +931,7 @@ export function BookingsManagementComponent() {
                   const isExpanded = expandedId === row.id;
                   const cur = row.display_currency ?? "USD";
                   const usdNorm = n(row.final_total_usd ?? row.total_amount);
-                  const payMethod = (row.payment_method ?? row.appt_payment_method ?? "").replace(/_/g, " ");
+                   const payMethod = row.payment_method ?? row.appt_payment_method;
                   return (
                     <>
                       <tr
@@ -934,7 +962,7 @@ export function BookingsManagementComponent() {
                         {visibleCols.has("provider") && (
                           <td className="px-3 py-2.5 whitespace-nowrap">
                             <div className="text-xs font-medium">{row.provider_first_name} {row.provider_last_name}</div>
-                            <div className="text-xs text-muted-foreground capitalize">{row.provider_category?.replace(/_/g, " ")}</div>
+                             <div className="text-xs text-muted-foreground">{enumLabel(row.provider_category, "provider_type_")}</div>
                             {row.provider_city && <div className="text-xs text-muted-foreground flex items-center gap-0.5"><MapPin className="h-2.5 w-2.5" />{row.provider_city}</div>}
                           </td>
                         )}
@@ -970,7 +998,7 @@ export function BookingsManagementComponent() {
                           </td>
                         )}
                         {visibleCols.has("method") && (
-                          <td className="px-3 py-2.5 text-xs capitalize whitespace-nowrap">{payMethod || "—"}</td>
+                         <td className="px-3 py-2.5 text-xs whitespace-nowrap">{enumLabel(payMethod)}</td>
                         )}
                         <td className="px-3 py-2.5 text-right whitespace-nowrap no-print">
                           <div className="flex items-center gap-1 justify-end">

@@ -223,7 +223,9 @@ function StatusBadge({ value }: { value: string | null | undefined }) {
   const cls = STATUS_COLORS[value.toLowerCase()] ?? "bg-muted text-muted-foreground";
   return (
     <Badge variant="outline" className={`capitalize text-xs ${cls}`}>
-       {String(t(`admin.booking_status_${value.toLowerCase()}`, { defaultValue: value.replace(/_/g, " ") }))}
+       {String(t(`admin.booking_status_${value.toLowerCase()}`, {
+         defaultValue: t(`admin.config.${value.toLowerCase()}`, value.replace(/_/g, " ")),
+       }))}
     </Badge>
   );
 }
@@ -326,7 +328,7 @@ function LifecycleTimeline({ appointmentId }: { appointmentId: string }) {
                    <span className="text-xs font-semibold capitalize">{r(`action_${ev.action}`, ev.action.replace(/_/g, " "))}</span>
                   {ev.from_status && ev.to_status && (
                     <span className="text-xs text-muted-foreground">
-                      {ev.from_status} → {ev.to_status}
+                       <StatusBadge value={ev.from_status} /> → <StatusBadge value={ev.to_status} />
                     </span>
                   )}
                 </div>
@@ -349,8 +351,17 @@ function InvestigationDrawer({
   row: MasterRow | null; open: boolean; onClose: () => void; fmt: (n: number) => string;
 }) {
   const { t } = useTranslation();
-  const r = (key: string, fallback: string) => String(t(`admin_extra.financial.${key}`, { defaultValue: fallback }));
+  const r = (key: string, fallback: string) => String(t(`admin.${key}`, { defaultValue: fallback }));
   const a = (key: string, fallback: string) => String(t(`admin.${key}`, { defaultValue: fallback }));
+  const enumLabel = (raw: string | null | undefined, prefix = "") => {
+    if (!raw) return "—";
+    const normalized = raw.toLowerCase();
+    return String(t(`admin.${prefix}${normalized}`, {
+      defaultValue: t(`admin.${normalized}`, {
+        defaultValue: t(`admin.config.${normalized}`, raw.replace(/_/g, " ")),
+      }),
+    }));
+  };
   if (!row) return null;
   const cur = row.display_currency ?? "USD";
   const fmtLocal = (v: number) => fmtBooking(v, cur);
@@ -391,8 +402,8 @@ function InvestigationDrawer({
             <Row label={r("booking_ref", "Booking Ref")} value={row.appointment_number} />
             <Row label={r("status", "Status")} value={<StatusBadge value={row.status} />} />
             <Row label={r("payment_status", "Payment Status")} value={<StatusBadge value={row.payment_status} />} />
-            <Row label={r("visit_type", "Visit Type")} value={row.visit_type} />
-            <Row label={r("location_type", "Location Type")} value={row.location_mode ?? row.visit_type} />
+            <Row label={r("visit_type", "Visit Type")} value={enumLabel(row.visit_type)} />
+            <Row label={r("location_type", "Location Type")} value={enumLabel(row.location_mode ?? row.visit_type)} />
             <Row label={r("created", "Created")} value={fmtDateTime(row.created_at)} />
             <Row label={r("appointment_at", "Appointment At")} value={fmtDateTime(row.start_at)} />
             <Row label={r("completion_date", "Completion Date")} value={fmtDateTime(row.end_at)} />
@@ -417,7 +428,7 @@ function InvestigationDrawer({
              <Row label={r("provider_id", "Provider ID")} value={row.provider_id} />
              <Row label={r("name", "Name")} value={`${row.provider_first_name} ${row.provider_last_name}`} />
              <Row label={r("email", "Email")} value={row.provider_email} />
-             <Row label={r("category", "Category")} value={row.provider_category?.replace(/_/g, " ")} />
+             <Row label={r("category", "Category")} value={enumLabel(row.provider_category, "provider_type_")} />
              <Row label={r("city", "City")} value={row.provider_city} />
              <Row label={r("country", "Country")} value={row.provider_country} />
              <Row label={r("clinic_name", "Clinic Name")} value={row.clinic_name} />
@@ -427,7 +438,7 @@ function InvestigationDrawer({
            <Section title={`D · ${r("service", "Service")}`} icon={BookOpen}>
              <Row label={r("service_id", "Service ID")} value={row.service_id} />
              <Row label={r("service", "Service")} value={row.service_name} />
-             <Row label={r("category", "Category")} value={row.service_category?.replace(/_/g, " ")} />
+             <Row label={r("category", "Category")} value={enumLabel(row.service_category, "provider_type_")} />
              <Row label={r("duration", "Duration")} value={row.service_duration ? `${row.service_duration} min` : null} />
           </Section>
 
@@ -475,7 +486,7 @@ function InvestigationDrawer({
           {/* Section F — Payment */}
           <Section title={`F · ${r("payment", "Payment")}`} icon={Banknote}>
             <Row label={r("payment_id", "Payment ID")} value={row.payment_id} />
-            <Row label={r("method", "Method")} value={row.payment_method ?? row.appt_payment_method} />
+            <Row label={r("method", "Method")} value={enumLabel(row.payment_method ?? row.appt_payment_method)} />
             <Row label={r("amount_usd", "Amount (USD)")} value={row.payment_amount ? fmt(n(row.payment_amount)) : null} />
             <Row label={r("status", "Status")} value={<StatusBadge value={row.payment_record_status} />} />
             <Row label={r("stripe_intent", "Stripe Intent")} value={
@@ -519,8 +530,17 @@ function InvestigationDrawer({
 
 function ExpandedRow({ row, fmt }: { row: MasterRow; fmt: (n: number) => string }) {
   const { t } = useTranslation();
-  const r = (key: string, fallback: string) => String(t(`admin_extra.financial.${key}`, { defaultValue: fallback }));
+  const r = (key: string, fallback: string) => String(t(`admin.${key}`, { defaultValue: fallback }));
   const a = (key: string, fallback: string) => String(t(`admin.${key}`, { defaultValue: fallback }));
+  const enumLabel = (raw: string | null | undefined, prefix = "") => {
+    if (!raw) return "—";
+    const normalized = raw.toLowerCase();
+    return String(t(`admin.${prefix}${normalized}`, {
+      defaultValue: t(`admin.${normalized}`, {
+        defaultValue: t(`admin.config.${normalized}`, raw.replace(/_/g, " ")),
+      }),
+    }));
+  };
   const cur = row.display_currency ?? "USD";
   const fmtLocal = (v: number) => fmtBooking(v, cur);
   const usdNorm = n(row.final_total_usd ?? row.total_amount);
@@ -552,7 +572,7 @@ function ExpandedRow({ row, fmt }: { row: MasterRow; fmt: (n: number) => string 
 
           <div className="space-y-1 text-sm">
             <p className="font-semibold text-xs uppercase tracking-wider text-muted-foreground mb-2">{a("payment", "Payment")}</p>
-            <div className="flex justify-between"><span className="text-muted-foreground">{a("method", "Method")}</span><span className="capitalize">{row.payment_method ?? row.appt_payment_method ?? "—"}</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">{a("method", "Method")}</span><span>{enumLabel(row.payment_method ?? row.appt_payment_method)}</span></div>
             <div className="flex justify-between"><span className="text-muted-foreground">{a("status", "Status")}</span><StatusBadge value={row.payment_record_status} /></div>
             {row.stripe_payment_id && (
               <div className="flex justify-between"><span className="text-muted-foreground">{a("stripe_id", "Stripe ID")}</span><span className="font-mono text-xs truncate max-w-[140px]">{row.stripe_payment_id}</span></div>
@@ -604,6 +624,15 @@ export function FinancialMasterReport() {
     String(t(`admin.report.${key}`, { defaultValue: fallback, ...options }));
   const a = (key: string, fallback: string, options?: Record<string, unknown>) =>
     String(t(`admin.${key}`, { defaultValue: fallback, ...options }));
+  const enumLabel = (raw: string | null | undefined, prefix = "") => {
+    if (!raw) return "—";
+    const normalized = raw.toLowerCase();
+    return String(t(`admin.${prefix}${normalized}`, {
+      defaultValue: t(`admin.${normalized}`, {
+        defaultValue: t(`admin.config.${normalized}`, raw.replace(/_/g, " ")),
+      }),
+    }));
+  };
 
   // Filters
   const [search, setSearch] = useState("");
@@ -1122,7 +1151,7 @@ export function FinancialMasterReport() {
                         {visibleCols.has("provider") && (
                           <td className="px-3 py-2.5 whitespace-nowrap">
                             <div className="font-medium text-xs">{row.provider_first_name} {row.provider_last_name}</div>
-                            <div className="text-xs text-muted-foreground capitalize">{row.provider_category?.replace(/_/g, " ")}</div>
+                            <div className="text-xs text-muted-foreground">{enumLabel(row.provider_category, "provider_type_")}</div>
                           </td>
                         )}
                         {visibleCols.has("service") && (
@@ -1134,7 +1163,7 @@ export function FinancialMasterReport() {
                         {visibleCols.has("type") && (
                           <td className="px-3 py-2.5 whitespace-nowrap">
                             <span className="text-xs capitalize text-muted-foreground">
-                              {(row.visit_type ?? row.location_mode ?? "").replace(/_/g, " ") || "—"}
+                              {enumLabel(row.visit_type ?? row.location_mode)}
                             </span>
                           </td>
                         )}
@@ -1147,7 +1176,7 @@ export function FinancialMasterReport() {
                           <td className="px-3 py-2.5 whitespace-nowrap">
                             <div><StatusBadge value={row.payment_status} /></div>
                             {payMethod && (
-                              <div className="text-xs text-muted-foreground capitalize mt-0.5">{payMethod.replace(/_/g, " ")}</div>
+                               <div className="text-xs text-muted-foreground mt-0.5">{enumLabel(payMethod)}</div>
                             )}
                           </td>
                         )}

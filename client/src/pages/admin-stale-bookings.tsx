@@ -247,7 +247,9 @@ export default function AdminStaleBookings() {
                             className={STATUS_TONE[item.status] || ""}
                             data-testid={`badge-status-${item.id}`}
                           >
-                            {item.status}
+                             {t(`admin.booking_status_${item.status}`, {
+                               defaultValue: t(`admin.config.${item.status}`, item.status.replace(/_/g, " ")),
+                             })}
                           </Badge>
                         </td>
                         <td className="py-2 pr-3 text-muted-foreground" data-testid={`text-reason-${item.id}`}>

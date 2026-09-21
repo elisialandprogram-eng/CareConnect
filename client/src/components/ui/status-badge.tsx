@@ -154,12 +154,23 @@ export function StatusBadge({
   const { t } = useTranslation();
   const { label, classes } = resolve(status, domain);
   const normalizedStatus = (status ?? "").toLowerCase();
-  const translatedLabel =
+  const translatedLabel = String(
     domain === "appointment"
-      ? t(`member_status.appointment.${normalizedStatus}`, label)
+      ? t(`member_status.appointment.${normalizedStatus}`, {
+          defaultValue: t(`admin.booking_status_${normalizedStatus}`, {
+            defaultValue: t(`admin.config.${normalizedStatus}`, label),
+          }),
+        })
       : domain === "payment"
-        ? t(`member_status.payment.${normalizedStatus}`, label)
-        : label;
+        ? t(`member_status.payment.${normalizedStatus}`, {
+            defaultValue: t(`admin.booking_status_${normalizedStatus}`, {
+              defaultValue: t(`admin.config.${normalizedStatus}`, label),
+            }),
+          })
+        : t(`admin.config.${normalizedStatus}`, {
+            defaultValue: t(`admin.booking_status_${normalizedStatus}`, label),
+          }),
+  );
   return (
     <Badge
       className={cn("border font-medium", classes, className)}

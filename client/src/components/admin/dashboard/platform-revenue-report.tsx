@@ -78,7 +78,10 @@ function amount(value: string | number | null | undefined) {
 
 function dateLabel(value: string) {
   const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? "—" : date.toLocaleDateString(undefined, {
+  const locale = typeof document !== "undefined" && document.documentElement.lang
+    ? document.documentElement.lang
+    : typeof navigator !== "undefined" ? navigator.language : "en";
+  return Number.isNaN(date.getTime()) ? "—" : date.toLocaleDateString(locale, {
     year: "numeric", month: "short", day: "2-digit",
   });
 }
@@ -97,7 +100,7 @@ function statusLabel(value: string | null | undefined, t: (key: string, fallback
     wallet: t("wallet", "Wallet"),
     bank_transfer: t("bank_transfer", "Bank transfer"),
   };
-  return known[normalized] ?? value.replace(/_/g, " ");
+  return known[normalized] ?? t(`status_${normalized}`, value.replace(/_/g, " "));
 }
 
 export function PlatformRevenueReport() {
