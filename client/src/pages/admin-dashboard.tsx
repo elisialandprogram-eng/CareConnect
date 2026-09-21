@@ -380,10 +380,18 @@ export default function AdminDashboard() {
                 : t("admin.enter_report_focus", "Use report focus mode")}
               data-testid="button-toggle-report-focus"
             >
-              {focusMode ? <Minimize2 className="h-4 w-4 me-1.5" /> : <Maximize2 className="h-4 w-4 me-1.5" />}
-              {focusMode
-                ? t("admin.exit_report_focus", "Exit focus")
-                : t("admin.enter_report_focus", "Focus report")}
+              <span className={cn("items-center", focusMode ? "inline-flex" : "hidden")} aria-hidden={!focusMode}>
+                <Minimize2 className="h-4 w-4 me-1.5" />
+              </span>
+              <span className={cn("items-center", focusMode ? "hidden" : "inline-flex")} aria-hidden={focusMode}>
+                <Maximize2 className="h-4 w-4 me-1.5" />
+              </span>
+              <span className={focusMode ? "inline" : "hidden"}>
+                {t("admin.exit_report_focus", "Exit focus")}
+              </span>
+              <span className={focusMode ? "hidden" : "inline"}>
+                {t("admin.enter_report_focus", "Focus report")}
+              </span>
             </Button>
           </div>
         </div>
