@@ -10,6 +10,7 @@
  */
 
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -109,6 +110,9 @@ function AddressFormDialog({
   onSave: (data: AddressFormState) => void;
   saving: boolean;
 }) {
+  const { t } = useTranslation();
+  const nicknameLabel = (nickname: string) =>
+    t(`saved_addresses.nickname_${nickname.toLowerCase()}`, nickname);
   const [form, setForm] = useState<AddressFormState>({
     nickname: initial?.nickname ?? "Home",
     rawAddress: initial?.formattedAddress ?? (
@@ -133,15 +137,21 @@ function AddressFormDialog({
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>{initial?.id ? "Edit Address" : "Add Address"}</DialogTitle>
+          <DialogTitle>
+            {initial?.id
+              ? t("saved_addresses.edit_title", "Edit Address")
+              : t("saved_addresses.add_title", "Add Address")}
+          </DialogTitle>
           <DialogDescription>
-            {initial?.id ? "Update this saved address." : "Add an address for future home visits."}
+            {initial?.id
+              ? t("saved_addresses.edit_description", "Update this saved address.")
+              : t("saved_addresses.add_description", "Add an address for future home visits.")}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-2">
           <div className="space-y-1">
-            <Label>Label</Label>
+            <Label>{t("saved_addresses.label", "Label")}</Label>
             <div className="flex gap-2 flex-wrap">
               {NICKNAME_OPTIONS.map((n) => (
                 <button
@@ -156,7 +166,7 @@ function AddressFormDialog({
                   )}
                   data-testid={`btn-nickname-${n.toLowerCase()}`}
                 >
-                  {n}
+                  {nicknameLabel(n)}
                 </button>
               ))}
               {!NICKNAME_OPTIONS.includes(form.nickname) && (
@@ -168,7 +178,7 @@ function AddressFormDialog({
             {form.nickname === "Other" && (
               <Input
                 className="mt-2"
-                placeholder="Custom label (e.g. Gym, Parent's house)"
+                placeholder={t("saved_addresses.custom_label_placeholder", "Custom label (e.g. Gym, Parent's house)")}
                 value={form.nickname === "Other" ? "" : form.nickname}
                 onChange={(e) => setForm((f) => ({ ...f, nickname: e.target.value }))}
                 data-testid="input-custom-nickname"
@@ -177,13 +187,13 @@ function AddressFormDialog({
           </div>
 
           <div className="space-y-1">
-            <Label>Address</Label>
+            <Label>{t("saved_addresses.address", "Address")}</Label>
             <PlacesAutocomplete
               value={form.rawAddress}
               onChange={(text, structured) =>
                 setForm((f) => ({ ...f, rawAddress: text, structured }))
               }
-              placeholder="Start typing your address…"
+              placeholder={t("saved_addresses.address_placeholder", "Start typing your address…")}
               data-testid="input-address-autocomplete"
             />
           </div>
@@ -191,14 +201,16 @@ function AddressFormDialog({
 
         <DialogFooter>
           <Button variant="outline" onClick={onClose} disabled={saving}>
-            Cancel
+            {t("common.cancel", "Cancel")}
           </Button>
           <Button
             onClick={() => onSave(form)}
             disabled={saving || !form.rawAddress.trim()}
             data-testid="btn-save-address"
           >
-            {saving ? "Saving…" : "Save Address"}
+            {saving
+              ? t("common.saving", "Saving…")
+              : t("saved_addresses.save", "Save Address")}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -242,10 +254,10 @@ export function SavedAddressesPicker({
     onSuccess: (newAddr: SavedAddress) => {
       queryClient.invalidateQueries({ queryKey: SAVED_ADDRESSES_KEY });
       setAddOpen(false);
-      toast({ title: "Address saved" });
+      toast({ title: t("saved_addresses.saved", "Address saved") });
       if (!showManageOnly) onSelect(newAddr);
     },
-    onError: () => toast({ title: "Failed to save address", variant: "destructive" }),
+    onError: () => toast({ title: t("saved_addresses.save_failed", "Failed to save address"), variant: "destructive" }),
   });
 
   const updateMut = useMutation({
@@ -267,9 +279,9 @@ export function SavedAddressesPicker({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: SAVED_ADDRESSES_KEY });
       setEditTarget(null);
-      toast({ title: "Address updated" });
+      toast({ title: t("saved_addresses.updated", "Address updated") });
     },
-    onError: () => toast({ title: "Failed to update address", variant: "destructive" }),
+    onError: () => toast({ title: t("saved_addresses.update_failed", "Failed to update address"), variant: "destructive" }),
   });
 
   const deleteMut = useMutation({
@@ -280,9 +292,9 @@ export function SavedAddressesPicker({
     onSuccess: (_data, id) => {
       queryClient.invalidateQueries({ queryKey: SAVED_ADDRESSES_KEY });
       if (selectedId === id) onSelect(null);
-      toast({ title: "Address removed" });
+      toast({ title: t("saved_addresses.removed", "Address removed") });
     },
-    onError: () => toast({ title: "Failed to remove address", variant: "destructive" }),
+    onError: () => toast({ title: t("saved_addresses.remove_failed", "Failed to remove address"), variant: "destructive" }),
   });
 
   const defaultMut = useMutation({
@@ -291,7 +303,7 @@ export function SavedAddressesPicker({
       return res.json();
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: SAVED_ADDRESSES_KEY }),
-    onError: () => toast({ title: "Failed to update default", variant: "destructive" }),
+    onError: () => toast({ title: t("saved_addresses.default_failed", "Failed to update default"), variant: "destructive" }),
   });
 
   if (isLoading) {
@@ -331,10 +343,10 @@ export function SavedAddressesPicker({
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
-                <span className="font-medium text-sm">{addr.nickname}</span>
+                 <span className="font-medium text-sm">{nicknameLabel(addr.nickname)}</span>
                 {addr.isDefault && (
                   <Badge variant="secondary" className="text-xs py-0">
-                    Default
+                    {t("saved_addresses.default", "Default")}
                   </Badge>
                 )}
                 {isSelected && !showManageOnly && (
@@ -342,14 +354,14 @@ export function SavedAddressesPicker({
                 )}
               </div>
               <p className="text-xs text-muted-foreground truncate mt-0.5">
-                {displayAddress(addr) || "No address details"}
+                 {displayAddress(addr) || t("saved_addresses.no_details", "No address details")}
               </p>
             </div>
             <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
               {!addr.isDefault && (
                 <button
                   type="button"
-                  title="Set as default"
+                   title={t("saved_addresses.set_default", "Set as default")}
                   onClick={(e) => { e.stopPropagation(); defaultMut.mutate(addr.id); }}
                   className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground"
                   data-testid={`btn-set-default-${addr.id}`}
@@ -359,7 +371,7 @@ export function SavedAddressesPicker({
               )}
               <button
                 type="button"
-                title="Edit"
+                title={t("common.edit", "Edit")}
                 onClick={(e) => { e.stopPropagation(); setEditTarget(addr); }}
                 className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground"
                 data-testid={`btn-edit-address-${addr.id}`}
@@ -368,7 +380,7 @@ export function SavedAddressesPicker({
               </button>
               <button
                 type="button"
-                title="Delete"
+                title={t("common.delete", "Delete")}
                 onClick={(e) => { e.stopPropagation(); deleteMut.mutate(addr.id); }}
                 className="p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive"
                 data-testid={`btn-delete-address-${addr.id}`}
@@ -388,7 +400,7 @@ export function SavedAddressesPicker({
         data-testid="btn-add-new-address"
       >
         <Plus className="h-4 w-4" />
-        Add New Address
+        {t("saved_addresses.add_new", "Add New Address")}
       </Button>
 
       <AddressFormDialog

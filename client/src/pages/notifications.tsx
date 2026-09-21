@@ -87,7 +87,16 @@ function classifyType(type: string | null | undefined): NotifFilter {
 }
 
 function inferLegacyEventKey(notif: UserNotification, data: Record<string, any>): string | null {
-  if (typeof data._eventKey === "string") return data._eventKey.replace(/\./g, "_");
+  if (typeof data._eventKey === "string") {
+    const normalized = data._eventKey.replace(/\./g, "_");
+    if (normalized === "appointment_completed" && /Invoice /.test(notif.message)) {
+      return "appointment_completed_invoice";
+    }
+    if (normalized === "appointment_in_progress" && /sign-off code/i.test(notif.title)) {
+      return "appointment_in_progress_code";
+    }
+    return normalized;
+  }
   if (data.tier && notif.type === "appointment") {
     return `appointment_reminder_${data.tier}`;
   }
@@ -102,6 +111,11 @@ function inferLegacyEventKey(notif: UserNotification, data: Record<string, any>)
   if (title.includes("booking confirmed")) return message.includes("is confirmed") ? "appointment_confirmed" : "appointment_booked";
   if (title.includes("appointment has been rescheduled")) return "appointment_rescheduled";
   if (title.includes("appointment was cancelled")) return "appointment_cancelled";
+  if (title.includes("appointment completed")) {
+    return message.includes("Invoice ") ? "appointment_completed_invoice" : "appointment_completed";
+  }
+  if (title.includes("appointment in progress")) return "appointment_in_progress";
+  if (title.includes("your session sign-off code")) return "appointment_in_progress_code";
   if (title.includes("tell us about your visit")) return "appointment_postvisit";
   if (title.includes("payment received")) return "payment_received";
   if (title.includes("refund processed")) return "payment_refunded";
@@ -150,6 +164,14 @@ function inferLegacyTemplateData(eventKey: string, message: string, data: Record
     setMatch(/Your appointment(?: \(([^)]+)\))? on (.+?) was automatically closed/i, "appointmentRef", "date");
   } else if (eventKey === "appointment_expired") {
     setMatch(/Your appointment request(?: \(([^)]+)\))? expired/i, "appointmentRef");
+  } else if (eventKey === "appointment_completed_invoice") {
+    setMatch(/Your appointment(?: \(([^)]+)\))? has been completed\. Invoice (.+?) is now available/i, "appointmentRef", "invoiceNumber");
+  } else if (eventKey === "appointment_completed") {
+    setMatch(/Your appointment(?: \(([^)]+)\))? has been marked as completed/i, "appointmentRef");
+  } else if (eventKey === "appointment_in_progress") {
+    setMatch(/Your appointment(?: \(([^)]+)\))? is now in progress/i, "appointmentRef");
+  } else if (eventKey === "appointment_in_progress_code") {
+    setMatch(/Your appointment is now in progress\. Your sign-off code is: (\d+)/i, "signOffCode");
   } else if (eventKey === "payment_received") {
     setMatch(/We received your payment of (.+?)\.?$/i, "formattedAmount");
   } else if (eventKey === "payment_refunded") {

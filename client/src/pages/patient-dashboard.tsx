@@ -1543,7 +1543,7 @@ export default function PatientDashboard() {
                                 variant={inv.status === "paid" ? "default" : inv.status === "due" ? "outline" : "secondary"}
                                 data-testid={`status-invoice-${inv.id}`}
                               >
-                                {inv.status}
+                                {t(`patient_dashboard.status_${inv.status}`, inv.status)}
                               </Badge>
                             </div>
                             <Button

@@ -149,7 +149,7 @@ export default function SupportTicketsPage() {
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
-      <PageBreadcrumbs items={[{ label: "Support" }]} />
+      <PageBreadcrumbs items={[{ label: t("common.support", "Support") }]} />
       <main className="flex-1 container mx-auto px-4 py-8 max-w-6xl">
         <div className="flex items-center justify-between gap-4 mb-6 flex-wrap">
           <div>

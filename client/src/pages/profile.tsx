@@ -497,7 +497,7 @@ export default function Profile() {
       <Header />
       <main className="flex-1 container mx-auto px-4 py-8 max-w-5xl">
         <PageBreadcrumbs
-          items={[{ label: "Home", href: "/" }, { label: t("common.profile_label", "Profile") }]}
+          items={[{ label: t("common.home", "Home"), href: "/" }, { label: t("common.profile_label", "Profile") }]}
           fallback="/"
         />
         <div className="mb-6">

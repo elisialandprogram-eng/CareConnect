@@ -2260,6 +2260,11 @@ export function registerAppointmentRoutes(app: Express): void {
             type: "appointment",
             title: `Your session sign-off code${apptRef}`,
             message: `Your appointment is now in progress. Your sign-off code is: ${generatedSignOffCode}. You will need to share this with your provider at the end of the session to formally confirm it was completed.`,
+             data: JSON.stringify({
+               _eventKey: "appointment.in_progress_code",
+               appointmentRef: appointment.appointmentNumber ?? null,
+               signOffCode: generatedSignOffCode,
+             }),
             isRead: false,
           } as any);
           console.log(`[appt] sign-off code ${generatedSignOffCode} generated for appointment ${req.params.id}`);
@@ -2367,6 +2372,11 @@ export function registerAppointmentRoutes(app: Express): void {
             type: "appointment",
             title: `Appointment ${status.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}`,
             message: statusMessages[status],
+             data: JSON.stringify({
+               _eventKey: `appointment.${status}`,
+               appointmentRef: appointment.appointmentNumber ?? null,
+               ...(invoiceResult?.invoiceNumber ? { invoiceNumber: invoiceResult.invoiceNumber } : {}),
+             }),
             isRead: false,
           });
         }
