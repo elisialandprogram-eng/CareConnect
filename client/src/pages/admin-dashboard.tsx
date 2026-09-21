@@ -219,7 +219,7 @@ function buildNavGroups(isGlobalAdmin: boolean, t: (k: string, d?: string) => st
       icon: ListTree,
       items: [
         { value: "catalog", label: t("admin.service_catalog", "Service Catalog"), icon: ListTree },
-        { value: "service-requests", label: t("admin.service_requests", "Service Requests"), icon: ListTree },
+        { value: "service-requests", label: t("admin.service_requests_nav", "Service Requests"), icon: ListTree },
       ],
     },
     {
