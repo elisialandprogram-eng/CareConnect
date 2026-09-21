@@ -454,7 +454,7 @@ export default function AdminDashboard() {
               </button>
             </div>
             {navGroups.map(group => (
-              <div key={group.label}>
+              <div key={group.items[0]?.value ?? group.label}>
                 {!sidebarCollapsed && <p className="text-[10px] font-bold text-muted-foreground/50 uppercase tracking-widest px-2.5 mb-1.5">{group.label}</p>}
                 <div className="space-y-0.5">
                   {group.items.map(item => (
@@ -492,7 +492,7 @@ export default function AdminDashboard() {
                 const isActive = group.items.some(i => i.value === activeTab);
                 return (
                   <button
-                    key={group.label}
+                    key={group.items[0]?.value ?? group.label}
                     onClick={() => setActiveTab(group.items[0].value)}
                     className={cn(
                       "flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors whitespace-nowrap",
@@ -510,7 +510,7 @@ export default function AdminDashboard() {
             {navGroups.map(group => {
               if (!group.items.some(i => i.value === activeTab)) return null;
               return (
-                <div key={group.label} className="flex gap-1.5 overflow-x-auto pb-1 no-scrollbar">
+                <div key={group.items[0]?.value ?? group.label} className="flex gap-1.5 overflow-x-auto pb-1 no-scrollbar">
                   {group.items.map(item => (
                     <button
                       key={item.value}

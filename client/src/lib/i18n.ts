@@ -52,7 +52,7 @@ function mergeTranslationAdditions(
   return output;
 }
 
-async function ensureLanguage(lng: string) {
+export async function ensureLanguageResources(lng: string) {
   const code = (SUPPORTED as readonly string[]).includes(lng) ? (lng as Lang) : 'en';
   if (loaded.has(code)) return;
   try {
@@ -158,13 +158,13 @@ i18n
 // Load the detected language asynchronously if it's not English.
 const initial = i18n.resolvedLanguage || i18n.language || 'en';
 if (initial !== 'en') {
-  void ensureLanguage(initial).then(() => {
+    void ensureLanguageResources(initial).then(() => {
     if (i18n.language !== initial) void i18n.changeLanguage(initial);
   });
 }
 
 i18n.on('languageChanged', (lng) => {
-  void ensureLanguage(lng);
+  void ensureLanguageResources(lng);
   if (typeof document !== 'undefined') {
     document.dir = lng === 'fa' ? 'rtl' : 'ltr';
     document.documentElement.lang = lng;

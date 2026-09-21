@@ -17,6 +17,7 @@ import { useCurrency } from "@/lib/currency";
 import { isAdminRole } from "@/lib/roles";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { ensureLanguageResources } from "@/lib/i18n";
 
 function WalletBadge() {
   const [, navigate] = useLocation();
@@ -85,8 +86,10 @@ export function Header() {
     navigate("/");
   };
 
-  const changeLanguage = (lng: string) => {
-    i18n.changeLanguage(lng);
+  const changeLanguage = async (lng: string) => {
+    if (lng === i18n.resolvedLanguage) return;
+    await ensureLanguageResources(lng);
+    await i18n.changeLanguage(lng);
     if (user) {
       // Best-effort persist of language preference; ignore errors silently.
       void fetch("/api/auth/profile", {
