@@ -1,4 +1,4 @@
-import { formatDate } from "@/lib/datetime";
+import { formatDate, formatMonthLabel } from "@/lib/datetime";
 import { formatCount } from "@/lib/format-utils";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
@@ -79,13 +79,17 @@ export function AnalyticsOverview({ onNavigate }: { onNavigate?: (tab: string) =
     );
   }
 
-  const series: any[] = Array.isArray(analytics?.revenueSeries) && analytics.revenueSeries.length > 0
+  const rawSeries: any[] = Array.isArray(analytics?.revenueSeries) && analytics.revenueSeries.length > 0
     ? analytics.revenueSeries
     : Array.from({ length: 12 }, (_, i) => ({
         name: formatDate(new Date(0, i), { month: "short" }),
         revenue: 0,
         bookings: 0,
       }));
+  const series = rawSeries.map((item) => ({
+    ...item,
+    name: formatMonthLabel(String(item.name)),
+  }));
 
   const pieData = [
     {

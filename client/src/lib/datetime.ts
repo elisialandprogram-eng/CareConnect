@@ -4,7 +4,9 @@ const LANGUAGE_STORAGE_KEY = "i18nextLng";
 function getDateLocale(): string | undefined {
   if (typeof window === "undefined") return undefined;
   try {
-    const language = window.localStorage.getItem(LANGUAGE_STORAGE_KEY)?.split("-")[0];
+    const language =
+      document.documentElement.lang?.split("-")[0] ||
+      window.localStorage.getItem(LANGUAGE_STORAGE_KEY)?.split("-")[0];
     if (language === "hu") return "hu-HU";
     if (language === "fa") return "fa-IR";
   } catch {

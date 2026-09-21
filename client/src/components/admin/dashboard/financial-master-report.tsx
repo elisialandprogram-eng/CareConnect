@@ -170,7 +170,7 @@ function n(v: string | number | null | undefined) { return Number(v) || 0; }
 function fmtDate(iso: string | null | undefined) {
   if (!iso) return "—";
   try {
-    return new Intl.DateTimeFormat(i18n.resolvedLanguage || i18n.language || "en", {
+    return new Intl.DateTimeFormat(i18n.language || "en", {
       day: "numeric",
       month: "short",
       year: "numeric",
@@ -181,7 +181,7 @@ function fmtDate(iso: string | null | undefined) {
 function fmtDateTime(iso: string | null | undefined) {
   if (!iso) return "—";
   try {
-    return new Intl.DateTimeFormat(i18n.resolvedLanguage || i18n.language || "en", {
+    return new Intl.DateTimeFormat(i18n.language || "en", {
       day: "numeric",
       month: "short",
       year: "numeric",
@@ -861,7 +861,7 @@ export function FinancialMasterReport() {
             <div className="relative flex-1 min-w-[200px]">
               <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search booking ref, member, provider, promo, Stripe ID…"
+                placeholder={r("search_placeholder", "Search booking ref, member, provider, promo, Stripe ID…")}
                 value={search}
                 onChange={e => handleSearch(e.target.value)}
                 className="ps-9 h-9"

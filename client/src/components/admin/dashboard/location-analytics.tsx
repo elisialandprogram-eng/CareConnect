@@ -138,10 +138,10 @@ export function LocationAnalyticsPanel() {
       <div>
         <h2 className="text-xl font-bold flex items-center gap-2">
           <MapPin className="h-5 w-5 text-primary" />
-          Location Intelligence
+          {r("location_intelligence", "Location Intelligence")}
         </h2>
         <p className="text-sm text-muted-foreground mt-1">
-          Geographic distribution of bookings and providers.
+          {r("location_distribution_desc", "Geographic distribution of bookings and providers.")}
         </p>
       </div>
 
@@ -190,7 +190,7 @@ export function LocationAnalyticsPanel() {
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
               <MapPin className="h-4 w-4 text-primary" />
-              Bookings by City
+              {r("bookings_by_city", "Bookings by City")}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -219,7 +219,7 @@ export function LocationAnalyticsPanel() {
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
               <Building2 className="h-4 w-4 text-primary" />
-              Providers by City
+              {r("providers_by_city", "Providers by City")}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -228,12 +228,12 @@ export function LocationAnalyticsPanel() {
                 <Skeleton key={i} className="h-8 rounded" />
               ))
             ) : !data?.providerDistribution.length ? (
-              <p className="text-sm text-muted-foreground text-center py-4">No data yet.</p>
+              <p className="text-sm text-muted-foreground text-center py-4">{r("no_data_yet", "No data yet.")}</p>
             ) : (
               data.providerDistribution.map((row, i) => (
                 <CityBar
                   key={i}
-                  city={`${row.city}${parseInt(row.home_visit_count) > 0 ? ` (${row.home_visit_count} home)` : ""}`}
+                  city={`${row.city}${parseInt(row.home_visit_count) > 0 ? ` (${row.home_visit_count} ${r("home_suffix", "home")})` : ""}`}
                   count={parseInt(row.provider_count) || 0}
                   max={maxProviderCity}
                   tag={row.country_code}
