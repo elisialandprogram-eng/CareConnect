@@ -140,3 +140,4 @@
 - [Analytics label locale](analytics-label-locale.md) — APIs return ISO month/week keys; the client formats visible chart labels with the active locale
 - [Reporting enum localization](reporting-enum-localization.md) — preserve raw API enum values, but resolve visible statuses, methods, visit modes, categories, roles, and priorities through shared locale helpers
 - [Admin database enum localization](admin-db-enum-localization.md) — render database-backed statuses, methods, visit modes, categories, and lifecycle values through locale keys
+- [Invoice PDF CommonJS interop](invoice-pdf-cjs-interop.md) — jspdf-autotable must use its named autoTable export; default import works in dev ESM but fails in the bundled production CommonJS runtime

@@ -1,5 +1,5 @@
 import { jsPDF } from "jspdf";
-import autoTable from "jspdf-autotable";
+import { autoTable } from "jspdf-autotable";
 import { DEFAULT_INVOICE_TEMPLATE, hexToRgb, type InvoiceTemplate } from "./invoice-template";
 import { CURRENCY_CONFIGS, formatCurrencyAmount, normalizeCurrencyCode } from "@shared/currency";
 
