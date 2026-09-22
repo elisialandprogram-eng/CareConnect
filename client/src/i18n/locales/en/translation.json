@@ -4165,6 +4165,17 @@
       "refund": "Refund",
       "adjustment": "Adjustment",
       "reversal": "Reversal"
+    },
+    "tx_description": {
+      "topup": "Wallet top-up",
+      "appointment_payment": "Appointment payment",
+      "refund": "Refund",
+      "refund_with_reason": "Refund: {{reason}}",
+      "auto_renewal": "Auto-renewal: {{name}}",
+      "referral_reward": "Referral reward",
+      "welcome_bonus": "Welcome bonus",
+      "membership_bonus": "Membership wallet bonus",
+      "gift_card": "Gift card applied"
     }
   },
   "admin_wallets": {
@@ -4994,7 +5005,16 @@
       "sharing_failed": "Failed to update sharing",
       "title_required": "Please enter a document title",
       "uploaded_success": "Document uploaded",
-      "upload_failed": "Upload failed"
+      "upload_failed": "Upload failed",
+      "types": {
+        "all": "All types",
+        "medical_report": "Medical Report",
+        "test_result": "Test Result",
+        "referral": "Referral",
+        "prescription": "Prescription",
+        "insurance": "Insurance",
+        "other": "Other"
+      }
     },
     "reviews": {
       "title": "My Reviews",

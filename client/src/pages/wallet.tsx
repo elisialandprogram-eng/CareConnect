@@ -52,6 +52,40 @@ export default function WalletPage() {
   const [topUpOpen, setTopUpOpen] = useState(false);
   const { format: fmtMoney, code } = useCurrency();
   const quickAmounts = LOCAL_PRESETS_BY_CURRENCY[code] ?? [5, 10, 25, 50];
+  const localizeTransactionDescription = (description: string | null | undefined) => {
+    if (!description) return t("wallet.no_description", "No description");
+
+    if (/^(?:Stripe )?top-up\b|^Wallet top-up\b/i.test(description)) {
+      return t("wallet.tx_description.topup", "Wallet top-up");
+    }
+    if (/^(?:Payment for appointment|Appointment payment)\b/i.test(description)) {
+      return t("wallet.tx_description.appointment_payment", "Appointment payment");
+    }
+    if (/^Refund\b/i.test(description)) {
+      const reason = description.replace(/^Refund\s*[:—-]?\s*/i, "").trim();
+      return reason
+        ? t("wallet.tx_description.refund_with_reason", "Refund: {{reason}}", { reason })
+        : t("wallet.tx_description.refund", "Refund");
+    }
+    if (/^Auto-renewal:/i.test(description)) {
+      return t("wallet.tx_description.auto_renewal", "Auto-renewal: {{name}}", {
+        name: description.replace(/^Auto-renewal:\s*/i, ""),
+      });
+    }
+    if (/^Referral reward\b/i.test(description)) {
+      return t("wallet.tx_description.referral_reward", "Referral reward");
+    }
+    if (/^Welcome bonus\b/i.test(description)) {
+      return t("wallet.tx_description.welcome_bonus", "Welcome bonus");
+    }
+    if (/^Membership wallet bonus\b/i.test(description)) {
+      return t("wallet.tx_description.membership_bonus", "Membership wallet bonus");
+    }
+    if (/^Gift card applied\b/i.test(description)) {
+      return t("wallet.tx_description.gift_card", "Gift card applied");
+    }
+    return description;
+  };
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) navigate("/login?redirect=/wallet");
@@ -284,8 +318,7 @@ export default function WalletPage() {
                             {t(`wallet.tx_type.${tx.type}`, tx.type)}
                           </p>
                           <p className="text-xs text-muted-foreground truncate">
-                            {tx.description ||
-                              t("wallet.no_description", "No description")}
+                            {localizeTransactionDescription(tx.description)}
                           </p>
                           <p className="text-[11px] text-muted-foreground">
                             {tx.createdAt ? formatDateTime(tx.createdAt) : ""}

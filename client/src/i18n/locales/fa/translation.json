@@ -4159,6 +4159,17 @@
       "refund": "بازپرداخت",
       "adjustment": "تنظیم",
       "reversal": "برگشت"
+    },
+    "tx_description": {
+      "topup": "شارژ کیف پول",
+      "appointment_payment": "پرداخت نوبت",
+      "refund": "بازپرداخت",
+      "refund_with_reason": "بازپرداخت: {{reason}}",
+      "auto_renewal": "تمدید خودکار: {{name}}",
+      "referral_reward": "پاداش معرفی",
+      "welcome_bonus": "پاداش خوش‌آمدگویی",
+      "membership_bonus": "پاداش عضویت کیف پول",
+      "gift_card": "کارت هدیه اعمال شد"
     }
   },
   "admin_wallets": {
@@ -4988,7 +4999,16 @@
       "sharing_failed": "به‌روزرسانی اشتراک‌گذاری ناموفق بود",
       "title_required": "عنوان سند را وارد کنید",
       "uploaded_success": "سند بارگذاری شد",
-      "upload_failed": "بارگذاری ناموفق بود"
+      "upload_failed": "بارگذاری ناموفق بود",
+      "types": {
+        "all": "همه انواع",
+        "medical_report": "گزارش پزشکی",
+        "test_result": "نتیجه آزمایش",
+        "referral": "معرفی‌نامه",
+        "prescription": "نسخه",
+        "insurance": "بیمه",
+        "other": "سایر"
+      }
     },
     "reviews": {
       "title": "نظرهای من",

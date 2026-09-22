@@ -68,13 +68,13 @@ type PatientDoc = {
 };
 
 const DOC_TYPES = [
-  { value: "all", label: "All types" },
-  { value: "medical_report", label: "Medical Report" },
-  { value: "test_result", label: "Test Result" },
-  { value: "referral", label: "Referral" },
-  { value: "prescription", label: "Prescription" },
-  { value: "insurance", label: "Insurance" },
-  { value: "other", label: "Other" },
+  { value: "all", key: "all", label: "All types" },
+  { value: "medical_report", key: "medical_report", label: "Medical Report" },
+  { value: "test_result", key: "test_result", label: "Test Result" },
+  { value: "referral", key: "referral", label: "Referral" },
+  { value: "prescription", key: "prescription", label: "Prescription" },
+  { value: "insurance", key: "insurance", label: "Insurance" },
+  { value: "other", key: "other", label: "Other" },
 ] as const;
 
 const TYPE_COLORS: Record<string, string> = {
@@ -85,10 +85,6 @@ const TYPE_COLORS: Record<string, string> = {
   insurance: "bg-orange-100 text-orange-800",
   other: "bg-muted text-foreground",
 };
-
-function typeLabel(t: string) {
-  return DOC_TYPES.find(d => d.value === t)?.label ?? t;
-}
 
 function fileSize(bytes: number | null) {
   if (!bytes) return "";
@@ -115,6 +111,12 @@ export default function MyDocumentsPage() {
   const [uploadTitle, setUploadTitle] = useState("");
   const [uploadType, setUploadType] = useState("other");
   const [uploading, setUploading] = useState(false);
+  const typeLabel = (documentType: string) => {
+    const match = DOC_TYPES.find(d => d.value === documentType);
+    return match
+      ? t(`patient_ui.documents.types.${match.key}`, match.label)
+      : documentType;
+  };
 
   const { data: docs = [], isLoading } = useQuery<PatientDoc[]>({
     queryKey: QK.patientDocuments(typeFilter !== "all" ? typeFilter : undefined),
@@ -221,16 +223,16 @@ export default function MyDocumentsPage() {
             />
           </div>
           <div className="flex gap-1.5 flex-wrap">
-            {DOC_TYPES.map(t => (
+            {DOC_TYPES.map(docType => (
               <Button
-                key={t.value}
+                key={docType.value}
                 size="sm"
-                variant={typeFilter === t.value ? "default" : "outline"}
-                onClick={() => setTypeFilter(t.value)}
+                variant={typeFilter === docType.value ? "default" : "outline"}
+                onClick={() => setTypeFilter(docType.value)}
                 className="h-8 text-xs px-2.5"
-                data-testid={`button-filter-${t.value}`}
+                data-testid={`button-filter-${docType.value}`}
               >
-                {t.label}
+                {typeLabel(docType.value)}
               </Button>
             ))}
           </div>
@@ -365,8 +367,8 @@ export default function MyDocumentsPage() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {DOC_TYPES.filter(t => t.value !== "all").map(t => (
-                    <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                  {DOC_TYPES.filter(docType => docType.value !== "all").map(docType => (
+                    <SelectItem key={docType.value} value={docType.value}>{typeLabel(docType.value)}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>

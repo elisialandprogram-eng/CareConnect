@@ -4159,6 +4159,17 @@
       "refund": "Visszatérítés",
       "adjustment": "Korrekció",
       "reversal": "Visszavonás"
+    },
+    "tx_description": {
+      "topup": "Pénztárca feltöltése",
+      "appointment_payment": "Időpont kifizetése",
+      "refund": "Visszatérítés",
+      "refund_with_reason": "Visszatérítés: {{reason}}",
+      "auto_renewal": "Automatikus megújítás: {{name}}",
+      "referral_reward": "Ajánlási jutalom",
+      "welcome_bonus": "Üdvözlő bónusz",
+      "membership_bonus": "Tagsági pénztárcabónusz",
+      "gift_card": "Ajándékkártya alkalmazva"
     }
   },
   "admin_wallets": {
@@ -4988,7 +4999,16 @@
       "sharing_failed": "A megosztás frissítése sikertelen",
       "title_required": "Adja meg a dokumentum címét",
       "uploaded_success": "Dokumentum feltöltve",
-      "upload_failed": "A feltöltés sikertelen"
+      "upload_failed": "A feltöltés sikertelen",
+      "types": {
+        "all": "Minden típus",
+        "medical_report": "Orvosi jelentés",
+        "test_result": "Vizsgálati eredmény",
+        "referral": "Beutaló",
+        "prescription": "Recept",
+        "insurance": "Biztosítás",
+        "other": "Egyéb"
+      }
     },
     "reviews": {
       "title": "Értékeléseim",
