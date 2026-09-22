@@ -169,7 +169,7 @@ function humanLabel(val: string | number | null | undefined): string {
 function localizedAdminValue(t: (key: string, options?: any) => string, val: string | number | null | undefined): string {
   if (val === null || val === undefined) return "—";
   const key = String(val);
-  return String(t(`admin_provider_details.${key}`, { defaultValue: humanLabel(val) }));
+  return localizedAdminDetail(t, key, humanLabel(val));
 }
 
 function localizedDocumentLabel(
@@ -221,7 +221,7 @@ function providerLabel(
   t?: (key: string, options?: any) => string,
 ): string {
   if (p.displayTitle || p.display_title) return p.displayTitle || p.display_title || "—";
-  const value = p.providerCategory || p.provider_category || p.providerType;
+  const value = p.providerType || p.providerCategory || p.provider_category;
   return t ? localizedAdminValue(t, value) : value || "—";
 }
 
@@ -259,13 +259,13 @@ function ScheduleTab({ providerId }: { providerId: string }) {
   const { t } = useTranslation();
   const DAY_NAMES = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
   const dayLabels = [
-    t("day_sun_full", "Sunday"),
-    t("day_mon_full", "Monday"),
-    t("day_tue_full", "Tuesday"),
-    t("day_wed_full", "Wednesday"),
-    t("day_thu_full", "Thursday"),
-    t("day_fri_full", "Friday"),
-    t("day_sat_full", "Saturday"),
+    t("provider_dashboard.day_sun_full", "Sunday"),
+    t("provider_dashboard.day_mon_full", "Monday"),
+    t("provider_dashboard.day_tue_full", "Tuesday"),
+    t("provider_dashboard.day_wed_full", "Wednesday"),
+    t("provider_dashboard.day_thu_full", "Thursday"),
+    t("provider_dashboard.day_fri_full", "Friday"),
+    t("provider_dashboard.day_sat_full", "Saturday"),
   ];
 
   const { data, isLoading, isError } = useQuery<{
@@ -540,8 +540,8 @@ function ProviderDirectory({
                <SelectTrigger className="h-7 text-xs"><SelectValue placeholder={t("admin.country")} /></SelectTrigger>
               <SelectContent>
                  <SelectItem value="all">{t("admin.all_countries")}</SelectItem>
-                 <SelectItem value="HU">{d("hungary", "Hungary")}</SelectItem>
-                 <SelectItem value="IR">{d("iran", "Iran")}</SelectItem>
+                  <SelectItem value="HU">{localizedAdminValue(t, "HU")}</SelectItem>
+                  <SelectItem value="IR">{localizedAdminValue(t, "IR")}</SelectItem>
               </SelectContent>
             </Select>
             <Select value={riskFilter} onValueChange={setRiskFilter}>
@@ -602,7 +602,7 @@ function ProviderDirectory({
                       )}
                     </div>
                     <div className="flex items-center gap-2 mt-1">
-                      <span className="text-[10px] text-slate-400">{p.countryCode}</span>
+                       <span className="text-[10px] text-slate-400">{localizedAdminValue(t, p.countryCode)}</span>
                       {p.user?.isSuspended && (
                          <span className="text-[10px] text-red-500 font-medium">{d("suspended", "Suspended")}</span>
                       )}
@@ -1670,7 +1670,7 @@ function ProviderCommandCenter({
               </div>
               <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
                 {[
-                   { label: d("category", "Category"), value: d(String(prov.providerCategory || prov.providerType), prov.providerCategory || humanLabel(prov.providerType)) },
+                   { label: d("category", "Category"), value: localizedAdminValue(t, prov.providerType || prov.providerCategory) },
                    { label: d("subcategory", "Subcategory"), value: prov.providerSubcategory || d("no_value", "—") },
                    { label: d("provider_type", "Provider Type"), value: d(String(prov.providerType), humanLabel(prov.providerType)) },
                    { label: d("account_type", "Account Type"), value: d(String(prov.accountType), humanLabel(prov.accountType)) },
