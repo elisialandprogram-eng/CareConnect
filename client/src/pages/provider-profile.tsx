@@ -21,6 +21,7 @@ import type { ProviderWithServices, Service, ReviewWithPatient, ServicePackageWi
 import { useAuth } from "@/lib/auth";
 import { getProviderDisplayPrice, formatInCurrency, convertBetweenCurrencies } from "@/lib/currency";
 import type { SupportedCurrency } from "@/lib/currency";
+import { localizeMedicalTerm } from "@/lib/medical-localization";
 
 interface GalleryImage {
   id: string;
@@ -134,6 +135,7 @@ function VerifiedCredentialsSection({ providerId }: { providerId: string }) {
 
 export default function ProviderProfile() {
   const { t } = useTranslation();
+  const localize = (value: unknown) => localizeMedicalTerm(value, t);
   const { id } = useParams<{ id: string }>();
   const [, navigate] = useLocation();
   const { isAuthenticated, user } = useAuth();
@@ -298,7 +300,7 @@ export default function ProviderProfile() {
                           {/* Sub-Category — exactly what the provider selected */}
                           {(provider.providerSubcategory || provider.specialization) && (
                             <p className="text-muted-foreground" data-testid="text-provider-subcategory">
-                              {provider.providerSubcategory || provider.specialization}
+                              {localize(provider.providerSubcategory || provider.specialization)}
                             </p>
                           )}
                           {/* Display Title badge — exactly what the provider selected */}
@@ -320,7 +322,7 @@ export default function ProviderProfile() {
                             size="sm"
                             onClick={async () => {
                               const url = window.location.href;
-                              const title = `${displayName} – ${provider.specialization || ""}`.trim();
+                              const title = `${displayName} – ${localize(provider.specialization || "")}`.trim();
                               try {
                                 if (navigator.share) {
                                   await navigator.share({ title, url });
@@ -354,7 +356,7 @@ export default function ProviderProfile() {
                           <div className="flex flex-wrap gap-2">
                             {(provider as any).practitioners.map((p: any, i: number) => (
                               <Badge key={p.id ?? i} variant="outline" className="bg-muted/30">
-                                {p.name}{p.specialization ? ` (${p.specialization})` : ""}
+                                {p.name}{p.specialization ? ` (${localize(p.specialization)})` : ""}
                               </Badge>
                             ))}
                           </div>
@@ -673,7 +675,7 @@ export default function ProviderProfile() {
                           >
                             <div className="flex items-start justify-between gap-4">
                               <div className="flex-1">
-                                <h4 className="font-medium">{service.name}</h4>
+                                <h4 className="font-medium">{localize(service.name)}</h4>
                                 <p className="text-sm text-muted-foreground mt-1">
                                   {service.description}
                                 </p>

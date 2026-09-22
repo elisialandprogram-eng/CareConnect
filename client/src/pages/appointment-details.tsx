@@ -72,6 +72,7 @@ import { PreparationPanel } from "@/components/appointment/PreparationPanel";
 import { PostAppointmentSummary } from "@/components/appointment/PostAppointmentSummary";
 import { HomeVisitCoverage } from "@/components/appointment/HomeVisitCoverage";
 import { AppointmentTimeContext } from "@/components/appointment/AppointmentTimeContext";
+import { localizeMedicalTerm } from "@/lib/medical-localization";
 
 /* ── ICS / Calendar helpers ────────────────────────────────────────── */
 function buildGoogleCalendarUrl(appt: any): string {
@@ -150,6 +151,7 @@ export default function AppointmentDetails() {
   const appointmentId = params?.id ?? null;
   const [, navigate] = useLocation();
   const { t } = useTranslation();
+  const localize = (value: unknown) => localizeMedicalTerm(value, t);
   const { isAuthenticated, isLoading: authLoading, user } = useAuth();
   const { toast } = useToast();
   const { format: fmtMoney } = useCurrency();
@@ -200,7 +202,7 @@ export default function AppointmentDetails() {
     return `${u.firstName ?? ""} ${u.lastName ?? ""}`.trim() || u.email || "Practitioner";
   }, [appt, t]);
 
-  const serviceName = appt?.service?.name || t("appt_details.consultation", "Consultation");
+  const serviceName = localize(appt?.service?.name) || t("appt_details.consultation", "Consultation");
 
   const visitTypeLabel = (() => {
     switch (appt?.visitType) {

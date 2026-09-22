@@ -14,6 +14,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { showErrorModal } from "@/components/error-modal";
 import { getProviderCardPrice, type ProviderPriceDisplay } from "@/lib/currency";
+import { localizeMedicalTerm } from "@/lib/medical-localization";
 
 interface ProviderCardProps {
   provider: ProviderWithUser;
@@ -22,6 +23,7 @@ interface ProviderCardProps {
 
 export function ProviderCard({ provider, nextAvailable }: ProviderCardProps) {
   const { t } = useTranslation();
+  const localize = (value: unknown) => localizeMedicalTerm(value, t);
   const { user, isAuthenticated } = useAuth();
   const canBook = !user || user.role === "patient";
   const { toast } = useToast();
@@ -202,7 +204,7 @@ export function ProviderCard({ provider, nextAvailable }: ProviderCardProps) {
                 {/* Sub-Category — exactly what the provider selected */}
                 {providerSubcategory && (
                   <p className="text-xs text-muted-foreground font-medium mt-0.5" data-testid={`text-subcategory-${provider.id}`}>
-                    {providerSubcategory}
+                    {localize(providerSubcategory)}
                   </p>
                 )}
                 {/* Display Title badge — exactly what the provider selected */}

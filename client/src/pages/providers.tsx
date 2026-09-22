@@ -34,6 +34,7 @@ import { useCurrency } from "@/lib/currency";
 import { PageBreadcrumbs } from "@/components/page-breadcrumbs";
 import { useRecommendedProviders } from "@/hooks/use-recommended-providers";
 import { ProviderMapView } from "@/components/location/ProviderMapView";
+import { localizeMedicalTerm } from "@/lib/medical-localization";
 
 const PAGE_SIZE = 12;
 
@@ -47,6 +48,7 @@ interface ProvidersPage {
 
 export default function Providers() {
   const { t } = useTranslation();
+  const localize = (value: unknown) => localizeMedicalTerm(value, t);
   usePageTitle(t("providers.meta_title", "Find a Provider"));
   const { symbol: currencySymbol } = useCurrency();
 
@@ -195,7 +197,7 @@ export default function Providers() {
         return t("common.nursing_pros", "Maternal, Nursing & Allied Health Support");
       default: {
         const cat = (categories ?? []).find((c) => c.slug === typeParam);
-        if (cat) return cat.name;
+        if (cat) return localize(cat.name);
         return t("providers.healthcare_providers", "Healthcare Providers");
       }
     }
@@ -282,7 +284,7 @@ export default function Providers() {
             <SelectItem value="all">{t("providers.all_services")}</SelectItem>
             {(categories ?? []).map((c) => (
               <SelectItem key={c.id} value={c.slug} data-testid={`filter-type-option-${c.slug}`}>
-                {c.name}
+                {localize(c.name)}
               </SelectItem>
             ))}
           </SelectContent>

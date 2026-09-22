@@ -50,6 +50,7 @@ import { formatDate } from "@/lib/datetime";
 import { useCurrency, formatInCurrency } from "@/lib/currency";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { AppointmentActionDialog, type AppointmentAction } from "@/components/appointment/AppointmentActionDialog";
+import { localizeMedicalTerm } from "@/lib/medical-localization";
 
 /* ── ICS / Google Calendar helpers ────────────────────────────────── */
 
@@ -170,6 +171,7 @@ export default function BookingConfirmation() {
   const appointmentId = params.appointmentId;
   const [, navigate] = useLocation();
   const { t } = useTranslation();
+  const localize = (value: unknown) => localizeMedicalTerm(value, t);
   const { toast } = useToast();
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const { format: fmtMoney } = useCurrency();
@@ -256,7 +258,7 @@ export default function BookingConfirmation() {
     return `${u.firstName ?? ""} ${u.lastName ?? ""}`.trim() || u.email || t("booking_confirmation.practitioner_fallback", "Practitioner");
   }, [appt, t]);
 
-  const serviceName = appt?.service?.name || t("booking_confirmation.consultation_fallback", "Consultation");
+  const serviceName = localize(appt?.service?.name) || t("booking_confirmation.consultation_fallback", "Consultation");
 
   const visitTypeLabel = (() => {
     switch (appt?.visitType) {

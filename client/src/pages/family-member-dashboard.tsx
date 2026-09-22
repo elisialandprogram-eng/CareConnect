@@ -19,6 +19,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { localizeMedicalTerm } from "@/lib/medical-localization";
 
 function fmtDate(d: string | Date | null | undefined) {
   if (!d) return "—";
@@ -42,6 +43,7 @@ const CONSENT_LABELS: Record<string, string> = {
 export default function FamilyMemberDashboard() {
   const { id } = useParams<{ id: string }>();
   const { t } = useTranslation();
+  const localize = (value: unknown) => localizeMedicalTerm(value, t);
   const { toast } = useToast();
   const qc = useQueryClient();
 
@@ -188,7 +190,7 @@ export default function FamilyMemberDashboard() {
             <Card key={a.id}>
               <CardContent className="p-4 flex items-start justify-between gap-3">
                 <div className="space-y-0.5 min-w-0">
-                   <p className="font-medium text-sm truncate">{a.service_name ?? a.serviceName ?? t("patient_sweep.family_appointment", "Appointment")}</p>
+                   <p className="font-medium text-sm truncate">{localize(a.service_name ?? a.serviceName) || t("patient_sweep.family_appointment", "Appointment")}</p>
                   <p className="text-xs text-muted-foreground">
                     {fmtDateTime(a.scheduledAt ?? a.scheduled_at)}
                     {(a.provider_first_name || a.providerFirstName) && (

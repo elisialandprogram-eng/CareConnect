@@ -86,6 +86,7 @@ import { QK } from "@/lib/query-keys";
 import { SavedAddressesPicker } from "@/components/location/SavedAddressesPicker";
 import { PatientReportingCenter } from "@/components/patient/PatientReportingCenter";
 import { getLocalizedNotification } from "@/pages/notifications";
+import { localizeMedicalTerm } from "@/lib/medical-localization";
 
 const PrescriptionList = ({ patientId }: { patientId?: string }) => {
   const { t } = useTranslation();
@@ -165,6 +166,7 @@ const HistoryList = ({ patientId }: { patientId?: string }) => {
 
 export default function PatientDashboard() {
   const { t } = useTranslation();
+  const localize = (value: unknown) => localizeMedicalTerm(value, t);
   usePageTitle(t("dashboard.meta_title", "My Dashboard"));
   const [, navigate] = useLocation();
   const { user } = useAuth();
@@ -494,7 +496,7 @@ export default function PatientDashboard() {
                   )}
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  {appointment.provider?.specialization}
+                  {localize(appointment.provider?.specialization)}
                 </p>
               </div>
               <StatusBadge status={appointment.status} />
@@ -965,7 +967,7 @@ export default function PatientDashboard() {
                         {nextAppointment.provider?.user?.firstName} {nextAppointment.provider?.user?.lastName}
                       </h3>
                       <p className="text-muted-foreground">
-                        {nextAppointment.provider?.specialization}
+                        {localize(nextAppointment.provider?.specialization)}
                       </p>
                     </div>
                   </div>
@@ -1684,7 +1686,7 @@ export default function PatientDashboard() {
                         />
                         <div>
                           <p className="font-medium">{lastCompletedAppt.provider?.user?.firstName} {lastCompletedAppt.provider?.user?.lastName}</p>
-                          <p className="text-sm text-muted-foreground">{lastCompletedAppt.provider?.specialization}</p>
+                          <p className="text-sm text-muted-foreground">{localize(lastCompletedAppt.provider?.specialization)}</p>
                           <p className="text-xs text-muted-foreground mt-0.5">
                             {t("dashboard.last_seen", "Last seen: {{date}}", { date: formatDate(lastCompletedAppt.date) })}
                           </p>
@@ -1723,7 +1725,7 @@ export default function PatientDashboard() {
                             <AvatarMD src={appt.provider?.user?.avatarUrl} name={`${appt.provider?.user?.firstName ?? ""} ${appt.provider?.user?.lastName ?? ""}`.trim()} />
                             <div className="flex-1 min-w-0">
                               <p className="font-medium truncate text-sm">{appt.provider?.user?.firstName} {appt.provider?.user?.lastName}</p>
-                              <p className="text-xs text-muted-foreground truncate">{appt.provider?.specialization}</p>
+                              <p className="text-xs text-muted-foreground truncate">{localize(appt.provider?.specialization)}</p>
                             </div>
                             <Button size="sm" variant="ghost" asChild data-testid={`btn-book-recent-${appt.providerId}`}>
                                <Link href={`/book?providerId=${appt.providerId}&visitType=${appt.visitType}`}>{t("dashboard.book", "Book")}</Link>

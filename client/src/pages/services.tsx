@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { localizeMedicalTerm } from "@/lib/medical-localization";
 
 type SubItem = {
   id: string;
@@ -58,6 +59,7 @@ const CATEGORY_COLOR: Record<string, string> = {
 
 export default function Services() {
   const { t } = useTranslation();
+  const localize = (value: unknown) => localizeMedicalTerm(value, t);
   const [query, setQuery] = useState("");
 
   useEffect(() => {
@@ -92,12 +94,12 @@ export default function Services() {
         ...c,
         subServices: c.subServices.filter(
           (s) =>
-            s.name.toLowerCase().includes(q) ||
+            localize(s.name).toLowerCase().includes(q) ||
             (s.description || "").toLowerCase().includes(q)
         ),
       }))
-      .filter((c) => c.name.toLowerCase().includes(q) || c.subServices.length > 0);
-  }, [data, query]);
+      .filter((c) => localize(c.name).toLowerCase().includes(q) || c.subServices.length > 0);
+  }, [data, query, t]);
 
   const totals = useMemo(() => {
     const cats = filtered?.length ?? 0;
@@ -193,7 +195,7 @@ export default function Services() {
                         </div>
                         <div className="min-w-0">
                           <h2 className="text-xl font-bold truncate" data-testid={`heading-category-${cat.slug}`}>
-                            {cat.name}
+                            {localize(cat.name)}
                           </h2>
                           {cat.description && (
                             <p className="text-sm text-muted-foreground line-clamp-1">{cat.description}</p>
@@ -229,7 +231,7 @@ export default function Services() {
                             <CardHeader className="pb-2">
                               <div className="flex items-start justify-between gap-2">
                                 <CardTitle className="text-base leading-tight" data-testid={`text-service-name-${s.id}`}>
-                                  {s.name}
+                                  {localize(s.name)}
                                 </CardTitle>
                                 <Badge
                                   variant={s.providerCount > 0 ? "default" : "secondary"}

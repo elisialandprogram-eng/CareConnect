@@ -25,6 +25,7 @@ import { isToday, isYesterday } from "date-fns";
 import { formatDate, formatTime } from "@/lib/datetime";
 import { useTranslation } from "react-i18next";
 import { reportStatusLabel } from "@/lib/report-localization";
+import { localizeMedicalTerm } from "@/lib/medical-localization";
 
 interface AppointmentContext {
   id: string;
@@ -121,6 +122,7 @@ function canJoinVideo(appt: AppointmentContext | null): boolean {
 
 export default function Messages() {
   const { t } = useTranslation();
+  const localize = (value: unknown) => localizeMedicalTerm(value, t);
   usePageTitle(t("patient_ui.messages.title", "Messages"));
   const { user } = useAuth();
   const { toast } = useToast();
@@ -474,7 +476,7 @@ export default function Messages() {
                               </span>
                               {conv.appointment.serviceName && (
                                 <span className="text-[10px] text-muted-foreground truncate max-w-[100px]">
-                                  · {conv.appointment.serviceName}
+                                   · {localize(conv.appointment.serviceName)}
                                 </span>
                               )}
                             </div>
@@ -561,7 +563,7 @@ export default function Messages() {
                             </span>
                             {selected.appointment.serviceName && (
                               <span className="text-[10px] text-muted-foreground truncate max-w-[140px]">
-                                · {selected.appointment.serviceName}
+                                 · {localize(selected.appointment.serviceName)}
                               </span>
                             )}
                           </div>
@@ -621,7 +623,7 @@ export default function Messages() {
                             {selected.appointment.endTime ? ` – ${selected.appointment.endTime}` : ""}
                           </p>
                           {selected.appointment.serviceName && (
-                            <p className="text-xs text-muted-foreground mt-0.5">{selected.appointment.serviceName}</p>
+                             <p className="text-xs text-muted-foreground mt-0.5">{localize(selected.appointment.serviceName)}</p>
                           )}
                           <span className={clsx(
                             "inline-flex items-center gap-1 mt-2 px-1.5 py-0.5 rounded text-[10px] font-medium",

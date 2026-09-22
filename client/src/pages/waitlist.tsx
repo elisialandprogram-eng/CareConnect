@@ -14,6 +14,7 @@ import { useTranslation } from "react-i18next";
 import { apiRequest, queryClient as qc } from "@/lib/queryClient";
 import { Bell, Calendar, Clock, X, AlertCircle } from "lucide-react";
 import { Link } from "wouter";
+import { localizeMedicalTerm } from "@/lib/medical-localization";
 
 type WaitlistRow = {
   id: string;
@@ -40,6 +41,7 @@ const statusBadge: Record<string, { key: string; fallback: string; variant: "def
 
 export default function WaitlistPage() {
   const { t } = useTranslation();
+  const localize = (value: unknown) => localizeMedicalTerm(value, t);
   usePageTitle(`${t("patient_sweep.waitlist_title", "My waitlist")} | Golden Life`);
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -112,7 +114,7 @@ export default function WaitlistPage() {
                         {r.provider?.businessName || t("patient_sweep.waitlist_provider", "Provider")}
                       </Link>
                       {r.service && (
-                        <span className="text-sm text-muted-foreground">· {r.service.name}</span>
+                        <span className="text-sm text-muted-foreground">· {localize(r.service.name)}</span>
                       )}
                       <div className="text-xs text-muted-foreground flex flex-wrap items-center gap-x-3 gap-y-1">
                         {r.preferredDate && (

@@ -16,9 +16,11 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/lib/auth";
 import { useTranslation } from "react-i18next";
 import type { AppointmentWithDetails } from "@shared/schema";
+import { localizeMedicalTerm } from "@/lib/medical-localization";
 
 export default function ReviewPage() {
   const { t } = useTranslation();
+  const localize = (value: unknown) => localizeMedicalTerm(value, t);
   const { id } = useParams();
   const [, navigate] = useLocation();
   const { toast } = useToast();
@@ -185,7 +187,7 @@ export default function ReviewPage() {
                 </p>
                 {provider?.specialization && (
                   <p className="text-sm text-muted-foreground truncate">
-                    {provider.specialization}
+                    {localize(provider.specialization)}
                   </p>
                 )}
                 <p className="text-xs text-muted-foreground">
