@@ -105,6 +105,11 @@ export async function ensureLanguageResources(lng: string) {
   }
 }
 
+function languageCode(value: string | null | undefined): Lang | null {
+  const code = value?.split("-")[0].toLowerCase();
+  return code && (SUPPORTED as readonly string[]).includes(code) ? (code as Lang) : null;
+}
+
 i18n
   .use(memberTerminologyPostProcessor)
   .use(LanguageDetector)
@@ -155,11 +160,14 @@ i18n
     },
   });
 
-// Load the detected language asynchronously if it's not English.
-const initial = i18n.resolvedLanguage || i18n.language || 'en';
+// Load the detected language asynchronously if it's not English. Use
+// `language`, not `resolvedLanguage`: before a lazy locale bundle is loaded,
+// i18next can report English as the resolved resource language even though the
+// detector correctly found the user's saved locale.
+const initial = languageCode(i18n.language) ?? 'en';
 if (initial !== 'en') {
-    void ensureLanguageResources(initial).then(() => {
-    if (i18n.language !== initial) void i18n.changeLanguage(initial);
+  void ensureLanguageResources(initial).then(() => {
+    if (languageCode(i18n.language) !== initial) void i18n.changeLanguage(initial);
   });
 }
 

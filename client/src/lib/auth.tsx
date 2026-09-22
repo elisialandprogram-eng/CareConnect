@@ -1,16 +1,36 @@
 import { createContext, useContext, useState, useEffect, useCallback } from "react";
 import type { User } from "@shared/schema";
 import { apiRequest } from "./queryClient";
-import i18n from "./i18n";
+import i18n, { ensureLanguageResources } from "./i18n";
 import { setUserTimezone } from "./datetime";
+
+const SUPPORTED_LANGUAGES = new Set(["en", "hu", "fa"]);
+
+function getStoredLanguage(): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const stored = window.localStorage.getItem("i18nextLng")?.split("-")[0].toLowerCase();
+    return stored && SUPPORTED_LANGUAGES.has(stored) ? stored : null;
+  } catch {
+    return null;
+  }
+}
 
 function applyUserPreferences(user: Pick<User, "languagePreference" | "preferredCurrency" | "timezone"> | null) {
   if (!user) {
     setUserTimezone(null);
     return;
   }
-  if (user.languagePreference && user.languagePreference !== i18n.language) {
-    void i18n.changeLanguage(user.languagePreference);
+  // The language switcher persists the site-wide choice in i18next's
+  // localStorage cache. Prefer that explicit browser choice on refresh; use
+  // the profile value only when no local choice exists.
+  const preferredLanguage = getStoredLanguage() || user.languagePreference?.split("-")[0].toLowerCase();
+  if (preferredLanguage && SUPPORTED_LANGUAGES.has(preferredLanguage)) {
+    void ensureLanguageResources(preferredLanguage).then(() => {
+      if (i18n.language?.split("-")[0] !== preferredLanguage) {
+        return i18n.changeLanguage(preferredLanguage);
+      }
+    });
   }
   if (typeof window !== "undefined") {
     try {
