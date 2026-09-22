@@ -84,6 +84,33 @@ const SERVICE_ALIASES: Record<string, string> = {
   plastic_and_reconstructive_surgery: "plastic_reconstructive_surgery",
 };
 
+const PROFESSION_KEYS = new Set([
+  "physiotherapist",
+  "physical_therapist",
+  "physiotherapy",
+  "physical_therapy",
+  "occupational_therapist",
+  "occupational_therapy",
+  "psychologist",
+  "psychiatrist",
+  "counselor",
+  "counsellor",
+  "therapist",
+  "mental_health_therapist",
+  "nutritionist",
+  "dietitian",
+  "dentist",
+  "dental_hygienist",
+  "nurse",
+  "midwife",
+  "physician",
+  "doctor",
+  "surgeon",
+  "speech_therapist",
+  "chiropractor",
+  "acupuncturist",
+]);
+
 function normalizeMedicalLabel(value: unknown): string {
   return String(value ?? "")
     .trim()
@@ -105,6 +132,9 @@ export function localizeMedicalTerm(value: unknown, t: TFunction): string {
   const serviceKey = SERVICE_ALIASES[normalized] ?? normalized;
   if (SERVICE_KEYS.has(serviceKey)) {
     return t(`medical_catalog.services.${serviceKey}`, { defaultValue: fallback });
+  }
+  if (PROFESSION_KEYS.has(normalized)) {
+    return t(`medical_catalog.professions.${normalized}`, { defaultValue: fallback });
   }
   return fallback;
 }

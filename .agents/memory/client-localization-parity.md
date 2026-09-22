@@ -15,4 +15,4 @@ All client-facing UI text, including public pages, legal-page navigation/heading
 
 **Why:** Medical catalogue values are dynamic database data rather than static JSX, so translating only page copy leaves services, specialties, and appointment context visibly in English after a member changes locale.
 
-**How to apply:** Use `localizeMedicalTerm(value, t)` at member render boundaries for categories, services, provider specialties, waitlist rows, messages, reviews, family appointments, and booking/appointment summaries; keep admin/provider authoring screens untouched.
+**How to apply:** Use `localizeMedicalTerm(value, t)` at member render boundaries for categories, services, provider specialties, provider-card subcategories and display-title badges, waitlist rows, messages, reviews, family appointments, and booking/appointment summaries; keep admin/provider authoring screens untouched.

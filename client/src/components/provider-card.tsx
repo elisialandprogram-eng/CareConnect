@@ -211,7 +211,7 @@ export function ProviderCard({ provider, nextAvailable }: ProviderCardProps) {
                 <div className="flex items-center gap-2 mt-2 flex-wrap">
                   {cardDisplayTitle && (
                     <Badge variant="secondary" className={`text-xs font-medium border ${getCategoryColor(providerCategory)}`} data-testid={`badge-displaytitle-${provider.id}`}>
-                      {cardDisplayTitle}
+                      {localize(cardDisplayTitle)}
                     </Badge>
                   )}
                   {provider.yearsExperience && provider.yearsExperience > 0 && (

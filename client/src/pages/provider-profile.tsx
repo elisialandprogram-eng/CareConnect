@@ -307,7 +307,7 @@ export default function ProviderProfile() {
                           {(provider as any).displayTitle && (
                             <div className="mt-1">
                               <Badge variant="secondary" className="text-sm" data-testid="badge-provider-displaytitle">
-                                {(provider as any).displayTitle}
+                                {localize((provider as any).displayTitle)}
                               </Badge>
                             </div>
                           )}
