@@ -16,7 +16,7 @@ import { adminSweepTranslations } from '../i18n/admin-sweep';
 import { reportingSweepTranslations } from '../i18n/reporting-sweep';
 
 const SUPPORTED = ['en', 'hu', 'fa'] as const;
-type Lang = (typeof SUPPORTED)[number];
+export type Lang = (typeof SUPPORTED)[number];
 
 const loaders: Record<Lang, () => Promise<{ default: Record<string, unknown> }>> = {
   en: () => Promise.resolve({ default: enTranslation as Record<string, unknown> }),
@@ -110,6 +110,47 @@ function languageCode(value: string | null | undefined): Lang | null {
   return code && (SUPPORTED as readonly string[]).includes(code) ? (code as Lang) : null;
 }
 
+export function getPersistedLanguage(): Lang | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const local = languageCode(window.localStorage.getItem("i18nextLng"));
+    if (local) return local;
+
+    const cookie = document.cookie
+      .split(";")
+      .map((part) => part.trim())
+      .find((part) => part.startsWith("i18next="));
+    return languageCode(cookie?.split("=")[1]);
+  } catch {
+    return null;
+  }
+}
+
+function detectAutomaticLanguage(): Lang {
+  if (typeof window === "undefined") return "en";
+
+  // Prefer a supported browser language when one is available.
+  const browserLanguages = [
+    ...(Array.isArray(navigator.languages) ? navigator.languages : []),
+    navigator.language,
+  ];
+  for (const language of browserLanguages) {
+    const code = languageCode(language);
+    if (code === "hu" || code === "fa") return code;
+  }
+
+  // If the browser language is unsupported or generic English, use the
+  // timezone as a regional fallback for the locales the app supports.
+  try {
+    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    if (timezone === "Europe/Budapest") return "hu";
+    if (timezone === "Asia/Tehran" || timezone === "Asia/Iran") return "fa";
+  } catch {
+    // English remains the final fallback.
+  }
+  return "en";
+}
+
 i18n
   .use(memberTerminologyPostProcessor)
   .use(LanguageDetector)
@@ -154,7 +195,7 @@ i18n
       escapeValue: false,
     },
     detection: {
-      order: ['localStorage', 'cookie', 'htmlTag', 'path', 'subdomain'],
+      order: ['localStorage', 'cookie', 'navigator', 'htmlTag', 'path', 'subdomain'],
       lookupLocalStorage: 'i18nextLng',
       caches: ['localStorage', 'cookie'],
     },
@@ -164,7 +205,16 @@ i18n
 // `language`, not `resolvedLanguage`: before a lazy locale bundle is loaded,
 // i18next can report English as the resolved resource language even though the
 // detector correctly found the user's saved locale.
-const initial = languageCode(i18n.language) ?? 'en';
+const initial = getPersistedLanguage() ?? detectAutomaticLanguage();
+if (!getPersistedLanguage() && initial !== "en" && typeof window !== "undefined") {
+  try {
+    // Persist the automatic choice so auth hydration cannot replace it with
+    // the profile's default English value before the lazy bundle finishes.
+    window.localStorage.setItem("i18nextLng", initial);
+  } catch {
+    // Continue with the in-memory automatic choice.
+  }
+}
 if (initial !== 'en') {
   void ensureLanguageResources(initial).then(() => {
     if (languageCode(i18n.language) !== initial) void i18n.changeLanguage(initial);
