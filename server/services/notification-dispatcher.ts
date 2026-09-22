@@ -82,6 +82,7 @@ export interface DispatchOptions {
   email?: {
     subject?: string;
     headingKey?: string;
+    heading?: string;
     introKey?: string;
     intro?: string;
     details?: DetailRow[];
@@ -94,6 +95,157 @@ export interface DispatchOptions {
   data?: Record<string, any>;
   /** If true, bypass quiet hours and per-event overrides for emergencies */
   urgent?: boolean;
+}
+
+const DETAIL_LABEL_KEYS: Record<string, string> = {
+  Date: "label.date",
+  Time: "label.time",
+  Provider: "label.provider",
+  Service: "label.service",
+  Amount: "label.amount",
+  Status: "label.status",
+  Method: "label.method",
+  Package: "label.package",
+  Plan: "label.plan",
+  "Amount paid": "label.amount_paid",
+  Renews: "label.renews",
+  "Valid until": "label.valid_until",
+  Sessions: "label.sessions",
+};
+
+function patientNotificationVars(data: Record<string, any>, lang: Lang): Record<string, unknown> {
+  return {
+    ...data,
+    methodSuffix: data.method ? t("suffix.method", lang, { method: data.method }) : "",
+    preferredDateSuffix: data.preferredDate ? t("suffix.preferred_date", lang, { date: data.preferredDate }) : "",
+    dateSuffix: data.date ? t("suffix.date", lang, { date: data.date }) : "",
+    sessionsSuffix: data.sessionsIncluded
+      ? t("suffix.sessions", lang, { count: data.sessionsIncluded })
+      : "",
+    renewalSuffix: data.expiresAt ? t("suffix.renewal", lang, { date: data.expiresAt }) : "",
+    validUntilSuffix: data.expiresAt ? t("suffix.valid_until", lang, { date: data.expiresAt }) : "",
+    reasonSuffix: data.reason ? t("suffix.reason", lang, { reason: data.reason }) : "",
+  };
+}
+
+function localizePatientDispatch(opts: DispatchOptions, user: User, lang: Lang): DispatchOptions {
+  if (user.role !== "patient") return opts;
+
+  const data = (opts.data ?? {}) as Record<string, any>;
+  const vars = patientNotificationVars(data, lang);
+  let title = opts.title;
+  let body = opts.body;
+  let subject = opts.email?.subject;
+  let heading = opts.email?.heading;
+  let intro = opts.email?.intro;
+
+  const set = (titleKey: string, bodyKey: string, emailHeadingKey?: string, subjectKey?: string) => {
+    title = t(titleKey, lang, vars);
+    body = t(bodyKey, lang, vars);
+    heading = t(emailHeadingKey || titleKey, lang, vars);
+    subject = t(subjectKey || titleKey, lang, vars);
+    intro = body;
+  };
+
+  switch (opts.eventKey) {
+    case "appointment.booked":
+      set("appt.confirm.heading", "appt.confirm.body", "appt.confirm.heading", "appt.confirm.subject");
+      if (opts.email) intro = t("appt.confirm.intro", lang, vars);
+      break;
+    case "appointment.confirmed":
+      set("appt.confirm.heading", "appt.confirmed.body", "appt.confirm.heading", "appt.confirm.subject");
+      if (opts.email) intro = t("appt.confirm.intro", lang, vars);
+      break;
+    case "appointment.rescheduled":
+      set("appt.reschedule.heading", "appt.reschedule.body", "appt.reschedule.heading", "appt.reschedule.subject");
+      if (opts.email) intro = t("appt.reschedule.intro", lang, vars);
+      break;
+    case "appointment.cancelled":
+      set("appt.cancel.heading", "appt.cancel.body", "appt.cancel.heading", "appt.cancel.subject");
+      if (opts.email) intro = t("appt.cancel.intro", lang, vars);
+      break;
+    case "appointment.reminder.24h":
+    case "appointment.reminder.1h":
+    case "appointment.reminder.15m": {
+      const tier = opts.eventKey.endsWith("24h") ? "24" : opts.eventKey.endsWith("1h") ? "1" : "15";
+      set(`appt.reminder${tier}.heading`, "appt.reminder.body", `appt.reminder${tier}.heading`, `appt.reminder${tier}.subject`);
+      break;
+    }
+    case "appointment.postvisit":
+      set("appt.postvisit.heading", "appt.postvisit.body", "appt.postvisit.heading", "appt.postvisit.subject");
+      if (opts.email) intro = t("appt.postvisit.intro", lang, vars);
+      break;
+    case "payment.received":
+      set("appt.payment.heading", "appt.payment.body", "appt.payment.heading", "appt.payment.subject");
+      break;
+    case "payment.refunded":
+      set("notify.refund.title", "notify.refund.body", "notify.refund.title");
+      break;
+    case "review.replied":
+      set("notify.review_reply.title", "notify.review_reply.body", "notify.review_reply.heading", "notify.review_reply.subject");
+      break;
+    case "ticket.replied":
+      set("notify.ticket_reply.title", "notify.ticket_reply.body");
+      break;
+    case "chat.new_message":
+      title = t("notify.chat_message.title", lang, vars);
+      if (opts.email) {
+        subject = title;
+        heading = title;
+        intro = opts.body;
+      }
+      break;
+    case "waitlist.joined":
+      set("notify.waitlist_joined.title", "notify.waitlist_joined.body");
+      break;
+    case "waitlist.slot_available":
+      set("notify.waitlist_available.title", "notify.waitlist_available.body");
+      break;
+    case "package.expired":
+      set("notify.package_expired.title", "notify.package_expired.body");
+      break;
+    case "package.purchased":
+      set("notify.package_purchased.title", "notify.package_purchased.body");
+      break;
+    case "package.renewal_failed":
+      set("notify.package_renewal_failed.title", "notify.package_renewal_failed.body");
+      break;
+    case "membership.purchased":
+      set("notify.membership_purchased.title", "notify.membership_purchased.body");
+      break;
+    case "membership.expired":
+      set("notify.membership_expired.title", "notify.membership_expired.body");
+      break;
+    case "membership.renewed":
+      set("notify.membership_renewed.title", "notify.membership_renewed.body");
+      break;
+    case "wallet.topup":
+      set("notify.wallet_topup.title", "notify.wallet_topup.body");
+      break;
+    case "wallet.refund":
+      set("notify.wallet_refund.title", "notify.wallet_refund.body");
+      break;
+    case "invoice.overdue":
+      set("notify.invoice_overdue.title", "notify.invoice_overdue.body");
+      break;
+  }
+
+  const email = opts.email
+    ? {
+        ...opts.email,
+        subject,
+        heading,
+        intro,
+        details: opts.email.details?.map((detail) => ({
+          ...detail,
+          label: DETAIL_LABEL_KEYS[detail.label]
+            ? t(DETAIL_LABEL_KEYS[detail.label], lang)
+            : detail.label,
+        })),
+      }
+    : opts.email;
+
+  return { ...opts, title, body, email };
 }
 
 interface ChannelDecision {
@@ -230,6 +382,7 @@ export async function dispatchNotification(opts: DispatchOptions): Promise<void>
   }
   const prefs = await getOrCreatePrefs(userId);
   const lang: Lang = normalizeLang(user.languagePreference);
+  opts = localizePatientDispatch(opts, user, lang);
   const decision = decideChannels(prefs, eventKey, !!opts.urgent);
 
   // 1. In-app
@@ -264,6 +417,7 @@ export async function dispatchNotification(opts: DispatchOptions): Promise<void>
       const html = renderEvent({
         lang,
         headingKey: opts.email?.headingKey || `${eventKey.replace(/\./g, "_")}.heading`,
+        heading: opts.email?.heading,
         introKey: opts.email?.introKey,
         intro: opts.email?.intro || opts.body,
         details: opts.email?.details,

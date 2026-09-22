@@ -34,3 +34,11 @@ description: Root causes of bell/center mismatch and all fixes applied in the no
 - These are intentionally separate; the header bell only reads `user_notifications`
 - All `storage.createUserNotification()` calls use Drizzle ORM with correct camelCase → always safe
 - Only raw SQL spots were the two bugs above; all other raw SQL uses correct snake_case column names for UPDATE/DELETE
+
+## Customer language invariant
+
+Customer notification dispatch must resolve language from `users.language_preference` at dispatch time. Wrapper-level `lang` arguments are optional hints and must not be trusted as the source of truth because many callers omit them. Appointment/payment emails that bypass the dispatcher must use the shared localized email renderer and resolve the recipient language from their user record.
+
+**Why:** Several wrappers generated English title/body/intro strings before the dispatcher knew the recipient’s language, and direct appointment emails bypassed the localized renderer entirely.
+
+**How to apply:** Keep event data language-neutral (names, dates, amounts, IDs), localize title/body/subject/heading/detail labels centrally for patient recipients, and keep free-form admin/provider-authored text untranslated unless localized variants are explicitly provided.

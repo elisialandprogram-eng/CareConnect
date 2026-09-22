@@ -2375,6 +2375,8 @@ export function registerAppointmentRoutes(app: Express): void {
              data: JSON.stringify({
                _eventKey: `appointment.${status}`,
                appointmentRef: appointment.appointmentNumber ?? null,
+                date: appointment.date,
+                time: appointment.startTime,
                ...(invoiceResult?.invoiceNumber ? { invoiceNumber: invoiceResult.invoiceNumber } : {}),
              }),
             isRead: false,
@@ -2413,6 +2415,16 @@ export function registerAppointmentRoutes(app: Express): void {
               subject: "How was your appointment? - GoldenLife",
               heading: "Your appointment is complete",
               intro: `Hello ${patient.firstName}, your appointment with ${providerWithUser?.user.firstName ?? ""} ${providerWithUser?.user.lastName ?? ""} on ${appointment.date} at ${appointment.startTime} has been marked as completed.`,
+              subjectKey: "appt.postvisit.subject",
+              headingKey: "appt.postvisit.heading",
+              introKey: "appt.completed.intro",
+              ctaKey: "appt.postvisit.cta",
+              variables: {
+                name: patient.firstName,
+                provider: `${providerWithUser?.user.firstName ?? ""} ${providerWithUser?.user.lastName ?? ""}`.trim(),
+                date: appointment.date,
+                time: appointment.startTime,
+              },
               details: [
                 ...(appointment.appointmentNumber ? [{ label: "Reference #", value: appointment.appointmentNumber }] : []),
                 { label: "Date", value: appointment.date },
@@ -2549,6 +2561,14 @@ export function registerAppointmentRoutes(app: Express): void {
               subject: "Payment receipt - GoldenLife",
               heading: "Payment received",
               intro: `Hello ${patient.firstName}, we've recorded your payment for your appointment with ${providerWithUser?.user.firstName ?? ""} ${providerWithUser?.user.lastName ?? ""}.`,
+              subjectKey: "appt.payment.subject",
+              headingKey: "appt.payment.heading",
+              introKey: "appt.payment.intro",
+              ctaKey: "appt.payment.cta",
+              variables: {
+                name: patient.firstName,
+                provider: `${providerWithUser?.user.firstName ?? ""} ${providerWithUser?.user.lastName ?? ""}`.trim(),
+              },
               details: [
                 ...(appointment.appointmentNumber ? [{ label: "Reference #", value: appointment.appointmentNumber }] : []),
                 { label: "Date", value: appointment.date },
@@ -3010,6 +3030,12 @@ export function registerAppointmentRoutes(app: Express): void {
               type: "appointment",
               title: "No-show recorded",
               message: `Appointment${apptRef} on ${updated.date} was marked as a no-show.`,
+              data: JSON.stringify({
+                _eventKey: "appointment.no_show",
+                appointmentRef: updated.appointmentNumber ?? null,
+                date: updated.date,
+                time: updated.startTime,
+              }),
               isRead: false,
             });
           }
@@ -3023,6 +3049,14 @@ export function registerAppointmentRoutes(app: Express): void {
             subject: "Appointment cancelled - GoldenLife",
             heading: "Appointment cancelled",
             intro: `Hello ${patient.firstName}, your appointment with ${providerWithUser?.user.firstName ?? ""} ${providerWithUser?.user.lastName ?? ""} has been cancelled.`,
+            subjectKey: "appt.cancel.subject",
+            headingKey: "appt.cancel.heading",
+            introKey: "appt.cancel.detail_intro",
+            ...(actorLabel !== "patient" ? { ctaKey: "appt.cancel.rebook_cta" } : {}),
+            variables: {
+              name: patient.firstName,
+              provider: `${providerWithUser?.user.firstName ?? ""} ${providerWithUser?.user.lastName ?? ""}`.trim(),
+            },
             details: [
               { label: "Date", value: existing.date },
               { label: "Time", value: `${existing.startTime} - ${existing.endTime}` },
@@ -3039,6 +3073,11 @@ export function registerAppointmentRoutes(app: Express): void {
               type: "payment",
               title: "Refund processed",
               message: `Your refund of ${formatSync(refundedAmount, _cancelCurr, _cancelRates)} has been processed to your wallet.`,
+              data: JSON.stringify({
+                _eventKey: "payment.refunded",
+                formattedAmount: formatSync(refundedAmount, _cancelCurr, _cancelRates),
+                method: "wallet",
+              }),
               isRead: false,
             } as any).catch(() => {});
           }
@@ -3214,6 +3253,11 @@ export function registerAppointmentRoutes(app: Express): void {
         type: "appointment",
         title: "Follow-up recommended by your provider",
         message,
+        data: JSON.stringify({
+          _eventKey: "appointment.follow_up",
+          note: note ?? null,
+          appointmentRef: appt.appointmentNumber ?? null,
+        }),
         isRead: false,
       } as any);
 

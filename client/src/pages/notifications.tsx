@@ -230,6 +230,7 @@ export function getLocalizedNotification(
     validUntilSuffix: data.expiresAt ? ` Valid until ${data.expiresAt}.` : "",
     reasonSuffix: data.reason ? ` (${data.reason})` : "",
     notesSuffix: data.notes ? `: ${data.notes}` : "",
+    noteSuffix: data.note ? `: "${data.note}"` : "",
   };
 
   return {

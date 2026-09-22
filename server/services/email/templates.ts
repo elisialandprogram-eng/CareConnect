@@ -9,21 +9,25 @@ export interface DetailRow { label: string; value: string }
 export function renderEvent(opts: {
   lang: Lang;
   headingKey: string;
+  heading?: string;
   introKey?: string;
   intro?: string;
+  variables?: Record<string, unknown>;
   details?: DetailRow[];
-  cta?: { label: string; url: string };
+  cta?: { label: string; url?: string };
   rtl?: boolean;
 }): string {
   const isRtl = opts.rtl ?? opts.lang === "fa";
   const dir = isRtl ? "rtl" : "ltr";
-  const heading = t(opts.headingKey, opts.lang);
-  const intro = opts.intro ?? (opts.introKey ? t(opts.introKey, opts.lang) : "");
+  const heading = opts.heading ?? t(opts.headingKey, opts.lang, opts.variables);
+  const intro = opts.intro ?? (opts.introKey ? t(opts.introKey, opts.lang, opts.variables) : "");
   const details = (opts.details || [])
     .map(d => `<p style="margin:6px 0;"><strong>${escapeHtml(d.label)}:</strong> ${escapeHtml(d.value)}</p>`)
     .join("");
   const cta = opts.cta
-    ? `<p style="margin:20px 0;"><a href="${escapeHtml(opts.cta.url)}" style="display:inline-block;background:#0f766e;color:#fff;padding:10px 18px;border-radius:6px;text-decoration:none;">${escapeHtml(opts.cta.label)}</a></p>`
+    ? opts.cta.url
+      ? `<p style="margin:20px 0;"><a href="${escapeHtml(opts.cta.url)}" style="display:inline-block;background:#0f766e;color:#fff;padding:10px 18px;border-radius:6px;text-decoration:none;">${escapeHtml(opts.cta.label)}</a></p>`
+      : `<p style="margin:20px 0;">${escapeHtml(opts.cta.label)}</p>`
     : "";
   return `<!doctype html><html dir="${dir}"><body style="${baseStyles}">
     <h2 style="margin-top:0;">${escapeHtml(heading)}</h2>

@@ -16,6 +16,8 @@ import { pool } from "../../db";
 import { dispatchNotification } from "../../services/notification-dispatcher";
 import { trackEvent } from "../../services/analyticsTracker";
 import { formatLocal } from "../../services/currency";
+import { renderEvent } from "../../services/email/templates";
+import { normalizeLang, t, type Lang } from "../../services/i18n";
 
 // ── Email ──────────────────────────────────────────────────────────────────
 export const resend = process.env.RESEND_API_KEY
@@ -30,34 +32,57 @@ export async function sendAppointmentEmail(opts: {
   intro: string;
   details: { label: string; value: string }[];
   cta?: string;
+  lang?: Lang | string | null;
+  subjectKey?: string;
+  headingKey?: string;
+  introKey?: string;
+  variables?: Record<string, unknown>;
+  ctaKey?: string;
 }) {
   if (!resend) return;
   try {
-    const detailRows = opts.details
-      .map(
-        (d) =>
-          `<p style="margin: 5px 0;"><strong>${d.label}:</strong> ${d.value}</p>`
-      )
-      .join("");
-    await resend.emails.send({
-      from: FROM_EMAIL,
-      to: opts.to,
-      subject: opts.subject,
-      html: `
-        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;">
-          <h2 style="color: #0f172a;">${opts.heading}</h2>
-          <p>${opts.intro}</p>
-          <div style="background-color: #f8fafc; padding: 15px; border-radius: 8px; margin: 20px 0;">
-            ${detailRows}
-          </div>
-          ${opts.cta ? `<p>${opts.cta}</p>` : ""}
-          <p style="color: #64748b; font-size: 0.875rem; margin-top: 30px;">
-            Thank you for choosing GoldenLife.<br>
-            <em>This is an automated message, please do not reply.</em>
-          </p>
-        </div>
-      `,
+    const recipient = await storage.getUserByEmail(opts.to).catch(() => undefined);
+    const lang = normalizeLang(opts.lang || recipient?.languagePreference);
+    const variables = opts.variables ?? {};
+    const detailLabelKeys: Record<string, string> = {
+      Date: "label.date",
+      Time: "label.time",
+      Provider: "label.provider",
+      Service: "label.service",
+      Amount: "label.amount",
+      Method: "label.method",
+      "Cancelled by": "label.cancelled_by",
+      Refund: "label.refund",
+      Invoice: "label.invoice",
+      "Reference #": "label.reference",
+    };
+    const html = renderEvent({
+      lang,
+      headingKey: opts.headingKey || "appt.confirm.heading",
+      heading: opts.headingKey ? undefined : opts.heading,
+      introKey: opts.introKey,
+      intro: opts.introKey ? undefined : opts.intro,
+      variables,
+      details: opts.details.map((detail) => ({
+        ...detail,
+        label: detailLabelKeys[detail.label]
+          ? t(detailLabelKeys[detail.label], lang)
+          : detail.label,
+      })),
+      cta: opts.cta
+        ? { label: opts.ctaKey ? t(opts.ctaKey, lang, variables) : opts.cta }
+        : undefined,
     });
+    const result = await import("../../services/channels/email").then(({ sendEmail }) =>
+      sendEmail({
+      to: opts.to,
+        subject: opts.subjectKey ? t(opts.subjectKey, lang, variables) : opts.subject,
+        html,
+      }),
+    );
+    if (result.status === "failed") {
+      console.error(`Failed to send "${opts.subject}" email:`, result.error);
+    }
   } catch (err) {
     console.error(`Failed to send "${opts.subject}" email:`, err);
   }
@@ -121,6 +146,10 @@ export async function maybeQualifyReferralForAppointment(
           type: "wallet",
           title: "Referral reward earned",
           message: `Your friend just completed their first appointment! ${formatLocal(REFERRAL_REFERRER_REWARD, REFERRAL_REWARD_CURRENCY)} has been credited to your wallet.`,
+          data: JSON.stringify({
+            _eventKey: "referral.reward_earned",
+            formattedAmount: formatLocal(REFERRAL_REFERRER_REWARD, REFERRAL_REWARD_CURRENCY),
+          }),
           isRead: false,
         } as any)
         .catch(() => {})
@@ -146,6 +175,10 @@ export async function maybeQualifyReferralForAppointment(
           type: "wallet",
           title: "Welcome bonus credited",
           message: `Thanks for joining! ${formatLocal(REFERRAL_REFERRED_REWARD, REFERRAL_REWARD_CURRENCY)} has been credited to your wallet as a referral bonus.`,
+          data: JSON.stringify({
+            _eventKey: "referral.welcome_bonus",
+            formattedAmount: formatLocal(REFERRAL_REFERRED_REWARD, REFERRAL_REWARD_CURRENCY),
+          }),
           isRead: false,
         } as any)
         .catch(() => {})
