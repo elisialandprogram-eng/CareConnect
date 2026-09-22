@@ -26,6 +26,7 @@ const loaders: Record<Lang, () => Promise<{ default: Record<string, unknown> }>>
 };
 
 const loaded = new Set<Lang>(['en']);
+const loading = new Map<Lang, Promise<void>>();
 
 function mergeTranslationAdditions(
   base: Record<string, unknown>,
@@ -56,31 +57,35 @@ function mergeTranslationAdditions(
 export async function ensureLanguageResources(lng: string) {
   const code = (SUPPORTED as readonly string[]).includes(lng) ? (lng as Lang) : 'en';
   if (loaded.has(code)) return;
-  try {
-    const mod = await loaders[code]();
-    let translation = mergeTranslationAdditions(
-      mergeTranslationAdditions(
-        mod.default,
-        memberSweepTranslations[code] as unknown as Record<string, unknown>,
-      ),
-      providerSweepTranslations[code] as unknown as Record<string, unknown>,
-    );
-    translation = mergeTranslationAdditions(
-      translation,
-      providerDashboardSweepTranslations[code] as unknown as Record<string, unknown>,
-    );
-    translation = mergeTranslationAdditions(
-      translation,
-      providerClinicalSweepTranslations[code] as unknown as Record<string, unknown>,
-    );
-    translation = mergeTranslationAdditions(
-      translation,
-      adminProviderDetailsTranslations[code] as unknown as Record<string, unknown>,
-    );
-    translation = mergeTranslationAdditions(
-      translation,
-      adminProviderOperationsTranslations[code] as unknown as Record<string, unknown>,
-    );
+  const existingLoad = loading.get(code);
+  if (existingLoad) return existingLoad;
+
+  const load = (async () => {
+    try {
+      const mod = await loaders[code]();
+      let translation = mergeTranslationAdditions(
+        mergeTranslationAdditions(
+          mod.default,
+          memberSweepTranslations[code] as unknown as Record<string, unknown>,
+        ),
+        providerSweepTranslations[code] as unknown as Record<string, unknown>,
+      );
+      translation = mergeTranslationAdditions(
+        translation,
+        providerDashboardSweepTranslations[code] as unknown as Record<string, unknown>,
+      );
+      translation = mergeTranslationAdditions(
+        translation,
+        providerClinicalSweepTranslations[code] as unknown as Record<string, unknown>,
+      );
+      translation = mergeTranslationAdditions(
+        translation,
+        adminProviderDetailsTranslations[code] as unknown as Record<string, unknown>,
+      );
+      translation = mergeTranslationAdditions(
+        translation,
+        adminProviderOperationsTranslations[code] as unknown as Record<string, unknown>,
+      );
       translation = mergeTranslationAdditions(
         translation,
         adminSweepTranslations[code] as unknown as Record<string, unknown>,
@@ -89,24 +94,31 @@ export async function ensureLanguageResources(lng: string) {
         translation,
         reportingSweepTranslations[code] as unknown as Record<string, unknown>,
       );
-    i18n.addResourceBundle(
-      code,
-      'translation',
-      normalizeTranslationTree(translation, code),
-      true,
-      true,
-    );
-    loaded.add(code);
-    // Force React to re-render with the newly loaded bundle. If the user is
-    // already on this language (common on initial load), changeLanguage is a
-    // no-op in i18next, so we emit a store change via reloadResources instead.
-    if (i18n.language === code || i18n.resolvedLanguage === code) {
-      await i18n.reloadResources([code], 'translation');
-      // Ping subscribers so react-i18next components pick up the new strings
-      i18n.emit('languageChanged', code);
+      i18n.addResourceBundle(
+        code,
+        'translation',
+        normalizeTranslationTree(translation, code),
+        true,
+        true,
+      );
+      loaded.add(code);
+      // Force React to re-render with the newly loaded bundle. If the user is
+      // already on this language (common on initial load), changeLanguage is a
+      // no-op in i18next, so we emit a store change via reloadResources instead.
+      if (i18n.language === code || i18n.resolvedLanguage === code) {
+        await i18n.reloadResources([code], 'translation');
+        // Ping subscribers so react-i18next components pick up the new strings
+        i18n.emit('languageChanged', code);
+      }
+    } catch {
+      // ignore — fallback language remains active
     }
-  } catch {
-    // ignore — fallback language remains active
+  })();
+  loading.set(code, load);
+  try {
+    await load;
+  } finally {
+    loading.delete(code);
   }
 }
 

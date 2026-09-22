@@ -109,6 +109,7 @@ function inferLegacyEventKey(notif: UserNotification, data: Record<string, any>)
   if (title.includes("appointment in 1 hour")) return "appointment_reminder_1h";
   if (title.includes("appointment in 15 minutes")) return "appointment_reminder_15m";
   if (title.includes("booking confirmed")) return message.includes("is confirmed") ? "appointment_confirmed" : "appointment_booked";
+  if (title.includes("appointment confirmed") || title.includes("appointment confirmation")) return "appointment_confirmed";
   if (title.includes("appointment has been rescheduled")) return "appointment_rescheduled";
   if (title.includes("appointment was cancelled")) return "appointment_cancelled";
   if (title.includes("appointment completed")) {

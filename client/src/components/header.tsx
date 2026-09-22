@@ -86,10 +86,13 @@ export function Header() {
     navigate("/");
   };
 
-  const changeLanguage = async (lng: string) => {
+  const changeLanguage = (lng: string) => {
     if (lng === i18n.resolvedLanguage) return;
-    await ensureLanguageResources(lng);
-    await i18n.changeLanguage(lng);
+    // Change the active language first so the shell updates immediately.
+    // The full bundle is loaded in the background; i18n temporarily falls
+    // back to English for any keys that are not loaded yet.
+    void i18n.changeLanguage(lng);
+    void ensureLanguageResources(lng);
     if (user) {
       // Best-effort persist of language preference; ignore errors silently.
       void fetch("/api/auth/profile", {
