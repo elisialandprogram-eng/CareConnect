@@ -1,4 +1,3 @@
-import { formatDateTime } from "@/lib/datetime";
 import { useState, useMemo, useCallback, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useAdminCurrency, formatInCurrency } from "@/lib/currency";
@@ -101,10 +100,10 @@ interface ConsoleData {
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 function riskLabel(score: number) {
-  if (score >= 75) return { label: "Critical", color: "bg-red-100 text-red-700 border-red-200" };
-  if (score >= 50) return { label: "High", color: "bg-orange-100 text-orange-700 border-orange-200" };
-  if (score >= 25) return { label: "Medium", color: "bg-yellow-100 text-yellow-700 border-yellow-200" };
-  return { label: "Low", color: "bg-green-100 text-green-700 border-green-200" };
+  if (score >= 75) return { label: "critical", color: "bg-red-100 text-red-700 border-red-200" };
+  if (score >= 50) return { label: "high", color: "bg-orange-100 text-orange-700 border-orange-200" };
+  if (score >= 25) return { label: "medium", color: "bg-yellow-100 text-yellow-700 border-yellow-200" };
+  return { label: "low", color: "bg-green-100 text-green-700 border-green-200" };
 }
 
 /** P6: Convert raw enum / snake_case values to human-readable labels. */
@@ -192,8 +191,13 @@ function providerName(p: ProviderListItem) {
 
 /** Returns the best human-readable title for a provider list item.
  *  Priority: displayTitle (camelCase Drizzle) → display_title (snake FTS) → providerCategory → providerType */
-function providerLabel(p: ProviderListItem): string {
-  return p.displayTitle || p.display_title || p.providerCategory || p.provider_category || p.providerType || "—";
+function providerLabel(
+  p: ProviderListItem,
+  t?: (key: string, options?: any) => string,
+): string {
+  if (p.displayTitle || p.display_title) return p.displayTitle || p.display_title || "—";
+  const value = p.providerCategory || p.provider_category || p.providerType;
+  return t ? localizedAdminValue(t, value) : value || "—";
 }
 
 function typeIcon(type: string) {
@@ -566,11 +570,11 @@ function ProviderDirectory({
                     <div className="flex items-center gap-1.5 flex-wrap">
                       <StatusBadge status={p.status} domain="provider" className="text-[10px] px-1.5 py-0.5" />
                       <span className="text-[10px] text-slate-400 flex items-center gap-0.5">
-                        <Icon className="h-2.5 w-2.5" />{providerLabel(p)}
+                        <Icon className="h-2.5 w-2.5" />{providerLabel(p, t)}
                       </span>
                       {(p.riskScore || 0) >= 25 && (
                         <span className={`text-[10px] px-1 py-0.5 rounded border font-medium ${risk.color}`}>
-                          {risk.label}
+                          {d(`${risk.label}_risk`, risk.label)}
                         </span>
                       )}
                     </div>
@@ -633,7 +637,7 @@ function DocumentRow({
     mutationFn: async ({ docId, note }: { docId: string; note: string }) => {
       const r = await apiRequest("PATCH", `/api/admin/provider-documents/${docId}/extended`, {
         verificationStatus: "reupload_required",
-        adminNote: note.trim() || "Please re-upload this document.",
+        adminNote: note.trim() || t("admin_extra.provider.default_reupload_note", "Please re-upload this document."),
       });
       if (!r.ok) throw new Error("Failed");
     },
@@ -649,12 +653,13 @@ function DocumentRow({
   const reminderMutation = useMutation({
     mutationFn: async () => {
       if (!providerId) throw new Error(t("admin_tools.ops.no_provider", "No provider"));
+      const documentLabel = t(`admin_extra.provider.document_types.${placeholder.type}`, placeholder.label);
       const body = isExpiringSoon
-        ? `Your ${placeholder.label} is expiring in ${daysLeft} day${daysLeft === 1 ? "" : "s"}. Please upload a renewed copy to stay compliant.`
-        : `Your ${placeholder.label} has expired. Please upload a current, valid copy to restore your compliance status.`;
+        ? t("admin_extra.provider.expiry_notification", "Your {{document}} is expiring in {{count}} days. Please upload a renewed copy to stay compliant.", { document: documentLabel, count: daysLeft })
+        : t("admin_extra.provider.expired_notification", "Your {{document}} has expired. Please upload a current, valid copy to restore your compliance status.", { document: documentLabel });
       const r = await apiRequest("POST", `/api/admin/providers/${providerId}/actions`, {
         action: "send_notification",
-        notificationTitle: "Document Renewal Required",
+        notificationTitle: t("admin_extra.provider.document_renewal_required", "Document Renewal Required"),
         notificationBody: body,
       });
       if (!r.ok) throw new Error("Failed");
@@ -675,7 +680,9 @@ function DocumentRow({
         <div className="flex items-start gap-2 flex-1 min-w-0">
           <FileText className={`h-4 w-4 flex-shrink-0 mt-0.5 ${docStatusTextClass(isExpiringSoon ? "expiring_soon" : status)}`} />
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-slate-900 dark:text-slate-100 truncate">{placeholder.label}</p>
+            <p className="text-sm font-medium text-slate-900 dark:text-slate-100 truncate">
+              {String(t(`admin_extra.provider.document_types.${placeholder.type}`, placeholder.label))}
+            </p>
             {doc ? (
               <div className="space-y-0.5 mt-0.5">
                 <div className="flex items-center gap-2 flex-wrap">
@@ -2078,7 +2085,7 @@ function ProviderCommandCenter({
           {/* ── STAFF ────────────────────────────────────────────── */}
           <TabsContent value="staff" className="p-5 space-y-4 mt-0">
             <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300">
-              Staff / Practitioners ({practitioners.length})
+              {d("staff_practitioners", "Staff / Practitioners ({{count}})", { count: practitioners.length })}
             </h3>
             {practitioners.length === 0 && <div className="text-center py-10 text-slate-400 text-sm">{d("no_staff", "No staff members")}</div>}
             <div className="space-y-2">
@@ -2115,17 +2122,17 @@ function ProviderCommandCenter({
                         <div className="flex-1 bg-slate-50 dark:bg-slate-900 rounded-lg p-3">
                           <div className="flex items-center justify-between gap-2">
                             {/* P6: humanLabel converts snake_case/enum values to readable text */}
-                            <span className="text-xs font-medium text-slate-700 dark:text-slate-300">{humanLabel(entry.action)}</span>
+                            <span className="text-xs font-medium text-slate-700 dark:text-slate-300">{localizedAdminValue(t, entry.action)}</span>
                             <span className="text-[10px] text-slate-400">
                               {entry.createdAt && formatAdminDate(entry.createdAt, "dateTime")}
                             </span>
                           </div>
-                          <p className="text-xs text-slate-500 mt-0.5">{humanLabel(entry.entityType)}</p>
+                          <p className="text-xs text-slate-500 mt-0.5">{localizedAdminValue(t, entry.entityType)}</p>
                           {entry.details && (() => {
                             try {
                               const d = JSON.parse(entry.details);
                               const detail = d.reason || d.action || d.status || d.message || d.note;
-                              return <p className="text-xs text-slate-400 mt-1">{detail ? humanLabel(String(detail)) : JSON.stringify(d).slice(0, 120)}</p>;
+                              return <p className="text-xs text-slate-400 mt-1">{detail ? localizedAdminValue(t, String(detail)) : JSON.stringify(d).slice(0, 120)}</p>;
                             } catch {
                               return <p className="text-xs text-slate-400 mt-1">{entry.details}</p>;
                             }
@@ -2221,8 +2228,8 @@ function ProviderNotesPanel({ providerId }: { providerId: string }) {
                 <div className="flex items-center gap-2 text-xs text-slate-400">
                   <span className="font-medium text-slate-500 dark:text-slate-400">{note.adminName}</span>
                   <span>·</span>
-                  <span>{formatDateTime(note.createdAt)}</span>
-                  {note.isPinned && <span className="ml-1 text-amber-500 font-semibold">📌 Pinned</span>}
+                    <span>{formatAdminDate(note.createdAt, "dateTime")}</span>
+                    {note.isPinned && <span className="ml-1 text-amber-500 font-semibold">📌 {d("pinned", "Pinned")}</span>}
                 </div>
                 <div className="flex items-center gap-1">
                   <Button variant="ghost" size="sm" className="h-7 px-2 text-xs"
@@ -2230,14 +2237,14 @@ function ProviderNotesPanel({ providerId }: { providerId: string }) {
                     disabled={pinNote.isPending}
                     data-testid={`button-pin-note-${note.id}`}
                   >
-                    {note.isPinned ? "Unpin" : "Pin"}
+                    {note.isPinned ? d("unpin", "Unpin") : d("pin", "Pin")}
                   </Button>
                   <Button variant="ghost" size="sm" className="h-7 px-2 text-xs text-rose-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30"
-                    onClick={() => { if (confirm("Delete this note?")) deleteNote.mutate(note.id); }}
+                    onClick={() => { if (confirm(d("delete_note_confirm", "Delete this note?"))) deleteNote.mutate(note.id); }}
                     disabled={deleteNote.isPending}
                     data-testid={`button-delete-note-${note.id}`}
                   >
-                    Delete
+                    {d("delete", "Delete")}
                   </Button>
                 </div>
               </div>

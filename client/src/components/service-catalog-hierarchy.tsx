@@ -118,13 +118,13 @@ const LIFECYCLE_STATUSES = [
 
 // Taxonomy category names for the provider category restriction dropdown
 const PROVIDER_CATEGORIES = [
-  "Medical Doctors & Specialists",
-  "Mental Health & Behavioral Professionals",
-  "Nutrition, Dietetics & Metabolic Wellness",
-  "Physical Therapy & Rehabilitation",
-  "Dental Care Professionals",
-  "Alternative, Holistic & Integrative Medicine",
-  "Maternal, Nursing & Allied Health Support",
+  { value: "Medical Doctors & Specialists", key: "medical_doctors" },
+  { value: "Mental Health & Behavioral Professionals", key: "mental_health" },
+  { value: "Nutrition, Dietetics & Metabolic Wellness", key: "nutrition" },
+  { value: "Physical Therapy & Rehabilitation", key: "rehabilitation" },
+  { value: "Dental Care Professionals", key: "dental" },
+  { value: "Alternative, Holistic & Integrative Medicine", key: "alternative_medicine" },
+  { value: "Maternal, Nursing & Allied Health Support", key: "nursing" },
 ] as const;
 
 const EMPTY_SUB = {
@@ -174,7 +174,9 @@ function SubServiceForm({ initial, onSave, onCancel, isSaving, testPrefix }: {
           <SelectContent>
             <SelectItem value="__all__">{t("admin.catalog.form.all_provider_types", "— All provider types —")}</SelectItem>
             {PROVIDER_CATEGORIES.map((c) => (
-              <SelectItem key={c} value={c}>{c}</SelectItem>
+              <SelectItem key={c.value} value={c.value}>
+                {t(`admin.catalog_extra.provider_categories.${c.key}`, c.value)}
+              </SelectItem>
             ))}
           </SelectContent>
         </Select>
@@ -354,9 +356,9 @@ function SubServiceForm({ initial, onSave, onCancel, isSaving, testPrefix }: {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
               {[
-                { key: "descriptionEn", label: "🇬🇧 EN description" },
-                { key: "descriptionHu", label: "🇭🇺 HU description" },
-                { key: "descriptionFa", label: "🇮🇷 FA description" },
+                { key: "descriptionEn", label: t("admin.catalog_extra.english_description", "🇬🇧 EN description") },
+                { key: "descriptionHu", label: t("admin.catalog_extra.hungarian_description", "🇭🇺 HU description") },
+                { key: "descriptionFa", label: t("admin.catalog_extra.persian_description", "🇮🇷 FA description") },
               ].map(({ key, label }) => (
                 <div key={key}>
                   <label className="text-[10px] text-muted-foreground block mb-1">{label}</label>
@@ -629,7 +631,9 @@ export function ServiceCatalogHierarchy() {
           <div className="flex items-center gap-2 flex-wrap">
             <span className="font-medium text-sm" data-testid={`text-sub-name-${s.id}`}>{displayName}</span>
             {subStatusBadge(s)}
-            <Badge variant="outline" className="text-[10px] px-1.5 py-0 font-normal capitalize">{s.pricingType || "fixed"}</Badge>
+            <Badge variant="outline" className="text-[10px] px-1.5 py-0 font-normal capitalize">
+              {t(`admin.catalog.form.${s.pricingType || "fixed"}`, toTitleCase(s.pricingType || "fixed"))}
+            </Badge>
             {(s.minPrice || s.maxPrice) && (
               <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
                 <AlertTriangle className="h-2.5 w-2.5 text-amber-500" />
@@ -642,7 +646,7 @@ export function ServiceCatalogHierarchy() {
               <DollarSign className="h-3 w-3" />{t("admin.catalog.base", "Base")}: <span className="font-medium text-foreground ml-0.5">{fmtMoney(s.basePrice)}</span>
             </span>
             <span className="text-xs text-muted-foreground flex items-center gap-0.5">
-              <Clock className="h-3 w-3" /><span className="font-medium text-foreground">{s.durationMinutes}m</span>
+              <Clock className="h-3 w-3" /><span className="font-medium text-foreground">{t("admin.catalog_extra.duration_short", "{{count}} min", { count: s.durationMinutes })}</span>
             </span>
             {(s.nameEn || s.nameHu || s.nameFa) && (
               <span className="text-xs text-muted-foreground flex items-center gap-0.5">
@@ -754,7 +758,7 @@ export function ServiceCatalogHierarchy() {
                     onClick={() => setDeletingCs(cs)}
                     data-testid={`menu-delete-cs-${cs.id}`}
                   >
-                    <Trash2 className="h-3.5 w-3.5 mr-2" /> Delete Group
+                    <Trash2 className="h-3.5 w-3.5 mr-2" /> {t("admin.catalog_extra.delete_group", "Delete Group")}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -777,7 +781,7 @@ export function ServiceCatalogHierarchy() {
             )}
             {csSubs.length === 0 && addingSubFor !== cs.id && (
               <div className="py-5 text-center text-xs text-muted-foreground">
-                No sub-services yet.{" "}
+                {t("admin.catalog_extra.no_sub_services", "No sub-services yet.")}{" "}
               <button type="button" className="text-primary hover:underline" onClick={() => setAddingSubFor(cs.id)}>{t("admin.catalog.add_sub_service_direct", "Add one.")}</button>
               </div>
             )}
@@ -785,14 +789,14 @@ export function ServiceCatalogHierarchy() {
             {csArchived.length > 0 && (
               <div className="px-4 py-2 border-t bg-muted/5">
                 <p className="text-xs text-muted-foreground mb-2 flex items-center gap-1">
-                  <Archive className="h-3 w-3" />{csArchived.length} archived sub-service{csArchived.length !== 1 ? "s" : ""}
+                  <Archive className="h-3 w-3" />{t("admin.catalog_extra.archived_sub_services", "{{count}} archived sub-services", { count: csArchived.length })}
                 </p>
                 {csArchived.map(s => (
                   <div key={s.id} className="flex items-center gap-2 py-1 opacity-60">
                     <Tag className="h-3.5 w-3.5 text-muted-foreground ml-4" />
                     <span className="text-xs line-through flex-1">{toTitleCase(s.name)}</span>
                     <Button size="sm" variant="outline" className="h-5 text-xs px-1.5" onClick={() => restoreSub.mutate(s.id)} disabled={restoreSub.isPending} data-testid={`button-restore-sub-${s.id}`}>
-                      <RotateCcw className="h-2.5 w-2.5 mr-0.5" />Restore
+                      <RotateCcw className="h-2.5 w-2.5 mr-0.5" />{t("admin.catalog.restore", "Restore")}
                     </Button>
                   </div>
                 ))}
@@ -816,7 +820,7 @@ export function ServiceCatalogHierarchy() {
     const Icon   = getCategoryIcon(cat.slug);
     const colors = getCategoryColor(cat.slug);
 
-    const activeStatus = isArchived ? "Archived" : (cat.isActive ? "Active" : "Inactive");
+    const activeStatus = isArchived ? "archived" : (cat.isActive ? "active" : "inactive");
     const statusCls = isArchived
       ? "bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300"
       : cat.isActive
@@ -858,16 +862,16 @@ export function ServiceCatalogHierarchy() {
                     {toTitleCase(cat.name)}
                   </h3>
                   <span className={`inline-flex items-center text-[10px] font-semibold px-2 py-0.5 rounded-full ${statusCls}`}>
-                    {activeStatus}
+                    {t(`admin.catalog_status.${activeStatus}`, activeStatus)}
                   </span>
                 </div>
                 {cat.description && (
                   <p className="text-sm text-muted-foreground mt-0.5 line-clamp-1">{cat.description}</p>
                 )}
                 <div className="flex items-center gap-2 mt-1.5 text-xs text-muted-foreground">
-                  <span>{catCss.length} Group{catCss.length !== 1 ? "s" : ""}</span>
+                  <span>{t("admin.catalog_extra.group_count", "{{count}} groups", { count: catCss.length })}</span>
                   <span className="text-border">•</span>
-                  <span>{totalSubs} Sub-Service{totalSubs !== 1 ? "s" : ""}</span>
+                  <span>{t("admin.catalog_extra.sub_service_count", "{{count}} sub-services", { count: totalSubs })}</span>
                 </div>
               </div>
 
@@ -881,7 +885,7 @@ export function ServiceCatalogHierarchy() {
                   data-testid={`button-manage-cat-${cat.id}`}
                 >
                   <Settings className="h-3.5 w-3.5" />
-                  Manage
+                  {t("admin.catalog_extra.manage", "Manage")}
                   {isOpen ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
                 </Button>
 
@@ -896,7 +900,7 @@ export function ServiceCatalogHierarchy() {
                       onClick={() => { setEditingCat(cat); setExpandedCat(s => ({ ...s, [cat.id]: true })); }}
                       data-testid={`menu-edit-cat-${cat.id}`}
                     >
-                      <Edit2 className="h-3.5 w-3.5 mr-2" /> Edit Category
+                      <Edit2 className="h-3.5 w-3.5 mr-2" /> {t("admin.catalog_extra.edit_category", "Edit Category")}
                     </DropdownMenuItem>
                     {!isArchived && (
                       <DropdownMenuItem
@@ -915,7 +919,7 @@ export function ServiceCatalogHierarchy() {
                       onClick={() => setDeletingCat(cat)}
                       data-testid={`menu-delete-cat-${cat.id}`}
                     >
-                      <Trash2 className="h-3.5 w-3.5 mr-2" /> Archive Category
+                      <Trash2 className="h-3.5 w-3.5 mr-2" /> {t("admin.catalog.archive_category", "Archive Category")}
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -999,7 +1003,7 @@ export function ServiceCatalogHierarchy() {
                 {legacyArchived.length > 0 && (
                   <div className="px-4 py-2 border-t bg-muted/5">
                     <p className="text-xs text-muted-foreground mb-2 flex items-center gap-1">
-                      <Archive className="h-3 w-3" />{legacyArchived.length} archived
+                      <Archive className="h-3 w-3" />{t("admin.catalog_extra.archived_sub_services", "{{count}} archived sub-services", { count: legacyArchived.length })}
                     </p>
                     {legacyArchived.map(s => (
                       <div key={s.id} className="flex items-center gap-2 py-0.5 opacity-60">
