@@ -100,6 +100,7 @@ const STATUS_OPTIONS = [
 ];
 
 const VISIT_TYPE_LABELS: Record<string, string> = {
+  clinic: "provider_sweep.earnings.clinic",
   clinic_visit: "provider_sweep.earnings.clinic",
   home_visit: "provider_sweep.earnings.home",
   online: "provider_sweep.earnings.online",
@@ -120,6 +121,7 @@ function visitBadge(type: string | null, translate: ProviderTranslator) {
   const labelKey = VISIT_TYPE_LABELS[type];
   const label = labelKey ? translate(labelKey, type) : type;
   const colors: Record<string, string> = {
+    clinic: "bg-blue-100 text-blue-700 border-blue-200",
     clinic_visit: "bg-blue-100 text-blue-700 border-blue-200",
     home_visit: "bg-purple-100 text-purple-700 border-purple-200",
     online: "bg-cyan-100 text-cyan-700 border-cyan-200",

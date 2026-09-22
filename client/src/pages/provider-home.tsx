@@ -2,6 +2,7 @@ import { useMemo, useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { reportDocumentTypeLabel, reportStatusLabel, reportVisitTypeLabel } from "@/lib/report-localization";
+import { localizeMedicalTerm } from "@/lib/medical-localization";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/lib/auth";
 import { useCurrency } from "@/lib/currency";
@@ -90,6 +91,23 @@ function isThisWeek(dateStr: string) {
   weekStart.setDate(now.getDate() - now.getDay());
   weekStart.setHours(0, 0, 0, 0);
   return d >= weekStart;
+}
+
+function localizeProviderSpecialty(value: string | undefined, t: ReturnType<typeof useTranslation>["t"]): string {
+  const raw = String(value ?? "").trim();
+  if (!raw) return "";
+
+  // Taxonomy values can contain several English labels plus a parenthetical
+  // qualifier, for example: "Physiotherapist / Physical Therapist (General)".
+  // Localize each known medical term instead of displaying the stored English
+  // taxonomy label in the provider dashboard.
+  const compound = raw.match(/^(.*?)\s*\/\s*(.*?)\s*\(([^)]+)\)\s*$/);
+  if (compound) {
+    const [, first, second] = compound;
+    return `${[first, second].map((part) => localizeMedicalTerm(part, t)).join(" / ")} (${t("provider_dashboard.general", "General")})`;
+  }
+
+  return localizeMedicalTerm(raw, t);
 }
 
 function fmtTime(dateStr: string) {
@@ -384,7 +402,10 @@ export default function ProviderHome() {
     ? `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim()
     : t("provider_dashboard.doctor", "Doctor");
 
-  const specialty = providerProfile?.specialization ?? providerProfile?.providerSubcategory ?? providerProfile?.providerCategory ?? t("common.healthcare_provider", "Healthcare Provider");
+  const specialty = localizeProviderSpecialty(
+    providerProfile?.specialization ?? providerProfile?.providerSubcategory ?? providerProfile?.providerCategory,
+    t,
+  ) || t("common.healthcare_provider", "Healthcare Provider");
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (

@@ -27,6 +27,7 @@ export const providerDashboardSweepTranslations = {
     },
     provider_dashboard: {
       welcome_back_name: "Welcome back, {{name}}",
+      general: "General",
       manage_clinic_desc: "Manage your practitioners and the services assigned to your clinic.",
       original: "Original",
       error_loading_section: "Error loading {{section}} section.",
@@ -233,6 +234,7 @@ export const providerDashboardSweepTranslations = {
     },
     provider_dashboard: {
       welcome_back_name: "Üdvözöljük újra, {{name}}!",
+      general: "Általános",
       manage_clinic_desc: "Kezelje szakembereit és a praxisához rendelt szolgáltatásokat.",
       original: "Eredeti",
       error_loading_section: "Hiba a(z) {{section}} szakasz betöltésekor.",
@@ -439,6 +441,7 @@ export const providerDashboardSweepTranslations = {
     },
     provider_dashboard: {
       welcome_back_name: "خوش آمدید، {{name}}",
+      general: "عمومی",
       manage_clinic_desc: "متخصصان و خدمات اختصاص‌یافته به مطب خود را مدیریت کنید.",
       original: "اصلی",
       error_loading_section: "بارگذاری بخش {{section}} با خطا مواجه شد.",

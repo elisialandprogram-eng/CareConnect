@@ -33,8 +33,7 @@ import {
   Globe, Percent, Clock, ChevronRight, Wallet, Zap, BookOpen, MapPin, Layers,
   AlertTriangle, CreditCard, Database, Sprout, RotateCcw,
   Star,
-  PanelLeftClose, PanelLeftOpen,
-  Maximize2, Minimize2,
+  PanelLeftClose, PanelLeftOpen, Menu, X,
 } from "lucide-react";
 import { RefundManagementPanel, RefundRulesPanel } from "@/components/admin/refund-management";
 import { RevenueBillingCenter } from "@/components/admin/dashboard/revenue-billing-center";
@@ -261,25 +260,9 @@ export default function AdminDashboard() {
   })();
   const [activeTab, setActiveTab] = useState(initialTab);
   const { collapsed: sidebarCollapsed, toggle: toggleSidebar } = useDashboardSidebar("admin");
-  const denseReportTabs = new Set([
-    "reports",
-    "custom-reports",
-    "bookings",
-    "financial-reports",
-    "platform-revenue",
-    "cash-fee-settlements",
-    "ledger-overrides",
-    "refunds",
-  ]);
-  const isDenseReportTab = denseReportTabs.has(activeTab);
-  const [focusModeOverride, setFocusModeOverride] = useState<boolean | null>(null);
-  const focusMode = focusModeOverride ?? isDenseReportTab;
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [jumpToProviderId, setJumpToProviderId] = useState<string | null>(null);
   const isGlobalAdmin = user?.role === "global_admin";
-
-  useEffect(() => {
-    setFocusModeOverride(null);
-  }, [activeTab]);
 
   const openProvider = (id: string) => {
     setJumpToProviderId(id);
@@ -331,7 +314,7 @@ export default function AdminDashboard() {
     <div className="min-h-screen flex flex-col">
       <Header />
       <PageBreadcrumbs items={[{ label: t("admin.dashboard") }]} />
-       <main className={cn("flex-1 mx-auto px-4 py-8 overflow-x-hidden w-full", focusMode ? "max-w-none" : "container")}>
+        <main className="container max-w-[1800px] flex-1 mx-auto px-4 py-8 overflow-x-hidden w-full">
         {/* ── Header row ── */}
         <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
           <div>
@@ -367,32 +350,6 @@ export default function AdminDashboard() {
               onOpenDocQueue={() => setActiveTab("doc-queue")}
               onNavigate={setActiveTab}
             />
-            <Button
-              variant={focusMode ? "default" : "outline"}
-              size="sm"
-              onClick={() => setFocusModeOverride(!focusMode)}
-              aria-pressed={focusMode}
-              aria-label={focusMode
-                ? t("admin.exit_report_focus", "Exit report focus mode")
-                : t("admin.enter_report_focus", "Use report focus mode")}
-              title={focusMode
-                ? t("admin.exit_report_focus", "Exit report focus mode")
-                : t("admin.enter_report_focus", "Use report focus mode")}
-              data-testid="button-toggle-report-focus"
-            >
-              <span className={cn("items-center", focusMode ? "inline-flex" : "hidden")} aria-hidden={!focusMode}>
-                <Minimize2 className="h-4 w-4 me-1.5" />
-              </span>
-              <span className={cn("items-center", focusMode ? "hidden" : "inline-flex")} aria-hidden={focusMode}>
-                <Maximize2 className="h-4 w-4 me-1.5" />
-              </span>
-              <span className={focusMode ? "inline" : "hidden"}>
-                {t("admin.exit_report_focus", "Exit focus")}
-              </span>
-              <span className={focusMode ? "hidden" : "inline"}>
-                {t("admin.enter_report_focus", "Focus report")}
-              </span>
-            </Button>
           </div>
         </div>
 
@@ -437,10 +394,10 @@ export default function AdminDashboard() {
         })()}
 
         {/* ── Main layout: sidebar + content ── */}
-         <div className={cn("flex items-start", focusMode ? "gap-0" : "gap-6")}>
+         <div className="flex items-start gap-6">
 
           {/* ── Desktop sidebar nav ── */}
-          <aside className={`${focusMode ? "hidden" : "hidden lg:flex"} flex-col flex-shrink-0 sticky top-20 self-start gap-5 max-h-[calc(100vh-8rem)] overflow-y-auto pb-4 transition-[width] duration-200 ${sidebarCollapsed ? "w-16" : "w-48 xl:w-52"} pe-1`}>
+           <aside className={`hidden lg:flex flex-col flex-shrink-0 sticky top-20 self-start gap-5 max-h-[calc(100vh-8rem)] overflow-y-auto pb-4 transition-[width] duration-200 ${sidebarCollapsed ? "w-16" : "w-48 xl:w-52"} pe-1`}>
             <div className={`flex items-center ${sidebarCollapsed ? "justify-center" : "justify-end"}`}>
               <button
                 type="button"
@@ -485,51 +442,66 @@ export default function AdminDashboard() {
             ))}
           </aside>
 
-          {/* ── Mobile nav: group pills + current group items ── */}
-          <div className={`${focusMode ? "hidden" : "lg:hidden"} w-full mb-4 space-y-2`}>
-            <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
-              {navGroups.map(group => {
-                const isActive = group.items.some(i => i.value === activeTab);
-                return (
-                  <button
-                    key={group.items[0]?.value ?? group.label}
-                    onClick={() => setActiveTab(group.items[0].value)}
-                    className={cn(
-                      "flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors whitespace-nowrap",
-                      isActive
-                        ? "bg-primary text-primary-foreground border-primary"
-                        : "bg-background text-muted-foreground border-border hover:border-primary/40"
-                    )}
-                  >
-                    <group.icon className="h-3 w-3" />
-                    {group.label}
-                  </button>
-                );
-              })}
-            </div>
-            {navGroups.map(group => {
-              if (!group.items.some(i => i.value === activeTab)) return null;
-              return (
-                <div key={group.items[0]?.value ?? group.label} className="flex gap-1.5 overflow-x-auto pb-1 no-scrollbar">
-                  {group.items.map(item => (
-                    <button
-                      key={item.value}
-                      onClick={() => setActiveTab(item.value)}
-                      className={cn(
-                        "flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs transition-colors whitespace-nowrap",
-                        activeTab === item.value
-                          ? "bg-primary/10 text-primary font-medium"
-                          : "text-muted-foreground hover:text-foreground hover:bg-accent"
-                      )}
-                    >
-                      <item.icon className="h-3 w-3" />
-                      {item.label}
-                    </button>
-                  ))}
-                </div>
-              );
-            })}
-          </div>
+           {/* ── Mobile nav: hidden until requested, then shown as a drawer ── */}
+           <div className="lg:hidden w-full mb-4">
+             <Button
+               type="button"
+               variant="outline"
+               className="w-full justify-between"
+               onClick={() => setMobileNavOpen((open) => !open)}
+               aria-expanded={mobileNavOpen}
+               aria-controls="admin-mobile-navigation"
+               data-testid="button-toggle-mobile-admin-navigation"
+             >
+               <span className="inline-flex items-center gap-2">
+                 <Menu className="h-4 w-4" />
+                 {t("admin.navigation", "Navigation")}
+               </span>
+               {mobileNavOpen ? <X className="h-4 w-4" /> : <ChevronRight className="h-4 w-4 rotate-90" />}
+             </Button>
+             {mobileNavOpen && (
+               <div
+                 id="admin-mobile-navigation"
+                 className="mt-2 max-h-[min(70vh,36rem)] overflow-y-auto rounded-xl border bg-card p-3 shadow-lg"
+               >
+                 <div className="space-y-4">
+                   {navGroups.map(group => (
+                     <div key={group.items[0]?.value ?? group.label}>
+                       <p className="mb-1.5 px-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">
+                         {group.label}
+                       </p>
+                       <div className="grid grid-cols-1 gap-1 sm:grid-cols-2">
+                         {group.items.map(item => (
+                           <button
+                             key={item.value}
+                             onClick={() => {
+                               setActiveTab(item.value);
+                               setMobileNavOpen(false);
+                             }}
+                             data-testid={`mobile-nav-${item.value}`}
+                             className={cn(
+                               "relative flex w-full items-center gap-2 rounded-md px-3 py-2 text-start text-sm transition-colors",
+                               activeTab === item.value
+                                 ? "bg-primary text-primary-foreground font-medium"
+                                 : "text-muted-foreground hover:bg-accent hover:text-foreground",
+                             )}
+                           >
+                             <item.icon className="h-3.5 w-3.5 flex-shrink-0" />
+                             <span className="truncate">{item.label}</span>
+                             {item.badge != null && item.badge > 0 && (
+                               <span className="ms-auto inline-flex min-w-[1rem] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold leading-4 text-white">
+                                 {item.badge > 99 ? "99+" : item.badge}
+                               </span>
+                             )}
+                           </button>
+                         ))}
+                       </div>
+                     </div>
+                   ))}
+                 </div>
+               </div>
+             )}
+           </div>
 
           {/* ── Panel content area ── */}
           <div className="flex-1 min-w-0">
