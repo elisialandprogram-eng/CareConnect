@@ -200,6 +200,59 @@ const BLANK_NEW_MEMBER: NewMemberForm = {
   relationship: "spouse",
 };
 
+type BookingTranslate = (
+  key: string,
+  defaultValue: string,
+  options?: Record<string, unknown>,
+) => unknown;
+
+function localizeBookingEnum(value: string | null | undefined, t: BookingTranslate): string {
+  const normalized = String(value ?? "").trim().toLowerCase().replace(/[\s-]+/g, "_");
+  const keyMap: Record<string, [string, string]> = {
+    clinic: ["booking.wizard.visit_clinic", "In-clinic"],
+    clinic_visit: ["booking.wizard.visit_clinic", "In-clinic"],
+    home: ["booking.wizard.visit_home", "Home visit"],
+    home_visit: ["booking.wizard.visit_home", "Home visit"],
+    online: ["booking.wizard.visit_online", "Online"],
+    telemedicine: ["booking.wizard.visit_online", "Online"],
+    spouse: ["patient_sweep.booking_spouse", "Spouse"],
+    child: ["patient_sweep.booking_child", "Child"],
+    parent: ["patient_sweep.booking_parent", "Parent"],
+    dependent: ["patient_sweep.booking_dependent", "Dependent"],
+  };
+  const match = keyMap[normalized];
+  return match ? String(t(match[0], match[1])) : String(value ?? "");
+}
+
+function localizeBookingLine(label: string, t: BookingTranslate): string {
+  const trimmed = String(label ?? "").trim();
+  const normalized = trimmed.toLowerCase();
+  const exact: Record<string, [string, string]> = {
+    "base price": ["patient_sweep.booking_base_price", "Base price"],
+    "platform fee": ["patient_sweep.booking_platform_fee", "Platform fee"],
+    "service tax": ["patient_sweep.booking_service_tax_label", "Service tax"],
+    "platform tax": ["patient_sweep.booking_platform_tax_label", "Platform tax"],
+    "total tax": ["patient_sweep.booking_total_tax", "Total tax"],
+    "member discount": ["patient_sweep.booking_member_discount", "Member discount"],
+    "promo discount": ["patient_sweep.booking_promo_discount", "Promo discount"],
+    "visit type fee": ["patient_sweep.booking_visit_type_fee", "Visit type fee"],
+    "clinic fee": ["patient_sweep.booking_clinic_fee", "Clinic fee"],
+    "home visit fee": ["patient_sweep.booking_home_visit_fee", "Home visit fee"],
+    "telemedicine fee": ["patient_sweep.booking_telemedicine_fee", "Telemedicine fee"],
+  };
+  if (exact[normalized]) {
+    const [key, fallback] = exact[normalized];
+    return String(t(key, fallback));
+  }
+  const serviceTax = trimmed.match(/^service tax\s*\((.+)\)$/i);
+  if (serviceTax) return String(t("patient_sweep.booking_service_tax", "Service tax ({{rate}}%)", { rate: serviceTax[1] }));
+  const platformTax = trimmed.match(/^platform tax\s*\((.+)\)$/i);
+  if (platformTax) return String(t("patient_sweep.booking_platform_tax", "Platform tax ({{rate}}%)", { rate: platformTax[1] }));
+  const promo = trimmed.match(/^promo\s*\((.+)\)$/i);
+  if (promo) return `${t("patient_sweep.booking_promo_discount", "Promo discount")} (${promo[1]})`;
+  return trimmed;
+}
+
 /* ── Countdown hook ──────────────────────────────────────────────── */
 function useCountdown(target: Date | null): number {
   const [secsLeft, setSecsLeft] = useState(0);
@@ -667,7 +720,7 @@ export function BookingCanvas({
           </span>
           <span className="flex items-center gap-1">
             <MapPin className="h-3 w-3" />
-            <span className="capitalize">{values.visitType}</span>
+            <span>{localizeBookingEnum(values.visitType, t)}</span>
           </span>
         </div>
       )}
@@ -1015,7 +1068,7 @@ export function BookingCanvas({
             <span className="text-foreground font-medium">{slot.startTime} – {slot.endTime}</span>
           </>}
           <span>{t("patient_sweep.booking_visit_type", "Visit type")}</span>
-          <span className="text-foreground font-medium capitalize">{values.visitType}</span>
+          <span className="text-foreground font-medium">{localizeBookingEnum(values.visitType, t)}</span>
           <span>{t("patient_sweep.booking_reason", "Reason")}</span>
           <span className="text-foreground font-medium truncate">{values.reason}</span>
         </div>
@@ -1083,7 +1136,7 @@ export function BookingCanvas({
                 <p className="text-xs font-semibold mt-0.5 truncate w-full">
                   {m.firstName} {m.lastName}
                 </p>
-                <p className="text-[10px] text-muted-foreground capitalize">{m.relationship}</p>
+                <p className="text-[10px] text-muted-foreground">{localizeBookingEnum(m.relationship, t)}</p>
                 {selectedFor === m.id && (
                   <CheckCircle2 className="h-3 w-3 text-primary self-end" />
                 )}
@@ -1338,8 +1391,8 @@ export function BookingCanvas({
                       ? t("patient_sweep.booking_service_discount", "{{value}}% service discount", { value: val }) :
                     b.key === "platform_fee_discount"
                       ? `${val}% ${t("patient_sweep.booking_fee_discount", "platform fee discount")}` :
-                    b.key === "wallet_bonus"             ? `${fmt(val)} wallet bonus` :
-                    b.key === "reduced_commission"       ? `${val}% reduced commission` :
+                    b.key === "wallet_bonus"             ? t("patient_sweep.booking_wallet_bonus", "{{value}} wallet bonus", { value: fmt(val) }) :
+                    b.key === "reduced_commission"       ? t("patient_sweep.booking_reduced_commission", "{{value}}% reduced commission", { value: val }) :
                     b.key === "free_cancellations"       ? t("common.free_cancellations", "Free cancellations") :
                     b.key === "priority_support"         ? t("common.priority_support", "Priority support") :
                     b.key === "featured_provider"        ? t("common.featured_listing", "Featured listing") :
@@ -1371,7 +1424,7 @@ export function BookingCanvas({
                     : "text-muted-foreground",
                 )}
               >
-                <span>{line.label}</span>
+                <span>{localizeBookingLine(line.label, t)}</span>
                 <span className={cn(
                   "tabular-nums",
                   isDiscount && "font-medium",
@@ -1577,6 +1630,8 @@ export function BookingCanvas({
             ? t("patient_sweep.booking_pay_cash", "Pay Cash")
             : isBankTransfer
             ? t("patient_sweep.booking_bank_transfer", "Bank Transfer")
+            : isCard
+            ? t("patient_sweep.booking_pay_card", "Pay by Card")
             : provider.label;
           const subtitle = isWallet
             ? walletInUnits >= discountedTotal
@@ -1586,6 +1641,8 @@ export function BookingCanvas({
               : t("patient_sweep.booking_wallet_apply", "Apply {{amount}} wallet credit — remainder via card", {
                   amount: fmt(walletInUnits),
                 })
+            : isCard
+            ? t("patient_sweep.booking_secure_checkout", "Secure checkout")
             : provider.description;
 
           return (

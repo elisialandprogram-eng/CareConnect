@@ -273,6 +273,46 @@ export default function BookingConfirmation() {
     }
   })();
 
+  const localizeConfirmationLine = (label: string): string => {
+    const trimmed = String(label ?? "").trim();
+    const normalized = trimmed.toLowerCase();
+    const exact: Record<string, [string, string]> = {
+      "base price": ["patient_sweep.booking_base_price", "Base price"],
+      "platform fee": ["patient_sweep.booking_platform_fee", "Platform fee"],
+      "service tax": ["patient_sweep.booking_service_tax_label", "Service tax"],
+      "platform tax": ["patient_sweep.booking_platform_tax_label", "Platform tax"],
+      "total tax": ["patient_sweep.booking_total_tax", "Total tax"],
+      "member discount": ["patient_sweep.booking_member_discount", "Member discount"],
+      "promo discount": ["patient_sweep.booking_promo_discount", "Promo discount"],
+      "clinic fee": ["patient_sweep.booking_clinic_fee", "Clinic fee"],
+      "home visit fee": ["patient_sweep.booking_home_visit_fee", "Home visit fee"],
+      "telemedicine fee": ["patient_sweep.booking_telemedicine_fee", "Telemedicine fee"],
+    };
+    const match = exact[normalized];
+    if (match) return String(t(match[0], match[1]));
+    const serviceTax = trimmed.match(/^service tax\s*\((.+)\)$/i);
+    if (serviceTax) return String(t("patient_sweep.booking_service_tax", "Service tax ({{rate}}%)", { rate: serviceTax[1] }));
+    const platformTax = trimmed.match(/^platform tax\s*\((.+)\)$/i);
+    if (platformTax) return String(t("patient_sweep.booking_platform_tax", "Platform tax ({{rate}}%)", { rate: platformTax[1] }));
+    const promo = trimmed.match(/^promo\s*\((.+)\)$/i);
+    if (promo) return `${t("patient_sweep.booking_promo_discount", "Promo discount")} (${promo[1]})`;
+    return trimmed;
+  };
+
+  const localizePaymentStatus = (status: string): string => {
+    const normalized = status.toLowerCase();
+    const statusKeys: Record<string, [string, string]> = {
+      paid: ["booking_confirmation.payment_paid", "Paid"],
+      completed: ["booking_confirmation.payment_completed", "Completed"],
+      pending: ["booking_confirmation.payment_pending", "Pending"],
+      failed: ["booking_confirmation.payment_failed", "Failed"],
+      refunded: ["booking_confirmation.payment_refunded", "Refunded"],
+      cancelled: ["booking_confirmation.payment_cancelled", "Cancelled"],
+    };
+    const match = statusKeys[normalized];
+    return match ? String(t(match[0], match[1])) : status;
+  };
+
   const visitIcon =
     appt?.visitType === "online" ? Video : appt?.visitType === "home" ? MapPin : Building2;
 
@@ -405,14 +445,14 @@ export default function BookingConfirmation() {
   const calendarTitle = `GoldenLife — ${serviceName} with ${providerName}`;
   const calendarLocation =
     appt?.visitType === "online"
-      ? meetingLink || "Online"
+      ? meetingLink || t("booking.wizard.visit_online", "Online")
       : locationLine || "";
   const calendarDescription = [
-    `Service: ${serviceName}`,
-    `Practitioner: ${providerName}`,
-    `Visit type: ${visitTypeLabel}`,
-    appt?.appointmentNumber ? `Reference: ${appt.appointmentNumber}` : "",
-    appt?.notes ? `Notes: ${appt.notes}` : "",
+    `${t("booking_confirmation.service_label", "Service")}: ${serviceName}`,
+    `${t("booking_confirmation.practitioner_label", "Practitioner")}: ${providerName}`,
+    `${t("booking_confirmation.visit_type_label", "Visit type")}: ${visitTypeLabel}`,
+    appt?.appointmentNumber ? `${t("booking_confirmation.reference_number", "Reference number")}: ${appt.appointmentNumber}` : "",
+      appt?.notes ? `${t("booking_confirmation.notes_label", "Notes")}: ${appt.notes}` : "",
   ]
     .filter(Boolean)
     .join("\n");
@@ -454,7 +494,7 @@ export default function BookingConfirmation() {
       setCopied(true);
       setTimeout(() => setCopied(false), 1800);
     } catch {
-      toast({ title: "Copy failed", variant: "destructive" });
+      toast({ title: t("booking_confirmation.copy_failed", "Copy failed"), variant: "destructive" });
     }
   };
 
@@ -682,23 +722,23 @@ export default function BookingConfirmation() {
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
-              <DetailRow icon={UserIcon} label="Practitioner" value={providerName} testId="row-practitioner" />
-              <DetailRow icon={FileText} label="Service" value={serviceName} testId="row-service" />
-              <DetailRow icon={VisitIcon} label="Visit type" value={visitTypeLabel} testId="row-visit-type" />
-              <DetailRow icon={CalendarIcon} label="Date" value={prettyDate} testId="row-date" />
+              <DetailRow icon={UserIcon} label={t("booking_confirmation.practitioner_label", "Practitioner")} value={providerName} testId="row-practitioner" />
+              <DetailRow icon={FileText} label={t("booking_confirmation.service_label", "Service")} value={serviceName} testId="row-service" />
+              <DetailRow icon={VisitIcon} label={t("booking_confirmation.visit_type_label", "Visit type")} value={visitTypeLabel} testId="row-visit-type" />
+              <DetailRow icon={CalendarIcon} label={t("booking_confirmation.date_label", "Date")} value={prettyDate} testId="row-date" />
               <DetailRow
                 icon={Clock}
-                label="Time"
+                label={t("booking_confirmation.time_label", "Time")}
                 value={`${appt.startTime}${appt.endTime ? ` – ${appt.endTime}` : ""}`}
                 testId="row-time"
               />
               {appt.visitType === "home" && locationLine && (
-                <DetailRow icon={MapPin} label="Address" value={locationLine} testId="row-address" />
+                <DetailRow icon={MapPin} label={t("booking_confirmation.address_label", "Address")} value={locationLine} testId="row-address" />
               )}
               {appt.visitType === "online" && (
                 <DetailRow
                   icon={Video}
-                  label="Meeting link"
+                  label={t("booking_confirmation.meeting_link_label", "Meeting link")}
                   testId="row-meeting-link"
                   value={
                     <a
@@ -708,27 +748,27 @@ export default function BookingConfirmation() {
                       className="text-primary hover:underline break-all"
                       data-testid="link-meeting"
                     >
-                      Join the call when it's time
+                      {t("booking_confirmation.join_call", "Join the call when it's time")}
                     </a>
                   }
                 />
               )}
               {appt.notes && (
-                <DetailRow icon={FileText} label="Notes" value={appt.notes} testId="row-notes" />
+                <DetailRow icon={FileText} label={t("booking_confirmation.notes_label", "Notes")} value={appt.notes} testId="row-notes" />
               )}
 
               {/* Map preview */}
               {hasMap && (
                 <div className="pt-2">
                   <div className="text-xs uppercase tracking-wide text-muted-foreground mb-2">
-                    Visit location
+                    {t("booking_confirmation.visit_location", "Visit location")}
                   </div>
                   <div
                     className="rounded-lg overflow-hidden border"
                     data-testid="map-preview"
                   >
                     <iframe
-                      title="Visit location"
+                    title={t("booking_confirmation.visit_location", "Visit location")}
                       width="100%"
                       height="240"
                       frameBorder="0"
@@ -743,7 +783,7 @@ export default function BookingConfirmation() {
                     className="text-xs text-primary hover:underline mt-1 inline-block"
                     data-testid="link-open-map"
                   >
-                    Open larger map →
+                    {t("booking_confirmation.open_larger_map", "Open larger map →")}
                   </a>
                 </div>
               )}
@@ -754,7 +794,7 @@ export default function BookingConfirmation() {
           <Card data-testid="card-pricing">
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
-                <Banknote className="h-4 w-4 text-primary" /> Price breakdown
+              <Banknote className="h-4 w-4 text-primary" /> {t("booking_confirmation.price_breakdown", "Price breakdown")}
               </CardTitle>
             </CardHeader>
             <CardContent className="text-sm space-y-0">
@@ -777,7 +817,7 @@ export default function BookingConfirmation() {
                     data-testid={`price-line-${i}`}
                   >
                     <span className={`${isDiscount ? "text-emerald-600 font-medium" : "text-muted-foreground"}`}>
-                      {line.label}
+                      {localizeConfirmationLine(line.label)}
                     </span>
                     <span
                       className={`font-medium tabular-nums ${isDiscount ? "text-emerald-600" : isZero ? "text-muted-foreground" : ""}`}
@@ -803,7 +843,7 @@ export default function BookingConfirmation() {
                     className="capitalize"
                     data-testid="badge-payment-status"
                   >
-                    Payment: {displayPaymentStatus}
+                    {t("booking_confirmation.payment_status_label", "Payment")}: {localizePaymentStatus(displayPaymentStatus)}
                   </Badge>
                 </div>
               )}
@@ -815,17 +855,17 @@ export default function BookingConfirmation() {
         <Card className="mt-6" data-testid="card-calendar">
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
-              <CalendarPlus className="h-4 w-4" /> Add to calendar
+              <CalendarPlus className="h-4 w-4" /> {t("booking_confirmation.add_to_calendar", "Add to calendar")}
             </CardTitle>
           </CardHeader>
           <CardContent className="flex flex-wrap gap-2">
             <Button asChild variant="outline" data-testid="button-google-calendar">
               <a href={googleCalUrl} target="_blank" rel="noopener noreferrer">
-                <CalendarPlus className="h-4 w-4 mr-2" /> Google Calendar
+                <CalendarPlus className="h-4 w-4 mr-2" /> {t("booking_confirmation.google_calendar", "Google Calendar")}
               </a>
             </Button>
             <Button variant="outline" onClick={handleDownloadIcs} data-testid="button-download-ics">
-              <Download className="h-4 w-4 mr-2" /> Download .ics
+              <Download className="h-4 w-4 mr-2" /> {t("booking_confirmation.download_ics", "Download .ics")}
             </Button>
           </CardContent>
         </Card>
@@ -835,7 +875,7 @@ export default function BookingConfirmation() {
           <CardContent className="pt-6 flex flex-wrap gap-2">
             <Button asChild data-testid="button-view-appointment">
               <Link href={`/appointments/${appt.id}`}>
-                View appointment <ArrowRight className="h-4 w-4 ml-2" />
+                {t("booking_confirmation.view_appointment", "View appointment")} <ArrowRight className="h-4 w-4 ml-2" />
               </Link>
             </Button>
             {canReschedule && (
@@ -844,7 +884,7 @@ export default function BookingConfirmation() {
                 onClick={() => setActionTarget("reschedule")}
                 data-testid="button-reschedule"
               >
-                <RefreshCw className="h-4 w-4 mr-2" /> Reschedule
+                <RefreshCw className="h-4 w-4 mr-2" /> {t("common.reschedule", "Reschedule")}
               </Button>
             )}
             {canCancel && (
@@ -854,7 +894,7 @@ export default function BookingConfirmation() {
                 onClick={() => setActionTarget("cancel")}
                 data-testid="button-cancel-appointment"
               >
-                <X className="h-4 w-4 mr-2" /> Cancel
+                <X className="h-4 w-4 mr-2" /> {t("common.cancel", "Cancel")}
               </Button>
             )}
             <Button asChild variant="outline" data-testid="button-download-invoice">
@@ -863,7 +903,7 @@ export default function BookingConfirmation() {
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                <Download className="h-4 w-4 mr-2" /> Download invoice
+                <Download className="h-4 w-4 mr-2" /> {t("booking_confirmation.download_invoice", "Download invoice")}
               </a>
             </Button>
           </CardContent>

@@ -452,8 +452,8 @@ export default function BookWizard() {
     },
     onError: (e: any) => {
       toast({
-        title: "Slot unavailable",
-        description: e?.message || "This slot was just taken. Please choose another.",
+        title: t("patient_sweep.booking_slot_unavailable", "Slot unavailable"),
+        description: e?.message || t("patient_sweep.booking_slot_unavailable_desc", "This slot was just taken. Please choose another."),
         variant: "destructive",
       });
       setSelectedSlot(null);
@@ -523,7 +523,11 @@ export default function BookWizard() {
         });
         return;
       }
-      toast({ title: "Booking failed", description: e?.message || "Please try again.", variant: "destructive" });
+      toast({
+        title: t("patient_sweep.booking_failed", "Booking failed"),
+        description: e?.message || t("patient_sweep.booking_try_again", "Please try again."),
+        variant: "destructive",
+      });
     },
   });
 
@@ -612,8 +616,8 @@ export default function BookWizard() {
       ),
     });
     toast({
-      title: "Visit type changed",
-      description: "Please choose a new time that is available for this visit type.",
+      title: t("patient_sweep.booking_visit_type_changed", "Visit type changed"),
+      description: t("patient_sweep.booking_visit_type_changed_desc", "Please choose a new time that is available for this visit type."),
     });
   };
 
@@ -852,7 +856,7 @@ export default function BookWizard() {
                 <div className="space-y-3">
                   {providerServices.map(svc => {
                     const isSelected = selectedService?.id === svc.id;
-                    const name     = svc.subService?.name ?? "Service";
+                    const name     = svc.subService?.name ?? t("booking.service", "Service");
                     const svcCurrency = (svc as any).currency ?? quoteCurrency ?? "USD";
                     const price    = svc.price ? formatInCurrency(Number(svc.price), svcCurrency) : null;
                     const duration = svc.subService?.durationMinutes;
@@ -902,7 +906,7 @@ export default function BookWizard() {
                           <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground flex-wrap">
                             {duration && (
                               <span className="flex items-center gap-1">
-                                <Clock className="h-3 w-3" />{duration} min
+                                <Clock className="h-3 w-3" />{duration} {t("provider_dashboard.minutes_short", "min")}
                               </span>
                             )}
                             <span className="flex items-center gap-1">
@@ -934,9 +938,9 @@ export default function BookWizard() {
                       const svcAllowsHome   = svcLoc === "both" || svcLoc === "all" || svcLoc.includes("home");
                       const svcAllowsOnline = svcLoc === "all" || svcLoc.includes("online");
                       const vtMap: { vt: "clinic" | "home" | "online"; key: string; label: string }[] = [
-                        { vt: "clinic", key: "clinic_visit", label: "Clinic" },
-                        { vt: "home",   key: "home_visit",   label: "Home" },
-                        { vt: "online", key: "telemedicine", label: "Online" },
+                        { vt: "clinic", key: "clinic_visit", label: t("booking.wizard.visit_clinic", "In-clinic") },
+                        { vt: "home",   key: "home_visit",   label: t("booking.wizard.visit_home", "Home visit") },
+                        { vt: "online", key: "telemedicine", label: t("booking.wizard.visit_online", "Online") },
                       ];
                       // Intersect provider-level serviceModes with service-level locationMode
                       const visible = vtMap.filter(m => {
@@ -1121,11 +1125,10 @@ export default function BookWizard() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <AlertTriangle className="h-5 w-5 text-amber-500" />
-              Reservation window closed
+              {t("patient_sweep.booking_reservation_closed", "Reservation window closed")}
             </DialogTitle>
             <DialogDescription>
-              Your slot hold expired and someone else just claimed it. Pick a new
-              available time to continue booking.
+              {t("patient_sweep.booking_reservation_closed_desc", "Your slot hold expired and someone else just claimed it. Pick a new available time to continue booking.")}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -1133,7 +1136,7 @@ export default function BookWizard() {
               onClick={() => setConflictModalOpen(false)}
               data-testid="button-conflict-pick-new"
             >
-              Pick a new slot
+              {t("patient_sweep.booking_pick_new_slot", "Pick a new slot")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1145,11 +1148,10 @@ export default function BookWizard() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <AlertTriangle className="h-5 w-5 text-red-500" />
-              Your reservation has expired
+              {t("patient_sweep.booking_reservation_expired", "Your reservation has expired")}
             </DialogTitle>
             <DialogDescription>
-              Your 3-minute slot hold has timed out and the time has been released. Pick a fresh
-              slot to continue with your booking.
+              {t("patient_sweep.booking_reservation_expired_desc", "Your 3-minute slot hold has timed out and the time has been released. Pick a fresh slot to continue with your booking.")}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -1157,7 +1159,7 @@ export default function BookWizard() {
               onClick={() => setHoldExpiredModalOpen(false)}
               data-testid="button-hold-expired-pick-new"
             >
-              Pick a new slot
+              {t("patient_sweep.booking_pick_new_slot", "Pick a new slot")}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -13,6 +13,7 @@
 
 import { useState, useEffect } from "react";
 import { Loader2, Flame } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import { useCurrency, formatInCurrency } from "@/lib/currency";
 
@@ -72,6 +73,11 @@ function useNow(intervalMs = 30_000): Date {
 }
 
 type UrgencyTier = "urgent" | "soon" | null;
+type SlotTranslate = (
+  key: string,
+  defaultValue: string,
+  options?: Record<string, unknown>,
+) => unknown;
 
 /**
  * Resolve a slot's start time as UTC milliseconds.
@@ -100,15 +106,17 @@ function getUrgency(slot: WidgetSlot, now: Date): UrgencyTier {
   } catch { return null; }
 }
 
-function minsUntilLabel(slot: WidgetSlot, now: Date): string | null {
+function minsUntilLabel(slot: WidgetSlot, now: Date, t: SlotTranslate): string | null {
   try {
     const diffMs = resolveSlotMs(slot) - now.getTime();
     if (!Number.isFinite(diffMs) || diffMs <= 0) return null;
     const m = Math.floor(diffMs / 60_000);
-    if (m < 60) return `${m}m`;
+    if (m < 60) return String(t("patient_sweep.booking_minutes_short", "{{count}}m", { count: m }));
     const h = Math.floor(m / 60);
     const rem = m % 60;
-    return rem > 0 ? `${h}h ${rem}m` : `${h}h`;
+    return rem > 0
+      ? String(t("patient_sweep.booking_hours_minutes_short", "{{hours}}h {{minutes}}m", { hours: h, minutes: rem }))
+      : String(t("patient_sweep.booking_hours_short", "{{count}}h", { count: h }));
   } catch { return null; }
 }
 
@@ -128,6 +136,7 @@ export function SlotAvailabilityWidget({
   price = 0,
   currency,
 }: SlotAvailabilityWidgetProps) {
+  const { t } = useTranslation();
   // Keep useCurrency as USD fallback only. When booking currency is non-USD
   // (HUF, IRR) use formatInCurrency so we never multiply by exchange rate again.
   const { format: formatPriceUSD } = useCurrency();
@@ -156,8 +165,8 @@ export function SlotAvailabilityWidget({
           <line x1="34" y1="52" x2="46" y2="52" stroke="currentColor" strokeWidth="2" opacity="0.5" strokeLinecap="round" />
         </svg>
         <div className="text-center">
-          <p className="font-medium text-sm">No available slots</p>
-          <p className="text-xs mt-0.5 opacity-70">All times are fully booked or held.</p>
+          <p className="font-medium text-sm">{t("patient_sweep.booking_no_available_slots", "No available slots")}</p>
+          <p className="text-xs mt-0.5 opacity-70">{t("patient_sweep.booking_all_slots_unavailable", "All times are fully booked or held.")}</p>
         </div>
       </div>
     );
@@ -171,8 +180,8 @@ export function SlotAvailabilityWidget({
       {/* Urgency legend */}
       {(hasUrgent || hasSoon) && (
         <div className="flex flex-wrap gap-4 text-[11px] text-muted-foreground" data-testid="slot-urgency-legend">
-          {hasSoon   && <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-amber-400 shrink-0" />Starting soon (≤30 min)</span>}
-          {hasUrgent && <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-orange-500 shrink-0" />Last-minute (≤10 min)</span>}
+          {hasSoon   && <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-amber-400 shrink-0" />{t("patient_sweep.booking_starting_soon", "Starting soon (≤30 min)")}</span>}
+          {hasUrgent && <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-orange-500 shrink-0" />{t("patient_sweep.booking_last_minute", "Last-minute (≤10 min)")}</span>}
         </div>
       )}
 
@@ -188,7 +197,7 @@ export function SlotAvailabilityWidget({
           const isPending = isCreatingHold && isActive;
           const surgePrice = price > 0 ? computeSurgePrice(price, slot.pricingTier) : 0;
           const urgency    = getUrgency(slot, now);
-          const minsLabel  = urgency ? minsUntilLabel(slot, now) : null;
+          const minsLabel  = urgency ? minsUntilLabel(slot, now, t) : null;
 
           // HELD by another session
           if (isHeld && !isMyHold) {
@@ -196,11 +205,11 @@ export function SlotAvailabilityWidget({
               <div
                 key={slot.id}
                 data-testid={`slot-held-${slot.startTime}`}
-                title="Reserved by another member"
+                title={t("patient_sweep.booking_reserved_by_other", "Reserved by another member")}
                 className="rounded-xl border border-amber-300 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-700 py-3 px-1 text-xs font-medium text-center text-amber-700 dark:text-amber-400 cursor-not-allowed select-none"
               >
                 <span className="block font-semibold">{slot.startTime}</span>
-                <span className="block text-[10px] leading-tight opacity-75 mt-0.5">In another cart</span>
+                <span className="block text-[10px] leading-tight opacity-75 mt-0.5">{t("patient_sweep.booking_in_another_cart", "In another cart")}</span>
               </div>
             );
           }
@@ -248,12 +257,12 @@ export function SlotAvailabilityWidget({
               {/* Peak badge — only when no urgency overrides */}
               {isPeak && !isActive && !urgency && (
                 <span className="absolute top-0.5 right-0.5 text-[9px] leading-none font-bold text-orange-600 dark:text-orange-400 flex items-center gap-0.5">
-                  <Flame className="h-2.5 w-2.5" />Popular
+                  <Flame className="h-2.5 w-2.5" />{t("patient_sweep.booking_popular", "Popular")}
                 </span>
               )}
               {/* Urgency indicator */}
               {urgency === "urgent" && !isActive && (
-                <span className="absolute top-0.5 right-0.5 text-[10px] leading-none" title="Last-minute slot">⚡</span>
+                <span className="absolute top-0.5 right-0.5 text-[10px] leading-none" title={t("patient_sweep.booking_last_minute_slot", "Last-minute slot")}>⚡</span>
               )}
 
               {isPending ? (
