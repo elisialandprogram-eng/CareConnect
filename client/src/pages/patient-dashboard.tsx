@@ -2139,7 +2139,7 @@ export default function PatientDashboard() {
               <Card data-testid="card-saved-addresses">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-base flex items-center gap-2">
-                    <MapPin className="h-5 w-5 text-rose-500" /> {t("profile_saved_addresses")}
+                    <MapPin className="h-5 w-5 text-rose-500" /> {t("patient_sweep.profile_saved_addresses", "Saved addresses")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
