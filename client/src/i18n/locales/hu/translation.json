@@ -2090,11 +2090,12 @@
     "telemedicine_agreement": "Telemedicina szolgáltatási megállapodás",
     "telemedicine_desc": "Elfogadom a platformon végzett telemedicinális konzultációkra vonatkozó szabályokat és klinikai normákat."
   },
-  "common_service_type": {
-    "doctor": "Orvos",
-    "nurse": "Ápoló",
-    "physiotherapist": "Fizioterapeuta"
-  },
+   "common_service_type": {
+     "doctor": "Orvos",
+     "nurse": "Ápoló",
+     "physiotherapist": "Fizioterapeuta",
+     "nutritionist": "Táplálkozási szakember"
+   },
   "cta": {
     "description": "Tegye meg az első lépést a jobb egészség felé. Foglaljon időpontot egy megbízható szolgáltatóval még ma.",
     "journey_badge": "Kezdje el a wellness útját",
@@ -5774,7 +5775,7 @@
     "physician": "Orvos és szakorvos", "mental_health": "Mentális egészség és viselkedéstudomány", "nutrition": "Táplálkozás és dietetika", "rehabilitation": "Fizioterápia és rehabilitáció", "dental": "Fogászati ellátás", "alternative_medicine": "Alternatív és holisztikus gyógyászat", "nursing": "Szülészeti, ápolási és társszakmák",
     "HU": "Magyarország", "IR": "Irán", "USD": "USA-dollár (USD)", "HUF": "Magyar forint (HUF)", "IRR": "Iráni riál (IRR)", "EUR": "Euró (EUR)",
     "approved": "Jóváhagyva", "active": "Aktív", "pending": "Függőben", "submitted": "Beküldve", "under_review": "Ellenőrzés alatt", "documents_verified": "Dokumentumok ellenőrizve", "action_required": "Művelet szükséges", "suspended": "Felfüggesztve", "deactivated": "Deaktiválva", "rejected": "Elutasítva",
-    "approve": "Jóváhagyás", "reject": "Elutasítás", "request_changes": "Módosítás kérése", "suspend": "Felfüggesztés", "unsuspend": "Felfüggesztés feloldása", "deactivate": "Deaktiválás", "reactivate": "Újraaktiválás", "send_notification": "Értesítés küldése", "created": "Létrehozva", "updated": "Frissítve", "deleted": "Törölve", "provider": "Szolgáltató", "user": "Felhasználó", "appointment": "Időpont", "service": "Szolgáltatás", "document": "Dokumentum", "note": "Megjegyzés"
+     "approve": "Jóváhagyás", "reject": "Elutasítás", "request_changes": "Módosítás kérése", "suspend": "Felfüggesztés", "unsuspend": "Felfüggesztés feloldása", "deactivate": "Deaktiválás", "reactivate": "Újraaktiválás", "send_notification": "Értesítés küldése", "created": "Létrehozva", "updated": "Frissítve", "deleted": "Törölve", "provider": "Szolgáltató", "user": "Felhasználó", "appointment": "Időpont", "service": "Szolgáltatás", "document": "Dokumentum", "note": "Megjegyzés", "service_names": {"balance_fall_prevention_therapy": "Egyensúly- és esésmegelőző terápia", "test_therapy": "Tesztterápia", "test": "Teszt"}
   },
   "admin_extra": {
     "ledger": {

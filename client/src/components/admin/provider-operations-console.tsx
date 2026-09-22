@@ -197,6 +197,35 @@ function localizedAdminDetail(
   return fallback;
 }
 
+const DISPLAY_TITLE_TRANSLATION_KEYS: Record<string, string> = {
+  doctor: "common_service_type.doctor",
+  nurse: "common_service_type.nurse",
+  physiotherapist: "common_service_type.physiotherapist",
+  "physical therapist": "common_service_type.physiotherapist",
+  nutritionist: "common_service_type.nutritionist",
+  dietitian: "common_service_type.nutritionist",
+};
+
+function localizedProviderDisplayTitle(
+  t: (key: string, options?: any) => string,
+  providerType: string | null | undefined,
+  displayTitle: string | null | undefined,
+): string {
+  const title = displayTitle?.trim();
+  if (!title) return localizedAdminValue(t, providerType);
+  const translationKey = DISPLAY_TITLE_TRANSLATION_KEYS[title.toLowerCase()];
+  return translationKey ? String(t(translationKey, { defaultValue: title })) : title;
+}
+
+function localizedServiceName(
+  t: (key: string, options?: any) => string,
+  name: string | null | undefined,
+): string {
+  if (!name) return "—";
+  const key = name.trim().toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "");
+  return localizedAdminDetail(t, `service_names.${key}`, name);
+}
+
 /** Return the native currency code for a country code. */
 function currencyForCountry(cc: string | null | undefined): string {
   if (cc === "HU") return "HUF";
@@ -215,11 +244,14 @@ function providerName(p: ProviderListItem) {
 }
 
 /** Returns the best human-readable title for a provider list item.
- *  Priority: displayTitle (camelCase Drizzle) → display_title (snake FTS) → providerCategory → providerType */
+ *  Canonical display titles are translated; other provider-entered titles are preserved. */
 function providerLabel(
   p: ProviderListItem,
   t?: (key: string, options?: any) => string,
 ): string {
+  if (t && (p.displayTitle || p.display_title)) {
+    return localizedProviderDisplayTitle(t, p.providerType, p.displayTitle || p.display_title);
+  }
   if (p.displayTitle || p.display_title) return p.displayTitle || p.display_title || "—";
   const value = p.providerType || p.providerCategory || p.provider_category;
   return t ? localizedAdminValue(t, value) : value || "—";
@@ -1182,7 +1214,7 @@ function ProviderCommandHeader({
           </div>
           <div className="flex items-center gap-2 mt-1 flex-wrap">
             <span className="text-sm text-slate-500 capitalize">
-              {prov.displayTitle || prov.display_title || d(String(prov.providerType), humanLabel(prov.providerType))}
+              {localizedProviderDisplayTitle(t, prov.providerType, prov.displayTitle || prov.display_title)}
             </span>
             <span className="text-slate-300">·</span>
             <StatusBadge status={prov.status} domain="provider" className="text-xs" />
@@ -1538,7 +1570,7 @@ function ProviderCommandCenter({
               { id: "schedule",  label: t("admin_tools.ops.schedule", "Schedule") },
               { id: "services",  label: t("common.services", "Services") },
               { id: "bookings",  label: t("admin.bookings", "Bookings") },
-              { id: "patients",  label: t("admin.patients", "Members") },
+               { id: "patients",  label: t("admin.reporting.patients", "Members") },
               { id: "financial", label: t("admin_tools.ops.financials", "Financials") },
               { id: "staff",     label: t("admin_tools.ops.staff", "Staff") },
               { id: "timeline",  label: t("admin_tools.ops.timeline", "Timeline") },
@@ -1899,7 +1931,7 @@ function ProviderCommandCenter({
                     <div key={svc.id} className={`rounded-lg border p-3 flex items-start gap-3 ${svc.isActive !== false ? "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950" : "border-dashed border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/30"}`}>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-sm font-medium text-slate-900 dark:text-slate-100">{svc.name}</span>
+                           <span className="text-sm font-medium text-slate-900 dark:text-slate-100">{localizedServiceName(t, svc.name)}</span>
                            {svc.isActive === false && <Badge variant="outline" className="text-[10px] text-slate-500">{d("inactive", "Inactive")}</Badge>}
                            {svc.deletedAt && <Badge variant="outline" className="text-[10px] text-red-500 border-red-200">{d("archived", "Archived")}</Badge>}
                         </div>

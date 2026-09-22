@@ -2090,11 +2090,12 @@
     "telemedicine_agreement": "توافقنامه خدمات پزشکی از راه دور",
     "telemedicine_desc": "با قوانین و استانداردهای بالینی حاکم بر مشاوره‌های پزشکی از راه دور در این پلتفرم موافقم."
   },
-  "common_service_type": {
-    "doctor": "پزشک",
-    "nurse": "پرستار",
-    "physiotherapist": "فیزیوتراپیست"
-  },
+   "common_service_type": {
+     "doctor": "پزشک",
+     "nurse": "پرستار",
+     "physiotherapist": "فیزیوتراپیست",
+     "nutritionist": "متخصص تغذیه"
+   },
   "cta": {
     "description": "اولین گام را به سوی سلامتی بهتر بردارید. همین امروز با یک ارائه‌دهنده مورد اعتماد نوبت بگیرید.",
     "journey_badge": "سفر سلامتی خود را آغاز کنید",
@@ -5774,7 +5775,7 @@
     "physician": "پزشک و متخصص", "mental_health": "سلامت روان و رفتار", "nutrition": "تغذیه و رژیم‌درمانی", "rehabilitation": "فیزیوتراپی و توان‌بخشی", "dental": "مراقبت دندان‌پزشکی", "alternative_medicine": "طب جایگزین و جامع‌نگر", "nursing": "پرستاری و خدمات وابسته",
     "HU": "مجارستان", "IR": "ایران", "USD": "دلار آمریکا (USD)", "HUF": "فورینت مجارستان (HUF)", "IRR": "ریال ایران (IRR)", "EUR": "یورو (EUR)",
     "approved": "تأییدشده", "active": "فعال", "pending": "در انتظار", "submitted": "ارسال‌شده", "under_review": "در حال بررسی", "documents_verified": "مدارک تأیید شده", "action_required": "نیازمند اقدام", "suspended": "تعلیق‌شده", "deactivated": "غیرفعال‌شده", "rejected": "ردشده",
-    "approve": "تأیید", "reject": "رد", "request_changes": "درخواست تغییرات", "suspend": "تعلیق", "unsuspend": "رفع تعلیق", "deactivate": "غیرفعال‌سازی", "reactivate": "فعال‌سازی دوباره", "send_notification": "ارسال اعلان", "created": "ایجادشده", "updated": "به‌روزشده", "deleted": "حذف‌شده", "provider": "ارائه‌دهنده", "user": "کاربر", "appointment": "نوبت", "service": "خدمت", "document": "مدرک", "note": "یادداشت"
+     "approve": "تأیید", "reject": "رد", "request_changes": "درخواست تغییرات", "suspend": "تعلیق", "unsuspend": "رفع تعلیق", "deactivate": "غیرفعال‌سازی", "reactivate": "فعال‌سازی دوباره", "send_notification": "ارسال اعلان", "created": "ایجادشده", "updated": "به‌روزشده", "deleted": "حذف‌شده", "provider": "ارائه‌دهنده", "user": "کاربر", "appointment": "نوبت", "service": "خدمت", "document": "مدرک", "note": "یادداشت", "service_names": {"balance_fall_prevention_therapy": "درمان تعادل و پیشگیری از سقوط", "test_therapy": "درمان آزمایشی", "test": "آزمایشی"}
   },
   "admin_extra": {
     "ledger": {
