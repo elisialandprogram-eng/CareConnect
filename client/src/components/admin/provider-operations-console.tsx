@@ -172,6 +172,14 @@ function localizedAdminValue(t: (key: string, options?: any) => string, val: str
   return String(t(`admin_provider_details.${key}`, { defaultValue: humanLabel(val) }));
 }
 
+function localizedDocumentLabel(
+  t: (key: string, options?: any) => string,
+  type: string,
+  fallback: string,
+): string {
+  return String(t(`admin_extra.provider.document_types.${type}`, { defaultValue: fallback }));
+}
+
 /** Return the native currency code for a country code. */
 function currencyForCountry(cc: string | null | undefined): string {
   if (cc === "HU") return "HUF";
@@ -687,7 +695,9 @@ function DocumentRow({
               <div className="space-y-0.5 mt-0.5">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className={`text-xs font-medium ${docStatusTextClass(isExpiringSoon ? "expiring_soon" : status)}`}>
-                    {String(t(`admin_tools.review.status.${canonicalStatus}`, STATUS_LABEL[status] || status))}
+                    {String(t(`admin_tools.review.status.${canonicalStatus}`, {
+                      defaultValue: t(`admin_provider_details.${canonicalStatus}`, STATUS_LABEL[status] || humanLabel(status)),
+                    }))}
                     {isExpiringSoon && ` · ${t("admin_tools.expiry.days_left", "{{count}}d left", { count: daysLeft })}`}
                   </span>
                   {doc.expiryDate && (
@@ -845,7 +855,7 @@ function RequestDocumentsDialog({
                     onChange={() => toggle(ph.type)}
                     className="h-3.5 w-3.5 rounded accent-blue-600"
                   />
-                  <span className="text-sm flex-1">{ph.label}</span>
+                  <span className="text-sm flex-1">{localizedDocumentLabel(t, ph.type, ph.label)}</span>
                   <span className={`text-[10px] px-1.5 py-0.5 rounded border font-medium flex-shrink-0 ${
                     ph.criticality === "mandatory" ? "border-red-200 text-red-600 bg-red-50"
                     : ph.criticality === "compliance-required" ? "border-purple-200 text-purple-600 bg-purple-50"
@@ -890,6 +900,10 @@ function CategoryPermissionsTab({ providerId }: { providerId: string }) {
   const { t } = useTranslation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const d = (key: string, fallback: string, options?: Record<string, unknown>) => {
+    const details = String(t(`admin_provider_details.${key}`, { defaultValue: "" }));
+    return String(t(`admin_extra.provider.${key}`, { defaultValue: details || fallback, ...options }));
+  };
   const qKey = [`/api/admin/providers/${providerId}/category-permissions`];
 
   const { data, isLoading } = useQuery<{ permissions: any[]; allCategories: any[] }>({
@@ -1036,7 +1050,9 @@ function CategoryPermissionsTab({ providerId }: { providerId: string }) {
               <div className="flex items-center gap-3 flex-1 min-w-0">
                 <div className={`h-2 w-2 rounded-full shrink-0 ${isEnabled ? "bg-emerald-500" : "bg-slate-300 dark:bg-slate-600"}`} />
                 <div className="min-w-0">
-                  <p className="text-sm font-medium text-slate-800 dark:text-slate-200 truncate">{cat.name}</p>
+                  <p className="text-sm font-medium text-slate-800 dark:text-slate-200 truncate">
+                    {d(String(cat.slug || cat.name), cat.name)}
+                  </p>
                   {cat.description && (
                     <p className="text-xs text-slate-400 truncate mt-0.5">{cat.description}</p>
                   )}
@@ -1066,7 +1082,7 @@ function CategoryPermissionsTab({ providerId }: { providerId: string }) {
       {isDirty && (
         <p className="text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1">
           <AlertTriangle className="h-3 w-3" />
-           {t("admin_tools.ops.unsaved_changes", "You have unsaved changes. Click Save to apply.")}
+           {t("admin_provider_operations.unsaved_changes", "You have unsaved changes. Click Save to apply.")}
         </p>
       )}
     </div>
@@ -1648,7 +1664,7 @@ function ProviderCommandCenter({
               </div>
               <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
                 {[
-                   { label: d("category", "Category"), value: prov.providerCategory || d(String(prov.providerType), humanLabel(prov.providerType)) },
+                   { label: d("category", "Category"), value: d(String(prov.providerCategory || prov.providerType), prov.providerCategory || humanLabel(prov.providerType)) },
                    { label: d("subcategory", "Subcategory"), value: prov.providerSubcategory || d("no_value", "—") },
                    { label: d("provider_type", "Provider Type"), value: d(String(prov.providerType), humanLabel(prov.providerType)) },
                    { label: d("account_type", "Account Type"), value: d(String(prov.accountType), humanLabel(prov.accountType)) },
@@ -1719,8 +1735,8 @@ function ProviderCommandCenter({
                     { label: d("native_currency", "Native Currency"), value: d(nativeCcy, humanLabel(nativeCcy)), note: d("provider_pricing_currency", "Provider pricing currency") },
                     { label: d("country_currency", "Country Currency"), value: d(nativeCcy, humanLabel(nativeCcy)), note: d("based_on_country", "Based on {{country}}", { country: d(String(prov.countryCode), humanLabel(prov.countryCode)) }) },
                     { label: d("wallet_currency", "Wallet Currency"), value: d(walletCcy, humanLabel(walletCcy)), note: d("wallet_stored_in", "Wallet stored in") },
-                    { label: d("payment_methods", "Payment Methods"), value: (prov.paymentMethods || []).join(", ") || "—" },
-                    { label: d("insurance_accepted", "Insurance Accepted"), value: (prov.insuranceAccepted || []).join(", ") || "—" },
+                    { label: d("payment_methods", "Payment Methods"), value: (prov.paymentMethods || []).map((method: string) => d(method, humanLabel(method))).join(", ") || d("no_value", "—") },
+                    { label: d("insurance_accepted", "Insurance Accepted"), value: (prov.insuranceAccepted || []).map((insurance: string) => d(insurance, humanLabel(insurance))).join(", ") || d("no_value", "—") },
                     { label: d("wallet_balance", "Wallet Balance"), value: fmtUSD(financials.walletBalance), note: d("admin_usd", "Admin (USD)") },
                     { label: d("provider_earnings", "Provider Earnings"), value: fmtUSD(financials.revenueUsd), note: d("lifetime_usd", "Lifetime (USD)") },
                   ].map(({ label, value, note }) => (
@@ -1976,7 +1992,7 @@ function ProviderCommandCenter({
                         </div>
                         <div className="text-xs text-slate-400 mt-0.5">
                           {appt.date && formatAdminDate(appt.date, "date")}{appt.startTime && ` · ${appt.startTime}`}
-                          {appt.locationMode && <span className="ml-1.5 text-slate-300">· {humanLabel(appt.locationMode)}</span>}
+                          {appt.locationMode && <span className="ml-1.5 text-slate-300">· {d(String(appt.locationMode), humanLabel(appt.locationMode))}</span>}
                         </div>
                       </div>
                       {appt.totalAmount != null && (
@@ -2068,8 +2084,8 @@ function ProviderCommandCenter({
                       { label: d("completed_appointments", "Completed appointments"), value: appointments.completed },
                       { label: d("cancellation_rate", "Cancellation rate"), value: `${appointments.cancellationRate}%` },
                       { label: d("avg_earnings_appt", "Avg earnings / appt"), value: appointments.completed > 0 ? fmtUSD(Number(financials.revenueUsd) / appointments.completed) : "—" },
-                      { label: d("native_currency", "Native currency"), value: humanLabel(currencyForCountry(prov.countryCode)) },
-                      { label: d("wallet_currency", "Wallet currency"), value: humanLabel(financials.walletCurrency || "USD") },
+                      { label: d("native_currency", "Native currency"), value: d(currencyForCountry(prov.countryCode), humanLabel(currencyForCountry(prov.countryCode))) },
+                      { label: d("wallet_currency", "Wallet currency"), value: d(financials.walletCurrency || "USD", humanLabel(financials.walletCurrency || "USD")) },
                     ].map(({ label, value }) => (
                       <div key={label} className="flex items-center justify-between">
                         <span className="text-slate-500">{label}</span>
@@ -2194,7 +2210,9 @@ function ProviderNotesPanel({ providerId }: { providerId: string }) {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300">{d("internal_admin_notes", "Internal Admin Notes")}</h3>
-        <span className="text-xs text-slate-400">{d("notes_count", "{{count}} note(s)", { count: notes.length })}</span>
+        <span className="text-xs text-slate-400">
+          {d(notes.length === 1 ? "note_count_one" : "note_count_other", "{{count}} notes", { count: notes.length })}
+        </span>
       </div>
       <div className="space-y-2">
         <Textarea
@@ -2320,9 +2338,9 @@ export function ProviderOperationsConsole({ jumpToProviderId }: { jumpToProvider
             <div className="w-16 h-16 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center mb-4">
               <Briefcase className="h-7 w-7 text-slate-400" />
             </div>
-             <h3 className="text-lg font-semibold text-slate-700 dark:text-slate-300">{t("admin_tools.ops.provider_command_center", "Provider Command Center")}</h3>
+             <h3 className="text-lg font-semibold text-slate-700 dark:text-slate-300">{t("admin_provider_details.provider_command_center", "Provider Command Center")}</h3>
             <p className="text-sm text-slate-400 mt-2 max-w-xs">
-               {t("admin_tools.ops.select_provider_to_manage", "Select a provider from the directory to manage their profile, documents, services, and operations.")}
+               {t("admin_provider_details.select_provider_desc", "Select a provider from the directory to manage their profile, documents, services, and operations.")}
             </p>
           </div>
         ) : consoleLoading ? (
@@ -2333,7 +2351,7 @@ export function ProviderOperationsConsole({ jumpToProviderId }: { jumpToProvider
           <ProviderCommandCenter data={consoleData} onRefresh={refetchConsole} />
         ) : (
           <div className="flex items-center justify-center h-full text-slate-400 text-sm">
-             {t("admin_tools.ops.failed_provider_data", "Failed to load provider data")}
+             {t("admin_provider_details.failed_to_load", "Failed to load provider data")}
           </div>
         )}
       </div>

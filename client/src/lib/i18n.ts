@@ -12,6 +12,7 @@ import { providerSweepTranslations } from '../i18n/provider-sweep';
 import { providerDashboardSweepTranslations } from '../i18n/provider-dashboard-sweep';
 import { providerClinicalSweepTranslations } from '../i18n/provider-clinical-sweep';
 import { adminProviderDetailsTranslations } from '../i18n/admin-provider-details';
+import { adminProviderOperationsTranslations } from '../i18n/admin-provider-operations';
 import { adminSweepTranslations } from '../i18n/admin-sweep';
 import { reportingSweepTranslations } from '../i18n/reporting-sweep';
 
@@ -75,6 +76,10 @@ export async function ensureLanguageResources(lng: string) {
     translation = mergeTranslationAdditions(
       translation,
       adminProviderDetailsTranslations[code] as unknown as Record<string, unknown>,
+    );
+    translation = mergeTranslationAdditions(
+      translation,
+      adminProviderOperationsTranslations[code] as unknown as Record<string, unknown>,
     );
       translation = mergeTranslationAdditions(
         translation,
