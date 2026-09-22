@@ -180,6 +180,23 @@ function localizedDocumentLabel(
   return String(t(`admin_extra.provider.document_types.${type}`, { defaultValue: fallback }));
 }
 
+function localizedAdminDetail(
+  t: (key: string, options?: any) => string,
+  key: string,
+  fallback: string,
+  options?: Record<string, unknown>,
+): string {
+  const language = i18n.language.split("-")[0];
+  const resourceExists = (path: string) => Boolean(i18n.getResource(language, "translation", path));
+  const detailsKey = `admin_provider_details.${key}`;
+  const extraKey = `admin_extra.provider.${key}`;
+  const opsKey = `admin_tools.ops.${key}`;
+  if (resourceExists(detailsKey)) return String(t(detailsKey, options));
+  if (resourceExists(extraKey)) return String(t(extraKey, options));
+  if (resourceExists(opsKey)) return String(t(opsKey, options));
+  return fallback;
+}
+
 /** Return the native currency code for a country code. */
 function currencyForCountry(cc: string | null | undefined): string {
   if (cc === "HU") return "HUF";
@@ -432,10 +449,8 @@ function ProviderDirectory({
   onSelect: (id: string) => void;
 }) {
   const { t } = useTranslation();
-  const d = (key: string, fallback: string, options?: Record<string, unknown>) => {
-    const existing = String(t(`admin_tools.ops.${key}`, { defaultValue: "" }));
-    return String(t(`admin_extra.provider.${key}`, { defaultValue: existing || fallback, ...options }));
-  };
+  const d = (key: string, fallback: string, options?: Record<string, unknown>) =>
+    localizedAdminDetail(t, key, fallback, options);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
@@ -731,7 +746,7 @@ function DocumentRow({
             criticality === "mandatory" ? "border-red-200 text-red-600 bg-red-50"
             : criticality === "compliance-required" ? "border-purple-200 text-purple-600 bg-purple-50"
             : "border-slate-200 text-slate-500"}`}>
-            {String(t(`admin_tools.ops.criticality.${criticality}`, criticality))}
+                    {String(t(`admin_extra.provider.criticality.${criticality}`, criticality))}
           </span>
           {doc && (
             <>
@@ -860,9 +875,7 @@ function RequestDocumentsDialog({
                     ph.criticality === "mandatory" ? "border-red-200 text-red-600 bg-red-50"
                     : ph.criticality === "compliance-required" ? "border-purple-200 text-purple-600 bg-purple-50"
                     : "border-slate-200 text-slate-500 bg-white"}`}>
-                    {ph.criticality === "mandatory" ? t("admin_tools.ops.required", "Required")
-                      : ph.criticality === "compliance-required" ? t("admin_tools.ops.compliance", "Compliance")
-                      : t("admin_tools.ops.optional", "Optional")}
+                    {String(t(`admin_extra.provider.criticality.${ph.criticality}`, ph.criticality))}
                   </span>
                 </label>
               ))}
@@ -900,10 +913,8 @@ function CategoryPermissionsTab({ providerId }: { providerId: string }) {
   const { t } = useTranslation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const d = (key: string, fallback: string, options?: Record<string, unknown>) => {
-    const details = String(t(`admin_provider_details.${key}`, { defaultValue: "" }));
-    return String(t(`admin_extra.provider.${key}`, { defaultValue: details || fallback, ...options }));
-  };
+  const d = (key: string, fallback: string, options?: Record<string, unknown>) =>
+    localizedAdminDetail(t, key, fallback, options);
   const qKey = [`/api/admin/providers/${providerId}/category-permissions`];
 
   const { data, isLoading } = useQuery<{ permissions: any[]; allCategories: any[] }>({
@@ -1104,10 +1115,8 @@ function ProviderCommandHeader({
   const qc = useQueryClient();
   const { format: fmtUSD } = useAdminCurrency();
   const { provider: prov, user, metrics, appointments, financials } = data;
-  const d = (key: string, fallback: string, options?: Record<string, unknown>) => {
-    const existing = String(t(`admin_tools.ops.${key}`, { defaultValue: "" }));
-    return String(t(`admin_extra.provider.${key}`, { defaultValue: existing || fallback, ...options }));
-  };
+  const d = (key: string, fallback: string, options?: Record<string, unknown>) =>
+    localizedAdminDetail(t, key, fallback, options);
 
   const [confirmAction, setConfirmAction] = useState<string | null>(null);
   const [reason, setReason] = useState("");
@@ -1438,11 +1447,8 @@ function ProviderCommandCenter({
   const { provider: prov, user, services, practitioners, documents, appointments, financials, metrics, timeline } = data;
   const fullName = `${user?.firstName || ""} ${user?.lastName || ""}`.trim();
   const label = (key: string, fallback: string) => t(`admin_tools.ops.${key}`, fallback);
-  const d = (key: string, fallback: string, options?: Record<string, unknown>) => {
-    const existing = String(t(`admin_tools.ops.${key}`, { defaultValue: "" }));
-    const details = String(t(`admin_provider_details.${key}`, { defaultValue: "" }));
-    return String(t(`admin_extra.provider.${key}`, { defaultValue: details || existing || fallback, ...options }));
-  };
+  const d = (key: string, fallback: string, options?: Record<string, unknown>) =>
+    localizedAdminDetail(t, key, fallback, options);
   const statusLabel = (status: string | null | undefined) =>
     String(t(`admin_tools.review.status.${status || ""}`, {
       defaultValue: d(String(status || ""), humanLabel(status)),
@@ -2177,7 +2183,7 @@ function ProviderCommandCenter({
 function ProviderNotesPanel({ providerId }: { providerId: string }) {
   const { t } = useTranslation();
   const d = (key: string, fallback: string, options?: Record<string, unknown>) =>
-    String(t(`admin_extra.provider.${key}`, { defaultValue: fallback, ...options }));
+    localizedAdminDetail(t, key, fallback, options);
   const [noteText, setNoteText] = useState("");
   const qc = useQueryClient();
   const notesQueryKey = [`/api/admin/providers/${providerId}/notes`];
