@@ -2,6 +2,8 @@ import { formatDate } from "@/lib/datetime";
 import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
+import { enUS, hu } from "date-fns/locale";
+import { faIR } from "date-fns/locale/fa-IR";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { QK } from "@/lib/query-keys";
@@ -65,7 +67,7 @@ function CopyApptNumber({ apptNumber, apptId }: { apptNumber: string; apptId: st
 }
 
 export function ProviderAppointmentsTabs({ providerData, highlightApptId, activeTab }: { providerData: any; highlightApptId?: string | null; activeTab?: string }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { toast } = useToast();
   const { format: fmtMoney } = useCurrency();
   const { user } = useAuth();
@@ -93,6 +95,11 @@ export function ProviderAppointmentsTabs({ providerData, highlightApptId, active
   const [pinError, setPinError] = useState("");
   const [selectedCalendarDate, setSelectedCalendarDate] = useState<string>(new Date().toISOString().slice(0, 10));
   const [calendarView, setCalendarView] = useState<"day" | "week" | "month">("day");
+  const calendarLocale = i18n.language.startsWith("hu")
+    ? hu
+    : i18n.language.startsWith("fa")
+      ? faIR
+      : enUS;
 
   const { data: selectedApptEvents } = useQuery<any[]>({
     queryKey: ["/api/appointments", selectedAppt?.id ?? "", "events"],
@@ -954,6 +961,7 @@ export function ProviderAppointmentsTabs({ providerData, highlightApptId, active
                     <CardContent className="p-3">
                       <Calendar
                         mode="single"
+                        locale={calendarLocale}
                         selected={selectedDate}
                         onSelect={(d) => d && setSelectedCalendarDate(toLocalIso(d))}
                         modifiers={{ hasAppt: (d: Date) => !!counts[toLocalIso(d)] }}

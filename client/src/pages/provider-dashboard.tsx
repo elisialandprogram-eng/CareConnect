@@ -860,11 +860,13 @@ export default function ProviderDashboard() {
                   <p className="text-white/80 text-sm font-medium uppercase tracking-wider">
                     {(providerData as any)?.accountType === "clinic" ? t("provider_dashboard.clinic_dashboard", "Clinic Dashboard") : t("provider_dashboard.provider_dashboard", "Provider Dashboard")}
                   </p>
-                  <h1 className="text-2xl md:text-3xl font-bold text-white" data-testid="text-dashboard-welcome">
-                    {(providerData as any)?.accountType === "clinic" && (providerData as any)?.clinicName
-                      ? (providerData as any).clinicName
-                      : (user?.firstName ? `Welcome back, ${user.firstName}` : t("dashboard.provider_title"))}
-                  </h1>
+                   <h1 className="text-2xl md:text-3xl font-bold text-white" data-testid="text-dashboard-welcome">
+                     {(providerData as any)?.accountType === "clinic" && (providerData as any)?.clinicName
+                       ? (providerData as any).clinicName
+                       : (user?.firstName
+                         ? t("provider_dashboard.welcome_back_name", "Welcome back, {{name}}", { name: user.firstName })
+                         : t("dashboard.provider_title"))}
+                   </h1>
                   <p className="text-white/70 text-sm mt-0.5">
                     {(providerData as any)?.accountType === "clinic"
                        ? t("provider_dashboard.manage_clinic_desc", "Manage your practitioners and the services assigned to your clinic.")
