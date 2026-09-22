@@ -1,7 +1,9 @@
 import { jsPDF } from "jspdf";
 import { autoTable } from "jspdf-autotable";
+import { readFileSync } from "fs";
 import { DEFAULT_INVOICE_TEMPLATE, hexToRgb, type InvoiceTemplate } from "./invoice-template";
 import { CURRENCY_CONFIGS, formatCurrencyAmount, normalizeCurrencyCode } from "@shared/currency";
+import { normalizeLang, t, type Lang } from "../services/i18n";
 
 type CurrencyConfig = {
   code: string;
@@ -33,6 +35,23 @@ function formatDate(d: any, locale = "en-US"): string {
     });
   } catch {
     return String(d);
+  }
+}
+
+function configurePdfLanguage(doc: any, lang: Lang): string {
+  if (lang !== "fa") return "helvetica";
+  try {
+    const regular = readFileSync("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf").toString("base64");
+    const bold = readFileSync("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf").toString("base64");
+    doc.addFileToVFS("DejaVuSans.ttf", regular);
+    doc.addFont("DejaVuSans.ttf", "DejaVuSans", "normal");
+    doc.addFileToVFS("DejaVuSans-Bold.ttf", bold);
+    doc.addFont("DejaVuSans-Bold.ttf", "DejaVuSans", "bold");
+    doc.setR2L(true);
+    return "DejaVuSans";
+  } catch (error) {
+    console.warn("[invoice-gen] Persian font unavailable; falling back to built-in PDF font", error);
+    return "helvetica";
   }
 }
 
@@ -88,25 +107,30 @@ async function resolveLogoData(
   }
 }
 
-function statusColors(status: string): { fill: RGB; text: RGB; label: string } {
+function statusColors(status: string, lang: Lang): { fill: RGB; text: RGB; label: string } {
   const s = (status || "due").toLowerCase();
   if (s === "paid") {
-    return { fill: [220, 252, 231], text: [22, 101, 52], label: "PAID" };
+    return { fill: [220, 252, 231], text: [22, 101, 52], label: t("invoice.status.paid", lang) };
   }
   if (s === "overdue") {
-    return { fill: [254, 226, 226], text: [153, 27, 27], label: "OVERDUE" };
+    return { fill: [254, 226, 226], text: [153, 27, 27], label: t("invoice.status.overdue", lang) };
   }
   if (s === "refunded") {
-    return { fill: [243, 244, 246], text: [55, 65, 81], label: "REFUNDED" };
+    return { fill: [243, 244, 246], text: [55, 65, 81], label: t("invoice.status.refunded", lang) };
   }
   if (s === "cancelled" || s === "canceled" || s === "void") {
-    return { fill: [243, 244, 246], text: [55, 65, 81], label: s.toUpperCase() };
+    return {
+      fill: [243, 244, 246],
+      text: [55, 65, 81],
+      label: t(`invoice.status.${s === "canceled" ? "cancelled" : s}`, lang),
+    };
   }
-  return { fill: [254, 243, 199], text: [146, 64, 14], label: "DUE" };
+  return { fill: [254, 243, 199], text: [146, 64, 14], label: t("invoice.status.due", lang) };
 }
 
 export interface GenerateInvoiceOptions {
   template?: Partial<InvoiceTemplate>;
+  lang?: Lang | string | null;
 }
 
 export async function generateInvoicePDF(
@@ -128,6 +152,16 @@ export async function generateInvoicePDF(
   const currencyCode = invoice?.currency || provider?.currency || "USD";
   const fmt = makeFormatter(currencyCode);
   const cfg = getCurrency(currencyCode);
+  const lang = normalizeLang(
+    options.lang
+      || invoice?.languagePreference
+      || invoice?.language
+      || patient?.languagePreference
+      || patient?.language_preference,
+  );
+  const invoiceText = (key: string, variables?: Record<string, unknown>) => t(key, lang, variables);
+  const dateLocale = lang === "fa" ? "fa-IR" : lang === "hu" ? "hu-HU" : "en-US";
+  const pdfFont = configurePdfLanguage(doc, lang);
 
   // Resolve brand colors from template (with defaults).
   const BRAND_RGB = hexToRgb(tpl.brandColorHex, BRAND);
@@ -166,12 +200,12 @@ export async function generateInvoicePDF(
 
   // ---------- HEADER ----------
   // Brand
-  doc.setFont("helvetica", "bold");
+  doc.setFont(pdfFont, "bold");
   doc.setFontSize(20);
   doc.setTextColor(...ACCENT_RGB);
   doc.text(tpl.companyName || "Golden Life", textOffsetX, 24);
 
-  doc.setFont("helvetica", "normal");
+  doc.setFont(pdfFont, "normal");
   doc.setFontSize(9);
   doc.setTextColor(...MUTED);
   if (tpl.tagline) doc.text(tpl.tagline, textOffsetX, 29);
@@ -179,25 +213,25 @@ export async function generateInvoicePDF(
   if (contactBits) doc.text(contactBits, textOffsetX, 34);
 
   // INVOICE title
-  doc.setFont("helvetica", "bold");
+  doc.setFont(pdfFont, "bold");
   doc.setFontSize(28);
   doc.setTextColor(...BRAND_DARK_RGB);
-  doc.text("INVOICE", pageW - M, 24, { align: "right" });
+  doc.text(invoiceText("invoice.title"), pageW - M, 24, { align: "right" });
 
-  doc.setFont("helvetica", "normal");
+  doc.setFont(pdfFont, "normal");
   doc.setFontSize(9);
   doc.setTextColor(...MUTED);
   doc.text(`#${invoice.invoiceNumber || ""}`, pageW - M, 30, { align: "right" });
 
   // Status pill
-  const status = statusColors(invoice.status);
+  const status = statusColors(invoice.status, lang);
   const pillW = 26;
   const pillH = 7;
   const pillX = pageW - M - pillW;
   const pillY = 33;
   doc.setFillColor(...status.fill);
   doc.roundedRect(pillX, pillY, pillW, pillH, 3.5, 3.5, "F");
-  doc.setFont("helvetica", "bold");
+  doc.setFont(pdfFont, "bold");
   doc.setFontSize(9);
   doc.setTextColor(...status.text);
   doc.text(status.label, pillX + pillW / 2, pillY + 4.8, { align: "center" });
@@ -210,19 +244,19 @@ export async function generateInvoicePDF(
   // ---------- META PANEL ----------
   const metaY = 54;
   const metaItems = [
-    { label: "Issue date", value: formatDate(invoice.issueDate || new Date(), cfg.locale) },
-    { label: "Due date", value: formatDate(invoice.dueDate, cfg.locale) },
-    { label: "Invoice no.", value: invoice.invoiceNumber || "—" },
-    ...(invoice.appointmentNumber ? [{ label: "Appt. ref.", value: invoice.appointmentNumber }] : []),
+    { label: invoiceText("label.issue_date"), value: formatDate(invoice.issueDate || new Date(), dateLocale) },
+    { label: invoiceText("label.due_date"), value: formatDate(invoice.dueDate, dateLocale) },
+    { label: invoiceText("label.invoice_number"), value: invoice.invoiceNumber || "—" },
+    ...(invoice.appointmentNumber ? [{ label: invoiceText("label.appointment_reference"), value: invoice.appointmentNumber }] : []),
   ];
   const colW = (pageW - 2 * M) / metaItems.length;
   metaItems.forEach((m, i) => {
     const x = M + i * colW;
-    doc.setFont("helvetica", "normal");
+    doc.setFont(pdfFont, "normal");
     doc.setFontSize(8);
     doc.setTextColor(...SUBTLE);
     doc.text(m.label.toUpperCase(), x, metaY);
-    doc.setFont("helvetica", "bold");
+    doc.setFont(pdfFont, "bold");
     doc.setFontSize(11);
     doc.setTextColor(...TEXT);
     doc.text(m.value, x, metaY + 5.5);
@@ -237,18 +271,18 @@ export async function generateInvoicePDF(
   // Bill To panel
   doc.setFillColor(...BG_SOFT);
   doc.roundedRect(billX, bfY, colWidth, 38, 2, 2, "F");
-  doc.setFont("helvetica", "bold");
+  doc.setFont(pdfFont, "bold");
   doc.setFontSize(8);
   doc.setTextColor(...BRAND_DARK_RGB);
-  doc.text("BILL TO  ·  MEMBER", billX + 4, bfY + 6);
+  doc.text(invoiceText("label.bill_to_member"), billX + 4, bfY + 6);
 
-  doc.setFont("helvetica", "bold");
+  doc.setFont(pdfFont, "bold");
   doc.setFontSize(11);
   doc.setTextColor(...TEXT);
-  const patientName = [patient?.firstName, patient?.lastName].filter(Boolean).join(" ") || patient?.email || "Member";
+  const patientName = [patient?.firstName, patient?.lastName].filter(Boolean).join(" ") || patient?.email || invoiceText("label.member");
   doc.text(patientName, billX + 4, bfY + 13);
 
-  doc.setFont("helvetica", "normal");
+  doc.setFont(pdfFont, "normal");
   doc.setFontSize(9);
   doc.setTextColor(...MUTED);
   let pY = bfY + 19;
@@ -261,12 +295,12 @@ export async function generateInvoicePDF(
   // Provider panel
   doc.setFillColor(...BG_SOFT);
   doc.roundedRect(fromX, bfY, colWidth, 38, 2, 2, "F");
-  doc.setFont("helvetica", "bold");
+  doc.setFont(pdfFont, "bold");
   doc.setFontSize(8);
   doc.setTextColor(...BRAND_DARK_RGB);
-  doc.text("PROVIDER", fromX + 4, bfY + 6);
+  doc.text(invoiceText("label.provider").toUpperCase(), fromX + 4, bfY + 6);
 
-  doc.setFont("helvetica", "bold");
+  doc.setFont(pdfFont, "bold");
   doc.setFontSize(11);
   doc.setTextColor(...TEXT);
   const providerName = provider?.businessName
@@ -274,10 +308,10 @@ export async function generateInvoicePDF(
     || [provider?.user?.firstName, provider?.user?.lastName].filter(Boolean).join(" ").trim()
     || provider?.email
     || provider?.user?.email
-    || "Provider";
+    || invoiceText("invoice.provider_fallback");
   doc.text(String(providerName), fromX + 4, bfY + 13);
 
-  doc.setFont("helvetica", "normal");
+  doc.setFont(pdfFont, "normal");
   doc.setFontSize(9);
   doc.setTextColor(...MUTED);
   let fY = bfY + 19;
@@ -286,7 +320,7 @@ export async function generateInvoicePDF(
   if (providerEmail) { doc.text(String(providerEmail), fromX + 4, fY); fY += 4.5; }
   if (providerPhone) { doc.text(String(providerPhone), fromX + 4, fY); fY += 4.5; }
   if (provider?.licenseNumber) {
-    doc.text(`License: ${provider.licenseNumber}`, fromX + 4, fY); fY += 4.5;
+    doc.text(`${invoiceText("label.license")}: ${provider.licenseNumber}`, fromX + 4, fY); fY += 4.5;
   }
   if (provider?.address) { doc.text(String(provider.address), fromX + 4, fY); fY += 4.5; }
   const provCityLine = [provider?.zipCode, provider?.city].filter(Boolean).join(" ");
@@ -297,17 +331,25 @@ export async function generateInvoicePDF(
   if (invoice.appointmentDate || invoice.appointmentNumber || invoice.visitType) {
     doc.setFillColor(248, 250, 252);
     doc.roundedRect(M, appointmentRefY, pageW - 2 * M, 10, 2, 2, "F");
-    doc.setFont("helvetica", "bold");
+    doc.setFont(pdfFont, "bold");
     doc.setFontSize(8);
     doc.setTextColor(...SUBTLE);
-    doc.text("APPOINTMENT", M + 4, appointmentRefY + 4);
-    doc.setFont("helvetica", "normal");
+    doc.text(invoiceText("label.appointment"), M + 4, appointmentRefY + 4);
+    doc.setFont(pdfFont, "normal");
     doc.setFontSize(9);
     doc.setTextColor(...TEXT);
     const refParts = [
-      invoice.appointmentNumber ? `Ref. ${invoice.appointmentNumber}` : null,
-      invoice.appointmentDate ? formatDate(invoice.appointmentDate, cfg.locale) : null,
-      invoice.visitType ? `${String(invoice.visitType).charAt(0).toUpperCase()}${String(invoice.visitType).slice(1)} visit` : null,
+      invoice.appointmentNumber ? `${invoiceText("label.reference")} ${invoice.appointmentNumber}` : null,
+      invoice.appointmentDate ? formatDate(invoice.appointmentDate, dateLocale) : null,
+      invoice.visitType
+        ? invoiceText(
+            invoice.visitType === "home"
+              ? "label.home_visit"
+              : invoice.visitType === "clinic"
+                ? "label.clinic_visit"
+                : "label.online_consultation",
+          )
+        : null,
     ].filter(Boolean).join("   ·   ");
     if (refParts) doc.text(refParts, M + 4, appointmentRefY + 8.5);
     appointmentRefY += 12;
@@ -319,7 +361,7 @@ export async function generateInvoicePDF(
   const tableStartY = appointmentRefY + 4;
 
   const tableData = items.map((item) => [
-    String(item.description || "Service"),
+    String(item.description || invoiceText("invoice.healthcare_service")),
     String(item.quantity ?? 1),
     fmt(item.unitPrice),
     fmt(item.totalPrice),
@@ -327,12 +369,17 @@ export async function generateInvoicePDF(
 
   autoTable(doc, {
     startY: tableStartY,
-    head: [["Description", "Qty", "Unit price", "Amount"]],
+    head: [[
+      invoiceText("label.description"),
+      invoiceText("label.quantity"),
+      invoiceText("label.unit_price"),
+      invoiceText("label.total"),
+    ]],
     body: tableData,
     theme: "plain",
     margin: { left: M, right: M },
     styles: {
-      font: "helvetica",
+      font: pdfFont,
       fontSize: 10,
       cellPadding: { top: 3.5, bottom: 3.5, left: 4, right: 4 },
       textColor: TEXT as any,
@@ -395,17 +442,17 @@ export async function generateInvoicePDF(
   const GREEN: RGB = [22, 101, 52];
   const GREEN_BG: RGB = [220, 252, 231];
 
-  doc.setFont("helvetica", "normal");
+  doc.setFont(pdfFont, "normal");
   doc.setFontSize(10);
   doc.setTextColor(...MUTED);
-  doc.text("Subtotal", totalsX + 4, rowY);
+  doc.text(invoiceText("invoice.subtotal"), totalsX + 4, rowY);
   doc.setTextColor(...TEXT);
   doc.text(fmt(subtotal), totalsX + totalsW - 4, rowY, { align: "right" });
   rowY += rowStep;
 
   if (platformFee > 0) {
     doc.setTextColor(...MUTED);
-    doc.text("Platform fee", totalsX + 4, rowY);
+    doc.text(invoiceText("invoice.platform_fee"), totalsX + 4, rowY);
     doc.setTextColor(...TEXT);
     doc.text(fmt(platformFee), totalsX + totalsW - 4, rowY, { align: "right" });
     rowY += rowStep;
@@ -413,27 +460,29 @@ export async function generateInvoicePDF(
 
   // Promo code discount row
   if (promoDiscount > 0) {
-    const promoLabel = promoCode ? `Promo (${promoCode})` : "Promo discount";
+    const promoLabel = promoCode
+      ? `${invoiceText("invoice.promo_discount")} (${promoCode})`
+      : invoiceText("invoice.promo_discount");
     doc.setFillColor(...GREEN_BG);
     doc.roundedRect(totalsX, rowY - 4, totalsW, rowStep + 1, 1, 1, "F");
-    doc.setFont("helvetica", "bold");
+    doc.setFont(pdfFont, "bold");
     doc.setTextColor(...GREEN);
     doc.text(promoLabel, totalsX + 4, rowY);
     doc.text(`-${fmt(promoDiscount)}`, totalsX + totalsW - 4, rowY, { align: "right" });
-    doc.setFont("helvetica", "normal");
+    doc.setFont(pdfFont, "normal");
     rowY += rowStep + 1;
   }
 
   // Membership / package discount row
   if (pkgDiscount > 0) {
-    const pkgLabel = membershipLabel || "Member discount";
+    const pkgLabel = membershipLabel || invoiceText("invoice.member_discount");
     doc.setFillColor(...GREEN_BG);
     doc.roundedRect(totalsX, rowY - 4, totalsW, rowStep + 1, 1, 1, "F");
-    doc.setFont("helvetica", "bold");
+    doc.setFont(pdfFont, "bold");
     doc.setTextColor(...GREEN);
     doc.text(pkgLabel, totalsX + 4, rowY);
     doc.text(`-${fmt(pkgDiscount)}`, totalsX + totalsW - 4, rowY, { align: "right" });
-    doc.setFont("helvetica", "normal");
+    doc.setFont(pdfFont, "normal");
     rowY += rowStep + 1;
   }
 
@@ -444,28 +493,28 @@ export async function generateInvoicePDF(
     const BLUE: RGB = [29, 78, 216];
     doc.setFillColor(...BLUE_BG);
     doc.roundedRect(totalsX, rowY - 4, totalsW, rowStep + 1, 1, 1, "F");
-    doc.setFont("helvetica", "bold");
+    doc.setFont(pdfFont, "bold");
     doc.setTextColor(...BLUE);
-    doc.text("Wallet credits", totalsX + 4, rowY);
+    doc.text(invoiceText("invoice.wallet_credits"), totalsX + 4, rowY);
     doc.text(`-${fmt(walletUsed)}`, totalsX + totalsW - 4, rowY, { align: "right" });
-    doc.setFont("helvetica", "normal");
+    doc.setFont(pdfFont, "normal");
     rowY += rowStep + 1;
   }
 
   doc.setTextColor(...MUTED);
-  doc.text(`Service tax (${serviceTaxRate}%)`, totalsX + 4, rowY);
+  doc.text(invoiceText("invoice.service_tax", { rate: serviceTaxRate }), totalsX + 4, rowY);
   doc.setTextColor(...TEXT);
   doc.text(fmt(serviceTax), totalsX + totalsW - 4, rowY, { align: "right" });
   rowY += rowStep;
 
   doc.setTextColor(...MUTED);
-  doc.text(`Platform tax (${platformTaxRate}%)`, totalsX + 4, rowY);
+  doc.text(invoiceText("invoice.platform_tax", { rate: platformTaxRate }), totalsX + 4, rowY);
   doc.setTextColor(...TEXT);
   doc.text(fmt(platformTax), totalsX + totalsW - 4, rowY, { align: "right" });
   rowY += rowStep;
 
   doc.setTextColor(...MUTED);
-  doc.text("Total tax", totalsX + 4, rowY);
+  doc.text(invoiceText("invoice.total_tax"), totalsX + 4, rowY);
   doc.setTextColor(...TEXT);
   doc.text(fmt(tax), totalsX + totalsW - 4, rowY, { align: "right" });
   rowY += rowStep + 1;
@@ -474,10 +523,16 @@ export async function generateInvoicePDF(
   const totalBarY = rowY;
   doc.setFillColor(...BRAND_RGB);
   doc.roundedRect(totalsX, totalBarY, totalsW, 12, 2, 2, "F");
-  doc.setFont("helvetica", "bold");
+  doc.setFont(pdfFont, "bold");
   doc.setFontSize(11);
   doc.setTextColor(255, 255, 255);
-  doc.text(status.label === "PAID" ? "TOTAL PAID" : "TOTAL DUE", totalsX + 4, totalBarY + 7.5);
+  doc.text(
+    (invoice.status || "").toLowerCase() === "paid"
+      ? invoiceText("invoice.total_paid")
+      : invoiceText("invoice.total_due"),
+    totalsX + 4,
+    totalBarY + 7.5,
+  );
   doc.setFontSize(13);
   doc.text(fmt(total), totalsX + totalsW - 4, totalBarY + 7.7, { align: "right" });
 
@@ -486,10 +541,15 @@ export async function generateInvoicePDF(
     const savingsY = totalBarY + 15;
     doc.setFillColor(...GREEN_BG);
     doc.roundedRect(totalsX, savingsY, totalsW, 10, 2, 2, "F");
-    doc.setFont("helvetica", "bold");
+    doc.setFont(pdfFont, "bold");
     doc.setFontSize(9);
     doc.setTextColor(...GREEN);
-    doc.text(`You saved ${fmt(totalDiscount)} on this booking!`, totalsX + totalsW / 2, savingsY + 6.5, { align: "center" });
+    doc.text(
+      invoiceText("invoice.saved", { amount: fmt(totalDiscount) }),
+      totalsX + totalsW / 2,
+      savingsY + 6.5,
+      { align: "center" },
+    );
   }
 
   // Payment status / instructions panel (left side)
@@ -497,25 +557,25 @@ export async function generateInvoicePDF(
   if (isPaid) {
     doc.setFillColor(220, 252, 231);
     doc.roundedRect(M, totalsY, totalsW - 2, 22, 2, 2, "F");
-    doc.setFont("helvetica", "bold");
+    doc.setFont(pdfFont, "bold");
     doc.setFontSize(11);
     doc.setTextColor(22, 101, 52);
-    doc.text("Payment received", M + 4, totalsY + 8);
-    doc.setFont("helvetica", "normal");
+    doc.text(invoiceText("invoice.payment_received"), M + 4, totalsY + 8);
+    doc.setFont(pdfFont, "normal");
     doc.setFontSize(9);
     doc.setTextColor(...MUTED);
-    doc.text("Thank you — this invoice has", M + 4, totalsY + 14);
-    doc.text("been paid in full.", M + 4, totalsY + 18);
+    doc.text(invoiceText("invoice.payment_thanks_1"), M + 4, totalsY + 14);
+    doc.text(invoiceText("invoice.payment_thanks_2"), M + 4, totalsY + 18);
   } else {
-    doc.setFont("helvetica", "bold");
+    doc.setFont(pdfFont, "bold");
     doc.setFontSize(10);
     doc.setTextColor(...TEXT);
-    doc.text("Payment instructions", M, totalsY + 5);
-    doc.setFont("helvetica", "normal");
+    doc.text(invoiceText("invoice.payment_instructions"), M, totalsY + 5);
+    doc.setFont(pdfFont, "normal");
     doc.setFontSize(9);
     doc.setTextColor(...MUTED);
     doc.text(
-      `Please complete payment by ${formatDate(invoice.dueDate, cfg.locale)}.`,
+      invoiceText("invoice.payment_due_by", { date: formatDate(invoice.dueDate, dateLocale) }),
       M,
       totalsY + 11
     );
@@ -535,11 +595,11 @@ export async function generateInvoicePDF(
   doc.setLineWidth(0.3);
   doc.line(M, footerY - 4, pageW - M, footerY - 4);
 
-  doc.setFont("helvetica", "normal");
+  doc.setFont(pdfFont, "normal");
   doc.setFontSize(8);
   doc.setTextColor(...MUTED);
   // Use template footer text if present, fall back to legacy line.
-  const leftFooter = (tpl.footerText || `${tpl.companyName} · Healthcare Booking Platform`).trim();
+  const leftFooter = (tpl.footerText || `${tpl.companyName} · ${invoiceText("invoice.platform_footer")}`).trim();
   // Hard truncate to one line — autoTable handles longer content.
   const leftFitted = doc.splitTextToSize(leftFooter, pageW - 2 * M - 80)[0] || leftFooter;
   doc.text(leftFitted, M, footerY);
@@ -549,7 +609,11 @@ export async function generateInvoicePDF(
   doc.setTextColor(...SUBTLE);
   doc.setFontSize(7);
   doc.text(
-    `Generated on ${formatDate(new Date(), cfg.locale)} · Invoice #${invoice.invoiceNumber || ""} · Currency: ${cfg.code}`,
+    invoiceText("invoice.generated", {
+      date: formatDate(new Date(), dateLocale),
+      number: invoice.invoiceNumber || "",
+      currency: cfg.code,
+    }),
     pageW / 2,
     footerY + 4,
     { align: "center" }

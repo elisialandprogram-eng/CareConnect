@@ -95,8 +95,6 @@ import { slog } from "../lib/logger";
 import { pushToUser, isUserOnline } from "../chat/ws";
 import {
   sendAppointmentEmail,
-  resend,
-  FROM_EMAIL,
   maybeQualifyReferralForAppointment,
   notifyWaitlistForFreedSlot,
   REFERRAL_REFERRER_REWARD,
@@ -108,6 +106,7 @@ import {
 import { logSystemEvent } from "../middleware/monitoring";
 import { localToUTC, getProviderTimezone } from "../lib/tzUtils";
 import { getReadiness } from "../lib/readiness";
+import { normalizeLang, t } from "../services/i18n";
 
 const PROVIDER_HIDDEN_FINANCIAL_FIELDS = [
   "totalAmount",
@@ -1843,6 +1842,7 @@ export function registerAppointmentRoutes(app: Express): void {
           date, time: startTime, service: service?.name,
           appointmentId: appointment.id,
           formattedAmount: _fmtPatientNotifAmt,
+          sendEmail: false,
         }).catch(err => console.error("[notify] appointmentBooked patient", err));
         // Provider notifications must never contain the patient's price
         // breakdown. If financial context is useful, use only the immutable
@@ -1864,9 +1864,9 @@ export function registerAppointmentRoutes(app: Express): void {
             title: "New booking received",
             body: `${user.firstName} ${user.lastName} booked ${date} at ${startTime}.`,
             email: {
-              subject: "New booking - GoldenLife",
-              headingKey: "appt.confirm.heading",
-              intro: `${user.firstName} ${user.lastName} booked an appointment with you.`,
+              subject: "",
+              headingKey: "provider.appt.booked.heading",
+              introKey: "provider.appt.booked.intro",
               details: [
                 { label: "Date", value: date },
                 { label: "Time", value: `${startTime} - ${endTime}` },
@@ -1892,7 +1892,12 @@ export function registerAppointmentRoutes(app: Express): void {
                   : []),
               ],
             },
-            data: { appointmentId: appointment.id },
+            data: {
+              appointmentId: appointment.id,
+              memberName: `${user.firstName} ${user.lastName}`,
+              date,
+              time: startTime,
+            },
             push: { url: `/provider/appointments/${appointment.id}` },
           }).catch(err => console.error("[notify] appointmentBooked provider", err));
         }
@@ -1900,92 +1905,85 @@ export function registerAppointmentRoutes(app: Express): void {
         console.error("[notify] booking dispatch failed:", e);
       }
 
-      // Send booking confirmation email
-      if (resend) {
-        try {
-          const providerWithUser = await storage.getProviderWithUser(providerId);
-          const service = serviceId ? await storage.getService(serviceId) : null;
-          
-          // PII: do not log email addresses
-          
-          const ics = icsAttachment(`appointment-${appointment.id}.ics`, {
-            uid: appointment.id,
-            title: `GoldenLife appointment with ${providerWithUser?.user.firstName} ${providerWithUser?.user.lastName}`,
-            description: `${service ? service.name + " — " : ""}${visitType === "home" ? "Home visit" : "Online consultation"}`,
-            location: visitType === "home" ? (patientAddress || "Member address") : "Online",
-            date,
-            startTime,
-            endTime,
-            organizerName: "GoldenLife",
-            organizerEmail: "no-reply@goldenlife.health",
-          });
-
-          const providerAddressLine = provider.primaryServiceLocation || provider.city || "";
-          const patientAddressLine = patientAddress || user.address || "";
-          // The confirmation page renders all appointment snapshots directly in the
-          // booking currency. Email must use the same already-local amounts rather
-          // than converting through the USD accounting value (which can round).
-          const _fmtEmailAmt = (amountInBookingCurrency: number) =>
-            formatLocal(amountInBookingCurrency, _bookingSrcCurrency);
-          const _emailPricingLines = Array.isArray((appointment as any).pricingBreakdown?.lines)
-            ? (appointment as any).pricingBreakdown.lines.filter((line: any) => line?.label?.trim())
-            : [
-                ...(platformFee > 0 ? [{ label: "Platform fee", amount: platformFee }] : []),
-                ...(promoDiscount > 0 ? [{ label: "Promo discount", amount: -promoDiscount }] : []),
-                 ...(revenueEngineResult?.taxBreakdown?.serviceTax
-                   ? [{ label: "Service tax", amount: revenueEngineResult.taxBreakdown.serviceTax }]
-                   : []),
-                 ...(revenueEngineResult?.taxBreakdown?.platformTax
-                   ? [{ label: "Platform tax", amount: revenueEngineResult.taxBreakdown.platformTax }]
-                   : []),
-              ];
-          const _renderEmailPricingLines = _emailPricingLines
-            .map((line: any) => {
-              const amount = Number(line.amount ?? 0);
-              const sign = amount < 0 ? "-" : "";
-              return `<p style="margin: 5px 0;${amount < 0 ? " color:#059669;" : ""}"><strong>${line.label}:</strong> ${sign}${_fmtEmailAmt(Math.abs(amount))}</p>`;
-            })
-            .join("");
-          const emailResult = await resend.emails.send({
-            from: FROM_EMAIL,
-            to: user.email,
-            subject: `Booking Confirmed ${appointment.appointmentNumber ? '— ' + appointment.appointmentNumber : ''} - GoldenLife`,
-            html: `
-              <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;">
-                <h2 style="color: #0f172a;">Booking Confirmed!</h2>
-                <p>Hello ${user.firstName},</p>
-                <p>Your appointment with <strong>${providerWithUser?.user.firstName} ${providerWithUser?.user.lastName}</strong> has been successfully booked.</p>
-                ${appointment.appointmentNumber ? `
-                <div style="background: linear-gradient(135deg, #0ea5e9, #6366f1); padding: 14px 18px; border-radius: 8px; margin: 16px 0; display: inline-block;">
-                  <p style="margin:0; color:#fff; font-size:0.8rem; letter-spacing:0.08em; text-transform:uppercase;">Appointment Reference</p>
-                  <p style="margin:4px 0 0; color:#fff; font-size:1.5rem; font-weight:700; letter-spacing:0.05em;">${appointment.appointmentNumber}</p>
-                </div>` : ''}
-                <div style="background-color: #f8fafc; padding: 15px; border-radius: 8px; margin: 20px 0;">
-                  <h3 style="margin-top: 0; color: #1e293b;">Appointment Details</h3>
-                  ${appointment.appointmentNumber ? `<p style="margin: 5px 0;"><strong>Reference #:</strong> ${appointment.appointmentNumber}</p>` : ''}
-                  <p style="margin: 5px 0;"><strong>Date:</strong> ${date}</p>
-                  <p style="margin: 5px 0;"><strong>Time:</strong> ${startTime} - ${endTime}</p>
-                  ${service ? `<p style="margin: 5px 0;"><strong>Service:</strong> ${service.name}</p>` : ''}
-                  <p style="margin: 5px 0;"><strong>Visit Type:</strong> ${visitType === 'home' ? 'Home Visit' : visitType === 'clinic' ? 'Clinic Visit' : 'Online Consultation'}</p>
-                  ${visitType === 'home' && patientAddressLine ? `<p style="margin: 5px 0;"><strong>Visit Address:</strong> ${patientAddressLine}</p>` : ''}
-                  ${visitType === 'clinic' && providerAddressLine ? `<p style="margin: 5px 0;"><strong>Clinic Address:</strong> ${providerAddressLine}</p>` : ''}
-                  ${_renderEmailPricingLines}
-                  <p style="margin: 5px 0;"><strong>Total Amount:</strong> ${_fmtEmailAmt(Number(appointment.totalAmount ?? fee))}</p>
-                </div>
-                <p>A calendar invite (<code>.ics</code>) is attached — open it to add this appointment to your calendar.</p>
-                 <p>You can view and manage your appointment in your member dashboard.</p>
-                <p style="color: #64748b; font-size: 0.875rem; margin-top: 30px;">
-                  Thank you for choosing GoldenLife.<br>
-                  <em>This is an automated message, please do not reply.</em>
-                </p>
-              </div>
-            `,
-            attachments: [ics as any],
-          });
-          void emailResult; // consumed — do not log (contains delivery metadata / PII)
-        } catch (emailError) {
-          console.error("Failed to send booking confirmation email:", emailError);
-        }
+      // The patient booking email is sent by this single path. The dispatcher
+      // still handles the other channels, but does not send a second email.
+      try {
+        const providerWithUser = await storage.getProviderWithUser(providerId);
+        const service = serviceId ? await storage.getService(serviceId) : null;
+        const ics = icsAttachment(`appointment-${appointment.id}.ics`, {
+          uid: appointment.id,
+          title: `GoldenLife appointment with ${providerWithUser?.user.firstName} ${providerWithUser?.user.lastName}`,
+          description: `${service ? service.name + " — " : ""}${visitType === "home" ? "Home visit" : "Online consultation"}`,
+          location: visitType === "home" ? (patientAddress || "Member address") : "Online",
+          date,
+          startTime,
+          endTime,
+          organizerName: "GoldenLife",
+          organizerEmail: "no-reply@goldenlife.health",
+        });
+        const providerAddressLine = provider.primaryServiceLocation || provider.city || "";
+        const patientAddressLine = patientAddress || user.address || "";
+        const emailPricingLines = Array.isArray((appointment as any).pricingBreakdown?.lines)
+          ? (appointment as any).pricingBreakdown.lines.filter((line: any) => line?.label?.trim())
+          : [
+              ...(platformFee > 0 ? [{ label: "Platform fee", amount: platformFee }] : []),
+              ...(promoDiscount > 0 ? [{ label: "Promo discount", amount: -promoDiscount }] : []),
+              ...(revenueEngineResult?.taxBreakdown?.serviceTax
+                ? [{ label: "Service tax", amount: revenueEngineResult.taxBreakdown.serviceTax }]
+                : []),
+              ...(revenueEngineResult?.taxBreakdown?.platformTax
+                ? [{ label: "Platform tax", amount: revenueEngineResult.taxBreakdown.platformTax }]
+                : []),
+            ];
+        const fmtEmailAmt = (amountInBookingCurrency: number) =>
+          formatLocal(amountInBookingCurrency, _bookingSrcCurrency);
+        const providerName = `${providerWithUser?.user.firstName ?? ""} ${providerWithUser?.user.lastName ?? ""}`.trim();
+        const visitTypeKey = visitType === "home"
+          ? "label.home_visit"
+          : visitType === "clinic"
+            ? "label.clinic_visit"
+            : "label.online_consultation";
+        await sendAppointmentEmail({
+          to: user.email,
+          subject: "",
+          heading: "",
+          intro: "",
+          subjectKey: "appt.confirm.subject",
+          headingKey: "appt.confirm.heading",
+          introKey: "appt.confirm.intro",
+          variables: { providerName, date, time: startTime },
+          details: [
+            ...(appointment.appointmentNumber
+              ? [{ label: "", labelKey: "label.reference", value: appointment.appointmentNumber }]
+              : []),
+            { label: "", labelKey: "label.date", value: date },
+            { label: "", labelKey: "label.time", value: `${startTime} - ${endTime}` },
+            ...(service ? [{ label: "", labelKey: "label.service", value: service.name }] : []),
+            { label: "", labelKey: visitTypeKey, value: "" },
+            ...(visitType === "home" && patientAddressLine
+              ? [{ label: "", labelKey: "label.visit_address", value: patientAddressLine }]
+              : []),
+            ...(visitType === "clinic" && providerAddressLine
+              ? [{ label: "", labelKey: "label.clinic_address", value: providerAddressLine }]
+              : []),
+            ...emailPricingLines.map((line: any) => ({
+              label: line.label,
+              value: `${Number(line.amount ?? 0) < 0 ? "-" : ""}${fmtEmailAmt(Math.abs(Number(line.amount ?? 0)))}`,
+            })),
+            {
+              label: "",
+              labelKey: "label.total_amount",
+              value: fmtEmailAmt(Number(appointment.totalAmount ?? fee)),
+            },
+          ],
+          notes: [
+            t("email.calendar_invite", normalizeLang(user.languagePreference)),
+            t("email.dashboard", normalizeLang(user.languagePreference)),
+          ],
+          attachments: [ics as any],
+        });
+      } catch (emailError) {
+        console.error("Failed to send booking confirmation email:", emailError);
       }
 
       // Sprint C19.0 — Immutable consent audit footprint.

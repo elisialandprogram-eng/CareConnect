@@ -4,7 +4,7 @@ const baseStyles = `font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", 
 const cardStyles = `background:#f8fafc;padding:16px;border-radius:8px;margin:16px 0;border:1px solid #e2e8f0;`;
 const footerStyles = `color:#64748b;font-size:12px;margin-top:24px;line-height:1.5;`;
 
-export interface DetailRow { label: string; value: string }
+export interface DetailRow { label: string; value: string; labelKey?: string }
 
 export function renderEvent(opts: {
   lang: Lang;
@@ -15,6 +15,7 @@ export function renderEvent(opts: {
   variables?: Record<string, unknown>;
   details?: DetailRow[];
   cta?: { label: string; url?: string };
+  notes?: string[];
   rtl?: boolean;
 }): string {
   const isRtl = opts.rtl ?? opts.lang === "fa";
@@ -34,6 +35,7 @@ export function renderEvent(opts: {
     ${intro ? `<p>${escapeHtml(intro)}</p>` : ""}
     ${details ? `<div style="${cardStyles}">${details}</div>` : ""}
     ${cta}
+    ${(opts.notes || []).map(note => `<p>${escapeHtml(note)}</p>`).join("")}
     <div style="${footerStyles}">
       ${escapeHtml(t("footer.signature", opts.lang))}<br>
       <em>${escapeHtml(t("footer.automated", opts.lang))}</em>

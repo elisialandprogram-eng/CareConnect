@@ -95,6 +95,7 @@ export interface DispatchOptions {
   data?: Record<string, any>;
   /** If true, bypass quiet hours and per-event overrides for emergencies */
   urgent?: boolean;
+  channelOverrides?: Partial<ChannelDecision>;
 }
 
 const DETAIL_LABEL_KEYS: Record<string, string> = {
@@ -102,6 +103,18 @@ const DETAIL_LABEL_KEYS: Record<string, string> = {
   Time: "label.time",
   Provider: "label.provider",
   Service: "label.service",
+  "Visit Type": "label.visit_type",
+  "Visit Address": "label.visit_address",
+  "Clinic Address": "label.clinic_address",
+  "Member Name": "label.member_name",
+  "Member Phone": "label.member_phone",
+  "Member Address": "label.member_address",
+  Address: "label.address",
+  "Payment Method": "label.payment_method",
+  "Payment Status": "label.payment_status",
+  "Provider Gross Earnings": "label.provider_gross",
+  "Provider-side Commission": "label.provider_commission",
+  "Provider Net Earnings": "label.provider_net",
   Amount: "label.amount",
   Status: "label.status",
   Method: "label.method",
@@ -129,9 +142,31 @@ function patientNotificationVars(data: Record<string, any>, lang: Lang): Record<
 }
 
 function localizePatientDispatch(opts: DispatchOptions, user: User, lang: Lang): DispatchOptions {
+  const data = (opts.data ?? {}) as Record<string, any>;
+  if (user.role === "provider" && opts.eventKey === "appointment.booked") {
+    const vars = {
+      ...data,
+      memberName: data.memberName || "",
+      date: data.date || "",
+      time: data.time || "",
+    };
+    return {
+      ...opts,
+      title: t("provider.appt.booked.heading", lang, vars),
+      body: t("provider.appt.booked.body", lang, vars),
+      email: opts.email
+        ? {
+            ...opts.email,
+            subject: t("provider.appt.booked.subject", lang, vars),
+            headingKey: "provider.appt.booked.heading",
+            introKey: "provider.appt.booked.intro",
+            intro: undefined,
+          }
+        : opts.email,
+    };
+  }
   if (user.role !== "patient") return opts;
 
-  const data = (opts.data ?? {}) as Record<string, any>;
   const vars = patientNotificationVars(data, lang);
   let title = opts.title;
   let body = opts.body;
@@ -315,15 +350,20 @@ function isInQuietHours(prefs: NotificationPreferences): boolean {
   return s <= e ? cur >= s && cur < e : cur >= s || cur < e;
 }
 
-function decideChannels(prefs: NotificationPreferences, eventKey: EventKey, urgent: boolean): ChannelDecision {
+function decideChannels(
+  prefs: NotificationPreferences,
+  eventKey: EventKey,
+  urgent: boolean,
+  forcedOverrides: Partial<ChannelDecision> = {},
+): ChannelDecision {
   const def = DEFAULT_PER_EVENT[eventKey] || DEFAULT_PER_EVENT["system.broadcast"];
-  let overrides: Partial<ChannelDecision> = {};
+  let eventOverrides: Partial<ChannelDecision> = {};
   if (prefs.eventOverrides) {
     try {
       const parsed = JSON.parse(prefs.eventOverrides);
       const ev = parsed?.[eventKey];
       if (ev && typeof ev === "object") {
-        overrides = {
+        eventOverrides = {
           inApp: typeof ev.inApp === "boolean" ? ev.inApp : undefined,
           email: typeof ev.email === "boolean" ? ev.email : undefined,
           sms: typeof ev.sms === "boolean" ? ev.sms : undefined,
@@ -335,11 +375,11 @@ function decideChannels(prefs: NotificationPreferences, eventKey: EventKey, urge
   }
 
   const merged: ChannelDecision = {
-    inApp: overrides.inApp ?? def.inApp,
-    email: (overrides.email ?? def.email) && prefs.emailEnabled,
-    sms: (overrides.sms ?? def.sms) && prefs.smsEnabled,
-    whatsapp: (overrides.whatsapp ?? def.whatsapp) && prefs.whatsappEnabled,
-    push: (overrides.push ?? def.push) && prefs.pushEnabled,
+    inApp: forcedOverrides.inApp ?? eventOverrides.inApp ?? def.inApp,
+    email: (forcedOverrides.email ?? eventOverrides.email ?? def.email) && prefs.emailEnabled,
+    sms: (forcedOverrides.sms ?? eventOverrides.sms ?? def.sms) && prefs.smsEnabled,
+    whatsapp: (forcedOverrides.whatsapp ?? eventOverrides.whatsapp ?? def.whatsapp) && prefs.whatsappEnabled,
+    push: (forcedOverrides.push ?? eventOverrides.push ?? def.push) && prefs.pushEnabled,
   };
 
   if (!urgent && isInQuietHours(prefs)) {
@@ -383,7 +423,7 @@ export async function dispatchNotification(opts: DispatchOptions): Promise<void>
   const prefs = await getOrCreatePrefs(userId);
   const lang: Lang = normalizeLang(user.languagePreference);
   opts = localizePatientDispatch(opts, user, lang);
-  const decision = decideChannels(prefs, eventKey, !!opts.urgent);
+  const decision = decideChannels(prefs, eventKey, !!opts.urgent, opts.channelOverrides);
 
   // 1. In-app
   if (decision.inApp) {
@@ -501,6 +541,7 @@ export const notify = {
     lang?: Lang;
     /** Pre-formatted amount string in the patient's preferred currency (e.g. "HUF 15,000") */
     formattedAmount?: string;
+    sendEmail?: boolean;
   }) =>
     dispatchNotification({
       userId,
@@ -520,6 +561,7 @@ export const notify = {
         ],
       },
       data: { appointmentId: opts.appointmentId, providerName: opts.providerName, date: opts.date, time: opts.time },
+      channelOverrides: opts.sendEmail === false ? { email: false } : undefined,
       push: { url: `/patient/appointments/${opts.appointmentId}` },
     }),
   appointmentRescheduled: (userId: string, opts: { date: string; time: string; appointmentId: string; lang?: Lang }) =>

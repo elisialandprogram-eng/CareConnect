@@ -549,15 +549,20 @@ export function registerAdminContentRoutes(app: Express): void {
       });
       await sendAppointmentEmail({
         to: row.uemail,
-        subject: "Service request approved — GoldenLife",
-        heading: "Your service is live!",
-        intro: `Hi ${row.ufirst || "there"}, great news — your request for "${row.service_name}" has been approved and added to your profile.`,
+        subject: "",
+        heading: "",
+        intro: "",
+        subjectKey: "provider.service_request.approved.subject",
+        headingKey: "provider.service_request.approved.heading",
+        introKey: "provider.service_request.approved.intro",
+        variables: { serviceName: row.service_name },
         details: [
           { label: "Service", value: row.service_name },
           { label: "Duration", value: `${durationMins} min` },
           { label: "Price", value: formatLocal(Number(price || 0), "USD") },
         ],
-        cta: "Members can now discover and book this service on your profile.",
+        cta: "",
+        ctaKey: "provider.service_request.approved.cta",
       });
 
       if (!svc.rows[0]?.id) throw new Error("Failed to create service record");
@@ -594,11 +599,16 @@ export function registerAdminContentRoutes(app: Express): void {
       });
       await sendAppointmentEmail({
         to: row.uemail,
-        subject: "Service request update — GoldenLife",
-        heading: "Service request not approved",
-        intro: `Hi ${row.ufirst || "there"}, unfortunately your request for "${row.service_name}" could not be approved at this time.`,
+        subject: "",
+        heading: "",
+        intro: "",
+        subjectKey: "provider.service_request.rejected.subject",
+        headingKey: "provider.service_request.rejected.heading",
+        introKey: "provider.service_request.rejected.intro",
+        variables: { serviceName: row.service_name },
         details: reason ? [{ label: "Reason", value: reason }] : [],
-        cta: "If you have questions, please contact our support team.",
+        cta: "",
+        ctaKey: "provider.service_request.rejected.cta",
       });
       res.json({ ok: true });
     } catch (err) {

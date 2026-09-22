@@ -89,15 +89,19 @@ export function registerPaymentRoutes(app: Express): void {
       if (recipientEmail) {
         await sendAppointmentEmail({
           to: recipientEmail,
-          subject: "You received a GoldenLife gift card!",
-          heading: "You have a gift card",
-          intro: "Someone sent you a gift card for healthcare services on GoldenLife.",
+          subject: "",
+          heading: "",
+          intro: "",
+          subjectKey: "email.gift_card.subject",
+          headingKey: "email.gift_card.heading",
+          introKey: "email.gift_card.intro",
           details: [
-            { label: "Gift card code", value: card.code },
-            { label: "Value", value: formatLocal(amount, currency) },
-            { label: "Valid until", value: expiresAt.toISOString().slice(0, 10) },
+            { label: "", labelKey: "email.gift_card.code", value: card.code },
+            { label: "", labelKey: "email.gift_card.value", value: formatLocal(amount, currency) },
+            { label: "", labelKey: "email.gift_card.valid_until", value: expiresAt.toISOString().slice(0, 10) },
           ],
-          cta: "Use this code at checkout when booking any service.",
+          cta: "",
+          ctaKey: "email.gift_card.cta",
         });
       }
       res.status(201).json(card);

@@ -30,7 +30,7 @@ export async function sendAppointmentEmail(opts: {
   subject: string;
   heading: string;
   intro: string;
-  details: { label: string; value: string }[];
+    details: { label: string; value: string; labelKey?: string }[];
   cta?: string;
   lang?: Lang | string | null;
   subjectKey?: string;
@@ -38,6 +38,8 @@ export async function sendAppointmentEmail(opts: {
   introKey?: string;
   variables?: Record<string, unknown>;
   ctaKey?: string;
+  notes?: string[];
+  attachments?: Array<{ filename: string; content: any; contentType?: string }>;
 }) {
   if (!resend) return;
   try {
@@ -65,19 +67,23 @@ export async function sendAppointmentEmail(opts: {
       variables,
       details: opts.details.map((detail) => ({
         ...detail,
-        label: detailLabelKeys[detail.label]
+        label: detail.labelKey
+          ? t(detail.labelKey, lang)
+          : detailLabelKeys[detail.label]
           ? t(detailLabelKeys[detail.label], lang)
           : detail.label,
       })),
-      cta: opts.cta
-        ? { label: opts.ctaKey ? t(opts.ctaKey, lang, variables) : opts.cta }
+      cta: opts.cta || opts.ctaKey
+        ? { label: opts.ctaKey ? t(opts.ctaKey, lang, variables) : opts.cta! }
         : undefined,
+      notes: opts.notes,
     });
     const result = await import("../../services/channels/email").then(({ sendEmail }) =>
       sendEmail({
       to: opts.to,
         subject: opts.subjectKey ? t(opts.subjectKey, lang, variables) : opts.subject,
         html,
+        attachments: opts.attachments as any,
       }),
     );
     if (result.status === "failed") {

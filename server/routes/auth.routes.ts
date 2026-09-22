@@ -56,6 +56,7 @@ import {
   OTP_COOLDOWN,
 } from "./shared/helpers";
 import { isMfaRequired } from "../services/mfa.service";
+import { normalizeLang, t } from "../services/i18n";
 
 const MFA_TOKEN_SECRET = process.env.SESSION_SECRET ?? "mfa-fallback-dev-secret";
 function issueMfaToken(userId: string): string {
@@ -116,11 +117,12 @@ export function registerAuthRoutes(app: Express): void {
         });
         if (resend) {
           try {
+            const lang = normalizeLang(existingUser.languagePreference);
             await resend.emails.send({
               from: FROM_EMAIL,
               to: existingUser.email,
-              subject: "Your GoldenLife verification code",
-              text: `Your verification code is: ${otp}. This code expires in 5 minutes.`,
+              subject: t("auth.verify.subject", lang),
+              text: t("auth.verify.text", lang, { code: otp, minutes: 5 }),
             });
           } catch (emailError) {
             console.error("Failed to resend verification email (case B):", emailError);
@@ -183,11 +185,12 @@ export function registerAuthRoutes(app: Express): void {
 
       if (resend) {
         try {
+          const lang = normalizeLang(user.languagePreference);
           await resend.emails.send({
             from: FROM_EMAIL,
             to: user.email,
-            subject: "Your GoldenLife verification code",
-            text: `Your verification code is: ${otp}. This code expires in 5 minutes.`,
+            subject: t("auth.verify.subject", lang),
+            text: t("auth.verify.text", lang, { code: otp, minutes: 5 }),
           });
         } catch (emailError) {
           console.error("Failed to send verification email:", emailError);
@@ -445,11 +448,12 @@ export function registerAuthRoutes(app: Express): void {
 
       if (resend) {
         try {
+          const lang = normalizeLang(user.languagePreference);
           await resend.emails.send({
             from: FROM_EMAIL,
             to: user.email,
-            subject: "Your email is verified",
-            text: "Congratulations! Your GoldenLife account is now fully verified.",
+            subject: t("auth.verified.subject", lang),
+            text: t("auth.verified.text", lang),
           });
         } catch (e) { console.error("Verify confirmation email error", e); }
       }
@@ -501,11 +505,12 @@ export function registerAuthRoutes(app: Express): void {
       });
 
       if (resend) {
+        const lang = normalizeLang(user.languagePreference);
         await resend.emails.send({
           from: FROM_EMAIL,
           to: user.email,
-          subject: "Your GoldenLife verification code",
-          text: `Your new verification code is: ${otp}. It expires in 5 minutes.`,
+          subject: t("auth.verify.subject", lang),
+          text: t("auth.verify.text", lang, { code: otp, minutes: 5 }),
         });
       }
 
@@ -563,11 +568,12 @@ export function registerAuthRoutes(app: Express): void {
 
       if (resend) {
         try {
+          const lang = normalizeLang(user.languagePreference);
           await resend.emails.send({
             from: FROM_EMAIL,
             to: user.email,
-            subject: "Reset your GoldenLife password",
-            text: `You requested a password reset. Use this code to reset your password: ${resetCode}. This code expires in 15 minutes.`,
+            subject: t("auth.reset.subject", lang),
+            text: t("auth.reset.text", lang, { code: resetCode, minutes: 15 }),
           });
         } catch (emailError) {
           console.error("Failed to send reset email:", emailError);

@@ -1076,11 +1076,16 @@ export function registerAdminProvidersRoutes(app: Express): void {
         if (row.email) {
           sendAppointmentEmail({
             to: row.email,
-            subject: "Your profile change has been approved — GoldenLife",
-            heading: `Profile Change Approved, ${providerFirstName}!`,
-            intro: `Great news! Your profile change request has been reviewed and approved. The following updates are now live on your profile.`,
+            subject: "",
+            heading: "",
+            intro: "",
+            subjectKey: "provider.profile.approved.subject",
+            headingKey: "provider.profile.approved.heading",
+            introKey: "provider.profile.approved.intro",
             details: approvedChanges,
-            cta: "Log in to your provider dashboard to review your updated profile.",
+            cta: "",
+            ctaKey: "provider.profile.approved.cta",
+            variables: { providerName: providerFirstName },
           }).catch(() => {});
         }
       } else {
@@ -1109,14 +1114,18 @@ export function registerAdminProvidersRoutes(app: Express): void {
         if (row.email) {
           sendAppointmentEmail({
             to: row.email,
-            subject: "Update on your profile change request — GoldenLife",
-            heading: `Profile Change Not Approved`,
-            intro: `We've reviewed your profile change request. Unfortunately, we were unable to approve this change at this time.`,
+            subject: "",
+            heading: "",
+            intro: "",
+            subjectKey: "provider.profile.rejected.subject",
+            headingKey: "provider.profile.rejected.heading",
+            introKey: "provider.profile.rejected.intro",
             details: [
               ...approvedChanges.map(d => ({ label: `Requested ${d.label}`, value: d.value })),
               ...(reason ? [{ label: "Reason", value: reason }] : []),
             ],
-            cta: `If you have questions or would like to submit a new request, please contact our support team or submit another request from your provider dashboard.`,
+            cta: "",
+            ctaKey: "provider.profile.rejected.cta",
           }).catch(() => {});
         }
       }
@@ -1260,14 +1269,19 @@ export function registerAdminProvidersRoutes(app: Express): void {
         });
         await sendAppointmentEmail({
           to: owner.email,
-          subject: "Service edit approved — GoldenLife",
-          heading: "Service edits approved",
-          intro: `Hi ${owner.first_name || "there"}, your requested changes to "${svc.name}" have been approved and applied.`,
+          subject: "",
+          heading: "",
+          intro: "",
+          subjectKey: "provider.service.approved.subject",
+          headingKey: "provider.service.approved.heading",
+          introKey: "provider.service.approved.intro",
+          variables: { serviceName: svc.name },
           details: Object.entries(safe).map(([k, v]) => ({
             label: k.replace(/([A-Z])/g, " $1").replace(/^./, s => s.toUpperCase()),
             value: String(v ?? "—"),
           })),
-          cta: "Your updated service is now live on your profile.",
+          cta: "",
+          ctaKey: "provider.service.approved.cta",
         });
       }
       res.json(updated);
@@ -1323,17 +1337,16 @@ export function registerAdminProvidersRoutes(app: Express): void {
         });
         await sendAppointmentEmail({
           to: owner.email,
-          subject: isNewService
-            ? "Service submission not approved — GoldenLife"
-            : "Service edit request rejected — GoldenLife",
-          heading: isNewService ? "Service not approved" : "Edit request rejected",
-          intro: `Hi ${owner.first_name || "there"}, unfortunately ${
-            isNewService
-              ? `your service "${svc.name}" could not be approved at this time.`
-              : `your requested edits to "${svc.name}" have been rejected.`
-          }`,
+          subject: "",
+          heading: "",
+          intro: "",
+          subjectKey: "provider.service.rejected.subject",
+          headingKey: "provider.service.rejected.heading",
+          introKey: "provider.service.rejected.intro",
+          variables: { serviceName: svc.name },
           details: note ? [{ label: "Reason", value: note }] : [],
-          cta: "If you have questions, please contact our support team.",
+          cta: "",
+          ctaKey: "provider.service.rejected.cta",
         });
       }
 
