@@ -57,6 +57,67 @@ export async function sendAppointmentEmail(opts: {
       Refund: "label.refund",
       Invoice: "label.invoice",
       "Reference #": "label.reference",
+      "Visit Type": "label.visit_type",
+      "Visit Address": "label.visit_address",
+      "Clinic Address": "label.clinic_address",
+      "Member Name": "label.member_name",
+      "Member Phone": "label.member_phone",
+      "Member Address": "label.member_address",
+      Address: "label.address",
+      "Payment Method": "label.payment_method",
+      "Payment Status": "label.payment_status",
+      "Provider Gross Earnings": "label.provider_gross",
+      "Provider-side Commission": "label.provider_commission",
+      "Provider Net Earnings": "label.provider_net",
+      "Platform fee": "invoice.platform_fee",
+      "Promo discount": "invoice.promo_discount",
+      "Membership discount": "invoice.member_discount",
+      "Wallet credits": "invoice.wallet_credits",
+      "Service tax": "label.service_tax",
+      "Platform tax": "label.platform_tax",
+      "Total tax": "invoice.total_tax",
+      Duration: "label.duration",
+      Price: "label.price",
+      Reason: "label.reason",
+    };
+    const localizedLabel = (label: string): string => {
+      const requested = label.match(/^Requested\s+(.+)$/i);
+      if (requested) {
+        return `${t("label.requested", lang)} ${localizedLabel(requested[1])}`;
+      }
+      const fieldLabels: Record<string, string> = {
+        Category: "label.category",
+        "Sub-Category": "label.subcategory",
+        Specialization: "label.specialization",
+        "Display Title": "label.display_title",
+      };
+      return detailLabelKeys[label]
+        ? t(detailLabelKeys[label], lang)
+        : fieldLabels[label]
+        ? t(fieldLabels[label], lang)
+        : label;
+    };
+    const localizedValue = (label: string, value: string): string => {
+      const raw = String(value);
+      const normalized = raw.toLowerCase().replace(/[_-]+/g, " ").trim();
+      if (label === "Visit Type") {
+        if (normalized.includes("home")) return t("label.home_visit", lang);
+        if (normalized.includes("clinic")) return t("label.clinic_visit", lang);
+        if (normalized.includes("online")) return t("label.online_consultation", lang);
+      }
+      if (label === "Payment Method" || label === "Method") {
+        const methodKey = normalized.replace(/\s+/g, "_");
+        return t(`method.${methodKey}`, lang);
+      }
+      if (label === "Payment Status" || label === "Status") {
+        return t(`status.${normalized.replace(/\s+/g, "_")}`, lang);
+      }
+      if (/^\d+\s+min(?:ute)?s?$/i.test(raw)) {
+        return t("label.minutes", lang, { count: raw.match(/^\d+/)?.[0] });
+      }
+      if (raw === "Online (link will be shared)") return t("value.online_link", lang);
+      if (raw === "Member will provide address") return t("value.member_address_pending", lang);
+      return raw;
     };
     const html = renderEvent({
       lang,
@@ -67,11 +128,8 @@ export async function sendAppointmentEmail(opts: {
       variables,
       details: opts.details.map((detail) => ({
         ...detail,
-        label: detail.labelKey
-          ? t(detail.labelKey, lang)
-          : detailLabelKeys[detail.label]
-          ? t(detailLabelKeys[detail.label], lang)
-          : detail.label,
+        label: detail.labelKey ? t(detail.labelKey, lang) : localizedLabel(detail.label),
+        value: localizedValue(detail.label, detail.value),
       })),
       cta: opts.cta || opts.ctaKey
         ? { label: opts.ctaKey ? t(opts.ctaKey, lang, variables) : opts.cta! }

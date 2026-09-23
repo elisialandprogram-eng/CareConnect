@@ -1234,11 +1234,16 @@ export function registerAdminProvidersRoutes(app: Express): void {
           });
           await sendAppointmentEmail({
             to: owner.email,
-            subject: "Your service is now live — GoldenLife",
-            heading: "Service approved",
-            intro: `Hi ${owner.first_name || "there"}, great news — your service has been approved and is now visible to members.`,
+            subject: "",
+            heading: "",
+            intro: "",
+            subjectKey: "provider.service_request.approved.subject",
+            headingKey: "provider.service_request.approved.heading",
+            introKey: "provider.service_request.approved.intro",
+            variables: { serviceName: svc.name },
             details: [{ label: "Service", value: svc.name }],
-            cta: "Members can now discover and book this service on your profile.",
+            cta: "",
+            ctaKey: "provider.service_request.approved.cta",
           });
         }
         return res.json(activated);

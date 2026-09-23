@@ -81,12 +81,14 @@ export interface DispatchOptions {
   /** Email-specific overrides */
   email?: {
     subject?: string;
+    subjectKey?: string;
     headingKey?: string;
     heading?: string;
     introKey?: string;
     intro?: string;
     details?: DetailRow[];
     cta?: { label: string; url: string };
+    ctaKey?: string;
     attachments?: Array<{ filename: string; content: string; contentType?: string }>;
   };
   /** Push CTA url + tag */
@@ -124,12 +126,52 @@ const DETAIL_LABEL_KEYS: Record<string, string> = {
   Renews: "label.renews",
   "Valid until": "label.valid_until",
   Sessions: "label.sessions",
+  "Platform fee": "invoice.platform_fee",
+  "Promo discount": "invoice.promo_discount",
+  "Membership discount": "invoice.member_discount",
+  "Wallet credits": "invoice.wallet_credits",
+  "Service tax": "label.service_tax",
+  "Platform tax": "label.platform_tax",
+  "Total tax": "invoice.total_tax",
+  Duration: "label.duration",
+  Price: "label.price",
+  Reason: "label.reason",
+  Category: "label.category",
+  "Sub-Category": "label.subcategory",
+  Specialization: "label.specialization",
+  "Display Title": "label.display_title",
 };
 
+function localizeDetailValue(label: string, value: string, lang: Lang): string {
+  const raw = String(value);
+  const normalized = raw.toLowerCase().replace(/[_-]+/g, " ").trim();
+  if (label === "Visit Type") {
+    if (normalized.includes("home")) return t("label.home_visit", lang);
+    if (normalized.includes("clinic")) return t("label.clinic_visit", lang);
+    if (normalized.includes("online")) return t("label.online_consultation", lang);
+  }
+  if (label === "Payment Method" || label === "Method") {
+    return t(`method.${normalized.replace(/\s+/g, "_")}`, lang);
+  }
+  if (label === "Payment Status" || label === "Status") {
+    return t(`status.${normalized.replace(/\s+/g, "_")}`, lang);
+  }
+  if (/^\d+\s+min(?:ute)?s?$/i.test(raw)) {
+    return t("label.minutes", lang, { count: raw.match(/^\d+/)?.[0] });
+  }
+  if (raw === "Online (link will be shared)") return t("value.online_link", lang);
+  if (raw === "Member will provide address") return t("value.member_address_pending", lang);
+  return raw;
+}
+
 function patientNotificationVars(data: Record<string, any>, lang: Lang): Record<string, unknown> {
+  const rawMethod = data.method ? String(data.method).toLowerCase() : "";
+  const methodKey = rawMethod.replace(/\s+/g, "_");
   return {
     ...data,
-    methodSuffix: data.method ? t("suffix.method", lang, { method: data.method }) : "",
+    methodSuffix: data.method
+      ? t("suffix.method", lang, { method: t(`method.${methodKey}`, lang) })
+      : "",
     preferredDateSuffix: data.preferredDate ? t("suffix.preferred_date", lang, { date: data.preferredDate }) : "",
     dateSuffix: data.date ? t("suffix.date", lang, { date: data.date }) : "",
     sessionsSuffix: data.sessionsIncluded
@@ -165,8 +207,6 @@ function localizePatientDispatch(opts: DispatchOptions, user: User, lang: Lang):
         : opts.email,
     };
   }
-  if (user.role !== "patient") return opts;
-
   const vars = patientNotificationVars(data, lang);
   let title = opts.title;
   let body = opts.body;
@@ -174,12 +214,30 @@ function localizePatientDispatch(opts: DispatchOptions, user: User, lang: Lang):
   let heading = opts.email?.heading;
   let intro = opts.email?.intro;
 
-  const set = (titleKey: string, bodyKey: string, emailHeadingKey?: string, subjectKey?: string) => {
+  const set = (
+    titleKey: string,
+    bodyKey: string,
+    emailHeadingKey?: string,
+    subjectKey?: string,
+    introKey?: string,
+    ctaKey?: string,
+  ) => {
     title = t(titleKey, lang, vars);
     body = t(bodyKey, lang, vars);
     heading = t(emailHeadingKey || titleKey, lang, vars);
     subject = t(subjectKey || titleKey, lang, vars);
     intro = body;
+    if (introKey) intro = t(introKey, lang, vars);
+    if (opts.email && ctaKey) {
+      opts = {
+        ...opts,
+        email: {
+          ...opts.email,
+          cta: opts.email.cta ? { ...opts.email.cta, label: t(ctaKey, lang, vars) } : undefined,
+          ctaKey,
+        },
+      };
+    }
   };
 
   switch (opts.eventKey) {
@@ -203,56 +261,59 @@ function localizePatientDispatch(opts: DispatchOptions, user: User, lang: Lang):
     case "appointment.reminder.1h":
     case "appointment.reminder.15m": {
       const tier = opts.eventKey.endsWith("24h") ? "24" : opts.eventKey.endsWith("1h") ? "1" : "15";
-      set(`appt.reminder${tier}.heading`, "appt.reminder.body", `appt.reminder${tier}.heading`, `appt.reminder${tier}.subject`);
+      set(`appt.reminder${tier}.heading`, "appt.reminder.body", `appt.reminder${tier}.heading`, `appt.reminder${tier}.subject`, "appt.reminder.body");
       break;
     }
     case "appointment.postvisit":
-      set("appt.postvisit.heading", "appt.postvisit.body", "appt.postvisit.heading", "appt.postvisit.subject");
+      set("appt.postvisit.heading", "appt.postvisit.body", "appt.postvisit.heading", "appt.postvisit.subject", "appt.postvisit.intro", "appt.postvisit.cta");
       if (opts.email) intro = t("appt.postvisit.intro", lang, vars);
       break;
     case "payment.received":
-      set("appt.payment.heading", "appt.payment.body", "appt.payment.heading", "appt.payment.subject");
+      set("appt.payment.heading", "appt.payment.body", "appt.payment.heading", "appt.payment.subject", "appt.payment.intro");
       break;
     case "payment.refunded":
-      set("notify.refund.title", "notify.refund.body", "notify.refund.title");
+      set("notify.refund.title", "notify.refund.body", "notify.refund.title", "notify.refund.subject", "notify.refund.intro");
+      break;
+    case "review.left":
+      set("review.left.heading", "review.left.body", "review.left.heading", "review.left.subject", "review.left.intro");
       break;
     case "review.replied":
-      set("notify.review_reply.title", "notify.review_reply.body", "notify.review_reply.heading", "notify.review_reply.subject");
+      set("notify.review_reply.title", "notify.review_reply.body", "notify.review_reply.heading", "notify.review_reply.subject", "notify.review_reply.body");
       break;
     case "ticket.replied":
-      set("notify.ticket_reply.title", "notify.ticket_reply.body");
+      set("notify.ticket_reply.title", "notify.ticket_reply.body", "notify.ticket_reply.title", "notify.ticket_reply.title", "notify.ticket_reply.body");
       break;
     case "chat.new_message":
       title = t("notify.chat_message.title", lang, vars);
       if (opts.email) {
         subject = title;
         heading = title;
-        intro = opts.body;
+        intro = t("notify.chat_message.intro", lang, vars);
       }
       break;
     case "waitlist.joined":
       set("notify.waitlist_joined.title", "notify.waitlist_joined.body");
       break;
     case "waitlist.slot_available":
-      set("notify.waitlist_available.title", "notify.waitlist_available.body");
+      set("notify.waitlist_available.title", "notify.waitlist_available.body", "notify.waitlist_available.title", "notify.waitlist_available.subject", "notify.waitlist_available.intro", "notify.waitlist_available.cta");
       break;
     case "package.expired":
-      set("notify.package_expired.title", "notify.package_expired.body");
+      set("notify.package_expired.title", "notify.package_expired.body", "notify.package_expired.title", "notify.package_expired.subject", "notify.package_expired.body", "notify.package_expired.cta");
       break;
     case "package.purchased":
-      set("notify.package_purchased.title", "notify.package_purchased.body");
+      set("notify.package_purchased.title", "notify.package_purchased.body", "notify.package_purchased.title", "notify.package_purchased.subject", "notify.package_purchased.body", "notify.package_purchased.cta");
       break;
     case "package.renewal_failed":
-      set("notify.package_renewal_failed.title", "notify.package_renewal_failed.body");
+      set("notify.package_renewal_failed.title", "notify.package_renewal_failed.body", "notify.package_renewal_failed.title", "notify.package_renewal_failed.subject", "notify.package_renewal_failed.body", "notify.package_renewal_failed.cta");
       break;
     case "membership.purchased":
-      set("notify.membership_purchased.title", "notify.membership_purchased.body");
+      set("notify.membership_purchased.title", "notify.membership_purchased.body", "notify.membership_purchased.title", "notify.membership_purchased.subject", "notify.membership_purchased.body", "notify.membership_purchased.cta");
       break;
     case "membership.expired":
-      set("notify.membership_expired.title", "notify.membership_expired.body");
+      set("notify.membership_expired.title", "notify.membership_expired.body", "notify.membership_expired.title", "notify.membership_expired.subject", "notify.membership_expired.body", "notify.membership_expired.cta");
       break;
     case "membership.renewed":
-      set("notify.membership_renewed.title", "notify.membership_renewed.body");
+      set("notify.membership_renewed.title", "notify.membership_renewed.body", "notify.membership_renewed.title", "notify.membership_renewed.subject", "notify.membership_renewed.body");
       break;
     case "wallet.topup":
       set("notify.wallet_topup.title", "notify.wallet_topup.body");
@@ -261,24 +322,36 @@ function localizePatientDispatch(opts: DispatchOptions, user: User, lang: Lang):
       set("notify.wallet_refund.title", "notify.wallet_refund.body");
       break;
     case "invoice.overdue":
-      set("notify.invoice_overdue.title", "notify.invoice_overdue.body");
+      set("notify.invoice_overdue.title", "notify.invoice_overdue.body", "notify.invoice_overdue.title", "notify.invoice_overdue.subject", "notify.invoice_overdue.intro", "notify.invoice_overdue.cta");
       break;
+    case "payout.approved":
+    case "payout.paid":
+    case "payout.rejected": {
+      const payoutStatus = opts.eventKey.split(".")[1];
+      set(`notify.payout.${payoutStatus}.title`, `notify.payout.${payoutStatus}.body`, `notify.payout.${payoutStatus}.title`, `notify.payout.${payoutStatus}.subject`, `notify.payout.${payoutStatus}.body`);
+      break;
+    }
   }
 
-  const email = opts.email
-    ? {
-        ...opts.email,
-        subject,
-        heading,
-        intro,
-        details: opts.email.details?.map((detail) => ({
-          ...detail,
+  // Build an email envelope even when the caller only supplied in-app/SMS
+  // content. Some event defaults include email, and leaving this undefined
+  // would bypass the localized subject/heading/intro computed above.
+  const email = {
+    ...(opts.email || {}),
+    subject: opts.email?.subjectKey ? t(opts.email.subjectKey, lang, vars) : subject,
+    heading,
+    intro,
+    cta: opts.email?.ctaKey && opts.email.cta
+      ? { ...opts.email.cta, label: t(opts.email.ctaKey, lang, vars) }
+      : opts.email?.cta,
+    details: opts.email?.details?.map((detail) => ({
+      ...detail,
           label: DETAIL_LABEL_KEYS[detail.label]
             ? t(DETAIL_LABEL_KEYS[detail.label], lang)
             : detail.label,
-        })),
-      }
-    : opts.email;
+          value: localizeDetailValue(detail.label, detail.value, lang),
+    })),
+  };
 
   return { ...opts, title, body, email };
 }
@@ -460,8 +533,21 @@ export async function dispatchNotification(opts: DispatchOptions): Promise<void>
         heading: opts.email?.heading,
         introKey: opts.email?.introKey,
         intro: opts.email?.intro || opts.body,
-        details: opts.email?.details,
-        cta: opts.email?.cta,
+        details: opts.email?.details?.map((detail) => ({
+          ...detail,
+          label: DETAIL_LABEL_KEYS[detail.label]
+            ? t(DETAIL_LABEL_KEYS[detail.label], lang)
+            : detail.label,
+          value: localizeDetailValue(detail.label, detail.value, lang),
+        })),
+        cta: opts.email?.cta?.label
+          ? {
+              ...opts.email.cta,
+              label: opts.email.ctaKey
+                ? t(opts.email.ctaKey, lang, patientNotificationVars((opts.data ?? {}) as Record<string, any>, lang))
+                : opts.email.cta.label,
+            }
+          : undefined,
       });
       const subject = opts.email?.subject || opts.title;
       const r = await sendEmail({ to: user.email, subject, html, attachments: opts.email?.attachments });
@@ -789,7 +875,7 @@ export const notify = {
       title,
       body,
       email: { subject: title, intro: body },
-      data: { status: opts.status, formattedAmount: opts.formattedAmount, notes: opts.notes },
+      data: { status: opts.status, formattedAmount: opts.formattedAmount, notes: opts.notes, reason: opts.notes },
       push: { url: `/provider-dashboard?tab=earnings` },
     });
   },

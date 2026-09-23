@@ -2410,9 +2410,9 @@ export function registerAppointmentRoutes(app: Express): void {
           if (patient) {
             await sendAppointmentEmail({
               to: patient.email,
-              subject: "How was your appointment? - GoldenLife",
-              heading: "Your appointment is complete",
-              intro: `Hello ${patient.firstName}, your appointment with ${providerWithUser?.user.firstName ?? ""} ${providerWithUser?.user.lastName ?? ""} on ${appointment.date} at ${appointment.startTime} has been marked as completed.`,
+              subject: "",
+              heading: "",
+              intro: "",
               subjectKey: "appt.postvisit.subject",
               headingKey: "appt.postvisit.heading",
               introKey: "appt.completed.intro",
@@ -2429,7 +2429,7 @@ export function registerAppointmentRoutes(app: Express): void {
                 { label: "Time", value: `${appointment.startTime} - ${appointment.endTime}` },
                 ...(invoiceResult?.invoiceNumber ? [{ label: "Invoice", value: invoiceResult.invoiceNumber }] : []),
               ],
-              cta: "Please take a moment to leave a review for your provider — your feedback helps other members choose the right care.",
+              cta: "",
             });
           }
         }
@@ -2556,9 +2556,9 @@ export function registerAppointmentRoutes(app: Express): void {
           if (patient) {
             await sendAppointmentEmail({
               to: patient.email,
-              subject: "Payment receipt - GoldenLife",
-              heading: "Payment received",
-              intro: `Hello ${patient.firstName}, we've recorded your payment for your appointment with ${providerWithUser?.user.firstName ?? ""} ${providerWithUser?.user.lastName ?? ""}.`,
+              subject: "",
+              heading: "",
+              intro: "",
               subjectKey: "appt.payment.subject",
               headingKey: "appt.payment.heading",
               introKey: "appt.payment.intro",
@@ -2574,7 +2574,7 @@ export function registerAppointmentRoutes(app: Express): void {
                 { label: "Amount", value: _fmtReceipt(Number(payment.amount)) },
                 { label: "Method", value: payment.paymentMethod || "card" },
               ],
-              cta: "An invoice for your records is available in your member dashboard.",
+              cta: "",
             });
           }
           notify.paymentReceived(appointment.patientId, {
@@ -3044,9 +3044,9 @@ export function registerAppointmentRoutes(app: Express): void {
           const _cancelCurr = (patient as any).preferredCurrency || countryCurrency((existing as any).countryCode);
           await sendAppointmentEmail({
             to: patient.email,
-            subject: "Appointment cancelled - GoldenLife",
-            heading: "Appointment cancelled",
-            intro: `Hello ${patient.firstName}, your appointment with ${providerWithUser?.user.firstName ?? ""} ${providerWithUser?.user.lastName ?? ""} has been cancelled.`,
+            subject: "",
+            heading: "",
+            intro: "",
             subjectKey: "appt.cancel.subject",
             headingKey: "appt.cancel.heading",
             introKey: "appt.cancel.detail_intro",
@@ -3061,7 +3061,7 @@ export function registerAppointmentRoutes(app: Express): void {
               { label: "Cancelled by", value: actorLabel },
               ...(refundedAmount > 0 ? [{ label: "Refund", value: formatSync(refundedAmount, _cancelCurr, _cancelRates) }] : []),
             ],
-            cta: actorLabel === "patient" ? undefined : "If this was unexpected, you can rebook from your dashboard.",
+            cta: actorLabel === "patient" ? undefined : "",
           });
           // In-app refund notification — the cancel email already includes refund details,
           // so only create an in-app entry here (no extra email channel).
