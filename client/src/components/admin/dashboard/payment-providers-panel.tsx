@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "react-i18next";
+import { type ElementType } from "react";
 
 interface PaymentProvider {
   id: string;
@@ -36,7 +37,7 @@ interface PaymentProvider {
   lastTestResult: { success: boolean; message: string; latencyMs?: number } | null;
 }
 
-const PROVIDER_ICONS: Record<string, React.ElementType> = {
+const PROVIDER_ICONS: Record<string, ElementType> = {
   wallet: Wallet,
   cash: Banknote,
   bank_transfer: Building,
@@ -68,23 +69,23 @@ const PROVIDER_CREDENTIAL_FIELDS: Record<string, Array<{ key: string; label: str
   ],
 };
 
-function HealthBadge({ status, lastCheck }: { status: string; lastCheck: string | null }) {
+function HealthBadge({ status, lastCheck, t }: { status: string; lastCheck: string | null; t: (key: string, options?: any) => string }) {
   if (status === "ok")
     return (
       <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800 gap-1">
-        <CheckCircle2 className="h-3 w-3" /> Connected
+        <CheckCircle2 className="h-3 w-3" /> {t("admin.connected")}
       </Badge>
     );
   if (status === "error")
     return (
       <Badge className="bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300 border-red-200 dark:border-red-800 gap-1">
-        <XCircle className="h-3 w-3" /> Error
+        <XCircle className="h-3 w-3" /> {t("admin.error")}
       </Badge>
     );
   return (
     <Badge variant="outline" className="gap-1 text-muted-foreground">
       <Clock className="h-3 w-3" />
-      {lastCheck ? "Unchecked" : "Never tested"}
+      {lastCheck ? t("admin.unchecked") : t("admin.never_tested")}
     </Badge>
   );
 }
@@ -106,6 +107,8 @@ function ProviderCard({ provider, onUpdate, onTest, isUpdating, isTesting }: {
 
   const Icon = PROVIDER_ICONS[provider.key] ?? CreditCard;
   const credFields = PROVIDER_CREDENTIAL_FIELDS[provider.key] ?? [];
+  const providerLabel = t(`admin.config.payment_providers.${provider.key}.label`, { defaultValue: provider.label });
+  const providerDescription = t(`admin.config.payment_providers.${provider.key}.description`, { defaultValue: provider.description });
 
   const saveConfig = () => {
     const countryCodes = localCountries.trim()
@@ -141,7 +144,7 @@ function ProviderCard({ provider, onUpdate, onTest, isUpdating, isTesting }: {
 
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
-                <CardTitle className="text-sm font-semibold">{provider.label}</CardTitle>
+                <CardTitle className="text-sm font-semibold">{providerLabel}</CardTitle>
                 <Badge variant="outline" className="text-[10px] px-1.5 py-0">
                   #{provider.priority}
                 </Badge>
@@ -151,25 +154,25 @@ function ProviderCard({ provider, onUpdate, onTest, isUpdating, isTesting }: {
                     ? "border-emerald-300 text-emerald-700 dark:border-emerald-700 dark:text-emerald-400"
                     : "border-amber-300 text-amber-700 dark:border-amber-700 dark:text-amber-400",
                 )}>
-                  {provider.environment}
+                  {t(`admin.${provider.environment}`)}
                 </Badge>
                 {provider.maintenanceMode && (
                   <Badge className="text-[10px] px-1.5 py-0 bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300">
-                    <AlertTriangle className="h-2.5 w-2.5 mr-1" /> Maintenance
+                    <AlertTriangle className="h-2.5 w-2.5 mr-1" /> {t("admin.maintenance")}
                   </Badge>
                 )}
               </div>
-              <p className="text-xs text-muted-foreground mt-0.5 truncate">{provider.description}</p>
+              <p className="text-xs text-muted-foreground mt-0.5 truncate">{providerDescription}</p>
             </div>
 
             <div className="flex items-center gap-3 shrink-0">
-              <HealthBadge status={provider.healthStatus} lastCheck={provider.lastHealthCheck} />
+              <HealthBadge status={provider.healthStatus} lastCheck={provider.lastHealthCheck} t={t} />
               <Switch
                 checked={provider.isEnabled}
                 onCheckedChange={checked => onUpdate(provider.key, { isEnabled: checked })}
                 disabled={isUpdating}
                 data-testid={`toggle-provider-${provider.key}`}
-                aria-label={`${provider.isEnabled ? "Disable" : "Enable"} ${provider.label}`}
+                aria-label={`${provider.isEnabled ? t("admin.config.disable") : t("admin.config.enable")} ${providerLabel}`}
               />
             </div>
           </div>
@@ -208,7 +211,7 @@ function ProviderCard({ provider, onUpdate, onTest, isUpdating, isTesting }: {
               data-testid={`btn-test-${provider.key}`}
             >
               {isTesting ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
-              Test
+              {t("admin.config.test")}
             </Button>
             <CollapsibleTrigger asChild>
               <Button
@@ -218,7 +221,7 @@ function ProviderCard({ provider, onUpdate, onTest, isUpdating, isTesting }: {
                 data-testid={`btn-config-${provider.key}`}
               >
                 <Settings2 className="h-3 w-3" />
-                {t("admin.config")}
+                {t("admin.config.config_label")}
                 <ChevronDown className={cn("h-3 w-3 transition-transform", open && "rotate-180")} />
               </Button>
             </CollapsibleTrigger>
@@ -299,11 +302,11 @@ function ProviderCard({ provider, onUpdate, onTest, isUpdating, isTesting }: {
                 </p>
                 {credFields.map(f => (
                   <div key={f.key} className="space-y-1.5">
-                    <Label className="text-xs">{f.label}</Label>
+                    <Label className="text-xs">{t(`admin.config.payment_credentials.${provider.key}.${f.key}`, { defaultValue: f.label })}</Label>
                     <div className="flex gap-2">
                       <Input
                         type={f.sensitive && !showSecrets[f.key] ? "password" : "text"}
-                        placeholder={f.sensitive ? "••••••••" : `Enter ${f.label}`}
+                        placeholder={f.sensitive ? "••••••••" : t("admin.config.enter_credential", { label: t(`admin.config.payment_credentials.${provider.key}.${f.key}`, { defaultValue: f.label }) })}
                         value={localCreds[f.key] ?? ""}
                         onChange={e => setLocalCreds(c => ({ ...c, [f.key]: e.target.value }))}
                         className="h-8 text-xs font-mono flex-1"

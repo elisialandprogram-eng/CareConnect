@@ -82,6 +82,28 @@ const fmtPct = (v: string | number | undefined) => {
   return Number.isFinite(n) ? `${n}%` : "—";
 };
 
+const RULE_TEXT_KEYS: Record<string, string> = {
+  "platform commission": "platform_commission",
+  "default global platform fee": "default_global_platform_fee",
+  "platform commission from customers": "platform_commission_from_customers",
+  "default 3% platform fee on all bookings": "default_three_percent_platform_fee",
+  percent: "percent",
+  fixed: "fixed",
+  hybrid: "hybrid",
+  global: "global",
+  country: "country",
+  category: "category",
+  provider: "provider",
+  provider_type: "provider_type",
+  modality: "modality",
+};
+
+function localizeRuleText(value: unknown, tr: (key: string, fallback: string, options?: Record<string, unknown>) => string): string {
+  const raw = String(value ?? "");
+  const key = RULE_TEXT_KEYS[raw.trim().toLowerCase()];
+  return key ? tr(`data.${key}`, raw) : raw;
+}
+
 function StatusBadge({ enabled, maintenanceMode }: { enabled: boolean; maintenanceMode?: boolean }) {
   const { t } = useTranslation();
   if (maintenanceMode) return (
@@ -272,15 +294,15 @@ function PlatformFeeRulesPanel() {
             {rules.length === 0 && <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">{tr("no_rules_yet", "No rules yet.")}</TableCell></TableRow>}
             {rules.map((r: any) => (
               <TableRow key={r.id}>
-                <TableCell className="font-medium">{r.name}<br /><span className="text-xs text-muted-foreground">{r.description}</span></TableCell>
-                <TableCell><Badge variant="secondary">{r.feeType}</Badge></TableCell>
+                <TableCell className="font-medium">{localizeRuleText(r.name, tr)}<br /><span className="text-xs text-muted-foreground">{localizeRuleText(r.description, tr)}</span></TableCell>
+                <TableCell><Badge variant="secondary">{localizeRuleText(r.feeType, tr)}</Badge></TableCell>
                 <TableCell>
                   {r.feeType === "percent" && fmtPct(r.percentValue)}
                   {r.feeType === "fixed" && fmt(r.fixedAmount)}
                   {r.feeType === "hybrid" && `${fmtPct(r.percentValue)} + ${fmt(r.fixedAmount)}`}
-                  {(r.minFee || r.maxFee) && <span className="text-xs text-muted-foreground ml-1">[{r.minFee ? `min ${fmt(r.minFee)}` : ""}{r.maxFee ? ` max ${fmt(r.maxFee)}` : ""}]</span>}
+                  {(r.minFee || r.maxFee) && <span className="text-xs text-muted-foreground ml-1">[{r.minFee ? `${tr("minimum", "min")} ${fmt(r.minFee)}` : ""}{r.maxFee ? ` ${tr("maximum", "max")} ${fmt(r.maxFee)}` : ""}]</span>}
                 </TableCell>
-                <TableCell><Badge variant="outline">{r.targetScope}{r.countryCode ? ` · ${r.countryCode}` : ""}</Badge></TableCell>
+                <TableCell><Badge variant="outline">{localizeRuleText(r.targetScope, tr)}{r.countryCode ? ` · ${r.countryCode}` : ""}</Badge></TableCell>
                 <TableCell>{r.priority}</TableCell>
                 <TableCell><StatusBadge enabled={r.enabled} /></TableCell>
                 <TableCell>
@@ -436,10 +458,10 @@ function CommissionRulesPanel() {
             {rules.length === 0 && <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">{tr("no_commission_rules", "No rules. Default 10% seeded on first boot.")}</TableCell></TableRow>}
             {rules.map((r: any) => (
               <TableRow key={r.id}>
-                <TableCell className="font-medium">{r.name}<br /><span className="text-xs text-muted-foreground">{r.description}</span></TableCell>
+                <TableCell className="font-medium">{localizeRuleText(r.name, tr)}<br /><span className="text-xs text-muted-foreground">{localizeRuleText(r.description, tr)}</span></TableCell>
                 <TableCell><Badge variant="secondary">{CT_LABELS[r.commissionType] ?? r.commissionType}</Badge></TableCell>
                 <TableCell className="font-mono">{fmtPct(r.commissionPercent)}{Number(r.fixedAmount) > 0 ? ` + ${fmt(r.fixedAmount)}` : ""}</TableCell>
-                <TableCell className="text-xs text-muted-foreground">{r.providerType ?? r.serviceCategory ?? r.providerId ?? "All"}{r.countryCode ? ` · ${r.countryCode}` : ""}</TableCell>
+                <TableCell className="text-xs text-muted-foreground">{r.providerType ? localizeRuleText(r.providerType, tr) : r.serviceCategory ? localizeRuleText(r.serviceCategory, tr) : r.providerId ?? tr("all", "All")}{r.countryCode ? ` · ${r.countryCode}` : ""}</TableCell>
                 <TableCell>{r.priority}</TableCell>
                 <TableCell><StatusBadge enabled={r.enabled} /></TableCell>
                 <TableCell>
@@ -655,7 +677,7 @@ function TravelFeeRulesPanel() {
             {rules.length === 0 && <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">{tr("no_travel_fee_rules", "No travel fee rules.")}</TableCell></TableRow>}
             {rules.map((r: any) => (
               <TableRow key={r.id}>
-                <TableCell className="font-medium">{r.name}</TableCell>
+                <TableCell className="font-medium">{localizeRuleText(r.name, tr)}</TableCell>
                 <TableCell><Badge variant="secondary">{FT_LABELS[r.feeType] ?? r.feeType}</Badge></TableCell>
                 <TableCell>{r.feeType === "flat" ? fmt(r.flatAmount) : `${fmt(r.perKmRate)}/km`}</TableCell>
                 <TableCell className="text-xs">{r.countryCode ?? "All"}{r.providerType ? ` · ${r.providerType}` : ""}</TableCell>
@@ -917,7 +939,7 @@ function RevenueSharePanel() {
             {rules.length === 0 && <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">{tr("no_revenue_share_rules", "No revenue share rules configured.")}</TableCell></TableRow>}
             {rules.map((r: any) => (
               <TableRow key={r.id}>
-                <TableCell className="font-medium">{r.name}</TableCell>
+                <TableCell className="font-medium">{localizeRuleText(r.name, tr)}<br /><span className="text-xs text-muted-foreground">{localizeRuleText(r.description, tr)}</span></TableCell>
                 <TableCell><Badge variant="secondary">{PT_LABELS[r.participantType] ?? r.participantType}</Badge></TableCell>
                 <TableCell>{fmtPct(r.sharePercent)}</TableCell>
                 <TableCell>{Number(r.fixedAmount) > 0 ? fmt(r.fixedAmount) : "—"}</TableCell>

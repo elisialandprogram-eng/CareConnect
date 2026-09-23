@@ -1,4 +1,5 @@
 type Translator = (key: string, options?: any) => string;
+import { localizeMedicalTerm } from "@/lib/medical-localization";
 
 const CATEGORY_KEYS: Record<string, string> = {
   physician: "medical_doctors",
@@ -58,5 +59,14 @@ export function localizeCatalogName(
       : "en"
   )).split("-")[0];
   const localized = activeLanguage === "hu" ? item.nameHu : activeLanguage === "fa" ? item.nameFa : item.nameEn;
-  return localized?.trim() || item.name?.trim() || "—";
+  if (localized?.trim()) return localized.trim();
+
+  const rawName = item.name?.trim();
+  if (!rawName) return "—";
+
+  // Seeded catalogue rows predate the localized name columns. Reuse the
+  // canonical medical catalogue translations before showing their English
+  // seed value. Arbitrary admin-created names still fall back unchanged.
+  const medicalName = localizeMedicalTerm(rawName, t as any);
+  return medicalName.trim() || rawName;
 }
