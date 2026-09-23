@@ -215,7 +215,7 @@ export function AdminCalendarView() {
                 <ChevronLeft className="h-4 w-4" />
               </Button>
               <Button size="sm" variant="outline" onClick={() => setOffset(0)} data-testid="button-cal-today">
-                {t("admin.today", "Today")}
+                {t("admin_screenshot.today", "Today")}
               </Button>
               <Button size="sm" variant="outline" onClick={() => setOffset((o) => o + 1)} data-testid="button-cal-next">
                 <ChevronRight className="h-4 w-4" />
@@ -233,16 +233,16 @@ export function AdminCalendarView() {
                     data-testid={`button-cal-view-${v}`}
                   >
                     {v === "day" ? <AlignJustify className="h-3 w-3" /> : v === "week" ? <LayoutGrid className="h-3 w-3" /> : <Calendar className="h-3 w-3" />}
-                    {v.charAt(0).toUpperCase() + v.slice(1)}
+                    {t(`admin_screenshot.${v}`, v.charAt(0).toUpperCase() + v.slice(1))}
                   </button>
                 ))}
               </div>
               <Select value={providerFilter} onValueChange={setProviderFilter}>
                 <SelectTrigger className="h-8 w-44 text-xs" data-testid="select-cal-provider">
-                   <SelectValue placeholder={t("admin.calendar.all_providers")} />
+                   <SelectValue placeholder={t("admin_screenshot.all_providers", "All providers")} />
                 </SelectTrigger>
                 <SelectContent>
-                   <SelectItem value="all">{t("admin.calendar.all_providers")}</SelectItem>
+                    <SelectItem value="all">{t("admin_screenshot.all_providers", "All providers")}</SelectItem>
                   {providers.map((p: any) => (
                     <SelectItem key={p.id} value={p.id}>
                       {p.businessName || p.user?.name || p.clinicName || p.id}

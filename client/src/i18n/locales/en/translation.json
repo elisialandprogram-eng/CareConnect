@@ -5925,6 +5925,15 @@
       "provider_status": {"submitted": "Submitted", "under_review": "Under Review", "action_required": "Action Required", "draft": "Draft", "approved": "Approved"}
     }
   },
+  "admin_screenshot": {
+    "provider_command_center": "Provider Command Center", "select_provider_to_manage": "Select a provider from the directory to manage their profile, documents, services, and operations.",
+    "all": "All", "overdue": "Overdue", "critical": "0–14 days", "warning": "15–30 days", "notice": "31–60 days", "upcoming": "61–90 days",
+    "select_member_workspace": "Select a member to view their workspace", "select_member_actions": "Select a member to see actions", "clients_loaded": "{{count}} clients loaded",
+    "sunday": "Sunday", "monday": "Monday", "tuesday": "Tuesday", "wednesday": "Wednesday", "thursday": "Thursday", "friday": "Friday", "saturday": "Saturday",
+    "day": "Day", "week": "Week", "month": "Month", "today": "Today", "all_providers": "All providers",
+    "all_statuses": "All statuses", "open": "Open", "acknowledged": "Acknowledged", "resolved": "Resolved", "all_severities": "All Severities", "severity_critical": "Critical", "severity_error": "Error", "severity_warning": "Warning", "severity_info": "Info", "error": "Error", "info": "Info", "unresolved": "Unresolved",
+    "user_wallets": "User Wallets", "wallet_detail": "Wallet Detail", "wallet_debit": "Debit", "wallet_topup": "Top-up", "wallet_refund": "Refund", "wallet_adjustment": "Admin adjustment", "wallet_adjustment_credit": "Admin credit", "wallet_adjustment_debit": "Admin debit", "appointment_payment": "Appointment payment", "balance_short": "bal", "wallet_amount_placeholder": "e.g. 5000 or -2500"
+  },
   "admin_provider_details": {
     "clinic_visit": "Clinic Visit", "home_visit": "Home Visit", "telemedicine": "Online Consultation", "clinic_only": "Clinic Only", "home_only": "Home Visit Only", "both": "Clinic & Home Visit", "all": "All Modes",
     "individual": "Individual Practice", "individual_practice": "Individual Practice", "clinic": "Clinic", "hospital": "Hospital",

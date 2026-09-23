@@ -139,17 +139,17 @@ export function FinancialAlertsPanel() {
   for (const s of health?.alerts.bySeverity ?? []) bySeverity[s.severity] = s.count;
 
   const statCards = [
-    { label: t("admin.config.unresolved", "Unresolved"),  value: unresolved,                 color: unresolved > 0 ? "text-red-600 dark:text-red-400" : "text-foreground" },
-    { label: t("admin.config.critical", "Critical"), value: bySeverity["critical"] ?? 0, color: (bySeverity["critical"] ?? 0) > 0 ? "text-red-600 dark:text-red-400" : "text-foreground" },
-    { label: t("admin.config.error", "Error"), value: bySeverity["error"] ?? 0, color: (bySeverity["error"] ?? 0) > 0 ? "text-orange-600 dark:text-orange-400" : "text-foreground" },
-    { label: t("admin.config.warning", "Warning"), value: bySeverity["warning"] ?? 0, color: "text-amber-600 dark:text-amber-400" },
+    { label: t("admin_screenshot.unresolved", "Unresolved"),  value: unresolved,                 color: unresolved > 0 ? "text-red-600 dark:text-red-400" : "text-foreground" },
+    { label: t("admin_screenshot.severity_critical", "Critical"), value: bySeverity["critical"] ?? 0, color: (bySeverity["critical"] ?? 0) > 0 ? "text-red-600 dark:text-red-400" : "text-foreground" },
+    { label: t("admin_screenshot.error", "Error"), value: bySeverity["error"] ?? 0, color: (bySeverity["error"] ?? 0) > 0 ? "text-orange-600 dark:text-orange-400" : "text-foreground" },
+    { label: t("admin_screenshot.severity_warning", "Warning"), value: bySeverity["warning"] ?? 0, color: "text-amber-600 dark:text-amber-400" },
   ];
 
   const STATUS_TABS: { value: StatusFilter; label: string }[] = [
-    { value: "open",         label: t("admin.config.open", "Open") },
-    { value: "acknowledged", label: t("admin.config.acknowledged", "Acknowledged") },
-    { value: "resolved",     label: t("admin.config.resolved", "Resolved") },
-    { value: "all",          label: t("admin.config.all_statuses", "All statuses") },
+    { value: "open",         label: t("admin_screenshot.open", "Open") },
+    { value: "acknowledged", label: t("admin_screenshot.acknowledged", "Acknowledged") },
+    { value: "resolved",     label: t("admin_screenshot.resolved", "Resolved") },
+    { value: "all",          label: t("admin_screenshot.all_statuses", "All statuses") },
   ];
 
   const SEVERITY_FILTERS = ["all", "critical", "error", "warning", "info"];
@@ -242,7 +242,7 @@ export function FinancialAlertsPanel() {
                   : "border-border text-muted-foreground hover:border-primary/40 hover:text-foreground"
               )}
             >
-              {sev === "all" ? "All severities" : sev}
+              {sev === "all" ? t("admin_screenshot.all_severities", "All Severities") : t(`admin_screenshot.severity_${sev}`, sev)}
             </button>
           ))}
         </div>

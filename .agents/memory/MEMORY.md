@@ -137,6 +137,7 @@
 - [Language switching reliability](i18n-switching-race.md) — keep supported locale bundles ready before React renders; compare selected code with i18n.language, not resolvedLanguage, and serialize rapid changes
 - [Provider generated-copy localization](provider-generated-copy-localization.md) — server-generated provider copy must return translation keys plus interpolation data; the client renders the active locale
 - [Admin localization sweep](admin-localization-sweep.md) — keep admin additions in a merged overlay with identical en/hu/fa keys; map dynamic notification types to translated semantic labels
+- [Admin screenshot localization keys](admin-screenshot-localization.md) — use distinct translation keys when one English word labels different concepts (for example expiry tiers vs financial alert severities)
 - [Provider document expiry column](provider-document-expiry-column.md) — provider_documents stores expiry_date text and expired_at timestamp; compliance analytics must not query expires_at
 - [Analytics label locale](analytics-label-locale.md) — APIs return ISO month/week keys; the client formats visible chart labels with the active locale
 - [Reporting enum localization](reporting-enum-localization.md) — preserve raw API enum values, but resolve visible statuses, methods, visit modes, categories, roles, and priorities through shared locale helpers

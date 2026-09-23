@@ -124,7 +124,7 @@ function StatusBadge({ status, t }: { status: string; t: (key: string, fallback:
 }
 
 // ── Summary stat chip ──────────────────────────────────────────────────────────
-function TierChip({ tier, count, active, onClick }: { tier: Exclude<Tier, "all">; count: number; active: boolean; onClick: () => void }) {
+function TierChip({ tier, count, active, onClick, t }: { tier: Exclude<Tier, "all">; count: number; active: boolean; onClick: () => void; t: (key: string, fallback: string) => string }) {
   const cfg = TIER_CFG[tier];
   const Icon = cfg.icon;
   return (
@@ -137,7 +137,7 @@ function TierChip({ tier, count, active, onClick }: { tier: Exclude<Tier, "all">
       )}
     >
       <Icon className="h-3.5 w-3.5" />
-      {cfg.label}
+      {t(`admin_screenshot.${tier}`, cfg.label)}
       <span className={cn("ml-0.5 font-bold tabular-nums", count > 0 && active ? cfg.text : "")}>{count}</span>
     </button>
   );
@@ -328,7 +328,7 @@ export function DocumentExpiryMonitor({ onSelectProvider }: { onSelectProvider?:
             activeTier === "all" ? "bg-foreground text-background border-foreground" : "bg-background text-muted-foreground border-border hover:bg-muted/50",
           )}
         >
-           {t("common.all", "All")} <span className="font-bold ml-0.5">{allDocs.length}</span>
+           {t("admin_screenshot.all", "All")} <span className="font-bold ml-0.5">{allDocs.length}</span>
         </button>
         {(Object.keys(TIER_CFG) as Exclude<Tier, "all">[]).map(tier => (
           <TierChip
@@ -337,6 +337,7 @@ export function DocumentExpiryMonitor({ onSelectProvider }: { onSelectProvider?:
             count={counts[tier]}
             active={activeTier === tier}
             onClick={() => setActiveTier(t => t === tier ? "all" : tier)}
+            t={t}
           />
         ))}
       </div>

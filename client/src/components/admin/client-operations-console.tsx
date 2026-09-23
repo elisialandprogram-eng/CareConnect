@@ -1076,7 +1076,8 @@ function ClientActionsPanel({
 // ─── Main: Client Operations Console ─────────────────────────────────────────
 export function ClientOperationsConsole() {
   const { t } = useTranslation();
-  const tr = (key: string, fallback: string) => String(t(`admin.${key}`, { defaultValue: fallback }));
+  const tr = (key: string, fallback: string, options?: Record<string, unknown>) =>
+    String(t(`admin.${key}`, { defaultValue: fallback, ...options }));
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
   const qc = useQueryClient();
 
@@ -1139,7 +1140,7 @@ export function ClientOperationsConsole() {
           <div className="flex-1 flex flex-col items-center justify-center gap-3 text-slate-400">
             <Users className="h-12 w-12 text-slate-200 dark:text-slate-700" />
             <p className="text-sm">{tr("select_member_workspace", "Select a member to view their workspace")}</p>
-            <p className="text-xs">{clients.length} clients loaded</p>
+            <p className="text-xs">{tr("clients_loaded", "{{count}} clients loaded", { count: clients.length })}</p>
           </div>
         )}
       </div>

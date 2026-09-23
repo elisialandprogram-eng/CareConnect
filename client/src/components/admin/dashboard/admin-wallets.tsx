@@ -84,7 +84,7 @@ export function AdminWallets() {
     <div className="grid gap-6 md:grid-cols-2">
       <Card>
         <CardHeader>
-          <CardTitle>{t("admin_wallets.title", "User Wallets")}</CardTitle>
+          <CardTitle>{t("admin_screenshot.user_wallets", "User Wallets")}</CardTitle>
           <CardDescription>
             {t(
               "admin_wallets.desc",
@@ -150,7 +150,7 @@ export function AdminWallets() {
       <Card>
         <CardHeader>
           <CardTitle>
-            {t("admin_wallets.detail_title", "Wallet Detail")}
+            {t("admin_screenshot.wallet_detail", "Wallet Detail")}
           </CardTitle>
           <CardDescription>
             {selectedUserId
@@ -176,7 +176,7 @@ export function AdminWallets() {
                   type="number"
                   value={adjustAmount}
                   onChange={(e) => setAdjustAmount(e.target.value)}
-                  placeholder="e.g. 5000 or -2500"
+                  placeholder={t("admin_screenshot.wallet_amount_placeholder", "e.g. 5000 or -2500")}
                   data-testid="input-admin-wallet-amount"
                 />
                 <Label htmlFor="adj-reason">
@@ -218,7 +218,7 @@ export function AdminWallets() {
                       {txs.map((tx: any) => (
                         <li key={tx.id} className="py-2">
                           <div className="flex justify-between">
-                            <span>{tx.type}</span>
+                            <span>{String(t(`admin_screenshot.wallet_${tx.type}`, tx.type))}</span>
                             <span
                               className={
                                 Number(tx.amount) >= 0
@@ -232,14 +232,18 @@ export function AdminWallets() {
                           </div>
                           {tx.description && (
                             <p className="text-xs text-muted-foreground">
-                              {tx.description}
+                              {tx.description === "Appointment payment"
+                                ? t("admin_screenshot.appointment_payment", "Appointment payment")
+                                : tx.description === "Admin adjustment"
+                                  ? t("admin_screenshot.wallet_adjustment", "Admin adjustment")
+                                  : tx.description}
                             </p>
                           )}
                           <p className="text-[11px] text-muted-foreground">
                             {tx.createdAt
                               ? formatDateTime(tx.createdAt)
                               : ""}{" "}
-                            · bal {fmt(tx.balanceAfter)}
+                             · {t("admin_screenshot.balance_short", "bal")} {fmt(tx.balanceAfter)}
                           </p>
                         </li>
                       ))}

@@ -188,9 +188,11 @@ function localizedAdminDetail(
 ): string {
   const language = i18n.language.split("-")[0];
   const resourceExists = (path: string) => Boolean(i18n.getResource(language, "translation", path));
+  const screenshotKey = `admin_screenshot.${key}`;
   const detailsKey = `admin_provider_details.${key}`;
   const extraKey = `admin_extra.provider.${key}`;
   const opsKey = `admin_tools.ops.${key}`;
+  if (resourceExists(screenshotKey)) return String(t(screenshotKey, options));
   if (resourceExists(detailsKey)) return String(t(detailsKey, options));
   if (resourceExists(extraKey)) return String(t(extraKey, options));
   if (resourceExists(opsKey)) return String(t(opsKey, options));
@@ -2376,9 +2378,9 @@ export function ProviderOperationsConsole({ jumpToProviderId }: { jumpToProvider
             <div className="w-16 h-16 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center mb-4">
               <Briefcase className="h-7 w-7 text-slate-400" />
             </div>
-             <h3 className="text-lg font-semibold text-slate-700 dark:text-slate-300">{t("admin_provider_details.provider_command_center", "Provider Command Center")}</h3>
+             <h3 className="text-lg font-semibold text-slate-700 dark:text-slate-300">{t("admin_screenshot.provider_command_center", "Provider Command Center")}</h3>
             <p className="text-sm text-slate-400 mt-2 max-w-xs">
-               {t("admin_provider_details.select_provider_desc", "Select a provider from the directory to manage their profile, documents, services, and operations.")}
+               {t("admin_screenshot.select_provider_to_manage", "Select a provider from the directory to manage their profile, documents, services, and operations.")}
             </p>
           </div>
         ) : consoleLoading ? (
