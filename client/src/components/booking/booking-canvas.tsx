@@ -60,6 +60,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCurrency, formatInCurrency } from "@/lib/currency";
+import { formatDate } from "@/lib/datetime";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { PlacesAutocomplete, type StructuredAddress } from "@/components/location/PlacesAutocomplete";
 import { SavedAddressesPicker, type SavedAddress } from "@/components/location/SavedAddressesPicker";
@@ -273,18 +274,6 @@ function formatCountdown(secs: number): string {
   const m = Math.floor(secs / 60);
   const s = secs % 60;
   return `${m}:${String(s).padStart(2, "0")}`;
-}
-
-function formatDate(dateStr: string): string {
-  try {
-    return new Intl.DateTimeFormat("en-US", {
-      weekday: "short",
-      month: "short",
-      day: "numeric",
-    }).format(new Date(`${dateStr}T12:00:00`));
-  } catch {
-    return dateStr;
-  }
 }
 
 /* ── Step labels ─────────────────────────────────────────────────── */
@@ -712,7 +701,7 @@ export function BookingCanvas({
         <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
           <span className="flex items-center gap-1">
             <Calendar className="h-3 w-3" />
-            {formatDate(slot.date)}
+            {formatDate(`${slot.date}T12:00:00`, { weekday: "short", month: "short", day: "numeric" })}
           </span>
           <span className="flex items-center gap-1">
             <Clock className="h-3 w-3" />
@@ -1063,7 +1052,9 @@ export function BookingCanvas({
           <span className="text-foreground font-medium truncate">{provider?.displayName}</span>
           {slot && <>
             <span>{t("patient_sweep.booking_date", "Date")}</span>
-            <span className="text-foreground font-medium">{formatDate(slot.date)}</span>
+            <span className="text-foreground font-medium">
+              {formatDate(`${slot.date}T12:00:00`, { weekday: "short", month: "short", day: "numeric" })}
+            </span>
             <span>{t("patient_sweep.booking_time", "Time")}</span>
             <span className="text-foreground font-medium">{slot.startTime} – {slot.endTime}</span>
           </>}
@@ -1643,6 +1634,10 @@ export function BookingCanvas({
                 })
             : isCard
             ? t("patient_sweep.booking_secure_checkout", "Secure checkout")
+            : isCash
+            ? t("patient_sweep.booking_cash_subtitle", "Pay at appointment — provider confirms receipt")
+            : isBankTransfer
+            ? t("patient_sweep.booking_bank_transfer_subtitle", "Direct bank transfer — confirmed after verification")
             : provider.description;
 
           return (

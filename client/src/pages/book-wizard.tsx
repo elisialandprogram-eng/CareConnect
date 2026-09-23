@@ -989,7 +989,7 @@ export default function BookWizard() {
                 </p>
                 <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1.5">
                   <Timer className="h-3.5 w-3.5 shrink-0" />
-                  Current time:{" "}
+                  {t("booking.wizard.current_time", "Current time")}:{" "}
                   <span className="font-semibold font-mono text-foreground">
                     {formatTime(new Date(), { hour: "2-digit", minute: "2-digit" })}
                   </span>

@@ -1252,7 +1252,15 @@ export default function ProviderDashboard() {
               </div>
               <div className="flex-1">
                 <p className="font-semibold text-amber-800 dark:text-amber-300 text-sm">
-                  {pendingCashCount === 1 ? "1 appointment awaiting cash or bank-transfer payment" : `${pendingCashCount} appointments awaiting cash or bank-transfer payment`}
+                  {t(
+                    pendingCashCount === 1
+                      ? "provider_dashboard.cash_payment_title_one"
+                      : "provider_dashboard.cash_payment_title_many",
+                    pendingCashCount === 1
+                      ? "1 appointment awaiting cash or bank-transfer payment"
+                      : "{{count}} appointments awaiting cash or bank-transfer payment",
+                    { count: pendingCashCount },
+                  )}
                 </p>
                 <p className="text-amber-700 dark:text-amber-400 text-xs mt-1 leading-relaxed">
                    {t("provider_dashboard.find_appointment_payment", "Find the appointment in your list below and click \"Mark payment received\" once you've collected it.")}
