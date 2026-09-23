@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
+import { localizeCatalogCategory, localizeCatalogGroup, localizeCatalogName } from "@/lib/catalog-localization";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useCurrency, formatInCurrency } from "@/lib/currency";
@@ -87,6 +88,7 @@ interface Category {
 }
 interface CatalogService {
   id: string; categoryId?: string | null; name: string; description?: string | null;
+  status?: string | null; nameEn?: string | null; nameHu?: string | null; nameFa?: string | null;
   icon?: string | null; sortOrder?: number; isActive?: boolean; deletedAt?: string | null;
 }
 interface SubService {
@@ -139,7 +141,7 @@ const EMPTY_SUB = {
   requirements: { insuranceRequired: false, consentRequired: false, minAge: "", maxAge: "" },
 };
 const EMPTY_CAT = { name: "", slug: "", description: "", icon: "", sortOrder: 0 };
-const EMPTY_CS  = { name: "", description: "", icon: "" };
+const EMPTY_CS  = { name: "", nameEn: "", nameHu: "", nameFa: "", description: "", icon: "" };
 
 /* ────────────────────────────────────────────────────────────────── */
 /*  SubServiceForm                                                    */
@@ -148,7 +150,7 @@ function SubServiceForm({ initial, onSave, onCancel, isSaving, testPrefix }: {
   initial: typeof EMPTY_SUB; onSave: (d: typeof EMPTY_SUB) => void;
   onCancel: () => void; isSaving: boolean; testPrefix: string;
 }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [d, setD] = useState(initial);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [showLang, setShowLang] = useState(false);
@@ -414,6 +416,26 @@ function CatalogServiceForm({ initial, onSave, onCancel, isSaving, testPrefix }:
         <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide block mb-1">{t("admin.catalog.form.description_optional", "Description (optional)")}</label>
         <Input value={d.description || ""} onChange={e => setD({ ...d, description: e.target.value })} placeholder={t("admin.catalog.form.brief_description", "Brief description")} data-testid={`${testPrefix}-desc`} />
       </div>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+        {([
+          ["nameEn", "English"],
+          ["nameHu", "Magyar"],
+          ["nameFa", "فارسی"],
+        ] as const).map(([field, label]) => (
+          <div key={field}>
+            <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide block mb-1">
+              {t("admin.catalog.form.localized_name", "Name ({{language}})", { language: label })}
+            </label>
+            <Input
+              value={d[field] || ""}
+              onChange={e => setD({ ...d, [field]: e.target.value })}
+              placeholder={t("admin.catalog.form.localized_name_placeholder", "Optional translated name")}
+              dir={field === "nameFa" ? "rtl" : undefined}
+              data-testid={`${testPrefix}-${field}`}
+            />
+          </div>
+        ))}
+      </div>
       <div className="flex justify-end gap-2">
         <Button size="sm" variant="outline" onClick={onCancel}><X className="h-3 w-3 mr-1" /> {t("admin.catalog.form.cancel", "Cancel")}</Button>
         <Button size="sm" disabled={!d.name.trim() || isSaving} onClick={() => onSave({ ...d, name: toTitleCase(d.name) })}>
@@ -476,7 +498,7 @@ function CategoryForm({ initial, onSave, onCancel, isSaving, testPrefix }: {
 /*  Main component                                                    */
 /* ────────────────────────────────────────────────────────────────── */
 export function ServiceCatalogHierarchy() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { toast } = useToast();
   const { format: fmtMoney } = useCurrency();
 
@@ -614,7 +636,7 @@ export function ServiceCatalogHierarchy() {
       );
     }
 
-    const displayName = toTitleCase(s.name);
+    const displayName = localizeCatalogName(t, s, i18n.language);
 
     return (
       <div
@@ -700,7 +722,14 @@ export function ServiceCatalogHierarchy() {
         {isEditing ? (
           <div className="p-2">
             <CatalogServiceForm
-              initial={{ name: cs.name, description: cs.description || "", icon: cs.icon || "" }}
+              initial={{
+                name: cs.name,
+                nameEn: cs.nameEn || "",
+                nameHu: cs.nameHu || "",
+                nameFa: cs.nameFa || "",
+                description: cs.description || "",
+                icon: cs.icon || "",
+              }}
               onSave={d => updateCs.mutate({ id: cs.id, data: d })}
               onCancel={() => setEditingCs(null)}
               isSaving={updateCs.isPending}
@@ -721,11 +750,15 @@ export function ServiceCatalogHierarchy() {
               }
               <Layers className="h-3.5 w-3.5 text-amber-600 shrink-0" />
               {cs.icon && <span className="text-sm">{cs.icon}</span>}
-              <span className="font-medium text-sm">{toTitleCase(cs.name)}</span>
+              <span className="font-medium text-sm">
+                {cs.nameEn || cs.nameHu || cs.nameFa ? localizeCatalogName(t, cs, i18n.language) : localizeCatalogGroup(t, cs.name)}
+              </span>
               {!cs.isActive && (
                 <Badge variant="outline" className="text-[10px] px-1.5 py-0 text-muted-foreground">{t("admin.catalog.inactive", "Inactive")}</Badge>
               )}
-              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 ml-auto mr-0">{csSubs.length} sub-services</Badge>
+              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 ml-auto mr-0">
+                {t("admin.catalog_extra.sub_service_count", "{{count}} sub-services", { count: csSubs.length })}
+              </Badge>
             </button>
 
             <div className="flex items-center gap-1 shrink-0">
@@ -794,7 +827,7 @@ export function ServiceCatalogHierarchy() {
                 {csArchived.map(s => (
                   <div key={s.id} className="flex items-center gap-2 py-1 opacity-60">
                     <Tag className="h-3.5 w-3.5 text-muted-foreground ml-4" />
-                    <span className="text-xs line-through flex-1">{toTitleCase(s.name)}</span>
+                    <span className="text-xs line-through flex-1">{localizeCatalogName(t, s)}</span>
                     <Button size="sm" variant="outline" className="h-5 text-xs px-1.5" onClick={() => restoreSub.mutate(s.id)} disabled={restoreSub.isPending} data-testid={`button-restore-sub-${s.id}`}>
                       <RotateCcw className="h-2.5 w-2.5 mr-0.5" />{t("admin.catalog.restore", "Restore")}
                     </Button>
@@ -859,14 +892,14 @@ export function ServiceCatalogHierarchy() {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                   <h3 className="font-semibold text-base leading-tight" data-testid={`heading-cat-${cat.id}`}>
-                    {toTitleCase(cat.name)}
+                    {localizeCatalogCategory(t, cat.slug, cat.name)}
                   </h3>
                   <span className={`inline-flex items-center text-[10px] font-semibold px-2 py-0.5 rounded-full ${statusCls}`}>
                     {t(`admin.catalog_status.${activeStatus}`, activeStatus)}
                   </span>
                 </div>
                 {cat.description && (
-                  <p className="text-sm text-muted-foreground mt-0.5 line-clamp-1">{cat.description}</p>
+                  <p className="text-sm text-muted-foreground mt-0.5 line-clamp-1">{t(`admin_catalog_data.category_descriptions.${cat.slug}`, { defaultValue: cat.description })}</p>
                 )}
                 <div className="flex items-center gap-2 mt-1.5 text-xs text-muted-foreground">
                   <span>{t("admin.catalog_extra.group_count", "{{count}} groups", { count: catCss.length })}</span>
@@ -1008,7 +1041,7 @@ export function ServiceCatalogHierarchy() {
                     {legacyArchived.map(s => (
                       <div key={s.id} className="flex items-center gap-2 py-0.5 opacity-60">
                         <Tag className="h-3.5 w-3.5 text-muted-foreground ml-4" />
-                        <span className="text-xs line-through flex-1">{toTitleCase(s.name)}</span>
+                        <span className="text-xs line-through flex-1">{localizeCatalogName(t, s)}</span>
                 <Button size="sm" variant="outline" className="h-5 text-xs px-1.5" onClick={() => restoreSub.mutate(s.id)} disabled={restoreSub.isPending}>
                           <RotateCcw className="h-2.5 w-2.5 mr-0.5" />{t("admin.catalog.restore", "Restore")}
                         </Button>
@@ -1124,7 +1157,15 @@ export function ServiceCatalogHierarchy() {
       <AlertDialog open={!!deletingCs} onOpenChange={open => !open && setDeletingCs(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>{t("admin.catalog.confirm.delete_group_title", "Delete service group \"{{name}}\"?", { name: deletingCs?.name })}</AlertDialogTitle>
+            <AlertDialogTitle>
+              {t("admin.catalog.confirm.delete_group_title", "Delete service group \"{{name}}\"?", {
+                name: deletingCs
+                  ? (deletingCs.nameEn || deletingCs.nameHu || deletingCs.nameFa
+                    ? localizeCatalogName(t, deletingCs, i18n.language)
+                    : localizeCatalogGroup(t, deletingCs.name))
+                  : "",
+              })}
+            </AlertDialogTitle>
             <AlertDialogDescription>{t("admin.catalog.confirm.delete_group_desc", "Sub-services under this group will be archived. Provider services already assigned are preserved.")}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

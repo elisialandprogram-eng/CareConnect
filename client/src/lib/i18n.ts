@@ -15,6 +15,7 @@ import { providerDashboardSweepTranslations } from '../i18n/provider-dashboard-s
 import { providerClinicalSweepTranslations } from '../i18n/provider-clinical-sweep';
 import { adminProviderDetailsTranslations } from '../i18n/admin-provider-details';
 import { adminProviderOperationsTranslations } from '../i18n/admin-provider-operations';
+import { adminCatalogTranslations } from '../i18n/admin-catalog-translations';
 import { adminSweepTranslations } from '../i18n/admin-sweep';
 import { reportingSweepTranslations } from '../i18n/reporting-sweep';
 
@@ -62,6 +63,7 @@ function buildTranslation(code: Lang): Record<string, unknown> {
     providerClinicalSweepTranslations,
     adminProviderDetailsTranslations,
     adminProviderOperationsTranslations,
+    adminCatalogTranslations,
     adminSweepTranslations,
     reportingSweepTranslations,
   ];

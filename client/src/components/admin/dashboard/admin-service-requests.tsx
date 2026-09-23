@@ -25,6 +25,7 @@ import { Loader2, RefreshCw, ClipboardList } from "lucide-react";
 import { TableSkeleton } from "@/components/ui/table-skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { useTranslation } from "react-i18next";
+import { localizeCatalogCategory } from "@/lib/catalog-localization";
 
 export function AdminServiceRequestsPanel() {
   const { t } = useTranslation();
@@ -196,7 +197,7 @@ export function AdminServiceRequestsPanel() {
                           {statusBadge(r.status)}
                         </div>
                         <div className="text-xs text-muted-foreground mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5">
-                          <span>{r.category}</span>
+                          <span>{localizeCatalogCategory(t, r.category, r.category || "—")}</span>
                           {r.subServiceName && <><span>·</span><span>{r.subServiceName}</span></>}
                            {r.suggestedPrice ? <><span>·</span><span>{t("admin.service_requests.suggested", "Suggested")} ${r.suggestedPrice}</span></> : null}
                           {r.locationMode ? (
@@ -209,7 +210,7 @@ export function AdminServiceRequestsPanel() {
                                  home_online:   t("admin.service_requests.location.home_online", "Home Visit & Online"),
                                  both:          t("admin.service_requests.location.both", "Home Visit & Clinic"),
                                  all:           t("admin.service_requests.location.all", "Home Visit, Clinic & Online"),
-                              } as Record<string, string>)[r.locationMode] ?? r.locationMode.replace(/_/g, " ")}
+                              } as Record<string, string>)[r.locationMode] ?? t("admin.service_requests.location.unknown", "Unknown location")}
                             </span>
                           ) : null}
                         </div>
@@ -217,7 +218,7 @@ export function AdminServiceRequestsPanel() {
                         <div className="text-xs text-muted-foreground mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5">
                            <span>{t("admin.service_requests.from", "From")}: <span className="font-medium text-foreground">{provName}</span></span>
                           {r.provider?.user?.email ? <><span>·</span><span>{r.provider.user.email}</span></> : null}
-                          {r.provider?.providerCategory ? <><span>·</span><span className="text-foreground/70">{r.provider.providerCategory}</span></> : null}
+                          {r.provider?.providerCategory ? <><span>·</span><span className="text-foreground/70">{localizeCatalogCategory(t, r.provider.providerCategory, r.provider.providerCategory)}</span></> : null}
                           {r.provider?.providerSubcategory ? <><span>/</span><span className="text-foreground/70">{r.provider.providerSubcategory}</span></> : null}
                         </div>
                         {r.description && <div className="text-sm mt-2">{r.description}</div>}
