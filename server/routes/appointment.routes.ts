@@ -1959,7 +1959,7 @@ export function registerAppointmentRoutes(app: Express): void {
             { label: "", labelKey: "label.date", value: date },
             { label: "", labelKey: "label.time", value: `${startTime} - ${endTime}` },
             ...(service ? [{ label: "", labelKey: "label.service", value: service.name }] : []),
-            { label: "", labelKey: visitTypeKey, value: "" },
+            { label: "Visit Type", value: visitType },
             ...(visitType === "home" && patientAddressLine
               ? [{ label: "", labelKey: "label.visit_address", value: patientAddressLine }]
               : []),

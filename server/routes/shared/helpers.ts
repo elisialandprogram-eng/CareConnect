@@ -44,7 +44,7 @@ export async function sendAppointmentEmail(opts: {
   if (!resend) return;
   try {
     const recipient = await storage.getUserByEmail(opts.to).catch(() => undefined);
-    const lang = normalizeLang(opts.lang || recipient?.languagePreference);
+    const lang = normalizeLang(recipient?.languagePreference || opts.lang);
     const variables = opts.variables ?? {};
     const detailLabelKeys: Record<string, string> = {
       Date: "label.date",
@@ -90,6 +90,32 @@ export async function sendAppointmentEmail(opts: {
         "Sub-Category": "label.subcategory",
         Specialization: "label.specialization",
         "Display Title": "label.display_title",
+        Name: "label.name",
+        Description: "label.description",
+        "First Name": "label.first_name",
+        "Last Name": "label.last_name",
+        Phone: "label.phone",
+        Email: "label.email",
+        City: "label.city",
+        Country: "label.country",
+        "Clinic Name": "label.clinic_name",
+        Bio: "label.bio",
+        Timezone: "label.timezone",
+        Currency: "label.currency",
+        "Sub Service Id": "label.subservice_id",
+        "Home Visit Fee": "label.home_visit_fee",
+        "Clinic Fee": "label.clinic_fee",
+        "Telemedicine Fee": "label.telemedicine_fee",
+        "Emergency Fee": "label.emergency_fee",
+        "Deposit Amount": "label.deposit_amount",
+        "Enable Deposit": "label.enable_deposit",
+        "Location Mode": "label.location_mode",
+        "Buffer Before": "label.buffer_before",
+        "Buffer After": "label.buffer_after",
+        "Availability Hours": "label.availability_hours",
+        "Time Slot Length": "label.time_slot_length",
+        "Hide Price": "label.hide_price",
+        "Hide Duration": "label.hide_duration",
       };
       return detailLabelKeys[label]
         ? t(detailLabelKeys[label], lang)
@@ -111,6 +137,16 @@ export async function sendAppointmentEmail(opts: {
       }
       if (label === "Payment Status" || label === "Status") {
         return t(`status.${normalized.replace(/\s+/g, "_")}`, lang);
+      }
+      if (label === "Location Mode") {
+        if (normalized.includes("home")) return t("label.home_visit", lang);
+        if (normalized.includes("clinic")) return t("label.clinic_visit", lang);
+        if (normalized.includes("online") || normalized.includes("telemedicine")) {
+          return t("label.online_consultation", lang);
+        }
+      }
+      if (normalized === "true" || normalized === "false") {
+        return t(`value.${normalized}`, lang);
       }
       if (/^\d+\s+min(?:ute)?s?$/i.test(raw)) {
         return t("label.minutes", lang, { count: raw.match(/^\d+/)?.[0] });

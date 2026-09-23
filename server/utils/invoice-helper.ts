@@ -44,7 +44,8 @@ export async function createInvoiceForAppointment(appointmentId: string): Promis
     || payment?.displayCurrency
     || payment?.currency
     || "USD";
-  const invoiceLang = normalizeLang(appointment.patient?.languagePreference);
+  const patientProfile = await storage.getUser(booking.patientId).catch(() => undefined);
+  const invoiceLang = normalizeLang(patientProfile?.languagePreference || appointment.patient?.languagePreference);
 
   // `totalAmount`, `taxAmount`, and pricingBreakdown are booking-time values.
   // Never load the current service, tax settings, or pricing rules here.
