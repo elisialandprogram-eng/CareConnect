@@ -9,6 +9,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { QK } from "@/lib/query-keys";
 import { useTranslation } from "react-i18next";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { changeAppLanguage } from "@/lib/i18n";
 import { useToast } from "@/hooks/use-toast";
 import { showErrorModal } from "@/components/error-modal";
 import { Button } from "@/components/ui/button";
@@ -242,7 +243,7 @@ export default function ConsentPage() {
           {/* Part 5: Language switcher also updates global i18n so all other pages stay in sync */}
           <Select value={lang} onValueChange={(v: any) => {
             setLang(v);
-            void i18n.changeLanguage(v);
+            void changeAppLanguage(v);
           }}>
             <SelectTrigger className="w-[140px]">
               <Globe className="me-2 h-4 w-4" />

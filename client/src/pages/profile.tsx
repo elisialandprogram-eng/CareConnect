@@ -24,7 +24,7 @@ import {
 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { apiRequest, queryClient, invalidateProviderProfile } from "@/lib/queryClient";
-import i18n from "@/lib/i18n";
+import { changeAppLanguage } from "@/lib/i18n";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -352,8 +352,8 @@ export default function Profile() {
       queryClient.invalidateQueries({ queryKey: QK.authMe() });
       // Apply the new preferred language right away so the UI reflects it
       // without forcing a refresh.
-      if (variables?.languagePreference && variables.languagePreference !== i18n.language) {
-        void i18n.changeLanguage(variables.languagePreference);
+      if (variables?.languagePreference) {
+        void changeAppLanguage(variables.languagePreference);
       }
       toast({
         title: t("profile_page.toast_profile_updated", "Profile updated"),

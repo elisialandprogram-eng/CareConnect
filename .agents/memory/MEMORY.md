@@ -134,6 +134,7 @@
 - [Modality-aware scheduling](modality-aware-scheduling.md) — canonical clinic/home/online slot provenance; shared slots are null and modality edits must not erase other modes
 - [Stripe webhook idempotency schema compatibility](idempotency-schema-compat.md) — claim only portable key/scope/expiry fields with untargeted ON CONFLICT; legacy DBs differ from current idempotency schema
 - [Client localization parity](client-localization-parity.md) — keep en/fa/hu translation keys identical; page-facing literals should use useTranslation, including public/legal and patient dashboard UI
+- [Language switching reliability](i18n-switching-race.md) — keep supported locale bundles ready before React renders; compare selected code with i18n.language, not resolvedLanguage, and serialize rapid changes
 - [Provider generated-copy localization](provider-generated-copy-localization.md) — server-generated provider copy must return translation keys plus interpolation data; the client renders the active locale
 - [Admin localization sweep](admin-localization-sweep.md) — keep admin additions in a merged overlay with identical en/hu/fa keys; map dynamic notification types to translated semantic labels
 - [Provider document expiry column](provider-document-expiry-column.md) — provider_documents stores expiry_date text and expired_at timestamp; compliance analytics must not query expires_at

@@ -17,6 +17,7 @@ import { useToast } from "@/hooks/use-toast";
 import { showErrorModal } from "@/components/error-modal";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { changeAppLanguage } from "@/lib/i18n";
 import { subscribeToPush, unsubscribeFromPush, getPushCapability } from "@/lib/push";
 import { Bell, Lock, Shield, Eye, EyeOff, Smartphone, MessageSquare, Mail, Monitor, Globe, Banknote, Clock, User as UserIcon } from "lucide-react";
 import { QK } from "@/lib/query-keys";
@@ -400,10 +401,10 @@ export default function Settings() {
                 <select
                   data-testid="select-language"
                   className="w-full border border-input rounded-md h-10 px-3 bg-background"
-                  value={prefs?.language || (user as any)?.languagePreference || i18n.language || "en"}
+                  value={i18n.language?.split("-")[0] || "en"}
                   onChange={(e) => {
                     const lng = e.target.value;
-                    void i18n.changeLanguage(lng);
+                    void changeAppLanguage(lng);
                     updatePrefs.mutate({ language: lng });
                     apiRequest("PATCH", "/api/auth/profile", { languagePreference: lng }).then(() => refreshUser());
                   }}

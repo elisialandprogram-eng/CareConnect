@@ -17,7 +17,7 @@ import { useCurrency } from "@/lib/currency";
 import { isAdminRole } from "@/lib/roles";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ensureLanguageResources } from "@/lib/i18n";
+import { changeAppLanguage } from "@/lib/i18n";
 
 function WalletBadge() {
   const [, navigate] = useLocation();
@@ -87,12 +87,8 @@ export function Header() {
   };
 
   const changeLanguage = (lng: string) => {
-    if (lng === i18n.resolvedLanguage) return;
-    // Change the active language first so the shell updates immediately.
-    // The full bundle is loaded in the background; i18n temporarily falls
-    // back to English for any keys that are not loaded yet.
-    void i18n.changeLanguage(lng);
-    void ensureLanguageResources(lng);
+    if (lng === i18n.language?.split("-")[0]) return;
+    void changeAppLanguage(lng);
     if (user) {
       // Best-effort persist of language preference; ignore errors silently.
       void fetch("/api/auth/profile", {

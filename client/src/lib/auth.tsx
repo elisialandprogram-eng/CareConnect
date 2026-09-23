@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback } from "react";
 import type { User } from "@shared/schema";
 import { apiRequest } from "./queryClient";
-import i18n, { ensureLanguageResources, getPersistedLanguage } from "./i18n";
+import { changeAppLanguage, getPersistedLanguage } from "./i18n";
 import { setUserTimezone } from "./datetime";
 
 function applyUserPreferences(user: Pick<User, "languagePreference" | "preferredCurrency" | "timezone"> | null) {
@@ -14,11 +14,7 @@ function applyUserPreferences(user: Pick<User, "languagePreference" | "preferred
   // the profile value only when no local choice exists.
   const preferredLanguage = getPersistedLanguage() || user.languagePreference?.split("-")[0].toLowerCase();
   if (preferredLanguage && ["en", "hu", "fa"].includes(preferredLanguage)) {
-    void ensureLanguageResources(preferredLanguage).then(() => {
-      if (i18n.language?.split("-")[0] !== preferredLanguage) {
-        return i18n.changeLanguage(preferredLanguage);
-      }
-    });
+    void changeAppLanguage(preferredLanguage);
   }
   if (typeof window !== "undefined") {
     try {

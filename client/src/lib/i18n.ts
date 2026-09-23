@@ -3,6 +3,8 @@ import { initReactI18next } from 'react-i18next';
 import LanguageDetector from 'i18next-browser-languagedetector';
 
 import enTranslation from '../i18n/locales/en/translation.json';
+import huTranslation from '../i18n/locales/hu/translation.json';
+import faTranslation from '../i18n/locales/fa/translation.json';
 import {
   memberTerminologyPostProcessor,
   normalizeTranslationTree,
@@ -18,15 +20,6 @@ import { reportingSweepTranslations } from '../i18n/reporting-sweep';
 
 const SUPPORTED = ['en', 'hu', 'fa'] as const;
 export type Lang = (typeof SUPPORTED)[number];
-
-const loaders: Record<Lang, () => Promise<{ default: Record<string, unknown> }>> = {
-  en: () => Promise.resolve({ default: enTranslation as Record<string, unknown> }),
-  hu: () => import('../i18n/locales/hu/translation.json'),
-  fa: () => import('../i18n/locales/fa/translation.json'),
-};
-
-const loaded = new Set<Lang>(['en']);
-const loading = new Map<Lang, Promise<void>>();
 
 function mergeTranslationAdditions(
   base: Record<string, unknown>,
@@ -54,77 +47,80 @@ function mergeTranslationAdditions(
   return output;
 }
 
-export async function ensureLanguageResources(lng: string) {
-  const code = (SUPPORTED as readonly string[]).includes(lng) ? (lng as Lang) : 'en';
-  if (loaded.has(code)) return;
-  const existingLoad = loading.get(code);
-  if (existingLoad) return existingLoad;
+const BASE_TRANSLATIONS: Record<Lang, Record<string, unknown>> = {
+  en: enTranslation as Record<string, unknown>,
+  hu: huTranslation as Record<string, unknown>,
+  fa: faTranslation as Record<string, unknown>,
+};
 
-  const load = (async () => {
-    try {
-      const mod = await loaders[code]();
-      let translation = mergeTranslationAdditions(
-        mergeTranslationAdditions(
-          mod.default,
-          memberSweepTranslations[code] as unknown as Record<string, unknown>,
-        ),
-        providerSweepTranslations[code] as unknown as Record<string, unknown>,
-      );
-      translation = mergeTranslationAdditions(
-        translation,
-        providerDashboardSweepTranslations[code] as unknown as Record<string, unknown>,
-      );
-      translation = mergeTranslationAdditions(
-        translation,
-        providerClinicalSweepTranslations[code] as unknown as Record<string, unknown>,
-      );
-      translation = mergeTranslationAdditions(
-        translation,
-        adminProviderDetailsTranslations[code] as unknown as Record<string, unknown>,
-      );
-      translation = mergeTranslationAdditions(
-        translation,
-        adminProviderOperationsTranslations[code] as unknown as Record<string, unknown>,
-      );
-      translation = mergeTranslationAdditions(
-        translation,
-        adminSweepTranslations[code] as unknown as Record<string, unknown>,
-      );
-      translation = mergeTranslationAdditions(
-        translation,
-        reportingSweepTranslations[code] as unknown as Record<string, unknown>,
-      );
-      i18n.addResourceBundle(
-        code,
-        'translation',
-        normalizeTranslationTree(translation, code),
-        true,
-        true,
-      );
-      loaded.add(code);
-      // Force React to re-render with the newly loaded bundle. If the user is
-      // already on this language (common on initial load), changeLanguage is a
-      // no-op in i18next, so we emit a store change via reloadResources instead.
-      if (i18n.language === code || i18n.resolvedLanguage === code) {
-        await i18n.reloadResources([code], 'translation');
-        // Ping subscribers so react-i18next components pick up the new strings
-        i18n.emit('languageChanged', code);
-      }
-    } catch {
-      // ignore — fallback language remains active
-    }
-  })();
-  loading.set(code, load);
-  try {
-    await load;
-  } finally {
-    loading.delete(code);
+function buildTranslation(code: Lang): Record<string, unknown> {
+  let translation = BASE_TRANSLATIONS[code];
+  const additions = [
+    memberSweepTranslations,
+    providerSweepTranslations,
+    providerDashboardSweepTranslations,
+    providerClinicalSweepTranslations,
+    adminProviderDetailsTranslations,
+    adminProviderOperationsTranslations,
+    adminSweepTranslations,
+    reportingSweepTranslations,
+  ];
+
+  for (const addition of additions) {
+    translation = mergeTranslationAdditions(
+      translation,
+      addition[code] as unknown as Record<string, unknown>,
+    );
   }
+
+  return normalizeTranslationTree(translation, code);
 }
+
+const RESOURCES = {
+  en: { translation: buildTranslation('en') },
+  hu: { translation: buildTranslation('hu') },
+  fa: { translation: buildTranslation('fa') },
+};
 
 function languageCode(value: string | null | undefined): Lang | null {
   const code = value?.split("-")[0].toLowerCase();
   return code && (SUPPORTED as readonly string[]).includes(code) ? (code as Lang) : null;
+}
+
+export function normalizeLanguage(value: string | null | undefined): Lang {
+  return languageCode(value) ?? "en";
+}
+
+let languageChangeRequest = 0;
+let languageChangeQueue: Promise<void> = Promise.resolve();
+
+export async function changeAppLanguage(value: string): Promise<Lang> {
+  const code = normalizeLanguage(value);
+  const request = ++languageChangeRequest;
+
+  if (typeof window !== "undefined") {
+    try {
+      // Persist before the async auth/profile work runs so hydration cannot
+      // restore an older profile language over an explicit user selection.
+      window.localStorage.setItem("i18nextLng", code);
+    } catch {
+      // Continue with the in-memory language when storage is unavailable.
+    }
+  }
+
+  const change = languageChangeQueue
+    .catch(() => undefined)
+    .then(async () => {
+      // Skip stale queued clicks, but still allow the latest click to correct
+      // a change that was already in progress when it was made.
+      if (request !== languageChangeRequest) return;
+      if (languageCode(i18n.language) !== code) {
+        await i18n.changeLanguage(code);
+      }
+    });
+  languageChangeQueue = change.catch(() => undefined);
+  await change;
+  return normalizeLanguage(i18n.language);
 }
 
 export function getPersistedLanguage(): Lang | null {
@@ -173,41 +169,13 @@ i18n
   .use(LanguageDetector)
   .use(initReactI18next)
   .init({
-    resources: {
-      en: {
-        translation: normalizeTranslationTree(
-          mergeTranslationAdditions(
-            mergeTranslationAdditions(
-              mergeTranslationAdditions(
-                mergeTranslationAdditions(
-                  enTranslation as Record<string, unknown>,
-                  memberSweepTranslations.en as unknown as Record<string, unknown>,
-                ),
-                providerSweepTranslations.en as unknown as Record<string, unknown>,
-              ),
-              providerDashboardSweepTranslations.en as unknown as Record<string, unknown>,
-            ),
-            mergeTranslationAdditions(
-              providerClinicalSweepTranslations.en as unknown as Record<string, unknown>,
-              mergeTranslationAdditions(
-                adminProviderDetailsTranslations.en as unknown as Record<string, unknown>,
-                mergeTranslationAdditions(
-                  adminSweepTranslations.en as unknown as Record<string, unknown>,
-                  reportingSweepTranslations.en as unknown as Record<string, unknown>,
-                ),
-              ),
-            ),
-          ),
-          'en',
-        ),
-      },
-    },
+    resources: RESOURCES,
     postProcess: ['memberTerminology'],
     fallbackLng: 'en',
     supportedLngs: SUPPORTED as unknown as string[],
     nonExplicitSupportedLngs: true,
     load: 'languageOnly',
-    partialBundledLanguages: true,
+    initImmediate: false,
     interpolation: {
       escapeValue: false,
     },
@@ -218,10 +186,8 @@ i18n
     },
   });
 
-// Load the detected language asynchronously if it's not English. Use
-// `language`, not `resolvedLanguage`: before a lazy locale bundle is loaded,
-// i18next can report English as the resolved resource language even though the
-// detector correctly found the user's saved locale.
+// Apply the detected language after initialization so the custom timezone
+// fallback remains consistent with the browser detector and persisted choice.
 const initial = getPersistedLanguage() ?? detectAutomaticLanguage();
 if (!getPersistedLanguage() && initial !== "en" && typeof window !== "undefined") {
   try {
@@ -233,13 +199,10 @@ if (!getPersistedLanguage() && initial !== "en" && typeof window !== "undefined"
   }
 }
 if (initial !== 'en') {
-  void ensureLanguageResources(initial).then(() => {
-    if (languageCode(i18n.language) !== initial) void i18n.changeLanguage(initial);
-  });
+  void changeAppLanguage(initial);
 }
 
 i18n.on('languageChanged', (lng) => {
-  void ensureLanguageResources(lng);
   if (typeof document !== 'undefined') {
     document.dir = lng === 'fa' ? 'rtl' : 'ltr';
     document.documentElement.lang = lng;
