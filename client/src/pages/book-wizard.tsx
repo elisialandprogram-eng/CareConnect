@@ -101,6 +101,52 @@ function providerAvatarUrl(p?: Provider | null): string | undefined {
 }
 
 const VISIT_ICONS = { clinic: Building2, home: Home, online: Video };
+type BookingVisitType = "clinic" | "home" | "online";
+
+function serviceVisitTypes(value: unknown): BookingVisitType[] {
+  const mode = String(value ?? "both").trim().toLowerCase();
+  switch (mode) {
+    case "clinic_only":
+    case "clinic":
+      return ["clinic"];
+    case "home_only":
+    case "home":
+      return ["home"];
+    case "online_only":
+    case "online":
+    case "video":
+      return ["online"];
+    case "clinic_online":
+      return ["clinic", "online"];
+    case "home_online":
+      return ["home", "online"];
+    case "all":
+      return ["clinic", "home", "online"];
+    case "both":
+    default:
+      return ["clinic", "home"];
+  }
+}
+
+function serviceModeLabel(
+  value: unknown,
+  t: (key: string, fallback: string) => string,
+): string {
+  const modes = serviceVisitTypes(value);
+  if (modes.length === 1) {
+    return t(`patient_sweep.booking_mode_${modes[0]}`, modes[0]);
+  }
+  if (modes.length === 2) {
+    const key =
+      modes.includes("clinic") && modes.includes("home")
+        ? "home_clinic"
+        : modes.includes("clinic")
+          ? "clinic_online"
+          : "home_online";
+    return t(`patient_sweep.booking_mode_${key}`, modes.join(" & "));
+  }
+  return t("patient_sweep.booking_mode_all", "All modes");
+}
 
 /* ── Step indicator ──────────────────────────────────────────────── */
 function StepBar({ step, t }: { step: number; t: (key: string, fallback: string) => string }) {
@@ -211,18 +257,12 @@ export default function BookWizard() {
   useEffect(() => {
     if (!selectedService) return;
     // Use service-level locationMode first (set by provider), fall back to sub-service catalogue default
-    const locMode: string = (selectedService as any).locationMode ?? (selectedService.subService as any)?.locationMode ?? "both";
-    const supportsClinic = locMode === "both" || locMode === "all" || locMode.includes("clinic");
-    const supportsHome   = locMode === "both" || locMode === "all" || locMode.includes("home");
-    const supportsOnline = locMode === "all" || locMode.includes("online");
+    const locMode = (selectedService as any).locationMode ?? (selectedService.subService as any)?.locationMode ?? "both";
+    const supportedVisitTypes = serviceVisitTypes(locMode);
     const ok =
-      (visitType === "clinic" && supportsClinic) ||
-      (visitType === "home" && supportsHome) ||
-      (visitType === "online" && supportsOnline);
+      supportedVisitTypes.includes(visitType);
     if (!ok) {
-      if (supportsClinic) setVisitType("clinic");
-      else if (supportsHome) setVisitType("home");
-      else setVisitType("online");
+      setVisitType(supportedVisitTypes[0]);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedService?.id]);
@@ -866,20 +906,8 @@ export default function BookWizard() {
                     const price    = svc.price ? formatInCurrency(Number(svc.price), svcCurrency) : null;
                     const duration = svc.subService?.durationMinutes;
                     // Service-level locationMode takes priority over provider-level serviceModes
-                    const svcLocMode: string = (svc as any).locationMode ?? svc.subService?.locationMode ?? "both";
-                    const modeLabel = (() => {
-                      const parts: string[] = [];
-                      if (svcLocMode === "both" || svcLocMode === "all" || svcLocMode.includes("clinic")) {
-                        parts.push(t("patient_sweep.booking_mode_clinic", "Clinic"));
-                      }
-                      if (svcLocMode === "both" || svcLocMode === "all" || svcLocMode.includes("home")) {
-                        parts.push(t("patient_sweep.booking_mode_home", "Home"));
-                      }
-                      if (svcLocMode === "all" || svcLocMode.includes("online")) {
-                        parts.push(t("patient_sweep.booking_mode_online", "Online"));
-                      }
-                      return parts.length > 0 ? parts.join(" · ") : svcLocMode;
-                    })();
+                     const svcLocMode = (svc as any).locationMode ?? svc.subService?.locationMode ?? "both";
+                     const modeLabel = serviceModeLabel(svcLocMode, t);
                     return (
                       <button
                         key={svc.id}
@@ -938,21 +966,25 @@ export default function BookWizard() {
                   <div className="grid grid-cols-3 gap-2">
                     {(() => {
                       const spModes: string[] = selectedProvider?.serviceModes ?? [];
-                      const svcLoc: string = (selectedService as any).locationMode ?? (selectedService?.subService as any)?.locationMode ?? "both";
-                      const svcAllowsClinic = svcLoc === "both" || svcLoc === "all" || svcLoc.includes("clinic");
-                      const svcAllowsHome   = svcLoc === "both" || svcLoc === "all" || svcLoc.includes("home");
-                      const svcAllowsOnline = svcLoc === "all" || svcLoc.includes("online");
-                      const vtMap: { vt: "clinic" | "home" | "online"; key: string; label: string }[] = [
+                       const svcLoc = (selectedService as any).locationMode ?? (selectedService?.subService as any)?.locationMode ?? "both";
+                       const supportedVisitTypes = serviceVisitTypes(svcLoc);
+                       const vtMap: { vt: BookingVisitType; key: string; label: string }[] = [
                         { vt: "clinic", key: "clinic_visit", label: t("booking.wizard.visit_clinic", "In-clinic") },
                         { vt: "home",   key: "home_visit",   label: t("booking.wizard.visit_home", "Home visit") },
                         { vt: "online", key: "telemedicine", label: t("booking.wizard.visit_online", "Online") },
                       ];
                       // Intersect provider-level serviceModes with service-level locationMode
                       const visible = vtMap.filter(m => {
-                        if (m.vt === "clinic" && !svcAllowsClinic) return false;
-                        if (m.vt === "home"   && !svcAllowsHome)   return false;
-                        if (m.vt === "online" && !svcAllowsOnline) return false;
-                        if (spModes.length > 0 && !spModes.includes(m.key)) return false;
+                         if (!supportedVisitTypes.includes(m.vt)) return false;
+                         if (
+                           spModes.length > 0 &&
+                           !spModes.some((mode) =>
+                             (mode === "clinic_visit" && m.vt === "clinic") ||
+                             (mode === "home_visit" && m.vt === "home") ||
+                             (mode === "telemedicine" && m.vt === "online") ||
+                             mode === m.key,
+                           )
+                         ) return false;
                         return true;
                       });
                       return visible.map(({ vt, label }) => {
