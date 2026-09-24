@@ -24,6 +24,7 @@ import { PageBreadcrumbs } from "@/components/page-breadcrumbs";
 import { usePageTitle } from "@/hooks/use-page-title";
 import { QK } from "@/lib/query-keys";
 import { RescheduleProposalBanner } from "@/components/appointment/RescheduleProposalBanner";
+import { localizeMedicalTerm } from "@/lib/medical-localization";
 
 interface Appointment {
   id: string;
@@ -136,6 +137,7 @@ export default function Appointments() {
   const { isAuthenticated, user, isLoading: authLoading } = useAuth();
   const [, navigate] = useLocation();
   const { t } = useTranslation();
+  const localize = (value: unknown) => localizeMedicalTerm(value, t);
   usePageTitle(t("appointments.meta_title", "My Appointments"));
   const { toast } = useToast();
 
@@ -216,7 +218,7 @@ export default function Appointments() {
       <Header />
       <main className="flex-1 container mx-auto px-4 py-8">
         <PageBreadcrumbs
-          items={[{ label: "Home", href: "/" }, { label: t("appointments.my_appointments", "My Appointments") }]}
+          items={[{ label: t("common.home", "Home"), href: "/" }, { label: t("appointments.my_appointments", "My Appointments") }]}
           fallback="/"
         />
         <div className="flex justify-between items-center mb-8">
@@ -255,7 +257,7 @@ export default function Appointments() {
                     <div>
                       <div className="flex items-center gap-2 mb-0.5">
                         <CardTitle className="text-lg">
-                          {appointment.service?.name || "Consultation"}
+                          {localize(appointment.service?.name) || t("appt_details.consultation", "Consultation")}
                         </CardTitle>
                         {appointment.appointmentNumber && (
                           <span

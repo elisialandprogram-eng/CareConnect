@@ -1222,6 +1222,14 @@ type AppointmentEventRow = {
   actorName: string | null;
 };
 
+function localizeTimelineReason(reason: string, t: any): string {
+  const normalized = reason.trim().toLowerCase();
+  if (normalized === "paid in full via wallet") {
+    return t("appt_details.paid_in_full_wallet", "Paid in full via wallet");
+  }
+  return reason;
+}
+
 const ACTION_META: Record<
   AppointmentEventRow["action"],
   { label: string; icon: React.ComponentType<{ className?: string }>; tone: string }
@@ -1339,7 +1347,7 @@ function EventsTimeline({
                       className="text-sm mt-1.5 text-foreground/80"
                       data-testid={`timeline-reason-${ev.id}`}
                     >
-                      “{ev.reason}”
+                      “{localizeTimelineReason(ev.reason, t)}”
                     </div>
                   )}
                   {reschedMeta && (
