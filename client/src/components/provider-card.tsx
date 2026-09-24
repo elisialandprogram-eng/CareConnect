@@ -24,6 +24,9 @@ interface ProviderCardProps {
 export function ProviderCard({ provider, nextAvailable }: ProviderCardProps) {
   const { t } = useTranslation();
   const localize = (value: unknown) => localizeMedicalTerm(value, t);
+  const localizedNextAvailable = nextAvailable
+    ?.replace(/^Today\b/, t("member_time.today", "Today"))
+    .replace(/^Tomorrow\b/, t("member_time.tomorrow", "Tomorrow"));
   const { user, isAuthenticated } = useAuth();
   const canBook = !user || user.role === "patient";
   const { toast } = useToast();
@@ -341,7 +344,7 @@ export function ProviderCard({ provider, nextAvailable }: ProviderCardProps) {
                 {nextAvailable && (
                   <div className="flex items-center gap-1 text-xs text-muted-foreground mb-2">
                     <Clock className="h-3 w-3" />
-                   <span>{t("provider_card.next", "Next")}: {nextAvailable}</span>
+                    <span>{t("provider_card.next", "Next")}: {localizedNextAvailable}</span>
                   </div>
                 )}
                 <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.98 }}>

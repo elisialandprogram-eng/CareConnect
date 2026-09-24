@@ -209,8 +209,8 @@ export default function Register() {
                         <FormLabel>{t("common.i_am_a")}</FormLabel>
                         <div className="grid grid-cols-2 gap-2">
                           {[
-                            { value: "patient", label: "Member", icon: "👤" },
-                            { value: "provider", label: "Healthcare Provider", icon: "🩺" },
+                            { value: "patient", label: t("auth.registration_role_member", "Member"), icon: "👤" },
+                            { value: "provider", label: t("auth.registration_role_provider", "Healthcare Provider"), icon: "🩺" },
                           ].map((opt) => (
                             <button
                               key={opt.value}
@@ -400,15 +400,15 @@ export default function Register() {
                             <Sparkles className="h-5 w-5 text-primary" />
                           </div>
                           <div>
-                            <p className="text-sm font-semibold text-foreground">Verify your email to unlock your clinical workspace</p>
-                            <p className="text-xs text-muted-foreground mt-0.5">You'll complete your full professional profile after signing in</p>
+                          <p className="text-sm font-semibold text-foreground">{t("auth.provider_workspace_title", "Verify your email to unlock your clinical workspace")}</p>
+                          <p className="text-xs text-muted-foreground mt-0.5">{t("auth.provider_workspace_description", "You'll complete your full professional profile after signing in")}</p>
                           </div>
                         </div>
                         <div className="space-y-2.5">
                           {[
-                            { icon: BadgeCheck, text: "Set your professional credentials & license details" },
-                            { icon: Lock, text: "Submit for compliance review — typically 1–3 business days" },
-                            { icon: CheckCircle2, text: "Get approved and start accepting member bookings" },
+                            { icon: BadgeCheck, text: t("auth.provider_workspace_credentials", "Set your professional credentials & license details") },
+                            { icon: Lock, text: t("auth.provider_workspace_review", "Submit for compliance review — typically 1–3 business days") },
+                            { icon: CheckCircle2, text: t("auth.provider_workspace_approved", "Get approved and start accepting member bookings") },
                           ].map(({ icon: Icon, text }, i) => (
                             <div key={i} className="flex items-center gap-2.5 text-xs text-muted-foreground">
                               <Icon className="h-3.5 w-3.5 text-primary shrink-0" />
@@ -470,11 +470,11 @@ export default function Register() {
                   )}
 
                   <Button type="submit" className="w-full font-semibold" disabled={isLoading} data-testid="button-register">
-                    {isLoading ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Creating account…</> : t("common.create_account")}
+                    {isLoading ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />{t("auth.creating_account", "Creating account…")}</> : t("common.create_account")}
                   </Button>
 
                   <p className="text-center text-xs text-muted-foreground">
-                    {t("common.already_have_account")}{" "}
+                    {t("common.already_account", "Already have an account?")}{" "}
                     <Link href="/login" className="font-medium text-primary hover:underline" data-testid="link-login">
                       {t("common.sign_in")}
                     </Link>

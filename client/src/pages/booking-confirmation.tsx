@@ -3,6 +3,7 @@ import { useParams, useLocation, Link } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { QK } from "@/lib/query-keys";
 import { useTranslation } from "react-i18next";
+import { reportStatusLabel } from "@/lib/report-localization";
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
 import { PageBreadcrumbs } from "@/components/page-breadcrumbs";
@@ -717,7 +718,7 @@ export default function BookingConfirmation() {
                   data-testid="badge-status"
                   className="capitalize"
                 >
-                  {appt.status}
+                  {reportStatusLabel(t, appt.status, appt.status.replace(/_/g, " "))}
                 </Badge>
               </div>
             </CardHeader>

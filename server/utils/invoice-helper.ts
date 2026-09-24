@@ -3,7 +3,7 @@ import { generateInvoicePDF } from "./invoice-gen";
 import { loadInvoiceTemplate } from "./invoice-template";
 import { Resend } from "resend";
 import { roundCurrencyAmount } from "@shared/currency";
-import { normalizeLang, t } from "../services/i18n";
+import { localizeInvoiceMedicalTerm, normalizeLang, t } from "../services/i18n";
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 const FROM_EMAIL = "GoldenLife <no-reply@goldenlife.health>";
@@ -92,7 +92,10 @@ export async function createInvoiceForAppointment(appointmentId: string): Promis
       [
         {
           invoiceId: "",
-          description: appointment.service?.name || t("invoice.healthcare_service", invoiceLang),
+          description: localizeInvoiceMedicalTerm(
+            appointment.service?.name || t("invoice.healthcare_service", invoiceLang),
+            invoiceLang,
+          ),
           quantity: 1,
           unitPrice: invoiceDisplayTotal,
           totalPrice: invoiceDisplayTotal,
@@ -143,14 +146,19 @@ export async function createInvoiceForAppointment(appointmentId: string): Promis
         promoDiscount: (booking as any).promoDiscount ?? "0.00",
         promoCode: (booking as any).promoCode ?? null,
         packageDiscountAmount: (booking as any).packageDiscountAmount ?? "0.00",
-        membershipLabel: (booking as any).packageIdUsed ? "Member discount" : null,
+        membershipLabel: (booking as any).packageIdUsed
+          ? t("invoice.member_discount", lang)
+          : null,
         walletAmountUsed: _walletDisplay,
         appointmentDate: booking.date ?? null,
         visitType: booking.visitType ?? null,
       };
       const pdfBuffer = await generateInvoicePDF(enrichedInvoiceRef, appointment.patient, appointment.provider, [
         {
-          description: appointment.service?.name || t("invoice.healthcare_service", lang),
+          description: localizeInvoiceMedicalTerm(
+            appointment.service?.name || t("invoice.healthcare_service", lang),
+            lang,
+          ),
           quantity: 1,
           unitPrice: invoiceDisplayTotal,
           totalPrice: invoiceDisplayTotal,

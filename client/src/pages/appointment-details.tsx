@@ -2,6 +2,11 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useParams, useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
+import {
+  reportLifecycleActionLabel,
+  reportRoleLabel,
+  reportStatusLabel,
+} from "@/lib/report-localization";
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
 import { PageBreadcrumbs } from "@/components/page-breadcrumbs";
@@ -432,7 +437,7 @@ export default function AppointmentDetails() {
                 className="capitalize"
                 data-testid="badge-status"
               >
-                {formatStatus(appt.status)}
+                {reportStatusLabel(t, appt.status, formatStatus(appt.status))}
               </Badge>
               <AppointmentTimeContext
                 date={appt.date}
@@ -640,9 +645,15 @@ export default function AppointmentDetails() {
                   className="text-emerald-600 dark:text-emerald-400 font-medium"
                 />
               )}
-              <PriceRow label={`Service tax (${serviceTaxRate}%)`} value={fmtAmt(serviceTaxAmount)} />
-              <PriceRow label={`Platform tax (${platformTaxRate}%)`} value={fmtAmt(platformTaxAmount)} />
-              <PriceRow label="Total tax" value={fmtAmt(taxAmount)} />
+              <PriceRow
+                label={t("appt_details.service_tax_rate", "Service tax ({{rate}}%)", { rate: serviceTaxRate })}
+                value={fmtAmt(serviceTaxAmount)}
+              />
+              <PriceRow
+                label={t("appt_details.platform_tax_rate", "Platform tax ({{rate}}%)", { rate: platformTaxRate })}
+                value={fmtAmt(platformTaxAmount)}
+              />
+              <PriceRow label={t("appt_details.total_tax", "Total tax")} value={fmtAmt(taxAmount)} />
               <Separator className="my-1" />
               <PriceRow
                 label={t("appt_details.total", "Total")}
@@ -1226,11 +1237,11 @@ const ACTION_META: Record<
   no_show: { label: "No-show", icon: UserX, tone: "text-red-600 dark:text-red-400" },
 };
 
-function actorDisplay(ev: AppointmentEventRow): string {
-  if (!ev.actorRole && !ev.actorUserId) return "System";
+function actorDisplay(ev: AppointmentEventRow, t: any): string {
+  if (!ev.actorRole && !ev.actorUserId) return t("appt_details.system_actor", "System");
   const role = ev.actorRole
-    ? ev.actorRole.charAt(0).toUpperCase() + ev.actorRole.slice(1)
-    : "Unknown";
+    ? reportRoleLabel(t, ev.actorRole, formatStatus(ev.actorRole))
+    : t("reporting.unknown", "Unknown");
   return ev.actorName ? `${ev.actorName} (${role})` : role;
 }
 
@@ -1257,12 +1268,13 @@ function EventsTimeline({
   loading: boolean;
 }) {
   const { format: fmtMoney } = useCurrency();
+  const { t } = useTranslation();
   return (
     <Card className="mt-6" data-testid="card-appointment-timeline">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-lg">
           <History className="h-5 w-5" />
-          Activity timeline
+          {t("appt_details.activity_timeline", "Activity timeline")}
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -1277,7 +1289,7 @@ function EventsTimeline({
             className="text-sm text-muted-foreground py-4"
             data-testid="text-timeline-empty"
           >
-            No events recorded for this appointment yet.
+            {t("appt_details.timeline_empty", "No events recorded for this appointment yet.")}
           </p>
         ) : (
           <ol className="relative border-l border-muted ml-3 space-y-5">
@@ -1304,11 +1316,12 @@ function EventsTimeline({
                       className={`font-medium ${meta.tone}`}
                       data-testid={`timeline-action-${ev.id}`}
                     >
-                      {meta.label}
+                      {reportLifecycleActionLabel(t, ev.action, meta.label)}
                     </span>
                     {ev.fromStatus && ev.toStatus && (
                       <span className="text-xs text-muted-foreground">
-                        {formatStatus(ev.fromStatus)} → {formatStatus(ev.toStatus)}
+                        {reportStatusLabel(t, ev.fromStatus, formatStatus(ev.fromStatus))} →{" "}
+                        {reportStatusLabel(t, ev.toStatus, formatStatus(ev.toStatus))}
                       </span>
                     )}
                   </div>
@@ -1316,7 +1329,7 @@ function EventsTimeline({
                     className="text-xs text-muted-foreground mt-0.5"
                     data-testid={`timeline-actor-${ev.id}`}
                   >
-                    by {actorDisplay(ev)} · {" "}
+                    {t("appt_details.timeline_actor", "by {{actor}}", { actor: actorDisplay(ev, t) })} ·{" "}
                     <span data-testid={`timeline-time-${ev.id}`}>
                       {formatTimestamp(ev.createdAt)}
                     </span>
@@ -1339,7 +1352,7 @@ function EventsTimeline({
                       className="text-xs mt-1 text-emerald-700 dark:text-emerald-400"
                       data-testid={`timeline-refund-${ev.id}`}
                     >
-                      Refund issued: {fmtMoney(refund)}
+                      {t("appt_details.refund_issued", "Refund issued")}: {fmtMoney(refund)}
                     </div>
                   )}
                 </li>
@@ -1362,7 +1375,7 @@ function DetailsShell({ children }: { children: React.ReactNode }) {
       <main className="flex-1 container mx-auto px-4 py-8 max-w-3xl">
         <PageBreadcrumbs
           items={[
-            { label: "Home", href: "/" },
+            { label: t("common.home", "Home"), href: "/" },
             { label: t("appointments.my_appointments", "My Appointments"), href: "/appointments" },
             { label: t("appt_details.title", "Appointment Details") },
           ]}

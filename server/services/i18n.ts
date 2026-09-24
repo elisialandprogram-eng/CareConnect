@@ -69,6 +69,11 @@ const STRINGS: Bundle = {
     "invoice.platform_footer": "Healthcare booking platform",
     "invoice.healthcare_service": "Healthcare service",
     "invoice.provider_fallback": "Provider",
+    "medical.category.clinical_nutrition": "Clinical & Medical Nutrition",
+    "medical.category.rehabilitation": "Physical Therapy & Rehabilitation",
+    "medical.service.cardiac_nutrition_counseling": "Cardiac Nutrition Counseling",
+    "medical.service.athletic_performance_nutrition": "Athletic Performance Nutrition",
+    "medical.service.test_therapy": "Test Therapy",
     "email.calendar_invite": "A calendar invite (.ics) is attached — open it to add this appointment to your calendar.",
     "email.dashboard": "You can view and manage your appointment in your member dashboard.",
     "email.greeting": "Hello {{name}},",
@@ -350,6 +355,11 @@ const STRINGS: Bundle = {
     "invoice.platform_footer": "Egészségügyi foglalási platform",
     "invoice.healthcare_service": "Egészségügyi szolgáltatás",
     "invoice.provider_fallback": "Szolgáltató",
+    "medical.category.clinical_nutrition": "Klinikai és orvosi táplálkozás",
+    "medical.category.rehabilitation": "Gyógytorna és rehabilitáció",
+    "medical.service.cardiac_nutrition_counseling": "Kardiológiai táplálkozási tanácsadás",
+    "medical.service.athletic_performance_nutrition": "Sportteljesítményt támogató táplálkozás",
+    "medical.service.test_therapy": "Tesztterápia",
     "email.calendar_invite": "A naptármeghívó (.ics) csatolva van — nyissa meg az időpont naptárhoz adásához.",
     "email.dashboard": "Időpontját a tagi irányítópulton tekintheti meg és kezelheti.",
     "email.greeting": "Kedves {{name}}!",
@@ -629,6 +639,11 @@ const STRINGS: Bundle = {
     "invoice.platform_footer": "پلتفرم رزرو خدمات سلامت",
     "invoice.healthcare_service": "خدمات سلامت",
     "invoice.provider_fallback": "ارائه‌دهنده",
+    "medical.category.clinical_nutrition": "تغذیه بالینی و پزشکی",
+    "medical.category.rehabilitation": "فیزیوتراپی و توان‌بخشی",
+    "medical.service.cardiac_nutrition_counseling": "مشاوره تغذیه قلب",
+    "medical.service.athletic_performance_nutrition": "تغذیه برای عملکرد ورزشی",
+    "medical.service.test_therapy": "درمان آزمایشی",
     "email.calendar_invite": "دعوت‌نامه تقویم (.ics) پیوست شده است — آن را برای افزودن این نوبت به تقویم باز کنید.",
     "email.dashboard": "می‌توانید نوبت خود را در داشبورد اعضا مشاهده و مدیریت کنید.",
     "email.greeting": "سلام {{name}}،",
@@ -866,4 +881,23 @@ export function normalizeLang(lang: string | null | undefined): Lang {
   if (!lang) return "en";
   const lower = lang.toLowerCase().slice(0, 2);
   return (["en", "hu", "fa"].includes(lower) ? lower : "en") as Lang;
+}
+
+const INVOICE_MEDICAL_TERM_KEYS: Record<string, string> = {
+  "clinical and medical nutrition": "medical.category.clinical_nutrition",
+  "physical therapy and rehabilitation": "medical.category.rehabilitation",
+  "cardiac nutrition counseling": "medical.service.cardiac_nutrition_counseling",
+  "athletic performance nutrition": "medical.service.athletic_performance_nutrition",
+  "test therapy": "medical.service.test_therapy",
+};
+
+export function localizeInvoiceMedicalTerm(
+  value: unknown,
+  lang: string | null | undefined,
+): string {
+  const original = String(value ?? "").trim();
+  if (!original) return "";
+  const normalized = original.toLowerCase().replace(/&/g, "and").replace(/[^a-z0-9]+/g, " ").trim();
+  const key = INVOICE_MEDICAL_TERM_KEYS[normalized];
+  return key ? t(key, normalizeLang(lang)) : original;
 }

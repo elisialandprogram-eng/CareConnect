@@ -38,6 +38,46 @@ import { localizeMedicalTerm } from "@/lib/medical-localization";
 
 const PAGE_SIZE = 12;
 
+const MATCH_REASON_KEYS: Record<string, string> = {
+  "Offers the exact service you need": "providers.match_reason.exact_service",
+  "Located in your city": "providers.match_reason.same_city",
+  "Located near your area": "providers.match_reason.near_area",
+  "Highly rated by members": "providers.match_reason.highly_rated",
+  "Well-reviewed provider": "providers.match_reason.well_reviewed",
+  "Within your budget": "providers.match_reason.within_budget",
+  "Close to your budget": "providers.match_reason.close_to_budget",
+  "You've booked with them before": "providers.match_reason.booked_before",
+  "Offers home visits": "providers.match_reason.home_visits",
+  "Available at clinic": "providers.match_reason.clinic",
+  "Available online": "providers.match_reason.online",
+  "Offers your preferred service mode": "providers.match_reason.preferred_mode",
+  "Has open slots available": "providers.match_reason.open_slots",
+  "Verified provider": "providers.match_reason.verified",
+};
+
+function localizeMatchReason(reason: string, t: any): string {
+  const key = MATCH_REASON_KEYS[reason];
+  if (key) return t(key, { defaultValue: reason });
+
+  const specialty = reason.match(/^Specialises in (.+)$/);
+  if (specialty) {
+    const category = localizeMedicalTerm(specialty[1], t);
+    return t("providers.match_reason.specialises_in", {
+      category,
+      defaultValue: `Specialises in ${category}`,
+    });
+  }
+
+  const language = reason.match(/^Speaks your language \((.+)\)$/);
+  if (language) {
+    return t("providers.match_reason.speaks_language", {
+      language: language[1],
+      defaultValue: reason,
+    });
+  }
+  return reason;
+}
+
 interface ProvidersPage {
   providers: ProviderWithUser[];
   total: number;
@@ -439,7 +479,7 @@ export default function Providers() {
                         <div className="mt-1 flex flex-wrap gap-1 px-1">
                           {p.matchReasons.slice(0, 2).map((r, i) => (
                             <Badge key={i} variant="outline" className="text-xs py-0 px-1.5 text-muted-foreground">
-                              {r}
+                              {localizeMatchReason(r, t)}
                             </Badge>
                           ))}
                         </div>

@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { QK } from "@/lib/query-keys";
+import { localizeMedicalTerm } from "@/lib/medical-localization";
 import { useLocation, useSearch } from "wouter";
 import { useTranslation } from "react-i18next";
 import { useToast } from "@/hooks/use-toast";
@@ -144,6 +145,7 @@ function StepBar({ step, t }: { step: number; t: (key: string, fallback: string)
 /* ── Main ────────────────────────────────────────────────────────── */
 export default function BookWizard() {
   const { t } = useTranslation();
+  const localize = (value: unknown) => localizeMedicalTerm(value, t);
   usePageTitle(t("booking.wizard.step_booking", "Book Appointment"));
   const [, navigate] = useLocation();
   const search = useSearch();
@@ -838,8 +840,11 @@ export default function BookWizard() {
                   {t("booking.wizard.choose_service", "Choose a service")}
                 </h2>
                 <p className="text-sm text-muted-foreground mt-1">
-                  {t("booking.wizard.choose_service_desc", "Select the service you need from")}{" "}
-                  <span className="font-medium text-foreground">{providerDisplayName(selectedProvider)}</span>.
+                  {t(
+                    "booking.wizard.choose_service_desc",
+                    "Select the service you need from {{provider}}.",
+                    { provider: providerDisplayName(selectedProvider) },
+                  )}
                 </p>
               </div>
 
@@ -856,7 +861,7 @@ export default function BookWizard() {
                 <div className="space-y-3">
                   {providerServices.map(svc => {
                     const isSelected = selectedService?.id === svc.id;
-                    const name     = svc.subService?.name ?? t("booking.service", "Service");
+                    const name     = localize(svc.subService?.name ?? (svc as any).name ?? t("booking.service", "Service"));
                     const svcCurrency = (svc as any).currency ?? quoteCurrency ?? "USD";
                     const price    = svc.price ? formatInCurrency(Number(svc.price), svcCurrency) : null;
                     const duration = svc.subService?.durationMinutes;

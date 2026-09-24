@@ -39,7 +39,7 @@ function formatDate(d: any, locale = "en-US"): string {
 }
 
 function configurePdfLanguage(doc: any, lang: Lang): string {
-  if (lang !== "fa") return "helvetica";
+  if (lang !== "fa" && lang !== "hu") return "helvetica";
   try {
     const regular = readFileSync("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf").toString("base64");
     const bold = readFileSync("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf").toString("base64");
@@ -47,10 +47,10 @@ function configurePdfLanguage(doc: any, lang: Lang): string {
     doc.addFont("DejaVuSans.ttf", "DejaVuSans", "normal");
     doc.addFileToVFS("DejaVuSans-Bold.ttf", bold);
     doc.addFont("DejaVuSans-Bold.ttf", "DejaVuSans", "bold");
-    doc.setR2L(true);
+    if (lang === "fa") doc.setR2L(true);
     return "DejaVuSans";
   } catch (error) {
-    console.warn("[invoice-gen] Persian font unavailable; falling back to built-in PDF font", error);
+    console.warn("[invoice-gen] Unicode font unavailable; falling back to built-in PDF font", error);
     return "helvetica";
   }
 }
@@ -270,7 +270,7 @@ export async function generateInvoicePDF(
 
   // Bill To panel
   doc.setFillColor(...BG_SOFT);
-  doc.roundedRect(billX, bfY, colWidth, 38, 2, 2, "F");
+  doc.roundedRect(billX, bfY, colWidth, 42, 2, 2, "F");
   doc.setFont(pdfFont, "bold");
   doc.setFontSize(8);
   doc.setTextColor(...BRAND_DARK_RGB);
@@ -280,21 +280,31 @@ export async function generateInvoicePDF(
   doc.setFontSize(11);
   doc.setTextColor(...TEXT);
   const patientName = [patient?.firstName, patient?.lastName].filter(Boolean).join(" ") || patient?.email || invoiceText("label.member");
-  doc.text(patientName, billX + 4, bfY + 13);
+  const patientNameLines = doc.splitTextToSize(patientName, colWidth - 8) as string[];
+  doc.text(patientNameLines, billX + 4, bfY + 13);
 
   doc.setFont(pdfFont, "normal");
-  doc.setFontSize(9);
+  doc.setFontSize(8.5);
   doc.setTextColor(...MUTED);
-  let pY = bfY + 19;
-  if (patient?.email) { doc.text(String(patient.email), billX + 4, pY); pY += 4.5; }
-  if (patient?.phone) { doc.text(String(patient.phone), billX + 4, pY); pY += 4.5; }
-  if (patient?.address) { doc.text(String(patient.address), billX + 4, pY); pY += 4.5; }
+  let pY = bfY + 18.5 + Math.max(0, patientNameLines.length - 1) * 4;
+  const patientLine = (value: string) => {
+    const lines = doc.splitTextToSize(value, colWidth - 8) as string[];
+    const room = Math.max(0, Math.floor((bfY + 41 - pY) / 3.8));
+    const visibleLines = lines.slice(0, room);
+    if (visibleLines.length) {
+      doc.text(visibleLines, billX + 4, pY);
+      pY += visibleLines.length * 3.8;
+    }
+  };
+  if (patient?.email) patientLine(String(patient.email));
+  if (patient?.phone) patientLine(String(patient.phone));
+  if (patient?.address) patientLine(String(patient.address));
   const cityLine = [patient?.zipCode, patient?.city].filter(Boolean).join(" ");
-  if (cityLine) doc.text(cityLine, billX + 4, pY);
+  if (cityLine) patientLine(cityLine);
 
   // Provider panel
   doc.setFillColor(...BG_SOFT);
-  doc.roundedRect(fromX, bfY, colWidth, 38, 2, 2, "F");
+  doc.roundedRect(fromX, bfY, colWidth, 42, 2, 2, "F");
   doc.setFont(pdfFont, "bold");
   doc.setFontSize(8);
   doc.setTextColor(...BRAND_DARK_RGB);
@@ -309,35 +319,36 @@ export async function generateInvoicePDF(
     || provider?.email
     || provider?.user?.email
     || invoiceText("invoice.provider_fallback");
-  doc.text(String(providerName), fromX + 4, bfY + 13);
+  const providerNameLines = doc.splitTextToSize(String(providerName), colWidth - 8) as string[];
+  doc.text(providerNameLines, fromX + 4, bfY + 13);
 
   doc.setFont(pdfFont, "normal");
-  doc.setFontSize(9);
+  doc.setFontSize(8.5);
   doc.setTextColor(...MUTED);
-  let fY = bfY + 19;
+  let fY = bfY + 18.5 + Math.max(0, providerNameLines.length - 1) * 4;
+  const providerLine = (value: string) => {
+    const lines = doc.splitTextToSize(value, colWidth - 8) as string[];
+    const room = Math.max(0, Math.floor((bfY + 41 - fY) / 3.8));
+    const visibleLines = lines.slice(0, room);
+    if (visibleLines.length) {
+      doc.text(visibleLines, fromX + 4, fY);
+      fY += visibleLines.length * 3.8;
+    }
+  };
   const providerEmail = provider?.email || provider?.user?.email;
   const providerPhone = provider?.phone || provider?.user?.phone;
-  if (providerEmail) { doc.text(String(providerEmail), fromX + 4, fY); fY += 4.5; }
-  if (providerPhone) { doc.text(String(providerPhone), fromX + 4, fY); fY += 4.5; }
+  if (providerEmail) providerLine(String(providerEmail));
+  if (providerPhone) providerLine(String(providerPhone));
   if (provider?.licenseNumber) {
-    doc.text(`${invoiceText("label.license")}: ${provider.licenseNumber}`, fromX + 4, fY); fY += 4.5;
+    providerLine(`${invoiceText("label.license")}: ${provider.licenseNumber}`);
   }
-  if (provider?.address) { doc.text(String(provider.address), fromX + 4, fY); fY += 4.5; }
+  if (provider?.address) providerLine(String(provider.address));
   const provCityLine = [provider?.zipCode, provider?.city].filter(Boolean).join(" ");
-  if (provCityLine) doc.text(provCityLine, fromX + 4, fY);
+  if (provCityLine) providerLine(provCityLine);
 
   // ---------- APPOINTMENT REF ROW ----------
-  let appointmentRefY = bfY + 44;
+  let appointmentRefY = bfY + 48;
   if (invoice.appointmentDate || invoice.appointmentNumber || invoice.visitType) {
-    doc.setFillColor(248, 250, 252);
-    doc.roundedRect(M, appointmentRefY, pageW - 2 * M, 10, 2, 2, "F");
-    doc.setFont(pdfFont, "bold");
-    doc.setFontSize(8);
-    doc.setTextColor(...SUBTLE);
-    doc.text(invoiceText("label.appointment"), M + 4, appointmentRefY + 4);
-    doc.setFont(pdfFont, "normal");
-    doc.setFontSize(9);
-    doc.setTextColor(...TEXT);
     const refParts = [
       invoice.appointmentNumber ? `${invoiceText("label.reference")} ${invoice.appointmentNumber}` : null,
       invoice.appointmentDate ? formatDate(invoice.appointmentDate, dateLocale) : null,
@@ -351,10 +362,21 @@ export async function generateInvoicePDF(
           )
         : null,
     ].filter(Boolean).join("   ·   ");
-    if (refParts) doc.text(refParts, M + 4, appointmentRefY + 8.5);
-    appointmentRefY += 12;
+    const refLines = doc.splitTextToSize(refParts, pageW - 2 * M - 8) as string[];
+    const refBoxH = Math.max(10, 6 + refLines.length * 4);
+    doc.setFillColor(248, 250, 252);
+    doc.roundedRect(M, appointmentRefY, pageW - 2 * M, refBoxH, 2, 2, "F");
+    doc.setFont(pdfFont, "bold");
+    doc.setFontSize(8);
+    doc.setTextColor(...SUBTLE);
+    doc.text(invoiceText("label.appointment"), M + 4, appointmentRefY + 4);
+    doc.setFont(pdfFont, "normal");
+    doc.setFontSize(9);
+    doc.setTextColor(...TEXT);
+    if (refLines.length) doc.text(refLines, M + 4, appointmentRefY + 8.5);
+    appointmentRefY += refBoxH + 2;
   } else {
-    appointmentRefY = bfY + 44;
+    appointmentRefY = bfY + 48;
   }
 
   // ---------- ITEMS TABLE ----------
@@ -438,24 +460,38 @@ export async function generateInvoicePDF(
   const total = Number(invoice.totalAmount || 0);
 
   let rowY = totalsY + 5;
-  const rowStep = 6;
   const GREEN: RGB = [22, 101, 52];
   const GREEN_BG: RGB = [220, 252, 231];
 
-  doc.setFont(pdfFont, "normal");
-  doc.setFontSize(10);
-  doc.setTextColor(...MUTED);
-  doc.text(invoiceText("invoice.subtotal"), totalsX + 4, rowY);
-  doc.setTextColor(...TEXT);
-  doc.text(fmt(subtotal), totalsX + totalsW - 4, rowY, { align: "right" });
-  rowY += rowStep;
+  const drawTotalsRow = (
+    label: string,
+    value: string,
+    opts: { color?: RGB; valueColor?: RGB; background?: RGB; bold?: boolean } = {},
+  ) => {
+    const labelLines = doc.splitTextToSize(label, totalsW - 40) as string[];
+    const rowHeight = Math.max(7, labelLines.length * 4.2 + 3);
+    if (opts.background) {
+      doc.setFillColor(...opts.background);
+      doc.roundedRect(totalsX, rowY - 4, totalsW, rowHeight, 1, 1, "F");
+    }
+    doc.setFont(pdfFont, opts.bold ? "bold" : "normal");
+    doc.setFontSize(9.5);
+    doc.setTextColor(...(opts.color ?? MUTED));
+    doc.text(labelLines, totalsX + 4, rowY);
+    doc.setTextColor(...(opts.valueColor ?? TEXT));
+    doc.text(
+      value,
+      totalsX + totalsW - 4,
+      rowY + Math.max(0, (labelLines.length - 1) * 2.1),
+      { align: "right" },
+    );
+    rowY += rowHeight + 1;
+  };
+
+  drawTotalsRow(invoiceText("invoice.subtotal"), fmt(subtotal));
 
   if (platformFee > 0) {
-    doc.setTextColor(...MUTED);
-    doc.text(invoiceText("invoice.platform_fee"), totalsX + 4, rowY);
-    doc.setTextColor(...TEXT);
-    doc.text(fmt(platformFee), totalsX + totalsW - 4, rowY, { align: "right" });
-    rowY += rowStep;
+    drawTotalsRow(invoiceText("invoice.platform_fee"), fmt(platformFee));
   }
 
   // Promo code discount row
@@ -463,27 +499,23 @@ export async function generateInvoicePDF(
     const promoLabel = promoCode
       ? `${invoiceText("invoice.promo_discount")} (${promoCode})`
       : invoiceText("invoice.promo_discount");
-    doc.setFillColor(...GREEN_BG);
-    doc.roundedRect(totalsX, rowY - 4, totalsW, rowStep + 1, 1, 1, "F");
-    doc.setFont(pdfFont, "bold");
-    doc.setTextColor(...GREEN);
-    doc.text(promoLabel, totalsX + 4, rowY);
-    doc.text(`-${fmt(promoDiscount)}`, totalsX + totalsW - 4, rowY, { align: "right" });
-    doc.setFont(pdfFont, "normal");
-    rowY += rowStep + 1;
+    drawTotalsRow(promoLabel, `-${fmt(promoDiscount)}`, {
+      color: GREEN,
+      valueColor: GREEN,
+      background: GREEN_BG,
+      bold: true,
+    });
   }
 
   // Membership / package discount row
   if (pkgDiscount > 0) {
     const pkgLabel = membershipLabel || invoiceText("invoice.member_discount");
-    doc.setFillColor(...GREEN_BG);
-    doc.roundedRect(totalsX, rowY - 4, totalsW, rowStep + 1, 1, 1, "F");
-    doc.setFont(pdfFont, "bold");
-    doc.setTextColor(...GREEN);
-    doc.text(pkgLabel, totalsX + 4, rowY);
-    doc.text(`-${fmt(pkgDiscount)}`, totalsX + totalsW - 4, rowY, { align: "right" });
-    doc.setFont(pdfFont, "normal");
-    rowY += rowStep + 1;
+    drawTotalsRow(pkgLabel, `-${fmt(pkgDiscount)}`, {
+      color: GREEN,
+      valueColor: GREEN,
+      background: GREEN_BG,
+      bold: true,
+    });
   }
 
   // Wallet credits deduction row — shown when the patient used wallet balance
@@ -491,63 +523,51 @@ export async function generateInvoicePDF(
   if (walletUsed > 0) {
     const BLUE_BG: RGB = [219, 234, 254];
     const BLUE: RGB = [29, 78, 216];
-    doc.setFillColor(...BLUE_BG);
-    doc.roundedRect(totalsX, rowY - 4, totalsW, rowStep + 1, 1, 1, "F");
-    doc.setFont(pdfFont, "bold");
-    doc.setTextColor(...BLUE);
-    doc.text(invoiceText("invoice.wallet_credits"), totalsX + 4, rowY);
-    doc.text(`-${fmt(walletUsed)}`, totalsX + totalsW - 4, rowY, { align: "right" });
-    doc.setFont(pdfFont, "normal");
-    rowY += rowStep + 1;
+    drawTotalsRow(invoiceText("invoice.wallet_credits"), `-${fmt(walletUsed)}`, {
+      color: BLUE,
+      valueColor: BLUE,
+      background: BLUE_BG,
+      bold: true,
+    });
   }
 
-  doc.setTextColor(...MUTED);
-  doc.text(invoiceText("invoice.service_tax", { rate: serviceTaxRate }), totalsX + 4, rowY);
-  doc.setTextColor(...TEXT);
-  doc.text(fmt(serviceTax), totalsX + totalsW - 4, rowY, { align: "right" });
-  rowY += rowStep;
-
-  doc.setTextColor(...MUTED);
-  doc.text(invoiceText("invoice.platform_tax", { rate: platformTaxRate }), totalsX + 4, rowY);
-  doc.setTextColor(...TEXT);
-  doc.text(fmt(platformTax), totalsX + totalsW - 4, rowY, { align: "right" });
-  rowY += rowStep;
-
-  doc.setTextColor(...MUTED);
-  doc.text(invoiceText("invoice.total_tax"), totalsX + 4, rowY);
-  doc.setTextColor(...TEXT);
-  doc.text(fmt(tax), totalsX + totalsW - 4, rowY, { align: "right" });
-  rowY += rowStep + 1;
+  drawTotalsRow(invoiceText("invoice.service_tax", { rate: serviceTaxRate }), fmt(serviceTax));
+  drawTotalsRow(invoiceText("invoice.platform_tax", { rate: platformTaxRate }), fmt(platformTax));
+  drawTotalsRow(invoiceText("invoice.total_tax"), fmt(tax));
 
   // Total — highlighted bar (gold)
-  const totalBarY = rowY;
+  const totalBarY = rowY + 1;
+  const totalLabel = (invoice.status || "").toLowerCase() === "paid"
+    ? invoiceText("invoice.total_paid")
+    : invoiceText("invoice.total_due");
+  const totalLabelLines = doc.splitTextToSize(totalLabel, totalsW - 36) as string[];
+  const totalBarH = Math.max(12, totalLabelLines.length * 4.4 + 4);
   doc.setFillColor(...BRAND_RGB);
-  doc.roundedRect(totalsX, totalBarY, totalsW, 12, 2, 2, "F");
+  doc.roundedRect(totalsX, totalBarY, totalsW, totalBarH, 2, 2, "F");
   doc.setFont(pdfFont, "bold");
-  doc.setFontSize(11);
+  doc.setFontSize(10.5);
   doc.setTextColor(255, 255, 255);
-  doc.text(
-    (invoice.status || "").toLowerCase() === "paid"
-      ? invoiceText("invoice.total_paid")
-      : invoiceText("invoice.total_due"),
-    totalsX + 4,
-    totalBarY + 7.5,
-  );
+  doc.text(totalLabelLines, totalsX + 4, totalBarY + 5);
   doc.setFontSize(13);
-  doc.text(fmt(total), totalsX + totalsW - 4, totalBarY + 7.7, { align: "right" });
+  doc.text(fmt(total), totalsX + totalsW - 4, totalBarY + totalBarH / 2 + 1.8, { align: "right" });
 
   // "You saved X!" callout below total bar when discounts were applied
   if (totalDiscount > 0) {
-    const savingsY = totalBarY + 15;
+    const savingsY = totalBarY + totalBarH + 3;
+    const savingsLines = doc.splitTextToSize(
+      invoiceText("invoice.saved", { amount: fmt(totalDiscount) }),
+      totalsW - 8,
+    ) as string[];
+    const savingsH = Math.max(10, savingsLines.length * 4 + 4);
     doc.setFillColor(...GREEN_BG);
-    doc.roundedRect(totalsX, savingsY, totalsW, 10, 2, 2, "F");
+    doc.roundedRect(totalsX, savingsY, totalsW, savingsH, 2, 2, "F");
     doc.setFont(pdfFont, "bold");
     doc.setFontSize(9);
     doc.setTextColor(...GREEN);
     doc.text(
-      invoiceText("invoice.saved", { amount: fmt(totalDiscount) }),
+      savingsLines,
       totalsX + totalsW / 2,
-      savingsY + 6.5,
+      savingsY + savingsH / 2 + 1.5,
       { align: "center" },
     );
   }
@@ -601,10 +621,13 @@ export async function generateInvoicePDF(
   // Use template footer text if present, fall back to legacy line.
   const leftFooter = (tpl.footerText || `${tpl.companyName} · ${invoiceText("invoice.platform_footer")}`).trim();
   // Hard truncate to one line — autoTable handles longer content.
-  const leftFitted = doc.splitTextToSize(leftFooter, pageW - 2 * M - 80)[0] || leftFooter;
+  const leftFitted = (doc.splitTextToSize(leftFooter, pageW - 2 * M - 80) as string[])[0] || leftFooter;
   doc.text(leftFitted, M, footerY);
   const rightFooter = [tpl.website, tpl.email].filter(Boolean).join(" · ");
-  if (rightFooter) doc.text(rightFooter, pageW - M, footerY, { align: "right" });
+  if (rightFooter) {
+    const rightFitted = (doc.splitTextToSize(rightFooter, 76) as string[])[0] || rightFooter;
+    doc.text(rightFitted, pageW - M, footerY, { align: "right" });
+  }
 
   doc.setTextColor(...SUBTLE);
   doc.setFontSize(7);
