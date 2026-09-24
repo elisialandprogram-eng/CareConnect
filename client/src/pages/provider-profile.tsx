@@ -114,7 +114,7 @@ function VerifiedCredentialsSection({ providerId }: { providerId: string }) {
                     {reportCredentialTypeLabel(t, cred.credentialType, CRED_LABELS[cred.credentialType] ?? "")}
                   </Badge>
                   <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200 text-xs gap-1">
-                    <CheckCircle className="h-3 w-3" />Verified
+                    <CheckCircle className="h-3 w-3" />{t("profile.verified_badge", "Verified")}
                   </Badge>
                 </div>
                 {(cred.licenseNumber || cred.issuingBody) && (
@@ -265,7 +265,7 @@ export default function ProviderProfile() {
         <div className="container mx-auto px-4">
           <PageBreadcrumbs
             items={[
-              { label: "Home", href: "/" },
+              { label: t("common.home", "Home"), href: "/" },
               { label: t("common.providers", "Providers"), href: "/providers" },
               { label: displayName },
             ]}
@@ -290,7 +290,7 @@ export default function ProviderProfile() {
                             </h1>
                             {isClinic && (
                               <Badge variant="outline" className="text-xs border-primary/40 text-primary">
-                                Clinic
+                                {t("profile.clinic_badge", "Clinic")}
                               </Badge>
                             )}
                             {provider.isVerified && (
@@ -634,10 +634,10 @@ export default function ProviderProfile() {
                                   >
                                     <span className="flex items-center gap-2 min-w-0">
                                       <CheckCircle className="h-3.5 w-3.5 text-green-600 shrink-0" />
-                                      <span className="truncate">{s.name}</span>
+                                      <span className="truncate">{localize(s.name)}</span>
                                     </span>
                                     <span className="text-muted-foreground text-xs shrink-0 ml-2">
-                                      {s.duration} min
+                                      {t("profile.minutes", "{{count}} min", { count: s.duration })}
                                     </span>
                                   </div>
                                 ))}
@@ -646,7 +646,8 @@ export default function ProviderProfile() {
                               {pkg.duration && (
                                 <p className="text-xs text-muted-foreground mt-3 flex items-center gap-1">
                                   <Clock className="h-3.5 w-3.5" />
-                                  {t("profile.total_duration", "Total duration:")} {pkg.duration} min
+                                  {t("profile.total_duration", "Total duration:")}{" "}
+                                  {t("profile.minutes", "{{count}} min", { count: pkg.duration })}
                                 </p>
                               )}
                             </div>
@@ -682,7 +683,7 @@ export default function ProviderProfile() {
                                 <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
                                   <span className="flex items-center gap-1">
                                     <Clock className="h-4 w-4" />
-                                    {service.duration} min
+                                    {t("profile.minutes", "{{count}} min", { count: service.duration })}
                                   </span>
                                 </div>
                               </div>

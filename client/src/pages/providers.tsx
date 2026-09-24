@@ -441,7 +441,7 @@ export default function Providers() {
       <main className="flex-1">
         <div className="container mx-auto px-4">
           <PageBreadcrumbs
-            items={[{ label: "Home", href: "/" }, { label: getPageTitle() }]}
+            items={[{ label: t("common.home", "Home"), href: "/" }, { label: getPageTitle() }]}
             fallback="/"
           />
         </div>
