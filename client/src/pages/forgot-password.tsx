@@ -232,10 +232,10 @@ export default function ForgotPassword() {
                     {isLoading ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Sending Link...
+                        {t("public_pages.forgot_sending")}
                       </>
                     ) : (
-                      "Send Reset Link"
+                      t("public_pages.forgot_send")
                     )}
                   </Button>
                 </form>
